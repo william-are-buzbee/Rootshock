@@ -297,7 +297,7 @@ function panel(D,c,x,z,face){const ew=face==='e'||face==='w',o=face==='e'||face=
 function genset(D,c,x,z,ix,iz){bx(D,x,z,1.4,1.1,.8,0x44525a);bx(D,x,z,1.1,.3,.6,0x36424a,{y:1.1,c:0});P(D,'cyl',x+.25,z,.16,.7,.16,0x2c3338,{y:1.4,c:0});
   D.props.push({shape:'box',x:x*T,z:z*T+.42*(iz>z?1:-1),y:.8,sx:.12,sy:.12,sz:.06,c:[.2,.2,.2],ry:0,rz:0,glow:0,pw:[[2.9,2.2,2.15],[2.25,2.9,2.4]],pc:c,col:false});
   D.intDefs.push({x:ix,z:iz,y:1,kind:'backup',c});}
-function corpse(D,x,z,col,ns,o){body(D,x,z,col,ns);D.intDefs.push(Object.assign({x,z,y:D.deep?.3:.3,kind:'body'},o));}
+function corpse(D,x,z,col,ns,o){body(D,x,z,col,ns);D.intDefs.push(Object.assign({x,z,y:.3,kind:'body'},o));}
 function defWorld(){
   const CELL={fl:0x4e5052,wl:0x666a6e,st:0xa8521e},UTIL={fl:0x505254,wl:0x6a6d6c,st:0xb89b2e},HAB={fl:0x7b7568,wl:0x9a9588,st:0x3f7f6b},
         MED={fl:0x9aa39d,wl:0xb9c4bd,st:0x8c2f24},SEC={fl:0x55585c,wl:0x70747a,st:0x39485a},OPS={fl:0x6a665e,wl:0x8c887e,st:0x8a7a4a},
@@ -633,6 +633,11 @@ function probe(x,z,r,feet,top){let block=false,ground=-1e9,ceil=1e9;const F=G.D.
   PR.block=block;PR.ground=ground;PR.ceil=ceil;return PR;}
 function los(D,x0,z0,x1,z1){const dx=x1-x0,dz=z1-z0,d=Math.hypot(dx,dz),n=Math.ceil(d/.5);
   for(let k=1;k<n;k++){const t=tileAt(D,x0+dx*k/n,z0+dz*k/n);if(t<0||!D.g[t])return false;const dr=D.doors[t];if(dr&&!dr.open&&!dr.stuck)return false;}return true;}
+/* a straight line from the eye through the room's furniture: false if a solid prop is in the way. Stops short of the target by `stop` metres. */
+function clearShot(D,x0,y0,z0,x1,y1,z1,stop){const d=Math.hypot(x1-x0,z1-z0),L=Math.max(0,d-stop),n=Math.ceil(L/.25);
+  for(let k=1;k<=n;k++){const t=k/n*L/(d||1),x=x0+(x1-x0)*t,y=y0+(y1-y0)*t,z=z0+(z1-z0)*t,cs=D.cols[tileAt(D,x,z)];
+    if(cs)for(const b of cs)if(x>b[0]&&x<b[2]&&z>b[1]&&z<b[3]&&y>D.y0+b[4]+b[6]&&y<D.y0+b[5]+b[6])return false;}
+  return true;}
 function locked(d){return(d.card||d.code)&&!d.unlocked&&lvl(d.c)>0;}
 /* a closed door that hands cannot open */
 function doorShut(D,d){return d.seal||d.vent||d.lift||d.stuck||d.kind==='heavy'||locked(d);}
@@ -1039,15 +1044,16 @@ function fire(){const p=G.p,w=G.ws;if(p.gcd>0)return;if(G.D.deep){say('It will n
   const i=G.inv.findIndex(s=>s.id===w.ammo);if(i<0){sfx('deny');say('Empty.');p.gcd=.5;return;}
   consume(i);p.gcd=w.cd;p.kick=1;sfx(w.dmg>50?'boom':'shot');noise(36);G.muzzle=.06;G.shake=Math.max(G.shake,w.dmg>50?.3:.12);
   let best=null,bd=1e9;for(const m of G.D.muts){if(m.dead)continue;const dx=m.x-p.x,dz=m.z-p.z,d=Math.hypot(dx,dz);if(d>w.range)continue;
-    const hy=(m.fixed?2:m.yoff+.9)-p.eye,dot=(dx*G.fwd[0]+hy*G.fwd[1]+dz*G.fwd[2])/Math.hypot(dx,hy,dz);if(dot<w.cone&&d>m.r+.8)continue;if(!los(G.D,p.x,p.z,m.x,m.z))continue;if(d<bd){bd=d;best=m;}}
+    const ty=m.gy+(m.fixed?2:m.yoff+.9),hy=ty-p.y-p.eye,dot=(dx*G.fwd[0]+hy*G.fwd[1]+dz*G.fwd[2])/Math.hypot(dx,hy,dz);if(dot<w.cone&&d>m.r+.8)continue;
+    if(!los(G.D,p.x,p.z,m.x,m.z)||!clearShot(G.D,p.x,p.y+p.eye,p.z,m.x,ty,m.z,m.r))continue;if(d<bd){bd=d;best=m;}}
   if(best)hitMut(best,{dmg:w.dmg*(w.dmg>50?clamp(1.2-bd/w.range,.25,1):1),stun:.5},1);}
 function strike(pow){const p=G.p,w=G.ws,fx=-Math.sin(p.yaw),fz=-Math.cos(p.yaw);let best=null,bd=1e9;
   for(const m of G.D.muts){if(m.dead)continue;
     if(m.fixed){/* only the head counts, and you have to be looking at it */
-      const hx=m.x+Math.sin(m.yaw)*.22-p.x,hy=2.02-p.eye,hz=m.z+Math.cos(m.yaw)*.22-p.z,hd=Math.hypot(hx,hy,hz);
+      const hx=m.x+Math.sin(m.yaw)*.22-p.x,hy=m.gy+2.02-p.y-p.eye,hz=m.z+Math.cos(m.yaw)*.22-p.z,hd=Math.hypot(hx,hy,hz);
       if(hd>w.reach+.75||(hx*G.fwd[0]+hy*G.fwd[1]+hz*G.fwd[2])/hd<.88)continue;if(hd<bd){bd=hd;best=m;}continue;}
     const dx=m.x-p.x,dz=m.z-p.z,d=Math.hypot(dx,dz);if(d-m.r>w.reach||Math.abs(p.y-m.gy)>1.8)continue;
-    if(d>m.r&&(dx*fx+dz*fz)/d<.6)continue;if(!los(G.D,p.x,p.z,m.x,m.z))continue;if(d<bd){bd=d;best=m;}}
+    if(d>m.r&&(dx*fx+dz*fz)/d<.6)continue;if(!los(G.D,p.x,p.z,m.x,m.z)||!clearShot(G.D,p.x,p.y+p.eye,p.z,m.x,m.gy+m.yoff+.9,m.z,m.r))continue;if(d<bd){bd=d;best=m;}}
   if(best)hitMut(best,w,pow);
   else if(collides(G.D,p.x+fx*(w.reach-.3),p.z+fz*(w.reach-.3),.1)){sfx('clang');noise(8);}}
 function has(id){return!!G.tools[id]||G.inv.some(s=>s.id===id);}
@@ -1151,7 +1157,7 @@ function findInt(){const p=G.p,f=G.fwd;let best=null,bs=.78;
     const dot=d<.5?1:(dx*f[0]+dy*f[1]+dz*f[2])/d;if(dot>bs){const lb=it.label(it);if(!lb)continue;bs=dot;best=it;it._l=lb;}}
   return best;}
 function interact(){const it=G.cur;if(it)it.act(it);}
-function setDeck(k){G.deck=k;G.D=G.decks[k];G.decks.forEach(d=>d.grp.visible=d.F===G.D.F);G.fT=0;G.proom=-1;G.rideE=null;}
+function setDeck(k){G.deck=k;G.D=G.decks[k];G.decks.forEach(d=>d.grp.visible=d.F===G.D.F);G.fT=0;G.proom=-1;}
 
 /* ============================================================ notes */
 const NOTES=(code,code2)=>({
@@ -1243,7 +1249,6 @@ function sfx(n,d,big){if(!AC)return;let v=clamp(1-(d||0)/(RNG[n]||22),0,1);if(v<
     case'load':tn(300,380,.05,'triangle',.05);break;
     case'deny':tn(140,140,.15,'square',.1);break;
     case'power':nz(.6,.7,90);tn(40,100,2.5,'sawtooth',.12);break;
-    case'zap':nz(.5,.4,3500,'highpass');tn(60,50,.5,'square',.15);break;
     case'paper':nz(.15,.1,3000,'highpass');break;
     case'eat':nz(.2,.12,800);break;
   }}
@@ -1259,7 +1264,7 @@ function newGame(){clearTimeout(endTO);disposeScene();
   const code=String(1000+Math.floor(Math.random()*9000)),code2=String(1000+Math.floor(Math.random()*9000));
   G={mode:'play',prim:false,fuseIn:false,
     circ:{OPS:{on:true,back:true},CARGO:{on:false,back:false},RES:{on:true,back:false},HORT:{on:true,back:true},ENG:{on:true,back:false},HYD:{on:true,back:false,broken:true},LIFT:{on:true,back:false}},
-    decks:null,deck:0,D:null,rideE:null,inv:[],cap:10,tools:{},keys:{},worn:{},weapon:null,ws:wstats(null),notes:NOTES(code,code2),read:[],code,code2,padCode:'',padFn:null,
+    decks:null,deck:0,D:null,inv:[],cap:10,tools:{},keys:{},worn:{},weapon:null,ws:wstats(null),notes:NOTES(code,code2),read:[],code,code2,padCode:'',padFn:null,
     p:{x:2.3*T,z:5.7*T,y:0,cy:0,vy:0,ground:true,wantStand:false,yaw:-PI/2,pitch:0,hp:100,eye:1.62,crouch:false,slow:0,kx:0,kz:0,stepD:0,bob:0,swing:null,chg:-1,full:false,gcd:0,kick:0},
     fwd:[1,0,0],vis:1,noise:0,noiseI:0,noiseT:0,light:null,lightOn:false,flashOn:false,lampOn:false,batt:100,fk:0,muzzle:0,o2:35,o2max:35,shake:0,hurtFx:0,fT:0,proom:-1,wormN:0,
     touched:false,bloatHit:false,grabTip:false,diveTip:false,time:0,stats:{kills:0},cur:null,pad:'',vm:null,vmMat:null,vmChild:null};
@@ -1390,6 +1395,7 @@ function boot(){
   $('note').addEventListener('click',()=>{if(G&&G.mode==='note')closePanel();});
   let h='';for(const k of['1','2','3','4','5','6','7','8','9','C','0'])h+='<button data-k="'+k+'">'+(k==='C'?'Clear':k)+'</button>';$('padk').innerHTML=h;
   $('padk').addEventListener('click',e=>{const b=e.target.closest('[data-k]');if(b)padKey(b.dataset.k);});
+  if(document.fonts&&document.fonts.load)document.fonts.load('600 27px "Barlow Condensed"').catch(()=>{});
   requestAnimationFrame(frame);
 }
 if(typeof THREE==='undefined')$('titleg').textContent='three.js did not load. Check your connection and reload.';
