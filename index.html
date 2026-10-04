@@ -498,7 +498,7 @@ function defWorld(){
   door(HY,5,3,{sg:[['Pumps','w']]});room(HY,'Pump gallery',6,2,18,3,{...WET,em:1});
   for(const x of[8,12,16,20])P(HY,'cyl',x,2.7,1.2,2,1.2,0x3b4d57);bx(HY,14,2.25,23,.2,.2,0x5a4034,{y:2.2,c:0});bx(HY,15,4.8,35,.14,.14,0x3d4042,{y:2.6,c:0});
   room(HY,'Control office',8,6,5,4,WET);door(HY,10,5,{sg:[['Control','n']]});
-  desk(HY,11.5,9.5,2,.7);note(HY,'hydro',11,9.45,.78);item(HY,'lantern',12,9.5,.78);shelf(HY,8.3,8,.5,3);item(HY,'wrench',8.35,7.4,1.06);item(HY,'batt',8.35,8.6,1.06,2);
+  bx(HY,11.5,9.5,2.4,1,.7,0x3f4448);bx(HY,11.5,9.5,.5,.34,.06,0x22262a,{y:1,c:0});bx(HY,11.5,9.52,.44,.28,.02,[.06,.12,.1],{y:1.03,c:0,pw:[[.04,.05,.05],[2.2,2.75,2.5]]});note(HY,'hydro',11,9.45,1.02);item(HY,'lantern',12,9.5,1.02);shelf(HY,8.3,8,.5,3);item(HY,'wrench',8.35,7.4,1.06);item(HY,'batt',8.35,8.6,1.06,2);
   room(HY,'Tank hall',15,6,9,9,{...WET,ht:5,em:1});door(HY,19,5,{sg:[['Tanks','n']]});
   for(const[x,z]of[[17,8],[21.5,8],[17,12.5]])P(HY,'cyl',x,z,2.6,3.4,2.6,0x3b4d57);bx(HY,22.5,13.5,1.4,.1,1.4,0x8a7a2a,{y:.92,c:0});
   HY.intDefs.push({x:22.5,z:13.5,y:1,kind:'dive',to:'DP',pos:[3,9,0],label:'Dive: flooded shaft A'});mut(HY,'swimmer',19.6,11);mut(HY,'swimmer',21,13.8);
@@ -963,7 +963,8 @@ const BODY=()=>G.p.crouch?1:1.8;
 function pcol(x,z){const D=G.D,p=G.p;
   if(probe(x,z,.32,p.y,p.y+BODY()).block)return true;
   for(const m of D.muts){if(m.dead||!m.solid||Math.abs(p.y-m.gy)>1.6)continue;const nd=Math.hypot(x-m.x,z-m.z);if(nd<m.cr+.3&&nd<Math.hypot(p.x-m.x,p.z-m.z))return true;}return false;}
-function jump(){const p=G.p;if(G.mode!=='play'||!p.ground||G.D.deep)return;p.vy=6.3;p.ground=false;p.crouch=false;noise(3);}
+function jump(){const p=G.p;if(G.mode!=='play'||!p.ground||G.D.deep)return;
+  if(p.crouch){const q=probe(p.x,p.z,.3,p.y,p.y+1.8);if(q.block||q.ceil<p.y+1.8)return;}p.vy=6.3;p.ground=false;p.crouch=false;noise(3);}
 function setGrid(D){G.D=D;G.deck=G.decks.indexOf(D);G.fT=0;G.proom=-1;}
 function updPlayer(dt){const p=G.p;let D=G.D;const wet=!!D.wet,deep=!!D.deep,GRAV=20;
   let f=0,s=0;if(K.KeyW||K.ArrowUp)f++;if(K.KeyS||K.ArrowDown)f--;if(K.KeyD||K.ArrowRight)s++;if(K.KeyA||K.ArrowLeft)s--;
@@ -1203,10 +1204,10 @@ function endGame(win,msg){G.mode=win?'win':'dead';if(document.pointerLockElement
   $('endh').textContent=win?'Surface':'Grafted';
   $('endp').textContent=!win?msg+' Lowfield keeps what it is given.'
     :'The lift climbs for a long time. When the doors open it is raining, and the rain is the first thing in nine days that has asked nothing of you. Six floors down, something green and something red go on disagreeing about who the station belongs to. '+mm+':'+ss+' underground, '+G.stats.kills+' put down, '+G.read.length+' of '+Object.keys(G.notes).length+' papers read.';
-  setTimeout(()=>$('end').classList.remove('hide'),win?300:900);if(!win)$('vig').style.opacity=1;}
+  clearTimeout(endTO);endTO=setTimeout(()=>$('end').classList.remove('hide'),win?300:900);if(!win)$('vig').style.opacity=1;}
 
 /* ============================================================ audio (all synthesised; panned by where the thing is) */
-let AC=null,MASTER=null,NB=null,HUM=null,PANV=0;
+let endTO=0,AC=null,MASTER=null,NB=null,HUM=null,PANV=0;
 const RNG={door:46,roar:55,thud:40,hstep:18,moan:28,tap:24,skit:24,slosh:20,swing:10};
 function audioInit(){if(AC)return;try{AC=new(window.AudioContext||window.webkitAudioContext)();MASTER=AC.createGain();MASTER.gain.value=.55;MASTER.connect(AC.destination);
   NB=AC.createBuffer(1,AC.sampleRate,AC.sampleRate);const d=NB.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
@@ -1248,7 +1249,10 @@ function sfx(n,d,big){if(!AC)return;let v=clamp(1-(d||0)/(RNG[n]||22),0,1);if(v<
   }}
 
 /* ============================================================ new game */
-function newGame(){
+/* free what the last run put on the GPU; the cached part templates and the shared static material are reused */
+function disposeScene(){const keep=new Set(Object.values(GC));
+  scene.traverse(o=>{if(!o.isMesh)return;if(!keep.has(o.geometry))o.geometry.dispose();const m=o.material;if(m!==SMAT){if(m.map)m.map.dispose();m.dispose();}});}
+function newGame(){clearTimeout(endTO);disposeScene();
   while(scene.children.length)scene.remove(scene.children[0]);
   while(camera.children.length)camera.remove(camera.children[0]);
   scene.add(camera);
