@@ -202,11 +202,15 @@ function shUni(extra){return Object.assign({uFlashDir:U.uFlashDir,uFlash:U.uFlas
 function dmat(){return new THREE.ShaderMaterial({uniforms:shUni({uLight:{value:new THREE.Vector3()}}),vertexShader:VS,fragmentShader:FS,side:THREE.DoubleSide,extensions:{derivatives:true}});}
 
 /* ============================================================ world description helpers (positions in tile units, sizes in metres) */
-/* A grid is one walkable layer. A floor of the station is one grid, or two stacked (a tall hall and the rung above it). */
-function mkDeck(name,sub,W,H,c,o){o=o||{};return{name,sub,W,H,c,F:o.F||0,y0:o.y0||0,li:o.li||0,wet:o.wet||0,deep:o.deep||0,mk:{},above:null,below:null,
+/* A grid is one walkable layer. A level of the station is one grid, or two stacked (a tall hall and the rung above it).
+   Every layer carries its level's id (lv), name and circuit (c); layers with the same lv are one place and are live together. */
+function mkDeck(lv,W,H,o){o=o||{};return{name:lv.name,W,H,c:lv.c,lv:lv.id,org:lv.org||[0,0],y0:o.y0||0,li:o.li||0,wet:o.wet||0,deep:o.deep||0,mk:{},above:null,below:null,
   g:new Uint8Array(W*H),rm:new Int16Array(W*H).fill(-1),nom:new Uint8Array(W*H),el:{},elevs:[],stairs:[],conn:{},rooms:[],doors:{},props:[],xcols:[],cols:{},blk:new Uint8Array(W*H),lamps:[],
   fA:new Int16Array(W*H),fB:new Int16Array(W*H),q:new Int32Array(W*H),items:[],notes:[],mutDefs:[],intDefs:[],TL:null,mesh:null,grp:null,ints:[],muts:[],dyn:[],signs:[]};}
 function stack(lo,hi){lo.above=hi;hi.below=lo;}
+/* station-plan.md gives every position in metres, in one frame for the whole station: x east, z south, y up from the surface.
+   A level that declares org:[x,z], the plan point under its tile (0,0), can be laid out straight from those numbers. */
+const planL=m=>m/T,planX=(D,x)=>(x-D.org[0])/T,planZ=(D,z)=>(z-D.org[1])/T;
 function room(D,name,x,y,w,h,o){const r=Object.assign({name,x,y,w,h,ht:3.2,fl:0x6b6e6a,wl:0x7c7f7a,st:0x555555,lit:'main',lc:WHITE,flick:0,c:D.c,em:0,open:0,hole:0},o||{});
   r.id=D.rooms.length;r.flc=hex3(r.fl);r.wlc=hex3(r.wl);r.wlb=mul3(r.wlc,.78);r.clc=mul3(r.wlc,.6);r.stc=hex3(r.st);if(r.sky)r.skyc=hex3(r.sky);
   D.rooms.push(r);for(let j=y;j<y+h;j++)for(let i=x;i<x+w;i++){D.g[j*D.W+i]=1;D.rm[j*D.W+i]=r.id;}return r;}
@@ -289,7 +293,7 @@ function item(D,id,x,z,y,n){D.items.push({id,x:x*T,z:z*T,y:y||0,n:n||1});}
 function note(D,key,x,z,y){D.notes.push({key,x:x*T,z:z*T,y:y||0});}
 function mut(D,type,x,z,o){D.mutDefs.push({type,x,z,o:o||{}});}
 
-/* ============================================================ the facility: six floors, top to bottom */
+/* ============================================================ the facility: fittings that touch power, and the levels */
 function panel(D,c,x,z,face){const ew=face==='e'||face==='w',o=face==='e'||face==='s'?.06:-.06;
   bx(D,x,z,ew?.14:.7,.9,ew?.7:.14,0x4a4f55,{y:.9,c:0});
   D.props.push({shape:'box',x:(x+(ew?o:0))*T,z:(z+(ew?0:o))*T,y:1.55,sx:.1,sy:.1,sz:.1,c:[.2,.2,.2],ry:0,rz:0,glow:0,pw:[[2.9,2.2,2.15],[2.25,2.9,2.4]],pc:c,col:false});
@@ -298,21 +302,23 @@ function genset(D,c,x,z,ix,iz){bx(D,x,z,1.4,1.1,.8,0x44525a);bx(D,x,z,1.1,.3,.6,
   D.props.push({shape:'box',x:x*T,z:z*T+.42*(iz>z?1:-1),y:.8,sx:.12,sy:.12,sz:.06,c:[.2,.2,.2],ry:0,rz:0,glow:0,pw:[[2.9,2.2,2.15],[2.25,2.9,2.4]],pc:c,col:false});
   D.intDefs.push({x:ix,z:iz,y:1,kind:'backup',c});}
 function corpse(D,x,z,col,ns,o){body(D,x,z,col,ns);D.intDefs.push(Object.assign({x,z,y:.3,kind:'body'},o));}
-function defWorld(){
-  const CELL={fl:0x4e5052,wl:0x666a6e,st:0xa8521e},UTIL={fl:0x505254,wl:0x6a6d6c,st:0xb89b2e},HAB={fl:0x7b7568,wl:0x9a9588,st:0x3f7f6b},
-        MED={fl:0x9aa39d,wl:0xb9c4bd,st:0x8c2f24},SEC={fl:0x55585c,wl:0x70747a,st:0x39485a},OPS={fl:0x6a665e,wl:0x8c887e,st:0x8a7a4a},
-        HRT={fl:0x3d4a30,wl:0x5a6a4c,st:0x2f5a34},BAY={fl:0x4a4c4e,wl:0x5e6164,st:0xb89b2e,ht:8,em:1},WALK={open:1,ht:4,em:1,fl:0x5a5d60,wl:0x5e6164,nolamp:1},LOW=[.66,.68,.72];
-  const stairUp=(D,ix,iz,ax,az,yaw,to)=>{D.intDefs.push({x:ix,z:iz,y:1,kind:'stair',to,which:'dn',up:1});D.mk.up=[ax,az,yaw];for(let k=0;k<5;k++)bx(D,ix,iz-.3+k*.15,1.3,.24*(k+1),.3,0x5a5d60,{c:0});};
-  const stairDn=(D,ix,iz,ax,az,yaw,to)=>{D.intDefs.push({x:ix,z:iz,y:.4,kind:'stair',to,which:'up',up:0});D.mk.dn=[ax,az,yaw];bx(D,ix,iz,1.3,.02,1.5,0x030405,{y:.014,c:0});for(const s of[-.7,.7])bx(D,ix+s/T,iz,.06,1,1.5,0x8a7a2a,{c:0});};
-  const liftRoom=(D,x,y,dx,dy)=>{room(D,'Main lift',x,y,2,2,{fl:0x44474a,wl:0x54585a,st:0xb89b2e,c:'LIFT',noroam:1,safe:1});
-    door(D,dx,dy,{kind:'heavy',c:'LIFT',sg:[['Lift',dy<y?'n':dy>y+1?'s':dx<x?'w':'e']]});
-    const px=dy<y?x+1:dy>y+1?x+1:dx<x?x+1.94:x+.06,pz=dy<y?y+1.94:dy>y+1?y+.06:y+1;
-    bx(D,px,pz,dy<y||dy>y+1?.5:.08,.4,dy<y||dy>y+1?.08:.5,0x2c2f33,{y:1.1,c:0});D.intDefs.push({x:x+1,z:y+1,y:1.3,kind:'lift'});D.mk.lift=[x+1,y+1,0];};
-  const desk=(D,x,z,w,d,o)=>{tbl(D,x,z,w,d,o&&o.c);if(!o||!o.bare){bx(D,x,z,.5,.34,.06,0x22262a,{y:.76,c:0});bx(D,x,z+.02,.44,.28,.02,[.06,.12,.1],{y:.79,c:0,pw:[[.04,.05,.05],[2.2,2.75,2.5]]});}};
-  const medbed=(D,x,z)=>{bed(D,x,z,true,0xd4d8d4);bx(D,x+.42,z-.65,.05,1.7,.05,0xa8acae,{c:0});bx(D,x+.42,z-.65,.14,.2,.08,0xc8d4d8,{y:1.5,c:0});};
+/* ---- the shared kit: palettes and fittings every level uses */
+const CELL={fl:0x4e5052,wl:0x666a6e,st:0xa8521e},UTIL={fl:0x505254,wl:0x6a6d6c,st:0xb89b2e},HAB={fl:0x7b7568,wl:0x9a9588,st:0x3f7f6b},
+      MED={fl:0x9aa39d,wl:0xb9c4bd,st:0x8c2f24},SEC={fl:0x55585c,wl:0x70747a,st:0x39485a},OPS={fl:0x6a665e,wl:0x8c887e,st:0x8a7a4a},
+      HRT={fl:0x3d4a30,wl:0x5a6a4c,st:0x2f5a34},BAY={fl:0x4a4c4e,wl:0x5e6164,st:0xb89b2e,ht:8,em:1},WALK={open:1,ht:4,em:1,fl:0x5a5d60,wl:0x5e6164,nolamp:1},LOW=[.66,.68,.72];
+/* stairs to another level. They are not walked: you fade, and arrive at the far level's marker for this one, mk['stair:'+here]. */
+function stairUp(D,ix,iz,ax,az,yaw,to){D.intDefs.push({x:ix,z:iz,y:1,kind:'stair',to,from:D.lv,up:1});D.mk['stair:'+to]=[ax,az,yaw];for(let k=0;k<5;k++)bx(D,ix,iz-.3+k*.15,1.3,.24*(k+1),.3,0x5a5d60,{c:0});}
+function stairDn(D,ix,iz,ax,az,yaw,to){D.intDefs.push({x:ix,z:iz,y:.4,kind:'stair',to,from:D.lv,up:0});D.mk['stair:'+to]=[ax,az,yaw];bx(D,ix,iz,1.3,.02,1.5,0x030405,{y:.014,c:0});for(const s of[-.7,.7])bx(D,ix+s/T,iz,.06,1,1.5,0x8a7a2a,{c:0});}
+function liftRoom(D,x,y,dx,dy){room(D,'Main lift',x,y,2,2,{fl:0x44474a,wl:0x54585a,st:0xb89b2e,c:'LIFT',noroam:1,safe:1});
+  door(D,dx,dy,{kind:'heavy',c:'LIFT',sg:[['Lift',dy<y?'n':dy>y+1?'s':dx<x?'w':'e']]});
+  const px=dy<y?x+1:dy>y+1?x+1:dx<x?x+1.94:x+.06,pz=dy<y?y+1.94:dy>y+1?y+.06:y+1;
+  bx(D,px,pz,dy<y||dy>y+1?.5:.08,.4,dy<y||dy>y+1?.08:.5,0x2c2f33,{y:1.1,c:0});D.intDefs.push({x:x+1,z:y+1,y:1.3,kind:'lift'});D.mk.lift=[x+1,y+1,0];}
+function desk(D,x,z,w,d,o){tbl(D,x,z,w,d,o&&o.c);if(!o||!o.bare){bx(D,x,z,.5,.34,.06,0x22262a,{y:.76,c:0});bx(D,x,z+.02,.44,.28,.02,[.06,.12,.1],{y:.79,c:0,pw:[[.04,.05,.05],[2.2,2.75,2.5]]});}}
+function medbed(D,x,z){bed(D,x,z,true,0xd4d8d4);bx(D,x+.42,z-.65,.05,1.7,.05,0xa8acae,{c:0});bx(D,x+.42,z-.65,.14,.2,.08,0xc8d4d8,{y:1.5,c:0});}
 
-  /* ===== 1 · Operations and Security. Start here. Its backup set is running. Least touched. ===== */
-  const O=mkDeck('1 · Operations and Security','',44,26,'OPS',{F:1});
+/* ===== 1 · Operations and Security. Start here. Its backup set is running. Least touched. ===== */
+function buildOps(lv){
+  const O=mkDeck(lv,44,26);
   room(O,'Holding block',4,2,2,10,{...CELL,lit:'always',lc:LOW,safe:1});
   for(let k=0;k<3;k++){const y=2+3*k;
     room(O,'Cell W'+(k+1),1,y,2,2,{...CELL,lit:'always',lc:mul3(LOW,.8),safe:1,nolamp:1});room(O,'Cell E'+(k+1),7,y,2,2,{...CELL,lit:'always',lc:mul3(LOW,.8),safe:1,nolamp:1});
@@ -356,11 +362,13 @@ function defWorld(){
   const offs=[['Office: operations',30,{card:'o'}],['Office: logistics',34,{open:true}],['Office: chief of security',38,{card:'o'}]];
   for(const[nm,x,dopt]of offs){room(O,nm,x,16,3,4,{...OPS,lc:[.85,.78,.62]});door(O,x+1,15,dopt);desk(O,x+1.5,18.9,1.8,.7,{c:0x4a3a2c});bx(O,x+1.5,18.2,.45,.45,.45,0x2c2f33);shelf(O,x+.3,17.3,.5,1.8,{cols:[0x7a4a34,0x4d5a66,0x8a7a4a]});}
   note(O,'mgr',31.2,18.85,.78);item(O,'batt',31.85,18.9,.78);item(O,'peaches',35.85,18.9,.78);item(O,'bandage',35.2,18.85,.78);note(O,'chief',39.2,18.85,.78);item(O,'ammo9',39.85,18.9,.78);item(O,'medkit',40.5,16.4,.02);
-  room(O,'Stairwell',40,8,2,4,{...UTIL,c:'OPS',em:1,safe:1});door(O,40,12,{sg:[['Stairs','s']]});stairDn(O,41.3,8.7,40.6,10.6,PI,2);
+  room(O,'Stairwell',40,8,2,4,{...UTIL,c:'OPS',em:1,safe:1});door(O,40,12,{sg:[['Stairs','s']]});stairDn(O,41.3,8.7,40.6,10.6,PI,'cargo');
+  return[O];}
 
-  /* ===== 2 · Storage and Cargo. Dead and black. Two bays, each with a rung you ride up to. The rungs are where they lay. ===== */
-  const CG=mkDeck('2 · Storage and Cargo','',40,26,'CARGO',{F:2}),CU=mkDeck('2 · Storage and Cargo','',40,26,'CARGO',{F:2,y0:4,li:1});stack(CG,CU);
-  room(CG,'Stairwell',36,2,2,4,{...UTIL,safe:1});door(CG,36,6,{sg:[['Stairs','s']]});stairUp(CG,37.3,2.7,36.6,4.6,PI,1);
+/* ===== 2 · Storage and Cargo. Dead and black. Two bays, each with a rung you ride up to. The rungs are where they lay. ===== */
+function buildCargo(lv){
+  const CG=mkDeck(lv,40,26),CU=mkDeck(lv,40,26,{y0:4,li:1});stack(CG,CU);
+  room(CG,'Stairwell',36,2,2,4,{...UTIL,safe:1});door(CG,36,6,{sg:[['Stairs','s']]});stairUp(CG,37.3,2.7,36.6,4.6,PI,'ops');
   room(CG,'Receiving',30,7,8,2,{...UTIL,em:1});crates(CG,34.5,8,1);blood(CG,33,7.6,1.2);
   room(CG,'Cargo office',30,2,4,4,UTIL);door(CG,31,6,{sg:[['Cargo office','s']]});
   desk(CG,31.4,2.5,1.8,.7);note(CG,'manifest',31.1,2.45,.78);item(CG,'batt',31.75,2.5,.78);genset(CG,'CARGO',33.3,4.3,32.7,4.9);item(CG,'bandage',30.4,5.5,.02);
@@ -368,7 +376,7 @@ function defWorld(){
   room(CG,'Cargo bay 2',2,9,11,13,BAY);door(CG,13,12,{sg:[['Bay 2','e'],['Bay 1','w']]});
   liftRoom(CG,20,19,20,18);
   room(CG,'Forklift park',24,19,6,4,UTIL);door(CG,26,18,{sg:[['Vehicles','n']]});forklift(CG,25,21.5,true);forklift(CG,28.5,21.2,true);crates(CG,25.4,20,1);item(CG,'batt',29.4,19.5,.02);item(CG,'pipe',27,22.6,.02);
-  room(CG,'Stairwell',2,4,2,4,{...UTIL,safe:1});door(CG,2,8,{sg:[['Stairs','s']]});stairDn(CG,3.3,4.7,2.6,6.6,PI,3);
+  room(CG,'Stairwell',2,4,2,4,{...UTIL,safe:1});door(CG,2,8,{sg:[['Stairs','s']]});stairDn(CG,3.3,4.7,2.6,6.6,PI,'res');
   container(CG,16.6,5.6,false,1);container(CG,25.4,5.6,false,1);crates(CG,21,5.4,3);forklift(CG,19.5,11,true);
   container(CG,17,14,true,2);container(CG,25.5,13,true,2);container(CG,21.6,15.6,false,2);crates(CG,26.6,10,2);crates(CG,16,10.6,2);
   for(const x of[15.5,19.5,26.5])column(CG,x,7.7,4);for(const z of[9,11])column(CG,14.5,z+.9,4);
@@ -382,9 +390,11 @@ function defWorld(){
   container(CU,4.2,20.2,false,1);bx(CU,10.6,20.6,1.1,.6,1.1,0x6b5a3c);item(CU,'fuse',10.6,20.6,.6);item(CU,'batt',9.6,20.9,.02,2);
   eggs(CU,3,17.8,5);eggs(CU,6,18.6,4);eggs(CU,8.6,20.8,5);eggs(CU,11.6,18.6,4);eggs(CU,5,21.2,4);eggs(CU,12,20.6,3);gore(CU,7.4,19.6,4);
   mut(CU,'skitter',5,18.6);mut(CU,'skitter',9.2,19.2);mut(CU,'skitter',11.5,17.6);mut(CU,'grabber',12.88,12.5,{yaw:-PI/2});
+  return[CG,CU];}
 
-  /* ===== 3 · Residences and Commons. The biggest floor. Rooms dug into the plaza walls on two levels. Theirs. ===== */
-  const R=mkDeck('3 · Residences and Commons','',50,33,'RES',{F:3}),RU=mkDeck('3 · Residences and Commons','',50,33,'RES',{F:3,y0:4,li:1});stack(R,RU);
+/* ===== 3 · Residences and Commons. The biggest floor. Rooms dug into the plaza walls on two levels. Theirs. ===== */
+function buildRes(lv){
+  const R=mkDeck(lv,50,33),RU=mkDeck(lv,50,33,{y0:4,li:1});stack(R,RU);
   const plaza=room(R,'The Commons',14,10,24,16,{fl:0x8d8a7c,wl:0xa5a296,st:0x3f7f6b,ht:8,sky:0x86a9c4,em:1});
   room(RU,'Upper walk',14,10,24,2,WALK);room(RU,'Upper walk',14,24,24,2,WALK);room(RU,'Upper walk',14,12,2,12,WALK);room(RU,'Upper walk',36,12,2,12,WALK);room(RU,'Upper walk',19,12,1,1,WALK);
   stairs(R,RU,20,12,4,'w');elev(R,RU,30,22,2,2,'RES','Passenger lift');
@@ -410,7 +420,7 @@ function defWorld(){
     else if(v[1]==='nest'){eggs(D,cx-.4,cz,3);eggs(D,x+2.3,north?y+2.5:y+.5,3);mut(D,'skitter',cx+.3,cz+.2);}
     else if(v[1]==='post')mut(D,'husk',cx,cz,{post:1,yaw:north?PI:0});
     else if(v[1]==='body')corpse(D,cx+.2,cz,pick([0x4a5560,0x6b6f5a,0x7a5a50]),true,{label:'Search the resident',say:'A room card on a lanyard. Not for this room.',keys:[v[3]]});}
-  room(R,'Stairwell',11,9,2,4,{...UTIL,c:'RES',safe:1});door(R,13,10,{sg:[['Stairs','e']]});stairUp(R,11.7,9.7,12.4,11.4,PI/2,2);
+  room(R,'Stairwell',11,9,2,4,{...UTIL,c:'RES',safe:1});door(R,13,10,{sg:[['Stairs','e']]});stairUp(R,11.7,9.7,12.4,11.4,PI/2,'cargo');
   room(R,'Canteen',4,14,9,6,HAB);door(R,13,16,{open:true,sg:[['Canteen','e']]});
   for(const z of[15.4,17,18.6]){tbl(R,7.4,z,3.2,.8,0x8a8578);bx(R,7.4,z-.35,3,.42,.3,0x5f6266,{c:0});bx(R,7.4,z+.35,3,.42,.3,0x5f6266,{c:0});}
   bx(R,11.4,19.6,2.4,1,.6,0x6f7378);item(R,'peaches',11.4,19.6,1.02,2);note(R,'diary',7.4,15.4,.78);blood(R,10,16.4,2);blood(R,5.5,18,1.4);mut(R,'husk',10.6,17.8);mut(R,'husk',5,14.6,{post:1,yaw:0});
@@ -424,16 +434,18 @@ function defWorld(){
   for(let k=0;k<6;k++)medbed(R,39.8+k*1.4,13.1);shelf(R,43,19.7,6,.5,{cols:[0xd4d8d4,0xb9c4bd,0x8c2f24,0xa8b4c0]});tbl(R,47.5,16.5,.7,1.6,0xb4b8ba);
   for(const x of[42,43,44])item(R,'medkit',x,19.65,1.06);for(const x of[42.5,43.5])item(R,'bandage',x,19.65,.61,2);note(R,'clinic',47.5,16.5,.78);
   room(R,'Service corridor',39,22,6,2,{...UTIL,c:'RES'});door(R,38,22);genset(R,'RES',43.6,23.6,43,23.2);
-  room(R,'Stairwell',46,21,2,4,{...UTIL,c:'RES',safe:1});door(R,45,22);stairDn(R,47.3,21.7,46.6,23.6,PI,4);
+  room(R,'Stairwell',46,21,2,4,{...UTIL,c:'RES',safe:1});door(R,45,22);stairDn(R,47.3,21.7,46.6,23.6,PI,'hort');
   liftRoom(R,41,25,41,24);
   /* above the trauma centre: the director's residence, and what keeps the key */
   room(RU,'Director\'s residence',39,12,7,7,{...HAB,fl:0x5e5248,lc:[.85,.78,.62],noroam:1});door(RU,38,15,{sg:[['Director','w']]});
   bed(RU,45.3,13.2,true,0x7a5a50);tbl(RU,41,12.5,2,.8,0x4a3a2c);note(RU,'keeper',41,12.45,.78);eggs(RU,40,18,4);eggs(RU,45,18.2,3);gore(RU,42.4,17.4,5);
   mut(RU,'bloat',44.6,15.5,{sit:1,yaw:-PI/2});mut(RU,'husk',40.6,14.2,{post:1,yaw:-PI/2});mut(RU,'husk',41,16.8,{post:1,yaw:-PI/2});mut(RU,'skitter',43,13.4);
+  return[R,RU];}
 
-  /* ===== 4 · Horticulture Labs. Where it started. Its own security, its own power, and nobody has pruned anything. ===== */
-  const HT=mkDeck('4 · Horticulture Labs','',44,27,'HORT',{F:4});
-  room(HT,'Stairwell',40,4,2,4,{...HRT,safe:1,em:1});door(HT,40,8);stairUp(HT,41.3,4.7,40.6,6.6,PI,3);
+/* ===== 4 · Horticulture Labs. Where it started. Its own security, its own power, and nobody has pruned anything. ===== */
+function buildHort(lv){
+  const HT=mkDeck(lv,44,27);
+  room(HT,'Stairwell',40,4,2,4,{...HRT,safe:1,em:1});door(HT,40,8);stairUp(HT,41.3,4.7,40.6,6.6,PI,'res');
   const post=room(HT,'Security post',36,9,6,4,{...SEC,c:'HORT',em:1});
   desk(HT,38.6,9.5,1.8,.7);note(HT,'hsec',38.2,9.45,.78);genset(HT,'HORT',41.3,11.6,40.7,12.2);
   corpse(HT,37.4,11.4,0x2c3440,true,{label:'Search the guard',say:'Horticulture had its own security. This one kept his pass.',keys:['h']});
@@ -454,15 +466,17 @@ function defWorld(){
   door(HT,9,10,{sg:[['Offices · Stairs','e']]});room(HT,'West vestibule',6,10,3,2,{...HRT,em:1});
   room(HT,'Director of research',2,3,6,6,{...HAB,c:'HORT',fl:0x5e5248,lc:[.85,.78,.62]});door(HT,6,9,{code:2,sg:[['Dr. M. Holt','s']]});
   desk(HT,4,3.6,2,.8,{c:0x4a3a2c});shelf(HT,2.3,6,.5,3,{cols:[0x7a4a34,0x4d5a66,0x8a7a4a]});bed(HT,7.3,4.4,true,0x7a5a50);note(HT,'holt',3.6,3.55,.78);item(HT,'batt',4.35,3.6,.78,2);item(HT,'medkit',7.4,8.4,.02);
-  room(HT,'Stairwell',6,13,2,4,{...HRT,safe:1,em:1});door(HT,6,12);stairDn(HT,7.3,15.3,6.6,13.6,0,5);
+  room(HT,'Stairwell',6,13,2,4,{...HRT,safe:1,em:1});door(HT,6,12);stairDn(HT,7.3,15.3,6.6,13.6,0,'eng');
   for(const[Rm,d,gl]of[[gal,.5,1],[growA,.9,1],[growB,1.1,1],[arb,1,1],[lab,.5,0],[post,.12,0]])overgrow(HT,Rm,d,gl);
   for(const Rm of HT.rooms)if(Rm.name==='West vestibule'||Rm.name==='Stairwell')overgrow(HT,Rm,.7,Rm.x<10);
   mut(HT,'vine',14.5,9.88,{yaw:PI});mut(HT,'vine',24.5,8.12,{yaw:PI});mut(HT,'vine',18.5,13.12,{yaw:0});mut(HT,'vine',34.12,10.6,{yaw:-PI/2});mut(HT,'vine',27.12,15.5,{yaw:PI/2});mut(HT,'vine',10.12,11.5,{yaw:PI/2});
   mut(HT,'rootworm',13,6.6);mut(HT,'rootworm',16.4,4.4);mut(HT,'rootworm',16,7.4);mut(HT,'rootworm',25,5);mut(HT,'rootworm',26.4,7);mut(HT,'rootworm',23.4,6.4);mut(HT,'rootworm',16,17.6);mut(HT,'rootworm',20.6,22.6);mut(HT,'rootworm',17.4,21);
+  return[HT];}
 
-  /* ===== 5 · Engineering. Dead and black. Gen-1 is here, and the board that routes it. The west end is going green. ===== */
-  const EN=mkDeck('5 · Engineering','',44,24,'ENG',{F:5});
-  const est=room(EN,'Stairwell',2,10,2,4,{...UTIL,safe:1});door(EN,4,11);stairUp(EN,2.7,10.7,3.4,12.6,-PI/2,4);
+/* ===== 5 · Engineering. Dead and black. Gen-1 is here, and the board that routes it. The west end is going green. ===== */
+function buildEng(lv){
+  const EN=mkDeck(lv,44,24);
+  const est=room(EN,'Stairwell',2,10,2,4,{...UTIL,safe:1});door(EN,4,11);stairUp(EN,2.7,10.7,3.4,12.6,-PI/2,'hort');
   const wc=room(EN,'West corridor',5,11,12,2,{...UTIL,em:1});
   const shop=room(EN,'Machine shop',5,3,9,7,{...UTIL,ht:4});door(EN,8,10,{stuck:true,sg:[['Machine shop','s']]});
   tbl(EN,6,5,.9,3.4,0x54504a);bx(EN,10,4,1.8,1.1,.9,0x3f5148);P(EN,'cyl',10,4,.3,.5,.3,0x2c3833,{y:1.1,c:0});bx(EN,12.6,6.6,.9,1.3,1.8,0x3f5148);shelf(EN,11.5,9.7,3,.5);
@@ -485,15 +499,17 @@ function defWorld(){
   bx(EN,30.13,11.6,.34,2,1.7,0x3a3f44);bx(EN,30.23,11.3,.06,.3,.2,0x15181b,{y:1.05,c:0});bx(EN,30.24,11.9,.08,.4,.08,0xa82a20,{y:1,c:0,rz:-.5});bx(EN,30.23,11.6,.06,.1,.1,[.3,.05,.04],{y:1.7,c:0,pw:[[2.9,2.15,2.1],[2.2,2.9,2.3]],});bx(EN,30.6,11.6,.9,.01,1.9,0xb89b2e,{y:.012,c:0});
   EN.intDefs.push({x:30.3,z:11.3,y:1.2,kind:'fuse'},{x:30.3,z:11.9,y:1.2,kind:'breaker'});
   bx(EN,41.9,15,.18,1.9,.8,0xa82a20);item(EN,'axe',41.45,15.6,.02);item(EN,'batt',30.5,20.5,.02);
-  room(EN,'Stairwell',27,19,2,4,{...UTIL,safe:1});door(EN,27,18,{sg:[['Stairs','n']]});stairDn(EN,28.3,22.3,27.6,20.4,0,6);
+  room(EN,'Stairwell',27,19,2,4,{...UTIL,safe:1});door(EN,27,18,{sg:[['Stairs','n']]});stairDn(EN,28.3,22.3,27.6,20.4,0,'hydro');
   overgrow(EN,est,.9,1);overgrow(EN,wc,.6,1);overgrow(EN,shop,.7,1);
   mut(EN,'vine',4.88,11.5,{yaw:-PI/2});mut(EN,'vine',8.5,9.88,{yaw:PI});mut(EN,'vine',16.9,12.4,{yaw:-PI/2});mut(EN,'rootworm',8,5.4);mut(EN,'rootworm',11,7.4);mut(EN,'rootworm',9.6,4.4);mut(EN,'rootworm',12,11.6);mut(EN,'rootworm',14,12.4);
   bush(EN,31.5,19.5,1.2);moss(EN,32,18,2.4);stalk(EN,30.6,20.4,2.6);mut(EN,'vine',30.12,13.5,{yaw:PI/2});
+  return[EN];}
 
-  /* ===== 6 · Hydro. The top half is wading depth with a burned feed. Everything below it is under water for good. ===== */
+/* ===== 6 · Hydro. The top half is wading depth with a burned feed. Everything below it is under water for good. ===== */
+function buildHydro(lv){
   const WET={fl:0x2a2f30,wl:0x4a5052,st:0x4a5052};
-  const HY=mkDeck('6 · Hydro','',32,18,'HYD',{F:6,wet:.9});
-  room(HY,'Stair landing',2,2,3,5,{...WET,nolamp:1,safe:1});lamp(HY,4.4,2.6,7);stairUp(HY,2.7,2.7,3.4,4.6,-PI/2,5);
+  const HY=mkDeck(lv,32,18,{wet:.9});
+  room(HY,'Stair landing',2,2,3,5,{...WET,nolamp:1,safe:1});lamp(HY,4.4,2.6,7);stairUp(HY,2.7,2.7,3.4,4.6,-PI/2,'eng');
   liftRoom(HY,2,8,3,7);
   door(HY,5,3,{sg:[['Pumps','w']]});room(HY,'Pump gallery',6,2,18,3,{...WET,em:1});
   for(const x of[8,12,16,20])P(HY,'cyl',x,2.7,1.2,2,1.2,0x3b4d57);bx(HY,14,2.25,23,.2,.2,0x5a4034,{y:2.2,c:0});bx(HY,15,4.8,35,.14,.14,0x3d4042,{y:2.6,c:0});
@@ -501,23 +517,46 @@ function defWorld(){
   bx(HY,11.5,9.5,2.4,1,.7,0x3f4448);bx(HY,11.5,9.5,.5,.34,.06,0x22262a,{y:1,c:0});bx(HY,11.5,9.52,.44,.28,.02,[.06,.12,.1],{y:1.03,c:0,pw:[[.04,.05,.05],[2.2,2.75,2.5]]});note(HY,'hydro',11,9.45,1.02);item(HY,'lantern',12,9.5,1.02);shelf(HY,8.3,8,.5,3);item(HY,'wrench',8.35,7.4,1.06);item(HY,'batt',8.35,8.6,1.06,2);
   room(HY,'Tank hall',15,6,9,9,{...WET,ht:5,em:1});door(HY,19,5,{sg:[['Tanks','n']]});
   for(const[x,z]of[[17,8],[21.5,8],[17,12.5]])P(HY,'cyl',x,z,2.6,3.4,2.6,0x3b4d57);bx(HY,22.5,13.5,1.4,.1,1.4,0x8a7a2a,{y:.92,c:0});
-  HY.intDefs.push({x:22.5,z:13.5,y:1,kind:'dive',to:'DP',pos:[3,9,0],label:'Dive: flooded shaft A'});mut(HY,'swimmer',19.6,11);mut(HY,'swimmer',21,13.8);
+  HY.intDefs.push({x:22.5,z:13.5,y:1,kind:'dive',to:'drowned',pos:[3,9,0],label:'Dive: flooded shaft A'});mut(HY,'swimmer',19.6,11);mut(HY,'swimmer',21,13.8);
   door(HY,24,3,{sg:[['Filters','w']]});room(HY,'Filter room',25,2,4,6,WET);
   for(const z of[3,5])bx(HY,28.3,z,1,1.6,1.4,0x3f5148);bx(HY,26,7.3,1.4,.1,1.2,0x8a7a2a,{y:.92,c:0});
-  HY.intDefs.push({x:26,z:7.3,y:1,kind:'dive',to:'DP',pos:[27,11.4,0],label:'Dive: flooded shaft B'});
-  const DP=mkDeck('6 · Hydro, drowned level','',38,16,'DEEP',{F:7,deep:1});
+  HY.intDefs.push({x:26,z:7.3,y:1,kind:'dive',to:'drowned',pos:[27,11.4,0],label:'Dive: flooded shaft B'});
+  return[HY];}
+
+/* ===== 6 · Hydro, drowned level. Reached by diving from Hydro. No power, no air. ===== */
+function buildDrowned(lv){
+  const DP=mkDeck(lv,38,16,{deep:1});
   const DW={fl:0x1e2628,wl:0x38423f,st:0x38423f,lit:'none',nolamp:1};
   room(DP,'Flooded shaft A',2,8,2,2,{...DW,safe:1});room(DP,'Drain tunnel',4,8,10,2,DW);room(DP,'Settling hall',14,4,10,10,{...DW,ht:4});room(DP,'Drain tunnel',24,8,6,2,DW);
   room(DP,'Sluice chamber',30,5,5,8,DW);room(DP,'Flooded shaft B',26,10,2,3,{...DW,safe:1});
-  DP.intDefs.push({x:2.5,z:8.5,y:1.6,kind:'dive',to:'HY',pos:[22,12.6,0],label:'Swim up: shaft A'},{x:26.5,z:12.4,y:1.6,kind:'dive',to:'HY',pos:[26.8,6.2,PI],label:'Swim up: shaft B'});
+  DP.intDefs.push({x:2.5,z:8.5,y:1.6,kind:'dive',to:'hydro',pos:[22,12.6,0],label:'Swim up: shaft A'},{x:26.5,z:12.4,y:1.6,kind:'dive',to:'hydro',pos:[26.8,6.2,PI],label:'Swim up: shaft B'});
   for(const s of[-.2,.2]){bx(DP,2.1,8.5+s/T,.05,3.2,.05,0x8a7a2a,{c:0});bx(DP,26.5+s/T,12.9,.05,3.2,.05,0x8a7a2a,{c:0});}
   for(const[x,z]of[[16.5,6.5],[21.5,6.5],[16.5,11.5],[21.5,11.5]])P(DP,'cyl',x,z,2.4,3,2.4,0x2c3a3c);bx(DP,19,9,9.6,.3,.3,0x3a3020,{y:2.6,c:0});
   for(let k=0;k<7;k++)bx(DP,rnd(5,13),rnd(8.3,9.7),rnd(.3,.9),rnd(.2,.5),rnd(.3,.9),pick([0x2c3a3c,0x3a3020,0x4a5052]),{ry:rnd(PI),c:0});
   bx(DP,32.5,12.6,4.4,1.6,.5,0x2c3a3c);P(DP,'cyl',31,6,1,2,1,0x2c3a3c);
   corpse(DP,33.6,6.4,0x2c3440,true,{label:'Search the drowned sergeant',say:'SGT. R. ALDANA. Four digits in grease pencil on the back of her hand.',note:'code'});
   mut(DP,'swimmer',9,9);mut(DP,'swimmer',15.4,9);mut(DP,'swimmer',19,5.4);mut(DP,'swimmer',22,12.4);mut(DP,'swimmer',28,8.6);mut(DP,'swimmer',31.6,10);
-  return[O,CG,CU,R,RU,HT,EN,HY,DP];
-}
+  return[DP];}
+
+/* ============================================================ the station: its levels, top to bottom
+   id: how everything else refers to the level. c: the circuit that powers it, and power: how that circuit starts.
+   tag: what a switchboard calls it. org: optional, see planX. build(lv) lays it out and returns its layers.
+   Order matters: it is the order of the lift panel. Circuits that belong to no one level are listed under circuits. */
+const STATION={
+  start:{level:'ops',x:2.3,z:5.7,yaw:-PI/2},
+  levels:[
+    {id:'ops',name:'1 · Operations and Security',c:'OPS',tag:'floor 1',power:{on:true,back:true},build:buildOps},
+    {id:'cargo',name:'2 · Storage and Cargo',c:'CARGO',tag:'floor 2',power:{on:false,back:false},build:buildCargo},
+    {id:'res',name:'3 · Residences and Commons',c:'RES',tag:'floor 3',power:{on:true,back:false},build:buildRes},
+    {id:'hort',name:'4 · Horticulture Labs',c:'HORT',tag:'floor 4',power:{on:true,back:true},build:buildHort},
+    {id:'eng',name:'5 · Engineering',c:'ENG',tag:'floor 5',power:{on:true,back:false},build:buildEng},
+    {id:'hydro',name:'6 · Hydro',c:'HYD',tag:'floor 6',power:{on:true,back:false,broken:true},build:buildHydro},
+    {id:'drowned',name:'6 · Hydro, drowned level',c:'DEEP',build:buildDrowned}],
+  circuits:{LIFT:{on:true,back:false}}
+};
+function defWorld(){const out=[];for(const lv of STATION.levels)out.push(...lv.build(lv));return out;}
+function startCircuits(){const C={};for(const lv of STATION.levels)if(lv.power)C[lv.c]=Object.assign({},lv.power);
+  for(const c in STATION.circuits)C[c]=Object.assign({},STATION.circuits[c]);return C;}
 function finalize(D){
   const W=D.W;
   for(const k in D.doors){const d=D.doors[k];d.ns=!!(D.g[(d.y-1)*W+d.x]&&D.g[(d.y+1)*W+d.x]);
@@ -615,9 +654,9 @@ function collides(D,x,z,r,mode){const W=D.W,i0=Math.floor((x-r)/T),i1=Math.floor
    rock, floor slabs (with terrain), closed doors, furniture, ramps, platforms, rails.
    A solid you can step onto (top within STEP of your feet) is ground. One that overlaps your body blocks. One above you is ceiling. */
 const STEP=.5,PR={block:false,ground:-1e9,ceil:1e9};
-function probe(x,z,r,feet,top){let block=false,ground=-1e9,ceil=1e9;const F=G.D.F,r2=r*r;
+function probe(x,z,r,feet,top){let block=false,ground=-1e9,ceil=1e9;const lv=G.D.lv,r2=r*r;
   const sol=(b,t)=>{if(t<=feet+STEP){if(t>ground)ground=t;}else if(b<top)block=true;else if(b<ceil)ceil=b;};
-  for(const L of G.decks){if(L.F!==F)continue;const W=L.W,Y=L.y0,lower=!L.below;
+  for(const L of G.decks){if(L.lv!==lv)continue;const W=L.W,Y=L.y0,lower=!L.below;
     const i0=Math.floor((x-r)/T),i1=Math.floor((x+r)/T),j0=Math.floor((z-r)/T),j1=Math.floor((z+r)/T);
     for(let j=j0;j<=j1;j++)for(let i=i0;i<=i1;i++){const cx=clamp(x,i*T,i*T+T),cz=clamp(z,j*T,j*T+T);if((x-cx)*(x-cx)+(z-cz)*(z-cz)>=r2)continue;
       const out=i<0||j<0||i>=W||j>=L.H,k=j*W+i;
@@ -991,7 +1030,7 @@ function updPlayer(dt){const p=G.p;let D=G.D;const wet=!!D.wet,deep=!!D.deep,GRA
     if(ny+BODY()>pr.ceil){ny=pr.ceil-BODY();if(p.vy>0)p.vy=0;}
     p.y=ny;if(p.y<-60){p.y=D.y0+2;p.vy=0;}
     if(p.crouch&&p.wantStand){const q=probe(p.x,p.z,.3,p.y,p.y+1.8);if(!q.block&&q.ceil>=p.y+1.8){p.crouch=false;p.wantStand=false;}}
-    let best=null,low=D;for(const L of G.decks){if(L.F!==D.F)continue;if(L.y0<low.y0)low=L;if(p.y>=L.y0-.7&&(!best||L.y0>best.y0))best=L;}if(!best)best=low;
+    let best=null,low=D;for(const L of G.decks){if(L.lv!==D.lv)continue;if(L.y0<low.y0)low=L;if(p.y>=L.y0-.7&&(!best||L.y0>best.y0))best=L;}if(!best)best=low;
     if(best!==D){setGrid(best);D=G.D;}}
   p.cy+=(p.y-p.cy)*Math.min(1,dt*18);
   p.stepD+=moved;p.bob+=moved*(deep?1.4:wet?2:3.3);
@@ -1104,7 +1143,7 @@ function doorLabel(D,d){
   return d.open?'Slide the door shut':'Slide the door open';}
 function occupied(D,d){const k=d.y*D.W+d.x;if(D===G.D&&tileAt(D,G.p.x,G.p.z)===k)return true;for(const m of D.muts)if(!m.dead&&tileAt(D,m.x,m.z)===k)return true;return false;}
 function doorAct(D,d){
-  if(d.lift){if(lvl('LIFT')<2||lvl('OPS')<2){say(G.prim?'Gen-1 is up but this floor is not taking it. The feed is open somewhere below.':'The call button is dead. The surface lift runs off Gen-1, five floors down.');sfx('deny');return;}
+  if(d.lift){if(lvl(d.c)<2||lvl(D.c)<2){say(G.prim?'Gen-1 is up but this floor is not taking it. The feed is open somewhere below.':'The call button is dead. The surface lift runs off Gen-1, five floors down.');sfx('deny');return;}
     if(!G.keys.surf&&!G.keys.lift){say('Power, and a slot. It wants a surface pass from the Armory, or the director\'s own key.');sfx('deny');return;}
     endGame(true,'lift');return;}
   if(d.seal){say('It does not move. Something on the other side shifts its weight.');sfx('deny');return;}
@@ -1120,10 +1159,11 @@ function doorAct(D,d){
   d.open=!d.open;d.hold=3;sfx('door');noise(heavy?10:7);}
 function ride(deck,x,z,yaw,snd){G.mode='fade';G.p.chg=-1;$('fade').style.opacity=1;sfx(snd||'door');
   setTimeout(()=>{const p=G.p;p.x=x*T;p.z=z*T;p.yaw=yaw;p.kx=p.kz=0;setDeck(deck);p.y=p.cy=G.D.y0+hfAt(G.D,p.x,p.z);p.vy=0;p.ground=true;$('fade').style.opacity=0;if(G.mode==='fade')G.mode='play';showRoom(G.D.name,'');},650);}
-const CN={OPS:'floor 1',CARGO:'floor 2',RES:'floor 3',HORT:'floor 4',ENG:'floor 5',HYD:'floor 6'};
+const CN={};for(const lv of STATION.levels)if(lv.tag)CN[lv.c]=lv.tag;
 function powerChanged(loud){relight();if(HUM)HUM.gain.value=G.prim?.035:0;if(loud){sfx('power');noise(30);G.shake=.4;}else sfx('door');}
 function giveKey(k){G.keys[k]=true;say(keyName(k)+'.');}
-function floorGrid(F){return G.decks.findIndex(D=>D.F===F&&!D.li);}
+/* the ground layer of a level */
+function levelGrid(id){return G.decks.findIndex(D=>D.lv===id&&!D.li);}
 const onPlat=E=>{const p=G.p;return p.x>E.x0&&p.x<E.x1&&p.z>E.z0&&p.z<E.z1&&Math.abs(p.y-E.y)<.6;};
 const KIND={
   body:()=>({label(){return this.lb;},act(it){it.off=true;say(it.say);for(const k of it.keys||[])giveKey(k);if(it.note){G.read.includes(it.note)||G.read.push(it.note);say('Armory: '+G.code+'. You will not forget it.');}}}),
@@ -1140,9 +1180,9 @@ const KIND={
         consume(i);C.broken=false;C.on=true;sfx('clang');say('You splice the feed and close the switch.');powerChanged(false);return;}
       C.on=!C.on;say(C.on?'Switch closed. '+(G.prim?'That floor takes power.':'Nothing upstream to take.'):'Switch open. That floor is cut off from Gen-1.');powerChanged(false);}}),
   lift:()=>({label:()=>'Lift panel',act(){openLift();}}),
-  stair:()=>({label(){const D=G.decks[floorGrid(this.to)];return(this.up?'Stairs up: ':'Stairs down: ')+D.name;},act(it){const k=floorGrid(it.to),m=G.decks[k].mk[it.which];ride(k,m[0],m[1],m[2],'step');}}),
-  dive:()=>({label(){return this.lb;},act(it){const k=G.decks.findIndex(D=>it.to==='DP'?D.deep:D.F===6);
-    if(it.to==='DP'&&!G.diveTip){G.diveTip=true;setTimeout(()=>say(G.worn.rebreather?'The rebreather ticks. You have time.':'One lungful. Count it.'),1200);}
+  stair:()=>({label(){const D=G.decks[levelGrid(this.to)];return(this.up?'Stairs up: ':'Stairs down: ')+D.name;},act(it){const k=levelGrid(it.to),m=G.decks[k].mk['stair:'+it.from];ride(k,m[0],m[1],m[2],'step');}}),
+  dive:()=>({label(){return this.lb;},act(it){const k=levelGrid(it.to);
+    if(G.decks[k].deep&&!G.diveTip){G.diveTip=true;setTimeout(()=>say(G.worn.rebreather?'The rebreather ticks. You have time.':'One lungful. Count it.'),1200);}
     ride(k,it.pos[0],it.pos[1],it.pos[2],'slosh');}}),
   elev:()=>({label(){const E=this.E;if(E.lvl<0)return null;if(onPlat(E))return E.name+': '+(E.lvl?'down':'up');return E.lvl!==G.D.li?'Call the '+E.name.toLowerCase():null;},
     act(it){const E=it.E;if(E.lvl<0)return;if(lvl(E.c)<1){say('No power to it. The platform sits where it stopped.');sfx('deny');return;}
@@ -1150,14 +1190,14 @@ const KIND={
   keeper:()=>({label:()=>G.keys.lift?null:'Take the key from around its neck',act(it){it.off=true;if(it.m.mdl.key)it.m.mdl.key.visible=false;give('liftkey');say('It watches you do it. It does not mind. The others might.');noise(14);}})
 };
 function openLift(){if(lvl('LIFT')<2){say('The lift is dead. It runs off Gen-1 and nothing else.');sfx('deny');return;}
-  let h='<h2>Lift <span>Gen-1 running</span></h2>';G.decks.forEach((D,i)=>{if(D.li||!D.mk.lift)return;h+='<button data-f="'+i+'"'+(D.F===G.D.F?' disabled':'')+'>'+D.name+'</button>';});
+  let h='<h2>Lift <span>Gen-1 running</span></h2>';G.decks.forEach((D,i)=>{if(D.li||!D.mk.lift)return;h+='<button data-f="'+i+'"'+(D.lv===G.D.lv?' disabled':'')+'>'+D.name+'</button>';});
   $('liftb').innerHTML=h+'<p class="hint">Esc steps back.</p>';openPanel('lift');}
 function findInt(){const p=G.p,f=G.fwd;let best=null,bs=.78;
   for(const it of G.D.ints){if(it.off)continue;const dx=it.x-p.x,dy=it.y+(it.yo||0)+G.D.y0-p.y-p.eye,dz=it.z-p.z,d=Math.hypot(dx,dy,dz);if(d>(it.r||2.3))continue;
     const dot=d<.5?1:(dx*f[0]+dy*f[1]+dz*f[2])/d;if(dot>bs){const lb=it.label(it);if(!lb)continue;bs=dot;best=it;it._l=lb;}}
   return best;}
 function interact(){const it=G.cur;if(it)it.act(it);}
-function setDeck(k){G.deck=k;G.D=G.decks[k];G.decks.forEach(d=>d.grp.visible=d.F===G.D.F);G.fT=0;G.proom=-1;}
+function setDeck(k){G.deck=k;G.D=G.decks[k];G.decks.forEach(d=>d.grp.visible=d.lv===G.D.lv);G.fT=0;G.proom=-1;}
 
 /* ============================================================ notes */
 const NOTES=(code,code2)=>({
@@ -1263,9 +1303,9 @@ function newGame(){clearTimeout(endTO);disposeScene();
   scene.add(camera);
   const code=String(1000+Math.floor(Math.random()*9000)),code2=String(1000+Math.floor(Math.random()*9000));
   G={mode:'play',prim:false,fuseIn:false,
-    circ:{OPS:{on:true,back:true},CARGO:{on:false,back:false},RES:{on:true,back:false},HORT:{on:true,back:true},ENG:{on:true,back:false},HYD:{on:true,back:false,broken:true},LIFT:{on:true,back:false}},
+    circ:startCircuits(),
     decks:null,deck:0,D:null,inv:[],cap:10,tools:{},keys:{},worn:{},weapon:null,ws:wstats(null),notes:NOTES(code,code2),read:[],code,code2,padCode:'',padFn:null,
-    p:{x:2.3*T,z:5.7*T,y:0,cy:0,vy:0,ground:true,wantStand:false,yaw:-PI/2,pitch:0,hp:100,eye:1.62,crouch:false,slow:0,kx:0,kz:0,stepD:0,bob:0,swing:null,chg:-1,full:false,gcd:0,kick:0},
+    p:{x:STATION.start.x*T,z:STATION.start.z*T,y:0,cy:0,vy:0,ground:true,wantStand:false,yaw:STATION.start.yaw,pitch:0,hp:100,eye:1.62,crouch:false,slow:0,kx:0,kz:0,stepD:0,bob:0,swing:null,chg:-1,full:false,gcd:0,kick:0},
     fwd:[1,0,0],vis:1,noise:0,noiseI:0,noiseT:0,light:null,lightOn:false,flashOn:false,lampOn:false,batt:100,fk:0,muzzle:0,o2:35,o2max:35,shake:0,hurtFx:0,fT:0,proom:-1,wormN:0,
     touched:false,bloatHit:false,grabTip:false,diveTip:false,time:0,stats:{kills:0},cur:null,pad:'',vm:null,vmMat:null,vmChild:null};
   G.decks=defWorld();
@@ -1299,7 +1339,7 @@ function newGame(){clearTimeout(endTO);disposeScene();
       g.position.set((E.x0+E.x1)/2,E.y,(E.z0+E.z1)/2);D.grp.add(g);E.mesh=g;D.dyn.push({x:(E.x0+E.x1)/2,z:(E.z0+E.z1)/2,mat});}
   }
   G.vmMat=dmat();G.vm=new THREE.Group();G.vm.rotation.z=-.15;camera.add(G.vm);setWeapon(null);
-  relight();setDeck(0);U.uFog.value=.032;
+  relight();setDeck(levelGrid(STATION.start.level));U.uFog.value=.032;
   $('vig').style.opacity=0;$('end').classList.add('hide');$('hud').classList.remove('hide');$('batw').classList.add('hide');$('msgs').innerHTML='';
   if(HUM)HUM.gain.value=0;
   say('Gen-1 has dropped. The lock on your cell has let go.');
@@ -1315,8 +1355,8 @@ function update(dt){const p=G.p;G.time+=dt;
   const D=G.D;
   G.fT-=dt;if(G.fT<=0){G.fT=.35;const s=tileAt(D,p.x,p.z);bfs(D,s,D.fA,false);bfs(D,s,D.fB,true);}
   let wn=0;for(const m of D.muts)if(m.ai==='worm'&&!m.dead&&m.flee<=0&&m.d<2.6)wn++;G.wormN=wn;
-  /* everything on this floor lives, on whichever layer it is */
-  for(const L of G.decks){if(L.F!==D.F)continue;CD=L;
+  /* everything on this level lives, on whichever layer it is */
+  for(const L of G.decks){if(L.lv!==D.lv)continue;CD=L;
     for(const m of L.muts){updMut(m,dt);if(G.mode!=='play')return;}
     for(let a=0;a<L.muts.length;a++){const m=L.muts[a];if(m.dead||m.fixed)continue;for(let b=a+1;b<L.muts.length;b++){const o=L.muts[b];if(o.dead||o.fixed)continue;
       const dx=o.x-m.x,dz=o.z-m.z,d=Math.hypot(dx,dz),min=(m.cr+o.cr)*.9;if(d<min&&d>.001){const k=(min-d)*.5/d,lm=o.mass>m.mass*2?1:.5,lo=1-lm;
