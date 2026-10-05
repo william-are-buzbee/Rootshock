@@ -584,7 +584,7 @@ function buildDrowned(lv){
    id: how everything else refers to the level. c: the circuit that powers it, and power: how that circuit starts.
    tag: what a switchboard calls it. org: optional, see planX. build(lv) lays it out and returns its layers.
    Order matters: it is the order of the lift panel. Circuits that belong to no one level are listed under circuits. */
-const STATION={
+const OLDSTATION={
   start:{level:'ops',x:2.3,z:5.7,yaw:-PI/2},
   levels:[
     {id:'ops',name:'1 · Operations and Security',c:'OPS',tag:'floor 1',power:{on:true,back:true},build:buildOps},
@@ -599,11 +599,80 @@ const STATION={
      Each id needs exactly two ends, declared with ladder(). The state is copied into G.ladders, so play can mend or open one. */
   ladders:{}
 };
+
+/* ============================================================ the rebuild, from station-plan.md. Runs instead of the station above with
+   ?dev=newstation (or ?dev=newstation:<level id>), and grows a section at a time until it replaces it.
+   Every level shares one frame with the plan: org [-10,-30], so tile i = (x+10)/2 and tile j = (z+30)/2 for plan metres x, z.
+   The main shaft (x 0) is at tile 5; the spine of the station (z 0) runs between rows 14 and 15. */
+const NEWQ=/^newstation(:|$)/.test(new URLSearchParams(location.search).get('dev')||'');
+
+/* ===== Upper station, 40 m down. Security and Ops (x 14 to 94) off the main shaft; the link east to Cargo. Start here. ===== */
+function buildUpper(lv){
+  const D=mkDeck(lv,140,30);
+  /* the main shaft: the hoist cage (runs on Gen-1), the surface cage, and ladderway A down the shaft */
+  liftRoom(D,5,14,7,14);
+  room(D,'Shaft station',8,14,3,3,{...UTIL,em:1,safe:1});door(D,11,14,{sg:[['Lobby','w'],['Shaft station','e']]});
+  room(D,'Surface cage',8,11,2,2,{...OPS,c:'LIFT',nolamp:1,noroam:1,safe:1});door(D,8,13,{kind:'heavy',c:'LIFT',lift:true,sg:[['Surface','s']]});
+  ladder(D,'A1',10.5,16.6,9.6,16.1,PI/2,false);
+  /* the lobby, across the spine at the west end */
+  room(D,'Lobby',12,10,8,10,{...OPS,ht:5,em:1});door(D,20,14,{sg:[['Security','w'],['Lobby','e']]});
+  bx(D,16,17.6,3,1,.7,0x6b5a48);bx(D,18.6,10.4,1.8,.42,.45,0x5f6266);bx(D,12.4,12,.45,.42,1.4,0x5f6266);
+  corpse(D,17.5,12.5,0x2c3440,true,{label:'Search the officer',say:'A security officer. Whatever opened him did it from behind.',keys:['s']});mut(D,'husk',14,18.4,{post:1,yaw:PI/2});
+  /* the spine: Security corridor, then Operations corridor, then the link to Cargo */
+  room(D,'Security corridor',21,14,14,2,{...SEC,em:1,safe:1});genset(D,'OPS',21.5,14.3,21.6,14.9);
+  door(D,35,14,{sg:[['Operations','w'],['Security','e']]});
+  room(D,'Operations corridor',36,14,16,2,{...OPS,em:1});mut(D,'husk',46,14.6);mut(D,'husk',41.2,15.3);blood(D,48,15,1.2);
+  room(D,'Phase 2',50,11,1,2,{...UTIL,lit:'none',nolamp:1,noroam:1});door(D,50,13,{kind:'heavy',seal:true,msg:'Welded shut. Stencilled across it: PHASE 2. NOT COMMISSIONED.',sg:[['Phase 2','s']]});
+  door(D,52,14,{sg:[['Cargo','w'],['Operations','e']]});room(D,'Cargo link',53,14,6,2,{...UTIL,c:'CARGO',em:1});
+  door(D,59,14,{seal:true,msg:'Not built yet: the Cargo cavern is the next section of the rebuild.',sg:[['Cargo','w']]});
+  /* north of the spine. Holding: a short block with two cells a side; you wake in W2 */
+  room(D,'Holding block',24,6,2,7,{...CELL,lit:'always',lc:LOW,safe:1});door(D,24,13,{open:true,sg:[['Holding','s']]});
+  for(const[k,y]of[[1,6],[2,9]]){
+    room(D,'Cell W'+k,21,y,2,2,{...CELL,lit:'always',lc:mul3(LOW,.8),safe:1,nolamp:1});room(D,'Cell E'+k,27,y,2,2,{...CELL,lit:'always',lc:mul3(LOW,.8),safe:1,nolamp:1});
+    bed(D,21.3,y+1,true,0x6d7178);bx(D,22.75,y+1.75,.4,.42,.4,0xb8bcc0);bed(D,28.7,y+1,true,0x6d7178);bx(D,27.25,y+1.75,.4,.42,.4,0xb8bcc0);
+    door(D,23,y,{open:k===2,seal:k!==2});door(D,26,y,{open:k===2,seal:k!==2});}
+  note(D,'intake',22.5,9.35,.02);blood(D,28,10,1.4);bx(D,27.2,9.5,1.6,.01,.3,0x3a0b0b,{y:.02,c:0});
+  room(D,'Guard post',30,9,4,4,{...SEC,lit:'always',lc:LOW,safe:1});door(D,31,13,{open:true,sg:[['Guard post','s']]});
+  desk(D,31.2,9.6,1.8,.7);bx(D,31.2,10.2,.45,.45,.45,0x2c2f33);for(let k=0;k<3;k++)bx(D,33.7,9.3+k*.3,.5,1.9,.5,0x4d5863);bx(D,33,12.7,1.6,.42,.4,0x44484c);
+  item(D,'flash',30.75,9.7,.78);item(D,'batt',31.65,9.7,.78);note(D,'duty',31.5,9.45,.78);item(D,'baton',32.8,12.7,.44);item(D,'ration',33.3,12.7,.44);
+  room(D,'Security control',35,8,4,5,SEC);door(D,36,13,{card:'s',sg:[['Control','s']]});
+  tbl(D,37,8.5,5,.8);for(let k=0;k<5;k++){bx(D,35.8+k*.6,8.06,1,.7,.06,0x22262a,{y:1.2,c:0});bx(D,35.8+k*.6,8.08,.9,.6,.02,[.05,.07,.08],{y:1.25,c:0,pw:[[.04,.05,.05],[2.3,2.6,2.75]]});}
+  note(D,'cams',36.4,8.5,.78);item(D,'batt',37.8,8.5,.78,2);item(D,'ammo9',35.5,12.5,.02);
+  room(D,'Operations room',40,6,8,7,{...OPS,ht:4});door(D,43,13,{sg:[['Operations room','s']]});
+  tbl(D,44,9.4,6,2.2,0x4a3a2c);for(let k=0;k<5;k++)for(const s of[-1,1])bx(D,42.2+k*.9,9.4+s*.85,.45,.45,.45,0x2c2f33);
+  for(let k=0;k<6;k++){bx(D,41+k*1.2,6.06,2,1.2,.06,0x22262a,{y:1.3,c:0});bx(D,41+k*1.2,6.08,1.9,1.1,.02,[.05,.07,.08],{y:1.35,c:0,pw:[[.04,.05,.05],[2.2,2.5,2.75]]});}
+  corpse(D,46.6,11.8,0x4a4238,false,{label:'Search the manager',say:'DEPUTY DIRECTOR, OPERATIONS. Her pass is still on its lanyard.',keys:['o']});
+  note(D,'memo',43,9.3,.78);eggs(D,40.6,6.6,3);mut(D,'husk',41.4,11.6,{post:1,yaw:0});gore(D,47,7.2,3);
+  /* south of the spine */
+  room(D,'Armory',21,17,5,4,SEC);door(D,23,16,{kind:'heavy',code:1,sg:[['Armory','n']]});
+  shelf(D,21.3,19,.5,3,{empty:1});shelf(D,25.7,19,.5,3,{empty:1});bx(D,23.5,20.5,.9,.7,.7,0x3a4030);
+  item(D,'pistol',21.35,18.3,1.06);item(D,'ammo9',21.35,18.9,1.06,2);item(D,'shotgun',21.35,19.6,1.06);item(D,'shells',25.65,18.4,1.06,2);item(D,'tacvest',25.65,19.4,1.06);item(D,'surf',23.5,20.5,.7);
+  room(D,'Firing range',27,17,3,7,{...SEC,lit:'none'});door(D,28,16,{sg:[['Range','n']]});
+  bx(D,28.1,19,4,1,.4,0x44484c);for(const x of[27.5,28.5,29.5]){bx(D,x,23.6,.5,1,.06,0xc8c0a0,{y:.6,c:0});bx(D,x,23.6,.06,.6,.06,0x2a2c2e,{c:0});}
+  item(D,'ammo9',27.6,19,1.02);mut(D,'skitter',28.6,22);eggs(D,27.4,23.2,2);
+  room(D,'Hazardous storage',31,17,4,4,{...UTIL,c:'OPS'});door(D,32,16,{kind:'heavy',sg:[['Hazard store','n']]});
+  for(const[x,z]of[[31.4,20.5],[32,20.6],[31.4,19.8],[34.6,17.4]])P(D,'cyl',x,z,.6,.9,.6,0xc9a227);shelf(D,34.7,19.6,.5,2.2,{cols:[0xc9a227,0x3d4042]});bx(D,33.3,20.5,.8,.6,.6,0x3a4030);
+  item(D,'rebreather',33.3,20.5,.6);item(D,'kit',34.65,19.3,1.06);
+  room(D,'Infirmary',36,17,3,4,{...MED,safe:1});door(D,37,16,{sg:[['Infirmary','n']]});
+  medbed(D,36.3,19.6);shelf(D,38,20.7,1.8,.5,{cols:[0xd4d8d4,0xb9c4bd,0x8c2f24]});item(D,'bandage',37.7,20.65,1.06,2);item(D,'medkit',38.3,20.65,1.06);
+  for(const[nm,x,dopt]of[['Office: operations',40,{card:'o'}],['Office: logistics',44,{open:true}],['Office: chief of security',48,{card:'o'}]]){
+    room(D,nm,x,17,3,4,{...OPS,lc:[.85,.78,.62]});door(D,x+1,16,dopt);desk(D,x+1.5,19.9,1.8,.7,{c:0x4a3a2c});bx(D,x+1.5,19.2,.45,.45,.45,0x2c2f33);shelf(D,x+.3,18.3,.5,1.8,{cols:[0x7a4a34,0x4d5a66,0x8a7a4a]});}
+  note(D,'mgr',41.2,19.85,.78);item(D,'batt',41.85,19.9,.78);item(D,'peaches',45.85,19.9,.78);item(D,'bandage',45.2,19.85,.78);note(D,'chief',49.2,19.85,.78);item(D,'ammo9',49.85,19.9,.78);item(D,'medkit',50.5,17.4,.02);
+  return[D];}
+
+const NEWSTATION={
+  start:{level:'upper',x:22.3,z:9.7,yaw:-PI/2},
+  levels:[
+    {id:'upper',name:'Upper station',c:'OPS',tag:'upper station',power:{on:true,back:true},org:[-10,-30],build:buildUpper}],
+  circuits:{LIFT:{on:true,back:false},CARGO:{on:false,back:false}},
+  ladders:{A1:{say:'Fifty metres of ladder down the main shaft, in the dark.'}}
+};
+const STATION=NEWQ?NEWSTATION:OLDSTATION;
 function defWorld(){const out=[];for(const lv of STATION.levels)out.push(...lv.build(lv));return out;}
 /* every way between places must land somewhere. Finds the two ends of each ladderway; reports anything that goes nowhere. */
 function checkLinks(decks){const bad=[],find=id=>decks.findIndex(D=>D.lv===id&&!D.li);
   for(const id in STATION.ladders){const ends=[];decks.forEach((D,k)=>{if(D.mk['ladder:'+id])ends.push({k});});STATION.ladders[id].ends=ends;
-    if(ends.length!==2)bad.push('Ladderway '+id+' has '+ends.length+' ends; it needs 2.');}
+    if(ends.length!==2)bad.push('Ladderway '+id+' has '+ends.length+' end'+(ends.length===1?'':'s')+'; it needs 2.');}
   decks.forEach(D=>{for(const d of D.intDefs){
     if(d.kind==='ladder'&&!STATION.ladders[d.id])bad.push(D.name+': ladder '+d.id+' is not in STATION.ladders.');
     if(d.kind==='stair'){const k=find(d.to);if(k<0)bad.push(D.name+': stairs to "'+d.to+'", which is not a level.');else if(!decks[k].mk['stair:'+d.from])bad.push(D.name+': stairs to '+decks[k].name+', which has no stairs back.');}
@@ -1215,7 +1284,7 @@ function doorAct(D,d){
   if(d.lift){if(lvl(d.c)<2||lvl(D.c)<2){say(G.prim?'Gen-1 is up but this floor is not taking it. The feed is open somewhere below.':'The call button is dead. The surface lift runs off Gen-1, five floors down.');sfx('deny');return;}
     if(!G.keys.surf&&!G.keys.lift){say('Power, and a slot. It wants a surface pass from the Armory, or the director\'s own key.');sfx('deny');return;}
     endGame(true,'lift');return;}
-  if(d.seal){say('It does not move. Something on the other side shifts its weight.');sfx('deny');return;}
+  if(d.seal){say(d.msg||'It does not move. Something on the other side shifts its weight.');sfx('deny');return;}
   if(d.stuck){say('Jammed at waist height. You could get under it. Not everything could.');return;}
   if(d.vent){d.open=true;sfx('clang');noise(7);say('The panel comes away in your hands. There is a way through.');return;}
   const L=lvl(d.c),heavy=d.kind==='heavy';
@@ -1470,7 +1539,7 @@ function frame(t){requestAnimationFrame(frame);const dt=Math.min(.05,(t-last)/10
    `  the dev panel: switches, and a jump to any layer of any level
    M  the map of a layer: [ and ] page through layers, hover for coordinates, click to go there
    V  fly: no walls, no gravity. Space up, C down, Shift fast.   G  nothing hurts you.   B  full light, thin fog */
-const DEVQ=new URLSearchParams(location.search),DEV=DEVQ.has('dev')?{fly:false,god:false,bright:false,at:DEVQ.get('dev'),mapK:0,ms:null}:null;
+const DEVQ=new URLSearchParams(location.search),DEV=DEVQ.has('dev')?{fly:false,god:false,bright:false,at:DEVQ.get('dev').replace(/^newstation:?/,''),mapK:0,ms:null}:null;
 function dev(k){return!!(DEV&&DEV[k]);}
 /* somewhere sensible to stand on a layer: its lift, else a stair landing, else the middle of its first room */
 function devSpot(D){const m=D.mk.lift||Object.values(D.mk)[0];if(m)return m;
@@ -1479,7 +1548,7 @@ function devPut(k,x,z,yaw){const p=G.p;setDeck(k);p.x=x*T;p.z=z*T;if(yaw!==undef
   p.y=p.cy=G.D.y0+hfAt(G.D,p.x,p.z);p.vy=p.kx=p.kz=0;p.ground=true;showRoom(G.D.name,'');}
 function devStart(){U.uBright.value=DEV.bright?.55:0;devTag();
   if(DEV.at){const k=levelGrid(DEV.at);if(k<0)say('No level called "'+DEV.at+'". Try one of: '+STATION.levels.map(l=>l.id).join(', ')+'.');else{const m=devSpot(G.decks[k]);devPut(k,m[0],m[1],m[2]);}}}
-function devTag(){const on=['fly','god','bright'].filter(k=>DEV[k]);$('devtag').textContent='DEV'+(on.length?' · '+on.join(' · '):'')+'\n` menu   M map';}
+function devTag(){const on=['fly','god','bright'].filter(k=>DEV[k]);$('devtag').textContent='DEV'+(NEWQ?' · NEW STATION':'')+(on.length?' · '+on.join(' · '):'')+'\n` menu   M map';}
 function devToggle(k){DEV[k]=!DEV[k];if(k==='bright')U.uBright.value=DEV.bright?.55:0;if(k==='fly'&&!DEV.fly)devLand();devTag();if(G.mode==='dev')devPanel();}
 /* fly off inside rock, furniture or under the floor: set down on the nearest open floor of this layer instead of falling for ever */
 function devLand(){const D=G.D,p=G.p,t=tileAt(D,p.x,p.z);
@@ -1586,7 +1655,7 @@ function devInit(){$('hud').insertAdjacentHTML('beforeend','<div id="devtag"></d
     if(b.dataset.dv)devToggle(b.dataset.dv);else if(b.dataset.dm)devMap();
     else if(b.dataset.dk){const k=+b.dataset.dk,m=devSpot(G.decks[k]);closePanel();devPut(k,m[0],m[1],m[2]);}});
   $('mapc').addEventListener('mousemove',devInfo);$('mapc').addEventListener('click',devClick);
-  $('title').querySelector('.go').textContent+='   (dev mode)';}
+  $('title').querySelector('.go').textContent+=NEWQ?'   (dev mode, new station)':'   (dev mode)';}
 
 /* ============================================================ input */
 let everLocked=false,noLock=false,drag=null;
