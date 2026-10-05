@@ -75,6 +75,18 @@ canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
 #padk{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 #padk button{font:inherit;font-size:26px;padding:10px 0;background:rgba(217,211,193,.06);color:var(--bone);border:1px solid rgba(217,211,193,.3);cursor:pointer}
 #padk button:hover,#padk button:focus-visible{border-color:var(--hazard);outline:none}
+#devtag{position:absolute;right:20px;top:18px;font-size:14px;font-weight:600;letter-spacing:.12em;color:var(--hazard);text-shadow:0 1px 4px #000;white-space:pre}
+#devb{width:min(560px,100%);max-height:100%;overflow:auto}
+#devb h2{font-size:30px;font-weight:600;margin:0 0 12px;display:flex;justify-content:space-between;border-bottom:3px solid var(--hazard);padding-bottom:6px}
+#devb h3{font-size:18px;font-weight:600;color:var(--hazard);margin:14px 0 6px;display:flex;justify-content:space-between}
+#devb h2 span,#devb h3 span,#devb button span{color:var(--ash);font-weight:400}
+#devb button{font:inherit;font-size:18px;color:var(--bone);background:rgba(217,211,193,.05);border:1px solid rgba(217,211,193,.25);padding:6px 12px;margin:0 6px 6px 0;cursor:pointer}
+#devb button:hover,#devb button:focus-visible{border-color:var(--hazard);outline:none}
+#devb button:disabled{opacity:.4;cursor:default;border-style:dashed}
+#devb button.on{border-color:var(--hazard);background:rgba(201,162,39,.15)}
+#map>div{max-width:100%;max-height:100%;overflow:auto}
+#mapc{position:static;display:block;cursor:crosshair}
+#mapi{margin:8px 0 0;font-size:15px;min-height:1.4em;white-space:pre}
 @media (prefers-reduced-motion:reduce){#fade,#msgs p,#roomn{transition:none}}
 </style>
 </head>
@@ -158,7 +170,7 @@ function grp(parent,x,y,z){const g=new THREE.Group();g.position.set(x,y,z);paren
 /* ============================================================ one shader for everything
    Light = baked room light (per vertex or per object) + flashlight cone + lantern, flat-shaded from derivatives.
    No ambient floor: unlit is black. */
-const U={uFlashDir:{value:null},uFlash:{value:0},uLamp:{value:0},uFog:{value:.032},uWet:{value:0},uTime:{value:0}};
+const U={uFlashDir:{value:null},uFlash:{value:0},uLamp:{value:0},uFog:{value:.032},uWet:{value:0},uTime:{value:0},uBright:{value:0}};
 const VS=`
 attribute vec3 aCol;
 #ifdef STATIC
@@ -177,7 +189,7 @@ void main(){
   gl_Position=projectionMatrix*viewMatrix*w;
 }`;
 const FS=`
-uniform vec3 uFlashDir;uniform float uFlash;uniform float uLamp;uniform float uFog;uniform float uWet;uniform float uTime;uniform float uHit;
+uniform vec3 uFlashDir;uniform float uFlash;uniform float uLamp;uniform float uFog;uniform float uWet;uniform float uTime;uniform float uHit;uniform float uBright;
 varying vec3 vW;varying vec3 vC;varying vec4 vL;
 void main(){
   vec3 n=normalize(cross(dFdx(vW),dFdy(vW)));
@@ -191,6 +203,7 @@ void main(){
   float spot=smoothstep(0.80,0.955,dot(-Ld,uFlashDir));
   light+=uFlash*spot*facing*2.3/(1.0+0.055*d*d)*vec3(1.0,0.93,0.78);
   light+=uLamp*facing*1.5/(1.0+0.2*d*d)*vec3(0.72,0.92,1.0);
+  light+=vec3(uBright);
   vec3 c=mix(base*light,base,em);
   c+=uHit*vec3(0.45,0.08,0.06);
   c*=exp(-d*uFog);
@@ -198,7 +211,7 @@ void main(){
   gl_FragColor=vec4(c,1.0);
 }`;
 let SMAT=null;
-function shUni(extra){return Object.assign({uFlashDir:U.uFlashDir,uFlash:U.uFlash,uLamp:U.uLamp,uFog:U.uFog,uWet:U.uWet,uTime:U.uTime,uHit:{value:0}},extra);}
+function shUni(extra){return Object.assign({uFlashDir:U.uFlashDir,uFlash:U.uFlash,uLamp:U.uLamp,uFog:U.uFog,uWet:U.uWet,uTime:U.uTime,uBright:U.uBright,uHit:{value:0}},extra);}
 function dmat(){return new THREE.ShaderMaterial({uniforms:shUni({uLight:{value:new THREE.Vector3()}}),vertexShader:VS,fragmentShader:FS,side:THREE.DoubleSide,extensions:{derivatives:true}});}
 
 /* ============================================================ world description helpers (positions in tile units, sizes in metres) */
@@ -998,7 +1011,7 @@ function hitMut(m,w,pow){const p=G.p;CD=G.D;m.hp-=w.dmg*(.3+.7*pow);m.hit=1;m.st
     case'thresher':if(m.state==='idle'||m.state==='patrol'){m.state='wind';m.st=.5;}break;
     case'bloat':if(!G.bloatHit){G.bloatHit=true;say('It does not seem to notice.');}break;
   }}
-function hurt(dmg,m){const p=G.p;if(G.mode!=='play')return;if(m&&!m.fixed&&p.y-m.gy>1.4)return;let k=1;if(G.worn.tacvest)k*=.55;else if(G.worn.armor)k*=.7;if(G.worn.hardhat)k*=.9;
+function hurt(dmg,m){const p=G.p;if(G.mode!=='play'||dev('god'))return;if(m&&!m.fixed&&p.y-m.gy>1.4)return;let k=1;if(G.worn.tacvest)k*=.55;else if(G.worn.armor)k*=.7;if(G.worn.hardhat)k*=.9;
   p.hp-=dmg*k;G.hurtFx=1;G.shake=.45;sfx('hurt');if(p.hp<=0){p.hp=0;endGame(false,DEATH[m.ai]);}}
 
 /* ============================================================ player */
@@ -1015,22 +1028,24 @@ function updPlayer(dt){const p=G.p;let D=G.D;const wet=!!D.wet,deep=!!D.deep,GRA
   if(deep)p.crouch=false;
   const run=(K.ShiftLeft||K.ShiftRight)&&!p.crouch&&f>0&&!wet&&!deep;
   let spd=deep?2.4:wet?2.2:p.crouch?1.6:run?5.6:3.2;if(p.slow>0){p.slow-=dt;spd*=.35;}
+  const fly=dev('fly');if(fly)spd=K.ShiftLeft||K.ShiftRight?18:7;
   const l=Math.hypot(f,s),ox=p.x,oz=p.z;
   let dx=p.kx*dt,dz=p.kz*dt;p.kx*=Math.max(0,1-dt*6);p.kz*=Math.max(0,1-dt*6);
   if(l>0){const fx=-Math.sin(p.yaw),fz=-Math.cos(p.yaw),rx=Math.cos(p.yaw),rz=-Math.sin(p.yaw);dx+=(fx*f+rx*s)/l*spd*dt;dz+=(fz*f+rz*s)/l*spd*dt;}
-  if(dx&&!pcol(p.x+dx,p.z))p.x+=dx;if(dz&&!pcol(p.x,p.z+dz))p.z+=dz;
+  if(dx&&(fly||!pcol(p.x+dx,p.z)))p.x+=dx;if(dz&&(fly||!pcol(p.x,p.z+dz)))p.z+=dz;
   const moved=l>0?Math.hypot(p.x-ox,p.z-oz):0;
   /* weight: fall, land, step up, bump your head; then work out which layer of the floor you are on */
-  if(deep){p.y=D.y0;p.vy=0;p.ground=true;}
+  if(fly){p.vy=0;p.ground=false;p.y+=((K.Space?1:0)-(K.KeyC?1:0))*spd*dt;}
+  else if(deep){p.y=D.y0;p.vy=0;p.ground=true;}
   else{p.vy-=GRAV*dt;let ny=p.y+p.vy*dt;const pr=probe(p.x,p.z,.3,p.y,p.y+BODY()),g=pr.ground;
-    if(ny<=g||(p.ground&&p.vy<=0&&p.y-g<=STEP+.05)){if(!p.ground&&p.vy<-10){const dmg=(-p.vy-10)*6;p.hp-=dmg;G.hurtFx=1;G.shake=.5;sfx('hurt');noise(8);if(p.hp<=0){p.hp=0;endGame(false,'It was further down than it looked.');return;}}
+    if(ny<=g||(p.ground&&p.vy<=0&&p.y-g<=STEP+.05)){if(!p.ground&&p.vy<-10&&!dev('god')){const dmg=(-p.vy-10)*6;p.hp-=dmg;G.hurtFx=1;G.shake=.5;sfx('hurt');noise(8);if(p.hp<=0){p.hp=0;endGame(false,'It was further down than it looked.');return;}}
       else if(!p.ground&&p.vy<-4){sfx('step');noise(5);}
       ny=g;p.vy=0;p.ground=true;}
     else p.ground=false;
     if(ny+BODY()>pr.ceil){ny=pr.ceil-BODY();if(p.vy>0)p.vy=0;}
     p.y=ny;if(p.y<-60){p.y=D.y0+2;p.vy=0;}
-    if(p.crouch&&p.wantStand){const q=probe(p.x,p.z,.3,p.y,p.y+1.8);if(!q.block&&q.ceil>=p.y+1.8){p.crouch=false;p.wantStand=false;}}
-    let best=null,low=D;for(const L of G.decks){if(L.lv!==D.lv)continue;if(L.y0<low.y0)low=L;if(p.y>=L.y0-.7&&(!best||L.y0>best.y0))best=L;}if(!best)best=low;
+    if(p.crouch&&p.wantStand){const q=probe(p.x,p.z,.3,p.y,p.y+1.8);if(!q.block&&q.ceil>=p.y+1.8){p.crouch=false;p.wantStand=false;}}}
+  if(!deep||fly){let best=null,low=D;for(const L of G.decks){if(L.lv!==D.lv)continue;if(L.y0<low.y0)low=L;if(p.y>=L.y0-.7&&(!best||L.y0>best.y0))best=L;}if(!best)best=low;
     if(best!==D){setGrid(best);D=G.D;}}
   p.cy+=(p.y-p.cy)*Math.min(1,dt*18);
   p.stepD+=moved;p.bob+=moved*(deep?1.4:wet?2:3.3);
@@ -1045,7 +1060,7 @@ function updPlayer(dt){const p=G.p;let D=G.D;const wet=!!D.wet,deep=!!D.deep,GRA
   U.uFlashDir.value.set(G.fwd[0],G.fwd[1],G.fwd[2]);
   /* air */
   G.o2max=G.worn.rebreather?150:35;
-  if(deep){G.o2-=dt;if(G.o2<=0){G.o2=0;p.hp-=14*dt;G.hurtFx=Math.max(G.hurtFx,.7);if(p.hp<=0){p.hp=0;endGame(false,'Your chest made the decision for you, and the water came in.');return;}}}
+  if(deep){G.o2-=dt;if(G.o2<=0){G.o2=0;if(!dev('god'))p.hp-=14*dt;G.hurtFx=Math.max(G.hurtFx,.7);if(p.hp<=0){p.hp=0;endGame(false,'Your chest made the decision for you, and the water came in.');return;}}}
   else G.o2=Math.min(G.o2max,G.o2+dt*40);
   /* light */
   if(G.lightOn&&G.light==='flash'&&deep){G.lightOn=false;sfx('deny');say('The flashlight goes under and dies. It is not sealed.');}
@@ -1054,7 +1069,7 @@ function updPlayer(dt){const p=G.p;let D=G.D;const wet=!!D.wet,deep=!!D.deep,GRA
   G.fk-=dt;if(G.fk<0&&Math.random()<dt*(G.batt<20?1.4:.3))G.fk=rnd(.05,.25);
   if(G.muzzle>0)G.muzzle-=dt;
   U.uFlash.value=G.flashOn?(G.fk>0?.25:1)*(G.batt<15?.6:1):0;U.uLamp.value=G.muzzle>0?2.5:G.lampOn?(G.batt<15?.6:1):0;
-  U.uFog.value+=((deep?(G.worn.goggles?.075:.21):wet?.045:.032)-U.uFog.value)*Math.min(1,dt*4);U.uWet.value=deep?1:wet?.4:0;
+  U.uFog.value+=((deep?(G.worn.goggles?.075:.21):wet?.045:.032)*(dev('bright')?.25:1)-U.uFog.value)*Math.min(1,dt*4);U.uWet.value=deep?1:wet?.4:0;
   const lum=lumAt(D,p.x,p.z);G.vis=clamp(.3+lum*.8+(G.lightOn?.35:0),.3,1.3)*(p.crouch?.6:1);
   lightAt(D,p.x,p.z,G.vmMat.uniforms.uLight.value);
   /* hands. A swing is two motions: hold to load it, let go to throw it. Let go early and nothing happens. */
@@ -1109,7 +1124,7 @@ function give(id,n){const it=ITEMS[id];n=n||1;
   return true;}
 /* things you put down stay where you put them */
 function spawnItem(D,it){const mat=dmat(),g=itemMesh(it.id,mat);g.position.set(it.x,D.y0+it.y+hfAt(D,it.x,it.z),it.z);g.rotation.y=rnd(TAU);D.grp.add(g);D.dyn.push({x:it.x,z:it.z,mat});if(D.TL)lightAt(D,it.x,it.z,mat.uniforms.uLight.value);
-  const e={x:it.x,y:it.y+.05,yo:hfAt(D,it.x,it.z),z:it.z,r:2,label:()=>'Take '+ITEMS[it.id].n.toLowerCase(),act(){const per=ITEMS[it.id].per;if(give(it.id,it.raw&&per?it.n/per:it.n)){e.off=true;g.visible=false;sfx('take');}}};D.ints.push(e);}
+  const e={item:it.id,x:it.x,y:it.y+.05,yo:hfAt(D,it.x,it.z),z:it.z,r:2,label:()=>'Take '+ITEMS[it.id].n.toLowerCase(),act(){const per=ITEMS[it.id].per;if(give(it.id,it.raw&&per?it.n/per:it.n)){e.off=true;g.visible=false;sfx('take');}}};D.ints.push(e);}
 function giveOrDrop(id,n){if(!give(id,n)){const p=G.p;spawnItem(G.D,{id,n:n||1,x:p.x,z:p.z,y:(G.D.wet||0)+.02});say(ITEMS[id].n+' is at your feet.');}}
 function dropItem(i){const s=G.inv[i],p=G.p,D=G.D;if(!s)return;G.inv.splice(i,1);if(G.weapon===s.id)setWeapon(null);
   let x=p.x-Math.sin(p.yaw)*.7,z=p.z-Math.cos(p.yaw)*.7;if(collides(D,x,z,.2)){x=p.x;z=p.z;}
@@ -1230,7 +1245,7 @@ let roomTO=0;
 function showRoom(n,sub){const e=$('roomn');e.innerHTML='';e.appendChild(document.createTextNode(n));if(sub){const s=document.createElement('small');s.textContent=sub;e.appendChild(s);}
   e.style.opacity=1;clearTimeout(roomTO);roomTO=setTimeout(()=>{e.style.opacity=0;},2600);}
 function openPanel(id){G.p.chg=-1;G.mode=id;$(id).classList.remove('hide');if(document.pointerLockElement)document.exitPointerLock();}
-function closePanel(){for(const id of['inv','note','pad','lift'])$(id).classList.add('hide');G.mode='play';lock();}
+function closePanel(){for(const id of['inv','note','pad','lift','dev','map']){const e=$(id);if(e)e.classList.add('hide');}G.mode='play';lock();}
 function renderInv(){const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
   let h='<h2>Carried <span>'+G.inv.length+' of '+G.cap+'</span></h2><div class="slots">';
   for(let i=0;i<G.cap;i++){const s=G.inv[i];if(s){const it=ITEMS[s.id];h+='<div class="slot'+(G.weapon===s.id?' on':'')+'"><button class="use" data-i="'+i+'"><b>'+esc(it.n)+'</b>'+(s.n>1?'<em>×'+s.n+'</em>':'')+'<small>'+esc(it.d)+(G.weapon===s.id?' In hand.':'')+'</small></button><button class="drop" data-d="'+i+'">Put down</button></div>';}
@@ -1340,6 +1355,7 @@ function newGame(){clearTimeout(endTO);disposeScene();
   }
   G.vmMat=dmat();G.vm=new THREE.Group();G.vm.rotation.z=-.15;camera.add(G.vm);setWeapon(null);
   relight();setDeck(levelGrid(STATION.start.level));U.uFog.value=.032;
+  if(DEV)devStart();
   $('vig').style.opacity=0;$('end').classList.add('hide');$('hud').classList.remove('hide');$('batw').classList.add('hide');$('msgs').innerHTML='';
   if(HUM)HUM.gain.value=0;
   say('Gen-1 has dropped. The lock on your cell has let go.');
@@ -1388,12 +1404,106 @@ let last=0;
 function frame(t){requestAnimationFrame(frame);const dt=Math.min(.05,(t-last)/1000||0);last=t;
   if(!G)return;U.uTime.value=t/1000;if(G.mode==='play')update(dt);renderer.render(scene,camera);}
 
+/* ============================================================ dev mode: open the page with ?dev, or ?dev=<level id> to wake up on that level
+   `  the dev panel: switches, and a jump to any layer of any level
+   M  the map of a layer: [ and ] page through layers, hover for coordinates, click to go there
+   V  fly: no walls, no gravity. Space up, C down, Shift fast.   G  nothing hurts you.   B  full light, thin fog */
+const DEVQ=new URLSearchParams(location.search),DEV=DEVQ.has('dev')?{fly:false,god:false,bright:false,at:DEVQ.get('dev'),mapK:0,ms:null}:null;
+function dev(k){return!!(DEV&&DEV[k]);}
+/* somewhere sensible to stand on a layer: its lift, else a stair landing, else the middle of its first room */
+function devSpot(D){const m=D.mk.lift||Object.values(D.mk)[0];if(m)return m;
+  const R=D.rooms.find(R=>R.name&&!R.hole)||D.rooms[0];return[R.x+R.w/2,R.y+R.h/2,G.p.yaw];}
+function devPut(k,x,z,yaw){const p=G.p;setDeck(k);p.x=x*T;p.z=z*T;if(yaw!==undefined)p.yaw=yaw;
+  p.y=p.cy=G.D.y0+hfAt(G.D,p.x,p.z);p.vy=p.kx=p.kz=0;p.ground=true;showRoom(G.D.name,'');}
+function devStart(){U.uBright.value=DEV.bright?.55:0;devTag();
+  if(DEV.at){const k=levelGrid(DEV.at);if(k<0)say('No level called "'+DEV.at+'". Try one of: '+STATION.levels.map(l=>l.id).join(', ')+'.');else{const m=devSpot(G.decks[k]);devPut(k,m[0],m[1],m[2]);}}}
+function devTag(){const on=['fly','god','bright'].filter(k=>DEV[k]);$('devtag').textContent='DEV'+(on.length?' · '+on.join(' · '):'')+'\n` menu   M map';}
+function devToggle(k){DEV[k]=!DEV[k];if(k==='bright')U.uBright.value=DEV.bright?.55:0;if(k==='fly'&&!DEV.fly)devLand();devTag();if(G.mode==='dev')devPanel();}
+/* fly off inside rock, furniture or under the floor: set down on the nearest open floor of this layer instead of falling for ever */
+function devLand(){const D=G.D,p=G.p,t=tileAt(D,p.x,p.z);
+  if(t>=0&&D.g[t]&&p.y>=D.y0+hfAt(D,p.x,p.z)-.05&&!probe(p.x,p.z,.3,p.y,p.y+BODY()).block)return;
+  const ci=Math.floor(p.x/T),cj=Math.floor(p.z/T);let best=-1,bd=1e9;
+  for(let j=0;j<D.H;j++)for(let i=0;i<D.W;i++){const k=j*D.W+i;if(!D.g[k]||D.blk[k]||D.doors[k])continue;const d=(i-ci)*(i-ci)+(j-cj)*(j-cj);if(d<bd){bd=d;best=k;}}
+  if(best>=0)devPut(G.deck,best%D.W+.5,Math.floor(best/D.W)+.5);}
+function devPanel(){let h='<h2>Dev <span>` closes</span></h2><div>';
+  for(const[k,key,nm]of[['fly','V','Fly'],['god','G','God'],['bright','B','Full light']])h+='<button data-dv="'+k+'"'+(DEV[k]?' class="on"':'')+'>'+nm+' <span>'+key+'</span></button>';
+  h+='<button data-dm="1">Map <span>M</span></button></div>';
+  for(const lv of STATION.levels){h+='<h3>'+lv.name+' <span>?dev='+lv.id+'</span></h3>';
+    G.decks.forEach((D,i)=>{if(D.lv===lv.id)h+='<button data-dk="'+i+'"'+(D===G.D?' disabled':'')+'>'+(D.li?'Upper layer, +'+D.y0+' m':'Ground layer')+'</button>';});}
+  $('devb').innerHTML=h;}
+function devMap(k){$('dev').classList.add('hide');DEV.mapK=k===undefined?G.deck:k;openPanel('map');devDraw();}
+/* the map: one tile is s pixels. Floor in its room's colour, rock black, open air over the layer below blue-black.
+   Doors: green opens by hand, amber needs power or a pass, orange jammed half open, red sealed, blue the surface lift.
+   Outlines are solid furniture. Dots: yellow items, white notes, red things that move, dark red things that wait. Letters: S stairs,
+   D dive, L lift, E platform, P service switch, B backup set, F fuse and breaker, + a body to search. The arrow is you. */
+function devDraw(){const D=G.decks[DEV.mapK],W=D.W,H=D.H,cv=$('mapc'),M=22;
+  const s=Math.max(4,Math.floor(Math.min((innerWidth*.94-M)/W,(innerHeight*.9-60-M)/H))),dpr=Math.min(devicePixelRatio||1,2);
+  cv.width=(W*s+M)*dpr;cv.height=(H*s+M)*dpr;cv.style.width=(W*s+M)+'px';cv.style.height=(H*s+M)+'px';DEV.ms={s,M};
+  const x=cv.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);x.fillStyle='#050607';x.fillRect(0,0,W*s+M,H*s+M);x.translate(M,M);
+  const rgb=(c,k)=>'rgb('+c.map(v=>Math.round(clamp(v*k,0,1)*255)).join(',')+')';
+  for(let j=0;j<H;j++)for(let i=0;i<W;i++){const t=j*W+i;let f=null;
+    if(D.g[t]){const r=D.rm[t];
+      if(r===-2){const d=D.doors[t];f=d.lift?'#7fb6c9':d.seal?'#8e2a20':d.vent?'#6b6a64':d.stuck?'#c27a2a':d.kind==='heavy'||d.card||d.code?'#c9a227':'#9fc28a';}
+      else{const R=D.rooms[r];f=R.hole==='st'?'#6b5a2a':R.hole==='el'?'#4a3e18':rgb(R.flc,R.open?1.2:1.7);}}
+    else if(D.below&&D.below.g[t])f='#121a22';
+    if(f){x.fillStyle=f;x.fillRect(i*s,j*s,s,s);}}
+  x.fillStyle='rgba(217,211,193,.1)';for(let i=0;i<=W;i+=5)x.fillRect(i*s,0,1,H*s);for(let j=0;j<=H;j+=5)x.fillRect(0,j*s,W*s,1);
+  /* walls bright; seams between rooms that share open floor dark, so the rectangles a space is built from stay readable */
+  for(let j=0;j<H;j++)for(let i=0;i<W;i++){const t=j*W+i;if(!D.g[t])continue;
+    for(const[di,dj]of[[1,0],[-1,0],[0,1],[0,-1]]){const ni=i+di,nj=j+dj,n=nj*W+ni,out=ni<0||nj<0||ni>=W||nj>=H;let c=null;
+      if(out||!D.g[n])c='#d9d3c1';else if(di+dj>0&&D.rm[n]!==D.rm[t]&&D.rm[n]!==-2&&D.rm[t]!==-2)c='rgba(0,0,0,.5)';if(!c)continue;
+      x.fillStyle=c;if(di)x.fillRect((di>0?i+1:i)*s-.5,j*s,1,s);else x.fillRect(i*s,(dj>0?j+1:j)*s-.5,s,1);}}
+  x.lineWidth=1;x.strokeStyle='rgba(10,10,10,.8)';
+  for(const p of D.props){if(!p.col)continue;const c=Math.abs(Math.cos(p.ry)),sn=Math.abs(Math.sin(p.ry)),ex=(p.sx*c+p.sz*sn)/2,ez=(p.sx*sn+p.sz*c)/2;x.strokeRect((p.x-ex)/T*s,(p.z-ez)/T*s,ex*2/T*s,ez*2/T*s);}
+  for(const b of D.xcols)x.strokeRect(b[0]/T*s,b[1]/T*s,(b[2]-b[0])/T*s,(b[3]-b[1])/T*s);
+  const dot=(px,pz,r,c)=>{x.fillStyle=c;x.beginPath();x.arc(px/T*s,pz/T*s,r,0,TAU);x.fill();};
+  for(const n of D.notes)dot(n.x,n.z,2.5,'#f1efe8');
+  for(const it of D.ints)if(it.item&&!it.off)dot(it.x,it.z,2.5,'#e8c23a');
+  for(const m of D.muts)if(!m.dead)dot(m.x,m.z,m.fixed?3:4,m.fixed?'#7a2a20':'#e0452f');
+  x.textAlign='center';x.textBaseline='middle';x.lineWidth=3;x.strokeStyle='rgba(5,6,7,.85)';
+  const IK={stair:'S',dive:'D',lift:'L',elev:'E',panel:'P',backup:'B',fuse:'F',breaker:'F',body:'+'};x.font='600 12px system-ui,sans-serif';
+  for(const it of D.ints){const c=IK[it.kind];if(!c||it.kind==='body'&&it.off)continue;x.strokeText(c,it.x/T*s,it.z/T*s);x.fillStyle='#f1efe8';x.fillText(c,it.x/T*s,it.z/T*s);}
+  x.font='500 11px system-ui,sans-serif';const seen=new Set();
+  for(const R of D.rooms){if(!R.name||R.hole||seen.has(R.name)||R.w*s<30)continue;seen.add(R.name);const cx=(R.x+R.w/2)*s,cz=(R.y+R.h/2)*s;
+    x.strokeText(R.name,cx,cz,R.w*s-4);x.fillStyle='#d9d3c1';x.fillText(R.name,cx,cz,R.w*s-4);}
+  if(D.lv===G.D.lv){const p=G.p,px=p.x/T*s,pz=p.z/T*s,fx=-Math.sin(p.yaw),fz=-Math.cos(p.yaw);x.globalAlpha=D===G.D?1:.4;x.fillStyle='#7fb6c9';x.beginPath();
+    x.moveTo(px+fx*10,pz+fz*10);x.lineTo(px-fx*5+fz*6,pz-fz*5-fx*6);x.lineTo(px-fx*5-fz*6,pz-fz*5+fx*6);x.closePath();x.fill();x.globalAlpha=1;}
+  x.fillStyle='#86857c';x.font='10px system-ui,sans-serif';for(let i=0;i<W;i+=5)x.fillText(i,i*s+s/2,-M/2);for(let j=0;j<H;j+=5)x.fillText(j,-M/2,j*s+s/2);
+  devInfo(null);}
+function devInfo(e){const D=G.decks[DEV.mapK],head=D.name+(D.li?', upper layer':'')+'   [ ] layers   click to go   Esc closes';
+  if(!e){$('mapi').textContent=head;return;}const t=devTile(e);if(!t){$('mapi').textContent=head;return;}
+  const[i,j]=t,k=j*D.W+i,r=D.rm[k],what=!D.g[k]?'rock':r===-2?'door':r>=0?D.rooms[r].name||(D.rooms[r].hole==='st'?'stairs':'platform'):'';
+  const o=D.org,plan=o[0]||o[1]?'   plan '+(o[0]+(i+.5)*T)+', '+(o[1]+(j+.5)*T)+' m':'';
+  $('mapi').textContent='tile '+i+', '+j+'   centre '+((i+.5)*T)+', '+((j+.5)*T)+' m'+plan+'   '+what;}
+function devTile(e){const D=G.decks[DEV.mapK],b=$('mapc').getBoundingClientRect(),{s,M}=DEV.ms,i=Math.floor((e.clientX-b.left-M)/s),j=Math.floor((e.clientY-b.top-M)/s);
+  return i<0||j<0||i>=D.W||j>=D.H?null:[i,j];}
+function devClick(e){const t=devTile(e);if(!t)return;const D=G.decks[DEV.mapK],k=t[1]*D.W+t[0];
+  if(!D.g[k]&&!DEV.fly){$('mapi').textContent='Solid rock there. Turn on fly (V) to go anyway.';return;}
+  const K2=DEV.mapK;closePanel();devPut(K2,t[0]+.5,t[1]+.5);}
+function devKey(code){const m=G.mode;
+  if(m==='map'){if(code==='BracketLeft'||code==='BracketRight'){const n=G.decks.length;DEV.mapK=(DEV.mapK+(code==='BracketLeft'?n-1:1))%n;devDraw();}
+    else if(code==='Escape'||code==='KeyM'||code==='Tab')closePanel();return true;}
+  if(m!=='play'&&m!=='dev')return false;
+  if(code==='Backquote'){if(m==='dev')closePanel();else{devPanel();openPanel('dev');}return true;}
+  if(code==='KeyM'){devMap();return true;}
+  const t={KeyV:'fly',KeyG:'god',KeyB:'bright'}[code];if(t){devToggle(t);return true;}
+  if(m==='play')return code==='KeyC'&&DEV.fly;
+  if(code==='Escape'||code==='Tab')closePanel();return true;}
+function devInit(){$('hud').insertAdjacentHTML('beforeend','<div id="devtag"></div>');
+  document.body.insertAdjacentHTML('beforeend','<div id="dev" class="panel hide"><div id="devb"></div></div><div id="map" class="panel hide"><div><canvas id="mapc"></canvas><p id="mapi" class="hint"></p></div></div>');
+  $('devb').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.disabled)return;
+    if(b.dataset.dv)devToggle(b.dataset.dv);else if(b.dataset.dm)devMap();
+    else if(b.dataset.dk){const k=+b.dataset.dk,m=devSpot(G.decks[k]);closePanel();devPut(k,m[0],m[1],m[2]);}});
+  $('mapc').addEventListener('mousemove',devInfo);$('mapc').addEventListener('click',devClick);
+  $('title').querySelector('.go').textContent+='   (dev mode)';}
+
 /* ============================================================ input */
 let everLocked=false,noLock=false,drag=null;
 function lock(){if(noLock)return;const c=$('c');try{const pr=c.requestPointerLock();if(pr&&pr.catch)pr.catch(lockFail);}catch(e){lockFail();}}
 function lockFail(){if(everLocked){if(G&&G.mode==='play'){G.mode='pause';$('pause').classList.remove('hide');}return;}
   if(!noLock){noLock=true;say('Mouse capture is unavailable here. Hold a mouse button and drag to look. Hold Q to load a swing.');}}
 function onKey(code,e){if(!G)return;
+  if(DEV&&devKey(code))return;
   switch(G.mode){
     case'play':
       if(code==='KeyE')interact();else if(code==='KeyF')toggleLight();else if(code==='KeyC'){if(G.p.crouch)G.p.wantStand=true;else{G.p.crouch=true;G.p.wantStand=false;}}else if(code==='Space')jump();else if(code==='KeyQ')press();
@@ -1435,6 +1545,7 @@ function boot(){
   $('note').addEventListener('click',()=>{if(G&&G.mode==='note')closePanel();});
   let h='';for(const k of['1','2','3','4','5','6','7','8','9','C','0'])h+='<button data-k="'+k+'">'+(k==='C'?'Clear':k)+'</button>';$('padk').innerHTML=h;
   $('padk').addEventListener('click',e=>{const b=e.target.closest('[data-k]');if(b)padKey(b.dataset.k);});
+  if(DEV)devInit();
   if(document.fonts&&document.fonts.load)document.fonts.load('600 27px "Barlow Condensed"').catch(()=>{});
   requestAnimationFrame(frame);
 }
