@@ -6,5 +6,6 @@ export default defineConfig({
   base: './',
   // three.js alone is about 600 kB; one chunk is fine for a game that loads once
   build: { chunkSizeWarningLimit: 1000 },
-  test: { include: ['test/**/*.test.ts'] },
+  // every test, and the whole run, has a hard limit: nothing is allowed to hang
+  test: { include: ['test/**/*.test.ts'], testTimeout: 10_000, hookTimeout: 10_000, teardownTimeout: 5_000 },
 });

@@ -260,6 +260,8 @@ components, not code threaded through the frame loop:
 
 - **Seeded randomness.** Each level is dressed from its own seed, so it looks the same on every load. The sim has its
   own seeded generator. `Math.random` is not used in `content/`, `world/` or `sim/`.
+- **Stable ids.** Each world numbers what moves from 1, in the order it is made, so a level loaded twice gives the
+  same ids and a save can name things by them.
 - **Save and load** serialise the sim state: entities, circuits, inventory, flags, the player. The world model is
   rebuilt from content, never saved.
 - **Headless.** The sim runs in Node without a browser. That enables:
@@ -267,6 +269,7 @@ components, not code threaded through the frame loop:
   - **Level validation** at build time: every ladder has two ends, every key, card and code exists somewhere
     reachable, every door has a circuit.
   - **The progression checker** from `world.md` §4: prove from a save that the game can still be finished.
+- **Nothing may hang.** Every test has a 10 s limit and every CI job a 10 minute one.
 - **Proposed tools:** Vitest for tests; `npm run check` runs types, tests and level validation.
 
 ---

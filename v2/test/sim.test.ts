@@ -171,6 +171,44 @@ describe('loose crates', () => {
   });
 });
 
+describe('ids', () => {
+  it('the same level gives the same ids every time it is loaded', () => {
+    const ids = () => {
+      const b = new LevelBuilder('t', 'T');
+      b.room('A', 0, 0, 20, 8, { ht: 4, nolamp: true });
+      b.box(5, 2, 1, 1, 1, 0x806040, { loose: true });
+      b.door(10, 0, 10.25, 2);
+      b.platform(14, 0, 16, 2, 0.2, 2);
+      b.start(1, 1, 0);
+      const s = makeSim(b.finish());
+      return s.world.dyn.map(d => `${d.kind}:${d.id}`);
+    };
+    const first = ids();
+    expect(ids()).toEqual(first);
+    expect(new Set(first).size).toBe(first.length);
+  });
+});
+
+describe('carrying', () => {
+  it('a crate riding on another is left behind rather than dragged into a wall', () => {
+    const s = level(b => {
+      b.room('Hall', 0, 0, 20, 4, { ht: 4, nolamp: true });
+      b.block(8, 1.1, 0, 9, 4, 4, 0x808080); // a beam the lower crate fits under and the upper one does not
+      b.box(6, 2, 1, 1, 1, 0x806040, { loose: true });
+      b.box(6, 2, 0.8, 0.6, 0.8, 0x806040, { y: 1, loose: true });
+    }, [1, 2, 0]);
+    const [lower, upper] = s.loose.all;
+    expect(upper.on).toBe(lower.dyn);
+    lower.vx = 20; s.loose.wake(lower, 0); // a hard shove: it slides about 3 m
+    for (let k = 0; k < 180; k++) {
+      step(s, noInput());
+      expect(s.world.overlap({ x: upper.x, z: upper.z, hx: upper.hx - 0.01, hz: upper.hz - 0.01, round: false }, upper.y + 0.01, upper.y + upper.h, upper.dyn)).toBe(null);
+    }
+    expect(lower.x).toBeGreaterThan(8); // under the beam
+    expect(upper.x).toBeLessThan(8);
+  });
+});
+
 describe('push-out', () => {
   it('a body left inside a wall is nudged out next step', () => {
     const s = level(b => b.room('A', 0, 0, 6, 4, { ht: 3, nolamp: true }), [1, 2, 0]);

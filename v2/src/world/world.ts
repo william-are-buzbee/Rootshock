@@ -50,6 +50,7 @@ export class World {
   readonly water: WaterDef[];
   /** the moving solids, kept up to date by the sim */
   readonly dyn: Dyn[] = [];
+  private ids = 0;
   /** fixed solids, bucketed by 2 m column so a query only looks at what is near */
   private boxes = new Map<number, Box[]>();
   private static readonly B = 2;
@@ -105,6 +106,12 @@ export class World {
     for (let k = Math.floor((f.z - f.hz) / CELL); k <= Math.floor((f.z + f.hz) / CELL); k++)
       for (let i = Math.floor((f.x - f.hx) / CELL); i <= Math.floor((f.x + f.hx) / CELL); i++)
         if (meets(f, i * CELL, k * CELL, (i + 1) * CELL, (k + 1) * CELL)) fn(i, k);
+  }
+
+  /** a new id for something that moves. Ids count from 1 in each world, in the order things are made, so the same
+   *  level always gives the same ids (a save can name things by them). */
+  newId(): number {
+    return ++this.ids;
   }
 
   /** every fixed solid box, once (for the dev overlay) */

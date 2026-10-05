@@ -25,16 +25,14 @@ export interface Loose extends Rider {
   woke: number;
 }
 
-let nextId = 5000;
-
 export function makeLoose(w: World, p: PropDef): Loose {
   const c = Math.abs(Math.cos(p.ry)), s = Math.abs(Math.sin(p.ry));
   const hx = (p.sx * c + p.sz * s) / 2, hz = (p.sx * s + p.sz * c) / 2;
-  const dyn: Dyn = { kind: 'loose', id: nextId++, x0: 0, y0: 0, z0: 0, x1: 0, y1: 0, z1: 0 };
+  const dyn: Dyn = { kind: 'loose', id: w.newId(), x0: 0, y0: 0, z0: 0, x1: 0, y1: 0, z1: 0 };
   const o: Loose = {
     prop: p, x: p.x, y: p.y, z: p.z, hx, hz, h: p.sy, vx: 0, vy: 0, vz: 0, awake: false, ground: true, still: 0, woke: 0, on: null, dyn,
     sync: () => syncLoose(o),
-    clear: dy => !w.overlap(foot(o), o.y + dy + EPS, o.y + dy + o.h, o.dyn),
+    clear: (dx, dy, dz) => !w.overlap(foot(o, o.x + dx, o.z + dz), o.y + dy + EPS, o.y + dy + o.h, o.dyn),
   };
   w.dyn.push(dyn);
   syncLoose(o);
@@ -131,9 +129,9 @@ export class LooseSet {
     if (!mx && !mz) return;
     o.x += mx; o.z += mz;
     syncLoose(o);
-    /* what rides on it goes with it */
+    /* what rides on it goes with it, if there is room; if not, it is left behind and slides off */
     for (const r of riders) if (r.on === o.dyn) {
-      r.x += mx; r.z += mz; r.sync();
+      if (r.clear(mx, 0, mz)) { r.x += mx; r.z += mz; r.sync(); }
       const q = this.all.find(l => l === r);
       if (q) this.wake(q, tick);
     }

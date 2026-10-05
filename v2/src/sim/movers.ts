@@ -13,8 +13,8 @@ export interface Rider {
   dyn: Dyn;
   /** after being carried: refresh its box in the world */
   sync(): void;
-  /** would it still fit if lifted (or lowered) by dy? */
-  clear(dy: number): boolean;
+  /** would it still fit if moved by (dx, dy, dz)? */
+  clear(dx: number, dy: number, dz: number): boolean;
 }
 
 export interface Door {
@@ -44,16 +44,14 @@ const DOOR_SPEED = 2.2; // fraction of its travel per second, as in the first en
 const DOOR_NEAR = 2.2;
 const LIFT_SPEED = 1.5;
 const THICK = 0.2;
-let nextId = 1000;
-
 export function makeDoor(w: World, def: DoorDef): Door {
-  const dyn: Dyn = { kind: 'mover', id: nextId++, ...def };
+  const dyn: Dyn = { kind: 'mover', id: w.newId(), ...def };
   w.dyn.push(dyn);
   return { def, dyn, t: 0, hold: 0 };
 }
 
 export function makePlatform(w: World, def: PlatformDef): Platform {
-  const dyn: Dyn = { kind: 'mover', id: nextId++, x0: def.x0, z0: def.z0, x1: def.x1, z1: def.z1, y0: def.y0 - THICK, y1: def.y0 };
+  const dyn: Dyn = { kind: 'mover', id: w.newId(), x0: def.x0, z0: def.z0, x1: def.x1, z1: def.z1, y0: def.y0 - THICK, y1: def.y0 };
   w.dyn.push(dyn);
   return { def, dyn, y: def.y0, target: 0, wait: 0, moving: false, armed: true };
 }
@@ -98,7 +96,7 @@ export function updatePlatform(p: Platform, riders: Rider[], dt: number): void {
   if (Math.abs(goal - p.y) <= Math.abs(dy)) dy = goal - p.y;
   const box: Box = { x0: d.x0, z0: d.z0, x1: d.x1, z1: d.z1, y0: p.y + dy - THICK, y1: p.y + dy };
   /* something under it on the way down, or beside it in the shaft: stop and go back */
-  if (riders.some(r => !on.includes(r) && overlaps(box, r.dyn)) || (dy > 0 && on.some(r => !r.clear(dy)))) {
+  if (riders.some(r => !on.includes(r) && overlaps(box, r.dyn)) || (dy > 0 && on.some(r => !r.clear(0, dy, 0)))) {
     p.target = p.target ? 0 : 1;
     return;
   }

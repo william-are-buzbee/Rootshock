@@ -17,13 +17,12 @@ export const STEP_UP = 0.5;
 export const GRAVITY = 20;
 const EPS = 1e-3;
 
-let nextId = 1;
 export function makeBody(w: World, x: number, y: number, z: number, r: number, h: number): Body {
-  const dyn: Dyn = { kind: 'body', id: nextId++, x0: 0, y0: 0, z0: 0, x1: 0, y1: 0, z1: 0 };
+  const dyn: Dyn = { kind: 'body', id: w.newId(), x0: 0, y0: 0, z0: 0, x1: 0, y1: 0, z1: 0 };
   const b: Body = {
     x, y, z, vy: 0, r, h, ground: true, on: null, dyn,
     sync: () => syncBody(b),
-    clear: dy => fits(w, b, b.x, b.z, b.y + dy),
+    clear: (dx, dy, dz) => fits(w, b, b.x + dx, b.z + dz, b.y + dy),
   };
   w.dyn.push(dyn);
   syncBody(b);
