@@ -215,12 +215,15 @@ function shUni(extra){return Object.assign({uFlashDir:U.uFlashDir,uFlash:U.uFlas
 function dmat(){return new THREE.ShaderMaterial({uniforms:shUni({uLight:{value:new THREE.Vector3()}}),vertexShader:VS,fragmentShader:FS,side:THREE.DoubleSide,extensions:{derivatives:true}});}
 
 /* ============================================================ world description helpers (positions in tile units, sizes in metres) */
-/* A grid is one walkable layer. A level of the station is one grid, or two stacked (a tall hall and the rung above it).
+/* A grid is one walkable layer. A level of the station is one grid, or several stacked: a tall hall, and rungs above it.
    Every layer carries its level's id (lv), name and circuit (c); layers with the same lv are one place and are live together. */
 function mkDeck(lv,W,H,o){o=o||{};return{name:lv.name,W,H,c:lv.c,lv:lv.id,org:lv.org||[0,0],y0:o.y0||0,li:o.li||0,wet:o.wet||0,deep:o.deep||0,mk:{},above:null,below:null,
   g:new Uint8Array(W*H),rm:new Int16Array(W*H).fill(-1),nom:new Uint8Array(W*H),el:{},elevs:[],stairs:[],conn:{},rooms:[],doors:{},props:[],xcols:[],cols:{},blk:new Uint8Array(W*H),lamps:[],
   fA:new Int16Array(W*H),fB:new Int16Array(W*H),q:new Int32Array(W*H),items:[],notes:[],mutDefs:[],intDefs:[],TL:null,mesh:null,grp:null,ints:[],muts:[],dyn:[],signs:[]};}
-function stack(lo,hi){lo.above=hi;hi.below=lo;}
+function stack(lo,hi){if(lo.W!==hi.W||lo.H!==hi.H)throw new Error('Stacked layers must share one grid: '+lo.name);lo.above=hi;hi.below=lo;}
+/* the nearest layer above (or below) this one with floor at tile k: what is overhead, or what you would land on */
+function upAt(D,k){let n=D.above;while(n&&!n.g[k])n=n.above;return n;}
+function dnAt(D,k){let n=D.below;while(n&&!n.g[k])n=n.below;return n;}
 /* station-plan.md gives every position in metres, in one frame for the whole station: x east, z south, y up from the surface.
    A level that declares org:[x,z], the plan point under its tile (0,0), can be laid out straight from those numbers. */
 const planL=m=>m/T,planX=(D,x)=>(x-D.org[0])/T,planZ=(D,z)=>(z-D.org[1])/T;
@@ -599,7 +602,7 @@ function finalize(D){
   /* rails: the edge of a rung over open air, and the sides of a stair opening */
   for(let j=0;j<D.H;j++)for(let i=0;i<W;i++){const k=j*W+i,r=D.rm[k];if(!D.g[k]||r<0||!D.rooms[r].open)continue;
     for(const[di,dj]of[[1,0],[-1,0],[0,1],[0,-1]]){const ni=i+di,nj=j+dj,n=nj*W+ni,nr=D.g[n]?D.rm[n]:-9,hole=nr>=0&&D.rooms[nr].hole;
-      const air=!D.g[n]&&D.below&&D.below.g[n],st=hole==='st'&&!D.conn[k+':'+n];if(!air&&!st)continue;const e=.1;
+      const air=!D.g[n]&&dnAt(D,n),st=hole==='st'&&!D.conn[k+':'+n];if(!air&&!st)continue;const e=.1;
       D.xcols.push(di?[di>0?(i+1)*T-e:i*T,j*T,di>0?(i+1)*T:i*T+e,(j+1)*T,0,1]:[i*T,dj>0?(j+1)*T-e:j*T,(i+1)*T,dj>0?(j+1)*T:j*T+e,0,1]);}}
   for(const b of D.xcols)add(b[0],b[1],b[2],b[3],b[4]||0,b[5]===undefined?2:b[5]);
   for(let j=0;j<D.H;j++)for(let i=0;i<W;i++){const k=j*W+i;if(D.g[k]&&!D.doors[k]&&collides(D,(i+.5)*T,(j+.5)*T,.42))D.blk[k]=1;}
@@ -625,7 +628,7 @@ function buildDeck(D){
     a+=TL[x*4];b+=TL[x*4+1];c+=TL[x*4+2];f=Math.max(f,TL[x*4+3]);n++;}return n?[a/n,b/n,c/n,f]:[0,0,0,0];};
   const vert=(x,y,z,c,l,m)=>{PA.push(x,y,z);CA.push(c[0],c[1],c[2]);LA.push(l[0]*m,l[1]*m,l[2]*m,l[3]);};
   const quad=(a,b,c,d,col,la,lb,lc,ld,m)=>{vert(a[0],a[1],a[2],col,la,m);vert(b[0],b[1],b[2],col,lb,m);vert(c[0],c[1],c[2],col,lc,m);vert(a[0],a[1],a[2],col,la,m);vert(c[0],c[1],c[2],col,lc,m);vert(d[0],d[1],d[2],col,ld,m);};
-  const RO=x=>D.rm[x]>=0?D.rooms[D.rm[x]]:DOORROOM,Y=D.y0,fy=D.wet,WATER=[.07,.13,.14],UP=D.above,DN=D.below;
+  const RO=x=>D.rm[x]>=0?D.rooms[D.rm[x]]:DOORROOM,Y=D.y0,fy=D.wet,WATER=[.07,.13,.14];
   const hf=D.hf,cf=D.cf,W1=W+1,HF=(x,z)=>hf?hf[Math.round(z/T)*W1+Math.round(x/T)]:0,CF=(x,z)=>cf?cf[Math.round(z/T)*W1+Math.round(x/T)]:0;
   /* the ceiling over a corner, above Y: a cave's and a doorway's ride on the floor beneath; any other room's is level */
   const CEIL=(R,x,z)=>R.cave?HF(x,z)+R.ht+CF(x,z):R===DOORROOM?HF(x,z)+R.ht:R.ht;
@@ -643,11 +646,11 @@ function buildDeck(D){
         if(nopen&&NR.open)return;
         if(nopen&&NR.hole){seg(-.14,0,[.2,.21,.22],.6);if(NR.hole==='st'&&!D.conn[x+':'+nx])seg(0,1,[.35,.33,.2],1);return;}
         if(nopen){if(NR.ht<ht)seg(NR.ht,ht,pan,1);return;}
-        if(DN&&!out&&DN.g[nx]){seg(-.14,0,[.2,.21,.22],.6);seg(0,1,[.35,.33,.2],1);}
+        if(!out&&dnAt(D,nx)){seg(-.14,0,[.2,.21,.22],.6);seg(0,1,[.35,.33,.2],1);}
         return;}
       /* from what the neighbour leaves showing (its ceiling, or the floor if it is rock) up to this tile's ceiling, at each end */
       const fa=HF(ax,az),fb=HF(ex,ez);let ca=CEIL(R,ax,az),cb=CEIL(R,ex,ez),na=fa,nb=fb;
-      if(UP&&!out&&UP.g[nx]){const u=UP.y0-Y;ca=Math.min(ca,u);cb=Math.min(cb,u);}
+      const UP=!out&&upAt(D,nx);if(UP){const u=UP.y0-Y;ca=Math.min(ca,u);cb=Math.min(cb,u);}
       if(nopen){if(NR.open||NR.hole)return;na=CEIL(NR,ax,az);nb=CEIL(NR,ex,ez);}
       if(ca<=na&&cb<=nb)return;
       if(!R.cave&&fa===0&&fb===0&&ca===cb&&na===nb){const y0=na,top=ca;
@@ -702,14 +705,15 @@ function probe(x,z,r,feet,top){let block=false,ground=-1e9,ceil=1e9;const lv=G.D
     const i0=Math.floor((x-r)/T),i1=Math.floor((x+r)/T),j0=Math.floor((z-r)/T),j1=Math.floor((z+r)/T);
     for(let j=j0;j<=j1;j++)for(let i=i0;i<=i1;i++){const cx=clamp(x,i*T,i*T+T),cz=clamp(z,j*T,j*T+T);if((x-cx)*(x-cx)+(z-cz)*(z-cz)>=r2)continue;
       const out=i<0||j<0||i>=W||j>=L.H,k=j*W+i;
-      if(out||!L.g[k]){if(lower)sol(-1e9,!out&&L.above&&L.above.g[k]?L.above.y0-.14:1e9);else if(out||!L.below.g[k])sol(Y-.14,1e9);continue;}
+      /* no floor here on this layer. The bottom layer stands for the rock: solid up to the next layer that has floor here, if any.
+         Above the bottom, it is open air if some layer below has floor here, and the bottom layer's rock covers the rest. */
+      if(out||!L.g[k]){if(lower){const u=out?null:upAt(L,k);sol(-1e9,u?u.y0-.14:1e9);}continue;}
       const R=L.rm[k]>=0?L.rooms[L.rm[k]]:null;
       if(!(R&&R.hole))sol(lower?-1e9:Y-.14,Y+hfAt(L,cx,cz));
       const d=L.doors[k];if(d&&!d.open){const h=hfAt(L,cx,cz);sol(Y+h+(d.stuck?1.02:0),Y+h+2.4);}
       if(!(R&&(R.open||R.hole))){const ch=Y+(!R?hfAt(L,cx,cz)+2.4:R.cave?hfAt(L,cx,cz)+R.ht+cfAt(L,cx,cz):R.ht);if(ch>feet+STEP&&ch<ceil)ceil=ch;}
       const cs=L.cols[k];if(cs)for(const b of cs){const px=clamp(x,b[0],b[2]),pz=clamp(z,b[1],b[3]);if((x-px)*(x-px)+(z-pz)*(z-pz)<r2)sol(Y+b[4]+b[6],Y+b[5]+b[6]);}}
-    if(lower){
-      for(const s of L.stairs){const sx=clamp(x,s.x0,s.x1),sz=clamp(z,s.z0,s.z1);if((x-sx)*(x-sx)+(z-sz)*(z-sz)<r2){const t=s.ax==='x'?(sx-s.x0)/(s.x1-s.x0):(sz-s.z0)/(s.z1-s.z0);sol(s.y0,s.y0+clamp(s.rev?1-t:t,0,1)*s.h);}}
+    {for(const s of L.stairs){if(s.lo!==L)continue;const sx=clamp(x,s.x0,s.x1),sz=clamp(z,s.z0,s.z1);if((x-sx)*(x-sx)+(z-sz)*(z-sz)<r2){const t=s.ax==='x'?(sx-s.x0)/(s.x1-s.x0):(sz-s.z0)/(s.z1-s.z0);sol(s.y0,s.y0+clamp(s.rev?1-t:t,0,1)*s.h);}}
       for(const E of L.elevs){const ex=clamp(x,E.x0,E.x1),ez=clamp(z,E.z0,E.z1);if((x-ex)*(x-ex)+(z-ez)*(z-ez)<r2)sol(E.y-.2,E.y);}}}
   PR.block=block;PR.ground=ground;PR.ceil=ceil;return PR;}
 function los(D,x0,z0,x1,z1){const dx=x1-x0,dz=z1-z0,d=Math.hypot(dx,dz),n=Math.ceil(d/.5);
@@ -1228,9 +1232,9 @@ const KIND={
   dive:()=>({label(){return this.lb;},act(it){const k=levelGrid(it.to);
     if(G.decks[k].deep&&!G.diveTip){G.diveTip=true;setTimeout(()=>say(G.worn.rebreather?'The rebreather ticks. You have time.':'One lungful. Count it.'),1200);}
     ride(k,it.pos[0],it.pos[1],it.pos[2],'slosh');}}),
-  elev:()=>({label(){const E=this.E;if(E.lvl<0)return null;if(onPlat(E))return E.name+': '+(E.lvl?'down':'up');return E.lvl!==G.D.li?'Call the '+E.name.toLowerCase():null;},
+  elev:()=>({label(){const E=this.E;if(E.lvl<0)return null;if(onPlat(E))return E.name+': '+(E.lvl?'down':'up');return(E.lvl?E.hi:E.lo)!==G.D?'Call the '+E.name.toLowerCase():null;},
     act(it){const E=it.E;if(E.lvl<0)return;if(lvl(E.c)<1){say('No power to it. The platform sits where it stopped.');sfx('deny');return;}
-      const on=onPlat(E);E.tgt=on?(E.lvl?0:1):G.D.li;E.lvl=-1;sfx('door');noise(12);}}),
+      const on=onPlat(E);E.tgt=on?(E.lvl?0:1):G.D===E.hi?1:0;E.lvl=-1;sfx('door');noise(12);}}),
   keeper:()=>({label:()=>G.keys.lift?null:'Take the key from around its neck',act(it){it.off=true;if(it.m.mdl.key)it.m.mdl.key.visible=false;give('liftkey');say('It watches you do it. It does not mind. The others might.');noise(14);}})
 };
 function openLift(){if(lvl('LIFT')<2){say('The lift is dead. It runs off Gen-1 and nothing else.');sfx('deny');return;}
@@ -1458,7 +1462,7 @@ function devPanel(){let h='<h2>Dev <span>` closes</span></h2><div>';
   for(const[k,key,nm]of[['fly','V','Fly'],['god','G','God'],['bright','B','Full light']])h+='<button data-dv="'+k+'"'+(DEV[k]?' class="on"':'')+'>'+nm+' <span>'+key+'</span></button>';
   h+='<button data-dm="1">Map <span>M</span></button></div>';
   for(const lv of STATION.levels){h+='<h3>'+lv.name+' <span>?dev='+lv.id+'</span></h3>';
-    G.decks.forEach((D,i)=>{if(D.lv===lv.id)h+='<button data-dk="'+i+'"'+(D===G.D?' disabled':'')+'>'+(D.li?'Upper layer, +'+D.y0+' m':'Ground layer')+'</button>';});}
+    G.decks.forEach((D,i)=>{if(D.lv===lv.id)h+='<button data-dk="'+i+'"'+(D===G.D?' disabled':'')+'>'+(D.li?'Layer '+D.li+', +'+D.y0+' m':'Ground layer')+'</button>';});}
   $('devb').innerHTML=h;}
 function devMap(k){$('dev').classList.add('hide');DEV.mapK=k===undefined?G.deck:k;openPanel('map');devDraw();}
 /* the map: one tile is s pixels. Floor in its room's colour, rock black, open air over the layer below blue-black.
@@ -1474,7 +1478,7 @@ function devDraw(){const D=G.decks[DEV.mapK],W=D.W,H=D.H,cv=$('mapc'),M=22;
     if(D.g[t]){const r=D.rm[t];
       if(r===-2){const d=D.doors[t];f=d.lift?'#7fb6c9':d.seal?'#8e2a20':d.vent?'#6b6a64':d.stuck?'#c27a2a':d.kind==='heavy'||d.card||d.code?'#c9a227':'#9fc28a';}
       else{const R=D.rooms[r];f=R.hole==='st'?'#6b5a2a':R.hole==='el'?'#4a3e18':rgb(R.flc,(R.open?1.2:1.7)*(1+clamp(hfAt(D,(i+.5)*T,(j+.5)*T)/24,-.5,.5)));}}
-    else if(D.below&&D.below.g[t])f='#121a22';
+    else if(devAir(D,t,i,j))f='#121a22';
     if(f){x.fillStyle=f;x.fillRect(i*s,j*s,s,s);}}
   x.fillStyle='rgba(217,211,193,.1)';for(let i=0;i<=W;i+=5)x.fillRect(i*s,0,1,H*s);for(let j=0;j<=H;j+=5)x.fillRect(0,j*s,W*s,1);
   /* walls bright; seams between rooms that share open floor dark, so the rectangles a space is built from stay readable */
@@ -1499,7 +1503,10 @@ function devDraw(){const D=G.decks[DEV.mapK],W=D.W,H=D.H,cv=$('mapc'),M=22;
     x.moveTo(px+fx*10,pz+fz*10);x.lineTo(px-fx*5+fz*6,pz-fz*5-fx*6);x.lineTo(px-fx*5-fz*6,pz-fz*5+fx*6);x.closePath();x.fill();x.globalAlpha=1;}
   x.fillStyle='#86857c';x.font='10px system-ui,sans-serif';for(let i=0;i<W;i+=5)x.fillText(i,i*s+s/2,-M/2);for(let j=0;j<H;j+=5)x.fillText(j,-M/2,j*s+s/2);
   devInfo(null);}
-function devInfo(e){const D=G.decks[DEV.mapK],head=D.name+(D.li?', upper layer':'')+'   [ ] layers   click to go   Esc closes';
+/* open air at this layer's height: floor somewhere below, under a room tall enough (or open enough) to reach up here */
+function devAir(D,t,i,j){const n=dnAt(D,t);if(!n)return false;const r=n.rm[t],R=r>=0?n.rooms[r]:null,x=(i+.5)*T,z=(j+.5)*T;
+  if(R&&(R.open||R.hole||R.sky))return true;return n.y0+(!R?hfAt(n,x,z)+2.4:R.cave?hfAt(n,x,z)+R.ht+cfAt(n,x,z):R.ht)>D.y0;}
+function devInfo(e){const D=G.decks[DEV.mapK],head=D.name+(D.li?', layer '+D.li+' (+'+D.y0+' m)':'')+'   [ ] layers   click to go   Esc closes';
   if(!e){$('mapi').textContent=head;return;}const t=devTile(e);if(!t){$('mapi').textContent=head;return;}
   const[i,j]=t,k=j*D.W+i,r=D.rm[k],what=!D.g[k]?'rock':r===-2?'door':r>=0?D.rooms[r].name||(D.rooms[r].hole==='st'?'stairs':'platform'):'';
   const o=D.org,plan=o[0]||o[1]?'   plan '+(o[0]+(i+.5)*T)+', '+(o[1]+(j+.5)*T)+' m':'';
@@ -1521,7 +1528,14 @@ function buildSandbox(lv){const D=mkDeck(lv,40,28),dim={lit:'always',lc:[.32,.29
   roughen(D,pas,.2,.5);roughen(D,ch,.35,1.2);roughen(D,up,.25,.4);
   for(const[x,z,h]of[[27,9,3],[35,20,4],[34,8,2.5]])P(D,'cyl',x,z,.9,h,.9,0x5a5248,{c:1});lamp(D,6.5,13.5,6);lamp(D,31,15,9);
   crates(D,13,12.45,1);item(D,'batt',20,13.4,.02);mut(D,'worm',33,12);
-  return[D];}
+  /* the tier hall: a floor and two rungs. Tier 2 crosses over Tier 1 at the west end, and runs on into a gallery cut into the rock */
+  const D2=mkDeck(lv,40,28,{y0:4,li:1}),D3=mkDeck(lv,40,28,{y0:8,li:2});stack(D,D2);stack(D2,D3);
+  door(D,4,17,{open:true,sg:[['Tier hall','s']]});room(D,'Tier hall',2,18,18,9,{...BAY,ht:12,lit:'always',lc:[.5,.5,.48]});
+  room(D2,'Tier 1',2,18,18,2,WALK);stairs(D,D2,18,20,4,'n');
+  room(D3,'Tier 2',2,18,4,2,WALK);room(D3,'Tier 2',2,20,2,5,WALK);room(D3,'Tier 2',2,25,18,2,WALK);stairs(D2,D3,6,18,4,'w');
+  room(D3,'Gallery',20,25,4,2,{...SEC,ht:3,lit:'always',lc:LOW});
+  crates(D,8,23,2);container(D,13,22,false,1);lamp(D,10,25.5,9);
+  return[D,D2,D3];}
 function devKey(code){const m=G.mode;
   if(m==='map'){if(code==='BracketLeft'||code==='BracketRight'){const n=G.decks.length;DEV.mapK=(DEV.mapK+(code==='BracketLeft'?n-1:1))%n;devDraw();}
     else if(code==='Escape'||code==='KeyM'||code==='Tab')closePanel();return true;}
