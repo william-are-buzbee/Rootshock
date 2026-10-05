@@ -45,10 +45,15 @@ const DOOR_NEAR = 2.2;
 const LIFT_SPEED = 1.5;
 const THICK = 0.2;
 export function makeDoor(w: World, def: DoorDef): Door {
-  const dyn: Dyn = { kind: 'mover', id: w.newId(), ...def };
+  const dyn: Dyn = { kind: 'mover', id: w.newId(), x0: def.x0, y0: def.y0, z0: def.z0, x1: def.x1, y1: def.y1, z1: def.z1 };
   w.dyn.push(dyn);
-  return { def, dyn, t: 0, hold: 0 };
+  const d: Door = { def, dyn, t: def.stuck ? STUCK : def.open ? 1 : 0, hold: def.open ? 1.5 : 0 };
+  Object.assign(d.dyn, doorBox(d, d.t));
+  return d;
 }
+
+/** how far a jammed door stands open: enough to crouch under */
+const STUCK = 0.45; // its foot 1.06 m up: room for a crouch (1 m)
 
 export function makePlatform(w: World, def: PlatformDef): Platform {
   const dyn: Dyn = { kind: 'mover', id: w.newId(), x0: def.x0, z0: def.z0, x1: def.x1, z1: def.z1, y0: def.y0 - THICK, y1: def.y0 };
@@ -58,8 +63,10 @@ export function makePlatform(w: World, def: PlatformDef): Platform {
 
 const overlaps = (a: Box, b: Box): boolean => a.x0 < b.x1 && a.x1 > b.x0 && a.y0 < b.y1 && a.y1 > b.y0 && a.z0 < b.z1 && a.z1 > b.z0;
 
-/** a door opens for anything near it, holds a moment, then closes, unless something is in the way */
+/** a door opens for anything near it, holds a moment, then closes, unless something is in the way. For now (step 3)
+ *  only welded and jammed doors keep to their own rules; power, buttons, cards and codes come in step 4. */
 export function updateDoor(d: Door, riders: Rider[], dt: number): void {
+  if (d.def.seal || d.def.stuck) return;
   const cx = (d.def.x0 + d.def.x1) / 2, cz = (d.def.z0 + d.def.z1) / 2;
   const near = riders.some(r => Math.hypot(r.x - cx, r.z - cz) < DOOR_NEAR && r.y < d.def.y1 && r.y > d.def.y0 - 1);
   if (near) d.hold = 1.5;

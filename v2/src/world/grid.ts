@@ -42,6 +42,11 @@ export class Grid {
     c[((k & 15) * 16 + (j & 15)) * 16 + (i & 15)] = v;
   }
 
+  /** a chunk's cells, (k * 16 + j) * 16 + i within it; undefined where it is all rock */
+  chunkCells(cx: number, cy: number, cz: number): Int16Array | undefined {
+    return this.chunks.get(key(cx, cy, cz));
+  }
+
   hasChunk(cx: number, cy: number, cz: number): boolean {
     return this.chunks.has(key(cx, cy, cz));
   }

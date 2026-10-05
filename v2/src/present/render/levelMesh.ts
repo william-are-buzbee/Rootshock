@@ -1,7 +1,8 @@
 import * as THREE from 'three';
-import { scale3, type Colour } from '../../core/math';
+import { BLACK, scale3, type Colour } from '../../core/math';
 import { CELL, CHUNK } from '../../world/grid';
 import type { Surface, World } from '../../world/world';
+import type { Lighting } from '../../world/light';
 import type { PropDef } from '../../content/types';
 import { TEMPLATES } from './templates';
 
@@ -9,24 +10,65 @@ import { TEMPLATES } from './templates';
    the room on the open side and by what the solid is (rock takes the room's palette; a block, its own colour). Faces are
    merged into the largest flat rectangles that share a colour (within a chunk), then cut where the palette changes (the dado
    and the stripe on walls, the 2 m checker on floors). Sloped surfaces (ramps, cave floors and ceilings) are drawn from their
-   own lattices. Fixed props are added from their shapes; loose ones are drawn elsewhere, since they move. Light is baked into
-   each vertex. */
+   own lattices. Fixed props are added from their shapes; loose ones are drawn elsewhere, since they move.
+
+   Light is baked into each vertex, but each vertex also remembers where its light comes from (a room, a point to sample
+   it at, a multiplier), so when the power changes only the light is recomputed, not the mesh (LevelMesh.relight). */
+
+/** a vertex's light: from this room, sampled at (x, z), times m */
+interface Src { room: number; x: number; z: number; m: number; flick: number }
 
 class Out {
   P: number[] = [];
   C: number[] = [];
-  L: number[] = [];
-  vert(x: number, y: number, z: number, c: Colour, l: Colour, m: number): void {
+  room: number[] = [];
+  sx: number[] = [];
+  sz: number[] = [];
+  m: number[] = [];
+  flick: number[] = [];
+  /** fittings whose colour shows power: [first vertex, count, which] */
+  pw: [number, number, [Colour, Colour], string][] = [];
+  vert(x: number, y: number, z: number, c: Colour, src: Src): void {
     this.P.push(x, y, z);
     this.C.push(c[0], c[1], c[2]);
-    this.L.push(l[0] * m, l[1] * m, l[2] * m, 0);
+    this.room.push(src.room); this.sx.push(src.x); this.sz.push(src.z); this.m.push(src.m); this.flick.push(src.flick);
   }
-  /** a rectangle on plane `a` (0 x, 1 y, 2 z) at `s`, spanning [u0, u1] x [v0, v1] on the other two axes in order */
-  rect(a: number, s: number, u0: number, u1: number, v0: number, v1: number, c: Colour, l: Colour, m: number): void {
+  /** a rectangle on plane `a` (0 x, 1 y, 2 z) at `s`, spanning [u0, u1] x [v0, v1] on the other two axes in order,
+   *  each corner lit by the room where it is */
+  rect(a: number, s: number, u0: number, u1: number, v0: number, v1: number, c: Colour, room: number, m: number, flick = 0): void {
     const pt = (u: number, v: number): [number, number, number] =>
       a === 0 ? [s, u, v] : a === 1 ? [u, s, v] : [u, v, s];
     const q = [pt(u0, v0), pt(u1, v0), pt(u1, v1), pt(u0, v1)];
-    for (const k of [0, 1, 2, 0, 2, 3]) this.vert(q[k][0], q[k][1], q[k][2], c, l, m);
+    for (const k of [0, 1, 2, 0, 2, 3]) this.vert(q[k][0], q[k][1], q[k][2], c, { room, x: q[k][0], z: q[k][2], m, flick });
+  }
+  get count(): number { return this.P.length / 3; }
+}
+
+/** the level's mesh, and how to light it again */
+export class LevelMesh {
+  readonly geometry = new THREE.BufferGeometry();
+  private light: Float32Array;
+  private col: Float32Array;
+  constructor(private o: Out) {
+    this.col = new Float32Array(o.C);
+    this.light = new Float32Array(o.count * 4);
+    this.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(o.P), 3));
+    this.geometry.setAttribute('aCol', new THREE.BufferAttribute(this.col, 3));
+    this.geometry.setAttribute('aLight', new THREE.BufferAttribute(this.light, 4));
+  }
+  /** work out every vertex's light (and every fitting's colour) under this lighting */
+  relight(L: Lighting): void {
+    const o = this.o, n = o.count;
+    for (let i = 0; i < n; i++) {
+      const r = o.room[i], l = r >= 0 ? L.at(r, o.sx[i], o.sz[i]) : BLACK, m = o.m[i];
+      this.light[i * 4] = l[0] * m; this.light[i * 4 + 1] = l[1] * m; this.light[i * 4 + 2] = l[2] * m; this.light[i * 4 + 3] = o.flick[i];
+    }
+    for (const [first, count, pw, circuit] of o.pw) {
+      const c = L.fitting(pw, circuit);
+      for (let i = first; i < first + count; i++) this.col.set(c, i * 3);
+    }
+    this.geometry.getAttribute('aLight').needsUpdate = true;
+    this.geometry.getAttribute('aCol').needsUpdate = true;
   }
 }
 
@@ -37,70 +79,83 @@ function cuts(lo: number, hi: number, at: number[]): [number, number][] {
   for (let i = 0; i < xs.length - 1; i++) out.push([xs[i], xs[i + 1]]);
   return out;
 }
-/** the 2 m lines inside [lo, hi] */
-function tiles(lo: number, hi: number): number[] {
+/** the lines every `step` metres inside [lo, hi] (the 2 m tiles by default) */
+function tiles(lo: number, hi: number, step = 2): number[] {
   const a: number[] = [];
-  for (let x = Math.ceil(lo / 2) * 2; x < hi; x += 2) a.push(x);
+  for (let x = Math.ceil(lo / step) * step; x < hi; x += step) a.push(x);
   return a;
 }
 const odd = (a: number, b: number): boolean => ((Math.floor(a / 2) + Math.floor(b / 2)) & 1) === 1;
 
-export function buildLevelGeometry(w: World): THREE.BufferGeometry {
+/** build the level's mesh, lit by L. Lamps are battery lights, fixed for good, so where the mesh is cut for their pools
+ *  does not change with the power. */
+export function buildLevelMesh(w: World, L: Lighting): LevelMesh {
   const g = w.grid, o = new Out();
+
+  /* a rectangle lit by its room. Where the room has lamps, it is cut into 1 m pieces so their pools show. */
+  const put = (a: number, s: number, u0: number, u1: number, v0: number, v1: number, room: number, c: Colour, m: number) => {
+    const flick = w.rooms[room].flick ? 1 : 0;
+    if (!L.hasLamps(room)) { o.rect(a, s, u0, u1, v0, v1, c, room, m, flick); return; }
+    const us = a === 0 ? [[u0, u1] as [number, number]] : cuts(u0, u1, tiles(u0, u1, 1));
+    const vs = a === 2 ? [[v0, v1] as [number, number]] : cuts(v0, v1, tiles(v0, v1, 1));
+    for (const [ua, ub] of us) for (const [va, vb] of vs) o.rect(a, s, ua, ub, va, vb, c, room, m, flick);
+  };
 
   /* one face: axis a, plane s (world), rectangle over the other two axes (world), the open side's room, the solid's block (-1 rock) */
   const face = (a: number, s: number, u0: number, u1: number, v0: number, v1: number, room: number, block: number, openUp: boolean) => {
-    const R = w.rooms[room], light = R.light;
+    const R = w.rooms[room];
     if (block >= 0) {
-      o.rect(a, s, u0, u1, v0, v1, w.blocks[block].colour, light, 1);
+      put(a, s, u0, u1, v0, v1, room, w.blocks[block].colour, 1);
       return;
     }
     if (a === 1) {
       /* u is x, v is z */
-      if (openUp && !R.cave) {
+      if (openUp && !R.plain) {
         for (const [x0, x1] of cuts(u0, u1, tiles(u0, u1)))
           for (const [z0, z1] of cuts(v0, v1, tiles(v0, v1)))
-            o.rect(a, s, x0, x1, z0, z1, scale3(R.floor, odd(x0, z0) ? 1 : 0.92), light, 1);
-      } else if (openUp) o.rect(a, s, u0, u1, v0, v1, R.floor, light, 1);
-      else o.rect(a, s, u0, u1, v0, v1, scale3(R.wall, 0.6), light, 0.8);
+            put(a, s, x0, x1, z0, z1, room, scale3(R.floor, odd(x0, z0) ? 1 : 0.92), 1);
+      } else if (openUp) put(a, s, u0, u1, v0, v1, room, R.floor, 1);
+      else put(a, s, u0, u1, v0, v1, room, scale3(R.wall, 0.6), 0.8);
       return;
     }
-    if (R.cave) {
-      o.rect(a, s, u0, u1, v0, v1, R.wall, light, 1);
-      return;
-    }
-    /* a wall. On plane x the axes are (y, z); on plane z, (x, y) */
+    /* a wall. On plane x the axes are (y, z); on plane z, (x, y). High up a tall room, walls are darker (as before). */
     const yAxisFirst = a === 0;
     const [y0, y1] = yAxisFirst ? [u0, u1] : [v0, v1], [h0, h1] = yAxisFirst ? [v0, v1] : [u0, u1];
     const f = R.y0;
-    for (const [ya, yb] of cuts(y0, y1, [f + 0.9, f + 1.05])) {
-      const band = yb <= f + 0.9 + 1e-6 ? 0 : yb <= f + 1.05 + 1e-6 ? 1 : 2;
-      for (const [ha, hb] of band === 2 ? cuts(h0, h1, tiles(h0, h1)) : [[h0, h1] as [number, number]]) {
-        const c = band === 0 ? scale3(R.wall, 0.78) : band === 1 ? R.stripe : scale3(R.wall, odd(ha, 0) ? 1 : 0.95);
-        if (yAxisFirst) o.rect(a, s, ya, yb, ha, hb, c, light, 1);
-        else o.rect(a, s, ha, hb, ya, yb, c, light, 1);
+    for (const [ya, yb] of cuts(y0, y1, R.plain ? [f + 3.2] : [f + 0.9, f + 1.05, f + 3.2])) {
+      const high = ya >= f + 3.2 - 1e-6;
+      const band = R.plain || high ? 2 : yb <= f + 0.9 + 1e-6 ? 0 : yb <= f + 1.05 + 1e-6 ? 1 : 2;
+      for (const [ha, hb] of band === 2 && !R.plain ? cuts(h0, h1, tiles(h0, h1)) : [[h0, h1] as [number, number]]) {
+        const c = band === 0 ? scale3(R.wall, 0.78) : band === 1 ? R.stripe : R.plain ? R.wall : scale3(R.wall, odd(ha, 0) ? 1 : 0.95);
+        if (yAxisFirst) put(a, s, ya, yb, ha, hb, room, c, high ? 0.6 : 1);
+        else put(a, s, ha, hb, ya, yb, room, c, high ? 0.6 : 1);
       }
     }
   };
 
   /* chunk by chunk. A chunk draws the faces on planes whose far cell is its own, and the plane past its far side when
      nothing lies beyond (no chunk there, so nobody else would). */
-  const mask = new Int32Array(CHUNK * CHUNK), ijk = [0, 0, 0];
+  const mask = new Int32Array(CHUNK * CHUNK), stride = [1, CHUNK, CHUNK * CHUNK];
   g.forEachChunk((cx, cy, cz) => {
-    const base = [cx * CHUNK, cy * CHUNK, cz * CHUNK];
+    const base = [cx * CHUNK, cy * CHUNK, cz * CHUNK], own = g.chunkCells(cx, cy, cz)!;
+    /* a chunk that is all open or all solid has no faces inside it: only its boundary planes need looking at */
+    const open0 = own[0] >= 0;
+    let mixed = false;
+    for (let n = 1; n < own.length; n++) if (own[n] >= 0 !== open0) { mixed = true; break; }
     for (let a = 0; a < 3; a++) {
-      const ua = a === 0 ? 1 : 0, va = a === 2 ? 1 : 2;
-      const next = [cx, cy, cz];
-      next[a]++;
-      const last = g.hasChunk(next[0], next[1], next[2]) ? CHUNK - 1 : CHUNK;
+      const ua = a === 0 ? 1 : 0, va = a === 2 ? 1 : 2, ou = stride[ua], ov = stride[va], d = stride[a];
+      const prev = [cx, cy, cz], next = [cx, cy, cz];
+      prev[a]--; next[a]++;
+      /* cells are read straight from the chunk's array; the plane on its near side reads the neighbour's last layer */
+      const before = g.chunkCells(prev[0], prev[1], prev[2]), last = g.hasChunk(next[0], next[1], next[2]) ? CHUNK - 1 : CHUNK;
       for (let ls = 0; ls <= last; ls++) {
+        if (!mixed && ls > 0 && ls < CHUNK) continue;
         const s = base[a] + ls;
         for (let v = 0; v < CHUNK; v++)
           for (let u = 0; u < CHUNK; u++) {
-            ijk[a] = s - 1; ijk[ua] = base[ua] + u; ijk[va] = base[va] + v;
-            const A = g.get(ijk[0], ijk[1], ijk[2]);
-            ijk[a] = s;
-            const B = g.get(ijk[0], ijk[1], ijk[2]);
+            const o = u * ou + v * ov;
+            const A = ls > 0 ? own[o + (ls - 1) * d] : before ? before[o + (CHUNK - 1) * d] : -1;
+            const B = ls < CHUNK ? own[o + ls * d] : -1;
             let key = 0;
             if ((A >= 0) !== (B >= 0)) {
               const room = A >= 0 ? A : B, solid = A >= 0 ? B : A, side = B >= 0 ? 1 : 0;
@@ -130,20 +185,20 @@ export function buildLevelGeometry(w: World): THREE.BufferGeometry {
     }
   });
 
-  for (const sf of w.surfaces) surfaceMesh(o, w, sf);
+  for (const sf of w.surfaces) if (!sf.def.hidden) surfaceMesh(o, w, sf);
 
-  /* fixed props, lit by the room they stand in */
+  /* fixed props, lit by the room they stand in (where they stand, for lamp pools); fittings show their circuit's power */
   for (const p of w.def.props) {
     if (p.loose) continue;
-    const R = w.roomAt(p.x, p.y + 0.05, p.z), l: Colour = R ? R.light : [0, 0, 0];
-    propVerts(p, (x, y, z) => o.vert(x, y, z, p.colour, l, p.glow));
+    const R = w.roomAt(p.x, p.y + 0.05, p.z) ?? w.roomAt(p.x, p.y + p.sy / 2, p.z), src: Src = { room: R ? R.id : -1, x: p.x, z: p.z, m: p.glow, flick: 0 };
+    const first = o.count;
+    propVerts(p, (x, y, z) => o.vert(x, y, z, p.colour, src));
+    if (p.pw) o.pw.push([first, o.count - first, p.pw, p.pc ?? w.def.circuit]);
   }
 
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(o.P), 3));
-  geo.setAttribute('aCol', new THREE.BufferAttribute(new Float32Array(o.C), 3));
-  geo.setAttribute('aLight', new THREE.BufferAttribute(new Float32Array(o.L), 4));
-  return geo;
+  const mesh = new LevelMesh(o);
+  mesh.relight(L);
+  return mesh;
 }
 
 /** a prop's triangles in the world, from its template: scaled, tipped (rz), turned (ry), stood on its base */
@@ -162,24 +217,25 @@ export function propVerts(p: PropDef, put: (x: number, y: number, z: number) => 
 function surfaceMesh(o: Out, w: World, sf: Surface): void {
   const d = sf.def, floor = d.kind === 'floor', res = d.res;
   const X = (i: number) => d.x0 + i * res, Z = (j: number) => d.z0 + j * res, H = (i: number, j: number) => d.h[j * d.nx + i];
-  const lightAt = (x: number, y: number, z: number): Colour => {
+  /* each quad is lit by the room it faces, sampled at its middle */
+  const src = (x: number, y: number, z: number, m: number): Src => {
     const R = w.roomAt(x, y + (floor ? 0.3 : -0.3), z);
-    return R ? R.light : [0, 0, 0];
+    return { room: R ? R.id : -1, x, z, m, flick: 0 };
   };
   const m = floor ? 1 : 0.8;
   for (let j = 0; j < d.nz - 1; j++)
     for (let i = 0; i < d.nx - 1; i++) {
       const x0 = X(i), x1 = X(i + 1), z0 = Z(j), z1 = Z(j + 1), h00 = H(i, j), h10 = H(i + 1, j), h11 = H(i + 1, j + 1), h01 = H(i, j + 1);
-      const l = lightAt((x0 + x1) / 2, (h00 + h11) / 2, (z0 + z1) / 2), c = d.sides ? d.colour : scale3(d.colour, 0.94 + 0.06 * (((i * 7 + j * 13) % 5) / 4));
+      const l = src((x0 + x1) / 2, (h00 + h11) / 2, (z0 + z1) / 2, m), c = d.sides ? d.colour : scale3(d.colour, 0.94 + 0.06 * (((i * 7 + j * 13) % 5) / 4));
       const q: [number, number, number][] = [[x0, h00, z0], [x1, h10, z0], [x1, h11, z1], [x0, h01, z1]];
-      for (const k of [0, 1, 2, 0, 2, 3]) o.vert(q[k][0], q[k][1], q[k][2], c, l, m);
+      for (const k of [0, 1, 2, 0, 2, 3]) o.vert(q[k][0], q[k][1], q[k][2], c, l);
     }
   if (!d.sides) return;
   const side = (pts: [number, number, number][]) => {
     for (let k = 0; k < pts.length - 1; k++) {
-      const [ax, ah, az] = pts[k], [bx, bh, bz] = pts[k + 1], l = lightAt((ax + bx) / 2, d.base + 0.1, (az + bz) / 2), c = scale3(d.colour, 0.85);
+      const [ax, ah, az] = pts[k], [bx, bh, bz] = pts[k + 1], l = src((ax + bx) / 2, d.base + 0.1, (az + bz) / 2, 1), c = scale3(d.colour, 0.85);
       const q: [number, number, number][] = [[ax, d.base, az], [bx, d.base, bz], [bx, bh, bz], [ax, ah, az]];
-      for (const n of [0, 1, 2, 0, 2, 3]) o.vert(q[n][0], q[n][1], q[n][2], c, l, 1);
+      for (const n of [0, 1, 2, 0, 2, 3]) o.vert(q[n][0], q[n][1], q[n][2], c, l);
     }
   };
   side(Array.from({ length: d.nx }, (_, i) => [X(i), H(i, 0), Z(0)] as [number, number, number]));

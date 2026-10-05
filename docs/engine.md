@@ -278,8 +278,11 @@ components, not code threaded through the frame loop:
 
 - **The shader carries over**: unlit is black; baked room light plus flashlight cone plus lantern; flat shading from
   derivatives; fog; the wet tint; emissive colours.
-- **Light is baked per cell** from the level's lights and circuits (proposed), so light no longer bleeds through walls
-  and the stealth check reads the same values the renderer shows.
+- **Light (agreed, built in step 3)** follows the first engine's rules, in `world/light.ts`: each room is lit by its
+  rule and its circuit's power (full, backup with emergency lights, or dark), doorways borrow from either side, lamps
+  make pools in their own room. The level's mesh is lit per vertex, and every vertex remembers which room lights it,
+  so a power change relights the level without rebuilding it (1.4 ms for the upper station). The sim will read the
+  same light for stealth. `?power=full` shows a level with everything on.
 - **Audio**: the synthesised sounds carry over, positioned from sim events.
 - **UI** stays in HTML over the canvas, with the current type and colours (Barlow Condensed, Newsreader, bone, ash,
   hazard).
@@ -322,7 +325,23 @@ Each step ends with something you can open and play.
      still. The awake budget is 16; a tumbling pile of 48 measured 0.46 ms per step headless, under 3% of a frame.
    - **Test bed lab wing** (through the door south of the hall): a ramp to a balcony, a lift to a gallery, a pool
      with a shallow shelf, crates to push, a cave. **Collider overlay**: `?dev`, then G.
-3. **The upper station, static.** Port its content: rooms, caves, props, light. Walk all of it.
+3. **The upper station, static. Done.**
+   - **The tile adapter** (`content/build/tiles.ts`, `fittings.ts`) keeps the first engine's way of laying out a
+     level: decks of 2 m tiles, rooms, doors, caves and terrain fields, walkways, platforms, and its furniture kit.
+     Levels port nearly line for line, then compile into v2 shapes: rooms, floor slabs under upper decks, rails on
+     walkway edges, doorways with doors, cave surfaces from the terrain, ceiling fittings, props.
+   - **The upper station and the Cargo cavern** (`content/levels/upper.ts`), ported from `buildUpper` and
+     `buildCargo2`, with the station's circuits and ladderways (`content/station.ts`). It is now what v2 starts in;
+     `?level=testbed` for the test bed.
+   - **Carried as data for later steps**: items, notes, the cast, things to use (corpses, panels, backup sets,
+     ladders, the lift), door rules (cards, codes, heavy, sealed, jammed), signs, marks. Doors open for anything near
+     except welded and jammed ones; the rest of their rules come in step 4.
+   - **Doors, platforms and signs** are drawn as they were.
+   - **Reachability** (`sim/reach.ts`): a flood on foot from the start, doors open, platforms joining their ends.
+     A test proves every room is reachable except the three behind welded doors. It is the seed of the progression
+     checker.
+   - **Measured** on the upper station: 58 rooms, 726 props, 2,081 chunks (16 MB of grid), 52 ms to build and
+     compile, 200 to 300 ms to mesh in the browser (about 1 s under the test runner), 67,000 vertices.
 4. **Doors, power, interaction, items, inventory, notes, HUD.** The upper station's access puzzle works end to end.
 5. **Mutants.** Nav graph, flow fields, perception, the cast's behaviours, combat.
 6. **Parity check** against the current upper station. Fix the feel before going on.
@@ -334,10 +353,13 @@ Each step ends with something you can open and play.
 
 ## 14. Open questions
 
-1. **Grid cell size**: 0.25 m. A 16³ chunk is 4 m on a side and 8 kB; measure memory and mesh time on the first
-   full level in step 3.
-2. **Caves with irregular outlines.** The first engine's caves are tunnels and chambers of any shape. In v2 the outline
-   can be stamped into the grid cell by cell with the same surfaces inside; to be built while porting in step 3.
+1. **Grid cell size**: 0.25 m, kept. The upper station costs 16 MB of grid; a chunk that is all one room could be
+   stored as a single value if a bigger level needs it.
+2. **Caves with irregular outlines.** The first engine's caves are tunnels and chambers of any shape (`caveShape`,
+   `tunnel`, `chamber`); the upper station has none. Their outline can be stamped cell by cell with surfaces masked
+   to it; to be built with the level that first needs it (step 8).
+3. **Storey heights off the 0.25 m grid.** The main level's storeys are 3.4 m apart; the grid would make them 3.5.
+   Either the content moves to 3.5 m or the slabs become exact solids. Decide when porting the main level.
 
 ### Settled
 

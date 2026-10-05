@@ -25,3 +25,5 @@ canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
 .bar i { display: block; height: 100%; width: 100%; background: var(--blood); }
 .bar.sm { height: 4px; width: 60%; }
 #o2w i { background: #7fb6c9; }
+.screen p.v2 { font-family: var(--sign); font-size: 16px; color: var(--ash); }
+.screen p.v2 a { color: var(--hazard); }

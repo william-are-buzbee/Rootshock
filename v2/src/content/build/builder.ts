@@ -1,6 +1,6 @@
 import { Rng } from '../../core/rng';
 import { hex, scale3, type Colour } from '../../core/math';
-import type { LevelDef, PropDef, RoomDef, Shape, Start, SurfaceDef } from '../types';
+import type { DoorDef, LevelDef, LitRule, PropDef, RoomDef, Shape, Start, SurfaceDef } from '../types';
 
 /* The authoring kit. Levels are written as calls on a LevelBuilder; finish() returns plain data.
    Everything random comes from the level's own seed, so a level is dressed the same way every time. */
@@ -18,13 +18,25 @@ export interface RoomOpts {
   y0?: number;
   ht?: number;
   pal?: Palette;
-  /** the room's light; DARK for none */
+  /** a light that is always on, whatever the power; DARK for none. Shorthand for lit 'always' (or 'none') with lc. */
   light?: Colour;
+  /** or light it by the rules (see LitRule) */
+  lit?: LitRule;
+  lc?: Colour;
+  em?: boolean;
+  circuit?: string;
+  flick?: boolean;
   /** no ceiling fittings */
   nolamp?: boolean;
-  /** rock, not building: plain walls */
-  cave?: boolean;
+  /** rock or walkway, not a fitted room: plain walls */
+  plain?: boolean;
+  doorway?: boolean;
+  safe?: boolean;
+  noroam?: boolean;
 }
+
+/** a door's rules, beyond where it is (see DoorDef) */
+export type DoorOpts = Partial<Omit<DoorDef, 'x0' | 'y0' | 'z0' | 'x1' | 'y1' | 'z1'>>;
 
 export interface PropOpts {
   /** base height; defaults to the floor of the room at (x, z) */
@@ -36,6 +48,8 @@ export interface PropOpts {
   solid?: boolean;
   /** can be pushed and knocked about */
   loose?: boolean;
+  pw?: [Colour, Colour];
+  pc?: string;
 }
 
 /** heights relative to a floor or ceiling, as a function of plan position */
@@ -46,20 +60,28 @@ export class LevelBuilder {
   private def: LevelDef;
   private nolamp = new Set<number>();
 
-  constructor(id: string, name: string, seed?: string) {
-    this.def = { id, name, seed: seed ?? id, rooms: [], blocks: [], props: [], colliders: [], surfaces: [], water: [], doors: [], platforms: [], start: { x: 0, y: 0, z: 0, yaw: 0 } };
+  constructor(id: string, name: string, o: { seed?: string; circuit?: string } = {}) {
+    this.def = {
+      id, name, seed: o.seed ?? id, circuit: o.circuit ?? 'MAIN',
+      rooms: [], blocks: [], props: [], colliders: [], surfaces: [], water: [], doors: [], platforms: [],
+      lamps: [], signs: [], items: [], notes: [], mutants: [], uses: [], marks: {},
+      start: { x: 0, y: 0, z: 0, yaw: 0 },
+    };
     this.rng = new Rng(this.def.seed);
   }
 
   /** an open volume, corners (x0, z0) and (x1, z1). Rooms that touch or overlap are one space where they meet. */
   room(name: string, x0: number, z0: number, x1: number, z1: number, o: RoomOpts = {}): RoomDef {
     const p = o.pal ?? OPS;
+    const fixed = o.light !== undefined, dark = fixed && o.light![0] + o.light![1] + o.light![2] === 0;
     const r: RoomDef = {
-      id: this.def.rooms.length, name, cave: !!o.cave,
+      id: this.def.rooms.length, name, plain: !!o.plain,
       x0: Math.min(x0, x1), z0: Math.min(z0, z1), x1: Math.max(x0, x1), z1: Math.max(z0, z1),
       y0: o.y0 ?? 0, ht: o.ht ?? 3.2,
       floor: hex(p.fl), wall: hex(p.wl), stripe: hex(p.st),
-      light: o.light ?? WHITE,
+      lit: o.lit ?? (fixed ? (dark ? 'none' : 'always') : 'always'),
+      lc: o.lc ?? (fixed ? o.light! : WHITE),
+      em: !!o.em, circuit: o.circuit ?? this.def.circuit, flick: !!o.flick, doorway: !!o.doorway, safe: !!o.safe, noroam: !!o.noroam,
     };
     this.def.rooms.push(r);
     if (o.nolamp) this.nolamp.add(r.id);
@@ -89,6 +111,7 @@ export class LevelBuilder {
     const floor = this.floorAt(x, z), y = o.y ?? floor;
     const solid = o.solid ?? (shape !== 'ico' && sy >= 0.3 && y - floor < 1.6);
     const p: PropDef = { shape, x, y, z, sx, sy, sz, ry: o.ry ?? 0, rz: o.rz ?? 0, colour: hex(c), glow: o.glow ?? 1, solid: solid || !!o.loose, loose: !!o.loose };
+    if (o.pw) { p.pw = o.pw; p.pc = o.pc ?? this.def.circuit; }
     this.def.props.push(p);
     return p;
   }
@@ -113,13 +136,13 @@ export class LevelBuilder {
     for (let z = z0; z <= z1 + 1e-9; z += res) for (let x = x0; x <= x1 + 1e-9; x += res) { lo = Math.min(lo, fl(x, z)); hi = Math.max(hi, cl(x, z)); }
     const snap = (v: number, up: boolean) => (up ? Math.ceil(v / 0.25) : Math.floor(v / 0.25)) * 0.25;
     const bottom = snap(y0 + lo, false), top = snap(y0 + ht + hi, true), p = o.pal ?? ROCK;
-    const r = this.room(name, x0, z0, x1, z1, { ...o, pal: p, y0: bottom, ht: top - bottom, cave: true, nolamp: o.nolamp ?? true });
+    const r = this.room(name, x0, z0, x1, z1, { ...o, pal: p, y0: bottom, ht: top - bottom, plain: true, nolamp: o.nolamp ?? true });
     this.surface('floor', x0, z0, x1, z1, (x, z) => y0 + fl(x, z), bottom - 0.25, p.fl, false, res);
     this.surface('ceiling', x0, z0, x1, z1, (x, z) => y0 + ht + cl(x, z), top + 0.25, scale3(hex(p.wl), 0.6), false, res);
     return r;
   }
 
-  private surface(kind: 'floor' | 'ceiling', x0: number, z0: number, x1: number, z1: number, f: Relief, base: number, c: number | Colour, sides: boolean, res: number): void {
+  surface(kind: 'floor' | 'ceiling', x0: number, z0: number, x1: number, z1: number, f: Relief, base: number, c: number | Colour, sides: boolean, res: number): void {
     const nx = Math.max(2, Math.round((x1 - x0) / res) + 1), nz = Math.max(2, Math.round((z1 - z0) / res) + 1), h: number[] = [];
     res = Math.max((x1 - x0) / (nx - 1), (z1 - z0) / (nz - 1));
     for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) h.push(f(x0 + i * res, z0 + j * res));
@@ -132,10 +155,15 @@ export class LevelBuilder {
     this.def.water.push({ x0, z0, x1, z1, level });
   }
 
-  /** a door filling (x0, z0)-(x1, z1) from the floor up `h` metres; it slides up out of the way when something comes near */
-  door(x0: number, z0: number, x1: number, z1: number, h = 2.4): void {
+  /** a door filling (x0, z0)-(x1, z1) from the floor up `h` metres */
+  door(x0: number, z0: number, x1: number, z1: number, h = 2.4, o: DoorOpts = {}): DoorDef {
     const y0 = this.floorAt((x0 + x1) / 2, (z0 + z1) / 2);
-    this.def.doors.push({ x0, y0, z0, x1, y1: y0 + h, z1 });
+    const d: DoorDef = {
+      x0, y0, z0, x1, y1: y0 + h, z1, kind: 'light', alongX: x1 - x0 > z1 - z0, open: false, stuck: false, seal: false, vent: false, lift: false,
+      circuit: this.def.circuit, ...o,
+    };
+    this.def.doors.push(d);
+    return d;
   }
 
   /** a platform over (x0, z0)-(x1, z1) that carries what stands on it between heights y0 and y1 */
@@ -147,6 +175,23 @@ export class LevelBuilder {
   collider(x: number, z: number, sx: number, sy: number, sz: number, y?: number): void {
     const b = y ?? this.floorAt(x, z);
     this.def.colliders.push({ x0: x - sx / 2, y0: b, z0: z - sz / 2, x1: x + sx / 2, y1: b + sy, z1: z + sz / 2 });
+  }
+
+  lamp(x: number, y: number, z: number, r: number, c: Colour): void {
+    this.def.lamps.push({ x, y, z, r, colour: c });
+  }
+  sign(text: string, x: number, y: number, z: number, yaw: number, circuit = this.def.circuit): void {
+    this.def.signs.push({ text, x, y, z, yaw, circuit });
+  }
+  item(id: string, x: number, y: number, z: number, n = 1): void { this.def.items.push({ id, x, y, z, n }); }
+  note(key: string, x: number, y: number, z: number): void { this.def.notes.push({ key, x, y, z }); }
+  mutant(type: string, x: number, y: number, z: number, opts: Record<string, unknown> = {}): void { this.def.mutants.push({ type, x, y, z, opts }); }
+  use(kind: string, x: number, y: number, z: number, opts: Record<string, unknown> = {}): void { this.def.uses.push({ kind, x, y, z, opts }); }
+  mark(name: string, x: number, y: number, z: number, yaw: number): void { this.def.marks[name] = { x, y, z, yaw }; }
+
+  /** the level as built so far (for adapters that need to look back at it) */
+  get level(): Readonly<LevelDef> {
+    return this.def;
   }
 
   start(x: number, z: number, yaw: number): void {
@@ -171,7 +216,7 @@ export class LevelBuilder {
     /* ceiling fittings: a strip light every 6 m, lit if the room is */
     for (const r of this.def.rooms) {
       if (this.nolamp.has(r.id)) continue;
-      const dead = r.light[0] + r.light[1] + r.light[2] === 0, w = r.x1 - r.x0, d = r.z1 - r.z0;
+      const dead = r.lit === 'none', w = r.x1 - r.x0, d = r.z1 - r.z0;
       for (let z = r.z0 + Math.min(3, d / 2); z < r.z1; z += 6)
         for (let x = r.x0 + Math.min(3, w / 2); x < r.x1; x += 6)
           this.box(x, z, 1.1, 0.06, 0.3, dead ? 0x2a2c2e : 0xe8eef2, { y: r.y0 + r.ht - 0.07, glow: dead ? 1 : 3, solid: false });
