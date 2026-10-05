@@ -766,7 +766,8 @@ function buildMain(lv){
   /* east: the transit tunnel and the airlock to Horticulture */
   door(G,89,14,{sg:[['Horticulture','w'],['The Square','e']]});room(G,'Transit tunnel',90,14,3,2,{...UTIL,c:'RES',em:1});
   door(G,93,14,{sg:[['Airlock','w']]});room(G,'Airlock',94,14,3,2,{...UTIL,c:'HORT',em:1});
-  door(G,97,14,{seal:true,msg:'Not built yet: Horticulture is the next section of the rebuild.',sg:[['Horticulture','w']]});
+  door(G,97,14,{sg:[['Horticulture','w']]});
+  buildHorticulture(G);
   return[G,S2,S3,RF];}
 /* the Square, tiles 67 to 88 by 4 to 25: the court (71 to 84, rows 8 to 21) open to the cavern roof, the street coming in on the west and
    a passage out east to the tunnel; round it a band of rooms two storeys high behind a facade, with the ring gallery at storey 2 */
@@ -835,15 +836,60 @@ function groundFloor(D,x0,north,k,HB,at){at=at||{};const y0=at.y0||(north?8:19),
     case 6:R('Workshop',{...UTIL,c:'RES'});tbl(D,x0+3,back+.2,4,.9,0x54504a);item(D,'pipe',x0+3,mid+.6,.02);item(D,'batt',x0+5.4,back+.2,.78);break;
     case 7:R('Bar',{},{open:true});bx(D,x0+3.5,mid,5,1,.6,0x4a3a2c);for(let q=0;q<4;q++)P(D,'cyl',x0+1.8+q*1.2,mid-.7,.4,.7,.4,0x2a2c2e);blood(D,x0+2,front,1.6);mut(D,'husk',x0+5.6,back,{post:1,yaw:0});break;}}
 
+/* ===== Horticulture, the east end of the main level. Its own security, its own power, and nobody has pruned anything.
+   The post off the airlock (x 186 to 194); three parallel grow galleries (x 198 to 224) on a cross passage, with the tissue lab and
+   Holt's office north of them and the seed vault and infirmary south; the arboretum (x 226 to 256), a 16 m cavern with the cave
+   bulkhead breached in its north wall; and east of it the exhaust shaft, where ladderway B passes. ===== */
+function buildHorticulture(G){
+  const H={...HRT,c:'HORT'};
+  /* the post: the guard who kept his pass, the backup set that still runs, and the door into the labs */
+  const post=room(G,'Security post',98,12,4,6,{...SEC,c:'HORT',em:1});desk(G,100.6,12.5,1.8,.7);note(G,'hsec',100.2,12.45,.78);genset(G,'HORT',101.3,16.6,100.7,17.2);
+  corpse(G,99.4,16.4,0x2c3440,true,{label:'Search the guard',say:'Horticulture had its own security. This one kept his pass.',keys:['h']});
+  door(G,102,14,{card:'h',sg:[['Labs','w'],['Security','e']]});
+  /* the cross passage, and the three galleries off it */
+  const cross=room(G,'Cross passage',103,6,1,18,{...H,em:1});
+  const gal=[['Grow gallery north',6,{}],['Grow gallery',13,{em:1}],['Grow gallery south',20,{lit:'none'}]].map(([nm,y,o])=>room(G,nm,104,y,13,4,{...H,ht:6,...o}));
+  /* two long beds a gallery, a tile short of each end and with the aisle between them on the doors' line */
+  for(const R of gal)for(const dz of[.8,3.2]){bx(G,110.5,R.y+dz,22,.7,1.1,0x6f6a5e);bx(G,110.5,R.y+dz,21.6,.06,.9,0x2e2418,{y:.7,c:0});
+    for(let q=0;q<14;q++)P(G,'ico',105.3+q*.78+rnd(-.1,.1),R.y+dz,rnd(.3,.7),rnd(.4,1.8),rnd(.3,.7),pick(GR.concat([0x8c4a44])),{y:.72,c:0});}
+  /* north: the tissue lab and the director of research's office. South: the seed vault and the infirmary */
+  const lab=room(G,'Tissue lab',106,1,6,4,{...H,fl:0x7d8588,wl:0x9aa89c,flick:1});door(G,108,5,{sg:[['Tissue lab','s']]});
+  tbl(G,108,2.4,3,.8,0xaab2b5);tbl(G,111.4,3,.8,2,0xaab2b5);for(const x of[106.6,107.6])P(G,'cyl',x,1.5,.8,2.2,.8,[.16,.3,.24],{c:1});note(G,'journal',108,2.35,.78);item(G,'batt',107.5,2.4,.78,2);
+  room(G,'Director of research',113,1,4,4,{...HAB,c:'HORT',fl:0x5e5248,lc:[.85,.78,.62]});door(G,114,5,{code:2,sg:[['Dr. M. Holt','s']]});
+  desk(G,115,1.6,2,.8,{c:0x4a3a2c});shelf(G,113.3,3,.5,2.4,{cols:[0x7a4a34,0x4d5a66,0x8a7a4a]});bed(G,116.6,3.4,true,0x7a5a50);note(G,'holt',114.6,1.55,.78);item(G,'batt',115.35,1.6,.78,2);item(G,'medkit',113.6,4.6,.02);
+  room(G,'Seed vault',106,25,5,4,{...UTIL,c:'HORT'});door(G,108,24,{kind:'heavy',sg:[['Seed vault','n']]});
+  shelf(G,106.3,27,.5,3,{jars:1,cols:[0x6a8a44,0xcbbfa8,0x8c4a44]});shelf(G,110.7,27,.5,3,{jars:1,cols:[0x6a8a44,0xcbbfa8]});item(G,'medkit',108.5,28.5,.02);item(G,'kit',110.65,26.6,1.06);
+  room(G,'Infirmary',112,25,4,4,{...MED,c:'HORT'});door(G,113,24,{sg:[['Infirmary','n']]});
+  medbed(G,112.4,26.8);shelf(G,115.7,27.5,.5,2.4,{cols:[0xd4d8d4,0x8c2f24]});item(G,'medkit',115.65,27.2,1.06);item(G,'bandage',115.65,28,1.06,2);
+  /* the arboretum: hills, sick trees, and what is left of Holt */
+  for(const y of[8,14,20])door(G,117,y,{open:y===14,sg:[['Arboretum','w']]});
+  const arb=cave(G,'Arboretum',118,6,15,15,{...HRT,c:'HORT',ht:16,lit:'always',lc:[.5,.24,.4]});
+  hill(G,122,17,4,1.6,arb);hill(G,129,9.5,3.5,1.2,arb);hill(G,128,17.5,3,1,arb);vault(G,125,13,8,4,arb);roughen(G,arb,.15,1.5);
+  for(const[x,z,h]of[[121.5,10,7],[126,15,9],[123,17.5,6.5],[130,11,7.5],[129.5,18,6],[120.5,13.6,5.5]])tree(G,x,z,h,0,true);
+  mut(G,'bloat',127.6,13,{sit:1,yaw:-PI/2,holt:1});note(G,'last',125.6,13.6,.03);
+  for(let k=0;k<8;k++)bx(G,127.4-rnd(0,1.4),13+rnd(-.6,.6),rnd(.8,2),.07,.07,pick([0x6e2b28,0x3f6a3a]),{y:rnd(.02,.5),c:0,ry:rnd(-.5,.5),rz:rnd(-.2,.2)});
+  /* the bulkhead to the cave, in the north wall: Horticulture drilled through it */
+  room(G,'Breach',125,3,1,2,{...ROCK,lit:'none',nolamp:1,noroam:1});
+  door(G,125,5,{kind:'heavy',seal:true,msg:'The bulkhead to the cave, drilled through and packed with root. Not built yet: the cave is a later section.',sg:[['Cave','s']]});
+  /* east: the exhaust shaft. Ladderway B up to Cargo, and on down to the plant level */
+  door(G,133,14,{sg:[['Exhaust shaft','w']]});room(G,'Exhaust shaft',134,12,4,6,{...UTIL,c:'HORT',em:1});
+  ladder(G,'B1',136.6,12.6,135.6,13.4,PI/2,true);ladder(G,'B2',136.6,16.6,135.6,16.4,PI/2,false);
+  /* the green, everywhere */
+  for(const[R,d,gl]of[[cross,.7,1],[gal[0],.9,1],[gal[1],.6,1],[gal[2],1.1,1],[arb,1,1],[lab,.5,0],[post,.12,0]])overgrow(G,R,d,gl);
+  for(const[x,z,yaw]of[[103.12,8,PI/2],[103.12,21,PI/2],[116.88,15.5,-PI/2],[108.5,9.88,PI]])mut(G,'vine',x,z,{yaw});
+  mut(G,'vine',118.12,19,{yaw:PI/2});mut(G,'vine',133.88,14.6,{yaw:-PI/2});
+  for(const[x,z]of[[106,7],[110,8.4],[114,7.2],[107,21],[111,22.4],[115,21.4],[121,16],[124,19],[130,15]])mut(G,'rootworm',x,z);}
+
 const NEWSTATION={
   start:{level:'upper',x:22.3,z:9.7,yaw:-PI/2},
   levels:[
     {id:'upper',name:'Upper station',c:'OPS',tag:'upper station',power:{on:true,back:true},org:[-10,-30],build:buildUpper},
     {id:'main',name:'Main level',c:'RES',tag:'main level',power:{on:true,back:false},org:[-10,-30],build:buildMain}],
-  circuits:{LIFT:{on:true,back:false},CARGO:{on:false,back:false}},
+  circuits:{LIFT:{on:true,back:false},CARGO:{on:false,back:false,tag:'Cargo'},HORT:{on:true,back:true,tag:'Horticulture'}},
   ladders:{A1:{say:'Fifty metres of ladder down the main shaft, in the dark.'},
     A2:{broken:'The ladderway is collapsed below this landing. Rubble fills the shaft.'},
-    B1:{need:{power:'CARGO',msg:'A fan door is sealed over the ladderway. Its release runs off the Cargo backup set.'},say:'Down the exhaust shaft, against the draught.'}}
+    B2:{say:'Fifty metres down the exhaust shaft, into the warm.'},
+    B1:{need:{power:'CARGO',msg:'A fan door is sealed over the ladderway. Its release runs off the Cargo backup set.'},say:'The exhaust shaft, rung over rung against the draught.'}}
 };
 const STATION=NEWQ?NEWSTATION:OLDSTATION;
 function defWorld(){const out=[];for(const lv of STATION.levels)out.push(...lv.build(lv));return out;}
@@ -1486,7 +1532,7 @@ function doorAct(D,d){
   d.open=!d.open;d.hold=3;sfx('door');noise(heavy?10:7);}
 function ride(deck,x,z,yaw,snd,ms){G.mode='fade';G.p.chg=-1;$('fade').style.opacity=1;sfx(snd||'door');
   setTimeout(()=>{const p=G.p;p.x=x*T;p.z=z*T;p.yaw=yaw;p.kx=p.kz=0;setDeck(deck);p.y=p.cy=G.D.y0+hfAt(G.D,p.x,p.z);p.vy=0;p.ground=true;$('fade').style.opacity=0;if(G.mode==='fade')G.mode='play';showRoom(G.D.name,'');},ms||650);}
-const CN={};for(const lv of STATION.levels)if(lv.tag)CN[lv.c]=lv.tag;
+const CN={};for(const lv of STATION.levels)if(lv.tag)CN[lv.c]=lv.tag;for(const c in STATION.circuits)if(STATION.circuits[c].tag)CN[c]=STATION.circuits[c].tag;
 function powerChanged(loud){relight();if(HUM)HUM.gain.value=G.prim?.035:0;if(loud){sfx('power');noise(30);G.shake=.4;}else sfx('door');}
 function giveKey(k){G.keys[k]=true;say(keyName(k)+'.');}
 /* the ground layer of a level */
