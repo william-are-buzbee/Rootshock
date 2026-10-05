@@ -284,9 +284,26 @@ function forklift(D,x,z,ns){const a=(ox,oz,sx,sy,sz,c,y,col)=>bx(D,x+(ns?ox:oz)/
   a(0,0,1.2,.9,2,0xc9a227,.25,1);a(0,-.3,1.1,.08,1.1,0x2a2c2e,2,0);for(const s of[-.5,.5]){a(s,-.75,.07,1.1,.07,0x2a2c2e,1.1);a(s,.2,.07,1.1,.07,0x2a2c2e,1.1);a(s*.7,1.15,.1,2.4,.1,0x2a2c2e,.1);a(s*.6,1.7,.12,.06,1.1,0x8a8a84,.15);}
   for(const s of[-.55,.55])for(const q of[-.65,.65])P(D,'cyl',x+(ns?s:q)/T,z+(ns?q:s)/T,.5,.3,.5,0x15181b,{y:.1,c:0,rz:ns?PI/2:0});}
 function column(D,x,z,h){P(D,'cyl',x,z,.5,h-.14,.5,0x55585c,{c:1});}
-/* terrain: a grid of corner heights over a layer's floor. hill() raises a smooth mound; keep clear of walls and doors. */
-function hill(D,cx,cz,rad,h,R){if(!D.hf)D.hf=new Float32Array((D.W+1)*(D.H+1));const W1=D.W+1;
-  for(let j=R.y+1;j<R.y+R.h;j++)for(let i=R.x+1;i<R.x+R.w;i++){const d=Math.hypot(i-cx,j-cz)/rad;if(d<1){const f=Math.cos(d*PI/2);D.hf[j*W1+i]+=h*f*f;}}}
+/* terrain: grids of values at tile corners over a layer. hf is floor height; cf lifts a cave's ceiling. Corners are shared,
+   so rooms that touch meet at the same height. In an ordinary room the walls and ceiling stay level: keep its terrain off its edges.
+   A cave (below) is built on the terrain instead: its floor, walls and ceiling all follow it, and ht is the headroom everywhere. */
+function field(D,k){return D[k]||(D[k]=new Float32Array((D.W+1)*(D.H+1)));}
+/* a smooth mound (h < 0 for a hollow). In an ordinary room it stays inside the walls; in a cave it may run to the edges */
+function hill(D,cx,cz,rad,h,R){const f=field(D,'hf'),W1=D.W+1,e=R.cave?0:1;
+  for(let j=R.y+e;j<=R.y+R.h-e;j++)for(let i=R.x+e;i<=R.x+R.w-e;i++){const d=Math.hypot(i-cx,j-cz)/rad;if(d<1){const q=Math.cos(d*PI/2);f[j*W1+i]+=h*q*q;}}}
+const ROCK={fl:0x4a443c,wl:0x5a5248,st:0x5a5248};
+function cave(D,name,x,y,w,h,o){return room(D,name,x,y,w,h,Object.assign({...ROCK,cave:1,ht:4,lit:'none',nolamp:1},o||{}));}
+/* set a cave's floor on a straight grade: h0 along the edge it starts from, h1 along the far edge, climbing or falling toward dir */
+function slope(D,R,dir,h0,h1){const f=field(D,'hf'),W1=D.W+1,ax=dir==='e'||dir==='w',rev=dir==='w'||dir==='n',L=ax?R.w:R.h;
+  for(let j=R.y;j<=R.y+R.h;j++)for(let i=R.x;i<=R.x+R.w;i++){const t=(ax?i-R.x:j-R.y)/L;f[j*W1+i]=h0+(h1-h0)*(rev?1-t:t);}}
+/* a dome in a cave's ceiling (h < 0 brings it down) */
+function vault(D,cx,cz,rad,h,R){const f=field(D,'cf'),W1=D.W+1;
+  for(let j=R.y;j<=R.y+R.h;j++)for(let i=R.x;i<=R.x+R.w;i++){const d=Math.hypot(i-cx,j-cz)/rad;if(d<1){const q=Math.cos(d*PI/2);f[j*W1+i]+=h*q*q;}}}
+/* break up a cave's floor and ceiling. Corners shared with a door or an ordinary room are left alone, so place doors first */
+function roughen(D,R,fa,ca){const hf=field(D,'hf'),cf=field(D,'cf'),W=D.W,W1=W+1;
+  const pinned=(i,j)=>{for(const[di,dj]of[[-1,-1],[0,-1],[-1,0],[0,0]]){const ti=i+di,tj=j+dj;if(ti<0||tj<0||ti>=W||tj>=D.H)continue;const k=tj*W+ti;
+    if(D.g[k]&&!(D.rm[k]>=0&&D.rooms[D.rm[k]].cave))return true;}return false;};
+  for(let j=R.y;j<=R.y+R.h;j++)for(let i=R.x;i<=R.x+R.w;i++){if(pinned(i,j))continue;hf[j*W1+i]+=rnd(-fa,fa);cf[j*W1+i]+=rnd(-ca,ca);}}
 /* walk-up stairs between a hall and the rung above it: a real ramp under the visible steps. (tx,tz) is the first tile; dir is the way you climb. */
 function stairs(lo,hi,tx,tz,len,dir){const ax=(dir==='e'||dir==='w')?'x':'z',rev=dir==='w'||dir==='n',w=ax==='x'?len:1,h=ax==='x'?1:len;
   room(hi,'',tx,tz,w,h,{hole:'st',noroam:1,nolamp:1});
@@ -588,6 +605,7 @@ function finalize(D){
   for(let j=0;j<D.H;j++)for(let i=0;i<W;i++){const k=j*W+i;if(D.g[k]&&!D.doors[k]&&collides(D,(i+.5)*T,(j+.5)*T,.42))D.blk[k]=1;}
   for(let k=0;k<D.nom.length;k++)if(D.nom[k])D.blk[k]=1;
   D.roamRooms=D.rooms.filter(R=>!R.safe&&!R.noroam&&!R.hole&&R.w*R.h>=4);
+  D.hlo=0;if(D.hf)for(const h of D.hf)if(h<D.hlo)D.hlo=h;
 }
 
 /* ============================================================ lighting and static mesh */
@@ -608,15 +626,18 @@ function buildDeck(D){
   const vert=(x,y,z,c,l,m)=>{PA.push(x,y,z);CA.push(c[0],c[1],c[2]);LA.push(l[0]*m,l[1]*m,l[2]*m,l[3]);};
   const quad=(a,b,c,d,col,la,lb,lc,ld,m)=>{vert(a[0],a[1],a[2],col,la,m);vert(b[0],b[1],b[2],col,lb,m);vert(c[0],c[1],c[2],col,lc,m);vert(a[0],a[1],a[2],col,la,m);vert(c[0],c[1],c[2],col,lc,m);vert(d[0],d[1],d[2],col,ld,m);};
   const RO=x=>D.rm[x]>=0?D.rooms[D.rm[x]]:DOORROOM,Y=D.y0,fy=D.wet,WATER=[.07,.13,.14],UP=D.above,DN=D.below;
+  const hf=D.hf,cf=D.cf,W1=W+1,HF=(x,z)=>hf?hf[Math.round(z/T)*W1+Math.round(x/T)]:0,CF=(x,z)=>cf?cf[Math.round(z/T)*W1+Math.round(x/T)]:0;
+  /* the ceiling over a corner, above Y: a cave's and a doorway's ride on the floor beneath; any other room's is level */
+  const CEIL=(R,x,z)=>R.cave?HF(x,z)+R.ht+CF(x,z):R===DOORROOM?HF(x,z)+R.ht:R.ht;
   for(let j=0;j<H;j++)for(let i=0;i<W;i++){const x=j*W+i;if(!g[x])continue;const R=RO(x),ht=R.ht;if(R.hole)continue;
     const x0=i*T,x1=x0+T,z0=j*T,z1=z0+T,l00=cl(i,j),l10=cl(i+1,j),l11=cl(i+1,j+1),l01=cl(i,j+1);
-    const hf=D.hf,W1=W+1,h00=hf?hf[j*W1+i]:0,h10=hf?hf[j*W1+i+1]:0,h11=hf?hf[(j+1)*W1+i+1]:0,h01=hf?hf[(j+1)*W1+i]:0;
+    const h00=HF(x0,z0),h10=HF(x1,z0),h11=HF(x1,z1),h01=HF(x0,z1);
     quad([x0,Y+fy+h00,z0],[x1,Y+fy+h10,z0],[x1,Y+fy+h11,z1],[x0,Y+fy+h01,z1],fy?WATER:mul3(R.flc,((i+j)&1)?1:.92),l00,l10,l11,l01,1);
     if(R.open)quad([x0,Y-.14,z0],[x1,Y-.14,z0],[x1,Y-.14,z1],[x0,Y-.14,z1],[.2,.21,.22],l00,l10,l11,l01,.5);
     else if(R.sky)quad([x0,Y+ht,z0],[x1,Y+ht,z0],[x1,Y+ht,z1],[x0,Y+ht,z1],mul3(R.skyc,((i+j)&1)?1:.95),l00,l10,l11,l01,1.5);
-    else quad([x0,Y+ht,z0],[x1,Y+ht,z0],[x1,Y+ht,z1],[x0,Y+ht,z1],R.clc,l00,l10,l11,l01,.8);
+    else quad([x0,Y+CEIL(R,x0,z0),z0],[x1,Y+CEIL(R,x1,z0),z0],[x1,Y+CEIL(R,x1,z1),z1],[x0,Y+CEIL(R,x0,z1),z1],R.clc,l00,l10,l11,l01,.8);
     const wall=(ni,nj,ax,az,ex,ez,la,lb)=>{const out=ni<0||nj<0||ni>=W||nj>=H,nx=nj*W+ni,nopen=!out&&g[nx],NR=nopen?RO(nx):null;
-      const seg=(ya,yb,col,m)=>quad([ax,Y+ya,az],[ex,Y+ya,ez],[ex,Y+yb,ez],[ax,Y+yb,az],col,la,lb,lb,la,m);
+      const segE=(a0,a1,b0,b1,col,m)=>quad([ax,Y+a0,az],[ex,Y+b0,ez],[ex,Y+b1,ez],[ax,Y+a1,az],col,la,lb,lb,la,m),seg=(ya,yb,col,m)=>segE(ya,yb,ya,yb,col,m);
       const pan=mul3(R.wlc,((ni+nj)&1)?1:.95);
       if(R.open){/* a rung or walkway: parapet over open air, slab edge, lintel over a lower doorway */
         if(nopen&&NR.open)return;
@@ -624,12 +645,18 @@ function buildDeck(D){
         if(nopen){if(NR.ht<ht)seg(NR.ht,ht,pan,1);return;}
         if(DN&&!out&&DN.g[nx]){seg(-.14,0,[.2,.21,.22],.6);seg(0,1,[.35,.33,.2],1);}
         return;}
-      let y0=0,top=ht;if(UP&&!out&&UP.g[nx]&&UP.y0-Y<top)top=UP.y0-Y;
-      if(nopen){if(NR.open||NR.hole||NR.ht>=ht)return;y0=NR.ht;}
-      if(top<=y0)return;
-      if(y0===0){seg(0,.9,R.wlb,1);seg(.9,1.05,R.stc,1);seg(1.05,Math.min(top,3.2),pan,1);if(top>3.2)seg(3.2,top,pan,.6);}
-      else if(y0<3.2&&top>3.2){seg(y0,3.2,pan,1);seg(3.2,top,pan,.6);}
-      else seg(y0,top,pan,y0>=3.2?.6:1);};
+      /* from what the neighbour leaves showing (its ceiling, or the floor if it is rock) up to this tile's ceiling, at each end */
+      const fa=HF(ax,az),fb=HF(ex,ez);let ca=CEIL(R,ax,az),cb=CEIL(R,ex,ez),na=fa,nb=fb;
+      if(UP&&!out&&UP.g[nx]){const u=UP.y0-Y;ca=Math.min(ca,u);cb=Math.min(cb,u);}
+      if(nopen){if(NR.open||NR.hole)return;na=CEIL(NR,ax,az);nb=CEIL(NR,ex,ez);}
+      if(ca<=na&&cb<=nb)return;
+      if(!R.cave&&fa===0&&fb===0&&ca===cb&&na===nb){const y0=na,top=ca;
+        if(y0===0){seg(0,.9,R.wlb,1);seg(.9,1.05,R.stc,1);seg(1.05,Math.min(top,3.2),pan,1);if(top>3.2)seg(3.2,top,pan,.6);}
+        else if(y0<3.2&&top>3.2){seg(y0,3.2,pan,1);seg(3.2,top,pan,.6);}
+        else seg(y0,top,pan,y0>=3.2?.6:1);return;}
+      if(!R.cave&&!nopen){const ba=Math.min(fa+1.05,ca),bb=Math.min(fb+1.05,cb);segE(fa,Math.min(fa+.9,ca),fb,Math.min(fb+.9,cb),R.wlb,1);
+        segE(Math.min(fa+.9,ca),ba,Math.min(fb+.9,cb),bb,R.stc,1);segE(ba,ca,bb,cb,pan,1);return;}
+      segE(Math.min(na,ca),ca,Math.min(nb,cb),cb,pan,1);};
     wall(i,j-1,x0,z0,x1,z0,l00,l10);wall(i,j+1,x1,z1,x0,z1,l11,l01);wall(i-1,j,x0,z1,x0,z0,l01,l00);wall(i+1,j,x1,z0,x1,z1,l10,l11);}
   for(const p of D.props){const src=GEO[p.shape],ti=Math.floor(p.x/T),tj=Math.floor(p.z/T),tx=(tj*W+ti)*4;
     const l=[TL[tx]||0,TL[tx+1]||0,TL[tx+2]||0,0],col=p.pw?hex3(p.pw[lvl(p.pc||D.c)?1:0]):p.c,m=p.glow?3:1;
@@ -644,7 +671,9 @@ function buildDeck(D){
   if(D.mesh){D.mesh.geometry.dispose();D.mesh.geometry=geo;}
   else{D.mesh=new THREE.Mesh(geo,SMAT);D.mesh.frustumCulled=false;D.grp.add(D.mesh);}
 }
-function hfAt(L,x,z){const h=L.hf;if(!h)return 0;const W1=L.W+1,fx=clamp(x/T,0,L.W-1e-4),fz=clamp(z/T,0,L.H-1e-4),i=Math.floor(fx),j=Math.floor(fz),u=fx-i,v=fz-j;
+function hfAt(L,x,z){return fieldAt(L,L.hf,x,z);}
+function cfAt(L,x,z){return fieldAt(L,L.cf,x,z);}
+function fieldAt(L,h,x,z){if(!h)return 0;const W1=L.W+1,fx=clamp(x/T,0,L.W-1e-4),fz=clamp(z/T,0,L.H-1e-4),i=Math.floor(fx),j=Math.floor(fz),u=fx-i,v=fz-j;
   return h[j*W1+i]*(1-u)*(1-v)+h[j*W1+i+1]*u*(1-v)+h[(j+1)*W1+i]*(1-u)*v+h[(j+1)*W1+i+1]*u*v;}
 function tileAt(D,x,z){const i=Math.floor(x/T),j=Math.floor(z/T);return(i<0||j<0||i>=D.W||j>=D.H)?-1:j*D.W+i;}
 function lightAt(D,x,z,v){const k=tileAt(D,x,z);if(k<0)v.set(0,0,0);else v.set(D.TL[k*4],D.TL[k*4+1],D.TL[k*4+2]);}
@@ -676,8 +705,8 @@ function probe(x,z,r,feet,top){let block=false,ground=-1e9,ceil=1e9;const lv=G.D
       if(out||!L.g[k]){if(lower)sol(-1e9,!out&&L.above&&L.above.g[k]?L.above.y0-.14:1e9);else if(out||!L.below.g[k])sol(Y-.14,1e9);continue;}
       const R=L.rm[k]>=0?L.rooms[L.rm[k]]:null;
       if(!(R&&R.hole))sol(lower?-1e9:Y-.14,Y+hfAt(L,cx,cz));
-      const d=L.doors[k];if(d&&!d.open)sol(Y+(d.stuck?1.02:0),Y+2.4);
-      if(!(R&&(R.open||R.hole))){const ch=Y+(R?R.ht:2.4);if(ch>feet+STEP&&ch<ceil)ceil=ch;}
+      const d=L.doors[k];if(d&&!d.open){const h=hfAt(L,cx,cz);sol(Y+h+(d.stuck?1.02:0),Y+h+2.4);}
+      if(!(R&&(R.open||R.hole))){const ch=Y+(!R?hfAt(L,cx,cz)+2.4:R.cave?hfAt(L,cx,cz)+R.ht+cfAt(L,cx,cz):R.ht);if(ch>feet+STEP&&ch<ceil)ceil=ch;}
       const cs=L.cols[k];if(cs)for(const b of cs){const px=clamp(x,b[0],b[2]),pz=clamp(z,b[1],b[3]);if((x-px)*(x-px)+(z-pz)*(z-pz)<r2)sol(Y+b[4]+b[6],Y+b[5]+b[6]);}}
     if(lower){
       for(const s of L.stairs){const sx=clamp(x,s.x0,s.x1),sz=clamp(z,s.z0,s.z1);if((x-sx)*(x-sx)+(z-sz)*(z-sz)<r2){const t=s.ax==='x'?(sx-s.x0)/(s.x1-s.x0):(sz-s.z0)/(s.z1-s.z0);sol(s.y0,s.y0+clamp(s.rev?1-t:t,0,1)*s.h);}}
@@ -1043,7 +1072,7 @@ function updPlayer(dt){const p=G.p;let D=G.D;const wet=!!D.wet,deep=!!D.deep,GRA
       ny=g;p.vy=0;p.ground=true;}
     else p.ground=false;
     if(ny+BODY()>pr.ceil){ny=pr.ceil-BODY();if(p.vy>0)p.vy=0;}
-    p.y=ny;if(p.y<-60){p.y=D.y0+2;p.vy=0;}
+    p.y=ny;if(p.y<D.y0+D.hlo-60){p.y=D.y0+2;p.vy=0;}
     if(p.crouch&&p.wantStand){const q=probe(p.x,p.z,.3,p.y,p.y+1.8);if(!q.block&&q.ceil>=p.y+1.8){p.crouch=false;p.wantStand=false;}}}
   if(!deep||fly){let best=null,low=D;for(const L of G.decks){if(L.lv!==D.lv)continue;if(L.y0<low.y0)low=L;if(p.y>=L.y0-.7&&(!best||L.y0>best.y0))best=L;}if(!best)best=low;
     if(best!==D){setGrid(best);D=G.D;}}
@@ -1326,7 +1355,7 @@ function newGame(){clearTimeout(endTO);disposeScene();
   G.decks=defWorld();
   for(const D of G.decks){D.grp=new THREE.Group();scene.add(D.grp);finalize(D);}
   for(const D of G.decks){buildDeck(D);const Y=D.y0;
-    for(const k in D.doors){const d=D.doors[k],mat=dmat(),g=new THREE.Group(),cx=(d.x+.5)*T,cz=(d.y+.5)*T;
+    for(const k in D.doors){const d=D.doors[k],mat=dmat(),g=new THREE.Group(),cx=(d.x+.5)*T,cz=(d.y+.5)*T,Yd=Y+(d.h=hfAt(D,cx,cz));
       if(d.vent){const nb=[k-1,+k+1,k-D.W,+k+D.W].map(n=>D.rm[n]).find(r=>r>=0),R=D.rooms[nb]||DOORROOM,wc=[R.wlc[0],R.wlc[1],R.wlc[2]];
         for(const s of[-1,1]){mk(g,mat,'box',wc,T,2.4,.06,0,0,s*.97);mk(g,mat,'box',0x2a2c2e,.9,.6,.08,0,-.8,s*.97);for(let q=0;q<4;q++)mk(g,mat,'box',wc,.9,.03,.1,0,-1.0+q*.13,s*.97);}}
       else{const heavy=d.kind==='heavy';d.ind=[];
@@ -1336,11 +1365,11 @@ function newGame(){clearTimeout(endTO);disposeScene();
         if(d.seal)for(const s of[-1,1])mk(g,mat,'box',0x2a2c2e,1.5,.1,.06,0,-.1,s*.1);
         if(d.card)for(const s of[-1,1]){mk(g,mat,'box',0x22262a,.16,.24,.04,.72,.1,s*(heavy?.17:.07));d.ind.push(mk(g,mat,'box',[2.25,2.45,2.85],.1,.05,.05,.72,.16,s*(heavy?.18:.08)));}
         if(d.code)for(const s of[-1,1]){mk(g,mat,'box',0x22262a,.18,.26,.04,.72,.1,s*(heavy?.17:.07));for(let q=0;q<9;q++)d.ind.push(mk(g,mat,'box',[2.5,2.6,2.5],.03,.03,.05,.67+(q%3)*.05,.03+Math.floor(q/3)*.06,s*(heavy?.175:.075)));}}
-      g.position.set(cx,Y+1.2+d.t*2.38,cz);if(!d.ns)g.rotation.y=PI/2;D.grp.add(g);d.mesh=g;D.dyn.push({x:cx,z:cz,mat});
-      D.ints.push({x:cx,y:d.vent?.6:1.3,z:cz,r:d.vent?1.7:2.6,label:()=>doorLabel(D,d),act:()=>doorAct(D,d)});
+      g.position.set(cx,Yd+1.2+d.t*2.38,cz);if(!d.ns)g.rotation.y=PI/2;D.grp.add(g);d.mesh=g;D.dyn.push({x:cx,z:cz,mat});
+      D.ints.push({x:cx,y:d.vent?.6:1.3,yo:d.h,z:cz,r:d.vent?1.7:2.6,label:()=>doorLabel(D,d),act:()=>doorAct(D,d)});
       if(d.sg)for(const[text,dir]of d.sg){const s=mkSign(text);
-        if(dir==='w'){s.position.set(d.x*T-.03,Y+2.74,cz);s.rotation.y=-PI/2;}else if(dir==='e'){s.position.set(d.x*T+T+.03,Y+2.74,cz);s.rotation.y=PI/2;}
-        else if(dir==='n'){s.position.set(cx,Y+2.74,d.y*T-.03);s.rotation.y=PI;}else s.position.set(cx,Y+2.74,d.y*T+T+.03);
+        if(dir==='w'){s.position.set(d.x*T-.03,Yd+2.74,cz);s.rotation.y=-PI/2;}else if(dir==='e'){s.position.set(d.x*T+T+.03,Yd+2.74,cz);s.rotation.y=PI/2;}
+        else if(dir==='n'){s.position.set(cx,Yd+2.74,d.y*T-.03);s.rotation.y=PI;}else s.position.set(cx,Yd+2.74,d.y*T+T+.03);
         D.grp.add(s);D.signs.push(s);}}
     for(const it of D.items)spawnItem(D,it);
     for(const nt of D.notes){const mat=dmat(),g=itemMesh('note',mat);g.position.set(nt.x,Y+nt.y+hfAt(D,nt.x,nt.z),nt.z);g.rotation.y=rnd(-.5,.5);D.grp.add(g);D.dyn.push({x:nt.x,z:nt.z,mat});
@@ -1390,7 +1419,7 @@ function update(dt){const p=G.p;G.time+=dt;
           else{let near=L===G.D&&Math.hypot(p.x-cx,p.z-cz)<2.5;
             if(!near)for(const m of L.muts)if(!m.dead&&!m.fixed&&!m.noDoors&&Math.abs(m.x-cx)<2.3&&Math.abs(m.z-cz)<2.3){near=true;break;}
             if(near){if(!d.open)openDoor(L,d);d.hold=2.2;}else if(d.open&&(d.hold-=dt)<=0){d.open=false;sfxAt('door',{x:cx,z:cz});}}}}
-      const tg=d.stuck?.42:d.open?1:0;if(d.t!==tg){d.t+=clamp(tg-d.t,-dt*2.2,dt*2.2);d.mesh.position.y=L.y0+1.2+d.t*2.38;if(d.vent)d.mesh.visible=d.t<.5;}}}
+      const tg=d.stuck?.42:d.open?1:0;if(d.t!==tg){d.t+=clamp(tg-d.t,-dt*2.2,dt*2.2);d.mesh.position.y=L.y0+d.h+1.2+d.t*2.38;if(d.vent)d.mesh.visible=d.t<.5;}}}
   G.cur=findInt();
   /* hud */
   const pr=$('prompt');if(G.cur){if(pr._l!==G.cur._l){pr._l=G.cur._l;pr.innerHTML='<kbd>E</kbd>';pr.appendChild(document.createTextNode(G.cur._l));}}else if(pr._l){pr._l='';pr.innerHTML='';}
@@ -1444,7 +1473,7 @@ function devDraw(){const D=G.decks[DEV.mapK],W=D.W,H=D.H,cv=$('mapc'),M=22;
   for(let j=0;j<H;j++)for(let i=0;i<W;i++){const t=j*W+i;let f=null;
     if(D.g[t]){const r=D.rm[t];
       if(r===-2){const d=D.doors[t];f=d.lift?'#7fb6c9':d.seal?'#8e2a20':d.vent?'#6b6a64':d.stuck?'#c27a2a':d.kind==='heavy'||d.card||d.code?'#c9a227':'#9fc28a';}
-      else{const R=D.rooms[r];f=R.hole==='st'?'#6b5a2a':R.hole==='el'?'#4a3e18':rgb(R.flc,R.open?1.2:1.7);}}
+      else{const R=D.rooms[r];f=R.hole==='st'?'#6b5a2a':R.hole==='el'?'#4a3e18':rgb(R.flc,(R.open?1.2:1.7)*(1+clamp(hfAt(D,(i+.5)*T,(j+.5)*T)/24,-.5,.5)));}}
     else if(D.below&&D.below.g[t])f='#121a22';
     if(f){x.fillStyle=f;x.fillRect(i*s,j*s,s,s);}}
   x.fillStyle='rgba(217,211,193,.1)';for(let i=0;i<=W;i+=5)x.fillRect(i*s,0,1,H*s);for(let j=0;j<=H;j+=5)x.fillRect(0,j*s,W*s,1);
@@ -1474,12 +1503,25 @@ function devInfo(e){const D=G.decks[DEV.mapK],head=D.name+(D.li?', upper layer':
   if(!e){$('mapi').textContent=head;return;}const t=devTile(e);if(!t){$('mapi').textContent=head;return;}
   const[i,j]=t,k=j*D.W+i,r=D.rm[k],what=!D.g[k]?'rock':r===-2?'door':r>=0?D.rooms[r].name||(D.rooms[r].hole==='st'?'stairs':'platform'):'';
   const o=D.org,plan=o[0]||o[1]?'   plan '+(o[0]+(i+.5)*T)+', '+(o[1]+(j+.5)*T)+' m':'';
-  $('mapi').textContent='tile '+i+', '+j+'   centre '+((i+.5)*T)+', '+((j+.5)*T)+' m'+plan+'   '+what;}
+  const cx=(i+.5)*T,cz=(j+.5)*T,R=r>=0?D.rooms[r]:null,fl=hfAt(D,cx,cz),hd=R&&R.cave?R.ht+cfAt(D,cx,cz):R?R.ht-fl:2.4;
+  const ter=D.hf&&D.g[k]?'   floor '+fl.toFixed(1)+' m, headroom '+hd.toFixed(1)+' m':'';
+  $('mapi').textContent='tile '+i+', '+j+'   centre '+cx+', '+cz+' m'+plan+ter+'   '+what;}
 function devTile(e){const D=G.decks[DEV.mapK],b=$('mapc').getBoundingClientRect(),{s,M}=DEV.ms,i=Math.floor((e.clientX-b.left-M)/s),j=Math.floor((e.clientY-b.top-M)/s);
   return i<0||j<0||i>=D.W||j>=D.H?null:[i,j];}
 function devClick(e){const t=devTile(e);if(!t)return;const D=G.decks[DEV.mapK],k=t[1]*D.W+t[0];
   if(!D.g[k]&&!DEV.fly){$('mapi').textContent='Solid rock there. Turn on fly (V) to go anyway.';return;}
   const K2=DEV.mapK;closePanel();devPut(K2,t[0]+.5,t[1]+.5);}
+/* ?dev=sandbox: a test bed for the engine, never part of the station. A flat room, a falling passage, a domed chamber, a climb out. */
+if(DEV)STATION.levels.push({id:'sandbox',name:'Sandbox',c:'SANDBOX',build:buildSandbox});
+function buildSandbox(lv){const D=mkDeck(lv,40,28),dim={lit:'always',lc:[.32,.29,.25]};
+  room(D,'Test room',2,11,6,6,{...SEC,lit:'always',lc:LOW});door(D,8,13,{open:true,sg:[['Cave','e']]});
+  const pas=cave(D,'Descent',9,12,16,3,{...dim,ht:3.2});slope(D,pas,'e',0,-8);
+  const ch=cave(D,'Chamber',25,6,12,18,{...dim,ht:5});slope(D,ch,'e',-8,-8);hill(D,32,18,4,2.2,ch);hill(D,28,10,3,-1.2,ch);vault(D,31,14,7,7,ch);
+  const up=cave(D,'Climb',30,1,3,5,{...dim,ht:2.6});slope(D,up,'n',-8,-2);
+  roughen(D,pas,.2,.5);roughen(D,ch,.35,1.2);roughen(D,up,.25,.4);
+  for(const[x,z,h]of[[27,9,3],[35,20,4],[34,8,2.5]])P(D,'cyl',x,z,.9,h,.9,0x5a5248,{c:1});lamp(D,6.5,13.5,6);lamp(D,31,15,9);
+  crates(D,13,12.45,1);item(D,'batt',20,13.4,.02);mut(D,'worm',33,12);
+  return[D];}
 function devKey(code){const m=G.mode;
   if(m==='map'){if(code==='BracketLeft'||code==='BracketRight'){const n=G.decks.length;DEV.mapK=(DEV.mapK+(code==='BracketLeft'?n-1:1))%n;devDraw();}
     else if(code==='Escape'||code==='KeyM'||code==='Tab')closePanel();return true;}
