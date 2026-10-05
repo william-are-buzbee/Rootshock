@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rootshock</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./src/style.css">
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud" class="hide">
+  <div id="dot"></div>
+  <div id="roomn"></div>
+  <div id="devtag" class="hide"></div>
+</div>
+<div id="pause" class="screen hide"><h1>Paused</h1><div class="go">Click to go back in</div></div>
+<div id="title" class="screen">
+  <h1>Rootshock</h1>
+  <p>Engine v2, test bed. Steps, a mezzanine, a ledge you can jump onto and one you cannot, a crawl, a dark room.</p>
+  <div class="keys">
+    <div><b>W A S D</b> move</div><div><b>Mouse</b> look</div><div><b>Space</b> jump</div>
+    <div><b>Shift</b> run</div><div><b>C</b> crouch</div><div><b>F</b> flashlight</div>
+  </div>
+  <div class="go" id="titleg">Click to open your eyes</div>
+</div>
+<script type="module" src="./src/main.ts"></script>
+</body>
+</html>

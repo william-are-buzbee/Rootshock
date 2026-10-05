@@ -44,7 +44,7 @@ None of this is a reason to lose what works. The content, the look, the sound an
   six-floor station is not ported.
 - **Agreed: no general physics library.** The world is a station of rooms, shafts and caves, not a pile of rigid bodies.
   A purpose-built world model (§4) fits it; cannon or rapier would fight it.
-- **Proposed: current three.js from npm**, replacing r128 from a CDN.
+- **Agreed: current three.js from npm**, replacing r128 from a CDN.
 
 ---
 
@@ -119,13 +119,16 @@ thing is added once.
 ### How B works
 
 - **Authoring stays in shapes.** Levels are still written as rooms, caves, tunnels, doors and props, in plan metres
-  (the shared frame from `station-plan.md`: x east, z south, y up from the surface).
-- **The compiler produces two things from the same shapes:**
-  1. **A render mesh**, built from the shapes themselves (flat quads, the current look). The grid is never meshed
-     directly, so the station does not turn blocky.
-  2. **A query grid**: cells of 0.25 m (proposed; 0.5 m if memory demands), stored in 16³ chunks, only where there
-     is space (rock is the default and costs nothing). Each cell holds a material and flags: `solid`, `water`,
-     `climbable`, `crawl`, `noStand`.
+  (the station's one shared frame: x east, z south, y up from the surface, as the level builders use it now).
+- **The compiler produces a query grid**: cells of 0.25 m, stored in 16³ chunks, only where there is space (rock is
+  the default and costs nothing). Each cell holds what is there: rock, a room (open), or a block (solid built back
+  into a room); later, flags such as `water`, `climbable`, `crawl`.
+- **Surfaces are meshed from the grid (agreed, built in step 1).** Wherever open meets solid there is a face; faces
+  are merged into the largest flat rectangles that share a colour, then cut where the palette changes (dado and
+  stripe on walls, the 2 m checker on floors). For axis-aligned rooms this is exactly the flat look of the first
+  engine, and it guarantees that what you see is what you collide with. It means **built geometry snaps to 0.25 m**.
+- **Open: slopes and caves.** A grid alone would draw a cave floor as terraces. Caves and ramps will need their own
+  surface: a heightfield mesh over their cells, with the grid still answering the queries. Decide in step 2.
 - **Small props** (crates, tables, shelves) are not stamped into the grid. They are boxes, oriented boxes or cylinders
   in a spatial hash, so they can later move.
 - **Movers** (doors, elevators, hatches, anything that changes shape at runtime) are colliders of their own, not grid
@@ -193,8 +196,14 @@ perception → air and light → events out.
 - **Abilities live on the body**, not in special cases: `opensDoors`, `low` (under jammed doors), `big` (no doorways),
   `swims`, `climbs`, `fixed`.
 - **Water** comes from cell flags: wading slows you, deep water switches to swimming, air runs down.
-- **Open:** physical objects. Kicked crates, thrown items, bodies that slump. The body controller allows simple boxes
-  later; whether to build them is a design question.
+- **Agreed: physical objects**, as long as they do not cost the frame rate. Kicked crates, thrown items, bodies that
+  slump. Proposed way to keep them cheap:
+  - **Asleep by default.** A crate is a static prop until something touches it (a kick, a shove, a blast, a body
+    falling on it). Only then does it become a body: gravity, slide, collide, settle.
+  - **Asleep again when still.** A settled object goes back to being a static prop in its new place.
+  - **Simple shapes.** Boxes and cylinders that stay upright or tip onto a face; no tumbling rigid-body solver.
+  - **A budget.** A fixed number awake at once (start at 16); past that, the oldest settles where it is.
+  - **Measured.** A step-2 test level with a pile of crates, timed headless, decides whether the budget holds.
 
 ---
 
@@ -206,8 +215,11 @@ perception → air and light → events out.
 - **Each mutant filters edges by its abilities.** A skitter takes under-jammed-door edges; a thresher takes no door
   edges; a husk opens doors it can open.
 - **Flow fields to the player**, recomputed on a budget for every level that is awake, not only the player's layer.
-- **Open: which mutants use stairs, ladders and elevators.** If the thresher can follow you up a walkway, walkways stop
-  being safe. That changes how levels play, so it is a design call, not an engine one.
+- **Agreed: mutants use stairs, ladders and elevators.** Walkways are not safe ground. Each still goes only where its
+  body allows (proposed):
+  - **Stairs, ramps, walkways, drops**: everything that walks.
+  - **Ladders**: anything with `climbs` that fits the shaft; the bloat does not.
+  - **Elevators**: anything standing on the platform rides it; things with hands (`opensDoors`) can call it.
 
 ---
 
@@ -280,9 +292,15 @@ components, not code threaded through the frame loop:
 
 Each step ends with something you can open and play.
 
-1. **Scaffold.** `v2/` with Vite, TypeScript, three.js, the fixed-step loop, the shader, a test room. Walk around in it.
-2. **World model and body.** The compiler, grid, queries and body controller. A test level with stairs, a slope, a
-   ledge, a low ceiling, water and a moving platform. The collider overlay.
+1. **Scaffold. Done.** `v2/` with Vite, TypeScript, three.js, the fixed-step loop, the shader, and the test bed (a
+   hall with steps, a mezzanine, ledges, a crawl, a dark room). Pulled forward from step 2 so there was something real
+   to walk in: the dense grid, the basic queries (`overlapCylinder`, `groundBelow`, `ceilingAbove`, `roomAt`), the
+   body controller (walk and slide, step up, gravity, ceilings, crouch), the greedy mesher. Tests run the sim headless,
+   including one that proves two identical runs end identically, and one that enforces the layer rule (§3). CI runs
+   them on every pull request that touches `v2/`.
+2. **World model and body, the rest.** Chunked sparse grid; movers (doors, a moving platform that carries you);
+   `sweep` and `raycast`; depenetration; water; slopes and cave surfaces. A test level for each. The collider
+   overlay.
 3. **The upper station, static.** Port its content: rooms, caves, props, light. Walk all of it.
 4. **Doors, power, interaction, items, inventory, notes, HUD.** The upper station's access puzzle works end to end.
 5. **Mutants.** Nav graph, flow fields, perception, the cast's behaviours, combat.
@@ -295,11 +313,15 @@ Each step ends with something you can open and play.
 
 ## 14. Open questions
 
-1. **Mutants on stairs, ladders and elevators**: all, some types, or none (§7)?
-2. **Physical objects**: kicked crates, thrown items, slumping bodies (§6)?
-3. **Grid cell size**: 0.25 m (finer vents and crawlspaces) or 0.5 m (half the memory per side)? Decide in step 2
-   by measuring.
-4. **Where v2 is published while it is in progress.** If the game is served by GitHub Pages from the root, v2 needs a
-   build-and-publish workflow, or a built copy committed under a path.
-5. **`station-plan.md`** is referenced by `world.md` and the code but is not in the repository. It is the source of the
-   station's coordinates; it should be found and committed, or rebuilt from the level builders, before step 3.
+1. **Grid cell size**: 0.25 m for now. Confirm in step 2 by measuring a whole level once the grid is sparse.
+2. **Slopes and cave surfaces** (§4): decide in step 2.
+
+### Settled
+
+- **Mutants on stairs, ladders and elevators**: yes (§7).
+- **Physical objects**: yes, unless they cost the frame rate (§6).
+- **Publishing v2 while it is in progress (agreed)**: GitHub Pages, from a workflow (`.github/workflows/pages.yml`).
+  Every push to `main` publishes the old game at the site root, as now, and the latest v2 build at `/v2/`. This needs
+  the repository's Pages source set to **GitHub Actions** (Settings → Pages → Build and deployment → Source).
+- **`station-plan.md`**: dropped. It was an earlier idea; the station now lives in the level builders, which are the
+  reference for its layout and coordinates.
