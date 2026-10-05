@@ -281,6 +281,18 @@ export class World {
     return lv;
   }
 
+  /** the rooms that open into this one: open cells just outside its box, at its floor and a little above */
+  neighbours(id: number): number[] {
+    const R = this.rooms[id], out = new Set<number>(), g = this.grid;
+    for (const y of [R.y0 + 0.3, R.y0 + 1.2])
+      for (let x = R.x0 + CELL / 2; x < R.x1; x += CELL)
+        for (const z of [R.z0 - CELL / 2, R.z1 + CELL / 2]) { const c = g.at(x, y, z); if (c >= 0 && c !== id) out.add(c); }
+    for (const y of [R.y0 + 0.3, R.y0 + 1.2])
+      for (let z = R.z0 + CELL / 2; z < R.z1; z += CELL)
+        for (const x of [R.x0 - CELL / 2, R.x1 + CELL / 2]) { const c = g.at(x, y, z); if (c >= 0 && c !== id) out.add(c); }
+    return [...out];
+  }
+
   /** the room at a point, or null in rock */
   roomAt(x: number, y: number, z: number): RoomDef | null {
     const c = this.grid.at(x, y, z);

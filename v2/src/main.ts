@@ -1,5 +1,7 @@
 import { FixedLoop } from './core/loop';
 import { testbed } from './content/levels/testbed';
+import { STATION } from './content/station';
+import { Lighting, fullPower, stationPower } from './world/light';
 import { makeSim, step, type Sim } from './sim/sim';
 import { CameraRig, type Prev } from './present/camera';
 import { Controls } from './present/controls';
@@ -26,10 +28,17 @@ try {
   throw new Error('no WebGL');
 }
 
-const level = testbed();
+/* which level: the station's start by default; ?level=<id> for another, or the test bed. ?power=full lights everything. */
+const want = params.get('level') ?? STATION.start;
+const entry = STATION.levels.find(l => l.id === want);
+const level = want === 'testbed' || !entry ? testbed() : entry.build();
 const sim: Sim = makeSim(level);
-view.setLevel(sim.world);
-const things = new Things(view.scene, sim);
+const power = params.get('power') === 'full' || want === 'testbed' ? fullPower : stationPower(STATION.circuits, STATION.main);
+const lighting = new Lighting(sim.world, power);
+const t0 = performance.now();
+view.setLevel(sim.world, lighting);
+const meshMs = performance.now() - t0;
+const things = new Things(view.scene, sim, lighting);
 const overlay = DEV ? new Overlay(view.scene, sim) : null;
 
 const rig = new CameraRig();
@@ -79,11 +88,11 @@ function frame(t: number): void {
   const b = sim.player.body, room = sim.world.roomAt(b.x, b.y + 0.5, b.z);
   hud.setRoom(room?.name ?? '', level.name, dt);
   if (dt > 0) fps += (1 / dt - fps) * 0.05;
-  hud.dev(DEV ? `${b.x.toFixed(2)} ${b.y.toFixed(2)} ${b.z.toFixed(2)}  ${room?.name ?? 'rock'}  ${b.ground ? 'ground' : 'air'}  ${Math.round(fps)} fps` : null);
+  hud.dev(DEV ? `${b.x.toFixed(2)} ${b.y.toFixed(2)} ${b.z.toFixed(2)}  ${room?.name ?? 'rock'}  ${b.ground ? 'ground' : 'air'}  ${Math.round(fps)} fps\n${sim.world.grid.chunkCount} chunks  mesh ${meshMs.toFixed(0)} ms` : null);
   view.draw(t / 1000);
 }
 /* ?dev: the sim on the window, for poking at from the console or a test script */
-if (DEV) (window as unknown as { rs: unknown }).rs = { sim, overlay };
+if (DEV) (window as unknown as { rs: unknown }).rs = { sim, overlay, lighting };
 
 setMode('title');
 requestAnimationFrame(frame);
