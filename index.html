@@ -224,9 +224,14 @@ function stack(lo,hi){if(lo.W!==hi.W||lo.H!==hi.H)throw new Error('Stacked layer
 /* the nearest layer above (or below) this one with floor at tile k: what is overhead, or what you would land on */
 function upAt(D,k){let n=D.above;while(n&&!n.g[k])n=n.above;return n;}
 function dnAt(D,k){let n=D.below;while(n&&!n.g[k])n=n.below;return n;}
+/* open air at this layer's height over tile k: floor somewhere below, under a room open or tall enough to reach up here */
+function openBelow(D,k){const n=dnAt(D,k);if(!n)return false;const r=n.rm[k],R=r>=0?n.rooms[r]:null,x=(k%D.W+.5)*T,z=(Math.floor(k/D.W)+.5)*T;
+  if(R&&(R.open||R.hole||R.sky||R.air))return true;return n.y0+(!R?hfAt(n,x,z)+2.4:R.cave?hfAt(n,x,z)+R.ht+cfAt(n,x,z):R.ht)>D.y0;}
 /* station-plan.md gives every position in metres, in one frame for the whole station: x east, z south, y up from the surface.
    A level that declares org:[x,z], the plan point under its tile (0,0), can be laid out straight from those numbers. */
 const planL=m=>m/T,planX=(D,x)=>(x-D.org[0])/T,planZ=(D,z)=>(z-D.org[1])/T;
+/* air: a room that is only the space over lower ones, as a cavern's volume over the buildings standing in it. No floor where a room
+   lies below (that room's ceiling is the roof you see), no walls where it opens onto air; its ceiling and its walls against rock are drawn. */
 function room(D,name,x,y,w,h,o){const r=Object.assign({name,x,y,w,h,ht:3.2,fl:0x6b6e6a,wl:0x7c7f7a,st:0x555555,lit:'main',lc:WHITE,flick:0,c:D.c,em:0,open:0,hole:0},o||{});
   r.id=D.rooms.length;r.flc=hex3(r.fl);r.wlc=hex3(r.wl);r.wlb=mul3(r.wlc,.78);r.clc=mul3(r.wlc,.6);r.stc=hex3(r.st);if(r.sky)r.skyc=hex3(r.sky);
   D.rooms.push(r);for(let j=y;j<y+h;j++)for(let i=x;i<x+w;i++){D.g[j*D.W+i]=1;D.rm[j*D.W+i]=r.id;}return r;}
@@ -698,12 +703,104 @@ function buildCargo2(lv,D){
   ladder(D,'B1',136.6,16.6,135.6,16.4,PI/2,false);
   return[T1,T2,T3];}
 
+/* ===== Main level, 90 m down. The Commons street (x 14 to 154): a 20 m cavern with sixteen residence blocks standing in two rows,
+   three storeys each, galleries along their fronts and bridges across; then the transit tunnel and the airlock to Horticulture.
+   Layers: the street (0), storey 2 (+3.4), storey 3 (+6.8), and the cavern's volume over the roofs (+10). ===== */
+function buildMain(lv){
+  const G=mkDeck(lv,140,30),S2=mkDeck(lv,140,30,{y0:3.4,li:1}),S3=mkDeck(lv,140,30,{y0:6.8,li:2}),RF=mkDeck(lv,140,30,{y0:10,li:3});
+  stack(G,S2);stack(S2,S3);stack(S3,RF);
+  /* the main shaft: the hoist, the foot of ladderway A1, and A2 on down (collapsed) */
+  liftRoom(G,5,14,7,14);room(G,'Shaft station',8,14,3,3,{...UTIL,em:1,safe:1});door(G,11,14,{sg:[['The Commons','w'],['Shaft station','e']]});
+  ladder(G,'A1',10.5,16.6,9.6,16.1,PI/2,true);ladder(G,'A2',8.5,16.6,9.4,15.6,PI/2,false);
+  /* the cavern: the street between the rows, the plazas at either end, and its volume over the roofs */
+  const CM={fl:0x8d8a7c,wl:0xa5a296,st:0x3f7f6b,ht:20,sky:0x86a9c4,em:1,c:'RES'};
+  room(G,'The Commons',12,12,70,6,CM);for(const[x,w]of[[12,2],[79,3]])for(const y of[8,18])room(G,'The Commons',x,y,w,4,CM);
+  for(const y of[8,18])room(RF,'The Commons',14,y,65,4,{...CM,air:1,ht:10,fl:0x55524a,noroam:1,nolamp:1});
+  /* galleries along both fronts on storeys 2 and 3, a bridge across on each, and stairs: street to 2 at both plazas, 2 to 3 mid-street */
+  const GW={...WALK,c:'RES',fl:0x6a665e,wl:0x8c887e};
+  for(const y of[12,16]){room(S2,'Gallery',12,y,70,2,{...GW,ht:3.4});room(S3,'Gallery',12,y,70,2,{...GW,ht:3.2});}
+  room(S2,'Bridge',50,14,1,2,{...GW,ht:3.4});room(S3,'Bridge',26,14,1,2,{...GW,ht:3.2});
+  stairs(G,S2,12,8,4,'s');stairs(G,S2,12,18,4,'n');stairs(G,S2,81,8,4,'s');stairs(G,S2,81,18,4,'n');
+  stairs(S2,S3,44,13,4,'e');stairs(S2,S3,30,16,4,'w');
+  for(let k=0;k<7;k++){const x=22.5+8*k;column(G,x,13.85,3.4);column(G,x,16.15,3.4);}
+  /* the street itself: the sick tree, benches, lamps, and what happened here */
+  P(G,'cyl',46,15,3.6,.5,3.6,0x8a8a84);P(G,'cyl',46,15,3.3,.08,3.3,0x3a2e22,{y:.5,c:0});tree(G,46,15,5,.5,true);
+  for(const[x,z,ns]of[[40,14.4,0],[52,15.6,0],[28,15.6,0],[64,14.4,0]])bx(G,x,z,ns?.45:1.8,.42,ns?1.8:.45,0x5f6266);
+  for(const[x,z]of[[20,14.25],[36,15.75],[56,14.25],[72,15.75]]){P(G,'cyl',x,z,.12,3.3,.12,0x3a3d40);bx(G,x,z,.5,.12,.5,0xe8eef2,{y:3.3,c:0,glow:1});}
+  bx(G,58,15.2,1.8,.9,.1,0x5b5d5f,{rz:.25,ry:1.2});bx(G,57.4,16.2,.6,.6,.6,0x6b5a3c,{ry:.6});blood(G,57,15.4,2.4);blood(G,34,14.6,1.6);blood(G,70,15,1.4);gore(G,48,13.4,3);
+  eggs(G,13,9,3);eggs(G,80,20,3);eggs(G,13,20.5,2);
+  mut(G,'thresher',60,14.8);mut(G,'bloat',30,15);mut(G,'husk',20,13);mut(G,'husk',36,15.6);mut(G,'husk',52,13.2);mut(G,'husk',68,16);mut(G,'husk',76,14.6,{post:1,yaw:PI});
+  mut(S2,'husk',25,12.6);mut(S2,'husk',58,16.6);mut(S3,'husk',40,12.6);
+  /* the blocks. Each is 7 x 3 tiles behind a facade row with its doors: north rows 8 to 10 (facade 11), south rows 19 to 21 (facade 18).
+     Ground floors are the street's rooms; storeys 2 and 3 are flats, but for the director's at the top of the trauma centre. */
+  const HB={...HAB,c:'RES',lc:[.85,.78,.62]},fl=[];
+  const flat=(D,x0,north,dc,nm,v)=>{const y0=north?8:19,fy=north?11:18,cz=north?y0+1.1:y0+1.9,back=north?y0+.3:y0+2.7;
+    room(D,'Residence '+nm,x0,y0,7,3,{...HB,fl:0x74685a,lit:v[1]==='worm'||v[1]==='nest'?'none':'main'});door(D,x0+dc,fy,v[0]);
+    bed(D,x0+.4,y0+1.5,true,fl.length%3?0x5f6b78:0x7a5a50);tbl(D,x0+3.5,y0+1.5,1.4,.8,0x6b5a48);bx(D,x0+6.7,back,.45,1.9,.45,0x5a5448);bx(D,x0+5.4,back,1.8,.45,.7,0x6b5f58);
+    item(D,v[2],x0+3.5,y0+1.5,.78);fl.push(nm);const cx=x0+3.5+(v[1]==='post'?1.5:0);
+    if(v[1]==='gore'){gore(D,cx,cz,4);body(D,cx+.4,cz+.4,pick([0x4a5560,0x8a8f96,0x6b6f5a]),true);if(fl.length%2)mut(D,'skitter',cx-1,cz);}
+    else if(v[1]==='worm'){mut(D,'worm',cx-.6,cz);mut(D,'worm',cx+.6,cz+.4);mut(D,'worm',cx+1.4,cz);eggs(D,x0+1.6,back,2);}
+    else if(v[1]==='nest'){eggs(D,cx-.8,cz,3);eggs(D,x0+5,back,3);mut(D,'skitter',cx+.6,cz);}
+    else if(v[1]==='post')mut(D,'husk',cx,cz,{post:1,yaw:north?PI:0});
+    else if(v[1]==='body')corpse(D,cx+.4,cz,pick([0x4a5560,0x6b6f5a,0x7a5a50]),true,{label:'Search the resident',say:'A room card on a lanyard. Not for this flat.',keys:[v[3]]});};
+  /* [door, what is inside, item, and for a body the card it carries]. Cards lock six flats; each card lies in another flat or on a body */
+  const RV={'N1.2':[{open:true},'clean','ration'],'N2.2':[{card:'N2.2'},'clean','medkit'],'N3.2':[{stuck:true},'gore','bandage'],'N4.2':[{},'post','batt'],
+    'N5.2':[{open:true},'worm','batt'],'N6.2':[{card:'N6.2'},'body','ammo9','S8.2'],'N7.2':[{},'clean','peaches'],'N8.2':[{open:true},'body','bandage','N4.3'],
+    'N1.3':[{},'gore','batt'],'N2.3':[{open:true},'nest','bandage'],'N3.3':[{},'body','ration','N2.2'],'N4.3':[{card:'N4.3'},'clean','shells'],
+    'N5.3':[{},'body','batt','S3.2'],'N6.3':[{stuck:true},'worm','knife'],'N7.3':[{card:'N7.3'},'nest','medkit'],'N8.3':[{open:true},'clean','ration'],
+    'S1.2':[{},'gore','batt'],'S2.2':[{open:true},'post','bandage'],'S3.2':[{card:'S3.2'},'clean','medkit'],'S4.2':[{stuck:true},'nest','medkit'],
+    'S5.2':[{},'clean','batt'],'S6.2':[{},'body','bandage','N6.2'],'S7.2':[{open:true},'worm','peaches'],'S8.2':[{card:'S8.2'},'clean','shells'],
+    'S1.3':[{open:true},'clean','ration'],'S2.3':[{},'gore','batt'],'S3.3':[{stuck:true},'post','bandage'],'S4.3':[{},'nest','batt'],
+    'S6.3':[{open:true},'clean','peaches'],'S7.3':[{},'worm','batt'],'S8.3':[{},'clean','ration']};
+  for(let k=0;k<8;k++){const x0=15+8*k;
+    for(const north of[true,false]){const nm=(north?'N':'S')+(k+1);
+      if(RV[nm+'.2'])flat(S2,x0,north,1,nm+'.2',RV[nm+'.2']);if(RV[nm+'.3'])flat(S3,x0,north,5,nm+'.3',RV[nm+'.3']);
+      groundFloor(G,x0,north,k,HB);}}
+  /* the director's residence: the top of the trauma centre's block, and what keeps the lift key */
+  room(S3,'Director\'s residence',47,19,7,3,{...HAB,c:'RES',fl:0x5e5248,lc:[.85,.78,.62],noroam:1});door(S3,52,18,{sg:[['Director','n']]});
+  bed(S3,47.4,20.5,true,0x7a5a50);tbl(S3,49.4,21.4,2,.8,0x4a3a2c);note(S3,'keeper',49.4,21.35,.78);eggs(S3,48.6,19.6,4);eggs(S3,51,21.4,3);gore(S3,50.4,20.2,5);
+  mut(S3,'bloat',52.8,20.6,{sit:1,yaw:-PI/2});mut(S3,'husk',48.6,20.2,{post:1,yaw:-PI/2});mut(S3,'husk',50.2,21.2,{post:1,yaw:-PI/2});mut(S3,'skitter',49.6,19.6);
+  /* east: the transit tunnel and the airlock to Horticulture */
+  door(G,82,14,{sg:[['Horticulture','w'],['The Commons','e']]});room(G,'Transit tunnel',83,14,6,2,{...UTIL,c:'RES',em:1});
+  door(G,89,14,{sg:[['Airlock','w']]});room(G,'Airlock',90,14,4,2,{...UTIL,c:'HORT',em:1});
+  door(G,94,14,{seal:true,msg:'Not built yet: Horticulture is the next section of the rebuild.',sg:[['Horticulture','w']]});
+  return[G,S2,S3,RF];}
+/* the ground floor of block k: the street's rooms, out of the old Commons */
+function groundFloor(D,x0,north,k,HB){const y0=north?8:19,fy=north?11:18,sd=north?'s':'n',back=north?y0+.3:y0+2.7,front=north?y0+2.6:y0+.4,mid=y0+1.5;
+  const R=(nm,o,dopt)=>{room(D,nm,x0,y0,7,3,Object.assign({...HB},o||{}));door(D,x0+3,fy,Object.assign({sg:[[nm.split(' ')[0],sd]]},dopt||{}));};
+  if(north)switch(k){
+    case 0:R('Canteen',{},{open:true});for(const dz of[-.6,.6]){tbl(D,x0+2.6,mid+dz,3.2,.8,0x8a8578);}bx(D,x0+6,back,1.8,1,.6,0x6f7378);item(D,'peaches',x0+6,back,1.02,2);
+      note(D,'diary',x0+2.6,mid-.6,.78);blood(D,x0+4.4,front,2);blood(D,x0+1,mid,1.4);mut(D,'husk',x0+5.4,mid+.6);mut(D,'husk',x0+.8,mid,{post:1,yaw:-PI/2});break;
+    case 1:R('Kitchen',{fl:0x8f9492,wl:0xa9aeab},{stuck:true});bx(D,x0+3.5,back,6,.9,.6,0x7c8186);bx(D,x0+6.5,mid,.8,1.9,.7,0xb4b8ba);
+      item(D,'knife',x0+2.5,back,.92);item(D,'ration',x0+4.4,back,.92,2);mut(D,'grabber',x0+3.5,y0+.12,{yaw:0});eggs(D,x0+1,front,3);break;
+    case 2:R('Commissary',{},{stuck:true});shelf(D,x0+2,back+.1,3,.5,{jars:1});shelf(D,x0+5.5,back+.1,2.4,.5);item(D,'peaches',x0+5,mid,.02);break;
+    case 3:R('Laundry',{lit:'none'});for(let q=0;q<4;q++)bx(D,x0+1+q*1.4,back,.9,1,.8,0xb8bcc0);mut(D,'worm',x0+2,mid);mut(D,'worm',x0+3,mid+.4);mut(D,'worm',x0+5,mid);eggs(D,x0+6.2,front,3);break;
+    case 4:R('Chapel');for(let q=0;q<3;q++)bx(D,x0+1.5+q*1.8,mid+.2,1.4,.45,.5,0x5a4a3c);bx(D,x0+3.5,back,1.6,1,.6,0x6b5a48);gore(D,x0+5.6,front,3);body(D,x0+5,mid,0x4a5560,false);break;
+    case 5:R('Maintenance',{...UTIL,c:'RES'});genset(D,'RES',x0+5.6,y0+.7,x0+5,y0+1.3);shelf(D,x0+1.5,back+.1,2.4,.5);item(D,'batt',x0+1.2,back+.1,1.06,2);item(D,'bandage',x0+2.6,mid,.02);break;
+    case 6:R('Post room');shelf(D,x0+1.5,back+.1,2.4,.5,{cols:[0xb9a98a,0x8a7a6a]});tbl(D,x0+4.5,mid,2,.8);item(D,'batt',x0+4.5,mid,.78);break;
+    case 7:R('Recreation',{lit:'none'});bx(D,x0+2.5,mid,2.4,.8,1.3,0x3a2e22);bx(D,x0+2.5,mid,2.3,.04,1.2,0x2f5a40,{y:.8,c:0});bx(D,x0+5.6,back,2,.45,.8,0x5a4a44);
+      bx(D,x0+6.4,front,.9,.5,.6,0x4a5238);item(D,'goggles',x0+6.4,front,.5);item(D,'batt',x0+.6,back,.02);
+      corpse(D,x0+4.4,front,0x6b6f5a,false,{label:'Search the resident',say:'Swimming trunks, a towel, a room card.',keys:['N7.3']});eggs(D,x0+1,front,4);mut(D,'skitter',x0+3.6,mid);mut(D,'skitter',x0+1.4,back+.4);break;}
+  else switch(k){
+    case 0:R('Gymnasium');bx(D,x0+2,mid,3,.08,2,0x3a4a5a,{c:0});for(let q=0;q<3;q++)P(D,'cyl',x0+5+q*.6,back,.4,.4,.4,0x2a2c2e);mut(D,'husk',x0+3.5,mid,{post:1,yaw:0});break;
+    case 1:R('School room');for(let q=0;q<3;q++)for(const dz of[-.5,.5])tbl(D,x0+1.6+q*1.8,mid+dz,1,.6,0x8a7a5a);bx(D,x0+3.5,back,3,1.2,.06,0x2a3a2c,{y:1,c:0});eggs(D,x0+6,front,3);mut(D,'skitter',x0+5.5,mid);break;
+    case 2:R('Library',{lit:'none'});for(let q=0;q<3;q++)shelf(D,x0+1.2+q*2.3,back-.1,1.8,.5);shelf(D,x0+3.5,mid+.2,3,.5);break;
+    case 3:R('Stores',{...UTIL,c:'RES'},{kind:'heavy'});crates(D,x0+1.5,mid,2);crates(D,x0+5.5,mid,2);item(D,'ration',x0+3.5,back,.02,2);item(D,'batt',x0+3.5,mid,.02);break;
+    case 4:R('Trauma centre',{...MED,c:'RES'},{kind:'heavy'});for(let q=0;q<4;q++)medbed(D,x0+.6+q*1.5,y0+1.9);
+      shelf(D,x0+6.7,mid,.5,2.6,{cols:[0xd4d8d4,0xb9c4bd,0x8c2f24,0xa8b4c0]});for(const z of[y0+.6,mid,y0+2.4])item(D,'medkit',x0+6.65,z,1.06);item(D,'bandage',x0+6.65,mid+.5,.61,2);
+      tbl(D,x0+5.4,front,.8,.7,0xb4b8ba);note(D,'clinic',x0+5.4,front,.78);break;
+    case 5:R('Water room',{...UTIL,c:'RES'});for(const q of[1.6,5.4])P(D,'cyl',x0+q,mid,2.2,2.6,2.2,0x3b4d57);bx(D,x0+3.5,back,6,.14,.14,0x3d4042,{y:2.4,c:0});break;
+    case 6:R('Workshop',{...UTIL,c:'RES'});tbl(D,x0+3,back+.2,4,.9,0x54504a);item(D,'pipe',x0+3,mid+.6,.02);item(D,'batt',x0+5.4,back+.2,.78);break;
+    case 7:R('Bar',{},{open:true});bx(D,x0+3.5,mid,5,1,.6,0x4a3a2c);for(let q=0;q<4;q++)P(D,'cyl',x0+1.8+q*1.2,mid-.7,.4,.7,.4,0x2a2c2e);blood(D,x0+2,front,1.6);mut(D,'husk',x0+5.6,back,{post:1,yaw:0});break;}}
+
 const NEWSTATION={
   start:{level:'upper',x:22.3,z:9.7,yaw:-PI/2},
   levels:[
-    {id:'upper',name:'Upper station',c:'OPS',tag:'upper station',power:{on:true,back:true},org:[-10,-30],build:buildUpper}],
+    {id:'upper',name:'Upper station',c:'OPS',tag:'upper station',power:{on:true,back:true},org:[-10,-30],build:buildUpper},
+    {id:'main',name:'Main level',c:'RES',tag:'main level',power:{on:true,back:false},org:[-10,-30],build:buildMain}],
   circuits:{LIFT:{on:true,back:false},CARGO:{on:false,back:false}},
   ladders:{A1:{say:'Fifty metres of ladder down the main shaft, in the dark.'},
+    A2:{broken:'The ladderway is collapsed below this landing. Rubble fills the shaft.'},
     B1:{need:{power:'CARGO',msg:'A fan door is sealed over the ladderway. Its release runs off the Cargo backup set.'},say:'Down the exhaust shaft, against the draught.'}}
 };
 const STATION=NEWQ?NEWSTATION:OLDSTATION;
@@ -764,7 +861,7 @@ function buildDeck(D){
   for(let j=0;j<H;j++)for(let i=0;i<W;i++){const x=j*W+i;if(!g[x])continue;const R=RO(x),ht=R.ht;if(R.hole)continue;
     const x0=i*T,x1=x0+T,z0=j*T,z1=z0+T,l00=cl(i,j),l10=cl(i+1,j),l11=cl(i+1,j+1),l01=cl(i,j+1);
     const h00=HF(x0,z0),h10=HF(x1,z0),h11=HF(x1,z1),h01=HF(x0,z1);
-    quad([x0,Y+fy+h00,z0],[x1,Y+fy+h10,z0],[x1,Y+fy+h11,z1],[x0,Y+fy+h01,z1],fy?WATER:mul3(R.flc,((i+j)&1)?1:.92),l00,l10,l11,l01,1);
+    if(!(R.air&&dnAt(D,x)))quad([x0,Y+fy+h00,z0],[x1,Y+fy+h10,z0],[x1,Y+fy+h11,z1],[x0,Y+fy+h01,z1],fy?WATER:mul3(R.flc,((i+j)&1)?1:.92),l00,l10,l11,l01,1);
     if(R.open)quad([x0,Y-.14,z0],[x1,Y-.14,z0],[x1,Y-.14,z1],[x0,Y-.14,z1],[.2,.21,.22],l00,l10,l11,l01,.5);
     else if(R.sky)quad([x0,Y+ht,z0],[x1,Y+ht,z0],[x1,Y+ht,z1],[x0,Y+ht,z1],mul3(R.skyc,((i+j)&1)?1:.95),l00,l10,l11,l01,1.5);
     else quad([x0,Y+CEIL(R,x0,z0),z0],[x1,Y+CEIL(R,x1,z0),z0],[x1,Y+CEIL(R,x1,z1),z1],[x0,Y+CEIL(R,x0,z1),z1],R.clc,l00,l10,l11,l01,.8);
@@ -775,8 +872,14 @@ function buildDeck(D){
         if(nopen&&NR.open)return;
         if(nopen&&NR.hole){seg(-.14,0,[.2,.21,.22],.6);if(NR.hole==='st'&&!D.conn[x+':'+nx])seg(0,1,[.35,.33,.2],1);return;}
         if(nopen){if(NR.ht<ht)seg(NR.ht,ht,pan,1);return;}
-        if(!out&&dnAt(D,nx)){seg(-.14,0,[.2,.21,.22],.6);seg(0,1,[.35,.33,.2],1);}
+        if(!out&&dnAt(D,nx)){seg(-.14,0,[.2,.21,.22],.6);seg(0,1,[.35,.33,.2],1);return;}
+        /* rock behind the walkway. The wall of the room below stops under the next floor that reaches over that rock: fill what it leaves */
+        let K=D.below;while(K&&!K.g[x])K=K.below;let top=-1e9;
+        if(K){const KR=K.rm[x]>=0?K.rooms[K.rm[x]]:DOORROOM,u=!out&&upAt(K,nx);top=K.y0+(KR.open||KR.hole?KR.ht:Math.min(KR.ht,u?u.y0-K.y0:1e9));}
+        if(top<Y+ht)seg(Math.max(0,top-Y),ht,pan,1);
         return;}
+      if(R.air){if(nopen&&(NR.air||NR.open||NR.hole))return;if(!nopen&&!out&&openBelow(D,nx))return;
+        const n0=nopen?Math.max(0,CEIL(NR,ax,az)):0;if(n0<ht)seg(n0,ht,pan,1);return;}
       /* from what the neighbour leaves showing (its ceiling, or the floor if it is rock) up to this tile's ceiling, at each end */
       const fa=HF(ax,az),fb=HF(ex,ez);let ca=CEIL(R,ax,az),cb=CEIL(R,ex,ez),na=fa,nb=fb;
       const UP=!out&&upAt(D,nx);if(UP){const u=UP.y0-Y;ca=Math.min(ca,u);cb=Math.min(cb,u);}
@@ -1580,8 +1683,8 @@ function frame(t){requestAnimationFrame(frame);const dt=Math.min(.05,(t-last)/10
    V  fly: no walls, no gravity. Space up, C down, Shift fast.   G  nothing hurts you.   B  full light, thin fog */
 const DEVQ=new URLSearchParams(location.search),DEV=DEVQ.has('dev')?{fly:false,god:false,bright:false,at:DEVQ.get('dev').replace(/^newstation:?/,''),mapK:0,ms:null}:null;
 function dev(k){return!!(DEV&&DEV[k]);}
-/* somewhere sensible to stand on a layer: its lift, else a stair landing, else the middle of its first room */
-function devSpot(D){const m=D.mk.lift||Object.values(D.mk)[0];if(m)return m;
+/* somewhere sensible to stand on a layer: a stair or ladder landing, else its lift (whose door needs Gen-1), else the middle of its first room */
+function devSpot(D){const k=Object.keys(D.mk).find(k=>k!=='lift')||(D.mk.lift&&'lift');if(k)return D.mk[k];
   const R=D.rooms.find(R=>R.name&&!R.hole)||D.rooms[0];return[R.x+R.w/2,R.y+R.h/2,G.p.yaw];}
 function devPut(k,x,z,yaw){const p=G.p;setDeck(k);p.x=x*T;p.z=z*T;if(yaw!==undefined)p.yaw=yaw;
   p.y=p.cy=G.D.y0+hfAt(G.D,p.x,p.z);p.vy=p.kx=p.kz=0;p.ground=true;showRoom(G.D.name,'');}
@@ -1641,8 +1744,7 @@ function devDraw(){const D=G.decks[DEV.mapK],W=D.W,H=D.H,cv=$('mapc'),M=22;
   x.fillStyle='#86857c';x.font='10px system-ui,sans-serif';for(let i=0;i<W;i+=5)x.fillText(i,i*s+s/2,-M/2);for(let j=0;j<H;j+=5)x.fillText(j,-M/2,j*s+s/2);
   devInfo(null);}
 /* open air at this layer's height: floor somewhere below, under a room tall enough (or open enough) to reach up here */
-function devAir(D,t,i,j){const n=dnAt(D,t);if(!n)return false;const r=n.rm[t],R=r>=0?n.rooms[r]:null,x=(i+.5)*T,z=(j+.5)*T;
-  if(R&&(R.open||R.hole||R.sky))return true;return n.y0+(!R?hfAt(n,x,z)+2.4:R.cave?hfAt(n,x,z)+R.ht+cfAt(n,x,z):R.ht)>D.y0;}
+function devAir(D,t){return openBelow(D,t);}
 function devInfo(e){const D=G.decks[DEV.mapK],head=D.name+(D.li?', layer '+D.li+' (+'+D.y0+' m)':'')+'   [ ] layers   click to go   Esc closes';
   if(!e){$('mapi').textContent=head;return;}const t=devTile(e);if(!t){$('mapi').textContent=head;return;}
   const[i,j]=t,k=j*D.W+i,r=D.rm[k],what=!D.g[k]?'rock':r===-2?'door':r>=0?D.rooms[r].name||(D.rooms[r].hole==='st'?'stairs':'platform'):'';
