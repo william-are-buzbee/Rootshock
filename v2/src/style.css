@@ -20,3 +20,8 @@ canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
 .screen .keys b { color: var(--bone); font-weight: 500; display: inline-block; min-width: 5.2em; }
 .screen .go { font-size: 24px; font-weight: 600; color: var(--hazard); border-top: 3px solid var(--hazard); padding-top: 10px; max-width: 860px; }
 @media (prefers-reduced-motion: reduce) { #roomn { transition: none; } }
+#stat { position: absolute; left: 28px; bottom: 26px; width: 230px; }
+.bar { height: 9px; background: rgba(217, 211, 193, .14); margin-bottom: 6px; }
+.bar i { display: block; height: 100%; width: 100%; background: var(--blood); }
+.bar.sm { height: 4px; width: 60%; }
+#o2w i { background: #7fb6c9; }

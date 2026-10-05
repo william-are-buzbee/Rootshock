@@ -1,6 +1,6 @@
 import { Rng } from '../../core/rng';
 import { hex, scale3, type Colour } from '../../core/math';
-import type { LevelDef, PropDef, RoomDef, Shape, Start } from '../types';
+import type { LevelDef, PropDef, RoomDef, Shape, Start, SurfaceDef } from '../types';
 
 /* The authoring kit. Levels are written as calls on a LevelBuilder; finish() returns plain data.
    Everything random comes from the level's own seed, so a level is dressed the same way every time. */
@@ -10,6 +10,7 @@ export const OPS: Palette = { fl: 0x6a665e, wl: 0x8c887e, st: 0x8a7a4a };
 export const SEC: Palette = { fl: 0x55585c, wl: 0x70747a, st: 0x39485a };
 export const UTIL: Palette = { fl: 0x505254, wl: 0x6a6d6c, st: 0xb89b2e };
 export const CELL: Palette = { fl: 0x4e5052, wl: 0x666a6e, st: 0xa8521e };
+export const ROCK: Palette = { fl: 0x4a443c, wl: 0x5a5248, st: 0x5a5248 };
 export const WHITE: Colour = [0.8, 0.85, 0.9];
 export const DARK: Colour = [0, 0, 0];
 
@@ -21,6 +22,8 @@ export interface RoomOpts {
   light?: Colour;
   /** no ceiling fittings */
   nolamp?: boolean;
+  /** rock, not building: plain walls */
+  cave?: boolean;
 }
 
 export interface PropOpts {
@@ -31,7 +34,12 @@ export interface PropOpts {
   glow?: number;
   /** force solid on or off; by default things of some size near the floor are solid */
   solid?: boolean;
+  /** can be pushed and knocked about */
+  loose?: boolean;
 }
+
+/** heights relative to a floor or ceiling, as a function of plan position */
+export type Relief = (x: number, z: number) => number;
 
 export class LevelBuilder {
   readonly rng: Rng;
@@ -39,7 +47,7 @@ export class LevelBuilder {
   private nolamp = new Set<number>();
 
   constructor(id: string, name: string, seed?: string) {
-    this.def = { id, name, seed: seed ?? id, rooms: [], blocks: [], props: [], colliders: [], start: { x: 0, y: 0, z: 0, yaw: 0 } };
+    this.def = { id, name, seed: seed ?? id, rooms: [], blocks: [], props: [], colliders: [], surfaces: [], water: [], doors: [], platforms: [], start: { x: 0, y: 0, z: 0, yaw: 0 } };
     this.rng = new Rng(this.def.seed);
   }
 
@@ -47,7 +55,7 @@ export class LevelBuilder {
   room(name: string, x0: number, z0: number, x1: number, z1: number, o: RoomOpts = {}): RoomDef {
     const p = o.pal ?? OPS;
     const r: RoomDef = {
-      id: this.def.rooms.length, name,
+      id: this.def.rooms.length, name, cave: !!o.cave,
       x0: Math.min(x0, x1), z0: Math.min(z0, z1), x1: Math.max(x0, x1), z1: Math.max(z0, z1),
       y0: o.y0 ?? 0, ht: o.ht ?? 3.2,
       floor: hex(p.fl), wall: hex(p.wl), stripe: hex(p.st),
@@ -80,12 +88,59 @@ export class LevelBuilder {
   prop(shape: Shape, x: number, z: number, sx: number, sy: number, sz: number, c: number | Colour, o: PropOpts = {}): PropDef {
     const floor = this.floorAt(x, z), y = o.y ?? floor;
     const solid = o.solid ?? (shape !== 'ico' && sy >= 0.3 && y - floor < 1.6);
-    const p: PropDef = { shape, x, y, z, sx, sy, sz, ry: o.ry ?? 0, rz: o.rz ?? 0, colour: hex(c), glow: o.glow ?? 1, solid };
+    const p: PropDef = { shape, x, y, z, sx, sy, sz, ry: o.ry ?? 0, rz: o.rz ?? 0, colour: hex(c), glow: o.glow ?? 1, solid: solid || !!o.loose, loose: !!o.loose };
     this.def.props.push(p);
     return p;
   }
   box(x: number, z: number, sx: number, sy: number, sz: number, c: number | Colour, o?: PropOpts): PropDef {
     return this.prop('box', x, z, sx, sy, sz, c, o);
+  }
+
+  /** a ramp over (x0, z0)-(x1, z1), rising from y0 to y1 toward `dir`: a smooth floor you walk up */
+  ramp(x0: number, z0: number, x1: number, z1: number, y0: number, y1: number, dir: 'n' | 's' | 'e' | 'w', c: number): void {
+    const ax = dir === 'e' || dir === 'w', rev = dir === 'w' || dir === 'n';
+    this.surface('floor', x0, z0, x1, z1, (x, z) => {
+      const t = ax ? (x - x0) / (x1 - x0) : (z - z0) / (z1 - z0);
+      return y0 + (y1 - y0) * (rev ? 1 - t : t);
+    }, Math.min(y0, y1), c, true, 0.5);
+  }
+
+  /** a cave: a room in rock whose floor and ceiling follow `floor` and `ceil` (metres above y0, and above y0 + ht).
+   *  The rock is carved from the lowest floor to the highest ceiling; the surfaces do the rest. */
+  cave(name: string, x0: number, z0: number, x1: number, z1: number, o: RoomOpts & { floor?: Relief; ceil?: Relief; res?: number } = {}): RoomDef {
+    const y0 = o.y0 ?? 0, ht = o.ht ?? 4, fl = o.floor ?? (() => 0), cl = o.ceil ?? (() => 0), res = o.res ?? 0.5;
+    let lo = Infinity, hi = -Infinity;
+    for (let z = z0; z <= z1 + 1e-9; z += res) for (let x = x0; x <= x1 + 1e-9; x += res) { lo = Math.min(lo, fl(x, z)); hi = Math.max(hi, cl(x, z)); }
+    const snap = (v: number, up: boolean) => (up ? Math.ceil(v / 0.25) : Math.floor(v / 0.25)) * 0.25;
+    const bottom = snap(y0 + lo, false), top = snap(y0 + ht + hi, true), p = o.pal ?? ROCK;
+    const r = this.room(name, x0, z0, x1, z1, { ...o, pal: p, y0: bottom, ht: top - bottom, cave: true, nolamp: o.nolamp ?? true });
+    this.surface('floor', x0, z0, x1, z1, (x, z) => y0 + fl(x, z), bottom - 0.25, p.fl, false, res);
+    this.surface('ceiling', x0, z0, x1, z1, (x, z) => y0 + ht + cl(x, z), top + 0.25, scale3(hex(p.wl), 0.6), false, res);
+    return r;
+  }
+
+  private surface(kind: 'floor' | 'ceiling', x0: number, z0: number, x1: number, z1: number, f: Relief, base: number, c: number | Colour, sides: boolean, res: number): void {
+    const nx = Math.max(2, Math.round((x1 - x0) / res) + 1), nz = Math.max(2, Math.round((z1 - z0) / res) + 1), h: number[] = [];
+    res = Math.max((x1 - x0) / (nx - 1), (z1 - z0) / (nz - 1));
+    for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) h.push(f(x0 + i * res, z0 + j * res));
+    const s: SurfaceDef = { kind, x0, z0, x1, z1, res, nx, nz, h, base, colour: hex(c), sides };
+    this.def.surfaces.push(s);
+  }
+
+  /** standing water over a rectangle, its surface at `level` */
+  water(x0: number, z0: number, x1: number, z1: number, level: number): void {
+    this.def.water.push({ x0, z0, x1, z1, level });
+  }
+
+  /** a door filling (x0, z0)-(x1, z1) from the floor up `h` metres; it slides up out of the way when something comes near */
+  door(x0: number, z0: number, x1: number, z1: number, h = 2.4): void {
+    const y0 = this.floorAt((x0 + x1) / 2, (z0 + z1) / 2);
+    this.def.doors.push({ x0, y0, z0, x1, y1: y0 + h, z1 });
+  }
+
+  /** a platform over (x0, z0)-(x1, z1) that carries what stands on it between heights y0 and y1 */
+  platform(x0: number, z0: number, x1: number, z1: number, y0: number, y1: number, c = 0xb89b2e): void {
+    this.def.platforms.push({ x0, z0, x1, z1, y0, y1, colour: hex(c) });
   }
 
   /** an invisible box that bodies cannot enter, base at y (default: the floor) */
@@ -98,11 +153,17 @@ export class LevelBuilder {
     this.def.start = { x, y: this.floorAt(x, z), z, yaw } satisfies Start;
   }
 
-  /** the floor under (x, z): the highest room floor or block top there */
+  /** the floor under (x, z): the highest room floor, block top or sloped floor there */
   floorAt(x: number, z: number): number {
     let y = -Infinity;
     for (const r of this.def.rooms) if (x >= r.x0 && x < r.x1 && z >= r.z0 && z < r.z1) y = Math.max(y, r.y0);
     for (const b of this.def.blocks) if (x >= b.x0 && x < b.x1 && z >= b.z0 && z < b.z1 && b.y1 > y && b.y0 <= y + 0.01) y = b.y1;
+    for (const s of this.def.surfaces) {
+      if (s.kind !== 'floor' || x < s.x0 || x > s.x1 || z < s.z0 || z > s.z1) continue;
+      const fx = Math.min((x - s.x0) / s.res, s.nx - 1 - 1e-9), fz = Math.min((z - s.z0) / s.res, s.nz - 1 - 1e-9);
+      const i = Math.floor(fx), j = Math.floor(fz), u = fx - i, v = fz - j, h = s.h, n = s.nx;
+      y = Math.max(y, h[j * n + i] * (1 - u) * (1 - v) + h[j * n + i + 1] * u * (1 - v) + h[(j + 1) * n + i] * (1 - u) * v + h[(j + 1) * n + i + 1] * u * v);
+    }
     return y === -Infinity ? 0 : y;
   }
 

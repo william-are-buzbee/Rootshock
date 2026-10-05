@@ -6,6 +6,8 @@ import type { Colour } from '../core/math';
 export interface RoomDef {
   id: number;
   name: string;
+  /** rock, not building: plain walls, no dado or stripe */
+  cave: boolean;
   /** the open volume: floor at y0, ceiling at y0 + ht */
   x0: number; z0: number; x1: number; z1: number;
   y0: number; ht: number;
@@ -38,6 +40,40 @@ export interface PropDef {
   glow: number;
   /** blocks bodies (an axis-aligned box around it) */
   solid: boolean;
+  /** can be pushed and knocked about (a crate); otherwise it never moves */
+  loose: boolean;
+}
+
+/** a sloped or uneven surface: a ramp, a cave's floor or ceiling. Heights are given on a lattice of `res` metres
+ *  (nx by nz corners, row by row from (x0, z0)) and blended between. A floor is solid from `base` up to it;
+ *  a ceiling is solid from it up to `base`. */
+export interface SurfaceDef {
+  kind: 'floor' | 'ceiling';
+  x0: number; z0: number; x1: number; z1: number;
+  res: number; nx: number; nz: number;
+  h: number[];
+  base: number;
+  colour: Colour;
+  /** draw its edges down to the base (a ramp standing in a room); off where walls already hide them (a cave floor) */
+  sides: boolean;
+}
+
+/** standing water: a level over a rectangle */
+export interface WaterDef {
+  x0: number; z0: number; x1: number; z1: number;
+  level: number;
+}
+
+/** a door: a slab that fills a doorway and slides up into the lintel when something comes near */
+export interface DoorDef {
+  x0: number; y0: number; z0: number; x1: number; y1: number; z1: number;
+}
+
+/** a platform that carries what stands on it between two heights. Its top is at y0 or y1. */
+export interface PlatformDef {
+  x0: number; z0: number; x1: number; z1: number;
+  y0: number; y1: number;
+  colour: Colour;
 }
 
 export interface Start { x: number; y: number; z: number; yaw: number }
@@ -50,5 +86,9 @@ export interface LevelDef {
   blocks: BlockDef[];
   props: PropDef[];
   colliders: ColliderDef[];
+  surfaces: SurfaceDef[];
+  water: WaterDef[];
+  doors: DoorDef[];
+  platforms: PlatformDef[];
   start: Start;
 }

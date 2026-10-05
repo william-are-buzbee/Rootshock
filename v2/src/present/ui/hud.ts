@@ -27,6 +27,12 @@ export class Hud {
     } else if (this.roomTimer > 0 && (this.roomTimer -= dt) <= 0) el.style.opacity = '0';
   }
 
+  /** the breath bar: shown while it is not full */
+  air(frac: number | null): void {
+    $('o2w').classList.toggle('hide', frac === null);
+    if (frac !== null) $('o2').style.width = (frac * 100).toFixed(1) + '%';
+  }
+
   dev(text: string | null): void {
     const el = $('devtag');
     el.classList.toggle('hide', text === null);

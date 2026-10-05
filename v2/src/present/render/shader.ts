@@ -43,7 +43,11 @@ void main(){
   c += uHit * vec3(0.45, 0.08, 0.06);
   c *= exp(-d * uFog);
   c = mix(c, c * vec3(0.5, 0.85, 0.9), uWet);
+#ifdef ALPHA
+  gl_FragColor = vec4(c, ALPHA);
+#else
   gl_FragColor = vec4(c, 1.0);
+#endif
 }`;
 
 /** uniforms every material shares: the flashlight, the fog, time */
@@ -63,6 +67,15 @@ export function staticMaterial(): THREE.ShaderMaterial {
     uniforms: { ...U, uHit: { value: 0 } },
     defines: { STATIC: '' },
     vertexShader: VS, fragmentShader: FS, side: THREE.DoubleSide,
+  });
+}
+
+/** a see-through surface (water), light baked like the level's */
+export function glassMaterial(alpha: number): THREE.ShaderMaterial {
+  return new THREE.ShaderMaterial({
+    uniforms: { ...U, uHit: { value: 0 } },
+    defines: { STATIC: '', ALPHA: alpha.toFixed(3) },
+    vertexShader: VS, fragmentShader: FS, side: THREE.DoubleSide, transparent: true, depthWrite: false,
   });
 }
 
