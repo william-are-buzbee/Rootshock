@@ -1,0 +1,22 @@
+:root {
+  --bone: #d9d3c1; --ash: #86857c; --pitch: #040506; --hazard: #c9a227; --blood: #8e2a20;
+  --sign: "Barlow Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --hand: "Newsreader", Georgia, "Times New Roman", serif;
+  box-sizing: border-box;
+}
+*, *::before, *::after { box-sizing: inherit; }
+html, body { height: 100%; margin: 0; background: var(--pitch); color: var(--bone); font-family: var(--sign); overflow: hidden; user-select: none; -webkit-user-select: none; }
+canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+.hide { display: none !important; }
+#hud { position: fixed; inset: 0; pointer-events: none; font-size: 18px; letter-spacing: .02em; }
+#dot { position: absolute; left: 50%; top: 50%; width: 4px; height: 4px; margin: -2px; border-radius: 50%; background: var(--bone); opacity: .55; }
+#roomn { position: absolute; left: 28px; top: 24px; font-size: 22px; font-weight: 600; text-transform: uppercase; letter-spacing: .14em; opacity: 0; transition: opacity .8s; text-shadow: 0 1px 6px #000; }
+#roomn small { display: block; font-size: 14px; font-weight: 400; color: var(--ash); letter-spacing: .2em; }
+#devtag { position: absolute; right: 20px; top: 18px; font-size: 14px; font-weight: 600; letter-spacing: .12em; color: var(--hazard); text-shadow: 0 1px 4px #000; white-space: pre; }
+.screen { position: fixed; inset: 0; display: flex; background: rgba(2, 3, 4, .9); flex-direction: column; justify-content: flex-end; padding: 8vh 8vw; cursor: pointer; }
+.screen h1 { font-size: clamp(64px, 13vw, 180px); font-weight: 600; line-height: .85; margin: 0 0 .12em -.04em; letter-spacing: -.01em; text-transform: uppercase; }
+.screen p { font-family: var(--hand); font-size: clamp(17px, 1.5vw, 22px); line-height: 1.5; max-width: 34em; margin: 0 0 1em; }
+.screen .keys { font-size: 17px; color: var(--ash); display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 2px 24px; max-width: 860px; margin: 10px 0 28px; }
+.screen .keys b { color: var(--bone); font-weight: 500; display: inline-block; min-width: 5.2em; }
+.screen .go { font-size: 24px; font-weight: 600; color: var(--hazard); border-top: 3px solid var(--hazard); padding-top: 10px; max-width: 860px; }
+@media (prefers-reduced-motion: reduce) { #roomn { transition: none; } }
