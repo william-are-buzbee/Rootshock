@@ -342,6 +342,15 @@ const CELL={fl:0x4e5052,wl:0x666a6e,st:0xa8521e},UTIL={fl:0x505254,wl:0x6a6d6c,s
 /* stairs to another level. They are not walked: you fade, and arrive at the far level's marker for this one, mk['stair:'+here]. */
 function stairUp(D,ix,iz,ax,az,yaw,to){D.intDefs.push({x:ix,z:iz,y:1,kind:'stair',to,from:D.lv,up:1});D.mk['stair:'+to]=[ax,az,yaw];for(let k=0;k<5;k++)bx(D,ix,iz-.3+k*.15,1.3,.24*(k+1),.3,0x5a5d60,{c:0});}
 function stairDn(D,ix,iz,ax,az,yaw,to){D.intDefs.push({x:ix,z:iz,y:.4,kind:'stair',to,from:D.lv,up:0});D.mk['stair:'+to]=[ax,az,yaw];bx(D,ix,iz,1.3,.02,1.5,0x030405,{y:.014,c:0});for(const s of[-.7,.7])bx(D,ix+s/T,iz,.06,1,1.5,0x8a7a2a,{c:0});}
+/* one end of a ladderway. Like stairs, a ladder is a fade, not a climb. id names the ladderway in STATION.ladders, which says
+   whether it is broken or gated; each of its two ends is declared on its own level (or layer) with this. up: this end climbs.
+   (ix,iz) is the ladder; (ax,az,yaw) is where you stand when you arrive at this end. Place it after the room it stands in. */
+function ladder(D,id,ix,iz,ax,az,yaw,up){const L=STATION.ladders[id],R=D.rooms[D.rm[Math.floor(iz)*D.W+Math.floor(ix)]],h=up?(R?R.ht:3.2):1.1,broken=L&&L.broken;
+  D.intDefs.push({x:ix,z:iz,y:up?1.2:.4,kind:'ladder',id,up:up?1:0});D.mk['ladder:'+id]=[ax,az,yaw];
+  for(const s of[-.25,.25])bx(D,ix+s/T,iz,.06,h,.06,0x8a7a2a,{c:0});
+  for(let y=.3;y<h-.05;y+=.3)if(!(broken&&y>1.2&&Math.random()<.5))bx(D,ix,iz,.5,.04,.04,0x8a7a2a,{y,c:0});
+  if(!up)bx(D,ix,iz,1,.02,1,0x030405,{y:.014,c:0});
+  if(broken)for(let k=0;k<5;k++)P(D,'ico',ix+rnd(-.4,.4),iz+rnd(-.4,.4),rnd(.2,.5),rnd(.15,.35),rnd(.2,.5),pick([0x5a5248,0x4a443c,0x6b6a64]),{c:0});}
 function liftRoom(D,x,y,dx,dy){room(D,'Main lift',x,y,2,2,{fl:0x44474a,wl:0x54585a,st:0xb89b2e,c:'LIFT',noroam:1,safe:1});
   door(D,dx,dy,{kind:'heavy',c:'LIFT',sg:[['Lift',dy<y?'n':dy>y+1?'s':dx<x?'w':'e']]});
   const px=dy<y?x+1:dy>y+1?x+1:dx<x?x+1.94:x+.06,pz=dy<y?y+1.94:dy>y+1?y+.06:y+1;
@@ -585,9 +594,21 @@ const STATION={
     {id:'eng',name:'5 · Engineering',c:'ENG',tag:'floor 5',power:{on:true,back:false},build:buildEng},
     {id:'hydro',name:'6 · Hydro',c:'HYD',tag:'floor 6',power:{on:true,back:false,broken:true},build:buildHydro},
     {id:'drowned',name:'6 · Hydro, drowned level',c:'DEEP',build:buildDrowned}],
-  circuits:{LIFT:{on:true,back:false}}
+  circuits:{LIFT:{on:true,back:false}},
+  /* ladderways: id -> {broken: why it does not go (said when tried), need: {power: circuit, lvl, key, msg} to pass, say: on arrival}.
+     Each id needs exactly two ends, declared with ladder(). The state is copied into G.ladders, so play can mend or open one. */
+  ladders:{}
 };
 function defWorld(){const out=[];for(const lv of STATION.levels)out.push(...lv.build(lv));return out;}
+/* every way between places must land somewhere. Finds the two ends of each ladderway; reports anything that goes nowhere. */
+function checkLinks(decks){const bad=[],find=id=>decks.findIndex(D=>D.lv===id&&!D.li);
+  for(const id in STATION.ladders){const ends=[];decks.forEach((D,k)=>{if(D.mk['ladder:'+id])ends.push({k});});STATION.ladders[id].ends=ends;
+    if(ends.length!==2)bad.push('Ladderway '+id+' has '+ends.length+' ends; it needs 2.');}
+  decks.forEach(D=>{for(const d of D.intDefs){
+    if(d.kind==='ladder'&&!STATION.ladders[d.id])bad.push(D.name+': ladder '+d.id+' is not in STATION.ladders.');
+    if(d.kind==='stair'){const k=find(d.to);if(k<0)bad.push(D.name+': stairs to "'+d.to+'", which is not a level.');else if(!decks[k].mk['stair:'+d.from])bad.push(D.name+': stairs to '+decks[k].name+', which has no stairs back.');}
+    if(d.kind==='dive'&&find(d.to)<0)bad.push(D.name+': a dive to "'+d.to+'", which is not a level.');}});
+  for(const b of bad)console.error('Rootshock: '+b);return bad;}
 function startCircuits(){const C={};for(const lv of STATION.levels)if(lv.power)C[lv.c]=Object.assign({},lv.power);
   for(const c in STATION.circuits)C[c]=Object.assign({},STATION.circuits[c]);return C;}
 function finalize(D){
@@ -1205,8 +1226,8 @@ function doorAct(D,d){
   if(!heavy&&L>0)return;
   if(d.open&&occupied(D,d))return;
   d.open=!d.open;d.hold=3;sfx('door');noise(heavy?10:7);}
-function ride(deck,x,z,yaw,snd){G.mode='fade';G.p.chg=-1;$('fade').style.opacity=1;sfx(snd||'door');
-  setTimeout(()=>{const p=G.p;p.x=x*T;p.z=z*T;p.yaw=yaw;p.kx=p.kz=0;setDeck(deck);p.y=p.cy=G.D.y0+hfAt(G.D,p.x,p.z);p.vy=0;p.ground=true;$('fade').style.opacity=0;if(G.mode==='fade')G.mode='play';showRoom(G.D.name,'');},650);}
+function ride(deck,x,z,yaw,snd,ms){G.mode='fade';G.p.chg=-1;$('fade').style.opacity=1;sfx(snd||'door');
+  setTimeout(()=>{const p=G.p;p.x=x*T;p.z=z*T;p.yaw=yaw;p.kx=p.kz=0;setDeck(deck);p.y=p.cy=G.D.y0+hfAt(G.D,p.x,p.z);p.vy=0;p.ground=true;$('fade').style.opacity=0;if(G.mode==='fade')G.mode='play';showRoom(G.D.name,'');},ms||650);}
 const CN={};for(const lv of STATION.levels)if(lv.tag)CN[lv.c]=lv.tag;
 function powerChanged(loud){relight();if(HUM)HUM.gain.value=G.prim?.035:0;if(loud){sfx('power');noise(30);G.shake=.4;}else sfx('door');}
 function giveKey(k){G.keys[k]=true;say(keyName(k)+'.');}
@@ -1229,6 +1250,12 @@ const KIND={
       C.on=!C.on;say(C.on?'Switch closed. '+(G.prim?'That floor takes power.':'Nothing upstream to take.'):'Switch open. That floor is cut off from Gen-1.');powerChanged(false);}}),
   lift:()=>({label:()=>'Lift panel',act(){openLift();}}),
   stair:()=>({label(){const D=G.decks[levelGrid(this.to)];return(this.up?'Stairs up: ':'Stairs down: ')+D.name;},act(it){const k=levelGrid(it.to),m=G.decks[k].mk['stair:'+it.from];ride(k,m[0],m[1],m[2],'step');}}),
+  ladder:()=>({label(){const o=STATION.ladders[this.id].ends.find(e=>e.k!==G.deck);return(this.up?'Ladder up: ':'Ladder down: ')+(o?G.decks[o.k].name:'nowhere');},
+    act(it){const L=STATION.ladders[it.id],S=G.ladders[it.id],o=L.ends.find(e=>e.k!==G.deck),n=S.need;
+      if(!o){say('The ladder goes nowhere.');sfx('deny');return;}
+      if(S.broken){say(S.broken);sfx('deny');return;}
+      if(n&&((n.power&&lvl(n.power)<(n.lvl||1))||(n.key&&!G.keys[n.key]))){say(n.msg||'It will not open.');sfx('deny');return;}
+      const m=G.decks[o.k].mk['ladder:'+it.id];ride(o.k,m[0],m[1],m[2],'step',1400);noise(6);if(L.say)setTimeout(()=>say(L.say),1500);}}),
   dive:()=>({label(){return this.lb;},act(it){const k=levelGrid(it.to);
     if(G.decks[k].deep&&!G.diveTip){G.diveTip=true;setTimeout(()=>say(G.worn.rebreather?'The rebreather ticks. You have time.':'One lungful. Count it.'),1200);}
     ride(k,it.pos[0],it.pos[1],it.pos[2],'slosh');}}),
@@ -1355,8 +1382,9 @@ function newGame(){clearTimeout(endTO);disposeScene();
     decks:null,deck:0,D:null,inv:[],cap:10,tools:{},keys:{},worn:{},weapon:null,ws:wstats(null),notes:NOTES(code,code2),read:[],code,code2,padCode:'',padFn:null,
     p:{x:STATION.start.x*T,z:STATION.start.z*T,y:0,cy:0,vy:0,ground:true,wantStand:false,yaw:STATION.start.yaw,pitch:0,hp:100,eye:1.62,crouch:false,slow:0,kx:0,kz:0,stepD:0,bob:0,swing:null,chg:-1,full:false,gcd:0,kick:0},
     fwd:[1,0,0],vis:1,noise:0,noiseI:0,noiseT:0,light:null,lightOn:false,flashOn:false,lampOn:false,batt:100,fk:0,muzzle:0,o2:35,o2max:35,shake:0,hurtFx:0,fT:0,proom:-1,wormN:0,
-    touched:false,bloatHit:false,grabTip:false,diveTip:false,time:0,stats:{kills:0},cur:null,pad:'',vm:null,vmMat:null,vmChild:null};
-  G.decks=defWorld();
+    ladders:{},touched:false,bloatHit:false,grabTip:false,diveTip:false,time:0,stats:{kills:0},cur:null,pad:'',vm:null,vmMat:null,vmChild:null};
+  G.decks=defWorld();G.linkErrs=checkLinks(G.decks);
+  for(const id in STATION.ladders){const L=STATION.ladders[id];G.ladders[id]={broken:L.broken||null,need:L.need?Object.assign({},L.need):null};}
   for(const D of G.decks){D.grp=new THREE.Group();scene.add(D.grp);finalize(D);}
   for(const D of G.decks){buildDeck(D);const Y=D.y0;
     for(const k in D.doors){const d=D.doors[k],mat=dmat(),g=new THREE.Group(),cx=(d.x+.5)*T,cz=(d.y+.5)*T,Yd=Y+(d.h=hfAt(D,cx,cz));
@@ -1389,6 +1417,7 @@ function newGame(){clearTimeout(endTO);disposeScene();
   G.vmMat=dmat();G.vm=new THREE.Group();G.vm.rotation.z=-.15;camera.add(G.vm);setWeapon(null);
   relight();setDeck(levelGrid(STATION.start.level));U.uFog.value=.032;
   if(DEV)devStart();
+  if(DEV)for(const b of G.linkErrs)say(b);
   $('vig').style.opacity=0;$('end').classList.add('hide');$('hud').classList.remove('hide');$('batw').classList.add('hide');$('msgs').innerHTML='';
   if(HUM)HUM.gain.value=0;
   say('Gen-1 has dropped. The lock on your cell has let go.');
@@ -1494,7 +1523,7 @@ function devDraw(){const D=G.decks[DEV.mapK],W=D.W,H=D.H,cv=$('mapc'),M=22;
   for(const it of D.ints)if(it.item&&!it.off)dot(it.x,it.z,2.5,'#e8c23a');
   for(const m of D.muts)if(!m.dead)dot(m.x,m.z,m.fixed?3:4,m.fixed?'#7a2a20':'#e0452f');
   x.textAlign='center';x.textBaseline='middle';x.lineWidth=3;x.strokeStyle='rgba(5,6,7,.85)';
-  const IK={stair:'S',dive:'D',lift:'L',elev:'E',panel:'P',backup:'B',fuse:'F',breaker:'F',body:'+'};x.font='600 12px system-ui,sans-serif';
+  const IK={stair:'S',ladder:'#',dive:'D',lift:'L',elev:'E',panel:'P',backup:'B',fuse:'F',breaker:'F',body:'+'};x.font='600 12px system-ui,sans-serif';
   for(const it of D.ints){const c=IK[it.kind];if(!c||it.kind==='body'&&it.off)continue;x.strokeText(c,it.x/T*s,it.z/T*s);x.fillStyle='#f1efe8';x.fillText(c,it.x/T*s,it.z/T*s);}
   x.font='500 11px system-ui,sans-serif';const seen=new Set();
   for(const R of D.rooms){if(!R.name||R.hole||seen.has(R.name)||R.w*s<30)continue;seen.add(R.name);const cx=(R.x+R.w/2)*s,cz=(R.y+R.h/2)*s;
@@ -1519,7 +1548,12 @@ function devClick(e){const t=devTile(e);if(!t)return;const D=G.decks[DEV.mapK],k
   if(!D.g[k]&&!DEV.fly){$('mapi').textContent='Solid rock there. Turn on fly (V) to go anyway.';return;}
   const K2=DEV.mapK;closePanel();devPut(K2,t[0]+.5,t[1]+.5);}
 /* ?dev=sandbox: a test bed for the engine, never part of the station. A flat room, a falling passage, a domed chamber, a climb out. */
-if(DEV)STATION.levels.push({id:'sandbox',name:'Sandbox',c:'SANDBOX',build:buildSandbox});
+if(DEV){STATION.levels.push({id:'sandbox',name:'Sandbox',c:'SANDBOX',build:buildSandbox},{id:'sandbox2',name:'Sandbox, shaft foot',c:'SANDBOX',build:buildSandbox2});
+  Object.assign(STATION.ladders,{S1:{say:'A long climb, rung over rung, in the dark.'},
+    S2:{broken:'The ladderway is torn out between two landings. There is no getting across the gap.'},
+    S3:{need:{power:'SANDBOX',msg:'A cage gate across the ladder, maglocked. Its panel is dark.'}}});}
+function buildSandbox2(lv){const D=mkDeck(lv,12,10);room(D,'Shaft foot',2,2,8,6,{...UTIL,lit:'always',lc:LOW});
+  ladder(D,'S1',2.6,2.6,3.6,3.4,-PI/2,true);ladder(D,'S2',9.4,7.4,8.4,6.6,PI/2,true);ladder(D,'S3',9.4,2.6,8.4,3.4,PI/2,true);return[D];}
 function buildSandbox(lv){const D=mkDeck(lv,40,28),dim={lit:'always',lc:[.32,.29,.25]};
   room(D,'Test room',2,11,6,6,{...SEC,lit:'always',lc:LOW});door(D,8,13,{open:true,sg:[['Cave','e']]});
   const pas=cave(D,'Descent',9,12,16,3,{...dim,ht:3.2});slope(D,pas,'e',0,-8);
@@ -1535,6 +1569,7 @@ function buildSandbox(lv){const D=mkDeck(lv,40,28),dim={lit:'always',lc:[.32,.29
   room(D3,'Tier 2',2,18,4,2,WALK);room(D3,'Tier 2',2,20,2,5,WALK);room(D3,'Tier 2',2,25,18,2,WALK);stairs(D2,D3,6,18,4,'w');
   room(D3,'Gallery',20,25,4,2,{...SEC,ht:3,lit:'always',lc:LOW});
   crates(D,8,23,2);container(D,13,22,false,1);lamp(D,10,25.5,9);
+  ladder(D,'S1',2.6,11.6,3.6,12.4,-PI/2,false);ladder(D,'S2',35.5,22.5,34.6,22.4,PI/2,false);ladder(D3,'S3',23.4,25.6,22.4,25.6,PI/2,false);
   return[D,D2,D3];}
 function devKey(code){const m=G.mode;
   if(m==='map'){if(code==='BracketLeft'||code==='BracketRight'){const n=G.decks.length;DEV.mapK=(DEV.mapK+(code==='BracketLeft'?n-1:1))%n;devDraw();}
