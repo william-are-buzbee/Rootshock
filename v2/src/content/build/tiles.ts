@@ -240,7 +240,6 @@ export function elev(lo: Deck, hi: Deck, tx: number, tz: number, w: number, h: n
   lo.elevs.push({ tx, tz, w, h, lo, hi, c, name: nm });
   bx(lo, tx + w / 2, tz + h / 2, w * T, 0.01, h * T, 0xb89b2e, { y: 0.012, c: 0 });
   bx(lo, tx + w / 2, tz + h / 2, w * T - 0.4, 0.01, h * T - 0.4, 0x2a2c2e, { y: 0.016, c: 0 });
-  for (const D of [lo, hi]) use(D, 'elev', tx + w / 2, tz + h / 2, 1.1, { name: nm, c });
 }
 /** stairs to another level: you fade, and arrive at the far level's mark for this one */
 export function stairUp(D: Deck, ix: number, iz: number, ax: number, az: number, yaw: number, to: string): void {
@@ -364,7 +363,7 @@ export function finishLevel(start?: [number, number, number]) {
         }
     }
     /* platforms between this deck and the one above */
-    for (const E of D.elevs) b.platform(X(D, E.tx), Z(D, E.tz), X(D, E.tx + E.w), Z(D, E.tz + E.h), E.lo.y0, E.hi.y0, 0x4a4f55);
+    for (const E of D.elevs) b.platform(X(D, E.tx), Z(D, E.tz), X(D, E.tx + E.w), Z(D, E.tz + E.h), E.lo.y0, E.hi.y0, 0x4a4f55, { name: E.name, circuit: E.c });
     /* stairs: a hidden ramp under visible steps */
     for (const S of D.stairs) {
       const ax = S.dir === 'e' || S.dir === 'w', rev = S.dir === 'w' || S.dir === 'n', w = ax ? S.len : 1, hh = ax ? 1 : S.len;

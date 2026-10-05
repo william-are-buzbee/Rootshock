@@ -20,10 +20,56 @@ canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
 .screen .keys b { color: var(--bone); font-weight: 500; display: inline-block; min-width: 5.2em; }
 .screen .go { font-size: 24px; font-weight: 600; color: var(--hazard); border-top: 3px solid var(--hazard); padding-top: 10px; max-width: 860px; }
 @media (prefers-reduced-motion: reduce) { #roomn { transition: none; } }
+.screen p.v2 { font-family: var(--sign); font-size: 16px; color: var(--ash); }
+.screen p.v2 a { color: var(--hazard); }
+
+/* the HUD and the panels, as the first engine had them */
+:root { --paper: #cfc7ae; --ink: #1d1a15; }
+#vig, #fade { position: fixed; inset: 0; pointer-events: none; }
+#vig { background: radial-gradient(ellipse at center, transparent 45%, rgba(120, 10, 6, .75) 100%); opacity: 0; }
+#prompt { position: absolute; left: 0; right: 0; top: 56%; text-align: center; font-size: 20px; font-weight: 500; text-shadow: 0 1px 6px #000; }
+#prompt kbd { font: inherit; display: inline-block; min-width: 1.4em; padding: 0 .3em; margin-right: .45em; border: 1px solid var(--bone); border-radius: 2px; }
+#msgs { position: absolute; left: 28px; bottom: 112px; max-width: min(520px, 80vw); font-family: var(--hand); font-size: 19px; line-height: 1.35; text-shadow: 0 1px 6px #000; }
+#msgs p { margin: 0 0 6px; transition: opacity 1s; }
 #stat { position: absolute; left: 28px; bottom: 26px; width: 230px; }
 .bar { height: 9px; background: rgba(217, 211, 193, .14); margin-bottom: 6px; }
 .bar i { display: block; height: 100%; width: 100%; background: var(--blood); }
 .bar.sm { height: 4px; width: 60%; }
+.bar.sm i { background: var(--hazard); }
 #o2w i { background: #7fb6c9; }
-.screen p.v2 { font-family: var(--sign); font-size: 16px; color: var(--ash); }
-.screen p.v2 a { color: var(--hazard); }
+#wpn { font-size: 17px; color: var(--bone); }
+#wpn span { color: var(--ash); margin-left: .6em; }
+.panel { position: fixed; inset: 0; display: flex; background: rgba(2, 3, 4, .82); align-items: center; justify-content: center; padding: 4vh 4vw; }
+#inv > div { width: min(880px, 100%); max-height: 100%; overflow: auto; }
+#inv h2, #liftb h2 { font-size: 30px; font-weight: 600; margin: 0 0 12px; display: flex; justify-content: space-between; border-bottom: 3px solid var(--hazard); padding-bottom: 6px; }
+#inv h2 span, #liftb h2 span { color: var(--ash); font-weight: 400; font-size: 18px; align-self: end; }
+#inv h3 { font-size: 18px; font-weight: 600; color: var(--hazard); margin: 18px 0 4px; }
+.slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
+.slot { min-height: 92px; border: 1px solid rgba(217, 211, 193, .25); background: rgba(217, 211, 193, .04); color: var(--bone); display: flex; flex-direction: column; }
+.slot button { font: inherit; color: inherit; background: none; border: 0; text-align: left; cursor: pointer; }
+.slot .use { flex: 1; padding: 9px 11px 4px; }
+.slot .drop { font-size: 14px; color: var(--ash); padding: 3px 11px 6px; border-top: 1px solid rgba(217, 211, 193, .12); }
+.slot .drop:hover, .slot .drop:focus-visible { color: var(--hazard); outline: none; }
+.slot b { font-size: 20px; font-weight: 600; display: block; }
+.slot em { font-style: normal; color: var(--hazard); float: right; margin-top: -24px; }
+.slot small { font-family: var(--hand); font-size: 14.5px; line-height: 1.3; color: var(--ash); display: block; margin-top: 3px; }
+.slot:hover, .slot:focus-within { border-color: var(--bone); }
+.slot.on { border-color: var(--hazard); background: rgba(201, 162, 39, .1); }
+.slot.empty { border-style: dashed; opacity: .5; }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0 28px; }
+.cols p { margin: 0; font-size: 18px; line-height: 1.4; }
+.cols button { font: inherit; font-size: 18px; color: var(--bone); background: none; border: 0; border-bottom: 1px solid var(--ash); padding: 0; margin: 0 0 4px; cursor: pointer; display: block; text-align: left; }
+.cols button:hover, .cols button:focus-visible { color: var(--hazard); outline: none; }
+.hint { font-size: 16px; color: var(--ash); margin-top: 18px; }
+#liftb { width: min(420px, 100%); }
+#liftb button { display: block; width: 100%; font: inherit; font-size: 22px; font-weight: 500; text-align: left; color: var(--bone); background: rgba(217, 211, 193, .05); border: 1px solid rgba(217, 211, 193, .25); padding: 10px 14px; margin: 0 0 6px; cursor: pointer; }
+#liftb button:disabled { opacity: .4; cursor: default; border-style: dashed; }
+#note article { width: min(560px, 100%); max-height: 86vh; overflow: auto; background: var(--paper); color: var(--ink); font-family: var(--hand); font-size: 19px; line-height: 1.5; padding: 38px 42px 30px; white-space: pre-wrap; transform: rotate(-.6deg); box-shadow: 0 20px 60px #000; }
+#note article h2 { font-family: var(--sign); font-size: 15px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; margin: 0 0 18px; color: #5c5546; }
+#note article footer { font-family: var(--sign); font-size: 15px; color: #6c6455; margin-top: 22px; }
+#pad > div { width: 250px; }
+#padd { font-size: 44px; font-weight: 600; letter-spacing: .3em; text-align: center; height: 66px; border-bottom: 3px solid var(--hazard); margin-bottom: 12px; }
+#padk { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+#padk button { font: inherit; font-size: 26px; padding: 10px 0; background: rgba(217, 211, 193, .06); color: var(--bone); border: 1px solid rgba(217, 211, 193, .3); cursor: pointer; }
+#padk button:hover, #padk button:focus-visible { border-color: var(--hazard); outline: none; }
+@media (prefers-reduced-motion: reduce) { #msgs p { transition: none; } }

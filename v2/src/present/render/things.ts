@@ -14,15 +14,19 @@ import { dynamicMaterial, glassMaterial } from './shader';
 
 interface Moving { mesh: THREE.Object3D; mat: THREE.ShaderMaterial; place(): void }
 
-/** a part of a fitting: a box (or other shape) of a colour, sized and placed in the fitting's own frame */
-type Part = [shape: 'box' | 'cyl', c: number | Colour, sx: number, sy: number, sz: number, x: number, y: number, z: number];
+/** a part of a fitting: a box (or other shape) of a colour, sized, tipped about z, and placed in the fitting's own frame */
+type Part = [shape: 'box' | 'cyl' | 'ico', c: number | Colour, sx: number, sy: number, sz: number, x: number, y: number, z: number, rz?: number];
 
 /** many parts as one geometry */
 function parts(list: Part[]): THREE.BufferGeometry {
   const P: number[] = [], C: number[] = [];
-  for (const [shape, c, sx, sy, sz, x, y, z] of list) {
-    const src = TEMPLATES[shape], col = hex(c);
-    for (let v = 0; v < src.length; v += 3) { P.push(src[v] * sx + x, src[v + 1] * sy + y, src[v + 2] * sz + z); C.push(col[0], col[1], col[2]); }
+  for (const [shape, c, sx, sy, sz, x, y, z, rz] of list) {
+    const src = TEMPLATES[shape], col = hex(c), cz = Math.cos(rz ?? 0), szn = Math.sin(rz ?? 0);
+    for (let v = 0; v < src.length; v += 3) {
+      const X = src[v] * sx, Y = src[v + 1] * sy;
+      P.push(X * cz - Y * szn + x, X * szn + Y * cz + y, src[v + 2] * sz + z);
+      C.push(col[0], col[1], col[2]);
+    }
   }
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(P), 3));
@@ -31,6 +35,41 @@ function parts(list: Part[]): THREE.BufferGeometry {
 }
 
 const LIVE: Colour = [2.3, 2.9, 2.4];
+const R90 = Math.PI / 2;
+
+/** something lying on the floor, as the first engine drew it (itemMesh); anything else is a sheet of paper */
+function itemParts(id: string): Part[] {
+  switch (id) {
+    case 'baton': return [['cyl', 0x1c1e20, 0.05, 0.55, 0.05, 0, 0.03, 0, R90], ['cyl', 0x3a3d40, 0.06, 0.14, 0.06, -0.2, 0.03, 0, R90]];
+    case 'adjwrench': return [['box', 0xb8bcc0, 0.36, 0.03, 0.05, 0, 0.02, 0], ['box', 0xb8bcc0, 0.08, 0.03, 0.12, 0.2, 0.02, 0]];
+    case 'pistol': return [['box', 0x1c1e20, 0.2, 0.04, 0.05, 0, 0.03, 0], ['box', 0x1c1e20, 0.05, 0.04, 0.12, -0.07, 0.03, 0.06]];
+    case 'shotgun': return [['box', 0x1c1e20, 0.7, 0.05, 0.06, 0, 0.03, 0], ['box', 0x5a4034, 0.25, 0.06, 0.07, -0.4, 0.03, 0]];
+    case 'ammo9': return [['box', 0x8a7a2a, 0.12, 0.06, 0.08, 0, 0.03, 0]];
+    case 'shells': return [['box', 0xa82a20, 0.14, 0.07, 0.1, 0, 0.035, 0]];
+    case 'tacvest': return [['box', 0x23272c, 0.46, 0.14, 0.54, 0, 0.07, 0], ['box', 0x3a4030, 0.12, 0.05, 0.14, -0.1, 0.15, 0.1], ['box', 0x3a4030, 0.12, 0.05, 0.14, 0.1, 0.15, 0.1]];
+    case 'goggles': return [['box', 0x22262a, 0.18, 0.05, 0.03, 0, 0.03, 0], ['cyl', [2.2, 2.5, 2.6], 0.07, 0.03, 0.07, -0.05, 0.03, 0.02, R90], ['cyl', [2.2, 2.5, 2.6], 0.07, 0.03, 0.07, 0.05, 0.03, 0.02, R90]];
+    case 'rebreather': return [['box', 0x2a2c2e, 0.26, 0.12, 0.2, 0, 0.06, 0], ['cyl', 0xc9a227, 0.09, 0.2, 0.09, 0.08, 0.17, 0, R90], ['box', 0x15181b, 0.05, 0.05, 0.16, -0.1, 0.14, 0.12]];
+    case 'surf': return [['box', [2.3, 2.85, 2.5], 0.09, 0.006, 0.06, 0, 0.006, 0]];
+    case 'pipe': return [['cyl', 0x7a7e84, 0.06, 0.8, 0.06, 0, 0.03, 0, R90]];
+    case 'wrench': return [['box', 0x8a3a2a, 0.45, 0.035, 0.06, 0, 0.02, 0], ['box', 0x9a9ea4, 0.1, 0.035, 0.13, 0.24, 0.02, 0]];
+    case 'knife': return [['box', 0x22262a, 0.12, 0.025, 0.03, -0.1, 0.015, 0], ['box', 0xc8ccd0, 0.22, 0.01, 0.045, 0.07, 0.01, 0]];
+    case 'axe': return [['box', 0x7a5a34, 0.9, 0.04, 0.045, 0, 0.03, 0], ['box', 0xa82a20, 0.14, 0.035, 0.24, 0.38, 0.03, 0.06]];
+    case 'flash': return [['cyl', 0x2a2c2e, 0.06, 0.2, 0.06, 0, 0.035, 0, R90], ['cyl', 0xc9a227, 0.075, 0.05, 0.075, 0.11, 0.04, 0, R90]];
+    case 'lantern': return [['cyl', 0xc9a227, 0.14, 0.06, 0.14, 0, 0.03, 0], ['cyl', [2.4, 2.6, 2.7], 0.11, 0.14, 0.11, 0, 0.13, 0], ['cyl', 0xc9a227, 0.14, 0.05, 0.14, 0, 0.225, 0], ['box', 0x2a2c2e, 0.16, 0.02, 0.02, 0, 0.3, 0]];
+    case 'batt': return [['cyl', 0xb87333, 0.045, 0.1, 0.045, 0, 0.05, 0], ['cyl', 0x22262a, 0.047, 0.04, 0.047, 0, 0.03, 0]];
+    case 'medkit': return [['box', 0xd4d8d4, 0.32, 0.14, 0.22, 0, 0.07, 0], ['box', 0xa82a20, 0.12, 0.01, 0.04, 0, 0.145, 0], ['box', 0xa82a20, 0.04, 0.01, 0.12, 0, 0.145, 0]];
+    case 'bandage': return [['cyl', 0xd8d4c8, 0.09, 0.07, 0.09, 0, 0.035, 0]];
+    case 'ration': return [['box', 0x8a8478, 0.15, 0.03, 0.08, 0, 0.015, 0]];
+    case 'peaches': return [['cyl', 0xb8bcc0, 0.09, 0.11, 0.09, 0, 0.055, 0], ['cyl', 0xd88a2a, 0.093, 0.06, 0.093, 0, 0.055, 0]];
+    case 'fuse': return [['cyl', 0xd8d0b8, 0.07, 0.22, 0.07, 0, 0.04, 0, R90], ['cyl', 0xb87333, 0.075, 0.04, 0.075, -0.1, 0.04, 0, R90], ['cyl', 0xb87333, 0.075, 0.04, 0.075, 0.1, 0.04, 0, R90]];
+    case 'armor': return [['box', 0x23272c, 0.44, 0.12, 0.52, 0, 0.06, 0], ['box', 0x39485a, 0.3, 0.02, 0.1, 0, 0.125, -0.1]];
+    case 'hardhat': return [['ico', 0xc9a227, 0.28, 0.2, 0.3, 0, 0.08, 0], ['box', 0xc9a227, 0.2, 0.02, 0.12, 0, 0.02, 0.17]];
+    case 'kit': return [['box', 0x39485a, 0.3, 0.12, 0.2, 0, 0.06, 0], ['cyl', 0x1a1c1e, 0.2, 0.05, 0.2, 0, 0.145, 0], ['box', 0xc9a227, 0.3, 0.02, 0.05, 0, 0.125, 0]];
+    default: return [['box', [2.5, 2.48, 2.4], 0.2, 0.004, 0.28, 0, 0.004, 0]];
+  }
+}
+/** a turn for something lying on the floor that is the same every time (it used to be random) */
+const lie = (x: number, z: number) => (Math.sin(x * 12.9898 + z * 78.233) * 43758.5453) % 1 * Math.PI;
 
 /** a door as the first engine drew it, in its own frame: 2 m along x, centred 1.2 m up. Returns the slab and the lights
  *  (indicators, reader, keypad), which show only with power enough to work it. */
@@ -91,18 +130,27 @@ function coloured(src: Float32Array, c: Colour): THREE.BufferGeometry {
 
 export class Things {
   private list: Moving[] = [];
+  private signs: { mat: THREE.MeshBasicMaterial; circuit: string }[] = [];
+
+  /** the power changed: signs dim or brighten (door lights follow in update) */
+  setLighting(L: Lighting): void {
+    this.L = L;
+    for (const s of this.signs) s.mat.color.setScalar(L.power(s.circuit) ? 1 : 0.3);
+  }
 
   constructor(private scene: THREE.Scene, private sim: Sim, private L: Lighting) {
     const w = sim.world;
     for (const d of sim.doors) {
-      const D = d.def, { body, lights } = doorParts(D), long = Math.max(D.x1 - D.x0, D.z1 - D.z0);
-      const need = D.kind === 'heavy' ? 2 : 1, shown = L.power(D.circuit) >= need;
-      const geo = parts(shown ? [...body, ...lights] : body);
-      this.add(geo, m => {
+      const D = d.def, { body, lights } = doorParts(D), long = Math.max(D.x1 - D.x0, D.z1 - D.z0), need = D.kind === 'heavy' ? 2 : 1;
+      const place = (m: THREE.Object3D) => {
         m.position.set((d.dyn.x0 + d.dyn.x1) / 2, d.dyn.y0 + 1.2, (d.dyn.z0 + d.dyn.z1) / 2);
         m.rotation.y = D.alongX ? 0 : Math.PI / 2;
         m.scale.set(long / 2, 1, 1);
-      });
+        if (D.vent) m.visible = d.t < 0.5;
+      };
+      this.add(parts(body), place);
+      /* its lights show only with power enough to work it */
+      if (lights.length) this.add(parts(lights), m => { place(m); m.visible = this.L.power(D.circuit) >= need && !D.vent; });
     }
     for (const p of sim.platforms) {
       const D = p.def;
@@ -112,15 +160,38 @@ export class Things {
       const m = signMesh(s.text);
       m.position.set(s.x, s.y, s.z);
       m.rotation.y = s.yaw;
-      (m.material as THREE.MeshBasicMaterial).color.setScalar(L.power(s.circuit) ? 1 : 0.3);
       scene.add(m);
+      this.signs.push({ mat: m.material as THREE.MeshBasicMaterial, circuit: s.circuit });
     }
+    this.setLighting(L);
     for (const o of sim.loose.all) {
       const pts: number[] = [];
       propVerts({ ...o.prop, ry: 0 }, (x, y, z) => pts.push(x, y, z), { x: 0, y: 0, z: 0 });
       this.add(coloured(new Float32Array(pts), o.prop.colour), m => m.position.set(o.x, o.y, o.z));
     }
+    for (const n of w.def.notes) this.addFixed(parts(itemParts('note')), n.x, n.y, n.z, lie(n.x, n.z) * 0.3);
     this.water(w);
+  }
+
+  /** things you can pick up: drawn until taken; anything put down later appears */
+  private items = 0;
+  private itemMeshes: { mesh: THREE.Object3D; taken: () => boolean }[] = [];
+  private syncItems(): void {
+    for (; this.items < this.sim.items.length; this.items++) {
+      const it = this.sim.items[this.items];
+      const m = this.addFixed(parts(itemParts(it.id)), it.x, it.y, it.z, lie(it.x, it.z));
+      this.itemMeshes.push({ mesh: m, taken: () => it.taken });
+    }
+    for (const im of this.itemMeshes) im.mesh.visible = !im.taken();
+  }
+  private addFixed(geo: THREE.BufferGeometry, x: number, y: number, z: number, yaw: number): THREE.Mesh {
+    const mat = dynamicMaterial(), mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(x, y, z);
+    mesh.rotation.y = yaw;
+    mesh.frustumCulled = false;
+    this.scene.add(mesh);
+    this.list.push({ mesh, mat, place: () => {} });
+    return mesh;
   }
 
   private add(geo: THREE.BufferGeometry, place: (m: THREE.Mesh) => void): void {
@@ -151,6 +222,7 @@ export class Things {
 
   /** move everything to where the sim has it, and light it by where it is */
   update(): void {
+    this.syncItems();
     for (const t of this.list) {
       t.place();
       const p = t.mesh.position, w = this.sim.world, R = w.roomAt(p.x, p.y + 0.3, p.z) ?? w.roomAt(p.x, p.y + 1.2, p.z);

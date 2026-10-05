@@ -23,7 +23,6 @@ export interface Player {
   crouch: boolean;
   /** crouch was released under something low; stand when there is room */
   wantStand: boolean;
-  light: boolean;
   /** how far you moved this step, for footsteps and head bob */
   moved: number;
   /** speed at the last landing */
@@ -37,7 +36,7 @@ export interface Player {
 
 export function makePlayer(w: World, x: number, y: number, z: number, yaw: number): Player {
   return {
-    body: makeBody(w, x, y, z, RADIUS, STAND), yaw, pitch: 0, crouch: false, wantStand: false, light: false, moved: 0, impact: 0,
+    body: makeBody(w, x, y, z, RADIUS, STAND), yaw, pitch: 0, crouch: false, wantStand: false, moved: 0, impact: 0,
     water: 'dry', air: AIR, under: false,
   };
 }
@@ -52,7 +51,6 @@ export function updatePlayer(w: World, p: Player, inp: Input, dt: number): { str
   settle(w, b);
   p.yaw += inp.yaw;
   p.pitch = clamp(p.pitch + inp.pitch, -1.45, 1.45);
-  if (inp.light) p.light = !p.light;
 
   const level = w.waterAt(b.x, b.z), depth = level - b.y;
   p.water = depth > SWIM ? 'swimming' : depth > WADE ? 'wading' : 'dry';

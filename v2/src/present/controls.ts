@@ -6,7 +6,7 @@ const SENS = 0.0022;
  *  added up until a step takes it, and until then the camera shows it anyway (pending), so looking never lags. */
 export class Controls {
   private keys: Record<string, boolean> = {};
-  private press = { jump: false, crouch: false, light: false };
+  private press = { jump: false, crouch: false, light: false, use: false };
   /** keys the page handles itself (dev toggles), by code */
   readonly onKey = new Map<string, () => void>();
   readonly pending = { yaw: 0, pitch: 0 };
@@ -24,6 +24,7 @@ export class Controls {
       if (e.code === 'Space') this.press.jump = true;
       else if (e.code === 'KeyC') this.press.crouch = true;
       else if (e.code === 'KeyF') this.press.light = true;
+      else if (e.code === 'KeyE') this.press.use = true;
       this.onKey.get(e.code)?.();
     });
     window.addEventListener('keyup', e => { this.keys[e.code] = false; });
@@ -61,9 +62,9 @@ export class Controls {
     i.run = !!(k.ShiftLeft || k.ShiftRight);
     i.yaw = this.pending.yaw; i.pitch = this.pending.pitch;
     this.pending.yaw = 0; this.pending.pitch = 0;
-    i.jump = this.press.jump; i.crouch = this.press.crouch; i.light = this.press.light;
+    i.jump = this.press.jump; i.crouch = this.press.crouch; i.light = this.press.light; i.use = this.press.use;
     i.rise = !!k.Space; i.sink = !!k.KeyC;
-    this.press = { jump: false, crouch: false, light: false };
+    this.press = { jump: false, crouch: false, light: false, use: false };
     return i;
   }
 }

@@ -27,6 +27,8 @@ export class CameraRig {
     const cp = Math.cos(pitch);
     this.fwd = { x: -Math.sin(yaw) * cp, y: Math.sin(pitch), z: -Math.cos(yaw) * cp };
     U.uFlashDir.value.set(this.fwd.x, this.fwd.y, this.fwd.z);
-    U.uFlash.value = p.light ? 1 : 0;
+    const g = sim.game, low = g.batt < 15 ? 0.6 : 1;
+    U.uFlash.value = g.lightOn && g.light === 'flash' ? low : 0;
+    U.uLamp.value = g.lightOn && g.light === 'lantern' ? low : 0;
   }
 }
