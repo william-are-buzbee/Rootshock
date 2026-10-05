@@ -12,6 +12,9 @@ export interface Input {
   jump: boolean;
   crouch: boolean;
   light: boolean;
+  /** held: swim up (jump key), swim down (crouch key) */
+  rise: boolean;
+  sink: boolean;
 }
 
-export const noInput = (): Input => ({ forward: 0, strafe: 0, run: false, yaw: 0, pitch: 0, jump: false, crouch: false, light: false });
+export const noInput = (): Input => ({ forward: 0, strafe: 0, run: false, yaw: 0, pitch: 0, jump: false, crouch: false, light: false, rise: false, sink: false });

@@ -24,12 +24,13 @@ export function shelf(b: LevelBuilder, x: number, z: number, w: number, d: numbe
 }
 
 const CARGO = [0x6a4a34, 0x3a5a6a, 0x5a5a3a, 0x6b5a3c, 0x4a4a52, 0x7a3a2a];
-export function crates(b: LevelBuilder, x: number, z: number, n: number): void {
+/** a few crates, some stacked. They can be pushed (loose) unless told otherwise. */
+export function crates(b: LevelBuilder, x: number, z: number, n: number, loose = true): void {
   const r = b.rng;
   for (let k = 0; k < n; k++) {
     const s = r.range(0.8, 1.4), ox = r.range(-0.7, 0.7), oz = r.range(-0.7, 0.7);
-    b.box(x + ox, z + oz, s, s, s, r.pick(CARGO), { ry: r.range(-0.3, 0.3) });
-    if (r.chance(0.4)) b.box(x + ox, z + oz, s * 0.8, s * 0.8, s * 0.8, r.pick(CARGO), { y: b.floorAt(x + ox, z + oz) + s, ry: r.range(-0.3, 0.3), solid: true });
+    b.box(x + ox, z + oz, s, s, s, r.pick(CARGO), { ry: loose ? 0 : r.range(-0.3, 0.3), solid: true, loose });
+    if (r.chance(0.4)) b.box(x + ox, z + oz, s * 0.8, s * 0.8, s * 0.8, r.pick(CARGO), { y: b.floorAt(x + ox, z + oz) + s, ry: loose ? 0 : r.range(-0.3, 0.3), solid: true, loose });
   }
 }
 

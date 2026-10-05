@@ -12,7 +12,8 @@ npm install        # once, and whenever package.json changes
 npm run dev        # serves the game at http://localhost:5173 and reloads on every save
 ```
 
-Open `http://localhost:5173/?dev` for the position readout, and `window.rs.sim` in the browser console.
+Open `http://localhost:5173/?dev` for the position readout and `window.rs.sim` in the browser console; with `?dev`,
+press G to draw every collider.
 
 | command | what it does |
 |---|---|

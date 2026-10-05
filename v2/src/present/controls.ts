@@ -7,6 +7,8 @@ const SENS = 0.0022;
 export class Controls {
   private keys: Record<string, boolean> = {};
   private press = { jump: false, crouch: false, light: false };
+  /** keys the page handles itself (dev toggles), by code */
+  readonly onKey = new Map<string, () => void>();
   readonly pending = { yaw: 0, pitch: 0 };
   /** pointer capture refused (some embedded browsers): drag to look instead */
   private dragLook = false;
@@ -22,6 +24,7 @@ export class Controls {
       if (e.code === 'Space') this.press.jump = true;
       else if (e.code === 'KeyC') this.press.crouch = true;
       else if (e.code === 'KeyF') this.press.light = true;
+      this.onKey.get(e.code)?.();
     });
     window.addEventListener('keyup', e => { this.keys[e.code] = false; });
     window.addEventListener('blur', () => { this.keys = {}; });
@@ -59,6 +62,7 @@ export class Controls {
     i.yaw = this.pending.yaw; i.pitch = this.pending.pitch;
     this.pending.yaw = 0; this.pending.pitch = 0;
     i.jump = this.press.jump; i.crouch = this.press.crouch; i.light = this.press.light;
+    i.rise = !!k.Space; i.sink = !!k.KeyC;
     this.press = { jump: false, crouch: false, light: false };
     return i;
   }

@@ -127,26 +127,34 @@ thing is added once.
   are merged into the largest flat rectangles that share a colour, then cut where the palette changes (dado and
   stripe on walls, the 2 m checker on floors). For axis-aligned rooms this is exactly the flat look of the first
   engine, and it guarantees that what you see is what you collide with. It means **built geometry snaps to 0.25 m**.
-- **Open: slopes and caves.** A grid alone would draw a cave floor as terraces. Caves and ramps will need their own
-  surface: a heightfield mesh over their cells, with the grid still answering the queries. Decide in step 2.
+- **Slopes and caves (agreed, built in step 2): sloped surfaces.** A ramp, a cave floor or a cave ceiling is a
+  heightfield: heights on a lattice (0.5 m for caves), blended between. A floor is solid from a base up to it; a
+  ceiling, from it up. They are answered exactly, not by the grid, so a ramp is smooth to walk and to look at. A cave
+  is a room carved in the grid from its lowest floor to its highest ceiling, with a floor surface and a ceiling
+  surface inside; the walls are grid walls, plain rock with no dado or stripe.
 - **Small props** (crates, tables, shelves) are not stamped into the grid. They are boxes, oriented boxes or cylinders
   in a spatial hash, so they can later move.
-- **Movers** (doors, elevators, hatches, anything that changes shape at runtime) are colliders of their own, not grid
-  cells. A door is a box that slides; an elevator is a box that rises and carries what stands on it.
+- **Everything that moves is a `Dyn`**: a box the sim keeps up to date in the world's list. Doors, platforms, loose
+  crates and bodies (a body's bounding box) all are, so each of them collides with all the others through the same
+  queries, and a query names which one it hit.
 
 ### Queries (the whole API)
+
+Shapes are footprints on the plan (a circle for a body, a rectangle for a crate) between two heights.
 
 | query | used by |
 |---|---|
 | `solidAt(p)` | everything |
-| `overlap(shape)` → hits | physics depenetration, door crush checks, item placement |
-| `sweep(cylinder, delta)` → first hit, normal | movement |
-| `groundBelow(p, maxDrop)` → height, surface | standing, stepping, falling |
-| `raycast(from, to, mask)` → first hit | sight, aim, melee, flashlight |
-| `waterAt(p)` → depth | wading, swimming, air |
-| `regionAt(p)` → room id | room names, light, sound, AI territory |
+| `overlap(footprint, y0, y1)` → what it hit | movement, crushing checks, pushing crates |
+| `sweep(footprint, y0, y1, delta)` → how far it gets | movement, sliding crates |
+| `pushOut(footprint, y0, y1)` → the smallest nudge free | getting unstuck |
+| `groundBelow(footprint, top)` → height | standing, stepping, falling |
+| `ceilingAbove(footprint, from)` → height | jumping, standing up |
+| `raycast(from, to)` → fraction of the way clear | sight, aim, melee, flashlight |
+| `waterAt(x, z)` → surface | wading, swimming, air |
+| `roomAt(p)` → room | room names, light, sound, AI territory |
 
-Each query is answered against the grid, then props, then movers.
+Each query is answered against the grid, the fixed solids, the sloped surfaces and the moving solids, in that order.
 
 ---
 
@@ -298,9 +306,19 @@ Each step ends with something you can open and play.
    body controller (walk and slide, step up, gravity, ceilings, crouch), the greedy mesher. Tests run the sim headless,
    including one that proves two identical runs end identically, and one that enforces the layer rule (§3). CI runs
    them on every pull request that touches `v2/`.
-2. **World model and body, the rest.** Chunked sparse grid; movers (doors, a moving platform that carries you);
-   `sweep` and `raycast`; depenetration; water; slopes and cave surfaces. A test level for each. The collider
-   overlay.
+2. **World model and body, the rest. Done.**
+   - **Sparse grid**: chunks of 16³ cells exist only where there is space; the mesher walks only those.
+   - **Queries** for circle and rectangle footprints; `sweep`, `raycast` and `pushOut`.
+   - **Sloped surfaces**: ramps, cave floors and ceilings (§4).
+   - **Doors** slide up when anything comes near and never close on it.
+   - **Platforms** carry what stands on them and never crush it. One leaves when someone steps on after it has
+     stopped, so it does not carry you off while you stand on it.
+   - **Water**: wading slows you; in deep water you float, swim up and down, haul yourself out onto a ledge up to
+     1.7 m above your feet, and your breath runs down while your head is under.
+   - **Loose crates**: pushed by walking into them, knocked off stacks, carried by what they stand on, asleep when
+     still. The awake budget is 16; a tumbling pile of 48 measured 0.46 ms per step headless, under 3% of a frame.
+   - **Test bed lab wing** (through the door south of the hall): a ramp to a balcony, a lift to a gallery, a pool
+     with a shallow shelf, crates to push, a cave. **Collider overlay**: `?dev`, then G.
 3. **The upper station, static.** Port its content: rooms, caves, props, light. Walk all of it.
 4. **Doors, power, interaction, items, inventory, notes, HUD.** The upper station's access puzzle works end to end.
 5. **Mutants.** Nav graph, flow fields, perception, the cast's behaviours, combat.
@@ -313,8 +331,10 @@ Each step ends with something you can open and play.
 
 ## 14. Open questions
 
-1. **Grid cell size**: 0.25 m for now. Confirm in step 2 by measuring a whole level once the grid is sparse.
-2. **Slopes and cave surfaces** (§4): decide in step 2.
+1. **Grid cell size**: 0.25 m. A 16³ chunk is 4 m on a side and 8 kB; measure memory and mesh time on the first
+   full level in step 3.
+2. **Caves with irregular outlines.** The first engine's caves are tunnels and chambers of any shape. In v2 the outline
+   can be stamped into the grid cell by cell with the same surfaces inside; to be built while porting in step 3.
 
 ### Settled
 

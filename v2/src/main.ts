@@ -4,6 +4,10 @@ import { makeSim, step, type Sim } from './sim/sim';
 import { CameraRig, type Prev } from './present/camera';
 import { Controls } from './present/controls';
 import { View } from './present/render/view';
+import { Things } from './present/render/things';
+import { Overlay } from './present/render/overlay';
+import { U } from './present/render/shader';
+import { AIR } from './sim/player';
 import { Hud } from './present/ui/hud';
 
 /* Boot: content -> world -> sim, and the page around it. The frame runs whole sim steps for the time that passed, then draws
@@ -25,6 +29,8 @@ try {
 const level = testbed();
 const sim: Sim = makeSim(level);
 view.setLevel(sim.world);
+const things = new Things(view.scene, sim);
+const overlay = DEV ? new Overlay(view.scene, sim) : null;
 
 const rig = new CameraRig();
 const loop = new FixedLoop();
@@ -34,6 +40,7 @@ let mode: 'title' | 'play' | 'pause' = 'title';
 const controls = new Controls(canvas, () => {
   if (mode === 'play') setMode('pause');
 });
+if (overlay) controls.onKey.set('KeyG', () => overlay.toggle());
 
 function setMode(m: typeof mode): void {
   mode = m;
@@ -61,6 +68,13 @@ function frame(t: number): void {
   }
   if (!sim.tick) { const b = sim.player.body; prev.x = b.x; prev.y = b.y; prev.z = b.z; }
   rig.update(view.camera, sim, prev, mode === 'play' ? loop.alpha : 1, dt, controls.pending);
+  things.update();
+  overlay?.update();
+  /* under water: murk and a green-blue cast */
+  const p = sim.player, under = p.under;
+  U.uWet.value = under ? 1 : 0;
+  U.uFog.value += ((under ? 0.21 : 0.032) - U.uFog.value) * Math.min(1, dt * 4);
+  hud.air(p.air < AIR - 0.01 ? p.air / AIR : null);
 
   const b = sim.player.body, room = sim.world.roomAt(b.x, b.y + 0.5, b.z);
   hud.setRoom(room?.name ?? '', level.name, dt);
@@ -69,7 +83,7 @@ function frame(t: number): void {
   view.draw(t / 1000);
 }
 /* ?dev: the sim on the window, for poking at from the console or a test script */
-if (DEV) (window as unknown as { rs: unknown }).rs = { sim };
+if (DEV) (window as unknown as { rs: unknown }).rs = { sim, overlay };
 
 setMode('title');
 requestAnimationFrame(frame);
