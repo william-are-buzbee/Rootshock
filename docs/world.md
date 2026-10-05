@@ -7,8 +7,8 @@ picked up by anyone (or any session) without the conversation that produced it. 
 - **Proposed**: a direction both sides like, not yet committed.
 - **Open**: needs a decision before it is built.
 
-The station itself (layout, levels, coordinates) is in `station-plan.md` and in the level builders in `index.html`
-(`NEWSTATION`, behind `?dev=newstation`).
+The station itself (layout, levels, coordinates) is in the level builders in `index.html` (`NEWSTATION`, behind
+`?dev=newstation`), and later in `v2/src/content/levels`.
 
 ---
 

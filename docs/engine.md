@@ -119,7 +119,7 @@ thing is added once.
 ### How B works
 
 - **Authoring stays in shapes.** Levels are still written as rooms, caves, tunnels, doors and props, in plan metres
-  (the shared frame from `station-plan.md`: x east, z south, y up from the surface).
+  (the station's one shared frame: x east, z south, y up from the surface, as the level builders use it now).
 - **The compiler produces a query grid**: cells of 0.25 m, stored in 16³ chunks, only where there is space (rock is
   the default and costs nothing). Each cell holds what is there: rock, a room (open), or a block (solid built back
   into a room); later, flags such as `water`, `climbable`, `crawl`.
@@ -196,8 +196,14 @@ perception → air and light → events out.
 - **Abilities live on the body**, not in special cases: `opensDoors`, `low` (under jammed doors), `big` (no doorways),
   `swims`, `climbs`, `fixed`.
 - **Water** comes from cell flags: wading slows you, deep water switches to swimming, air runs down.
-- **Open:** physical objects. Kicked crates, thrown items, bodies that slump. The body controller allows simple boxes
-  later; whether to build them is a design question.
+- **Agreed: physical objects**, as long as they do not cost the frame rate. Kicked crates, thrown items, bodies that
+  slump. Proposed way to keep them cheap:
+  - **Asleep by default.** A crate is a static prop until something touches it (a kick, a shove, a blast, a body
+    falling on it). Only then does it become a body: gravity, slide, collide, settle.
+  - **Asleep again when still.** A settled object goes back to being a static prop in its new place.
+  - **Simple shapes.** Boxes and cylinders that stay upright or tip onto a face; no tumbling rigid-body solver.
+  - **A budget.** A fixed number awake at once (start at 16); past that, the oldest settles where it is.
+  - **Measured.** A step-2 test level with a pile of crates, timed headless, decides whether the budget holds.
 
 ---
 
@@ -209,8 +215,11 @@ perception → air and light → events out.
 - **Each mutant filters edges by its abilities.** A skitter takes under-jammed-door edges; a thresher takes no door
   edges; a husk opens doors it can open.
 - **Flow fields to the player**, recomputed on a budget for every level that is awake, not only the player's layer.
-- **Open: which mutants use stairs, ladders and elevators.** If the thresher can follow you up a walkway, walkways stop
-  being safe. That changes how levels play, so it is a design call, not an engine one.
+- **Agreed: mutants use stairs, ladders and elevators.** Walkways are not safe ground. Each still goes only where its
+  body allows (proposed):
+  - **Stairs, ramps, walkways, drops**: everything that walks.
+  - **Ladders**: anything with `climbs` that fits the shaft; the bloat does not.
+  - **Elevators**: anything standing on the platform rides it; things with hands (`opensDoors`) can call it.
 
 ---
 
@@ -304,10 +313,15 @@ Each step ends with something you can open and play.
 
 ## 14. Open questions
 
-1. **Mutants on stairs, ladders and elevators**: all, some types, or none (§7)?
-2. **Physical objects**: kicked crates, thrown items, slumping bodies (§6)?
-3. **Grid cell size**: 0.25 m for now. Confirm in step 2 by measuring a whole level once the grid is sparse.
-4. **Where v2 is published while it is in progress.** If the game is served by GitHub Pages from the root, v2 needs a
-   build-and-publish workflow, or a built copy committed under a path.
-5. **`station-plan.md`** is referenced by `world.md` and the code but is not in the repository. It is the source of the
-   station's coordinates; it should be found and committed, or rebuilt from the level builders, before step 3.
+1. **Grid cell size**: 0.25 m for now. Confirm in step 2 by measuring a whole level once the grid is sparse.
+2. **Slopes and cave surfaces** (§4): decide in step 2.
+
+### Settled
+
+- **Mutants on stairs, ladders and elevators**: yes (§7).
+- **Physical objects**: yes, unless they cost the frame rate (§6).
+- **Publishing v2 while it is in progress (agreed)**: GitHub Pages, from a workflow (`.github/workflows/pages.yml`).
+  Every push to `main` publishes the old game at the site root, as now, and the latest v2 build at `/v2/`. This needs
+  the repository's Pages source set to **GitHub Actions** (Settings → Pages → Build and deployment → Source).
+- **`station-plan.md`**: dropped. It was an earlier idea; the station now lives in the level builders, which are the
+  reference for its layout and coordinates.
