@@ -310,10 +310,35 @@ function vault(D,cx,cz,rad,h,R){const f=field(D,'cf'),W1=D.W+1;
 /* a barrel vault across a cave's short side: the ceiling rises by h along its middle */
 function arch(D,R,h){const f=field(D,'cf'),W1=D.W+1,ax=R.w<R.h;
   for(let j=R.y;j<=R.y+R.h;j++)for(let i=R.x;i<=R.x+R.w;i++)f[j*W1+i]+=h*Math.sin(PI*(ax?(i-R.x)/R.w:(j-R.y)/R.h));}
+/* caves of any outline. A shape is f(x,z) in tiles: the floor height at a point inside it, or null outside. Tiles test their centres and
+   go to the first shape that claims them; tile corners take the floor of the first shape to set them, so where shapes meet, the earlier
+   one rules. The bounding box is the room's x, y, w, h, as the other terrain tools expect. */
+function caveShape(D,name,f,o){const R=room(D,name,0,0,0,0,Object.assign({...ROCK,cave:1,ht:4,lit:'none',nolamp:1},o||{}));
+  const hf=field(D,'hf'),W1=D.W+1,set=D.hset||(D.hset=new Uint8Array(W1*(D.H+1)));let x0=1e9,y0=1e9,x1=-1,y1=-1;
+  for(let j=0;j<D.H;j++)for(let i=0;i<D.W;i++){const k=j*D.W+i;if(D.g[k])continue;const h=f(i+.5,j+.5);if(h===null)continue;
+    D.g[k]=1;D.rm[k]=R.id;x0=Math.min(x0,i);y0=Math.min(y0,j);x1=Math.max(x1,i);y1=Math.max(y1,j);
+    for(const[ci,cj]of[[i,j],[i+1,j],[i,j+1],[i+1,j+1]]){const c=cj*W1+ci;if(set[c])continue;const q=f(ci,cj);hf[c]=q===null?h:q;set[c]=1;}}
+  R.x=x0;R.y=y0;R.w=x1-x0+1;R.h=y1-y0+1;return R;}
+/* a little wander in an outline, the same every time */
+const wob=(i,j)=>.45*Math.sin(i*1.3+j*.7)+.3*Math.sin(j*1.9-i*.4);
+function nearPath(pts,x,z){let d=1e9,h=0;for(let s=0;s<pts.length-1;s++){const a=pts[s],b=pts[s+1],dx=b[0]-a[0],dz=b[1]-a[1],t=clamp(((x-a[0])*dx+(z-a[1])*dz)/(dx*dx+dz*dz),0,1),
+  e=Math.hypot(x-a[0]-dx*t,z-a[1]-dz*t);if(e<d){d=e;h=a[2]+(b[2]-a[2])*t;}}return{d,h};}
+/* a passage along pts [[x,z,floor],...], r tiles either side of its line; and an elliptical chamber with its floor given by fl(x,z) */
+function tunnel(D,name,pts,r,o){return caveShape(D,name,(x,z)=>{const q=nearPath(pts,x,z);return q.d<r+wob(x,z)*.6?q.h:null;},o);}
+function chamber(D,name,cx,cz,rx,rz,fl,o){return caveShape(D,name,(x,z)=>Math.hypot((x-cx)/rx,(z-cz)/rz)<1+wob(x,z)/Math.max(rx,rz)?fl(x,z):null,o);}
+/* dress a cave: n things on its own tiles, some of them glowing */
+function caveDress(D,R,n,glow){for(let k=0,tries=0;k<n&&tries<n*20;tries++){const x=R.x+rnd(R.w),z=R.y+rnd(R.h),t=Math.floor(z)*D.W+Math.floor(x);if(D.rm[t]!==R.id)continue;k++;
+  const u=Math.random();if(u<.35)moss(D,x,z,rnd(1,2.4));else if(u<.6)bush(D,x,z,rnd(.6,1.3));else if(u<.85)shroom(D,x,z,rnd(.6,2),glow&&Math.random()<.4);
+  else P(D,'ico',x,z,rnd(.6,1.4),rnd(.4,.9),rnd(.6,1.4),pick([0x5a5248,0x4a443c,0x6b6a64]),{c:1});
+  if(glow&&u>.6&&u<.85&&Math.random()<.25)D.lamps.push({x:x*T,z:z*T,r:rnd(4,7),c:[.1,.36,.2]});}}
+/* a pool in a cave floor: the floor sinks under a dark surface, and a hidden kerb keeps you out of it */
+function pool(D,R,cx,cz,r,depth){hill(D,cx,cz,r+1,-depth,R);P(D,'cyl',cx,cz,r*2*T,.02,r*2*T,0x0c2228,{y:depth-.35,c:0});
+  const s=r*.75*T;D.xcols.push([cx*T-s,cz*T-s,cx*T+s,cz*T+s,0,depth+2]);}
 /* break up a cave's floor and ceiling. Corners shared with a door or an ordinary room are left alone, so place doors first */
 function roughen(D,R,fa,ca){const hf=field(D,'hf'),cf=field(D,'cf'),W=D.W,W1=W+1;
-  const pinned=(i,j)=>{for(const[di,dj]of[[-1,-1],[0,-1],[-1,0],[0,0]]){const ti=i+di,tj=j+dj;if(ti<0||tj<0||ti>=W||tj>=D.H)continue;const k=tj*W+ti;
-    if(D.g[k]&&!(D.rm[k]>=0&&D.rooms[D.rm[k]].cave))return true;}return false;};
+  /* a corner moves only if it belongs to this room (an irregular cave's box holds other rooms' tiles) and touches no door or ordinary room */
+  const pinned=(i,j)=>{let own=false;for(const[di,dj]of[[-1,-1],[0,-1],[-1,0],[0,0]]){const ti=i+di,tj=j+dj;if(ti<0||tj<0||ti>=W||tj>=D.H)continue;const k=tj*W+ti;
+    if(D.rm[k]===R.id)own=true;if(D.g[k]&&!(D.rm[k]>=0&&D.rooms[D.rm[k]].cave))return true;}return!own;};
   for(let j=R.y;j<=R.y+R.h;j++)for(let i=R.x;i<=R.x+R.w;i++){if(pinned(i,j))continue;hf[j*W1+i]+=rnd(-fa,fa);cf[j*W1+i]+=rnd(-ca,ca);}}
 /* walk-up stairs between a hall and the rung above it: a real ramp under the visible steps. (tx,tz) is the first tile; dir is the way you climb. */
 function stairs(lo,hi,tx,tz,len,dir){const ax=(dir==='e'||dir==='w')?'x':'z',rev=dir==='w'||dir==='n',w=ax==='x'?len:1,h=ax==='x'?1:len;
@@ -353,8 +378,10 @@ function stairDn(D,ix,iz,ax,az,yaw,to){D.intDefs.push({x:ix,z:iz,y:.4,kind:'stai
 /* one end of a ladderway. Like stairs, a ladder is a fade, not a climb. id names the ladderway in STATION.ladders, which says
    whether it is broken or gated; each of its two ends is declared on its own level (or layer) with this. up: this end climbs.
    (ix,iz) is the ladder; (ax,az,yaw) is where you stand when you arrive at this end. Place it after the room it stands in. */
-function ladder(D,id,ix,iz,ax,az,yaw,up){const L=STATION.ladders[id],R=D.rooms[D.rm[Math.floor(iz)*D.W+Math.floor(ix)]],h=up?(R?R.ht:3.2):1.1,broken=L&&L.broken;
-  D.intDefs.push({x:ix,z:iz,y:up?1.2:.4,kind:'ladder',id,up:up?1:0});D.mk['ladder:'+id]=[ax,az,yaw];
+function ladder(D,id,ix,iz,ax,az,yaw,up,o){o=o||{};const L=STATION.ladders[id],R=D.rooms[D.rm[Math.floor(iz)*D.W+Math.floor(ix)]],h=up?(R?R.ht:3.2):1.1,broken=L&&L.broken;
+  D.intDefs.push({x:ix,z:iz,y:up?1.2:.4,kind:'ladder',id,up:up?1:0,text:o.label});D.mk['ladder:'+id]=[ax,az,yaw];
+  /* bare: a way through that is not a ladder at all (a crawl, a squeeze); o.label is what it says */
+  if(o.bare)return;
   for(const s of[-.25,.25])bx(D,ix+s/T,iz,.06,h,.06,0x8a7a2a,{c:0});
   for(let y=.3;y<h-.05;y+=.3)if(!(broken&&y>1.2&&Math.random()<.5))bx(D,ix,iz,.5,.04,.04,0x8a7a2a,{y,c:0});
   if(!up)bx(D,ix,iz,1,.02,1,0x030405,{y:.014,c:0});
@@ -869,8 +896,8 @@ function buildHorticulture(G){
   mut(G,'bloat',127.6,13,{sit:1,yaw:-PI/2,holt:1});note(G,'last',125.6,13.6,.03);
   for(let k=0;k<8;k++)bx(G,127.4-rnd(0,1.4),13+rnd(-.6,.6),rnd(.8,2),.07,.07,pick([0x6e2b28,0x3f6a3a]),{y:rnd(.02,.5),c:0,ry:rnd(-.5,.5),rz:rnd(-.2,.2)});
   /* the bulkhead to the cave, in the north wall: Horticulture drilled through it */
-  room(G,'Breach',125,3,1,2,{...ROCK,lit:'none',nolamp:1,noroam:1});
-  door(G,125,5,{kind:'heavy',seal:true,msg:'The bulkhead to the cave, drilled through and packed with root. Not built yet: the cave is a later section.',sg:[['Cave','s']]});
+  room(G,'Breach',125,3,1,2,{...ROCK,lit:'none',nolamp:1,noroam:1});door(G,125,5,{stuck:true,sg:[['Cave','s']]});
+  ladder(G,'CV',125.5,3.5,125.5,4.4,PI,false,{bare:1,label:'Crawl through the breach'});for(let k=0;k<6;k++)P(G,'ico',125+rnd(.1,.9),3+rnd(0,2),rnd(.3,.7),rnd(.2,.5),rnd(.3,.7),pick(GR),{c:0,y:rnd(0,1.6)});
   /* east: the exhaust shaft. Ladderway B up to Cargo, and on down to the plant level */
   door(G,133,14,{sg:[['Exhaust shaft','w']]});room(G,'Exhaust shaft',134,12,4,6,{...UTIL,c:'HORT',em:1});
   ladder(G,'B1',136.6,12.6,135.6,13.4,PI/2,true);ladder(G,'B2',136.6,16.6,135.6,16.4,PI/2,false);
@@ -930,15 +957,88 @@ function buildPlant(lv){
   const xs=room(D,'Exhaust shaft',134,12,4,6,{...E,em:1});ladder(D,'B2',136.6,12.6,135.6,13.4,PI/2,true);overgrow(D,xl,1.2,1);overgrow(D,xs,1.2,1);mut(D,'rootworm',135,16.4);
   return[D];}
 
+/* ===== The sump, 162 m down. Everything drains here; with Gen-1 dead the pumps stopped and it flooded. A 6 m hall (x 14 to 110) at
+   wading depth, the pump station at its east end, and under it the drowned level: the intake gallery, where root mass chokes the
+   pump intakes and the flooded link comes in from the cave. Sergeant Aldana went down there and did not come back. ===== */
+function buildSump(lv){
+  const D=mkDeck(lv,140,30,{wet:.9}),WT={fl:0x2a2f30,wl:0x4a5052,st:0x4a5052,c:'HYD'};
+  liftRoom(D,5,14,7,14);room(D,'Shaft station',8,14,3,3,{...WT,em:1,safe:1,nolamp:1});door(D,11,14,{sg:[['Sump','w'],['Shaft station','e']]});lamp(D,10.4,14.4,6);
+  ladder(D,'A3',10.5,16.6,9.6,16.1,PI/2,true);
+  const hall=room(D,'Sump',12,8,40,14,{...WT,ht:6,em:1});
+  for(let x=18;x<=46;x+=7){bx(D,x,11.5,.4,1.4,6,0x4a5052);bx(D,x,18.5,.4,1.4,6,0x4a5052);column(D,x,15,6);}
+  for(const z of[8.3,21.7])bx(D,32,z,79,.3,.3,0x3d4042,{y:4.4,c:0});bx(D,32,8.6,79,.18,.18,0x5a4034,{y:3.6,c:0});
+  for(let k=0;k<8;k++)bx(D,rnd(14,50),rnd(9,21),rnd(.4,1.2),.12,rnd(.3,.9),pick([0x3a3020,0x4a5052,0x2c3a3c]),{y:.88,c:0,ry:rnd(PI)});
+  bx(D,30.5,8.6,2.4,.06,1.2,0x2a2c2e,{y:.88,c:0});for(let q=-1;q<=1;q++)bx(D,30.5+q*.7,8.6,.08,.08,1.2,0x8a7a2a,{y:.92,c:0});
+  D.intDefs.push({x:30.5,z:8.9,y:1,kind:'dive',to:'sumpdeep',pos:[30.5,5.4,PI],label:'Dive: the intake grates'});
+  mut(D,'swimmer',22,13);mut(D,'swimmer',36,17);mut(D,'swimmer',44,11);mut(D,'swimmer',28,20);
+  /* the pump station, the control office over it, and the filters */
+  const ps=room(D,'Pump station',52,10,8,10,{...WT,ht:8,em:1});
+  for(const z of[11.5,13.8,16.2,18.5]){P(D,'cyl',58.4,z,1.4,2.4,1.4,0x3b4d57);bx(D,57,z,1.6,1,1,0x44525a);}bx(D,59.6,15,.3,.3,9,0x5a4034,{y:3,c:0});
+  D.intDefs.push({x:56,z:15,y:1.2,kind:'look',label:'Pump controls',text:'Four pumps, all of them dead. The intake gauges read blocked: something below has grown into the grates. Even with power they would only cough.'});
+  bx(D,56,15,.8,1.2,.6,0x3a3f44);
+  room(D,'Pump control',53,5,5,4,WT);door(D,55,9,{sg:[['Control','s']]});
+  bx(D,55.5,5.6,2.4,1,.7,0x3f4448);bx(D,55.5,5.6,.5,.34,.06,0x22262a,{y:1,c:0});bx(D,55.5,5.62,.44,.28,.02,[.06,.12,.1],{y:1.03,c:0,pw:[[.04,.05,.05],[2.2,2.75,2.5]]});
+  note(D,'hydro',55,5.55,1.02);item(D,'lantern',56,5.6,1.02);shelf(D,53.3,7,.5,3);item(D,'wrench',53.35,6.4,1.06);item(D,'batt',53.35,7.6,1.06,2);
+  room(D,'Filter room',53,21,5,4,WT);door(D,55,20,{sg:[['Filters','n']]});for(const x of[54,56.6])bx(D,x,23.6,1.4,1.6,1,0x3f5148);mut(D,'swimmer',55,22.4);
+  return[D];}
+function buildSumpDeep(lv){
+  const D=mkDeck(lv,140,30,{deep:1}),DW={fl:0x1e2628,wl:0x38423f,st:0x38423f,lit:'none',nolamp:1};
+  const ig=room(D,'Intake gallery',22,3,17,4,{...DW,ht:3.6});room(D,'Flooded link',14,4,8,2,{...DW,ht:2.6});room(D,'Intake main',39,4,13,2,{...DW,ht:2.6});
+  for(let k=0;k<4;k++){const x=24.5+k*4;bx(D,x,3.2,1.6,1.6,.3,0x2c3a3c,{y:.6,c:0});for(let q=0;q<4;q++)P(D,'ico',x+rnd(-.5,.5),3.4+rnd(0,.4),rnd(.6,1.1),rnd(.6,1.2),rnd(.5,.9),pick([0x2f4a2a,0x4a3b2c,0x3a5230,0x6e2b28]),{y:rnd(.2,1.4),c:0});}
+  for(let k=0;k<8;k++)bx(D,rnd(15,50),rnd(4.2,6.2),rnd(.3,.9),rnd(.2,.5),rnd(.3,.9),pick([0x2c3a3c,0x3a3020,0x4a5052]),{ry:rnd(PI),c:0});
+  corpse(D,34.6,5.6,0x2c3440,true,{label:'Search the drowned sergeant',say:'SGT. R. ALDANA. Four digits in grease pencil on the back of her hand.',note:'code'});
+  D.intDefs.push({x:30.5,z:5.8,y:1.6,kind:'dive',to:'sump',pos:[30.5,9.6,PI],label:'Swim up: the intake grates'},
+    {x:14.6,z:4.6,y:1.4,kind:'dive',to:'cave',pos:[45,33.8,0],label:'Swim on: the flooded link, toward the cave'});
+  mut(D,'swimmer',26,5);mut(D,'swimmer',31,4);mut(D,'swimmer',37,5.6);mut(D,'swimmer',18,4.8);mut(D,'swimmer',46,4.6);
+  return[D];}
+
+/* ===== The cave. A stream cave in limestone, known to the builders, walled off and used as the water intake. Its own frame:
+   org [-10,-140], so tile i = (x+10)/2, j = (z+140)/2; floor heights are metres from the main level's floor. From the breach behind the
+   arboretum: the entry passage falls to the upper chamber (the spring branch climbs away east toward the surface); the descent, through
+   breakdown, into the great chamber, where the green has made its real arboretum; the lower passage narrows to the lower chamber, half
+   flooded, and its pool is the flooded link to the sump. ===== */
+function buildCave(lv){
+  const D=mkDeck(lv,160,70),wet={lit:'none',fl:0x3a3832,wl:0x4a453c,st:0x4a453c};
+  const gf=(x)=>-40+clamp((x-55)/50,0,1)*14;
+  const entry=tunnel(D,'Entry passage',[[125.5,61,0],[122,53,-3],[118,47,-6],[114.5,43,-8]],1.6,{...wet,ht:4});
+  const upper=chamber(D,'Upper chamber',112.5,40,7.5,5,()=>-8,{...wet,ht:6});vault(D,112.5,40,7,6,upper);
+  const spring=tunnel(D,'Spring branch',[[118,37,-8],[126,30,-2],[134,24,6],[142,16,14],[150,10,22]],.9,{...wet,ht:2.6});
+  const desc=tunnel(D,'Descent',[[108,37,-8],[102,31,-14],[96,26,-21],[92,22,-29.6]],2,{...wet,ht:5});
+  const great=chamber(D,'Great chamber',80,15,25,9,gf,{...wet,ht:18,lit:'always',lc:[.05,.12,.07]});vault(D,80,15,20,8,great);
+  const lower=tunnel(D,'Lower passage',[[60,18,-38.6],[52,24,-46],[46,28.5,-58]],1.2,{...wet,ht:2.8});
+  const lc=chamber(D,'Lower chamber',45,32.5,8.75,6,()=>-58,{...wet,ht:6});vault(D,45,32.5,6,3,lc);
+  /* rough floors and roofs; the tight passages less in the roof, so you can still stand */
+  for(const[R,f,c]of[[entry,.25,.8],[upper,.3,1.5],[spring,.2,.35],[desc,.3,1],[great,.4,2],[lower,.2,.35],[lc,.25,1]])roughen(D,R,f,c);
+  pool(D,lc,46,36.5,2.6,2.4);
+  /* the ways out: back through the breach; the flooded link; the crack at the top of the spring branch */
+  ladder(D,'CV',125.5,60.6,125.5,59.4,0,true,{bare:1,label:'Crawl back through the breach'});
+  D.intDefs.push({x:46,z:34.3,y:1,kind:'dive',to:'sumpdeep',pos:[15.4,4.6,-PI/2],label:'Dive: the flooded link'});
+  D.intDefs.push({x:150,z:10.2,y:1.2,kind:'look',label:'Examine the crack',text:'The passage pinches to a crack you could put an arm through. Cold air comes down it, and the smell of grass. Not today.'});
+  /* breakdown on the descent; the stream across the great chamber; the green's real arboretum */
+  /* breakdown along both sides of the descent, a clear way down its middle */
+  for(let k=0;k<14;k++){const t=rnd(.15,.9),side=k%2?1:-1,off=side*rnd(1.1,1.8),x=108+(92-108)*t+off*.69,z=37+(22-37)*t-off*.72,s=rnd(.8,1.8);P(D,'ico',x,z,s*1.3,s,s*1.2,pick([0x5a5248,0x4a443c,0x6b6a64]),{c:1,y:-.3});}
+  for(let x=96;x>58;x-=.6){const z=15+Math.sin(x*.21)*2.6+Math.sin(x*.07)*1.6;bx(D,x,z,1.4,.03,1.3,0x16343c,{y:.02,c:0});}
+  for(let k=0;k<9;k++){const x=rnd(62,98),z=rnd(9,21),t=Math.floor(z)*D.W+Math.floor(x);if(D.rm[t]!==great.id)continue;P(D,'cyl',x,z,rnd(.6,1.2),rnd(14,20),rnd(.6,1.2),0x3a4a2c,{c:1});}
+  for(let k=0;k<12;k++)P(D,'ico',rnd(62,98),rnd(9,21),rnd(2,4),rnd(1.4,3),rnd(2,4),pick([0x2f4a2a,0x3a5230,0x4f7a40,0x6e2b28]),{y:rnd(14,19),c:0});
+  for(let k=0;k<6;k++)tree(D,rnd(64,96),rnd(10,20),rnd(6,10),0,true);
+  caveDress(D,great,140,true);caveDress(D,upper,24,true);caveDress(D,lc,20,true);caveDress(D,entry,16,false);caveDress(D,desc,14,false);caveDress(D,lower,10,true);caveDress(D,spring,12,false);
+  for(const[x,z]of[[70,14],[78,18],[86,12],[92,17],[66,19],[74,10]])mut(D,'rootworm',x,z);mut(D,'rootworm',112,41);mut(D,'rootworm',46,31);
+  mut(D,'skitter',84,16);mut(D,'skitter',110,38);mut(D,'skitter',47,30);
+  return[D];}
+
 const NEWSTATION={
   start:{level:'upper',x:22.3,z:9.7,yaw:-PI/2},
   levels:[
     {id:'upper',name:'Upper station',c:'OPS',tag:'upper station',power:{on:true,back:true},org:[-10,-30],build:buildUpper},
     {id:'main',name:'Main level',c:'RES',tag:'main level',power:{on:true,back:false},org:[-10,-30],build:buildMain},
-    {id:'plant',name:'Plant level',c:'ENG',tag:'plant level',power:{on:true,back:false},org:[-10,-30],build:buildPlant}],
-  circuits:{LIFT:{on:true,back:false},CARGO:{on:false,back:false,tag:'Cargo'},HORT:{on:true,back:true,tag:'Horticulture'},HYD:{on:true,back:false,broken:true,tag:'the sump'}},
+    {id:'plant',name:'Plant level',c:'ENG',tag:'plant level',power:{on:true,back:false},org:[-10,-30],build:buildPlant},
+    {id:'sump',name:'The sump',c:'HYD',tag:'the sump',power:{on:true,back:false,broken:true},org:[-10,-30],build:buildSump},
+    {id:'sumpdeep',name:'The sump, drowned',c:'DEEP',org:[-10,-30],build:buildSumpDeep},
+    {id:'cave',name:'The cave',c:'CAVE',org:[-10,-140],build:buildCave}],
+  circuits:{LIFT:{on:true,back:false},CARGO:{on:false,back:false,tag:'Cargo'},HORT:{on:true,back:true,tag:'Horticulture'}},
   ladders:{A1:{say:'Fifty metres of ladder down the main shaft, in the dark.'},
     A2:{broken:'The ladderway is collapsed below this landing. Rubble fills the shaft.'},
+    CV:{say:'Through root and broken concrete, and the station ends. Rock, and the sound of water.'},
     A3:{say:'Down the main shaft, and the last rungs go into black water.'},
     B2:{say:'Fifty metres down the exhaust shaft, into the warm.'},
     B1:{need:{power:'CARGO',msg:'A fan door is sealed over the ladderway. Its release runs off the Cargo backup set.'},say:'The exhaust shaft, rung over rung against the draught.'}}
@@ -1606,12 +1706,13 @@ const KIND={
       C.on=!C.on;say(C.on?'Switch closed. '+(G.prim?'That floor takes power.':'Nothing upstream to take.'):'Switch open. That floor is cut off from Gen-1.');powerChanged(false);}}),
   lift:()=>({label:()=>'Lift panel',act(){openLift();}}),
   stair:()=>({label(){const D=G.decks[levelGrid(this.to)];return(this.up?'Stairs up: ':'Stairs down: ')+D.name;},act(it){const k=levelGrid(it.to),m=G.decks[k].mk['stair:'+it.from];ride(k,m[0],m[1],m[2],'step');}}),
-  ladder:()=>({label(){const o=STATION.ladders[this.id].ends.find(e=>e.k!==G.deck);return(this.up?'Ladder up: ':'Ladder down: ')+(o?G.decks[o.k].name:'nowhere');},
+  ladder:()=>({label(){if(this.text)return this.text;const o=STATION.ladders[this.id].ends.find(e=>e.k!==G.deck);return(this.up?'Ladder up: ':'Ladder down: ')+(o?G.decks[o.k].name:'nowhere');},
     act(it){const L=STATION.ladders[it.id],S=G.ladders[it.id],o=L.ends.find(e=>e.k!==G.deck),n=S.need;
       if(S.broken){say(S.broken);sfx('deny');return;}
       if(n&&((n.power&&lvl(n.power)<(n.lvl||1))||(n.key&&!G.keys[n.key]))){say(n.msg||'It will not open.');sfx('deny');return;}
       if(!o){say('The ladder goes nowhere.');sfx('deny');return;}
       const m=G.decks[o.k].mk['ladder:'+it.id];ride(o.k,m[0],m[1],m[2],'step',1400);noise(6);if(L.say)setTimeout(()=>say(L.say),1500);}}),
+  look:()=>({label(){return this.lb;},act(it){say(it.text);}}),
   dive:()=>({label(){return this.lb;},act(it){const k=levelGrid(it.to);
     if(G.decks[k].deep&&!G.diveTip){G.diveTip=true;setTimeout(()=>say(G.worn.rebreather?'The rebreather ticks. You have time.':'One lungful. Count it.'),1200);}
     ride(k,it.pos[0],it.pos[1],it.pos[2],'slosh');}}),
