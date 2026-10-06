@@ -110,7 +110,7 @@ describe('the station', () => {
     call.act();
     expect(s.game.noiseI).toBe(12);
     hold(s, 5);
-    expect(sounds(s, 'hstep').length).toBeGreaterThan(0);
+    expect(sounds(s, 'rattle').length).toBeGreaterThan(0);
     expect(sounds(s, 'thud').length).toBe(1);
   });
 

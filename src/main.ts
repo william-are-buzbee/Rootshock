@@ -11,6 +11,7 @@ import { power } from './sim/game';
 import { CameraRig, type Prev } from './present/camera';
 import { Controls } from './present/controls';
 import { Audio } from './present/audio';
+import { Soundscape } from './present/soundscape';
 import { View } from './present/render/view';
 import { LevelView } from './present/render/levelView';
 import { HandsView } from './present/render/handsView';
@@ -85,6 +86,7 @@ let hurtFx = 0;
 const rig = new CameraRig();
 const loop = new FixedLoop();
 const audio = new Audio();
+const scape = new Soundscape(audio);
 const prev: Prev = { x: 0, y: 0, z: 0 };
 const fade = document.getElementById('fade')!;
 
@@ -167,11 +169,11 @@ function arrive(): void {
 
 /** what the sim reported this frame */
 function events(): void {
-  const g = sim.game, b = sim.player.body;
+  const g = sim.game;
   for (const ev of g.events.splice(0)) {
     switch (ev.type) {
       case 'say': panels.say(ev.text); break;
-      case 'sfx': if (ev.x !== undefined) audio.at(ev.name, ev.x, ev.z!, { x: b.x, z: b.z, yaw: sim.player.yaw }, ev.big); else audio.play(ev.name, ev.d ?? 0); break;
+      case 'sfx': scape.event(sim, ev); break;
       case 'note': openPanel(() => panels.showNote(g, ev.key)); break;
       case 'pad': openPanel(() => { panels.show('pad'); panels.renderPad(g); }); break;
       case 'lift': openPanel(() => panels.showLift(STATION.levels.map(l => ({ id: l.id, name: l.name, here: l.id === sim.world.def.id })))); break;
@@ -219,6 +221,7 @@ function frame(t: number): void {
   handsView.update(rig.bob, t / 1000);
   hurtFx = Math.max(0, hurtFx - dt * 0.9);
   events();
+  if (mode === 'play') scape.update(sim, dt);
 
   /* water: tinted and close in wading water, more so under it (less with goggles), as before */
   const p = sim.player, under = p.under, wet = p.water !== 'dry';

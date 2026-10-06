@@ -129,13 +129,13 @@ export function step(sim: Sim, input: Input): void {
   g.time += STEP;
   const rs = riders(sim), b = sim.player.body, movers = [b, ...castMovers(sim)], n0 = g.events.length;
   for (const d of sim.doors) {
-    if (updateDoor(d, rs, movers, power(g, d.def.circuit), STEP)) sfx(g, 'door', { x: (d.def.x0 + d.def.x1) / 2, z: (d.def.z0 + d.def.z1) / 2 });
+    if (updateDoor(d, rs, movers, power(g, d.def.circuit), STEP)) sfx(g, 'door', { x: (d.def.x0 + d.def.x1) / 2, y: d.def.y0, z: (d.def.z0 + d.def.z1) / 2 });
   }
   for (const p of sim.platforms) {
     /* it lands with a thud and rattles on the way */
-    const how = updatePlatform(p, rs, STEP), at = { x: (p.def.x0 + p.def.x1) / 2, z: (p.def.z0 + p.def.z1) / 2 };
+    const how = updatePlatform(p, rs, STEP), at = { x: (p.def.x0 + p.def.x1) / 2, y: p.y, z: (p.def.z0 + p.def.z1) / 2 };
     if (how === 'arrived') sfx(g, 'thud', at);
-    else if (how === 'moving' && sim.rng.chance(STEP * 6)) sfx(g, 'hstep', at, true);
+    else if (how === 'moving' && sim.rng.chance(STEP * 6)) sfx(g, 'rattle', at, true);
   }
 
   /* take a rebreather off under water and you have what is in your lungs */
@@ -149,10 +149,12 @@ export function step(sim: Sim, input: Input): void {
   }
   /* falls hurt (as before: past 10 m/s, 6 a metre a second); breath that runs out hurts more */
   const p = sim.player;
+  /* a landing is heard by how hard it was: a hop's scuff up to a fall that hurt */
+  if (p.impact > 3 && p.water === 'dry') sfx(g, 'land', undefined, false, 0, clamp((p.impact - 3) / 9, 0, 1));
   if (p.impact > 10) { hurt(g, (p.impact - 10) * 6, 'It was further down than it looked.', 0.5); makeNoise(g, 8); }
-  else if (p.impact > 4) { sfx(g, 'step'); makeNoise(g, 5); }
+  else if (p.impact > 4) makeNoise(g, 5);
   if (p.air <= 0) hurt(g, 14 * STEP, 'Your chest made the decision for you, and the water came in.', 0, false); // quietly
-  if (p.jumped) makeNoise(g, 3);
+  if (p.jumped) { makeNoise(g, 3); sfx(g, 'jump'); }
   /* your own footsteps, as before: a step every 1.7 m (2.3 running), quieter walking, none crouched; water sloshes */
   const wet = p.water !== 'dry';
   p.stepD += p.moved;

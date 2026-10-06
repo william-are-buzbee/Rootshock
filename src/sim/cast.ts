@@ -219,7 +219,7 @@ function doorAhead(sim: Sim, m: Mutant, d: Door): 'go' | 'wait' | 'no' {
   if (m.opens && !doorShut(d)) {
     if (!d.open) {
       d.open = true; d.hold = 3;
-      sfx(sim.game, 'door', { x: (d.def.x0 + d.def.x1) / 2, z: (d.def.z0 + d.def.z1) / 2 });
+      sfx(sim.game, 'door', { x: (d.def.x0 + d.def.x1) / 2, y: d.def.y0, z: (d.def.z0 + d.def.z1) / 2 });
     }
     return 'wait';
   }
@@ -273,7 +273,7 @@ function callLift(sim: Sim, m: Mutant, li: number, end: 0 | 1): void {
   if (!c || !m.opens || p.moving || power(sim.game, c.circuit) <= 0) return;
   if (Math.abs(p.y - (end ? p.def.y1 : p.def.y0)) < 0.01) return;
   sendPlatform(p, end);
-  sfx(sim.game, 'door', { x: (p.def.x0 + p.def.x1) / 2, z: (p.def.z0 + p.def.z1) / 2 });
+  sfx(sim.game, 'door', { x: (p.def.x0 + p.def.x1) / 2, y: p.y, z: (p.def.z0 + p.def.z1) / 2 });
 }
 
 /** riding a platform: get on at the near end (calling it if it can), ride, and step off to the spot past it */
@@ -390,7 +390,7 @@ function strikes(sim: Sim, m: Mutant, dmg: number): void {
   hurtBy(sim.game, dmg, DEATH[m.ai]);
 }
 
-const step_ = (sim: Sim, m: Mutant, name: string, big = false) => sfx(sim.game, name, { x: m.x, z: m.z }, big);
+const step_ = (sim: Sim, m: Mutant, name: string, big = false) => sfx(sim.game, name, m, big);
 
 /* ---- the behaviours, as the first engine had them */
 

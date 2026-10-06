@@ -179,7 +179,7 @@ function platformUse(sim: Sim, p: Platform, end: 0 | 1): Usable {
     act: () => {
       if (power(g, call.circuit) < 1) { say(g, 'No power to it. The platform sits where it stopped.'); sfx(g, 'deny'); return; }
       sendPlatform(p, onIt() ? (end ? 0 : 1) : end);
-      sfx(g, 'door', { x: (d.x0 + d.x1) / 2, z: (d.z0 + d.z1) / 2 });
+      sfx(g, 'door', { x: (d.x0 + d.x1) / 2, y: p.y, z: (d.z0 + d.z1) / 2 });
       makeNoise(g, 12);
     },
   };
@@ -216,7 +216,7 @@ export function doorLabel(sim: Sim, d: Door): string | null {
 }
 
 export function doorAct(sim: Sim, d: Door): void {
-  const D = d.def, g = sim.game, at = { x: (D.x0 + D.x1) / 2, z: (D.z0 + D.z1) / 2 };
+  const D = d.def, g = sim.game, at = { x: (D.x0 + D.x1) / 2, y: D.y0, z: (D.z0 + D.z1) / 2 };
   if (D.lift) {
     if (power(g, D.circuit) < 2 || power(g, sim.world.def.circuit) < 2) {
       say(g, g.station?.main ? 'Gen-1 is up but this floor is not taking it. The feed is open somewhere below.' : 'The call button is dead. The surface lift runs off Gen-1, five floors down.');

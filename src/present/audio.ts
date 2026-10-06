@@ -1,14 +1,35 @@
 /* Every sound is synthesised, as before: noise and tones shaped on the spot, panned by where the thing is. Ported from the
-   first engine's audio section. Sounds are played from the sim's events. */
+   first engine's audio section, and grown since: footsteps that know what they fall on, and voices for the cast.
+   Sounds are played from the sim's events and from the soundscape (soundscape.ts), which says where each one is. */
 
-const RANGE: Record<string, number> = { door: 46, roar: 55, thud: 40, hstep: 18, moan: 28, tap: 24, skit: 24, slosh: 20, swing: 10 };
+/** what a foot comes down on */
+export type Surf = 'concrete' | 'metal' | 'rock' | 'wood' | 'wet';
+
+/** how a sound reaches you: how far it travelled, which side it comes from (-1 left to 1 right), how muffled by what is
+ *  between (0 open air, 1 through rock); big for the heavy kind; what it stands on; how hard (0..1) */
+export interface Voice { d?: number; pan?: number; muffle?: number; big?: boolean; surf?: Surf; k?: number }
+
+const RANGE: Record<string, number> = {
+  door: 46, roar: 55, thud: 40, hstep: 18, moan: 28, tap: 24, skit: 24, slosh: 20, swing: 10, step: 30, rattle: 30,
+  breath: 10, mutter: 20, click: 14, gurgle: 22, growl: 30, slither: 10, bubble: 12, creak: 12, drip: 30, scrape: 20, crate: 30,
+  'die-husk': 40, 'die-skitter': 36, 'die-bloat': 46, 'die-thresher': 50, 'die-worm': 20, 'die-swimmer': 20, 'die-grabber': 24,
+};
+
+const rnd = (a: number, b: number) => a + Math.random() * (b - a);
 
 export class Audio {
   private ac: AudioContext | null = null;
   private master!: GainNode;
+  /** everything in the world goes through here: muffled when your ears are under water */
+  private bus!: GainNode;
+  private under!: BiquadFilterNode;
+  private dest!: AudioNode;
   private noise!: AudioBuffer;
   private hum!: GainNode;
-  private pan = 0;
+  /** a cave's air moving */
+  private bed!: GainNode;
+  /** footsteps alternate feet */
+  private foot = false;
 
   /** audio can only start on a click */
   start(): void {
@@ -17,14 +38,22 @@ export class Audio {
       const ac = new AudioContext();
       this.ac = ac;
       this.master = ac.createGain(); this.master.gain.value = 0.55; this.master.connect(ac.destination);
+      this.under = ac.createBiquadFilter(); this.under.type = 'lowpass'; this.under.frequency.value = 22000; this.under.connect(this.master);
+      this.bus = ac.createGain(); this.bus.connect(this.under);
+      this.dest = this.bus;
       this.noise = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
       const d = this.noise.getChannelData(0);
       for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
       /* the station's drone, and Gen-1's hum (silent until it runs) */
-      for (const f of [46, 49.3]) { const o = ac.createOscillator(), g = ac.createGain(); o.frequency.value = f; g.gain.value = 0.06; o.connect(g); g.connect(this.master); o.start(); }
+      for (const f of [46, 49.3]) { const o = ac.createOscillator(), g = ac.createGain(); o.frequency.value = f; g.gain.value = 0.06; o.connect(g); g.connect(this.bus); o.start(); }
       const o = ac.createOscillator(), fl = ac.createBiquadFilter();
       this.hum = ac.createGain(); o.type = 'sawtooth'; o.frequency.value = 100; fl.type = 'lowpass'; fl.frequency.value = 220; this.hum.gain.value = 0;
-      o.connect(fl); fl.connect(this.hum); this.hum.connect(this.master); o.start();
+      o.connect(fl); fl.connect(this.hum); this.hum.connect(this.bus); o.start();
+      /* air in the rock: noise, low and slow, silent until you are in a cave */
+      const s = ac.createBufferSource(), bf = ac.createBiquadFilter();
+      s.buffer = this.noise; s.loop = true; bf.type = 'bandpass'; bf.frequency.value = 240; bf.Q.value = 0.6;
+      this.bed = ac.createGain(); this.bed.gain.value = 0;
+      s.connect(bf); bf.connect(this.bed); this.bed.connect(this.bus); s.start();
     } catch { this.ac = null; }
   }
 
@@ -32,64 +61,186 @@ export class Audio {
     if (this.ac) this.hum.gain.value = on ? 0.035 : 0;
   }
 
-  private out(): AudioNode {
-    if (!this.pan || !this.ac!.createStereoPanner) return this.master;
-    const p = this.ac!.createStereoPanner();
-    p.pan.value = this.pan;
-    p.connect(this.master);
-    return p;
-  }
-  private tn(f0: number, f1: number, dur: number, type: OscillatorType, vol: number): void {
-    if (vol < 0.003) return;
-    const ac = this.ac!, o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime;
-    o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(Math.max(1, f1), t + dur);
-    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-    o.connect(g); g.connect(this.out()); o.start(t); o.stop(t + dur + 0.02);
-  }
-  private nz(dur: number, vol: number, freq: number, type: BiquadFilterType = 'lowpass'): void {
-    if (vol < 0.003) return;
-    const ac = this.ac!, s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain(), t = ac.currentTime;
-    s.buffer = this.noise; f.type = type; f.frequency.value = freq;
-    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-    s.connect(f); f.connect(g); g.connect(this.out()); s.start(t, Math.random() * 0.5, dur + 0.05);
+  /** your ears under water: everything dull and close */
+  setUnder(on: boolean): void {
+    if (!this.ac) return;
+    this.under.frequency.setTargetAtTime(on ? 420 : 22000, this.ac.currentTime, on ? 0.05 : 0.12);
   }
 
-  /** a sound from a place: distance sets the level, bearing sets the pan. (from: the listener and the way they face) */
-  at(n: string, x: number, z: number, from: { x: number; z: number; yaw: number }, big = false): void {
-    if (!this.ac) return;
-    const dx = x - from.x, dz = z - from.z, d = Math.hypot(dx, dz);
-    this.pan = d < 0.6 ? 0 : Math.max(-1, Math.min(1, (dx * Math.cos(from.yaw) - dz * Math.sin(from.yaw)) / d)) * 0.85;
-    this.play(n, d, big);
-    this.pan = 0;
+  /** the cave's air, 0 to 1 */
+  setBed(k: number): void {
+    if (this.ac) this.bed.gain.setTargetAtTime(0.05 * k, this.ac.currentTime, 0.8);
   }
 
-  play(n: string, d = 0, big = false): void {
+  /** where this sound's parts go: muffled by what is between, then to its side */
+  private chain(pan: number, muffle: number): AudioNode {
+    const ac = this.ac!;
+    let to: AudioNode = this.bus;
+    if (pan && ac.createStereoPanner) { const p = ac.createStereoPanner(); p.pan.value = pan; p.connect(to); to = p; }
+    if (muffle > 0.02) {
+      const f = ac.createBiquadFilter();
+      f.type = 'lowpass'; f.frequency.value = 18000 * Math.pow(300 / 18000, Math.min(1, muffle));
+      f.connect(to); to = f;
+    }
+    return to;
+  }
+  /** a tone sweeping f0 to f1, `t` seconds from now, rising over `atk` and dying away */
+  private tn(f0: number, f1: number, dur: number, type: OscillatorType, vol: number, t = 0, atk = 0): void {
+    if (vol < 0.003) return;
+    const ac = this.ac!, o = ac.createOscillator(), g = ac.createGain(), t0 = ac.currentTime + t;
+    o.type = type; o.frequency.setValueAtTime(f0, t0); o.frequency.exponentialRampToValueAtTime(Math.max(1, f1), t0 + dur);
+    if (atk > 0) { g.gain.setValueAtTime(0.001, t0); g.gain.linearRampToValueAtTime(vol, t0 + atk); } else g.gain.setValueAtTime(vol, t0);
+    g.gain.exponentialRampToValueAtTime(0.001, t0 + Math.max(dur, atk + 0.01));
+    o.connect(g); g.connect(this.dest); o.start(t0); o.stop(t0 + Math.max(dur, atk) + 0.02);
+  }
+  /** filtered noise, `t` seconds from now; its filter sweeps to f1 if given, rises over `atk` */
+  private nz(dur: number, vol: number, freq: number, type: BiquadFilterType = 'lowpass', t = 0, q = 1, f1 = 0, atk = 0): void {
+    if (vol < 0.003) return;
+    const ac = this.ac!, s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain(), t0 = ac.currentTime + t;
+    s.buffer = this.noise; f.type = type; f.frequency.setValueAtTime(freq, t0); f.Q.value = q;
+    if (f1 > 0) f.frequency.exponentialRampToValueAtTime(f1, t0 + dur);
+    if (atk > 0) { g.gain.setValueAtTime(0.001, t0); g.gain.linearRampToValueAtTime(vol, t0 + atk); } else g.gain.setValueAtTime(vol, t0);
+    g.gain.exponentialRampToValueAtTime(0.001, t0 + Math.max(dur, atk + 0.01));
+    s.connect(f); f.connect(g); g.connect(this.dest); s.start(t0, Math.random() * 0.5, Math.max(dur, atk) + 0.05);
+  }
+
+  /** a foot coming down on something, at `vol`, `t` seconds from now */
+  private step(s: Surf, vol: number, t = 0): void {
+    const p = rnd(0.88, 1.12) * ((this.foot = !this.foot) ? 1 : 0.94);
+    switch (s) {
+      case 'metal': // grating: it rings
+        this.tn(95 * p, 60, 0.08, 'sine', 0.4 * vol, t);
+        this.nz(0.05, 0.55 * vol, 1300 * p, 'bandpass', t, 1.2);
+        this.tn(380 * p, 365 * p, 0.18, 'triangle', 0.16 * vol, t);
+        this.tn(1130 * p, 1090 * p, 0.1, 'triangle', 0.07 * vol, t);
+        this.nz(0.04, 0.25 * vol, 2400 * p, 'bandpass', t + 0.05, 1.5);
+        break;
+      case 'rock': // grit underfoot
+        this.tn(90 * p, 50, 0.06, 'sine', 0.35 * vol, t);
+        for (let i = 0, at = t; i < 4; i++, at += rnd(0.01, 0.025)) this.nz(0.025, rnd(0.25, 0.5) * vol, rnd(1800, 3600), 'bandpass', at, 2);
+        break;
+      case 'wood': // a crate's lid: hollow
+        this.tn(190 * p, 130 * p, 0.12, 'sine', 0.55 * vol, t);
+        this.tn(420 * p, 300, 0.05, 'triangle', 0.12 * vol, t);
+        this.nz(0.05, 0.35 * vol, 500, 'lowpass', t);
+        break;
+      case 'wet': // a puddle
+        this.tn(90, 55, 0.06, 'sine', 0.3 * vol, t);
+        this.nz(0.12, 0.45 * vol, 1800 * p, 'bandpass', t, 0.7, 900);
+        this.nz(0.16, 0.25 * vol, 600 * p, 'bandpass', t + 0.02, 1);
+        break;
+      default: // concrete: the heel, then the toe
+        this.tn(110 * p, 55, 0.07, 'sine', 0.5 * vol, t);
+        this.nz(0.05, 0.6 * vol, 700 * p, 'bandpass', t, 0.8);
+        this.nz(0.04, 0.3 * vol, 1500 * p, 'bandpass', t + 0.045, 1);
+    }
+  }
+  /** something heavy putting its weight down */
+  private heavy(s: Surf, vol: number): void {
+    const p = rnd(0.85, 1.15);
+    this.tn(58 * p, 32, 0.22, 'sine', 0.55 * vol);
+    this.nz(0.16, 0.5 * vol, 160 * p);
+    if (s === 'wet') { this.nz(0.35, 0.4 * vol, 900, 'bandpass', 0.02, 0.8, 300); return; }
+    this.step(s, 0.3 * vol);
+  }
+
+  play(n: string, o: Voice = {}): void {
     if (!this.ac) return;
-    let v = Math.max(0, Math.min(1, 1 - d / (RANGE[n] ?? 22)));
+    let v = Math.max(0, Math.min(1, 1 - (o.d ?? 0) / (RANGE[n] ?? 22)));
     if (v <= 0) return;
     v *= v;
-    switch (n) {
-      case 'step': this.nz(0.06, 0.06 * v, 300); break;
-      case 'hstep': if (big) { this.nz(0.12, 0.5 * v, 140); this.tn(60, 40, 0.1, 'sine', 0.3 * v); } else this.nz(0.07, 0.32 * v, 380); break;
-      case 'slosh': this.nz(0.3, 0.22 * v, 700, 'bandpass'); this.nz(0.2, 0.15 * v, 250); break;
-      case 'swing': this.nz(0.14, 0.12 * v, 1200, 'bandpass'); break;
-      case 'hit': this.nz(0.12, 0.5, 260); this.tn(95, 50, 0.14, 'square', 0.2); break;
-      case 'clang': this.tn(900, 700, 0.18, 'triangle', 0.15); this.nz(0.05, 0.2, 2000, 'bandpass'); break;
-      case 'hurt': this.tn(180, 60, 0.35, 'sawtooth', 0.3); this.nz(0.2, 0.3, 500); break;
-      case 'thud': this.nz(0.25, 0.7 * v, 120); break;
-      case 'door': this.nz(0.4, 0.5 * v, 260); this.tn(85, 48, 0.35, 'sine', 0.35 * v); this.tn(320, 180, 0.12, 'square', 0.05 * v); break;
-      case 'take': this.tn(520, 780, 0.07, 'sine', 0.1); break;
-      case 'deny': this.tn(140, 140, 0.15, 'square', 0.1); break;
-      case 'power': this.nz(0.6, 0.7, 90); this.tn(40, 100, 2.5, 'sawtooth', 0.12); break;
-      case 'paper': this.nz(0.15, 0.1, 3000, 'highpass'); break;
-      case 'eat': this.nz(0.2, 0.12, 800); break;
-      case 'tap': this.tn(big ? 500 : 1400, big ? 300 : 900, 0.025, 'square', 0.1 * v); break;
-      case 'skit': this.tn(900, 1500, 0.15, 'sawtooth', 0.09 * v); break;
-      case 'moan': this.tn(190, 120, 0.7, 'sawtooth', 0.12 * v); this.tn(285, 170, 0.6, 'sine', 0.1 * v); break;
-      case 'roar': this.tn(120, 55, 0.8, 'sawtooth', 0.4 * v); this.nz(0.7, 0.3 * v, 600); break;
-      case 'shot': this.nz(0.18, 0.9, 1800); this.tn(220, 60, 0.12, 'square', 0.4); break;
-      case 'boom': this.nz(0.4, 1, 900); this.tn(120, 40, 0.3, 'sawtooth', 0.6); break;
-      case 'load': this.tn(300, 380, 0.05, 'triangle', 0.05); break;
-    }
+    const big = !!o.big, surf = o.surf ?? 'concrete', k = o.k ?? 0.5;
+    this.dest = this.chain(o.pan ?? 0, o.muffle ?? 0);
+    try {
+      switch (n) {
+        /* you */
+        case 'step': this.step(surf, 0.16 * v); break;
+        case 'land':
+          this.step(surf, (0.16 + 0.25 * k));
+          this.tn(80, 40, 0.12 + 0.1 * k, 'sine', 0.25 + 0.5 * k);
+          this.nz(0.15 + 0.15 * k, 0.15 + 0.5 * k, 200);
+          if (k > 0.5) this.nz(0.08, 0.15 * k, 3200, 'highpass', 0.05); // what you carry rattles
+          break;
+        case 'jump': this.nz(0.08, 0.1, 900, 'bandpass', 0, 1, 500); this.nz(0.15, 0.04, 2500, 'bandpass', 0.02, 1, 1200, 0.04); break;
+        case 'slosh': this.nz(0.3, 0.22 * v, rnd(600, 800), 'bandpass', 0, 1, 400); this.nz(0.2, 0.15 * v, 250); break;
+        case 'stroke': this.nz(0.45, 0.14 * v, 500, 'bandpass', 0, 0.8, 1100, 0.15); this.nz(0.3, 0.08 * v, 250, 'lowpass', 0.1); break;
+        case 'splash':
+          this.nz(0.6, 0.5 * k, 900, 'bandpass', 0, 0.7, 300); this.nz(0.3, 0.35 * k, 3000, 'highpass');
+          this.tn(110, 40, 0.25, 'sine', 0.3 * k);
+          break;
+        case 'gasp': this.nz(0.45, 0.12 + 0.12 * k, 1300, 'bandpass', 0, 1.2, 700, 0.05); this.nz(0.5, 0.07, 900, 'bandpass', 0.55, 1.5, 500, 0.1); break;
+        case 'heart': this.tn(60, 40, 0.12, 'sine', 0.2 + 0.25 * k); this.tn(55, 38, 0.1, 'sine', 0.14 + 0.18 * k, 0.22); break;
+        case 'bubble':
+          for (let i = 0, at = 0; i < 3 + (big ? 3 : 0); i++, at += rnd(0.04, 0.12)) { const f = rnd(350, 900); this.tn(f, f * 1.7, 0.05, 'sine', 0.07 * v, at); }
+          break;
+
+        /* the cast */
+        case 'hstep':
+          if (big) { this.heavy(surf, v); break; }
+          this.step(surf, 0.3 * v);
+          if (Math.random() < 0.6) this.nz(0.18, 0.1 * v, 400, 'bandpass', 0.06, 1.5, 900, 0.05); // a foot dragged
+          break;
+        case 'tap': {
+          const f = big ? rnd(450, 650) : rnd(1200, 1700);
+          for (let i = 0, at = 0; i < 3; i++, at += rnd(0.02, 0.035)) this.tn(f * rnd(0.9, 1.1), f * 0.65, 0.025, 'square', (i ? 0.06 : 0.1) * v, at);
+          if (surf === 'wet') this.nz(0.1, 0.12 * v, 1600, 'bandpass', 0, 1);
+          break;
+        }
+        case 'skit': this.tn(900, 1500, 0.15, 'sawtooth', 0.09 * v); break;
+        case 'moan': this.tn(190, 120, 0.7, 'sawtooth', 0.12 * v); this.tn(285, 170, 0.6, 'sine', 0.1 * v); break;
+        case 'roar': this.tn(120, 55, 0.8, 'sawtooth', 0.4 * v); this.nz(0.7, 0.3 * v, 600); break;
+        case 'swing': this.nz(0.14, 0.12 * v, 1200, 'bandpass'); break;
+        case 'breath': // a husk at rest: in, and a long way out
+          this.nz(0.6, 0.06 * v, 600, 'bandpass', 0, 3, 900, 0.4);
+          this.nz(0.9, 0.07 * v, 800, 'bandpass', 0.7, 3, 450, 0.2);
+          break;
+        case 'mutter': { const f = rnd(120, 170); this.tn(f, f * 0.7, 0.45, 'sawtooth', 0.07 * v, 0, 0.08); this.nz(0.4, 0.05 * v, 650, 'bandpass', 0, 2, 0, 0.08); break; }
+        case 'click': for (let i = 0, at = 0; i < 2 + Math.floor(Math.random() * 3); i++, at += rnd(0.06, 0.18)) this.tn(rnd(1800, 2600), 1400, 0.015, 'square', 0.06 * v, at); break;
+        case 'gurgle': this.nz(0.8, 0.12 * v, 180, 'bandpass', 0, 4, 420, 0.2); this.tn(70, 58, 0.7, 'sine', 0.12 * v, 0, 0.2); break;
+        case 'growl': this.tn(rnd(62, 74), 55, 1.2, 'sawtooth', 0.11 * v, 0, 0.3); this.nz(1.1, 0.1 * v, 280, 'lowpass', 0, 1, 0, 0.3); break;
+        case 'slither': this.nz(0.35, 0.08 * v, 1200, 'bandpass', 0, 2, 700, 0.1); break;
+        case 'creak': { const f = rnd(110, 160); this.tn(f, f * 0.9, 0.6, 'sawtooth', 0.05 * v, 0, 0.2); this.nz(0.5, 0.05 * v, 1800, 'bandpass', 0, 6, 0, 0.2); break; }
+        case 'die-husk':
+          this.tn(170, 70, 1.1, 'sawtooth', 0.14 * v, 0, 0.05); this.tn(255, 90, 0.9, 'sine', 0.1 * v);
+          this.nz(0.25, 0.45 * v, 140, 'lowpass', 0.55);
+          break;
+        case 'die-skitter': this.tn(1500, 300, 0.5, 'sawtooth', 0.09 * v); this.nz(0.2, 0.3 * v, 200, 'lowpass', 0.3); break;
+        case 'die-bloat':
+          this.nz(1.3, 0.3 * v, 320, 'bandpass', 0, 2, 110, 0.1); this.tn(90, 40, 1.2, 'sawtooth', 0.18 * v);
+          this.nz(0.4, 0.7 * v, 110, 'lowpass', 0.9); this.tn(55, 30, 0.35, 'sine', 0.5 * v, 0.9);
+          break;
+        case 'die-thresher':
+          this.tn(140, 35, 1.4, 'sawtooth', 0.35 * v); this.nz(1.2, 0.3 * v, 400);
+          this.nz(0.35, 0.7 * v, 120, 'lowpass', 0.8); this.tn(50, 30, 0.3, 'sine', 0.5 * v, 0.8);
+          break;
+        case 'die-worm': case 'die-swimmer': this.nz(0.3, 0.25 * v, 700, 'bandpass', 0, 1.5, 200); this.tn(300, 120, 0.3, 'sine', 0.08 * v); break;
+        case 'die-grabber': this.tn(220, 90, 0.5, 'sawtooth', 0.1 * v); this.nz(0.1, 0.3 * v, 2500, 'bandpass', 0, 2); break;
+
+        /* the station */
+        case 'door': this.nz(0.4, 0.5 * v, 260); this.tn(85, 48, 0.35, 'sine', 0.35 * v); this.tn(320, 180, 0.12, 'square', 0.05 * v); break;
+        case 'thud': this.nz(0.25, 0.7 * v, 120); break;
+        case 'rattle':
+          for (let i = 0, at = 0; i < 3; i++, at += rnd(0.03, 0.08)) { const f = rnd(500, 1400); this.tn(f, f * 0.96, 0.08, 'triangle', 0.08 * v, at); }
+          this.nz(0.12, 0.25 * v, 1500, 'bandpass', 0, 1.5);
+          this.tn(60, 40, 0.1, 'sine', 0.2 * v);
+          break;
+        case 'crate': this.tn(170, 110, 0.15, 'sine', (0.25 + 0.4 * k) * v); this.nz(0.2, (0.3 + 0.4 * k) * v, 300); this.nz(0.06, 0.15 * k * v, 2000, 'bandpass', 0.01); break;
+        case 'scrape': this.nz(0.25, 0.14 * v, 300, 'bandpass', 0, 2, 520, 0.03); this.nz(0.2, 0.1 * v, 150, 'lowpass'); break;
+        case 'drip': { const f = rnd(1400, 2600); this.tn(f, f * 0.5, 0.06, 'sine', 0.05 * v); this.tn(f, f * 0.5, 0.06, 'sine', 0.015 * v, 0.17); break; }
+
+        /* what you do */
+        case 'hit': this.nz(0.12, 0.5, 260); this.tn(95, 50, 0.14, 'square', 0.2); break;
+        case 'clang': this.tn(900, 700, 0.18, 'triangle', 0.15); this.nz(0.05, 0.2, 2000, 'bandpass'); break;
+        case 'hurt': this.tn(180, 60, 0.35, 'sawtooth', 0.3); this.nz(0.2, 0.3, 500); break;
+        case 'take': this.tn(520, 780, 0.07, 'sine', 0.1); break;
+        case 'deny': this.tn(140, 140, 0.15, 'square', 0.1); break;
+        case 'power': this.nz(0.6, 0.7, 90); this.tn(40, 100, 2.5, 'sawtooth', 0.12); break;
+        case 'paper': this.nz(0.15, 0.1, 3000, 'highpass'); break;
+        case 'eat': this.nz(0.2, 0.12, 800); break;
+        case 'shot': this.nz(0.18, 0.9, 1800); this.tn(220, 60, 0.12, 'square', 0.4); break;
+        case 'boom': this.nz(0.4, 1, 900); this.tn(120, 40, 0.3, 'sawtooth', 0.6); break;
+        case 'load': this.tn(300, 380, 0.05, 'triangle', 0.05); break;
+      }
+    } finally { this.dest = this.bus; }
   }
 }
