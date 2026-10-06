@@ -125,9 +125,29 @@ export function buildLevelMesh(w: World, L: Lighting): LevelMesh {
     for (const [ua, ub] of us) for (const [va, vb] of vs) o.rect(a, s, ua, ub, va, vb, c, room, m, flick);
   };
 
+  /* is a floor (or ceiling) face at height s over x0..x1, z0..z1 lying wholly under (over) a sloped surface of its kind,
+     at or above (below) it everywhere? Then the surface is what shows, and drawing both would have them fight where they
+     meet in one plane: a cave whose floor is flat at its room's floor, say. Asked every half metre across the face. */
+  const covered = (floor: boolean, s: number, x0: number, x1: number, z0: number, z1: number): boolean => {
+    const kind = floor ? 'floor' : 'ceiling';
+    return w.surfaces.some(sf => {
+      const d = sf.def;
+      if (d.kind !== kind || d.hidden || x0 < d.x0 - 1e-3 || x1 > d.x1 + 1e-3 || z0 < d.z0 - 1e-3 || z1 > d.z1 + 1e-3) return false;
+      const nx = Math.max(1, Math.ceil((x1 - x0) / 0.5)), nz = Math.max(1, Math.ceil((z1 - z0) / 0.5));
+      for (let i = 0; i <= nx; i++) for (let j = 0; j <= nz; j++) {
+        const x = Math.min(Math.max(x0 + ((x1 - x0) * i) / nx, x0 + 0.01), x1 - 0.01), z = Math.min(Math.max(z0 + ((z1 - z0) * j) / nz, z0 + 0.01), z1 - 0.01);
+        if (!sf.has(x, z)) return false;
+        const h = sf.heightAt(x, z);
+        if (floor ? h < s - 0.002 : h > s + 0.002) return false;
+      }
+      return true;
+    });
+  };
+
   /* one face: axis a, plane s (world), rectangle over the other two axes (world), the open side's room, the solid's block (-1 rock) */
   const face = (a: number, s: number, u0: number, u1: number, v0: number, v1: number, room: number, block: number, openUp: boolean) => {
     const R = w.rooms[room];
+    if (a === 1 && covered(openUp, s, u0, u1, v0, v1)) return;
     if (block >= 0) {
       put(a, s, u0, u1, v0, v1, room, w.blocks[block].colour, 1);
       return;
@@ -216,14 +236,16 @@ export function buildLevelMesh(w: World, L: Lighting): LevelMesh {
 
   for (const sf of w.surfaces) if (!sf.def.hidden) surfaceMesh(o, w, sf);
 
-  /* fixed props, lit by the room they stand in (where they stand, for lamp pools); fittings show their circuit's power */
-  for (const p of w.def.props) {
-    if (p.loose) continue;
+  /* fixed props, lit by the room they stand in (where they stand, for lamp pools); fittings show their circuit's power.
+     Each is drawn a hair larger than it is (apart: see `apart`), so where two meet face to face, or one stands on the
+     floor or a shelf, the faces are not in one plane and do not fight. */
+  w.def.props.forEach((p, k) => {
+    if (p.loose) return;
     const R = w.roomAt(p.x, p.y + 0.05, p.z) ?? w.roomAt(p.x, p.y + p.sy / 2, p.z), src: Src = { room: R ? R.id : -1, x: p.x, z: p.z, m: p.glow, flick: 0 };
-    const first = o.count;
-    propVerts(p, (x, y, z) => o.vert(x, y, z, p.colour, src));
+    const first = o.count, e = apart(k);
+    propVerts({ ...p, sx: p.sx + 2 * e, sy: p.sy + 2 * e, sz: p.sz + 2 * e, y: p.y - e }, (x, y, z) => o.vert(x, y, z, p.colour, src));
     if (p.pw) o.pw.push([first, o.count - first, p.pw, p.pc ?? w.def.circuit]);
-  }
+  });
 
   const mesh = new LevelMesh(o);
   mesh.relight(L);
@@ -241,6 +263,11 @@ export function propVerts(p: PropDef, put: (x: number, y: number, z: number) => 
     put(px + X, by + Y, pz + Z);
   }
 }
+
+/** how much larger than it is the k-th of a set of parts is drawn, each side: 1 to 7 mm, different for neighbours, so two
+ *  parts made flush (a button on its post, a box on a shelf, a crate on the floor) never share a plane. Everything is
+ *  drawn two-sided, so a face pressed against another shows through it unless one stands clear. */
+export const apart = (k: number): number => 0.001 * (1 + (k % 7));
 
 /** a sloped surface: its lattice as quads, and for a ramp its edges down to the base */
 function surfaceMesh(o: Out, w: World, sf: Surface): void {

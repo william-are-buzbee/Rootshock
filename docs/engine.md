@@ -345,7 +345,8 @@ sequence of inputs. The door rules, the labels and the answers are the first eng
   caves drift on their own. Moving air carries dust off: a ventilated room shows a quarter of a stuffy one's, a room on
   its backup set about half. Each speck has its own velocity, easing toward the air's, and anything moving through it,
   you or the cast, drags it along and shoves it aside; it keeps that push until the air takes it back. A room says what is in its air (`RoomDef.motes`): spores in Horticulture and the cave,
-  red flecks in the Cargo nest and the nest residences, dust elsewhere. A door shut twenty seconds or more breathes out
+  dark red flecks in the Cargo nest and the nest residences, dust elsewhere; even there most specks are dust, with the
+  room's own kind among them. A door shut twenty seconds or more breathes out
   at you when it opens, with a gust you hear.
 - **Footprints** (since; `present/render/prints.ts`), yours and the cast's: one a pace as each walks, the way it
   faces. Out of water soles are wet for a dozen prints or so, which dry off in half a minute; through blood (a pool
@@ -360,6 +361,10 @@ sequence of inputs. The door rules, the labels and the answers are the first eng
   step back from is heard to miss; the cast are rocked back when struck, and a light one knocked back slides its
   0.3 m over a sixth of a second. A swing lands on whatever in reach is nearest the crosshair (the nearer of two about
   as near it), so with two in front of you, you choose which you hit by looking at it.
+- **Nothing fights in one plane** (since): everything is drawn two-sided, so two faces in one plane (a button flush with
+  its post, a box on a shelf or the floor, a crate on a crate) showed through each other as you moved. Each prop and
+  each part of a thing is drawn 1 to 7 mm larger than it is, different for neighbours (`apart` in `levelMesh.ts`). A
+  grid floor or ceiling that a sloped surface covers (a cave flat at its room's floor) is not drawn at all.
 - **UI** stays in HTML over the canvas, with the current type and colours (Barlow Condensed, Newsreader, bone, ash,
   hazard).
 - **Dev tools** carry over (`?dev`, fly, god, level select, map), plus overlays for colliders, nav graph and noise.
