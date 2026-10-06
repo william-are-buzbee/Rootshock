@@ -11,7 +11,7 @@ import { Prints } from '../src/present/render/prints';
    too; a print on one already there grows it. */
 
 const level = buildUpper(STATION.ladders);
-type Print = { x: number; z: number; stuff: 'wet' | 'red' | 'green'; k: number; size: number };
+type Print = { x: number; z: number; stuff: 'wet' | 'red' | 'green'; k: number; w: number; l: number };
 const list = (p: Prints) => (p as unknown as { list: Print[] }).list;
 
 function setUp() {
@@ -71,22 +71,23 @@ describe('footprints', () => {
     const soles = list(p).filter(q => q.stuff === 'red');
     expect(soles.length).toBeGreaterThan(3);
     const before = list(p).length;
-    walkIt(sk, S.x - 2, S.x + 4, S.z);
+    walkIt(sk, S.x - 2, S.x + 4, S.z + 0.7); // its legs splay wide: one side's claws through the middle of the pool
     expect(list(p).length).toBeGreaterThan(before + 3); // a skitter's pace is short: more prints in less ground
   });
 
   it('a print that comes down on one already there grows it instead of lying on top', () => {
     const { sim, p } = setUp();
     type Step = (sim: Sim, F: object, g: object, x: number, y: number, z: number, face: number, wet: boolean, firm: boolean) => void;
-    const step = (p as unknown as { step: Step }).step.bind(p), gait = { size: 0.12, pace: 0.75, side: 0.1 };
+    const step = (p as unknown as { step: Step }).step.bind(p), gait = { w: 0.12, l: 0.28, pace: 0.75, side: 0.1 };
     const F = { x: 66, z: 0, gone: 0, left: false, wet: 0, blood: 1, sap: false };
     step(sim, F, gait, 66, 0, 0, 0, false, true);
-    const first = list(p)[0].size;
+    const first = list(p)[0].w;
     F.left = false; F.blood = 1;
     step(sim, F, gait, 66, 0, 0, 0, false, true); // the same foot in the same place
     expect(list(p).length).toBe(1);
-    expect(list(p)[0].size).toBeGreaterThan(first);
+    expect(list(p)[0].w).toBeGreaterThan(first);
     for (let k = 0; k < 30; k++) { F.left = false; F.blood = 1; step(sim, F, gait, 66, 0, 0, 0, false, true); }
-    expect(list(p)[0].size).toBeLessThanOrEqual(0.4); // up to a point
+    expect(list(p)[0].w).toBeLessThanOrEqual(first * 1.6 + 1e-6); // up to a point
+    expect(list(p)[0].l).toBeLessThanOrEqual(0.28 * 1.6 + 1e-6);
   });
 });

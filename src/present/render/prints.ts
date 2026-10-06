@@ -4,17 +4,17 @@ import type { Sim } from '../../sim/sim';
 import type { Lighting } from '../../world/light';
 import { U } from './shader';
 
-/* What is left on the floor: squares, the one shape blood has in this station (content's blood(), a dark red box).
+/* What is left on the floor: flat blocks, the one shape blood has in this station (content's blood(), a dark red box).
 
    Footprints, yours and the cast's: out of water soles are wet for a dozen prints or so, and those dry off in half a
    minute; through blood (a pool on the floor, or under one of the cast that fell) they are red for about ten, and
-   those stay; through what a green one bled, green. Each print is a small square under the foot, smaller and fainter
-   as what is on the sole runs out. A walker's size and pace set its squares': you and the husks a pace apart, left
-   and right; the thresher bigger and further apart; a skitter small and quick; a worm one wide square where it
-   dragged itself.
+   those stay; through what a green one bled, green. Each print is a block the size of the foot that made it (the
+   models in castView), a touch smaller and fainter as what is on the sole runs out. A walker's feet and pace set its
+   prints: you and the husks a pace apart, left and right; the thresher's broader and further apart; a skitter's
+   small and quick; a worm one wide patch where it dragged itself.
 
-   A print that comes down on one already there grows that square (up to a point) rather than lying on top of it, so
-   a path walked over and over darkens into one patch instead of a pile of squares. (Bleeding is for later.)
+   A print that comes down on one already there grows that one (up to a point) rather than lying on top of it, so
+   a path walked over and over darkens into one patch instead of a pile of prints. (Bleeding is for later.)
 
    None in water, on a crate or on a platform. The newest 256 are kept. Looks only: not part of the sim, and not saved. */
 
@@ -23,26 +23,27 @@ const MAX = 256;
 const WET_LEFT = 0.86, BLOOD_LEFT = 0.8;
 /** seconds a wet print takes to dry */
 const DRY = 32;
-/** a print come down on one already there: how much it grows that one, and how big it can get */
-const GROW = { by: 0.035, most: 0.4 };
+/** a print come down on one already there: how much it grows that one each way, and how far past its first size */
+const GROW = { by: 0.03, most: 1.6 };
 
 /** what a print is of: water, blood, or a green one's sap */
 type Stuff = 'wet' | 'red' | 'green';
 /** the station's blood is 0x3a0b0b; sap is the green ones' (castView's 0x24401f) */
 const COLOUR: Record<Stuff, [number, number, number]> = { wet: [0.05, 0.05, 0.055], red: [0.23, 0.045, 0.045], green: [0.14, 0.25, 0.12] };
 
-/** how each kind walks: its square's size, a pace, and how far its feet are from its middle */
-interface Gait { size: number; pace: number; side: number }
-const YOU: Gait = { size: 0.12, pace: 0.75, side: 0.1 };
+/** how each kind walks: its foot (width across, length along, as its model has it in castView), a pace, and how far
+ *  its feet are from its middle. Yours are a boot's. */
+interface Gait { w: number; l: number; pace: number; side: number }
+const YOU: Gait = { w: 0.12, l: 0.28, pace: 0.75, side: 0.1 };
 const GAIT: Partial<Record<string, Gait>> = {
-  husk: { size: 0.13, pace: 0.8, side: 0.11 },
-  thresher: { size: 0.24, pace: 1.2, side: 0.22 },
-  skitter: { size: 0.07, pace: 0.4, side: 0.2 },
-  worm: { size: 0.26, pace: 0.4, side: 0 },
+  husk: { w: 0.16, l: 0.26, pace: 0.8, side: 0.11 },
+  thresher: { w: 0.17, l: 0.3, pace: 1.2, side: 0.17 },
+  skitter: { w: 0.11, l: 0.16, pace: 0.4, side: 0.7 },
+  worm: { w: 0.38, l: 0.36, pace: 0.36, side: 0 },
 };
 
 const VS = /* glsl */ `
-attribute vec3 iPos; attribute float iYaw; attribute float iSize; attribute vec3 iCol; attribute float iA; attribute vec3 iL;
+attribute vec3 iPos; attribute float iYaw; attribute vec2 iSize; attribute vec3 iCol; attribute float iA; attribute vec3 iL;
 uniform vec3 uFlashDir; uniform float uFlash; uniform float uLamp; uniform float uFog; uniform float uExpo;
 varying vec3 vC; varying float vA;
 void main(){
@@ -65,8 +66,8 @@ void main(){
   gl_FragColor = vec4(vC, vA);
 }`;
 
-/** a square on the floor: where, of what, how strong (0..1), how old, how big */
-interface Print { x: number; y: number; z: number; stuff: Stuff; k: number; age: number; size: number }
+/** a print on the floor: where, of what, how strong (0..1), how old, how big (across and along) and how big it began */
+interface Print { x: number; y: number; z: number; stuff: Stuff; k: number; age: number; w: number; l: number; w0: number; l0: number }
 
 /** a walker's soles: where it was, how far since its last print, which foot, what is on its feet */
 interface Feet { x: number; z: number; gone: number; left: boolean; wet: number; blood: number; sap: boolean }
@@ -75,7 +76,7 @@ export class Prints {
   private geo = new THREE.InstancedBufferGeometry();
   private iPos = new Float32Array(MAX * 3);
   private iYaw = new Float32Array(MAX);
-  private iSize = new Float32Array(MAX);
+  private iSize = new Float32Array(MAX * 2);
   private iCol = new Float32Array(MAX * 3);
   private iA = new Float32Array(MAX);
   private iL = new Float32Array(MAX * 3);
@@ -92,7 +93,7 @@ export class Prints {
     const attr = (a: Float32Array, n: number) => new THREE.InstancedBufferAttribute(a, n).setUsage(THREE.DynamicDrawUsage);
     this.geo.setAttribute('iPos', attr(this.iPos, 3));
     this.geo.setAttribute('iYaw', attr(this.iYaw, 1));
-    this.geo.setAttribute('iSize', attr(this.iSize, 1));
+    this.geo.setAttribute('iSize', attr(this.iSize, 2));
     this.geo.setAttribute('iCol', attr(this.iCol, 3));
     this.geo.setAttribute('iA', attr(this.iA, 1));
     this.geo.setAttribute('iL', attr(this.iL, 3));
@@ -120,17 +121,17 @@ export class Prints {
     this.iL[k * 3] = l[0]; this.iL[k * 3 + 1] = l[1]; this.iL[k * 3 + 2] = l[2];
   }
 
-  /** is a point within a square (turned by yaw) of half-width h around (cx, cz), give or take `more`? */
-  private static under(x: number, z: number, cx: number, cz: number, yaw: number, h: number, more: number): boolean {
+  /** is a point within a print (turned by yaw) around (cx, cz), w across and l along? */
+  private static under(x: number, z: number, cx: number, cz: number, yaw: number, w: number, l: number): boolean {
     const dx = x - cx, dz = z - cz, c = Math.cos(yaw), s = Math.sin(yaw);
-    return Math.abs(dx * c - dz * s) < h + more && Math.abs(dx * s + dz * c) < h + more;
+    return Math.abs(dx * c - dz * s) < w / 2 && Math.abs(dx * s + dz * c) < l / 2;
   }
 
   /** a print of `stuff` that (x, z) on the floor at y lies on, if any */
   private printAt(x: number, y: number, z: number, stuff: Stuff): number {
     for (let k = 0; k < this.list.length; k++) {
       const P = this.list[k];
-      if (P.stuff === stuff && Math.abs(P.y - y) < 0.3 && Prints.under(x, z, P.x, P.z, this.iYaw[k], P.size / 2, 0)) return k;
+      if (P.stuff === stuff && Math.abs(P.y - y) < 0.3 && Prints.under(x, z, P.x, P.z, this.iYaw[k], P.w, P.l)) return k;
     }
     return -1;
   }
@@ -146,14 +147,14 @@ export class Prints {
     return null;
   }
 
-  /** a square at (x, y, z), turned to `yaw`, of `stuff`, this strong and this big */
-  private put(x: number, y: number, z: number, yaw: number, size: number, stuff: Stuff, k: number): void {
-    const P: Print = { x, y: y + 0.012, z, stuff, k, age: 0, size }, i = this.next;
+  /** a print at (x, y, z), turned to `yaw`, of `stuff`, this strong, w across and l along */
+  private put(x: number, y: number, z: number, yaw: number, w: number, l: number, stuff: Stuff, k: number): void {
+    const P: Print = { x, y: y + 0.012, z, stuff, k, age: 0, w, l, w0: w, l0: l }, i = this.next;
     this.next = (this.next + 1) % MAX;
     this.list[i] = P;
     this.iPos.set([P.x, P.y, P.z], i * 3);
     this.iYaw[i] = yaw;
-    this.iSize[i] = size;
+    this.iSize[i * 2] = w; this.iSize[i * 2 + 1] = l;
     this.light(P, i);
     this.geo.instanceCount = this.list.length;
     for (const a of ['iPos', 'iYaw', 'iSize', 'iL']) this.geo.getAttribute(a).needsUpdate = true;
@@ -173,12 +174,14 @@ export class Prints {
     if (on >= 0) {
       /* on a print already there: that one grows, and is as fresh as this foot */
       const P = this.list[on];
-      P.size = Math.min(GROW.most, P.size + GROW.by); P.k = Math.max(P.k, k); P.age = 0;
-      this.iSize[on] = P.size;
+      P.w = Math.min(P.w0 * GROW.most, P.w + GROW.by); P.l = Math.min(P.l0 * GROW.most, P.l + GROW.by); P.k = Math.max(P.k, k); P.age = 0;
+      this.iSize[on * 2] = P.w; this.iSize[on * 2 + 1] = P.l;
       this.geo.getAttribute('iSize').needsUpdate = true;
     } else {
-      /* smaller as what is on the sole runs out, and turned a little off true, as a foot comes down */
-      this.put(fx, y, fz, face + (Math.random() - 0.5) * 0.5, g.size * (0.5 + 0.5 * k), stuff, k);
+      /* the foot's own size, a little less as what is on the sole runs out (it fades more than it shrinks), and turned
+         a little off true, as a foot comes down */
+      const s = 0.85 + 0.15 * k;
+      this.put(fx, y, fz, face + (Math.random() - 0.5) * 0.3, g.w * s, g.l * s, stuff, k);
     }
     F.wet *= WET_LEFT; F.blood *= BLOOD_LEFT;
     if (F.wet < 0.08) F.wet = 0;
