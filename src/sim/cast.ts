@@ -101,6 +101,8 @@ export interface Mutant {
   los: boolean; losAt: number;
   /** 1 when just hit, dying away */
   hit: number;
+  /** being knocked back: its slide along the ground, m/s, dying away */
+  kx: number; kz: number;
   /** time, for its animation */
   ph: number;
   dead: boolean;
@@ -134,7 +136,7 @@ export function makeCast(sim: Sim, defs: MutantDef[]): Mutant[] {
       post: !!o.post, sit: !!o.sit, holt: !!o.holt, big: !!o.big, hx: def.x, hz: def.z, room,
       wt: rnd(1, 5), wm: 0, wx: 0, wz: 0, tk: 0, lost: 0, bt: 0, burst: false, flee: 0, ct: rnd(6, 14), cdir: 0, tgt: false,
       grab: 0, tense: 0, wind: 0, windT: 1, dest: -1, F: null, stk: 0, fled: false, side: 0, ride: null, spot: -1,
-      mv: 0, d: 99, dp: 99, dy: 0, los: false, losAt: -99, hit: 0, ph: rnd(9), dead: false, gone: 0, still: 0,
+      mv: 0, d: 99, dp: 99, dy: 0, los: false, losAt: -99, hit: 0, kx: 0, kz: 0, ph: rnd(9), dead: false, gone: 0, still: 0,
     };
     return m;
   });
@@ -599,6 +601,14 @@ export function updateCast(sim: Sim): void {
     m.d = Math.hypot(dx, dz, m.dy);
     m.mv = 0;
     m.ph += dt;
+    /* knocked back: it slides a step's worth over a few steps, not all at once */
+    if (mb && (m.kx || m.kz)) {
+      walk(sim.world, mb, m.kx * dt, m.kz * dt, 0);
+      m.x = mb.x; m.z = mb.z;
+      const k = Math.exp(-dt * KNOCK.ease);
+      m.kx *= k; m.kz *= k;
+      if (Math.hypot(m.kx, m.kz) < 0.05) m.kx = m.kz = 0;
+    }
     if (m.stun > 0) m.stun -= dt;
     else AI[m.ai](sim, m);
     if (mb) {
@@ -612,6 +622,9 @@ export function updateCast(sim: Sim): void {
   }
 }
 
+/** a knock back: how far it slides in all, and how fast the slide dies (per second) */
+const KNOCK = { dist: 0.3, ease: 14 };
+
 /** something hit it (a swing at `pow` of full, or a shot) */
 export function hitMutant(sim: Sim, m: Mutant, w: { dmg: number; stun: number }, pow: number): void {
   const g = sim.game, p = sim.player.body;
@@ -619,11 +632,10 @@ export function hitMutant(sim: Sim, m: Mutant, w: { dmg: number; stun: number },
   m.hit = 1;
   m.stun = Math.max(m.stun, (w.stun * 1.2 * (0.25 + 0.75 * pow)) / m.mass);
   sfx(g, 'hit');
-  /* light enough to be knocked back a step */
+  /* light enough to be knocked back a step: about 0.3 m, slid over a sixth of a second */
   if (m.body && m.mass <= 1.5) {
-    const dx = m.x - p.x, dz = m.z - p.z, d = Math.hypot(dx, dz) || 1;
-    walk(sim.world, m.body, (dx / d) * 0.3, (dz / d) * 0.3, 0);
-    m.x = m.body.x; m.z = m.body.z;
+    const dx = m.x - p.x, dz = m.z - p.z, d = Math.hypot(dx, dz) || 1, v = KNOCK.dist * KNOCK.ease;
+    m.kx = (dx / d) * v; m.kz = (dz / d) * v;
   }
   if (m.hp <= 0) { kill(sim, m); return; }
   switch (m.ai) {

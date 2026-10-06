@@ -83,16 +83,24 @@ function aim(sim: Sim) {
 /** a grabber's head, the only part of it worth hitting */
 const headOf = (m: Mutant) => ({ x: m.x + Math.sin(m.yaw) * 0.22, y: m.y + 2.02, z: m.z + Math.cos(m.yaw) * 0.22 });
 
+/** how well a swing is aimed at a point: how near the crosshair it is, and a little how near you */
+function aimedAt(A: ReturnType<typeof aim>, x: number, y: number, z: number): { d: number; score: number } {
+  const dx = x - A.ex, dy = y - A.ey, dz = z - A.ez, d = Math.hypot(dx, dy, dz) || 1e-3;
+  return { d, score: (dx * A.fx + dy * A.fy + dz * A.fz) / d - 0.08 * d };
+}
+
+/* A swing lands on whatever in reach is nearest the crosshair (and, between two about as near it, the nearer one),
+   so with two in front of you, you choose which you hit by looking at it. */
 function strike(sim: Sim, w: WeaponStats, pow: number): void {
   const g = sim.game, b = sim.player.body, A = aim(sim), pfx = -Math.sin(sim.player.yaw), pfz = -Math.cos(sim.player.yaw);
-  let best: Mutant | null = null, bd = 1e9;
+  let best: Mutant | null = null, bs = -1e9;
   for (const m of sim.cast) {
     if (m.dead) continue;
     if (m.fixed) {
       /* only the head counts, and you have to be looking at it */
-      const H = headOf(m), hx = H.x - A.ex, hy = H.y - A.ey, hz = H.z - A.ez, hd = Math.hypot(hx, hy, hz);
-      if (hd > w.reach + 0.75 || (hx * A.fx + hy * A.fy + hz * A.fz) / hd < 0.88) continue;
-      if (hd < bd) { bd = hd; best = m; }
+      const H = headOf(m), t = aimedAt(A, H.x, H.y, H.z);
+      if (t.d > w.reach + 0.75 || t.score + 0.08 * t.d < 0.88) continue;
+      if (t.score > bs) { bs = t.score; best = m; }
       continue;
     }
     const dx = m.x - b.x, dz = m.z - b.z, d = Math.hypot(dx, dz);
@@ -100,7 +108,8 @@ function strike(sim: Sim, w: WeaponStats, pow: number): void {
     if (d > m.r && (dx * pfx + dz * pfz) / d < 0.6) continue;
     const ty = m.y + Math.min(0.9, (m.body?.h ?? 1) * 0.6);
     if (sim.world.raycast(A.ex, A.ey, A.ez, m.x, ty, m.z, seeThrough) < 1) continue;
-    if (d < bd) { bd = d; best = m; }
+    const t = aimedAt(A, m.x, ty, m.z);
+    if (t.score > bs) { bs = t.score; best = m; }
   }
   if (best) {
     hitMutant(sim, best, w, pow);
