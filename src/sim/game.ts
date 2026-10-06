@@ -13,7 +13,9 @@ export interface Slot { id: string; n: number }
 
 export type SimEvent =
   | { type: 'say'; text: string }
-  | { type: 'sfx'; name: string; x?: number; z?: number; big?: boolean; d?: number }
+  /** a sound: where it came from (y, its height, when known), big for the heavy kind, d metres' worth quieter, k how hard
+   *  (a landing: 0 a hop, 1 a fall that hurt) */
+  | { type: 'sfx'; name: string; x?: number; y?: number; z?: number; big?: boolean; d?: number; k?: number }
   | { type: 'note'; key: string }
   | { type: 'pad' }
   | { type: 'lift' }
@@ -107,9 +109,9 @@ export function power(g: Game, c: string): PowerLevel {
 }
 
 export const say = (g: Game, text: string): void => { g.events.push({ type: 'say', text }); };
-/** a sound: from a place, or (without one) your own, `d` metres' worth quieter */
-export const sfx = (g: Game, name: string, at?: { x: number; z: number }, big?: boolean, d?: number): void => {
-  g.events.push({ type: 'sfx', name, x: at?.x, z: at?.z, big, d });
+/** a sound: from a place, or (without one) your own, `d` metres' worth quieter; `k` how hard, for those that vary */
+export const sfx = (g: Game, name: string, at?: { x: number; y?: number; z: number }, big?: boolean, d?: number, k?: number): void => {
+  g.events.push({ type: 'sfx', name, x: at?.x, y: at?.y, z: at?.z, big, d, k });
 };
 
 export const has = (g: Game, id: string): boolean => g.tools.includes(id) || g.inv.some(s => s.id === id);

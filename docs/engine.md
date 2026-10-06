@@ -316,7 +316,13 @@ sequence of inputs. The door rules, the labels and the answers are the first eng
   make pools in their own room. The level's mesh is lit per vertex, and every vertex remembers which room lights it,
   so a power change relights the level without rebuilding it (1.4 ms for the upper station). The sim will read the
   same light for stealth. `?power=full` shows a level with everything on.
-- **Audio**: the synthesised sounds carry over, positioned from sim events.
+- **Audio**: the synthesised sounds carry over, positioned from sim events (`present/audio.ts`). Since: a sound from a
+  place reaches you the way the cast hears you (§8), along the sound field, so a shut door or rock muffles it and puts
+  it further off; feet sound like what they fall on (concrete, a walkway's grating, rock, a puddle, a crate, a
+  platform); you are heard jumping and landing, splashing in, gasping up; under water everything is dull. What the sim
+  has no need to say is the soundscape's (`present/soundscape.ts`): the cast breathing, clicking, gurgling and dragging
+  themselves along, their deaths, crates scraping and landing, caves dripping, your heart when you are badly hurt. It
+  reads the sim and never draws on its seeded numbers.
 - **UI** stays in HTML over the canvas, with the current type and colours (Barlow Condensed, Newsreader, bone, ash,
   hazard).
 - **Dev tools** carry over (`?dev`, fly, god, level select, map), plus overlays for colliders, nav graph and noise.
