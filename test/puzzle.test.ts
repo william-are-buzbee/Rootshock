@@ -50,9 +50,9 @@ describe('the upper station, played', () => {
     expect(power(s.game, 'LIFT')).toBe(0);
   });
 
-  it('the wing\'s cut wants a splice kit; mended, it takes what Ops has, and its elevator wakes', () => {
+  it('the wing\'s cut wants a splice kit; mended, it takes what Ops has, and its elevator goes down', () => {
     const s = fresh();
-    use(s, find(s, /Elevator panel/), [-1, 0]);
+    use(s, find(s, /Elevator: Main level/), [-1, 0]);
     expect(said(s).join(' ')).toMatch(/The panel is dark/);
     const cut = find(s, /Service connection, Security wing: cut through/);
     use(s, cut, [0, 1]);
@@ -63,8 +63,9 @@ describe('the upper station, played', () => {
     expect(said(s).join(' ')).toMatch(/You splice the feed/);
     expect(s.game.inv.some(i => i.id === 'kit')).toBe(false);
     expect(power(s.game, 'SEC')).toBe(1); // Ops' backup set, through the mended feed
-    use(s, find(s, /Elevator panel/), [-1, 0]);
-    expect(said(s).join(' ')).toMatch(/The panel lights/);
+    use(s, find(s, /Elevator: Main level/), [-1, 0]);
+    expect(s.game.travel).toEqual({ level: 'main', mark: 'elev:upper' }); // the run takes you down
+    s.game.travel = null;
     s.game.station!.circuits.OPS.back = false; // Ops' set stopped: the wing goes with it
     expect(power(s.game, 'SEC')).toBe(0);
     s.game.station!.main = true; // and on Gen-1, the wing has full power
@@ -154,7 +155,7 @@ describe('the upper station, played', () => {
 
   it('ladderway B wants Cargo power; the fuse is up on Tier 3; the surface lift wants Gen-1', () => {
     const s = fresh();
-    const B1: [number, number] = [263.2, 3.2]; // ladderway B, in the fan station (A1, down the main shaft, has no gate)
+    const B1: [number, number] = [263.2, 3.2]; // ladderway B, in the fan station
     use(s, find(s, /Ladder/, B1), [-1, 0]);
     expect(said(s).join(' ')).toMatch(/fan door is sealed/);
     s.game.station!.circuits.CARGO.back = true;

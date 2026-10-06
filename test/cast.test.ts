@@ -7,7 +7,7 @@ import { STEP } from '../src/core/loop';
 import { give } from '../src/sim/game';
 import { field, openRules } from '../src/world/nav';
 import { refreshFields } from '../src/sim/fields';
-import { BLOWS, hitMutant, type Mutant } from '../src/sim/cast';
+import { BLOWS, hitMutant, rounds, type Mutant } from '../src/sim/cast';
 
 /* The cast on the upper station: the graph they walk, what they notice, how they follow, and what hurts them. */
 
@@ -92,6 +92,35 @@ describe('what they notice', () => {
     hold(s, 5);
     expect(Math.hypot(m.x - 77, m.z - 22)).toBeLessThan(1.6);
     expect(s.game.hp).toBeLessThan(100);
+  });
+});
+
+describe('their rounds', () => {
+  it('Security\'s patrols keep their rounds to lit rooms: the wing joins them when it is mended, and in the dark there are none', () => {
+    const s = fresh(), m = s.cast[1]; // the Operations corridor
+    expect(m.lit).toBe(true);
+    step(s, noInput());
+    const names = () => new Set(rounds(s, m).map(id => s.world.rooms[id].name));
+    const now = names();
+    expect([...now]).toEqual(expect.arrayContaining(['Atrium', 'Operations corridor', 'Gallery']));
+    for (const dark of ['Lobby', 'Operations room', 'Cargo cavern']) expect(now.has(dark)).toBe(false); // the wing, a room with no emergency lights, Cargo
+    s.game.station!.circuits.SEC.broken = false; s.lighting = null; // the wing mended
+    expect(names().has('Lobby')).toBe(true);
+    s.game.station!.circuits.OPS.back = false; s.lighting = null; // and Ops' set stopped: nothing it can see by
+    expect(rounds(s, m)).toEqual([]);
+  });
+
+  it('one standing in the dark keeps still; when the light comes, it walks', () => {
+    const s = fresh(), m = s.cast[5]; // a husk on the Cargo floor, dark at the start
+    expect(m.lit).toBe(true);
+    only(s, [m]);
+    const x0 = m.x, z0 = m.z;
+    hold(s, 20);
+    expect(m.state).toBe('idle');
+    expect(Math.hypot(m.x - x0, m.z - z0)).toBeLessThan(0.3);
+    s.game.station!.circuits.CARGO.back = true; s.lighting = null;
+    hold(s, 30);
+    expect(Math.hypot(m.x - x0, m.z - z0)).toBeGreaterThan(2);
   });
 });
 

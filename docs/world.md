@@ -203,9 +203,9 @@ between unlike options.
 - **Every way of spending must still finish:** alternative routes, or one guaranteed late kit. The checker proves it.
 
 **Example (agreed): the survivors' cut.** The first kit decision. One kit mends the service connection the survivors cut (§8),
-which relights their wing and, with it, the Security elevator: a lift straight down to the Commons, or as far as the drowned sump.
-The elevator is not a repairable of its own; it is what the mended feed buys. Taking it early puts Aldana's Armory code within
-reach almost at once, but the rebreather is behind a heavy door that needs Gen-1, so that early dive is made on one lungful. The
+which relights their wing and, with it, the Security elevator: the stairs Security ought to have, made a lift, down to the
+main level's shaft station. There is no ladderway down the main shaft from Security, so the kit buys the quick way down; the
+long way is ladderway B, through Cargo, last. The elevator is not a repairable of its own; it is what the mended feed buys. The
 same kit could have mended Cargo's platforms (and whatever they lead to) or a backup set. Security can be finished without it.
 
 ### Obstacles we can build with
@@ -344,7 +344,7 @@ cancerous growth, rather than a second level-sized area competing for attention.
   own wing to blind it, and lived and died in the dark. One of the tutorial bodies lies by the cut (below).
 - **Mending it is optional.** One repair kit mends the cut: the first kit decision, now or save it for Cargo. Security can be
   finished without it, and the checker proves both routes.
-- **What mending buys:** the wing relights; the Security elevator runs again (down to the Commons, §4); its light and button
+- **What mending buys:** the wing relights; the Security elevator runs again (down to the main level, §4); its light and button
   doors and card readers wake. **What it costs:** the wing's cameras wake too, you are easier to see in the light, and the patrols'
   rounds now take in the wing (below). The overseer sees the circuit come live on its board and sounds that zone at once, so the
   first thing the mended feed brings is the patrols, to the cut.
@@ -393,8 +393,10 @@ cancerous growth, rather than a second level-sized area competing for attention.
 - **Patrols → their own senses.** Sight, light and sound, as everywhere else. They do not know where you are because the overseer
   does; they come to an alarm they can hear, not to the overseer.
 - **Patrols walk lit rooms only.** They hunt by sight, so they keep their rounds where they can see. That is why the dead wing is
-  quiet, and why mending the cut brings them into it with no orders at all: lit, it is theirs to walk. A husk on a post in the
-  dark is a deliberate exception, and the more frightening for it.
+  quiet, and why mending the cut brings them into it with no orders at all: lit, it is theirs to walk. One standing in the dark
+  keeps still until the light comes back, so cutting the power stills them too (Cargo's husks wait in the dark until its backup
+  set runs). A husk on a post in the dark is a deliberate exception, and the more frightening for it. **Built** for Security's
+  patrols (`lit` on the mutant); the main level's husks still roam the dark, for now.
 - **The overseer's other tools (proposed):** it can lock a powered door on you, and you hear the bolt before it goes; a dead door
   cannot be locked, so cutting power defends as well as exposes.
 
@@ -407,13 +409,14 @@ the first. No survivor's body is only dressing. (The officer in the lobby alread
 from behind.")
 
 **The way out (proposed).** The surface lift needs more than Gen-1: it was damaged, and needs mending (one unique part, not a
-kit; see Power, above), and its controls are in the operations centre. The exit and the climax share a room. The other ways out
-stay: ladderway A down, and B once Cargo has power.
+kit; see Power, above), and its controls are in the operations centre. The exit and the climax share a room. The other ways
+down: the Security elevator once the wing is mended, and ladderway B once Cargo has power. There is no ladderway A from
+Security: the main shaft carries only the hoist (Gen-1) and the surface cage.
 
 **Built so far.** The wing is a branch circuit (SEC) off Ops, cut at the start, with its splice panel near the
 threshold and the guard who cut it; a kit in Maintenance, on Ops' side, mends it (the hazard store's stays behind Gen-1).
-Mended, the wing lights amber, Security control's reader wakes, and the Security elevator's panel lights (where it goes is
-open: the floor directly below, at a place the ladder does not already reach). The highway runs east from the Lobby
+Mended, the wing lights amber, Security control's reader wakes, and the Security elevator runs, down to the main level's
+shaft station and back (ladderway A is gone). The highway runs east from the Lobby
 through the dark wing and opens without a door into the atrium; the second leg runs south to the operations room past
 the offices and Maintenance (the Ops backup set). The gallery climbs the core's east side to +5 and branches east to
 Cargo control, whose east wall is the window: black for now. Cargo is behind Operations' card (the deputy director, at
@@ -424,10 +427,9 @@ whether or not the wing is mended.
 
 - **New:** cameras as fixed eyes: a sight check from each camera, a visible light while it is live, and what it sees sounding
   its zone. The zone alarm: a sound from a fixed place, not only from you (today the only source of noise is the player), and the
-  cast walking to it. Rounds that keep to lit rooms (`roamRooms` in `sim/cast.ts` is fixed when the level loads; it must follow
-  the circuits). Glass: solid to bodies, clear to sight and light (the bay window; camera domes share the work). A door the
+  cast walking to it. Glass: solid to bodies, clear to sight and light (the bay window; camera domes share the work). A door the
   overseer can lock. The overseer itself, and the hand.
-- **Content:** done but for the window's glass and the elevator's destination (above).
+- **Content:** done but for the window's glass.
 - **Already there:** patrols (the cast keep rounds), vents (loose panels; crawling under), grabbing and dragging (a start for the
   hand), caves of any outline (for the nest's organic shapes), backup sets and the power rules, the progression checker (to prove
   the level, and every way of spending power in it, can still be finished).

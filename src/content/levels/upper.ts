@@ -9,6 +9,7 @@ import {
 
 /* Upper station, 40 m down. Off the main shaft, the Security wing (x 14 to 66) and Operations (x 64 to 110, south to
    z 54), with a two-storey atrium where they meet; the Cargo cavern (x 110 to 240); the exhaust shaft (x 260). Start here.
+   Security's patrols keep to the light (lit: 1): their rounds go only to lit rooms, and in the dark they keep still.
    Ported from the first engine (archive/first-engine.html, buildUpper and buildCargo2) on the tile adapter, in tile
    units; Security and Ops since laid out again around the highway and its bend (world.md §8).
    The frame: org [-10, -30], so tile i is plan x = 2i - 10 and tile j is plan z = 2j - 30. */
@@ -21,11 +22,11 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   /* the rungs over the ground floor at +5, +10 and +15: Tier 1 also carries the second floor over Ops */
   const tier = (y0: number, li: number) => mkDeck(lv, 140, 44, { y0, li }), T1 = tier(5, 1), T2 = tier(10, 2), T3 = tier(15, 3);
   stack(D, T1); stack(T1, T2); stack(T2, T3);
-  /* the main shaft: the hoist cage (runs on Gen-1), the surface cage, and ladderway A down the shaft */
+  /* the main shaft: the hoist cage (runs on Gen-1) and the surface cage. No ladderway down it: the way down from
+     Security is its own elevator, in the atrium (below) */
   liftRoom(D, 5, 14, 7, 14);
   room(D, 'Shaft station', 8, 14, 3, 3, { ...UTIL, c: 'SEC', em: 1, safe: 1 }); door(D, 11, 14, { sg: [['Lobby', 'w'], ['Shaft station', 'e']] });
   room(D, 'Surface cage', 8, 11, 2, 2, { ...OPS, c: 'LIFT', nolamp: 1, noroam: 1, safe: 1 }); door(D, 8, 13, { kind: 'heavy', c: 'LIFT', lift: true, sg: [['Surface', 's']] });
-  ladder(D, 'A1', 10.5, 16.6, 9.6, 16.1, PI / 2, false);
 
   /* The Security wing: the lobby, the first leg of the highway, and the rooms off it. Its feed hangs off Ops, and the
      survivors cut it to blind the cameras on their side (world.md §8): dark at the start, and a kit mends it. */
@@ -75,7 +76,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   const AT: TRoomOpts = { ...OPS, ht: 9.5, em: 1, lc: [0.85, 0.8, 0.68] };
   for (const [x, y, w, h] of [[39, 9, 10, 3], [39, 16, 10, 5], [39, 12, 3, 4], [46, 12, 3, 4]]) room(D, 'Atrium', x, y, w, h, AT);
   room(D, 'Security elevator', 43, 13, 2, 2, { ...SEC, c: 'SEC', em: 1, noroam: 1 }); door(D, 42, 14, { sg: [['Security elevator', 'w']] });
-  bx(D, 44.96, 14, 0.06, 0.5, 0.4, 0x2c2f33, { y: 1.1, c: 0 }); use(D, 'elev', 44.9, 14, 1.3, { c: 'SEC' });
+  bx(D, 44.96, 14, 0.06, 0.5, 0.4, 0x2c2f33, { y: 1.1, c: 0 }); use(D, 'elev', 44.9, 14, 1.3, { c: 'SEC', to: 'main' }); D.marks['elev:main'] = [44, 14, PI / 2];
   room(D, 'Phase 2', 43, 6, 2, 2, { ...UTIL, lit: 'none', nolamp: 1, noroam: 1 }); door(D, 43, 8, { kind: 'heavy', seal: true, msg: 'Welded shut. Stencilled across it: PHASE 2. NOT COMMISSIONED.', sg: [['Phase 2', 's']] });
   stairs(D, T1, 46, 11, 6, 'n');
   const GW: TRoomOpts = { ...WALK, ht: 4.5, c: 'OPS' };
@@ -83,7 +84,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   /* where the light changes, it starts: eggs at the threshold, on their side */
   eggs(D, 39.4, 13.4, 2); eggs(D, 39.3, 15.6, 3); blood(D, 40.5, 17.5, 1.4);
   /* the second leg: south to the operations room, offices either side, maintenance and the Ops backup set */
-  room(D, 'Operations corridor', 42, 21, 3, 13, { ...OPS, ht: 4.5, em: 1 }); mut(D, 'husk', 43.5, 25); mut(D, 'husk', 41, 18.5); blood(D, 43, 27.5, 1.2);
+  room(D, 'Operations corridor', 42, 21, 3, 13, { ...OPS, ht: 4.5, em: 1 }); mut(D, 'husk', 43.5, 25, { lit: 1 }); mut(D, 'husk', 41, 18.5, { lit: 1 }); blood(D, 43, 27.5, 1.2);
   for (const [nm, x, y, dopt, east] of [['Office: operations', 37, 22, { card: 'o' }, false], ['Office: logistics', 37, 27, { open: true }, false], ['Office: chief of security', 46, 22, { card: 'o' }, true]] as const) {
     room(D, nm, x, y, 4, 4, { ...OPS, lc: [0.85, 0.78, 0.62] }); door(D, east ? x - 1 : x + 4, y + 1, dopt);
     desk(D, x + 2, y + 3.4, 1.8, 0.7, { c: 0x4a3a2c }); bx(D, x + 2, y + 2.7, 0.45, 0.45, 0.45, 0x2c2f33); shelf(D, east ? x + 3.7 : x + 0.3, y + 1.6, 0.5, 1.8, { cols: [0x7a4a34, 0x4d5a66, 0x8a7a4a] });
@@ -125,7 +126,7 @@ function buildCargo(D: Deck, T1: Deck, T2: Deck, T3: Deck): void {
   crates(D, 62, 18, 2); blood(D, 64, 16, 1.4); crates(D, 66, 10, 2);
   container(D, 72, 20, false, 2); container(D, 80, 20, false, 3); container(D, 95, 20.2, false, 2); container(D, 104, 19.4, true, 1); container(D, 84, 10, false, 1); container(D, 98, 9.6, false, 1);
   container(D, 88, 17.4, true, 2); container(D, 110, 17.6, true, 3); crates(D, 92, 12, 2); crates(D, 106, 11, 2); forklift(D, 76, 16.5, true); forklift(D, 101, 16.8, false);
-  mut(D, 'husk', 80, 14.6); mut(D, 'husk', 96, 15.4);
+  mut(D, 'husk', 80, 14.6, { lit: 1 }); mut(D, 'husk', 96, 15.4, { lit: 1 });
   for (const [x, z, n] of [[114, 12, 4], [117, 18, 5], [119, 10, 3], [121, 15, 5], [123, 20, 4], [116, 14.6, 3]]) eggs(D, x, z, n); gore(D, 118, 15.5, 4); blood(D, 120, 13, 2);
   mut(D, 'worm', 117, 16); mut(D, 'worm', 118, 17); mut(D, 'worm', 116.5, 17.4); mut(D, 'skitter', 121, 12); mut(D, 'husk', 112, 19, { post: 1, yaw: -PI / 2 });
   /* the tiers: thicker with every one */

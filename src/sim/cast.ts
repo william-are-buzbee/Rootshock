@@ -1,6 +1,7 @@
 import type { MutantDef } from '../content/types';
 import { angLerp, clamp, PI, TAU } from '../core/math';
 import { STEP } from '../core/loop';
+import { Lighting } from '../world/light';
 import { Edge, edgeCost, field as fieldFrom } from '../world/nav';
 import type { Dyn } from '../world/world';
 import { fall, makeBody, settle, walk, type Body } from './body';
@@ -76,6 +77,8 @@ export interface Mutant {
   opens: boolean; low: boolean; noDoors: boolean; fixed: boolean; swim: boolean; solid: boolean;
   /** a guard that keeps its post until it notices you; one sitting down; one grown over; a big one */
   post: boolean; sit: boolean; holt: boolean; big: boolean;
+  /** keeps its rounds to lit rooms, and in the dark keeps still: it hunts by sight (world.md §8) */
+  lit: boolean;
   /** where it started, which it keeps near */
   hx: number; hz: number;
   room: number;
@@ -135,7 +138,7 @@ export function makeCast(sim: Sim, defs: MutantDef[]): Mutant[] {
       hp: S.hp, max: S.hp, mass: S.mass, r: S.r,
       walker: S.noDoors ? 'big' : S.opens ? 'hands' : 'crawl',
       opens: !!S.opens, low: !!S.low, noDoors: !!S.noDoors, fixed: !!S.fixed, swim: !!S.swim, solid: !!S.solid,
-      post: !!o.post, sit: !!o.sit, holt: !!o.holt, big: !!o.big, hx: def.x, hz: def.z, room,
+      post: !!o.post, sit: !!o.sit, holt: !!o.holt, big: !!o.big, lit: !!o.lit, hx: def.x, hz: def.z, room,
       wt: rnd(1, 5), wm: 0, wx: 0, wz: 0, tk: 0, lost: 0, bt: 0, burst: false, flee: 0, ct: rnd(6, 14), cdir: 0, tgt: false,
       grab: 0, tense: 0, blow: null, dest: -1, F: null, stk: 0, fled: false, side: 0, ride: null, spot: -1,
       mv: 0, d: 99, dp: 99, dy: 0, los: false, losAt: -99, hit: 0, kx: 0, kz: 0, ph: rnd(9), dead: false, gone: 0, still: 0,
@@ -338,14 +341,16 @@ function roomWp(sim: Sim, m: Mutant): void {
 
 const picked = new WeakMap<Sim, number>();
 
-/** staff still keep rounds: pick a room anywhere and walk there */
+/** staff still keep rounds: pick a room anywhere and walk there. One that keeps to the light picks only a lit room,
+ *  and standing in the dark goes nowhere until the light comes back. */
 function pickDest(sim: Sim, m: Mutant): void {
   const Fs = sim.fields;
   if (!Fs || m.spot < 0) { m.wt = 3; return; }
+  if (m.lit && !lit(sim, m.x, m.y + 0.5, m.z)) { m.wt = 2; return; }
   /* one new route a step at most, across the whole cast */
   if (picked.get(sim) === sim.tick) { m.wt = 0.05; return; }
   picked.set(sim, sim.tick);
-  const rooms = roamRooms(sim);
+  const rooms = rounds(sim, m);
   if (!rooms.length) { m.wt = 5; return; }
   const R = sim.rng.pick(rooms), spots = Fs.nav.byRoom.get(R) ?? [];
   if (!spots.length) { m.wt = 0.5; return; }
@@ -363,6 +368,20 @@ function fieldTo(sim: Sim, m: Mutant, k: number): Float32Array {
 /** after a load: the route to where it was going, made again (it depends on the level's shape alone) */
 export function restoreRoute(sim: Sim, m: Mutant): void {
   m.F = sim.fields && m.dest >= 0 ? fieldTo(sim, m, m.dest) : null;
+}
+
+/** the level's light as the power stands: what the cast see by (made again when the power changes) */
+const lighting = (sim: Sim) => (sim.lighting ??= new Lighting(sim.world, c => power(sim.game, c)));
+const LIT = 0.02;
+const lit = (sim: Sim, x: number, y: number, z: number) => Math.max(...lighting(sim).atPoint(x, y, z)) > LIT;
+function litRoom(sim: Sim, id: number): boolean {
+  const R = sim.world.rooms[id];
+  return Math.max(...lighting(sim).at(id, (R.x0 + R.x1) / 2, (R.z0 + R.z1) / 2)) > LIT;
+}
+
+/** the rooms its rounds can take it to, as the power stands */
+export function rounds(sim: Sim, m: Mutant): number[] {
+  return m.lit ? roamRooms(sim).filter(R => litRoom(sim, R)) : roamRooms(sim);
 }
 
 const roamCache = new WeakMap<object, number[]>();

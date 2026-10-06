@@ -95,14 +95,16 @@ export function buildUsables(sim: Sim): Usable[] {
         break;
       }
       case 'elev': {
-        /* a lift of a level's own, off a circuit: where it goes is not built yet */
-        const c = o.c as string;
+        /* a lift between two levels, off a circuit (the Security elevator): you arrive at the far level's mark for this one */
+        const c = o.c as string, to = o.to as string;
         out.push({
-          ...base, label: () => 'Elevator panel',
+          ...base, label: () => 'Elevator: ' + (g.station?.names[to] ?? to),
           act: () => {
             if (power(g, c) < 1) { say(g, 'The panel is dark. The car runs off the ' + (STATION_NAMES[c] ?? c) + ', and that is dead.'); sfx(g, 'deny'); return; }
+            if (!g.station?.built.includes(to)) { say(g, 'The car answers. Where it goes is not built yet.'); return; }
             sfx(g, 'door', u);
-            say(g, 'The panel lights, and the car shudders awake. Where it goes is not built yet.');
+            makeNoise(g, 10);
+            g.travel = { level: to, mark: 'elev:' + L.id };
           },
         });
         break;

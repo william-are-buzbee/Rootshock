@@ -345,6 +345,7 @@ function goals(M: Model, st: St, R: Uint8Array): string[] {
       out.push('ladder ' + o.id + (other ? ' to ' + (s.names[other] ?? other) : ''));
     } else if (u.kind === 'stair') out.push('stairs to ' + o.to);
     else if (u.kind === 'dive') out.push('dive to ' + (s.names[o.to as string] ?? o.to));
+    else if (u.kind === 'elev' && pw(st, o.c as string) >= 1) out.push('elevator to ' + (s.names[o.to as string] ?? o.to));
     else if (u.kind === 'lift' && pw(st, 'LIFT') === 2) out.push('the lift');
   });
   for (const [k, spots] of M.liftDoorAt) {
