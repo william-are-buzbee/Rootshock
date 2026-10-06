@@ -90,6 +90,25 @@ The testers and those they turned, centred on Horticulture.
   generator hall is where mats of edible flesh could be grown and harvested.
 - **Rank and file (existing monsters):** husks, skitters, worms; the thresher.
 
+### The Security flesh (an offshoot of the flesh; agreed)
+
+- **Origin.** Security watched the Commons turn, on Security's own cameras, and walled itself off. It was not enough: some small
+  amount got through anyway, and Security's own staff began to change. They are the youngest branch of the flesh.
+- **Character.** The most technologically able of the flesh. They kept the station's systems and grew into them: their overseer
+  runs the cameras and the security controls, and does not need to see you to have you hunted (see §8).
+- **The survivors.** A smaller group of Security's staff, still human, sectioned themselves off from the changed ones. The changed
+  held the controls for the way out, and the surface lift is close by; they locked it away to protect themselves, and damaged it.
+  The survivors killed themselves, or made a run for an exit and were killed or stopped by something on the way. None of them
+  made it.
+- **Why the exit (proposed).** The surface lift scans for a clean body (§3). The changed cannot pass it, and anyone clean who did
+  would bring the owners' purge down on everyone left below. Breaking it is the flesh's logic in small: act first or be annihilated.
+  It is also why a clean stranger walking out of Holding is a threat to them.
+- **Towards you:** for now, they want you dead. (Whether they would rather take you, and how, is open: §6.)
+- **Towards the Commons:** kinship and threat at once, as the plants and the flesh are to each other.
+- **Territory:** Security and the Cargo cavern.
+- **Rank and file:** the patrols (changed staff, still nearly human, some in uniform), skitters and their eggs; the overseer's hand
+  (§8).
+
 ### Between them
 
 Both are intelligent, self-aware and changing fast, and they see each other as a threat to scarce resources.
@@ -257,6 +276,9 @@ Each phase is playable on its own.
 5. **The big locks:** one or two per ending, to be decided once the endings are.
 6. **Backup sets:** limited fuel? repairable?
 7. **How many repair kits, and where.**
+8. **Taking you rather than killing you.** Do the Security flesh (or any of the flesh) want you changed rather than dead: pinned
+   down and infected, or killed and the body mutated after? Does a body need to be alive to change? For now they kill you. (The
+   death screen already says "Grafted" and "Lowfield keeps what it is given", which allows either.)
 
 ---
 
@@ -270,4 +292,81 @@ The third pass was small but genuinely fun:
   direction in the dark.
 - Turning the lights on and making yourself more visible was a real trade.
 
+**Its pacing**, beat by beat, which is what each level should have in its own way:
+
+1. **A clear loop at once.** The opening shows you a flashlight, then a dark hallway with a monster under a light. Access brings a
+   new area.
+2. **Rising action with a choice of risk.** Kill a spider, or brave the more dangerous upper floor, to get the fuse safely.
+3. **A climax that ties power to danger.** The rib freak charging unpredictably round the generator room; turning Gen-1 on makes
+   you visible to it.
+4. **Release.** A new sense of mastery: the world is open and lit, the enemies are no longer so frightening, the world feels
+   smaller.
+5. **More than one way out.** The surface or the sump; never one solution. Leaving because the mutant let you go is a feeling of
+   its own.
+
 The aim is for every level to feel like that, while staying non-linear and open to exploration.
+
+---
+
+## 8. Levels
+
+Each level's own pass 3 (§5, phase 5): its beats, its threat, and what it needs that the game does not have yet.
+
+### Security (the upper station)
+
+Security's own interpretation of pass 3. One loop, one climax. **Scope (proposed):** the level is Security and Ops; the Cargo
+cavern is the nest, seen first on the overseer's monitors and visited last, a disgusting, porous, eggy place of pustules and
+cancerous growth, rather than a second level-sized area competing for attention.
+
+**The beats (agreed)**
+
+1. **Opening: dark, and no flashlight.** You wake in Holding. The lit path (the emergency lights on the OPS backup set, Holding's
+   own low light) is the way to go, slowly, tensely, up to the main floor. The first fear should be a sound: something heard and
+   not seen.
+2. **The flashlight, on a body.** It opens choices: go back and see the start properly, or explore the eerily quiet rooms and the
+   main hallway.
+3. **The infected half.** Rooms and vents full of skitters and eggs; patrols down the hallways. The line between safe and not
+   safe is clear and physical: a threshold you choose to cross (a door, a change in the colour of the light, eggs starting at a
+   doorframe), not a gradient. The safe half is the part the survivors held, which is why it is quiet: they are dead.
+4. **Climax: the overseer.** The whole operations centre has become one mutated growth, flesh grown into the cameras and the
+   security controls. It watches its young in the cargo nest, and it watches you.
+5. **Release.** With the overseer dead the cameras are glass, its hand stops hunting, doors stay as you leave them, and power is
+   no longer a danger. The patrols are still there, but they are only patrols. The level gets smaller without getting empty.
+
+**The overseer (agreed)**
+
+- **Brain:** the growth in the operations centre. It is to be destroyed, not bargained with or blinded.
+- **Eyes:** the cameras, across the level. Only the overseer sees through them.
+- **Hand:** an engorged mutant made of Security's staff, the level's thresher. It goes where the cameras see you, and follows you
+  for as long as the overseer lives; when it dies, the hand stops seeking you.
+- **Power is the trade.** Security needs power for things you want (card readers, the Cargo platforms, the fan door on ladderway
+  B), but power wakes the cameras. Switching on is what makes you visible: the same bargain as Gen-1 and the rib freak, in another
+  shape.
+
+**Three layers of being found (agreed)**
+
+- **Cameras → the hand.** Answered by blind spots, cutting the power, or breaking a camera (loud: a cost, per §4).
+- **Patrols → their own senses.** Sight, light and sound, as everywhere else. They do not know where you are because the overseer
+  does.
+- **The overseer's other tools (proposed):** it can lock a powered door on you, and you hear the bolt before it goes; a dead door
+  cannot be locked, so cutting power defends as well as exposes. **Open:** one indirect way to bring the patrols, by something
+  they can hear: an alarm or the PA sounding where you are. They come to the noise, not to the overseer.
+
+Every one of the overseer's moves should be seen or heard before it lands (a camera's light, the bolt), and have an answer.
+
+**The survivors are the tutorial (proposed).** Each body on an escape route was stopped by one particular thing: one at a card
+reader with no card, one at a heavy door with no power, one under a camera, one who stayed in Holding and gave up. Each teaches
+an obstacle before you meet it, without a word; the body with the flashlight is the first. No survivor's body is only dressing.
+(The officer in the lobby already reads this way: "Whatever opened him did it from behind.")
+
+**The way out (proposed).** The surface lift needs more than Gen-1: it was damaged, and needs mending (a kit or a part, §4), and
+its controls are in the operations centre. The exit and the climax share a room. The other ways out stay: ladderway A down, and
+B once Cargo has power.
+
+**What the game needs for it**
+
+- **New:** cameras as fixed eyes: a sight check from each camera, a visible light while it is live, and what it sees sent to the
+  hand. A door the overseer can lock. The overseer itself, and the hand.
+- **Already there:** patrols (the cast keep rounds), vents (loose panels; crawling under), grabbing and dragging (a start for the
+  hand), caves of any outline (for the nest's organic shapes), backup sets and the power rules, the progression checker (to prove
+  the level, and every way of spending power in it, can still be finished).
