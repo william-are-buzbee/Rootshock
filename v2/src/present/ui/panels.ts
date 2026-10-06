@@ -74,7 +74,7 @@ export class Panels {
     pr.innerHTML = t ? '<kbd>E</kbd>' : '';
     if (t) pr.append(t);
   }
-  status(g: Game, airFrac: number | null, crouch: boolean): void {
+  status(g: Game, airFrac: number | null, crouch: boolean, hurtFx = 0): void {
     $('hp').style.width = g.hp + '%';
     $('batw').classList.toggle('hide', !g.light);
     $('bat').style.width = g.batt + '%';
@@ -84,7 +84,7 @@ export class Panels {
     const name = g.weapon ? ITEMS[g.weapon].n : 'Bare hands';
     const wt = esc(name) + (crouch ? '<span>crouched</span>' : '') + (g.lightOn ? '<span>' + (g.light === 'flash' ? 'flashlight' : 'lantern') + '</span>' : '');
     if (wt !== this.wpnText) { this.wpnText = wt; $('wpn').innerHTML = wt; }
-    $('vig').style.opacity = String(g.hp < 35 ? (35 - g.hp) / 50 : 0);
+    $('vig').style.opacity = String(Math.max(hurtFx, g.hp < 35 ? (35 - g.hp) / 50 : 0));
   }
 
   /* ---- the menus */

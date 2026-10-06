@@ -219,8 +219,9 @@ export class World {
     return null;
   }
 
-  /** where a straight line from a to b first meets anything solid, as a fraction 0..1 of the way; 1 if it is clear */
-  raycast(ax: number, ay: number, az: number, bx: number, by: number, bz: number, ignore: Dyn | null = null): number {
+  /** where a straight line from a to b first meets anything solid, as a fraction 0..1 of the way; 1 if it is clear.
+   *  `ignore`: one moving thing to see through, or a test for which to see through (bodies, for a line of sight) */
+  raycast(ax: number, ay: number, az: number, bx: number, by: number, bz: number, ignore: Dyn | null | ((d: Dyn) => boolean) = null): number {
     const dx = bx - ax, dy = by - ay, dz = bz - az;
     let best = this.gridRay(ax, ay, az, dx, dy, dz);
     /* fixed solids: the buckets the line passes over */
@@ -230,7 +231,8 @@ export class World {
       const a = this.boxes.get(this.bkey(Math.floor(x / B), Math.floor(z / B)));
       if (a) for (const b of a) if (!seen.has(b)) { seen.add(b); best = Math.min(best, segmentBox(ax, ay, az, dx, dy, dz, b)); }
     }
-    for (const d of this.dyn) if (d !== ignore) best = Math.min(best, segmentBox(ax, ay, az, dx, dy, dz, d));
+    const skip = typeof ignore === 'function' ? ignore : (d: Dyn) => d === ignore;
+    for (const d of this.dyn) if (!skip(d)) best = Math.min(best, segmentBox(ax, ay, az, dx, dy, dz, d));
     for (const s of this.surfaces) best = Math.min(best, this.surfaceRay(s, ax, ay, az, dx, dy, dz, best));
     return Math.min(1, best);
   }

@@ -13,6 +13,9 @@ export class Controls {
   /** pointer capture refused (some embedded browsers): drag to look instead */
   private dragLook = false;
   private dragging = false;
+  /** the button is down, or went down since the last step took it (a click shorter than a step still counts) */
+  private mouse = false;
+  private clicked = false;
   enabled = false;
 
   constructor(private canvas: HTMLCanvasElement, private onUnlock: () => void) {
@@ -28,14 +31,17 @@ export class Controls {
       this.onKey.get(e.code)?.();
     });
     window.addEventListener('keyup', e => { this.keys[e.code] = false; });
-    window.addEventListener('blur', () => { this.keys = {}; });
+    window.addEventListener('blur', () => { this.keys = {}; this.mouse = false; });
     document.addEventListener('mousemove', e => {
       if (!this.enabled || !(this.locked() || (this.dragLook && this.dragging))) return;
       this.pending.yaw -= e.movementX * SENS;
       this.pending.pitch -= e.movementY * SENS;
     });
-    canvas.addEventListener('mousedown', () => { if (this.dragLook) this.dragging = true; });
-    window.addEventListener('mouseup', () => { this.dragging = false; });
+    canvas.addEventListener('mousedown', e => {
+      if (this.dragLook) this.dragging = true;
+      if (e.button === 0 && this.enabled) { this.mouse = true; this.clicked = true; }
+    });
+    window.addEventListener('mouseup', e => { this.dragging = false; if (e.button === 0) this.mouse = false; });
     document.addEventListener('pointerlockchange', () => { if (!this.locked() && this.enabled && !this.dragLook) this.onUnlock(); });
   }
 
@@ -64,6 +70,8 @@ export class Controls {
     this.pending.yaw = 0; this.pending.pitch = 0;
     i.jump = this.press.jump; i.crouch = this.press.crouch; i.light = this.press.light; i.use = this.press.use;
     i.rise = !!k.Space; i.sink = !!k.KeyC;
+    i.attack = this.mouse || this.clicked;
+    this.clicked = false;
     this.press = { jump: false, crouch: false, light: false, use: false };
     return i;
   }

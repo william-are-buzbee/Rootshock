@@ -2,7 +2,12 @@ import type { LevelDef, StationDef } from '../content/types';
 import { Rng } from '../core/rng';
 import { STEP } from '../core/loop';
 import { World } from '../world/world';
-import { hurt, makeGame, power, runLight, toggleLight, useItem, type Command, type Game, type StationState, say, sfx } from './game';
+import { clamp } from '../core/math';
+import { Lighting } from '../world/light';
+import { castBodies, castMovers, makeCast, updateCast, type Mutant } from './cast';
+import { makeHands, updateHands, type Hands } from './combat';
+import { makeFields, refreshFields, updateFields, type Fields } from './fields';
+import { hurt, makeGame, makeNoise, power, runLight, toggleLight, useItem, type Command, type Game, type StationState, say, sfx } from './game';
 import type { Input } from './input';
 import { buildUsables, findUsable, itemUse, padKey, type Usable, type WorldItem } from './interact';
 import { LooseSet, makeLoose } from './loose';
@@ -24,6 +29,15 @@ export interface Sim {
   focus: { text: string } | null;
   game: Game;
   rng: Rng;
+  /** what lives here */
+  cast: Mutant[];
+  /** how far everything is from you, for the cast; null on a level with no cast */
+  fields: Fields | null;
+  hands: Hands;
+  /** worms close about you: two together will bite */
+  wormN: number;
+  /** the light as it is now, for being seen; made again when the power changes */
+  lighting: Lighting | null;
 }
 
 export interface SimOpts {
@@ -45,15 +59,17 @@ export function makeSim(level: LevelDef, o: SimOpts = {}): Sim {
     doors: level.doors.map(d => makeDoor(world, d)),
     platforms: level.platforms.map(p => makePlatform(world, p)),
     items: level.items.map(it => ({ ...it, taken: false })),
-    usables: [], focus: null,
+    usables: [], focus: null, cast: [], fields: null, hands: makeHands(), wormN: 0, lighting: null,
   };
   sim.usables = buildUsables(sim);
+  sim.cast = makeCast(sim, level.mutants);
+  if (sim.cast.length) { sim.fields = makeFields(sim); refreshFields(sim, sim.fields); }
   return sim;
 }
 
 /** everything a mover can carry or must not crush */
 export function riders(sim: Sim): Rider[] {
-  return [sim.player.body, ...sim.loose.all];
+  return [sim.player.body, ...sim.loose.all, ...castBodies(sim)];
 }
 
 const underWater = (sim: Sim) => {
@@ -99,9 +115,9 @@ export function step(sim: Sim, input: Input): void {
   if (g.ended) return;
   sim.tick++;
   g.time += STEP;
-  const rs = riders(sim), b = sim.player.body;
+  const rs = riders(sim), b = sim.player.body, movers = [b, ...castMovers(sim)], n0 = g.events.length;
   for (const d of sim.doors) {
-    if (updateDoor(d, rs, [b], power(g, d.def.circuit), STEP)) sfx(g, 'door', { x: (d.def.x0 + d.def.x1) / 2, z: (d.def.z0 + d.def.z1) / 2 });
+    if (updateDoor(d, rs, movers, power(g, d.def.circuit), STEP)) sfx(g, 'door', { x: (d.def.x0 + d.def.x1) / 2, z: (d.def.z0 + d.def.z1) / 2 });
   }
   for (const p of sim.platforms) updatePlatform(p, rs, STEP);
 
@@ -113,16 +129,31 @@ export function step(sim: Sim, input: Input): void {
   }
   /* falls hurt (as before: past 10 m/s, 6 a metre a second); breath that runs out hurts more */
   const p = sim.player;
-  if (p.impact > 10) { hurt(g, (p.impact - 10) * 6, 'It was further down than it looked.'); sfx(g, 'thud'); }
-  else if (p.impact > 4) sfx(g, 'step');
-  if (p.air <= 0) hurt(g, 14 * STEP, 'Your chest made the decision for you, and the water came in.');
+  if (p.impact > 10) { hurt(g, (p.impact - 10) * 6, 'It was further down than it looked.', 0.5); sfx(g, 'thud'); makeNoise(g, 8); }
+  else if (p.impact > 4) { sfx(g, 'step'); makeNoise(g, 5); }
+  if (p.air <= 0) hurt(g, 14 * STEP, 'Your chest made the decision for you, and the water came in.', 0);
+  if (p.jumped) makeNoise(g, 3);
+  /* what you are doing carries this far: walking, more running, nothing creeping; a loud thing lingers half a second */
+  if (g.noiseT > 0) g.noiseT -= STEP; else g.noiseI = 0;
+  const steps = p.moved > 1e-3 ? (p.water === 'swimming' ? 3 : p.water === 'wading' ? 5 : p.crouch ? 0 : p.running ? 9 : 4) : 0;
+  updateHands(sim, input);
+  g.noise = Math.max(steps, g.noiseI);
 
   if (input.light) toggleLight(g, null, underWater(sim));
   runLight(g, STEP, underWater(sim));
+  /* how easily you are seen: the light you stand in, your own, and crouching */
+  if (sim.cast.length) {
+    sim.lighting ??= new Lighting(sim.world, c => power(g, c));
+    const c = sim.lighting.atPoint(b.x, b.y + 0.5, b.z), lum = Math.max(c[0], c[1], c[2]);
+    g.vis = clamp(0.3 + lum * 0.8 + (g.lightOn ? 0.35 : 0), 0.3, 1.3) * (p.crouch ? 0.6 : 1);
+  }
+  if (sim.fields) updateFields(sim, sim.fields);
+  updateCast(sim);
   sim.loose.update(STEP, sim.tick, rs);
 
   const f = findUsable(sim);
   sim.focus = f ? { text: f.text } : null;
   if (input.use && f) f.act();
+  for (let i = n0; i < g.events.length; i++) if (g.events[i].type === 'power') sim.lighting = null;
 }
 

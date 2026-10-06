@@ -15,10 +15,10 @@ import { dynamicMaterial, glassMaterial } from './shader';
 interface Moving { mesh: THREE.Object3D; mat: THREE.ShaderMaterial; place(): void }
 
 /** a part of a fitting: a box (or other shape) of a colour, sized, tipped about z, and placed in the fitting's own frame */
-type Part = [shape: 'box' | 'cyl' | 'ico', c: number | Colour, sx: number, sy: number, sz: number, x: number, y: number, z: number, rz?: number];
+export type Part = [shape: 'box' | 'cyl' | 'ico', c: number | Colour, sx: number, sy: number, sz: number, x: number, y: number, z: number, rz?: number];
 
 /** many parts as one geometry */
-function parts(list: Part[]): THREE.BufferGeometry {
+export function parts(list: Part[]): THREE.BufferGeometry {
   const P: number[] = [], C: number[] = [];
   for (const [shape, c, sx, sy, sz, x, y, z, rz] of list) {
     const src = TEMPLATES[shape], col = hex(c), cz = Math.cos(rz ?? 0), szn = Math.sin(rz ?? 0);
