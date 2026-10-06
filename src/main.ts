@@ -215,7 +215,7 @@ function frame(t: number): void {
   const g = sim.game;
   flick -= dt;
   if (flick < 0 && Math.random() < dt * (g.batt < 20 ? 1.4 : 0.3)) flick = 0.05 + Math.random() * 0.2;
-  if (flick > 0 && g.lightOn) U.uFlash.value *= 0.25;
+  if (flick > 0 && g.lightOn) { U.uFlash.value *= 0.25; U.uBounce.value *= 0.25; }
   here.update(mode === 'play' ? loop.alpha : 1);
   handsView.update(rig.bob, t / 1000);
   hurtFx = Math.max(0, hurtFx - dt * 0.9);
