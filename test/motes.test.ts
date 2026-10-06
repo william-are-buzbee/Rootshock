@@ -30,7 +30,7 @@ describe('motes', () => {
       let n = 0;
       for (let k = 0; k < 6; k++) {
         const { sim, m, M } = air(full);
-        m.update(sim, new THREE.Vector3(70, 1.6, 0), 0);
+        m.update(sim, new THREE.Vector3(77, 1.6, 25), 0); // in the Operations corridor, which runs south from the atrium
         for (let i = 0; i < 900; i++) if (M.room[i] >= 0 && sim.world.rooms[M.room[i]].name === 'Operations corridor' && M.want[i] > 0) n++;
       }
       return n;

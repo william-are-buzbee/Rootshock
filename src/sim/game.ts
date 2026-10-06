@@ -2,7 +2,7 @@ import type { CircuitDef, LadderDef } from '../content/types';
 import { ITEMS, keyName, wstats } from '../content/items';
 import { NOTES, type Note } from '../content/notes';
 import type { Rng } from '../core/rng';
-import type { PowerLevel } from '../world/light';
+import { circuitPower, type PowerLevel } from '../world/light';
 
 /* The game's state beyond bodies and space: power, what you carry and know, your health, your light. It is all plain
    data, so a save can write it out (step 7). What happens is reported as events for the presentation to show and play;
@@ -100,14 +100,10 @@ export function makeGame(rng: Rng, station: StationState | null): Game {
   };
 }
 
-/** the power on a circuit: 2 fed by Gen-1, 1 its backup set, 0 dead. A level with no station (the test bed) is all lit. */
+/** the power on a circuit: 2 fed by Gen-1, 1 a backup set, 0 dead. A level with no station (the test bed) is all lit. */
 export function power(g: Game, c: string): PowerLevel {
   const s = g.station;
-  if (!s) return 2;
-  const C = s.circuits[c];
-  if (!C) return 0;
-  if (s.main && C.on && !C.broken) return 2;
-  return C.back ? 1 : 0;
+  return s ? circuitPower(s.circuits, s.main, c) : 2;
 }
 
 export const say = (g: Game, text: string): void => { g.events.push({ type: 'say', text }); };

@@ -12,7 +12,7 @@ describe('level validation', () => {
   it('finds no mistakes in the station; what waits on other levels is marked as such', () => {
     const p = validateStation(STATION, [upper]);
     expect(p.filter(x => !x.later)).toEqual([]);
-    expect(p.filter(x => x.later).map(x => x.what)).toEqual(expect.arrayContaining(['door 16 wants code 1, written on a paper no level ported yet holds']));
+    expect(p.filter(x => x.later).map(x => x.what)).toEqual(expect.arrayContaining(['door 11 wants code 1, written on a paper no level ported yet holds']));
   });
 
   it('with every level ported, the whole station validates, and nothing waits', () => {

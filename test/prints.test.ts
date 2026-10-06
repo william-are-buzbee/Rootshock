@@ -19,11 +19,22 @@ function setUp() {
   const p = new Prints(new THREE.Group(), new Lighting(sim.world, c => power(sim.game, c)));
   return { sim, p };
 }
-/** walk east along the Operations corridor from x0 to x1, a frame at a time */
+/** walk east along the Security corridor and into the atrium from x0 to x1, a frame at a time */
 function walk(sim: Sim, p: Prints, x0: number, x1: number): void {
   const b = sim.player.body;
   b.z = 0; b.y = 0; b.ground = true; b.on = null; sim.player.yaw = -Math.PI / 2;
   for (let x = x0; x <= x1; x += 0.05) { b.x = x; p.update(sim, 1 / 60); }
+}
+/** walk south down the Operations corridor, at x, from z0 to z1 */
+function walkSouth(sim: Sim, p: Prints, x: number, z0: number, z1: number): void {
+  const b = sim.player.body;
+  b.x = x; b.y = 0; b.ground = true; b.on = null; sim.player.yaw = Math.PI;
+  for (let z = z0; z <= z1; z += 0.05) { b.z = z; p.update(sim, 1 / 60); }
+}
+/** the pool of blood in the Operations corridor */
+function corridorStain() {
+  const R = level.rooms.find(r => r.name === 'Operations corridor')!;
+  return level.stains!.find(s => s.x > R.x0 && s.x < R.x1 && s.z > R.z0 + 3 && s.z < R.z1 - 8)!;
 }
 
 describe('footprints', () => {
@@ -49,29 +60,29 @@ describe('footprints', () => {
 
   it('through a pool of blood, red ones after it', () => {
     const { sim, p } = setUp();
-    const S = level.stains!.find(s => Math.abs(s.z) < 1.5 && s.x > 80 && s.x < 92)!; // the one in the Operations corridor
+    const S = corridorStain();
     expect(S).toBeTruthy();
-    walk(sim, p, S.x - 3, S.x + 8);
+    walkSouth(sim, p, S.x, S.z - 3, S.z + 8);
     const red = list(p).filter(q => q.stuff === 'red');
     expect(red.length).toBeGreaterThan(4);
-    expect(Math.min(...red.map(q => q.x))).toBeGreaterThan(S.x - S.r - 0.3);
+    expect(Math.min(...red.map(q => q.z))).toBeGreaterThan(S.z - S.r - 0.3);
   });
 
   it('the cast leave theirs: a husk through blood walks red soles out of it; a skitter claws; one badly hurt drips', () => {
     const { sim, p } = setUp();
-    const S = level.stains!.find(s => Math.abs(s.z) < 1.5 && s.x > 80 && s.x < 92)!;
+    const S = corridorStain();
     const husk = sim.cast.find(m => m.ai === 'husk')!, sk = sim.cast.find(m => m.ai === 'skitter')!;
     for (const m of sim.cast) if (m !== husk && m !== sk) m.dead = true;
-    const walkIt = (m: typeof husk, x0: number, x1: number, z: number) => {
-      m.z = z; m.y = 0; m.yaw = Math.PI / 2; // facing east
+    const walkIt = (m: typeof husk, z0: number, z1: number, x: number) => {
+      m.x = x; m.y = 0; m.yaw = 0; // facing south
       if (m.body) { m.body.ground = true; m.body.on = null; }
-      for (let x = x0; x <= x1; x += 0.05) { m.x = x; p.update(sim, 1 / 60); }
+      for (let z = z0; z <= z1; z += 0.05) { m.z = z; p.update(sim, 1 / 60); }
     };
-    walkIt(husk, S.x - 2, S.x + 6, S.z);
+    walkIt(husk, S.z - 2, S.z + 6, S.x);
     const soles = list(p).filter(q => q.stuff === 'red');
     expect(soles.length).toBeGreaterThan(3);
     const before = list(p).length;
-    walkIt(sk, S.x - 2, S.x + 4, S.z + 0.7); // its legs splay wide: one side's claws through the middle of the pool
+    walkIt(sk, S.z - 2, S.z + 4, S.x + 0.7); // its legs splay wide: one side's claws through the middle of the pool
     expect(list(p).length).toBeGreaterThan(before + 3); // a skitter's pace is short: more prints in less ground
   });
 

@@ -274,7 +274,9 @@ The rules in `world.md` §4 (doors and locks, power, repair kits) carry over unc
 components, not code threaded through the frame loop:
 
 - **Power**: circuits are state; `powered` components read their level (0 dead, 1 backup, 2 full); the light bake and
-  the render read the same state.
+  the render read the same state, through one rule (`circuitPower` in `world/light.ts`). A circuit is fed by Gen-1
+  through its service connection, or is a branch (`feed`) that has whatever the circuit feeding it has, through its
+  own; either way, at least what its own backup set gives. The Security wing is a branch off Ops (`world.md` §8).
 - **Doors**: one system runs the rules for light, heavy, stuck, sealed, vent and lift doors, card and keypad locks.
   Collision, pathing and sight learn a door's state from its mover, never from a special case.
 - **Interaction**: anything with `interactable` is found by one query (in reach, in view, unobstructed), as today's

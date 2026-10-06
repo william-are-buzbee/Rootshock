@@ -12,7 +12,7 @@ import { makeSim } from './sim';
 
 export interface Problem { level: string; what: string; later?: boolean }
 
-const KINDS = new Set(['body', 'backup', 'panel', 'fuse', 'breaker', 'lift', 'ladder', 'stair', 'look', 'dive']);
+const KINDS = new Set(['body', 'backup', 'panel', 'fuse', 'breaker', 'lift', 'elev', 'ladder', 'stair', 'look', 'dive']);
 
 export function validateStation(station: StationDef, levels: LevelDef[] = station.levels.map(l => l.build())): Problem[] {
   const out: Problem[] = [], notes = NOTES('\u0001', '\u0002'), built = new Set(station.levels.map(l => l.id));
@@ -34,6 +34,7 @@ export function validateStation(station: StationDef, levels: LevelDef[] = statio
   const written = new Set<number>();
   for (const n of Object.values(notes)) { if (n.b.includes('\u0001')) written.add(1); if (n.b.includes('\u0002')) written.add(2); }
   const circuits = new Set(Object.keys(station.circuits));
+  for (const [k, C] of Object.entries(station.circuits)) if (C.feed && !circuits.has(C.feed)) out.push({ level: '', what: `circuit ${k} is fed from ${C.feed}, which does not exist` });
   for (const L of levels) {
     const bad = (what: string, later = false) => out.push({ level: L.id, what, ...(later ? { later } : {}) });
     const circuit = (c: string, of: string) => { if (c !== L.circuit && !circuits.has(c)) bad(`${of}: no circuit ${c}`); };
@@ -58,7 +59,7 @@ export function validateStation(station: StationDef, levels: LevelDef[] = statio
     for (const u of L.uses) {
       if (!KINDS.has(u.kind)) { bad(`a thing to use of unknown kind: ${u.kind}`); continue; }
       const c = u.opts.c as string | undefined;
-      if ((u.kind === 'backup' || u.kind === 'panel') && (!c || !circuits.has(c))) bad(`${u.kind} for a circuit that does not exist: ${c}`);
+      if ((u.kind === 'backup' || u.kind === 'panel' || u.kind === 'elev') && (!c || !circuits.has(c))) bad(`${u.kind} for a circuit that does not exist: ${c}`);
       if (u.kind === 'ladder') {
         const S = station.ladders[u.opts.id as string];
         if (!S) bad(`ladder ${u.opts.id} is not one of the station's ladderways`);

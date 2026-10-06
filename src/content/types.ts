@@ -203,8 +203,10 @@ export interface LevelDef {
   start: Start;
 }
 
-/** how a circuit starts: on (fed by Gen-1 when it runs), with a working backup set, or broken (its feed is burned) */
-export interface CircuitDef { on: boolean; back: boolean; broken?: boolean; tag?: string }
+/** how a circuit starts: on (fed by Gen-1 when it runs), with a working backup set, or broken (its feed is burned or cut).
+ *  A branch (`feed`) takes its power from another circuit through its own service connection, not from Gen-1: whatever
+ *  that circuit has, it has, while its connection is closed and whole. */
+export interface CircuitDef { on: boolean; back: boolean; broken?: boolean; feed?: string; tag?: string }
 
 /** a ladderway between two levels: broken (why it does not go), or needing something to pass */
 export interface LadderDef {

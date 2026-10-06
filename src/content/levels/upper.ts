@@ -1,86 +1,120 @@
 import { PI } from '../../core/math';
 import type { LevelDef, LadderDef } from '../types';
 import {
-  arch, beginLevel, bx, cave, door, elev, finishLevel, item, ladder, mkDeck, mul3, mut, note, P, roughen, room, stack, type Deck, type LevelInfo, type TRoomOpts,
+  arch, beginLevel, bx, cave, door, elev, finishLevel, item, ladder, lamp, mkDeck, mul3, mut, note, P, roughen, room, stack, stairs, use, type Deck, type LevelInfo, type TRoomOpts,
 } from '../build/tiles';
 import {
-  BAY, CELL, LOW, MED, OPS, SEC, UTIL, WALK, blood, bed, container, corpse, crates, desk, eggs, forklift, genset, gore, liftRoom, medbed, shelf, tbl,
+  BAY, CELL, LOW, MED, OPS, SEC, UTIL, WALK, blood, bed, container, corpse, crates, desk, eggs, forklift, genset, gore, liftRoom, medbed, panel, shelf, tbl,
 } from '../build/fittings';
 
-/* Upper station, 40 m down. Security and Ops (x 14 to 94) off the main shaft; the Cargo cavern (x 110 to 240); the exhaust
-   shaft (x 260). Start here.
-   Ported from the first engine (archive/first-engine.html, buildUpper and buildCargo2) on the tile adapter: tile units,
-   as it had them.
+/* Upper station, 40 m down. Off the main shaft, the Security wing (x 14 to 66) and Operations (x 64 to 110, south to
+   z 54), with a two-storey atrium where they meet; the Cargo cavern (x 110 to 240); the exhaust shaft (x 260). Start here.
+   Ported from the first engine (archive/first-engine.html, buildUpper and buildCargo2) on the tile adapter, in tile
+   units; Security and Ops since laid out again around the highway and its bend (world.md §8).
    The frame: org [-10, -30], so tile i is plan x = 2i - 10 and tile j is plan z = 2j - 30. */
 
 export const UPPER: LevelInfo = { id: 'upper', name: 'Upper station', c: 'OPS', org: [-10, -30] };
 
 export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   beginLevel(UPPER, ladders);
-  const lv = UPPER, D = mkDeck(lv, 140, 30);
+  const lv = UPPER, D = mkDeck(lv, 140, 44);
+  /* the rungs over the ground floor at +5, +10 and +15: Tier 1 also carries the second floor over Ops */
+  const tier = (y0: number, li: number) => mkDeck(lv, 140, 44, { y0, li }), T1 = tier(5, 1), T2 = tier(10, 2), T3 = tier(15, 3);
+  stack(D, T1); stack(T1, T2); stack(T2, T3);
   /* the main shaft: the hoist cage (runs on Gen-1), the surface cage, and ladderway A down the shaft */
   liftRoom(D, 5, 14, 7, 14);
-  room(D, 'Shaft station', 8, 14, 3, 3, { ...UTIL, em: 1, safe: 1 }); door(D, 11, 14, { sg: [['Lobby', 'w'], ['Shaft station', 'e']] });
+  room(D, 'Shaft station', 8, 14, 3, 3, { ...UTIL, c: 'SEC', em: 1, safe: 1 }); door(D, 11, 14, { sg: [['Lobby', 'w'], ['Shaft station', 'e']] });
   room(D, 'Surface cage', 8, 11, 2, 2, { ...OPS, c: 'LIFT', nolamp: 1, noroam: 1, safe: 1 }); door(D, 8, 13, { kind: 'heavy', c: 'LIFT', lift: true, sg: [['Surface', 's']] });
   ladder(D, 'A1', 10.5, 16.6, 9.6, 16.1, PI / 2, false);
-  /* the lobby, across the spine at the west end */
-  room(D, 'Lobby', 12, 10, 8, 10, { ...OPS, ht: 5, em: 1 }); door(D, 20, 14, { sg: [['Security', 'w'], ['Lobby', 'e']] });
+
+  /* The Security wing: the lobby, the first leg of the highway, and the rooms off it. Its feed hangs off Ops, and the
+     survivors cut it to blind the cameras on their side (world.md §8): dark at the start, and a kit mends it. */
+  room(D, 'Lobby', 12, 10, 8, 10, { ...OPS, c: 'SEC', ht: 5, em: 1 }); door(D, 20, 14, { sg: [['Security', 'w'], ['Lobby', 'e']] });
   bx(D, 16, 17.6, 3, 1, 0.7, 0x6b5a48); bx(D, 18.6, 10.4, 1.8, 0.42, 0.45, 0x5f6266); bx(D, 12.4, 12, 0.45, 0.42, 1.4, 0x5f6266);
   corpse(D, 17.5, 12.5, 0x2c3440, true, { label: 'Search the officer', say: 'A security officer. Whatever opened him did it from behind.', keys: ['s'] }); mut(D, 'husk', 14, 18.4, { post: 1, yaw: PI / 2 });
-  /* the spine: Security corridor, then Operations corridor, then the link to Cargo */
-  room(D, 'Security corridor', 21, 14, 14, 2, { ...SEC, em: 1, safe: 1 }); genset(D, 'OPS', 21.5, 14.3, 21.6, 14.9);
-  door(D, 35, 14, { sg: [['Operations', 'w'], ['Security', 'e']] });
-  room(D, 'Operations corridor', 36, 14, 16, 2, { ...OPS, em: 1 }); mut(D, 'husk', 46, 14.6); mut(D, 'husk', 41.2, 15.3); blood(D, 48, 15, 1.2);
-  room(D, 'Phase 2', 50, 11, 1, 2, { ...UTIL, lit: 'none', nolamp: 1, noroam: 1 }); door(D, 50, 13, { kind: 'heavy', seal: true, msg: 'Welded shut. Stencilled across it: PHASE 2. NOT COMMISSIONED.', sg: [['Phase 2', 's']] });
-  door(D, 52, 14, { sg: [['Cargo', 'w'], ['Operations', 'e']] }); room(D, 'Cargo link', 53, 14, 6, 2, { ...UTIL, c: 'CARGO', em: 1 });
-  door(D, 59, 14, { sg: [['Cargo cavern', 'w']] });
-  /* north of the spine. Holding: a short block with two cells a side; you wake in W2 */
-  room(D, 'Holding block', 24, 6, 2, 7, { ...CELL, lit: 'always', lc: LOW, safe: 1 }); door(D, 24, 13, { open: true, sg: [['Holding', 's']] });
-  for (const [k, y] of [[1, 6], [2, 9]]) {
-    room(D, 'Cell W' + k, 21, y, 2, 2, { ...CELL, lit: 'always', lc: mul3(LOW, 0.8), safe: 1, nolamp: 1 }); room(D, 'Cell E' + k, 27, y, 2, 2, { ...CELL, lit: 'always', lc: mul3(LOW, 0.8), safe: 1, nolamp: 1 });
+  room(D, 'Security corridor', 21, 13, 18, 3, { ...SEC, c: 'SEC', ht: 4.5, em: 1, safe: 1 });
+  /* the cut, near the wing's end: the cabinet left open, the cable through, and the one who did it */
+  panel(D, 'SEC', 37.4, 13.06, 's', { cut: 1 }); bx(D, 37.4, 13.04, 0.12, 2.6, 0.08, 0x2a2c2e, { y: 1.8, c: 0 });
+  P(D, 'cyl', 37.15, 13.16, 0.07, 0.6, 0.07, 0x1d1f21, { y: 1.15, rz: 0.35, c: 0 }); P(D, 'cyl', 37.65, 13.16, 0.07, 0.45, 0.07, 0x1d1f21, { y: 1.3, rz: -0.3, c: 0 });
+  corpse(D, 36.2, 13.9, 0x2c3440, false, { label: 'Search the guard', say: 'A guard, bolt cutters still in his hand. Behind him the feed to the wing is cut clean through.' });
+  /* what was left of a barricade across the mouth of the wing */
+  bx(D, 38.4, 13.7, 1.8, 0.75, 0.7, 0x5b5d5f, { ry: 0.5 }); crates(D, 38.3, 15.3, 2);
+  /* north: Holding, a short block with two cells a side (you wake in W2), the guard post, Security control */
+  room(D, 'Holding block', 24, 5, 2, 7, { ...CELL, c: 'SEC', lit: 'always', lc: LOW, safe: 1 }); door(D, 24, 12, { open: true, sg: [['Holding', 's']] });
+  for (const [k, y] of [[1, 5], [2, 8]]) {
+    room(D, 'Cell W' + k, 21, y, 2, 2, { ...CELL, c: 'SEC', lit: 'always', lc: mul3(LOW, 0.8), safe: 1, nolamp: 1 }); room(D, 'Cell E' + k, 27, y, 2, 2, { ...CELL, c: 'SEC', lit: 'always', lc: mul3(LOW, 0.8), safe: 1, nolamp: 1 });
     bed(D, 21.3, y + 1, true, 0x6d7178); bx(D, 22.75, y + 1.75, 0.4, 0.42, 0.4, 0xb8bcc0); bed(D, 28.7, y + 1, true, 0x6d7178); bx(D, 27.25, y + 1.75, 0.4, 0.42, 0.4, 0xb8bcc0);
     door(D, 23, y, { open: k === 2, seal: k !== 2 }); door(D, 26, y, { open: k === 2, seal: k !== 2 });
   }
-  note(D, 'intake', 22.5, 9.35, 0.02); blood(D, 28, 10, 1.4); bx(D, 27.2, 9.5, 1.6, 0.01, 0.3, 0x3a0b0b, { y: 0.02, c: 0 });
-  room(D, 'Guard post', 30, 9, 4, 4, { ...SEC, lit: 'always', lc: LOW, safe: 1 }); door(D, 31, 13, { open: true, sg: [['Guard post', 's']] });
-  desk(D, 31.2, 9.6, 1.8, 0.7); bx(D, 31.2, 10.2, 0.45, 0.45, 0.45, 0x2c2f33); for (let k = 0; k < 3; k++) bx(D, 33.7, 9.3 + k * 0.3, 0.5, 1.9, 0.5, 0x4d5863); bx(D, 33, 12.7, 1.6, 0.42, 0.4, 0x44484c);
-  item(D, 'flash', 30.75, 9.7, 0.78); item(D, 'batt', 31.65, 9.7, 0.78); note(D, 'duty', 31.5, 9.45, 0.78); item(D, 'baton', 32.8, 12.7, 0.44); item(D, 'ration', 33.3, 12.7, 0.44);
-  room(D, 'Security control', 35, 8, 4, 5, SEC); door(D, 36, 13, { card: 's', sg: [['Control', 's']] });
-  tbl(D, 37, 8.5, 5, 0.8);
-  for (let k = 0; k < 5; k++) { bx(D, 35.8 + k * 0.6, 8.06, 1, 0.7, 0.06, 0x22262a, { y: 1.2, c: 0 }); bx(D, 35.8 + k * 0.6, 8.08, 0.9, 0.6, 0.02, [0.05, 0.07, 0.08], { y: 1.25, c: 0, pw: [[0.04, 0.05, 0.05], [2.3, 2.6, 2.75]] }); }
-  note(D, 'cams', 36.4, 8.5, 0.78); item(D, 'batt', 37.8, 8.5, 0.78, 2); item(D, 'ammo9', 35.5, 12.5, 0.02);
-  room(D, 'Operations room', 40, 6, 8, 7, { ...OPS, ht: 4 }); door(D, 43, 13, { sg: [['Operations room', 's']] });
-  tbl(D, 44, 9.4, 6, 2.2, 0x4a3a2c); for (let k = 0; k < 5; k++) for (const s of [-1, 1]) bx(D, 42.2 + k * 0.9, 9.4 + s * 0.85, 0.45, 0.45, 0.45, 0x2c2f33);
-  for (let k = 0; k < 6; k++) { bx(D, 41 + k * 1.2, 6.06, 2, 1.2, 0.06, 0x22262a, { y: 1.3, c: 0 }); bx(D, 41 + k * 1.2, 6.08, 1.9, 1.1, 0.02, [0.05, 0.07, 0.08], { y: 1.35, c: 0, pw: [[0.04, 0.05, 0.05], [2.2, 2.5, 2.75]] }); }
-  corpse(D, 46.6, 11.8, 0x4a4238, false, { label: 'Search the manager', say: 'DEPUTY DIRECTOR, OPERATIONS. Her pass is still on its lanyard.', keys: ['o'] });
-  note(D, 'memo', 43, 9.3, 0.78); eggs(D, 40.6, 6.6, 3); mut(D, 'husk', 41.4, 11.6, { post: 1, yaw: 0 }); gore(D, 47, 7.2, 3);
-  /* south of the spine */
-  room(D, 'Armory', 21, 17, 5, 4, SEC); door(D, 23, 16, { kind: 'heavy', code: 1, sg: [['Armory', 'n']] });
+  note(D, 'intake', 22.5, 8.35, 0.02); blood(D, 28, 9, 1.4); bx(D, 27.2, 8.5, 1.6, 0.01, 0.3, 0x3a0b0b, { y: 0.02, c: 0 });
+  /* the guard post: dark with the wing, but for the survivors' battery lamp */
+  room(D, 'Guard post', 30, 8, 4, 4, { ...SEC, c: 'SEC', safe: 1 }); door(D, 31, 12, { open: true, sg: [['Guard post', 's']] }); lamp(D, 30.35, 11.6, 5);
+  desk(D, 31.2, 8.6, 1.8, 0.7); bx(D, 31.2, 9.2, 0.45, 0.45, 0.45, 0x2c2f33); for (let k = 0; k < 3; k++) bx(D, 33.7, 8.3 + k * 0.3, 0.5, 1.9, 0.5, 0x4d5863); bx(D, 33, 11.7, 1.6, 0.42, 0.4, 0x44484c);
+  item(D, 'flash', 30.75, 8.7, 0.78); item(D, 'batt', 31.65, 8.7, 0.78); note(D, 'duty', 31.5, 8.45, 0.78); item(D, 'baton', 32.8, 11.7, 0.44); item(D, 'ration', 33.3, 11.7, 0.44);
+  room(D, 'Security control', 35, 7, 3, 5, { ...SEC, c: 'SEC' }); door(D, 36, 12, { card: 's', sg: [['Control', 's']] });
+  tbl(D, 36.5, 7.5, 5, 0.8);
+  for (let k = 0; k < 4; k++) { bx(D, 35.6 + k * 0.6, 7.06, 1, 0.7, 0.06, 0x22262a, { y: 1.2, c: 0 }); bx(D, 35.6 + k * 0.6, 7.08, 0.9, 0.6, 0.02, [0.05, 0.07, 0.08], { y: 1.25, c: 0, pw: [[0.04, 0.05, 0.05], [2.3, 2.6, 2.75]] }); }
+  note(D, 'cams', 36.2, 7.5, 0.78); item(D, 'batt', 37.4, 7.5, 0.78, 2); item(D, 'ammo9', 35.5, 11.5, 0.02);
+  /* south: the Armory, the range, the hazard store, the infirmary. The heavy doors and their keypads run off Ops' own
+     bus, not the wing's: they wait on Gen-1 either way, cut or mended. */
+  room(D, 'Armory', 21, 17, 5, 4, { ...SEC, c: 'SEC' }); door(D, 23, 16, { kind: 'heavy', code: 1, c: 'OPS', sg: [['Armory', 'n']] });
   shelf(D, 21.3, 19, 0.5, 3, { empty: 1 }); shelf(D, 25.7, 19, 0.5, 3, { empty: 1 }); bx(D, 23.5, 20.5, 0.9, 0.7, 0.7, 0x3a4030);
   item(D, 'pistol', 21.35, 18.3, 1.06); item(D, 'ammo9', 21.35, 18.9, 1.06, 2); item(D, 'shotgun', 21.35, 19.6, 1.06); item(D, 'shells', 25.65, 18.4, 1.06, 2); item(D, 'tacvest', 25.65, 19.4, 1.06); item(D, 'surf', 23.5, 20.5, 0.7);
-  room(D, 'Firing range', 27, 17, 3, 7, { ...SEC, lit: 'none' }); door(D, 28, 16, { sg: [['Range', 'n']] });
+  room(D, 'Firing range', 27, 17, 3, 7, { ...SEC, c: 'SEC', lit: 'none' }); door(D, 28, 16, { sg: [['Range', 'n']] });
   bx(D, 28.1, 19, 4, 1, 0.4, 0x44484c); for (const x of [27.5, 28.5, 29.5]) { bx(D, x, 23.6, 0.5, 1, 0.06, 0xc8c0a0, { y: 0.6, c: 0 }); bx(D, x, 23.6, 0.06, 0.6, 0.06, 0x2a2c2e, { c: 0 }); }
-  item(D, 'ammo9', 27.6, 19, 1.02); mut(D, 'skitter', 28.6, 22); eggs(D, 27.4, 23.2, 2);
-  room(D, 'Hazardous storage', 31, 17, 4, 4, { ...UTIL, c: 'OPS' }); door(D, 32, 16, { kind: 'heavy', sg: [['Hazard store', 'n']] });
-  for (const [x, z] of [[31.4, 20.5], [32, 20.6], [31.4, 19.8], [34.6, 17.4]]) P(D, 'cyl', x, z, 0.6, 0.9, 0.6, 0xc9a227); shelf(D, 34.7, 19.6, 0.5, 2.2, { cols: [0xc9a227, 0x3d4042] }); bx(D, 33.3, 20.5, 0.8, 0.6, 0.6, 0x3a4030);
-  item(D, 'rebreather', 33.3, 20.5, 0.6); item(D, 'kit', 34.65, 19.3, 1.06);
-  room(D, 'Infirmary', 36, 17, 3, 4, { ...MED, safe: 1 }); door(D, 37, 16, { sg: [['Infirmary', 'n']] });
-  medbed(D, 36.3, 19.6); shelf(D, 38, 20.7, 1.8, 0.5, { cols: [0xd4d8d4, 0xb9c4bd, 0x8c2f24] }); item(D, 'bandage', 37.7, 20.65, 1.06, 2); item(D, 'medkit', 38.3, 20.65, 1.06);
-  for (const [nm, x, dopt] of [['Office: operations', 40, { card: 'o' }], ['Office: logistics', 44, { open: true }], ['Office: chief of security', 48, { card: 'o' }]] as const) {
-    room(D, nm, x, 17, 3, 4, { ...OPS, lc: [0.85, 0.78, 0.62] }); door(D, x + 1, 16, dopt); desk(D, x + 1.5, 19.9, 1.8, 0.7, { c: 0x4a3a2c }); bx(D, x + 1.5, 19.2, 0.45, 0.45, 0.45, 0x2c2f33); shelf(D, x + 0.3, 18.3, 0.5, 1.8, { cols: [0x7a4a34, 0x4d5a66, 0x8a7a4a] });
+  item(D, 'ammo9', 27.6, 19, 1.02);
+  room(D, 'Hazardous storage', 31, 17, 3, 4, { ...UTIL, c: 'SEC' }); door(D, 32, 16, { kind: 'heavy', c: 'OPS', sg: [['Hazard store', 'n']] });
+  for (const [x, z] of [[31.4, 20.5], [32, 20.6], [31.4, 19.8], [33.6, 17.4]]) P(D, 'cyl', x, z, 0.6, 0.9, 0.6, 0xc9a227); shelf(D, 33.7, 19.6, 0.5, 2.2, { cols: [0xc9a227, 0x3d4042] }); bx(D, 32.6, 20.5, 0.8, 0.6, 0.6, 0x3a4030);
+  item(D, 'rebreather', 32.6, 20.5, 0.6); item(D, 'kit', 33.65, 19.3, 1.06);
+  room(D, 'Infirmary', 35, 17, 3, 4, { ...MED, c: 'SEC', safe: 1 }); door(D, 36, 16, { sg: [['Infirmary', 'n']] });
+  medbed(D, 35.3, 19.6); shelf(D, 37, 20.7, 1.8, 0.5, { cols: [0xd4d8d4, 0xb9c4bd, 0x8c2f24] }); item(D, 'bandage', 36.7, 20.65, 1.06, 2); item(D, 'medkit', 37.3, 20.65, 1.06);
+
+  /* The atrium: the highway's bend, and the threshold. The wing's leg runs into it from the west, dark; it is lit,
+     theirs, and the second leg leaves it south for Operations. Two storeys, a gallery round two sides at +5 with a
+     stair up the core, and in the middle the core itself: the Security elevator, on the wing's feed. */
+  const AT: TRoomOpts = { ...OPS, ht: 9.5, em: 1, lc: [0.85, 0.8, 0.68] };
+  for (const [x, y, w, h] of [[39, 9, 10, 3], [39, 16, 10, 5], [39, 12, 3, 4], [46, 12, 3, 4]]) room(D, 'Atrium', x, y, w, h, AT);
+  room(D, 'Security elevator', 43, 13, 2, 2, { ...SEC, c: 'SEC', em: 1, noroam: 1 }); door(D, 42, 14, { sg: [['Security elevator', 'w']] });
+  bx(D, 44.96, 14, 0.06, 0.5, 0.4, 0x2c2f33, { y: 1.1, c: 0 }); use(D, 'elev', 44.9, 14, 1.3, { c: 'SEC' });
+  room(D, 'Phase 2', 43, 6, 2, 2, { ...UTIL, lit: 'none', nolamp: 1, noroam: 1 }); door(D, 43, 8, { kind: 'heavy', seal: true, msg: 'Welded shut. Stencilled across it: PHASE 2. NOT COMMISSIONED.', sg: [['Phase 2', 's']] });
+  stairs(D, T1, 46, 11, 6, 'n');
+  const GW: TRoomOpts = { ...WALK, ht: 4.5, c: 'OPS' };
+  room(T1, 'Gallery', 39, 9, 10, 2, GW); room(T1, 'Gallery', 47, 11, 2, 10, GW);
+  /* where the light changes, it starts: eggs at the threshold, on their side */
+  eggs(D, 39.4, 13.4, 2); eggs(D, 39.3, 15.6, 3); blood(D, 40.5, 17.5, 1.4);
+  /* the second leg: south to the operations room, offices either side, maintenance and the Ops backup set */
+  room(D, 'Operations corridor', 42, 21, 3, 13, { ...OPS, ht: 4.5, em: 1 }); mut(D, 'husk', 43.5, 25); mut(D, 'husk', 41, 18.5); blood(D, 43, 27.5, 1.2);
+  for (const [nm, x, y, dopt, east] of [['Office: operations', 37, 22, { card: 'o' }, false], ['Office: logistics', 37, 27, { open: true }, false], ['Office: chief of security', 46, 22, { card: 'o' }, true]] as const) {
+    room(D, nm, x, y, 4, 4, { ...OPS, lc: [0.85, 0.78, 0.62] }); door(D, east ? x - 1 : x + 4, y + 1, dopt);
+    desk(D, x + 2, y + 3.4, 1.8, 0.7, { c: 0x4a3a2c }); bx(D, x + 2, y + 2.7, 0.45, 0.45, 0.45, 0x2c2f33); shelf(D, east ? x + 3.7 : x + 0.3, y + 1.6, 0.5, 1.8, { cols: [0x7a4a34, 0x4d5a66, 0x8a7a4a] });
   }
-  note(D, 'mgr', 41.2, 19.85, 0.78); item(D, 'batt', 41.85, 19.9, 0.78); item(D, 'peaches', 45.85, 19.9, 0.78); item(D, 'bandage', 45.2, 19.85, 0.78); note(D, 'chief', 49.2, 19.85, 0.78); item(D, 'ammo9', 49.85, 19.9, 0.78); item(D, 'medkit', 50.5, 17.4, 0.02);
-  buildCargo(lv, D);
-  return finishLevel([22.3, 9.7, -PI / 2]);
+  note(D, 'mgr', 38.7, 25.35, 0.78); item(D, 'batt', 39.4, 25.4, 0.78); item(D, 'peaches', 39.4, 30.4, 0.78); item(D, 'bandage', 38.7, 30.35, 0.78); note(D, 'chief', 47.7, 25.35, 0.78); item(D, 'ammo9', 48.4, 25.4, 0.78); item(D, 'medkit', 49.5, 22.4, 0.02);
+  room(D, 'Maintenance', 46, 27, 4, 5, { ...UTIL, c: 'OPS' }); door(D, 45, 28, { sg: [['Maintenance', 'w']] });
+  genset(D, 'OPS', 49.3, 29.5, 48.7, 29.5); shelf(D, 47.6, 31.7, 1.8, 0.5, { cols: [0xc9a227, 0x3d4042] }); item(D, 'kit', 47.6, 31.7, 1.06);
+  /* the operations room, at the end of the second leg: the overseer's, in time */
+  room(D, 'Operations room', 37, 35, 13, 7, { ...OPS, ht: 5 }); door(D, 43, 34, { sg: [['Operations', 'n']] });
+  tbl(D, 43.5, 38.2, 6, 2.2, 0x4a3a2c); for (let k = 0; k < 5; k++) for (const s of [-1, 1]) bx(D, 41.7 + k * 0.9, 38.2 + s * 0.85, 0.45, 0.45, 0.45, 0x2c2f33);
+  for (let k = 0; k < 8; k++) { bx(D, 38.4 + k * 1.4, 41.94, 2, 1.2, 0.06, 0x22262a, { y: 1.3, c: 0 }); bx(D, 38.4 + k * 1.4, 41.92, 1.9, 1.1, 0.02, [0.05, 0.07, 0.08], { y: 1.35, c: 0, pw: [[0.04, 0.05, 0.05], [2.2, 2.5, 2.75]] }); }
+  corpse(D, 47.6, 36.2, 0x4a4238, false, { label: 'Search the manager', say: 'DEPUTY DIRECTOR, OPERATIONS. Her pass is still on its lanyard.', keys: ['o'] });
+  note(D, 'memo', 42.5, 38.1, 0.78); eggs(D, 37.6, 35.6, 3); eggs(D, 49.3, 35.7, 4); mut(D, 'husk', 39.4, 40.2, { post: 1, yaw: 0 }); gore(D, 48.6, 40.6, 3); gore(D, 38.4, 41.2, 2);
+  mut(D, 'skitter', 28.6, 22); eggs(D, 27.4, 23.2, 2); // the range
+  /* east of the atrium, behind Operations' card: the link to Cargo, and over it on the second floor, Cargo control */
+  door(D, 49, 14, { card: 'o', c: 'OPS', sg: [['Cargo', 'w']] }); room(D, 'Cargo link', 50, 14, 9, 2, { ...UTIL, c: 'CARGO', em: 1 });
+  door(D, 59, 14, { sg: [['Cargo cavern', 'w']] });
+  door(T1, 49, 16, { sg: [['Cargo control', 'w']] }); room(T1, 'Cargo control', 50, 12, 9, 7, { ...UTIL, c: 'CARGO', ht: 4 });
+  tbl(T1, 58.3, 15, 0.8, 4, 0x3a3d40); bx(T1, 57.4, 15, 0.45, 0.45, 0.45, 0x2c2f33); for (const z of [14.2, 15.8]) bx(T1, 58.4, z, 0.5, 0.3, 0.06, 0x22262a, { y: 0.76, c: 0, pw: [[0.04, 0.05, 0.05], [2.2, 2.5, 2.75]], pc: 'CARGO' });
+  /* the window onto the bay: black glass for now (glass you can see through is still to be built: world.md §8) */
+  bx(T1, 58.98, 15, 0.04, 2.2, 9.6, 0x0b0d0f, { y: 0.9, c: 0 }); for (let k = 0; k < 5; k++) bx(T1, 58.96, 12.6 + k * 1.2, 0.06, 2.2, 0.08, 0x2a2c2e, { y: 0.9, c: 0 });
+  use(T1, 'look', 58.4, 15, 1.5, { label: 'Look out over the bay', text: 'Thick glass over the bay, and the floor a long way down. Nothing out there gives back any light.' });
+  buildCargo(D, T1, T2, T3);
+  return finishLevel([22.3, 8.7, -PI / 2]);
 }
 
 /* the Cargo cavern: a 20 m vault, x 110 to 240, with three tiers stepped up its north side at +5, +10 and +15 and a platform
    between each. Dead and black until its backup set runs, which also moves the platforms, and wakes the nest that thickens
    toward the roof. East of it, the link to the exhaust shaft and ladderway B under the sealed fan door. */
-function buildCargo(lv: LevelInfo, D: Deck): void {
+function buildCargo(D: Deck, T1: Deck, T2: Deck, T3: Deck): void {
   const cav = cave(D, 'Cargo cavern', 60, 8, 65, 14, { ...BAY, ht: 20, c: 'CARGO', lit: 'main', em: 1, motes: 'flesh' }); arch(D, cav, 5); roughen(D, cav, 0, 1.2);
-  const tier = (y0: number, li: number) => mkDeck(lv, 140, 30, { y0, li }), T1 = tier(5, 1), T2 = tier(10, 2), T3 = tier(15, 3);
-  stack(D, T1); stack(T1, T2); stack(T2, T3);
   const TW: TRoomOpts = { ...WALK, ht: 5, c: 'CARGO', motes: 'flesh' };
   room(T1, 'Tier 1', 68, 8, 48, 5, TW); room(T2, 'Tier 2', 72, 8, 39, 5, TW); room(T3, 'Tier 3', 76, 8, 25, 5, TW);
   elev(D, T1, 70, 11, 2, 2, 'CARGO', 'Cargo platform'); elev(T1, T2, 74, 11, 2, 2, 'CARGO', 'Cargo platform'); elev(T2, T3, 78, 11, 2, 2, 'CARGO', 'Cargo platform');

@@ -410,6 +410,16 @@ from behind.")
 kit; see Power, above), and its controls are in the operations centre. The exit and the climax share a room. The other ways out
 stay: ladderway A down, and B once Cargo has power.
 
+**Built so far.** The wing is a branch circuit (SEC) off Ops, cut at the start, with its splice panel near the
+threshold and the guard who cut it; a kit in Maintenance, on Ops' side, mends it (the hazard store's stays behind Gen-1).
+Mended, the wing lights amber, Security control's reader wakes, and the Security elevator's panel lights (where it goes is
+open: the floor directly below, at a place the ladder does not already reach). The highway runs east from the Lobby
+through the dark wing and opens without a door into the atrium; the second leg runs south to the operations room past
+the offices and Maintenance (the Ops backup set). The gallery climbs the core's east side to +5 and branches east to
+Cargo control, whose east wall is the window: black for now. Cargo is behind Operations' card (the deputy director, at
+the far end), so it comes last. The Armory's and the hazard store's heavy doors run off Ops' bus, so they wait on Gen-1
+whether or not the wing is mended.
+
 **What the game needs for it**
 
 - **New:** cameras as fixed eyes: a sight check from each camera, a visible light while it is live, and what it sees sounding
@@ -417,8 +427,7 @@ stay: ladderway A down, and B once Cargo has power.
   cast walking to it. Rounds that keep to lit rooms (`roamRooms` in `sim/cast.ts` is fixed when the level loads; it must follow
   the circuits). Glass: solid to bodies, clear to sight and light (the bay window; camera domes share the work). A door the
   overseer can lock. The overseer itself, and the hand.
-- **Content:** the wing on a circuit of its own, its cut service connection as a repairable, the highway, atrium and second
-  floor, the window.
+- **Content:** done but for the window's glass and the elevator's destination (above).
 - **Already there:** patrols (the cast keep rounds), vents (loose panels; crawling under), grabbing and dragging (a start for the
   hand), caves of any outline (for the nest's organic shapes), backup sets and the power rules, the progression checker (to prove
   the level, and every way of spending power in it, can still be finished).

@@ -66,12 +66,12 @@ describe('the nav graph', () => {
 
 describe('what they notice', () => {
   it('a husk does not see you crouched and still behind it; it hears you run', () => {
-    const s = fresh(), m = s.cast[1]; // the Operations corridor
+    const s = fresh(), m = s.cast[1]; // the Operations corridor, which runs south from the atrium
     only(s, [m]);
-    m.post = true; m.yaw = Math.PI / 2; // facing east, keeping its place
-    place(s, m, 82, 0, -1);
-    place(s, 'player', 77, 0, -1);
-    face(s, 82, 1, -1);
+    m.post = true; m.yaw = 0; // facing south, keeping its place
+    place(s, m, 77, 0, 26);
+    place(s, 'player', 77, 0, 21);
+    face(s, 77, 1, 26);
     hold(s, 0.1, { crouch: true });
     hold(s, 2);
     expect(m.state).toBe('idle');
@@ -83,21 +83,21 @@ describe('what they notice', () => {
   it('one that has seen you comes, and hurts', () => {
     const s = fresh(), m = s.cast[1];
     only(s, [m]);
-    m.yaw = -Math.PI / 2; // facing you
-    place(s, m, 84, 0, -1);
-    place(s, 'player', 76, 0, -1);
-    face(s, 84, 1, -1);
+    m.yaw = Math.PI; // facing you, up the corridor
+    place(s, m, 77, 0, 30);
+    place(s, 'player', 77, 0, 22);
+    face(s, 77, 1, 30);
     hold(s, 0.5);
     expect(m.state).toBe('hunt');
     hold(s, 5);
-    expect(Math.hypot(m.x - 76, m.z + 1)).toBeLessThan(1.6);
+    expect(Math.hypot(m.x - 77, m.z - 22)).toBeLessThan(1.6);
     expect(s.game.hp).toBeLessThan(100);
   });
 });
 
 describe('how they follow', () => {
   it('a husk slides a dead door open by hand to come through it', () => {
-    const s = fresh(), m = s.cast[5], d = s.doors[7]; // the Cargo door, x 109: dead at the start
+    const s = fresh(), m = s.cast[5], d = s.doors.find(d => d.def.x0 > 107 && d.def.x1 < 111 && d.def.z1 < 1)!; // the Cargo door, x 109: dead at the start
     only(s, [m]);
     s.game.hp = 1e9;
     expect(d.t).toBe(0);

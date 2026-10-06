@@ -67,22 +67,42 @@ export function buildUsables(sim: Sim): Usable[] {
         break;
       }
       case 'panel': {
-        const c = o.c as string;
+        /* `cut`: cut through by hand, not burned out */
+        const c = o.c as string, cut = !!o.cut, name = STATION_NAMES[c] ?? c;
         out.push({
           ...base,
-          label: () => { const C = g.station?.circuits[c]; return 'Service connection, ' + (STATION_NAMES[c] ?? c) + ': ' + (!C ? 'none' : C.broken ? 'burned through' : C.on ? 'closed' : 'open'); },
+          label: () => { const C = g.station?.circuits[c]; return 'Service connection, ' + name + ': ' + (!C ? 'none' : C.broken ? (cut ? 'cut through' : 'burned through') : C.on ? 'closed' : 'open'); },
           act: () => {
             const C = g.station?.circuits[c];
             if (!C) return;
             if (C.broken) {
               const i = g.inv.findIndex(s => s.id === 'kit');
-              if (i < 0) { say(g, 'The feed is burned through behind the switch. It would need cable, crimps, a proper splice.'); sfx(g, 'deny'); return; }
+              if (i < 0) {
+                say(g, cut ? 'The feed has been cut clean through behind the switch, by hand. It would need cable, crimps, a proper splice.' : 'The feed is burned through behind the switch. It would need cable, crimps, a proper splice.');
+                sfx(g, 'deny');
+                return;
+              }
               consume(g, i); C.broken = false; C.on = true; sfx(g, 'clang'); say(g, 'You splice the feed and close the switch.');
             } else {
               C.on = !C.on;
-              say(g, C.on ? 'Switch closed. ' + (g.station!.main ? 'That floor takes power.' : 'Nothing upstream to take.') : 'Switch open. That floor is cut off from Gen-1.');
+              /* a branch takes what its feed has; anything else takes Gen-1 */
+              const live = power(g, C.feed ?? c) > 0, up = C.feed ? (live ? 'The ' + name + ' takes power.' : 'Nothing upstream to take.') : g.station!.main ? 'That floor takes power.' : 'Nothing upstream to take.';
+              say(g, C.on ? 'Switch closed. ' + up : C.feed ? 'Switch open. The ' + name + ' is cut off.' : 'Switch open. That floor is cut off from Gen-1.');
             }
             g.events.push({ type: 'power', loud: false });
+          },
+        });
+        break;
+      }
+      case 'elev': {
+        /* a lift of a level's own, off a circuit: where it goes is not built yet */
+        const c = o.c as string;
+        out.push({
+          ...base, label: () => 'Elevator panel',
+          act: () => {
+            if (power(g, c) < 1) { say(g, 'The panel is dark. The car runs off the ' + (STATION_NAMES[c] ?? c) + ', and that is dead.'); sfx(g, 'deny'); return; }
+            sfx(g, 'door', u);
+            say(g, 'The panel lights, and the car shudders awake. Where it goes is not built yet.');
           },
         });
         break;
