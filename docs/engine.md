@@ -360,6 +360,10 @@ sequence of inputs. The door rules, the labels and the answers are the first eng
   `LevelDef.stains`, or under one of the cast that fell) red for about ten, and those stay; through what a green one
   bled, green. A print that comes down on one already there grows it (to 0.4 m) instead of lying on top. None in
   water, on a crate or on a platform. The newest 256 are kept; they are looks only, not saved. Bleeding is for later.
+- **Drips** (since; `present/render/drips.ts`): a level's caves and rooms over standing water drip from fixed points
+  (one to three a room, found from the level's id, so the same each load), each with roof above and a fall of a metre
+  or more under it. A drop falls now and then; on water it spreads a square ring, on stone a small splash over a
+  patch kept dark and wet; and it is heard where it lands (a plink on water, a tap on stone), not anywhere.
 - **A fight's feel** (since): a swing let go early is a jab, weaker and slow to recover from, not nothing; a blow that
   lands, or meets a wall, holds the swing still a moment (hit-stop) and dips the view; a hurt from one of the cast
   knocks the view away from it and flashes the edge of the screen on its side; a husk's or skitter's wind-up that you

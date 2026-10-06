@@ -157,6 +157,14 @@ export class Soundscape {
     return { x: rnd(S.x0, S.x1), y: S.y0 + S.ht - 0.3, z: rnd(S.z0, S.z1) };
   }
 
+  /** a drop has landed (drips.ts), on water or on stone: heard where it fell */
+  dripAt(sim: Sim, x: number, y: number, z: number, water: boolean): void {
+    const b = sim.player.body;
+    if (Math.hypot(x - b.x, y - b.y, z - b.z) < 30) this.at(sim, 'drip', x, y, z, { k: water ? 1 : 0 });
+  }
+  /** this level drips at its own drip points (drips.ts), so not at random */
+  placedDrips = false;
+
   /** a door shut a while has opened and breathed out (motes.ts), this hard */
   gust(sim: Sim, x: number, y: number, z: number, k: number): void {
     this.at(sim, 'gust', x, y, z, { k });
@@ -290,7 +298,7 @@ export class Soundscape {
     A.setBuzz(buzz, dim);
     if (buzz && dim !== this.dim) A.play(dim ? 'zap' : 'tink', { k: buzz });
     this.dim = dim;
-    if ((this.drip -= dt) < 0) {
+    if (!this.placedDrips && (this.drip -= dt) < 0) {
       this.drip = rnd(1.2, 4.5);
       const wet = cave || [[0, 0], [6, 0], [-6, 0], [0, 6], [0, -6]].some(([ox, oz]) => w.waterAt(b.x + ox, b.z + oz) > -Infinity);
       if (wet) A.play('drip', { d: rnd(3, 16), pan: rnd(-0.8, 0.8), muffle: rnd(0, 0.3) });

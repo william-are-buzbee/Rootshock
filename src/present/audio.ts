@@ -350,7 +350,12 @@ export class Audio {
           this.nz(1.4, (0.12 + 0.12 * k) * v, 260, 'bandpass', 0, 0.7, 520, 0.25);
           this.nz(0.9, (0.05 + 0.05 * k) * v, 1400, 'bandpass', 0.1, 1.2, 700, 0.2);
           break;
-        case 'drip': { const f = rnd(1400, 2600); this.tn(f, f * 0.5, 0.06, 'sine', 0.05 * v); this.tn(f, f * 0.5, 0.06, 'sine', 0.015 * v, 0.17); break; }
+        case 'drip': { // into water a plink and its echo off the surface; on stone (k 0) a short, dull tap
+          const f = rnd(1400, 2600);
+          if (k > 0.5 || o.k === undefined) { this.tn(f, f * 0.5, 0.06, 'sine', 0.05 * v); this.tn(f, f * 0.5, 0.06, 'sine', 0.015 * v, 0.17); }
+          else { this.tn(f * 0.7, f * 0.45, 0.025, 'triangle', 0.04 * v); this.nz(0.03, 0.03 * v, 2500, 'bandpass', 0, 2); }
+          break;
+        }
 
         /* what you do */
         case 'hit': this.nz(0.12, 0.5, 260); this.tn(95, 50, 0.14, 'square', 0.2); break;
