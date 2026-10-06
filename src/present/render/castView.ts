@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { Colour } from '../../core/math';
-import type { Mutant } from '../../sim/cast';
+import { blowAt, type Mutant } from '../../sim/cast';
 import type { Sim } from '../../sim/sim';
 import type { Lighting } from '../../world/light';
 import { dynamicMaterial } from './shader';
@@ -151,14 +151,39 @@ const BUILD: Record<string, (mat: THREE.Material, m: Mutant) => Model> = {
 };
 
 const r = (a: number, b: number) => a + Math.random() * (b - a);
+/** smoothstep, 0..1 */
+const ease = (t: number) => t * t * (3 - 2 * t);
 
 const ANIM: Record<string, (m: Mutant, M: Model) => void> = {
   husk(m, M) {
     const mv = m.mv > 0, hunt = m.state === 'hunt', f = hunt ? 11 : 5;
     for (let k = 0; k < 2; k++) M.legs[k].rotation.x = mv ? Math.sin(m.ph * f + k * PI) * (hunt ? 0.7 : 0.35) : 0;
     M.arms[0].rotation.x = hunt ? -1.1 + Math.sin(m.ph * f) * 0.2 : mv ? Math.sin(m.ph * f + PI) * 0.25 : 0;
-    M.arms[1].rotation.x = m.wind > 0 ? -2.6 + m.wind * 3 : hunt ? -1.3 + Math.sin(m.ph * f + 2) * 0.25 : mv ? Math.sin(m.ph * f) * 0.2 : Math.sin(m.ph * 0.9) * 0.06;
+    M.arms[1].rotation.x = hunt ? -1.3 + Math.sin(m.ph * f + 2) * 0.25 : mv ? Math.sin(m.ph * f) * 0.2 : Math.sin(m.ph * 0.9) * 0.06;
     M.b.rotation.x = m.state === 'flee' ? 0.4 : hunt ? 0.18 : 0.06;
+    /* its blow, as the sim has it: the arm drawn up and back, the body leaning away (shaking at the top, the last of
+       the wind-up, when it has stopped turning); brought down through you and past, the body following it over; then
+       left hanging, bent over, before it comes back up */
+    const B = blowAt(m);
+    if (B) {
+      const top = -2.75, low = -0.15;
+      if (B.ph === 'wind') {
+        const e = ease(B.q), shake = B.q > 0.7 ? Math.sin(m.ph * 45) * 0.05 : 0;
+        M.arms[1].rotation.x = -1.3 + (top + 1.3) * e + shake;
+        M.arms[0].rotation.x = -1.1 + 0.6 * e;
+        M.b.rotation.x = 0.18 - 0.26 * e;
+      } else if (B.ph === 'strike') {
+        const e = B.q * B.q;
+        M.arms[1].rotation.x = top + (low - top) * e;
+        M.arms[0].rotation.x = -0.5;
+        M.b.rotation.x = -0.08 + 0.58 * e;
+      } else {
+        const e = ease(Math.max(0, (B.q - 0.35) / 0.65));
+        M.arms[1].rotation.x = low + (-1.3 - low) * e;
+        M.arms[0].rotation.x = -0.5 - 0.6 * e;
+        M.b.rotation.x = 0.5 - 0.32 * e;
+      }
+    }
     M.b.rotation.z = Math.sin(m.ph * (mv ? f : 0.8)) * 0.04;
     M.hd.rotation.z = 0.25 + Math.sin(m.ph * 0.7) * 0.1 + (Math.random() < 0.015 ? r(-0.5, 0.5) : 0);
     M.hd.rotation.y = Math.sin(m.ph * 0.5) * 0.25;
@@ -169,12 +194,15 @@ const ANIM: Record<string, (m: Mutant, M: Model) => void> = {
     M.hd.rotation.z = 2.5 + Math.sin(m.ph * 3.1) * 0.2 + (Math.random() < 0.05 * q ? r(-0.7, 0.7) : 0);
     M.b.position.y = 0.55 + Math.sin(m.ph * (mv ? 20 : 2)) * 0.02;
     M.b.rotation.z = Math.random() < 0.03 * q ? r(-0.12, 0.12) : 0;
-    /* the tell: it rears, front limbs spread, and holds there a beat before it comes down on you */
-    const w = m.wind > 0 ? Math.min(1, (m.windT - m.wind) / (m.windT * 0.5)) : 0;
+    /* the tell: it rears, front limbs spread, and holds there a beat before it comes down on you; it drops nose first
+       through where you were, and stays down, flat, a moment before it gathers itself */
+    const B = blowAt(m);
+    const w = !B ? 0 : B.ph === 'wind' ? Math.min(1, B.q / 0.5) : B.ph === 'strike' ? 1 - 1.4 * B.q * B.q : -0.4 * (1 - ease(Math.max(0, (B.q - 0.4) / 0.6)));
     M.b.rotation.x = -w * 0.75;
-    M.b.position.y += w * 0.28;
+    M.b.position.y += w * (w > 0 ? 0.28 : 0.4);
     for (const o of M.limbs) {
       if (w > 0 && o.k === 0) { o.l.rotation.z = o.s * w * 1.1 + Math.sin(m.ph * 40) * 0.06; o.l.rotation.y = o.s * -0.5 * w; }
+      else if (w < 0) { o.l.rotation.z = o.s * w * 0.6; }
       else o.l.rotation.z = 0;
     }
   },
@@ -195,6 +223,21 @@ const ANIM: Record<string, (m: Mutant, M: Model) => void> = {
     }
     for (let k = 0; k < 2; k++) M.legs[k].rotation.x = m.mv > 0 ? Math.sin(m.ph * (wild ? 16 : 5) + k * PI) * 0.6 : 0;
     M.b.rotation.x = m.state === 'charge' ? 0.35 : m.state === 'recover' ? -0.1 : 0.05;
+    /* its blow: both arms up and out and the chest open, then swept down and across, then left hanging, the doors
+       slack, while it comes back to itself. e runs 0 to 1 up the wind-up, back through 0 to -1 in the strike, and
+       from -1 to 0 again as it recovers */
+    const B = blowAt(m);
+    if (B) {
+      const e = B.ph === 'wind' ? ease(B.q) : B.ph === 'strike' ? 1 - 2 * B.q * B.q : -(1 - ease(Math.max(0, (B.q - 0.3) / 0.7)));
+      const shake = B.ph === 'wind' && B.q > 0.65;
+      for (const o of M.doors) o.d.rotation.y = o.s * (0.3 + (e >= 0 ? 1.0 : -0.45) * e);
+      for (const o of M.arms) {
+        o.a.rotation.x = e >= 0 ? -2.5 * e + (shake ? Math.sin(m.ph * 30 + o.s) * 0.08 : 0) : -0.4 * e;
+        o.a.rotation.z = o.s * (e >= 0 ? 0.9 * e : 0);
+        o.f.rotation.x = e >= 0 ? -0.4 * e : -0.2 * e;
+      }
+      M.b.rotation.x = B.ph === 'wind' ? -0.15 * e : B.ph === 'strike' ? -0.15 + 0.6 * B.q : -0.45 * e;
+    }
     M.hd.rotation.x = -0.7 + Math.sin(m.ph * 2.3) * 0.1;
     M.hd.rotation.z = Math.sin(m.ph * (wild ? 15 : 1.1)) * 0.2;
   },

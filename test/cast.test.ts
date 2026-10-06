@@ -7,7 +7,7 @@ import { STEP } from '../src/core/loop';
 import { give } from '../src/sim/game';
 import { field, openRules } from '../src/world/nav';
 import { refreshFields } from '../src/sim/fields';
-import type { Mutant } from '../src/sim/cast';
+import { BLOWS, hitMutant, type Mutant } from '../src/sim/cast';
 
 /* The cast on the upper station: the graph they walk, what they notice, how they follow, and what hurts them. */
 
@@ -170,10 +170,10 @@ describe('fighting', () => {
     faceOff(s, m, 1.1, 1.2);
     m.state = 'hunt';
     let wound = false;
-    for (let t = 0; t < 1 && !wound; t += STEP) { step(s, noInput()); wound = m.wind > 0; }
+    for (let t = 0; t < 1 && !wound; t += STEP) { step(s, noInput()); wound = m.blow?.ph === 'wind'; }
     expect(wound).toBe(true);
     s.game.events.length = 0;
-    hold(s, 0.45, { forward: -1 }); // backing off as it winds up
+    hold(s, 0.8, { forward: -1 }); // backing off as it winds up
     expect(s.game.hp).toBe(100);
     expect(s.game.events.some(e => e.type === 'sfx' && e.name === 'whiff')).toBe(true);
     /* standing still for the next */
@@ -182,6 +182,104 @@ describe('fighting', () => {
     const hurt = s.game.events.find(e => e.type === 'hurt');
     expect(s.game.hp).toBeLessThan(100);
     expect(hurt?.type === 'hurt' && hurt.from).toBeTruthy();
+  });
+
+  /** a husk hunting you from just in front, run to where its wind-up has stopped turning */
+  function committed(dmg = 100) {
+    const s = fresh(), m = s.cast[5];
+    only(s, [m]);
+    s.game.hp = dmg;
+    faceOff(s, m, 1.1, 1.2);
+    m.state = 'hunt';
+    for (let t = 0; t < 1.5 && !(m.blow?.ph === 'wind' && m.blow.t > BLOWS.husk.wind * BLOWS.husk.lock); t += STEP) step(s, noInput());
+    expect(m.blow?.ph).toBe('wind');
+    return { s, m };
+  }
+  /** stand `dist` from it at `ang` from the way it faces, wherever there is room */
+  function around(s: Sim, m: Mutant, dist: number, angs: number[]): void {
+    for (const a of angs) {
+      const x = m.x + Math.sin(m.yaw + a) * dist, z = m.z + Math.cos(m.yaw + a) * dist;
+      if (s.world.overlap({ x, z, hx: 0.32, hz: 0.32, round: true }, m.y + 0.05, m.y + 1.8)) continue;
+      place(s, 'player', x, m.y, z);
+      return;
+    }
+    throw new Error('no room about ' + m.type);
+  }
+
+  it('a husk winds up, strikes, and then stands where it struck, not turning, before it comes on again', () => {
+    const { s, m } = committed();
+    s.game.hp = 1e9;
+    const yaw = m.yaw;
+    for (let t = 0; t < 0.5 && m.blow?.ph !== 'after'; t += STEP) step(s, noInput());
+    expect(m.blow?.ph).toBe('after');
+    const x = m.x, z = m.z;
+    around(s, m, 1.6, [Math.PI / 2, -Math.PI / 2]); // off to its side
+    hold(s, BLOWS.husk.rec - 0.1);
+    expect(m.blow?.ph).toBe('after');
+    expect(Math.hypot(m.x - x, m.z - z)).toBeLessThan(1e-6);
+    expect(m.yaw).toBeCloseTo(yaw, 6); // it has not turned since it committed
+    hold(s, 0.6);
+    expect(m.blow?.ph ?? null).not.toBe('after');
+    expect(Math.abs(m.yaw - yaw)).toBeGreaterThan(0.1); // and now it comes round to you
+  });
+
+  it('a husk blow goes where it was aimed: once it has committed, a step round it is a step out of it', () => {
+    const behind = committed();
+    around(behind.s, behind.m, 0.9, [Math.PI / 2, -Math.PI / 2, Math.PI]);
+    behind.s.game.events.length = 0;
+    hold(behind.s, 0.4);
+    expect(behind.s.game.hp).toBe(100);
+    expect(behind.s.game.events.some(e => e.type === 'sfx' && e.name === 'whiff')).toBe(true);
+    /* the same blow, stood in front of: it lands */
+    const front = committed();
+    hold(front.s, 0.4);
+    expect(front.s.game.hp).toBe(80);
+  });
+
+  it('a blow that met nothing leaves it open longer than one that landed', () => {
+    const missed = committed();
+    around(missed.s, missed.m, 0.9, [Math.PI / 2, -Math.PI / 2, Math.PI]);
+    const landed = committed();
+    landed.s.game.hp = 1e9;
+    const open = (s: Sim, m: Mutant) => { let t = 0; for (let k = 0; k < 200 && m.blow?.ph !== 'after'; k++) step(s, noInput()); while (m.blow?.ph === 'after') { step(s, noInput()); t += STEP; } return t; };
+    const a = open(missed.s, missed.m), b = open(landed.s, landed.m);
+    expect(a).toBeCloseTo(BLOWS.husk.miss, 1);
+    expect(b).toBeCloseTo(BLOWS.husk.rec, 1);
+  });
+
+  it('caught recovering from its own blow, it takes yours worse; struck as it winds up, it loses the blow', () => {
+    const struck = (ph: 'after' | null) => {
+      const s = fresh(), m = s.cast[5];
+      only(s, [m]);
+      m.state = 'hunt';
+      m.blow = ph && { ph, t: 0, hit: false };
+      hitMutant(s, m, { dmg: 30, stun: 0.6 }, 1);
+      return { lost: m.max - m.hp, stun: m.stun, m };
+    };
+    const open = struck('after'), shut = struck(null);
+    expect(open.lost).toBeGreaterThan(shut.lost * 1.2);
+    expect(open.stun).toBeGreaterThan(shut.stun * 1.5);
+    expect(open.m.blow?.ph).toBe('after'); // still recovering
+    const s = fresh(), m = s.cast[5];
+    m.state = 'hunt';
+    m.blow = { ph: 'wind', t: 0.3, hit: false };
+    hitMutant(s, m, { dmg: 10, stun: 0.3 }, 0.3);
+    expect(m.blow).toBe(null);
+  });
+
+  it('a skitter rears and drops where it was aimed: a step aside once it has stopped turning, and it lands on nothing', () => {
+    const s = fresh(), k = s.cast[4], K = BLOWS.skitter;
+    only(s, [k]);
+    s.game.hp = 100;
+    faceOff(s, k, 1.0, 0.4);
+    k.state = 'hunt';
+    for (let t = 0; t < 2 && !(k.blow?.ph === 'wind' && k.blow.t > K.wind * K.lock); t += STEP) step(s, noInput());
+    expect(k.blow?.ph).toBe('wind');
+    around(s, k, 1.0, [Math.PI / 2, -Math.PI / 2]);
+    s.game.events.length = 0;
+    hold(s, 0.35);
+    expect(s.game.hp).toBe(100);
+    expect(s.game.events.some(e => e.type === 'sfx' && e.name === 'whiff')).toBe(true);
   });
 
   it('a knock back slides: a step over a few frames, not all at once', () => {

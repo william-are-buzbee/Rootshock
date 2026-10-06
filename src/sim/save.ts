@@ -33,7 +33,7 @@ const DOOR = ['t', 'open', 'unlocked', 'hold'] as const;
 const PLATFORM = ['y', 'target', 'wait', 'moving', 'armed'] as const;
 const LOOSE = ['x', 'y', 'z', 'vx', 'vy', 'vz', 'awake', 'ground', 'still', 'woke'] as const;
 const MUTANT = ['x', 'y', 'z', 'px', 'py', 'pz', 'yaw', 'state', 'st', 'cd', 'stun', 'hp', 'post', 'wt', 'wm', 'wx', 'wz', 'tk',
-  'lost', 'bt', 'burst', 'flee', 'ct', 'cdir', 'tgt', 'grab', 'tense', 'wind', 'windT', 'stk', 'fled', 'side', 'spot', 'mv',
+  'lost', 'bt', 'burst', 'flee', 'ct', 'cdir', 'tgt', 'grab', 'tense', 'stk', 'fled', 'side', 'spot', 'mv',
   'hit', 'kx', 'kz', 'ph', 'dead', 'gone', 'dest', 'los', 'losAt', 'still'] as const;
 
 /** what a rider stands on, by the moving thing's id */
@@ -89,7 +89,7 @@ export function save(sim: Sim): Save {
     loose: sim.loose.all.map(o => pick(o, LOOSE)),
     items: structuredClone(sim.items),
     spent: sim.usables.filter(u => u.off && u.key).map(u => u.key!),
-    cast: sim.cast.map(m => ({ ...pick(m, MUTANT), ride: structuredClone(m.ride), body: m.body ? pick(m.body, BODY) : null })),
+    cast: sim.cast.map(m => ({ ...pick(m, MUTANT), ride: structuredClone(m.ride), blow: structuredClone(m.blow), body: m.body ? pick(m.body, BODY) : null })),
     hands: structuredClone(sim.hands),
     on: [sim.player.body, ...sim.loose.all, ...sim.cast.map(m => m.body)].map(r => (r ? onId(r) : 0)),
     fields: sim.fields && {
@@ -127,9 +127,10 @@ export function load(level: LevelDef, data: Save, o: SimOpts = {}): Sim {
   const spent = new Set(data.spent);
   for (const u of sim.usables) if (u.key && spent.has(u.key)) u.off = true;
   sim.cast.forEach((m, i) => {
-    const { body, ride, ...own } = data.cast[i];
+    const { body, ride, blow, ...own } = data.cast[i];
     put(m, own as never);
     m.ride = structuredClone(ride as typeof m.ride) ?? null;
+    m.blow = structuredClone(blow as typeof m.blow) ?? null;
     if (m.body) {
       put(m.body, body as never);
       syncBody(m.body);

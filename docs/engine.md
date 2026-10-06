@@ -372,6 +372,15 @@ sequence of inputs. The door rules, the labels and the answers are the first eng
   step back from is heard to miss; the cast are rocked back when struck, and a light one knocked back slides its
   0.3 m (from a full blow) over a sixth of a second. A swing lands on whatever in reach is nearest the crosshair (the nearer of two about
   as near it), so with two in front of you, you choose which you hit by looking at it.
+- **Their blows, as yours** (since): a husk's, a skitter's and the thresher's (on foot, not its charge) blow is three
+  motions (`BLOWS` in `sim/cast.ts`). The wind-up is the tell: heard (a husk draws breath, a skitter clicks, the
+  thresher growls) and seen (arm drawn up, rearing, arms spread); it turns to follow you for the first part of it, then
+  holds its line, shaking at the top. The strike is short and lunges a little along that line, and lands only on you in
+  an arc in front of it (a husk ±55°, a skitter ±35°, the thresher ±70°), within its reach and about level with it, so a
+  step round it as it commits is a step out of it. Then it recovers where the blow left it, not moving or turning,
+  longer when it met nothing (a husk 0.5 s, 0.85 s on a miss). A blow of yours that catches it recovering does a
+  quarter more and stuns it longer; one that catches it winding up loses it the blow. A swing loaded while you dodge
+  lands in that time; one begun after does not. ?dev, O draws each blow's arc while it is under way.
 - **Nothing fights in one plane** (since): everything is drawn two-sided, so two faces in one plane (a button flush with
   its post, a box on a shelf or the floor, a crate on a crate) showed through each other as you moved. Each prop and
   each part of a thing is drawn 1 to 7 mm larger than it is, different for neighbours (`apart` in `levelMesh.ts`). A
