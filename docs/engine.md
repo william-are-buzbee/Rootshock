@@ -343,7 +343,9 @@ sequence of inputs. The door rules, the labels and the answers are the first eng
 - **A fight's feel** (since): a swing let go early is a jab, weaker and slow to recover from, not nothing; a blow that
   lands, or meets a wall, holds the swing still a moment (hit-stop) and dips the view; a hurt from one of the cast
   knocks the view away from it and flashes the edge of the screen on its side; a husk's or skitter's wind-up that you
-  step back from is heard to miss; the cast are rocked back when struck.
+  step back from is heard to miss; the cast are rocked back when struck, and a light one knocked back slides its
+  0.3 m over a sixth of a second. A swing lands on whatever in reach is nearest the crosshair (the nearer of two about
+  as near it), so with two in front of you, you choose which you hit by looking at it.
 - **UI** stays in HTML over the canvas, with the current type and colours (Barlow Condensed, Newsreader, bone, ash,
   hazard).
 - **Dev tools** carry over (`?dev`, fly, god, level select, map), plus overlays for colliders, nav graph and noise.

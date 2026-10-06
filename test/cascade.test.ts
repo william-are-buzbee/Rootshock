@@ -28,7 +28,7 @@ describe('the power coming on', () => {
 
   it('a tube strikes: it comes on, goes off a moment, and comes on again', () => {
     const here = named('Operations corridor'), C = new Cascade(w, dark, lit, here, () => {});
-    const seen: number[] = [];
+    const seen: number[] = [C.L.on[here]]; // as it stands before the first frame
     for (let t = 0; t < 5 && !C.done; t += 1 / 120) { C.update(1 / 120); if (seen[seen.length - 1] !== C.L.on[here]) seen.push(C.L.on[here]); }
     expect(seen.slice(0, 4)).toEqual([0, 1, 0, 1]);
   });

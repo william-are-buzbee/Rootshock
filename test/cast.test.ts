@@ -184,6 +184,45 @@ describe('fighting', () => {
     expect(hurt?.type === 'hurt' && hurt.from).toBeTruthy();
   });
 
+  it('a knock back slides: a step over a few frames, not all at once', () => {
+    const s = fresh(), w = s.cast[7];
+    only(s, []);
+    w.stun = 1e9;
+    give(s.game, 'pipe');
+    faceOff(s, w, 1.2, 0.3);
+    const x0 = w.x, z0 = w.z;
+    let first = -1;
+    hold(s, 1.1, { attack: true });
+    for (let t = 0; t < 1 && first < 0; t += STEP) { step(s, noInput()); if (w.hp < 40) first = Math.hypot(w.x - x0, w.z - z0); }
+    expect(first).toBeGreaterThanOrEqual(0);
+    expect(first).toBeLessThan(0.15); // the step it was struck: only the start of the slide
+    hold(s, 0.5);
+    const total = Math.hypot(w.x - x0, w.z - z0);
+    expect(total).toBeGreaterThan(0.2);
+    expect(total).toBeLessThan(0.4);
+  });
+
+  it('a swing lands on the one at the crosshair, not merely the nearest', () => {
+    const s = fresh(), [a, b] = s.cast.filter(m => m.ai === 'worm');
+    only(s, []);
+    a.stun = b.stun = 1e9;
+    give(s.game, 'pipe');
+    const y = a.y, px = 220, pz = 2;
+    place(s, 'player', px, y, pz);
+    place(s, a, px + Math.cos(0.6) * 1.0, y, pz + Math.sin(0.6) * 1.0); // nearer, off to the side
+    place(s, b, px + 1.5, y, pz); // further, straight ahead
+    face(s, b.x, b.y + 0.36, b.z);
+    hold(s, 1.1, { attack: true });
+    hold(s, 0.5);
+    expect(b.hp).toBeLessThan(40);
+    expect(a.hp).toBe(40);
+    /* look at the near one and it is the one struck */
+    face(s, a.x, a.y + 0.36, a.z);
+    hold(s, 1.1, { attack: true });
+    hold(s, 0.5);
+    expect(a.hp).toBeLessThan(40);
+  });
+
   it('a pistol fires on the press, spends a round, is heard, and kills', () => {
     const s = fresh(), k = s.cast[4]; // the firing range skitter
     only(s, []);

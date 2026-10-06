@@ -53,8 +53,9 @@ export class Cascade {
       on[R.id] = 0;
       const far = S ? Math.hypot((R.x0 + R.x1 - S.x0 - S.x1) / 2, (R.z0 + R.z1 - S.z0 - S.z1) / 2) / 6 : 4;
       const h = Math.min(Number.isFinite(hops[R.id]) ? hops[R.id] : far, 30);
-      /* on, off a moment, on; sometimes once more before it holds */
-      const t0 = Math.min(2.6, h * 0.085 + rnd(0, 0.12)), f = [t0, t0 + rnd(0.04, 0.08)];
+      /* each room out waits 85 ms more, give or take less than that, so the nearer always catches first; then on, off a
+         moment, on, and sometimes once more before it holds */
+      const t0 = Math.min(2.6, h * 0.085 + rnd(0, 0.06)), f = [t0, t0 + rnd(0.04, 0.08)];
       f.push(f[1] + rnd(0.05, 0.13));
       if (Math.random() < 0.45) { f.push(f[2] + rnd(0.04, 0.07)); f.push(f[3] + rnd(0.08, 0.2)); }
       this.flips[R.id] = f;
