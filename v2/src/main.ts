@@ -10,6 +10,8 @@ import { Controls } from './present/controls';
 import { Audio } from './present/audio';
 import { View } from './present/render/view';
 import { Things } from './present/render/things';
+import { CastView } from './present/render/castView';
+import { HandsView } from './present/render/handsView';
 import { Overlay } from './present/render/overlay';
 import { U } from './present/render/shader';
 import { Hud } from './present/ui/hud';
@@ -45,6 +47,10 @@ const t0 = performance.now();
 view.setLevel(sim.world, lighting);
 const meshMs = performance.now() - t0;
 const things = new Things(view.scene, sim, lighting);
+const castView = new CastView(view.scene, sim, lighting);
+view.scene.add(view.camera); // the hand rides on it
+const handsView = new HandsView(view.camera, sim, lighting);
+let hurtFx = 0;
 const overlay = DEV ? new Overlay(view.scene, sim) : null;
 
 const rig = new CameraRig();
@@ -103,9 +109,13 @@ function events(): void {
         lighting = lightingNow();
         view.relight(lighting);
         things.setLighting(lighting);
+        castView.setLighting(lighting);
+        handsView.setLighting(lighting);
         audio.setHum(!!g.station?.main);
         if (ev.loud) audio.play('power');
         break;
+      case 'hurt': hurtFx = ev.shake > 0 ? 1 : Math.max(hurtFx, 0.7); rig.shake = Math.max(rig.shake, ev.shake); break;
+      case 'shake': rig.shake = Math.max(rig.shake, ev.k); break;
       case 'end': setMode('end'); if (document.pointerLockElement) document.exitPointerLock(); panels.showEnd(g, ev.win, ev.msg); break;
     }
   }
@@ -135,6 +145,9 @@ function frame(t: number): void {
   if (flick < 0 && Math.random() < dt * (g.batt < 20 ? 1.4 : 0.3)) flick = 0.05 + Math.random() * 0.2;
   if (flick > 0 && g.lightOn) U.uFlash.value *= 0.25;
   things.update();
+  castView.update(mode === 'play' ? loop.alpha : 1);
+  handsView.update(rig.bob, t / 1000);
+  hurtFx = Math.max(0, hurtFx - dt * 0.9);
   overlay?.update();
   events();
 
@@ -142,7 +155,7 @@ function frame(t: number): void {
   U.uWet.value = under ? 1 : 0;
   U.uFog.value += ((under ? 0.21 : 0.032) - U.uFog.value) * Math.min(1, dt * 4);
   panels.prompt(mode === 'play' ? sim.focus?.text ?? null : null);
-  panels.status(g, p.air < AIR - 0.01 ? p.air / AIR : null, p.crouch);
+  panels.status(g, p.air < AIR - 0.01 ? p.air / AIR : null, p.crouch, hurtFx);
 
   const b = sim.player.body, room = sim.world.roomAt(b.x, b.y + 0.5, b.z);
   hud.setRoom(room?.name ?? '', level.name, dt);

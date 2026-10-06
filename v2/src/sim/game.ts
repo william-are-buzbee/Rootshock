@@ -18,6 +18,9 @@ export type SimEvent =
   | { type: 'pad' }
   | { type: 'lift' }
   | { type: 'power'; loud: boolean }
+  /** you were hurt (the screen flashes) and how hard the view shakes */
+  | { type: 'hurt'; shake: number }
+  | { type: 'shake'; k: number }
   | { type: 'end'; win: boolean; msg: string };
 
 export type Command =
@@ -60,6 +63,15 @@ export interface Game {
   pad: { code: string; typed: string; door: number } | null;
   ended: { win: boolean; msg: string } | null;
   time: number;
+  /** how far what you are doing carries (metres, through the air), and the last loud thing and how long it lingers */
+  noise: number;
+  noiseI: number;
+  noiseT: number;
+  /** how easily you are seen: the light where you stand, your own light, crouching */
+  vis: number;
+  /** things that are said once */
+  once: string[];
+  kills: number;
   events: SimEvent[];
   commands: Command[];
 }
@@ -68,7 +80,8 @@ export function makeGame(rng: Rng, station: StationState | null): Game {
   const code = String(1000 + rng.int(9000)), code2 = String(1000 + rng.int(9000));
   return {
     station, inv: [], cap: 10, tools: [], keys: [], worn: [], weapon: null, notes: NOTES(code, code2), read: [], code, code2,
-    hp: 100, batt: 100, light: null, lightOn: false, pad: null, ended: null, time: 0, events: [], commands: [],
+    hp: 100, batt: 100, light: null, lightOn: false, pad: null, ended: null, time: 0,
+    noise: 0, noiseI: 0, noiseT: 0, vis: 1, once: [], kills: 0, events: [], commands: [],
   };
 }
 
@@ -185,10 +198,33 @@ export function useItem(g: Game, i: number): void {
   else if (it.per) say(g, 'Ammunition. It needs the gun.');
 }
 
-export function hurt(g: Game, dmg: number, why: string): void {
+/** say it the first time only */
+export function sayOnce(g: Game, key: string, text: string): void {
+  if (g.once.includes(key)) return;
+  g.once.push(key);
+  say(g, text);
+}
+
+/** something loud happened here: for half a second it carries this far */
+export function makeNoise(g: Game, r: number): void {
+  g.noiseI = Math.max(g.noiseI, r);
+  g.noiseT = 0.5;
+}
+
+/** hurt by something with hands or teeth: what you wear takes some of it */
+export function hurtBy(g: Game, dmg: number, why: string): void {
+  let k = 1;
+  if (g.worn.includes('tacvest')) k *= 0.55;
+  else if (g.worn.includes('armor')) k *= 0.7;
+  if (g.worn.includes('hardhat')) k *= 0.9;
+  hurt(g, dmg * k, why, 0.45);
+}
+
+export function hurt(g: Game, dmg: number, why: string, shake = 0.45): void {
   if (g.ended) return;
   g.hp -= dmg;
   sfx(g, 'hurt');
+  g.events.push({ type: 'hurt', shake });
   if (g.hp <= 0) { g.hp = 0; end(g, false, why); }
 }
 

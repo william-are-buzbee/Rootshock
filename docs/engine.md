@@ -217,28 +217,49 @@ perception → air and light → events out.
 
 ## 7. Navigation
 
-- **The nav graph is built from the grid**: walkable surfaces (floor with headroom) grouped into regions, linked by
-  edges that carry a kind: walk, step, drop, stairs, ladder, elevator, door, under-jammed-door, vent, swim.
-- **One graph per level**, across all its layers, so a walkway and the hall below it are one place to a mutant.
-- **Each mutant filters edges by its abilities.** A skitter takes under-jammed-door edges; a thresher takes no door
-  edges; a husk opens doors it can open.
-- **Flow fields to the player**, recomputed on a budget for every level that is awake, not only the player's layer.
-- **Agreed: mutants use stairs, ladders and elevators.** Walkways are not safe ground. Each still goes only where its
-  body allows (proposed):
-  - **Stairs, ramps, walkways, drops**: everything that walks.
-  - **Ladders**: anything with `climbs` that fits the shaft; the bloat does not.
-  - **Elevators**: anything standing on the platform rides it; things with hands (`opensDoors`) can call it.
+As built in step 5 (`world/nav.ts`, `sim/fields.ts`):
+
+- **The nav graph is built from the grid**: a spot wherever something can stand, on a 1 m lattice in plan and at
+  every floor height (grid floors and sloped surfaces both), so one graph covers every layer of a level: a walkway and
+  the hall under it are one place to the cast. Each spot knows its headroom, its room and the door it stands in, if
+  any. Built once per level with everything that moves moved aside, and shared by every run of that level.
+- **Edges** go to the eight neighbouring columns: a walk (a step up to 0.5 m, as a body climbs), or a drop (down to
+  2.5 m, one way). Diagonals only where both squares beside them are open, so no corner is cut through rock. A
+  platform joins the spots on it at the bottom to the spots beside it at the top.
+- **Doors and platforms are decided when walked, not when built.** The graph runs through every door; a field asks
+  each door's state as it spreads. Who passes, as the first engine had it:
+  - **crawl** (skitters, worms): open doors, jammed ones (under), and light doors that open by themselves;
+  - **hands** (husks): any door a hand can work: not welded, panelled, jammed, heavy, locked or the lift's. A husk
+    slides a dead light door open by hand and comes through;
+  - **big** (bloat, thresher): no doors at all.
+  Headroom filters too: 1 m to crawl, 1.8 m for a husk, 2.2 m for the big ones.
+- **Flow fields to the player**, one for each kind of body and one for sound, by Dijkstra over the graph. One is
+  refreshed each step in turn (about 2.5 ms each on the upper station's 7,600 spots), so each is at most four steps
+  old and no step pays for all of them. A roam (a husk keeping its rounds) gets a field of its own to a room picked
+  at random, one new route a step across the whole cast.
+- **Agreed: mutants use stairs and elevators.** Stairs, ramps, walkways and drops are walked like any floor.
+  Platforms: anything rides one that goes by itself; a husk calls one that has power, walks to its middle, rides it,
+  and steps off at the top (tested: Cargo on backup, a husk follows you up to Tier 1). **Ladders are not yet**: every
+  ladder on the upper station leads off the level, and the cast does not leave its level. Ladders within a level come
+  with the first level that has one (step 8).
+- A refuge (`safe`) is on the graph like anywhere else, so a field still leads to you there; the cast stop at its
+  threshold.
 
 ---
 
 ## 8. Perception
 
-- **Sight** is a raycast through the world model (floors and props hide you), scaled by the light at the target, as
-  now (`G.vis`).
-- **Sound travels through space, not through walls** (proposed): a noise spreads over the nav graph, losing loudness
-  with distance, more through closed doors and more again through heavy ones. Running in the next room is heard;
-  running two floors up is not. This replaces today's straight-line radius.
-- **Memory**: a mutant that heard or saw something goes to where it was, not to where the player is now.
+As built in step 5 (`sim/cast.ts`), the first engine's senses on the new world:
+
+- **Sight** is a raycast from its eye to yours through the world model (walls, shut doors, crates and props hide you;
+  bodies do not), within a range scaled by how visible you are: the light where you stand (`Lighting`), your own light,
+  and crouching, as the first engine had it. A line of sight is looked along at most ten times a second.
+- **Sound travels through space, not through walls**: what you do carries a distance (walking 4 m, running 9,
+  wading 5, creeping 0; a jump 3, a landing 5, a door 7 or 10, a blow 6 to 10, a gun 36, for half a second), and a
+  mutant hears it if the sound field puts it nearer than that. A shut light door adds 6 m, a heavy or welded one 12.
+  Running in the next room is heard; running two floors up is not.
+- **Memory**: not yet. As in the first engine, a hunter follows the field to where you are now, and gives up after
+  losing sight of you for a while. Going to where it last heard you instead is a later refinement.
 
 ---
 
@@ -366,9 +387,31 @@ Each step ends with something you can open and play.
      near, look, press E): the flashlight, the officer's card and the control room, heavy doors on backup, the Armory
      keypad on Gen-1 with the run's code, Cargo's doors by hand, its backup set and the platform up to Tier 1,
      ladderway B's gate, the fuse, the dead surface lift, a note, a fall.
-   - **Not yet**: weapons are carried and taken in hand but not swung (step 5, with the cast); travel between levels
-     waits for the other levels (step 8); saving (step 7).
-5. **Mutants.** Nav graph, flow fields, perception, the cast's behaviours, combat.
+   - **Not yet**: travel between levels waits for the other levels (step 8); saving (step 7).
+5. **Mutants and combat. Done.**
+   - **The nav graph and fields** (§7) and **perception** (§8).
+   - **The cast** (`sim/cast.ts`): the first engine's seven behaviours, ported nearly line for line: the husk (keeps
+     rounds or a post, hunts, swings, flees when hurt, lurks, comes back), the skitter (bursts, rears and drops on
+     you), the bloat (wanders its room), the thresher (roars, charges, knocks you back, staggers off a wall), worms
+     (shy of your light, harmless alone, two together bite), the swimmer, and the grabber (only its head counts). Their
+     stats, ranges, timings and death lines are the old ones. Each is a body like yours: it falls, rides platforms,
+     works doors, and blocks you and its kind; a dead one leaves the world. All randomness is the run's seed, so the
+     same run plays the same twice (tested).
+   - **Combat** (`sim/combat.ts`): hold to load a swing, let go to throw it, as before (early is nothing); the damage,
+     reach and stun of each weapon from its mass and kind; guns fire on the press, spend a round, and are heard far
+     off; hits stun by mass, knock light things back, and turn each kind as it turned. Armour takes its share.
+   - **Presentation**: the old models and their animation, the weapon in hand with its load, swing and kick, the hit
+     flash on them and the hurt flash and shake on you, blood where they fall, and their sounds placed where they are.
+   - **Proof** (`test/cast.test.ts`): the graph reaches every room and everything stands on it; big bodies keep out of
+     doors and shut doors muffle sound; a husk does not see you crouched behind it but hears you run; one that sees
+     you comes and hurts; a husk slides a dead door open to reach you; a husk calls a platform and rides it up after
+     you; a swing must be loaded; a pistol spends a round, is heard and kills; the same seed plays the same.
+   - **Measured** on the upper station (22 of the cast): the graph has 7,585 spots and 55,700 edges and takes about
+     0.5 s to build (once per level); twenty seconds of running about with everyone awake averages 1 to 1.7 ms a step
+     under the test runner, with rare spikes to 13 ms (a field refresh and a new roam route landing together, or the
+     collector). Worth smoothing before the bigger levels.
+   - **Not yet**: ladders for the cast (§7); memory of where you were heard (§8); body against body by mass (§6:
+     bodies block each other; a blow knocks light ones back).
 6. **Parity check** against the current upper station. Fix the feel before going on.
 7. **Save and load, level validation, the progression checker.**
 8. **The other levels**, one at a time.

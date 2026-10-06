@@ -11,7 +11,10 @@ export interface Prev { x: number; y: number; z: number }
 export class CameraRig {
   private cy = NaN;
   private eye = 1.62;
-  private bob = 0;
+  /** the walk's sway, for the hand as well */
+  bob = 0;
+  /** how hard the view shakes, dying away */
+  shake = 0;
   private fwd = { x: 0, y: 0, z: -1 };
 
   update(cam: THREE.PerspectiveCamera, sim: Sim, prev: Prev, alpha: number, dt: number, look: { yaw: number; pitch: number }): void {
@@ -22,13 +25,15 @@ export class CameraRig {
     this.eye += ((p.crouch ? 0.95 : 1.62) - this.eye) * Math.min(1, dt * 10);
     this.bob += (p.moved / STEP) * dt * 3.3;
     const yaw = p.yaw + look.yaw, pitch = clamp(p.pitch + look.pitch, -1.45, 1.45);
-    cam.position.set(x, this.cy + this.eye + Math.sin(this.bob) * 0.035, z);
+    this.shake = Math.max(0, this.shake - dt * 1.6);
+    const k = this.shake * 0.08, j = () => (Math.random() * 2 - 1) * k;
+    cam.position.set(x + j(), this.cy + this.eye + Math.sin(this.bob) * 0.035 + j(), z + j());
     cam.rotation.set(pitch, yaw, 0);
     const cp = Math.cos(pitch);
     this.fwd = { x: -Math.sin(yaw) * cp, y: Math.sin(pitch), z: -Math.cos(yaw) * cp };
     U.uFlashDir.value.set(this.fwd.x, this.fwd.y, this.fwd.z);
     const g = sim.game, low = g.batt < 15 ? 0.6 : 1;
     U.uFlash.value = g.lightOn && g.light === 'flash' ? low : 0;
-    U.uLamp.value = g.lightOn && g.light === 'lantern' ? low : 0;
+    U.uLamp.value = sim.hands.muzzle > 0 ? 2.5 : g.lightOn && g.light === 'lantern' ? low : 0;
   }
 }

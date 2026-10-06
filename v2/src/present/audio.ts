@@ -83,6 +83,13 @@ export class Audio {
       case 'power': this.nz(0.6, 0.7, 90); this.tn(40, 100, 2.5, 'sawtooth', 0.12); break;
       case 'paper': this.nz(0.15, 0.1, 3000, 'highpass'); break;
       case 'eat': this.nz(0.2, 0.12, 800); break;
+      case 'tap': this.tn(big ? 500 : 1400, big ? 300 : 900, 0.025, 'square', 0.1 * v); break;
+      case 'skit': this.tn(900, 1500, 0.15, 'sawtooth', 0.09 * v); break;
+      case 'moan': this.tn(190, 120, 0.7, 'sawtooth', 0.12 * v); this.tn(285, 170, 0.6, 'sine', 0.1 * v); break;
+      case 'roar': this.tn(120, 55, 0.8, 'sawtooth', 0.4 * v); this.nz(0.7, 0.3 * v, 600); break;
+      case 'shot': this.nz(0.18, 0.9, 1800); this.tn(220, 60, 0.12, 'square', 0.4); break;
+      case 'boom': this.nz(0.4, 1, 900); this.tn(120, 40, 0.3, 'sawtooth', 0.6); break;
+      case 'load': this.tn(300, 380, 0.05, 'triangle', 0.05); break;
     }
   }
 }

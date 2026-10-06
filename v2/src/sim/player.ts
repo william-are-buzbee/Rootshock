@@ -32,12 +32,21 @@ export interface Player {
   air: number;
   /** your eye is under the surface */
   under: boolean;
+  /** seconds left of being held (you move at a third of your speed) */
+  slow: number;
+  /** a shove (m/s) that dies away: what a charge leaves you with */
+  kx: number;
+  kz: number;
+  /** this step: running, for the noise it makes */
+  running: boolean;
+  /** this step: jumped */
+  jumped: boolean;
 }
 
 export function makePlayer(w: World, x: number, y: number, z: number, yaw: number): Player {
   return {
     body: makeBody(w, x, y, z, RADIUS, STAND), yaw, pitch: 0, crouch: false, wantStand: false, moved: 0, impact: 0,
-    water: 'dry', air: AIR, under: false,
+    water: 'dry', air: AIR, under: false, slow: 0, kx: 0, kz: 0, running: false, jumped: false,
   };
 }
 
@@ -63,7 +72,9 @@ export function updatePlayer(w: World, p: Player, inp: Input, dt: number): { str
     else { p.crouch = true; p.wantStand = false; }
   }
   if (p.crouch && p.wantStand && fits(w, b, b.x, b.z, b.y, STAND)) { p.crouch = false; p.wantStand = false; }
+  p.jumped = false;
   if (!swim && inp.jump && b.ground && (!p.crouch || fits(w, b, b.x, b.z, b.y, STAND))) {
+    p.jumped = true;
     b.vy = JUMP; b.ground = false; p.crouch = false; p.wantStand = false;
   }
   b.h = p.crouch ? CROUCH : STAND;
@@ -71,7 +82,9 @@ export function updatePlayer(w: World, p: Player, inp: Input, dt: number): { str
   /* walking, wading, swimming */
   const f = clamp(inp.forward, -1, 1), s = clamp(inp.strafe, -1, 1), l = Math.hypot(f, s);
   const run = inp.run && !p.crouch && f > 0 && p.water === 'dry';
-  const speed = swim ? 2.4 : p.water === 'wading' ? 2.2 : p.crouch ? 1.6 : run ? 5.6 : 3.2;
+  let speed = swim ? 2.4 : p.water === 'wading' ? 2.2 : p.crouch ? 1.6 : run ? 5.6 : 3.2;
+  p.running = run && l > 0;
+  if (p.slow > 0) { p.slow -= dt; speed *= 0.35; }
   const ox = b.x, oz = b.z;
   const stride: Stride = { dx: 0, dz: 0, speed };
   let hit: ReturnType<typeof walk> = null;
@@ -79,6 +92,12 @@ export function updatePlayer(w: World, p: Player, inp: Input, dt: number): { str
     const fx = -Math.sin(p.yaw), fz = -Math.cos(p.yaw), rx = Math.cos(p.yaw), rz = -Math.sin(p.yaw), k = (speed * dt) / Math.max(1, l);
     stride.dx = (fx * f + rx * s) * k; stride.dz = (fz * f + rz * s) * k;
     hit = walk(w, b, stride.dx, stride.dz, swim ? CLIMB_OUT : STEP_UP);
+  }
+  if (p.kx || p.kz) {
+    walk(w, b, p.kx * dt, p.kz * dt);
+    const k = Math.max(0, 1 - dt * 6);
+    p.kx *= k; p.kz *= k;
+    if (Math.hypot(p.kx, p.kz) < 0.05) p.kx = p.kz = 0;
   }
   p.moved = Math.hypot(b.x - ox, b.z - oz);
 

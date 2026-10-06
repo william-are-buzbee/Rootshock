@@ -1,6 +1,6 @@
 import { ITEMS, keyName } from '../content/items';
 import { STATION_NAMES } from '../content/names';
-import { end, give, giveKey, consume, power, readNote, say, sfx, type Game } from './game';
+import { end, give, giveKey, consume, makeNoise, power, readNote, say, sfx, type Game } from './game';
 import { locked, occupied, sendPlatform, type Door, type Platform } from './movers';
 import { eyeHeight } from './player';
 import type { Sim } from './sim';
@@ -219,6 +219,7 @@ export function doorAct(sim: Sim, d: Door): void {
   d.open = !d.open;
   d.hold = 3;
   sfx(g, 'door', at);
+  makeNoise(g, heavy ? 10 : 7);
 }
 
 /** a key on the keypad in front of you */
