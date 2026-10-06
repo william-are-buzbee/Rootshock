@@ -28,8 +28,9 @@ export interface Player {
   /** speed at the last landing */
   impact: number;
   water: 'dry' | 'wading' | 'swimming';
-  /** seconds of breath left */
+  /** seconds of breath left, and how much you can hold (four times as much with a rebreather) */
   air: number;
+  airMax: number;
   /** your eye is under the surface */
   under: boolean;
   /** seconds left of being held (you move at a third of your speed) */
@@ -41,12 +42,19 @@ export interface Player {
   running: boolean;
   /** this step: jumped */
   jumped: boolean;
+  /** distance walked since the last footstep */
+  stepD: number;
+  /** dev: fly through everything */
+  fly: boolean;
 }
 
 export function makePlayer(w: World, x: number, y: number, z: number, yaw: number): Player {
+  const body = makeBody(w, x, y, z, RADIUS, STAND), own = body.dyn;
+  /* you walk through the soft ones of the cast; the solid ones (the bloat, the thresher) stop you */
+  body.skip = d => d === own || d.soft === true;
   return {
-    body: makeBody(w, x, y, z, RADIUS, STAND), yaw, pitch: 0, crouch: false, wantStand: false, moved: 0, impact: 0,
-    water: 'dry', air: AIR, under: false, slow: 0, kx: 0, kz: 0, running: false, jumped: false,
+    body, yaw, pitch: 0, crouch: false, wantStand: false, moved: 0, impact: 0,
+    water: 'dry', air: AIR, airMax: AIR, under: false, slow: 0, kx: 0, kz: 0, running: false, jumped: false, stepD: 0, fly: false,
   };
 }
 
@@ -57,9 +65,10 @@ export interface Stride { dx: number; dz: number; speed: number }
 
 export function updatePlayer(w: World, p: Player, inp: Input, dt: number): { stride: Stride; hit: ReturnType<typeof walk> } {
   const b = p.body;
-  settle(w, b);
   p.yaw += inp.yaw;
   p.pitch = clamp(p.pitch + inp.pitch, -1.45, 1.45);
+  if (p.fly) return flyAbout(p, inp, dt);
+  settle(w, b);
 
   const level = w.waterAt(b.x, b.z), depth = level - b.y;
   p.water = depth > SWIM ? 'swimming' : depth > WADE ? 'wading' : 'dry';
@@ -110,6 +119,19 @@ export function updatePlayer(w: World, p: Player, inp: Input, dt: number): { str
 
   /* breath */
   p.under = b.y + eyeHeight(p) < w.waterAt(b.x, b.z);
-  p.air = p.under ? Math.max(0, p.air - dt) : Math.min(AIR, p.air + dt * 40);
+  p.air = p.under ? Math.max(0, p.air - dt) : Math.min(p.airMax, p.air + dt * 40);
   return { stride, hit };
+}
+
+/** dev: through walls and floors, 7 m/s (18 with Shift), Space and C for up and down */
+function flyAbout(p: Player, inp: Input, dt: number): { stride: Stride; hit: null } {
+  const b = p.body, spd = inp.run ? 18 : 7, f = clamp(inp.forward, -1, 1), s = clamp(inp.strafe, -1, 1);
+  b.x += (-Math.sin(p.yaw) * f + Math.cos(p.yaw) * s) * spd * dt;
+  b.z += (-Math.cos(p.yaw) * f - Math.sin(p.yaw) * s) * spd * dt;
+  b.y += ((inp.rise ? 1 : 0) - (inp.sink ? 1 : 0)) * spd * dt;
+  b.vy = 0; b.ground = false; b.on = null;
+  b.sync();
+  p.moved = 0; p.impact = 0; p.jumped = false; p.running = false; p.water = 'dry'; p.under = false; p.air = p.airMax;
+  p.crouch = false;
+  return { stride: { dx: 0, dz: 0, speed: 0 }, hit: null };
 }

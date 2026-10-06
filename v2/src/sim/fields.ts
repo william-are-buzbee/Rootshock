@@ -11,7 +11,7 @@ import type { Sim } from './sim';
    - hands: any door a hand can work: not welded, not a panel, not the lift's, not jammed, not heavy, not locked;
    - big: no doors at all. They are too big for the frames.
    Platforms: anything rides one that goes by itself; a hand can call one that has power.
-   A refuge is on the graph like anywhere else, so a field still leads to you there; the cast stop at its threshold. */
+   A refuge (`safe`) is only kept out of the cast's rounds; a hunter follows you into one, as it always did. */
 
 export type Walker = 'crawl' | 'hands' | 'big';
 /** the headroom each needs */

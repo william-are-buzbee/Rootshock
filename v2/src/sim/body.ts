@@ -1,5 +1,5 @@
 import { circle, meets, type Footprint } from '../world/shapes';
-import type { Dyn, Hit, World } from '../world/world';
+import type { Dyn, Hit, Ignore, World } from '../world/world';
 import type { Rider } from './movers';
 
 /* An upright cylinder that walks: feet at y, radius r, height h. One controller for everything that moves under its
@@ -10,6 +10,8 @@ export interface Body extends Rider {
   r: number;
   h: number;
   ground: boolean;
+  /** what it moves through: its own box, and whatever else its kind passes (you pass the soft ones of the cast) */
+  skip: Ignore;
 }
 
 /** the highest edge a body walks up without jumping */
@@ -20,7 +22,7 @@ const EPS = 1e-3;
 export function makeBody(w: World, x: number, y: number, z: number, r: number, h: number): Body {
   const dyn: Dyn = { kind: 'body', id: w.newId(), x0: 0, y0: 0, z0: 0, x1: 0, y1: 0, z1: 0 };
   const b: Body = {
-    x, y, z, vy: 0, r, h, ground: true, on: null, dyn,
+    x, y, z, vy: 0, r, h, ground: true, on: null, dyn, skip: dyn,
     sync: () => syncBody(b),
     clear: (dx, dy, dz) => fits(w, b, b.x + dx, b.z + dz, b.y + dy),
   };
@@ -38,7 +40,7 @@ export function syncBody(b: Body): void {
 export const footprint = (b: Body, x = b.x, z = b.z): Footprint => circle(x, z, b.r);
 
 export function fits(w: World, b: Body, x: number, z: number, y: number, h = b.h): boolean {
-  return !w.overlap(footprint(b, x, z), y + EPS, y + h, b.dyn);
+  return !w.overlap(footprint(b, x, z), y + EPS, y + h, b.skip);
 }
 
 /** move across the floor by (dx, dz): each axis on its own, so a wall stops one and you slide along the other.
@@ -52,19 +54,19 @@ export function walk(w: World, b: Body, dx: number, dz: number, climb = STEP_UP)
 }
 
 function tryMove(w: World, b: Body, x: number, z: number, climb: number): Hit {
-  const hit = w.overlap(footprint(b, x, z), b.y + EPS, b.y + b.h, b.dyn);
+  const hit = w.overlap(footprint(b, x, z), b.y + EPS, b.y + b.h, b.skip);
   if (!hit) {
     b.x = x; b.z = z;
     return null;
   }
-  const g = w.groundBelow(footprint(b, x, z), b.y + climb, b.dyn);
+  const g = w.groundBelow(footprint(b, x, z), b.y + climb, b.skip);
   if (g > b.y && fits(w, b, x, z, g)) {
     b.x = x; b.z = z; b.y = g;
     if (b.vy < 0) b.vy = 0;
     return null;
   }
   /* blocked: go as far as fits, so you end up against the wall rather than a step short of it */
-  const t = w.sweep(footprint(b), b.y + EPS, b.y + b.h, x - b.x, z - b.z, b.dyn);
+  const t = w.sweep(footprint(b), b.y + EPS, b.y + b.h, x - b.x, z - b.z, b.skip);
   b.x += (x - b.x) * t; b.z += (z - b.z) * t;
   return hit;
 }
@@ -79,12 +81,12 @@ export function fall(w: World, b: Body, dt: number, gravity = GRAVITY): Landing 
   const out: Landing = { impact: 0 };
   b.vy -= gravity * dt;
   let ny = b.y + b.vy * dt;
-  const f = footprint(b), g = w.groundBelow(f, b.y + EPS, b.dyn);
+  const f = footprint(b), g = w.groundBelow(f, b.y + EPS, b.skip);
   if (ny <= g || (b.ground && b.vy <= 0 && b.y - g <= STEP_UP + 0.05)) {
     if (!b.ground) out.impact = -b.vy;
     ny = g; b.vy = 0; b.ground = true;
   } else b.ground = false;
-  const c = w.ceilingAbove(f, b.y + b.h, b.dyn, Math.max(b.y, ny) + b.h + 0.5);
+  const c = w.ceilingAbove(f, b.y + b.h, b.skip, Math.max(b.y, ny) + b.h + 0.5);
   if (ny + b.h > c) {
     ny = Math.max(g, c - b.h);
     if (b.vy > 0) b.vy = 0;
@@ -103,6 +105,6 @@ export function standingOn(w: World, f: Footprint, y: number, self: Dyn): Dyn | 
 
 /** if the body has ended up inside something (a door, a shove, a bad spawn), nudge it out by the shortest way */
 export function settle(w: World, b: Body): void {
-  const n = w.pushOut(footprint(b), b.y + EPS, b.y + b.h, b.dyn);
+  const n = w.pushOut(footprint(b), b.y + EPS, b.y + b.h, b.skip);
   if (n) { b.x += n[0]; b.y += n[1]; b.z += n[2]; syncBody(b); }
 }

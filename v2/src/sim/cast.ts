@@ -115,6 +115,13 @@ export function makeCast(sim: Sim, defs: MutantDef[]): Mutant[] {
   return defs.filter(d => MT[d.type]).map((def, id) => {
     const S = MT[def.type], o = def.opts as Record<string, number | undefined>;
     const body = S.fixed ? null : makeBody(sim.world, def.x, def.y, def.z, S.cr, S.h);
+    if (body) {
+      /* as the first engine had it: you pass through all but the solid ones, and they stop short of you rather than
+         push; so none of them is ever held up by you either */
+      const own = body.dyn, you = sim.player.body.dyn;
+      body.dyn.soft = !S.solid;
+      body.skip = d => d === own || d === you;
+    }
     const room = sim.world.roomAt(def.x, def.y + 0.5, def.z)?.id ?? -1;
     const m: Mutant = {
       id, type: def.type, ai: S.ai ?? (def.type as Ai), model: S.model ?? def.type, green: !!S.green, body,
@@ -181,13 +188,14 @@ function go(sim: Sim, m: Mutant, tx: number, tz: number, spd: number): boolean {
   dx /= d; dz /= d;
   m.yaw = angLerp(m.yaw, Math.atan2(dx, dz), Math.min(1, dt * 8));
   const st = Math.min(d, spd * dt);
-  /* a refuge it does not go into */
-  const ahead = sim.world.roomAt(b.x + dx * (st + m.r), b.y + 0.5, b.z + dz * (st + m.r));
-  if (ahead?.safe) { m.mv = 0; return false; }
-  const ox = b.x, oz = b.z, hit = walk(sim.world, b, dx * st, dz * st);
+  /* it stops short of you: close enough to reach, never on top of you */
+  const p = sim.player.body, nx = b.x + dx * st, nz = b.z + dz * st, nd = Math.hypot(nx - p.x, nz - p.z);
+  if (Math.abs(m.dy) < 1.5 && nd < m.r + 0.3 && nd < m.dp) { m.mv = 0; return true; }
+  const ox = b.x, oz = b.z;
+  walk(sim.world, b, dx * st, dz * st);
   const moved = Math.hypot(b.x - ox, b.z - oz) >= st * 0.3;
   /* wedged on a corner or against another of them: sidestep, and keep to the same side until it clears. Not round you. */
-  if (!moved && hit !== sim.player.body.dyn) {
+  if (!moved) {
     if (!m.side) m.side = sim.rng.chance(0.5) ? 1 : -1;
     for (const q of [m.side, -m.side]) {
       const px = b.x, pz = b.z;
@@ -306,7 +314,6 @@ function away(sim: Sim, m: Mutant, spd: number, F?: Float32Array): boolean {
 /** a charge: straight on, whatever is there. False when it hits something. */
 function chargeMove(sim: Sim, m: Mutant, spd: number): boolean {
   const b = m.body!, st = spd * dt, dx = Math.sin(m.cdir) * st, dz = Math.cos(m.cdir) * st;
-  if (sim.world.roomAt(b.x + dx * 4, b.y + 0.5, b.z + dz * 4)?.safe) { m.mv = 0; return false; }
   const ox = b.x, oz = b.z;
   walk(sim.world, b, dx, dz);
   m.yaw = m.cdir;
