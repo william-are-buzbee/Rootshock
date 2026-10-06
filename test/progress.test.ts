@@ -16,9 +16,9 @@ describe('the upper station', () => {
   const s = makeSim(upper, { seed: 7, station: STATION });
   const r = checkProgress(s);
 
-  it('can be left both ways from the start: ladder A at once, ladder B once Cargo has its backup set', () => {
-    expect(r.goals['ladder A1 to Main level']).toEqual([]);
-    expect(r.goals['ladder B1 to Main level']).toEqual(['start the CARGO backup set']);
+  it('can be left two ways, neither at once: the elevator with the wing mended, or ladder B through Cargo', () => {
+    expect(r.goals['elevator to Main level']).toEqual(['take splice kit', 'mend the SEC connection with a kit']);
+    expect(r.goals['ladder B1 to Main level']).toEqual(['search the manager', 'use the card at door 22', 'start the CARGO backup set']);
     expect(r.goals['the surface']).toBeUndefined(); // that wants Gen-1, five floors down
   });
 
@@ -30,10 +30,17 @@ describe('the upper station', () => {
     expect(r.deadEnds).toEqual([]);
   });
 
+  it('opens Security control only through the wing\'s cut, mended with the kit from Ops\' side', () => {
+    expect(r.rooms.reached).toContain('Security control');
+    const a = makeSim(upper, { seed: 7, station: STATION });
+    a.items.forEach(it => { if (it.id === 'kit') it.taken = true; }); // no kit to be had
+    expect(checkProgress(a).rooms.never).toContain('Security control');
+  });
+
   it('with Gen-1 running and the Armory code known (both from below), everything is in reach and the surface is open', () => {
     const r2 = checkProgress(s, { main: true, have: ['#1'] });
     expect(r2.items.never).toEqual([]);
-    expect(r2.goals['the surface']).toEqual(['key the code at door 16', 'take surface lift pass']); // the Armory, then its pass
+    expect(r2.goals['the surface']).toEqual(['key the code at door 11', 'take surface lift pass']); // the Armory, then its pass
     expect(r2.rooms.never.every(n => /Cell|Phase 2|Surface cage|doorway/.test(n))).toBe(true); // welded, or the way out itself
   });
 
@@ -41,11 +48,11 @@ describe('the upper station', () => {
     const a = makeSim(upper, { seed: 7, station: STATION });
     a.game.station!.circuits.CARGO.back = true;
     const r3 = checkProgress(load(upper, JSON.parse(JSON.stringify(save(a))), { seed: 7, station: STATION }));
-    expect(r3.goals['ladder B1 to Main level']).toEqual([]);
+    expect(r3.goals['ladder B1 to Main level']).toEqual(['search the manager', 'use the card at door 22']);
   });
 
   it('reads as text', () => {
-    expect(describeReport(r)).toMatch(/ladder B1 to Main level: start the CARGO backup set/);
+    expect(describeReport(r)).toMatch(/ladder B1 to Main level: search the manager → use the card at door 22 → start the CARGO backup set/);
   });
 });
 

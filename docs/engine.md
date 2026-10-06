@@ -240,7 +240,8 @@ As built in step 5 (`world/nav.ts`, `sim/fields.ts`):
 - **Flow fields to the player**, one for each kind of body and one for sound, by Dijkstra over the graph. One is
   refreshed each step in turn (about 2.5 ms each on the upper station's 7,600 spots), so each is at most four steps
   old and no step pays for all of them. A roam (a husk keeping its rounds) gets a field of its own to a room picked
-  at random, one new route a step across the whole cast.
+  at random, one new route a step across the whole cast. One that keeps to the light (`lit`) picks only a room lit as
+  the power stands, and standing in the dark picks none (`rounds` in `sim/cast.ts`).
 - **Agreed: mutants use stairs and elevators.** Stairs, ramps, walkways and drops are walked like any floor.
   Platforms: anything rides one that goes by itself; a husk calls one that has power, walks to its middle, rides it,
   and steps off at the top (tested: Cargo on backup, a husk follows you up to Tier 1). **Ladders**: the cast needs
@@ -274,7 +275,9 @@ The rules in `world.md` §4 (doors and locks, power, repair kits) carry over unc
 components, not code threaded through the frame loop:
 
 - **Power**: circuits are state; `powered` components read their level (0 dead, 1 backup, 2 full); the light bake and
-  the render read the same state.
+  the render read the same state, through one rule (`circuitPower` in `world/light.ts`). A circuit is fed by Gen-1
+  through its service connection, or is a branch (`feed`) that has whatever the circuit feeding it has, through its
+  own; either way, at least what its own backup set gives. The Security wing is a branch off Ops (`world.md` §8).
 - **Doors**: one system runs the rules for light, heavy, stuck, sealed, vent and lift doors, card and keypad locks.
   Collision, pathing and sight learn a door's state from its mover, never from a special case.
 - **Interaction**: anything with `interactable` is found by one query (in reach, in view, unobstructed), as today's

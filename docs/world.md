@@ -98,6 +98,7 @@ The testers and those they turned, centred on Horticulture.
   runs the cameras and the security controls, and does not need to see you to have you hunted (see §8).
 - **The survivors.** A smaller group of Security's staff, still human, sectioned themselves off from the changed ones. The changed
   held the controls for the way out, and the surface lift is close by; they locked it away to protect themselves, and damaged it.
+  Knowing the cameras fed the overseer, the survivors cut the service connection to their own wing and lived in the dark (§8).
   The survivors killed themselves, or made a run for an exit and were killed or stopped by something on the way. None of them
   made it.
 - **Why the exit (proposed).** The surface lift scans for a clean body (§3). The changed cannot pass it, and anyone clean who did
@@ -197,14 +198,15 @@ General-purpose, like System Shock 2's upgrade modules: one kit fixes one signif
 between unlike options.
 
 - **Repairables:** backup sets, lifts and platforms, ladder sections, broken doors into new areas, service connections, pumps, the
-  hoist, the Security elevator.
+  hoist.
 - **Fewer kits than repairables**, so each player builds a different route.
 - **Every way of spending must still finish:** alternative routes, or one guaranteed late kit. The checker proves it.
 
-**Example (proposed): the Security elevator.** A broken lift from Security straight down to the Commons, or as far as the drowned
-sump. One kit repairs it. Spending a kit there puts Aldana's Armory code within reach almost at once, but the rebreather is behind
-a heavy door that needs Gen-1, so that early dive is made on one lungful. The same kit could have mended Cargo's platforms (and
-whatever they lead to) or a backup set.
+**Example (agreed): the survivors' cut.** The first kit decision. One kit mends the service connection the survivors cut (§8),
+which relights their wing and, with it, the Security elevator: the stairs Security ought to have, made a lift, down to the
+main level's shaft station. There is no ladderway down the main shaft from Security, so the kit buys the quick way down; the
+long way is ladderway B, through Cargo, last. The elevator is not a repairable of its own; it is what the mended feed buys. The
+same kit could have mended Cargo's platforms (and whatever they lead to) or a backup set. Security can be finished without it.
 
 ### Obstacles we can build with
 
@@ -279,6 +281,10 @@ Each phase is playable on its own.
 8. **Taking you rather than killing you.** Do the Security flesh (or any of the flesh) want you changed rather than dead: pinned
    down and infected, or killed and the body mutated after? Does a body need to be alive to change? For now they kill you. (The
    death screen already says "Grafted" and "Lowfield keeps what it is given", which allows either.)
+9. **Security's ways in and out.** To be revisited as a whole. The rule for now: nothing skips Security's dark opening, and
+   the way into the Commons is somewhere that takes some access to reach, not a walk from the start. As built, both ways down
+   are earned (the elevator wants the wing mended; ladderway B wants Operations' card and Cargo's power), and both land at the
+   main level's shaft station, a walk from the Commons. Whether that landing should itself need access is part of the question.
 
 ---
 
@@ -320,53 +326,114 @@ cancerous growth, rather than a second level-sized area competing for attention.
 
 **The beats (agreed)**
 
-1. **Opening: dark, and no flashlight.** You wake in Holding. The lit path (the emergency lights on the OPS backup set, Holding's
-   own low light) is the way to go, slowly, tensely, up to the main floor. The first fear should be a sound: something heard and
-   not seen.
+1. **Opening: dark, and no flashlight.** You wake in Holding, in the survivors' wing, which is dead (see Power, below). Holding's
+   own low light and the amber of the far half at the end of the highway are all there is; you go slowly, tensely, up to the
+   main floor. The first fear should be a sound: something heard and not seen.
 2. **The flashlight, on a body.** It opens choices: go back and see the start properly, or explore the eerily quiet rooms and the
    main hallway.
 3. **The infected half.** Rooms and vents full of skitters and eggs; patrols down the hallways. The line between safe and not
    safe is clear and physical: a threshold you choose to cross (a door, a change in the colour of the light, eggs starting at a
-   doorframe), not a gradient. The safe half is the part the survivors held, which is why it is quiet: they are dead.
+   doorframe), not a gradient. The safe half is the part the survivors held, which is why it is quiet: they are dead. The
+   threshold is the power line: their half lit and watched, yours dark and blind. Stepping into the amber is stepping into view.
 4. **Climax: the overseer.** The whole operations centre has become one mutated growth, flesh grown into the cameras and the
    security controls. It watches its young in the cargo nest, and it watches you.
 5. **Release.** With the overseer dead the cameras are glass, its hand stops hunting, doors stay as you leave them, and power is
    no longer a danger. The patrols are still there, but they are only patrols. The level gets smaller without getting empty.
 
+**Power: two halves (agreed)**
+
+- **Their half is lit.** The changed live in Ops and want to see: their side runs on the OPS backup set, with its cameras live
+  from the start.
+- **Your half is dead, and the survivors did it.** Knowing the cameras fed the overseer, they cut the service connection to their
+  own wing to blind it, and lived and died in the dark. One of the tutorial bodies lies by the cut (below).
+- **Mending it is optional.** One repair kit mends the cut: the first kit decision, now or save it for Cargo. Security can be
+  finished without it, and the checker proves both routes.
+- **What mending buys:** the wing relights; the Security elevator runs again (down to the main level, §4); its light and button
+  doors and card readers wake. **What it costs:** the wing's cameras wake too, you are easier to see in the light, and the patrols'
+  rounds now take in the wing (below). The overseer sees the circuit come live on its board and sounds that zone at once, so the
+  first thing the mended feed brings is the patrols, to the cut.
+- **Timing (open, not urgent):** whatever kills the wing must happen no earlier than your cell's release, or Holding's fail-safe
+  doors would have let go before. A plausible answer: Holding's doors hold on their own battery, sized to ride out a full main and
+  backup outage, and release when it runs down so no one is left sealed in. (The tangle is a sign the player needs a better reason
+  to be here; a later question.)
+- **The surface lift (proposed):** what mends it is one unique part, not a kit. Count its locks before adding any: Gen-1, a
+  credential, a clean scan and the mend are already four.
+
+**The layout (proposed)**
+
+- **A highway.** The spine (Security corridor, Operations corridor, Cargo link) is the level's one orienting hall, Castlevania
+  style: a long stretch, then a single landmark. In the dark it shows only as far as your beam, which hides the size of the place;
+  mending the cut lights it end to end, so the release beat's "the world feels smaller" is seen, not told.
+- **The bend is the landmark, and the threshold.** A 90° turn into a two-storey atrium where the dark half meets the lit one. Its
+  stair climbs to a gallery round the atrium, which branches off into the second floor rather than shadowing the highway. (A round
+  room with a structure in the middle is the alternative; it waits on curved built walls.) A well-funded facility can afford it.
+- **A second floor over Security**, at about +5, the height of Cargo's Tier 1, reaching east to the cavern.
+- **A window onto the bay.** A glass wall high on the cavern's west side: the nest seen in person, from above, before you go.
+  The bay is black until its backup set runs, so the nest must give off its own sick glow, and it should sit nearer the window
+  than the cavern's far end (about 120 m today). The glass works both ways: the bay can see you. A view only, not a door; at
+  Tier 1's height a door would skip the platforms. A shortcut, if any, is a door barred from the bay side.
+
 **The overseer (agreed)**
 
 - **Brain:** the growth in the operations centre. It is to be destroyed, not bargained with or blinded.
 - **Eyes:** the cameras, across the level. Only the overseer sees through them.
-- **Hand:** an engorged mutant made of Security's staff, the level's thresher. It goes where the cameras see you, and follows you
-  for as long as the overseer lives; when it dies, the hand stops seeking you.
+- **Voice: the zone alarm.** The overseer gives no orders; the building does the work. A camera sees you, and the overseer sounds
+  that camera's zone. The precision is in the wiring (each zone its own speaker, the board a human officer used), not in any
+  husk's head.
+- **Why they come: drills, not instructions.** The changed were Security's staff. For years a zone alarm meant "respond there",
+  and what is left of them still does. It is conditioning, not command.
+- **Hand:** an engorged mutant made of Security's staff, the level's thresher: what is left of the response team, made one thing.
+  It hears the alarm from anywhere and goes to it, and follows the alarm from zone to zone for as long as the overseer lives; when
+  the overseer dies, the alarms stop and the hand stops seeking you.
 - **Power is the trade.** Security needs power for things you want (card readers, the Cargo platforms, the fan door on ladderway
   B), but power wakes the cameras. Switching on is what makes you visible: the same bargain as Gen-1 and the rib freak, in another
   shape.
 
 **Three layers of being found (agreed)**
 
-- **Cameras → the hand.** Answered by blind spots, cutting the power, or breaking a camera (loud: a cost, per §4).
+- **Cameras → the zone alarm → the hand, and any patrol in earshot.** The klaxon starting is the tell, and you have a few
+  seconds to answer it: leave the zone, break its speaker or the camera (loud: a cost, per §4), or cut the power. The hand does
+  not track you; it goes where the alarm is.
 - **Patrols → their own senses.** Sight, light and sound, as everywhere else. They do not know where you are because the overseer
-  does.
+  does; they come to an alarm they can hear, not to the overseer.
+- **Patrols walk lit rooms only.** They hunt by sight, so they keep their rounds where they can see. That is why the dead wing is
+  quiet, and why mending the cut brings them into it with no orders at all: lit, it is theirs to walk. One standing in the dark
+  keeps still until the light comes back, so cutting the power stills them too (Cargo's husks wait in the dark until its backup
+  set runs). A husk on a post in the dark is a deliberate exception, and the more frightening for it. **Built** for Security's
+  patrols (`lit` on the mutant); the main level's husks still roam the dark, for now.
 - **The overseer's other tools (proposed):** it can lock a powered door on you, and you hear the bolt before it goes; a dead door
-  cannot be locked, so cutting power defends as well as exposes. **Open:** one indirect way to bring the patrols, by something
-  they can hear: an alarm or the PA sounding where you are. They come to the noise, not to the overseer.
+  cannot be locked, so cutting power defends as well as exposes.
 
 Every one of the overseer's moves should be seen or heard before it lands (a camera's light, the bolt), and have an answer.
 
 **The survivors are the tutorial (proposed).** Each body on an escape route was stopped by one particular thing: one at a card
-reader with no card, one at a heavy door with no power, one under a camera, one who stayed in Holding and gave up. Each teaches
-an obstacle before you meet it, without a word; the body with the flashlight is the first. No survivor's body is only dressing.
-(The officer in the lobby already reads this way: "Whatever opened him did it from behind.")
+reader with no card, one at a heavy door with no power, one under a camera, one by the cut with the cutters still in hand, one
+who stayed in Holding and gave up. Each teaches an obstacle before you meet it, without a word; the body with the flashlight is
+the first. No survivor's body is only dressing. (The officer in the lobby already reads this way: "Whatever opened him did it
+from behind.")
 
-**The way out (proposed).** The surface lift needs more than Gen-1: it was damaged, and needs mending (a kit or a part, §4), and
-its controls are in the operations centre. The exit and the climax share a room. The other ways out stay: ladderway A down, and
-B once Cargo has power.
+**The way out (proposed).** The surface lift needs more than Gen-1: it was damaged, and needs mending (one unique part, not a
+kit; see Power, above), and its controls are in the operations centre. The exit and the climax share a room. The other ways
+down: the Security elevator once the wing is mended, and ladderway B once Cargo has power. There is no ladderway A from
+Security: the main shaft carries only the hoist (Gen-1) and the surface cage.
+
+**Built so far.** The wing is a branch circuit (SEC) off Ops, cut at the start, with its splice panel near the
+threshold and the guard who cut it; a kit in Maintenance, on Ops' side, mends it (the hazard store's stays behind Gen-1).
+Mended, the wing lights amber, Security control's reader wakes, and the Security elevator runs, down to the main level's
+shaft station and back (ladderway A is gone). The highway runs east from the Lobby
+through the dark wing and opens without a door into the atrium; the second leg runs south to the operations room past
+the offices and Maintenance (the Ops backup set). The gallery climbs the core's east side to +5 and branches east to
+Cargo control, whose east wall is the window: black for now. Cargo is behind Operations' card (the deputy director, at
+the far end), so it comes last. The Armory's and the hazard store's heavy doors run off Ops' bus, so they wait on Gen-1
+whether or not the wing is mended.
 
 **What the game needs for it**
 
-- **New:** cameras as fixed eyes: a sight check from each camera, a visible light while it is live, and what it sees sent to the
-  hand. A door the overseer can lock. The overseer itself, and the hand.
+- **New:** cameras as fixed eyes: a sight check from each camera, a visible light while it is live, and what it sees sounding
+  its zone. The zone alarm: a sound from a fixed place, not only from you (today the only source of noise is the player), and the
+  cast walking to it. Glass: solid to bodies, clear to sight and light (the bay window; camera domes share the work). A door the
+  overseer can lock. The overseer itself, and the hand.
+- **Content:** done but for the window's glass.
 - **Already there:** patrols (the cast keep rounds), vents (loose panels; crawling under), grabbing and dragging (a start for the
   hand), caves of any outline (for the nest's organic shapes), backup sets and the power rules, the progression checker (to prove
   the level, and every way of spending power in it, can still be finished).

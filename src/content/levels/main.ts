@@ -1,7 +1,7 @@
 import { PI, TAU, type Colour } from '../../core/math';
 import type { LadderDef, LevelDef } from '../types';
 import {
-  beginLevel, bx, cave, door, finishLevel, hill, item, ladder, mkDeck, mut, note, P, pick, rnd, ROCKP, room, roughen, stack, stairs, T, vault,
+  beginLevel, bx, cave, door, finishLevel, hill, item, ladder, mkDeck, mut, note, P, pick, rnd, ROCKP, room, roughen, stack, stairs, T, use, vault,
   type Deck, type LevelInfo, type TDoorOpts, type TRoom, type TRoomOpts,
 } from '../build/tiles';
 import {
@@ -25,9 +25,12 @@ export function buildMain(ladders: Record<string, LadderDef>): LevelDef {
   const lv = MAIN;
   const G = mkDeck(lv, 140, 30), S2 = mkDeck(lv, 140, 30, { y0: STOREY, li: 1 }), S3 = mkDeck(lv, 140, 30, { y0: 2 * STOREY, li: 2 }), RF = mkDeck(lv, 140, 30, { y0: 3 * STOREY, li: 3 });
   stack(G, S2); stack(S2, S3); stack(S3, RF);
-  /* the main shaft: the hoist, the foot of ladderway A1, and A2 on down (collapsed) */
+  /* the main shaft: the hoist, A2 on down (collapsed), and off the shaft station the foot of the Security elevator, the
+     only way up to Security but the hoist and the exhaust shaft */
   liftRoom(G, 5, 14, 7, 14); room(G, 'Shaft station', 8, 14, 3, 3, { ...UTIL, em: 1, safe: 1 }); door(G, 11, 14, { sg: [['The Commons', 'w'], ['Shaft station', 'e']] });
-  ladder(G, 'A1', 10.5, 16.6, 9.6, 16.1, PI / 2, true); ladder(G, 'A2', 8.5, 16.6, 9.4, 15.6, PI / 2, false);
+  ladder(G, 'A2', 8.5, 16.6, 9.4, 15.6, PI / 2, false);
+  room(G, 'Security elevator', 8, 18, 2, 2, { ...SEC, c: 'SEC', em: 1, noroam: 1 }); door(G, 9, 17, { sg: [['Security elevator', 'n']] });
+  bx(G, 9, 19.96, 0.5, 0.4, 0.06, 0x2c2f33, { y: 1.1, c: 0 }); use(G, 'elev', 9, 19.9, 1.3, { c: 'SEC', to: 'upper' }); G.marks['elev:upper'] = [9, 18.8, 0];
   /* the cavern: the street between the rows, the plazas at either end, and its volume over the roofs */
   const CM: TRoomOpts = { fl: 0x8d8a7c, wl: 0xa5a296, st: 0x3f7f6b, ht: 20, sky: 0x86a9c4, em: 1, c: 'RES' };
   room(G, 'The Commons', 12, 12, 55, 6, CM); for (const y of [8, 18]) room(G, 'The Commons', 12, y, 2, 4, CM);
@@ -93,7 +96,7 @@ export function buildMain(ladders: Record<string, LadderDef>): LevelDef {
   door(G, 93, 14, { sg: [['Airlock', 'w']] }); room(G, 'Airlock', 94, 14, 3, 2, { ...UTIL, c: 'HORT', em: 1 });
   door(G, 97, 14, { sg: [['Horticulture', 'w']] });
   buildHorticulture(G);
-  return finishLevel([9.6, 16.1, PI / 2]); // at the foot of ladder A1, for ?level=main
+  return finishLevel([9.6, 16.1, PI / 2]); // in the shaft station, for ?level=main
 }
 
 /* the Square, tiles 67 to 88 by 4 to 25: the court (71 to 84, rows 8 to 21) open to the cavern roof, the street coming in on the west and

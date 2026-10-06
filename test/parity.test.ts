@@ -13,6 +13,11 @@ const level = buildUpper(STATION.ladders);
 const fresh = () => makeSim(level, { seed: 7, station: STATION });
 const hold = (s: Sim, secs: number, inp: Partial<Input> = {}) => { for (let t = 0; t < secs; t += STEP) step(s, { ...noInput(), ...inp }); };
 const sounds = (s: Sim, name: string) => s.game.events.filter(e => e.type === 'sfx' && e.name === name) as { d?: number }[];
+/** the door from the Lobby into the wing's corridor, x 31: dead with the wing, so slid open by hand and left */
+function openLobbyDoor(s: Sim): void {
+  const d = s.doors.find(d => d.def.x0 > 29 && d.def.x1 < 33 && d.def.z0 > -3 && d.def.z1 < 1)!;
+  d.open = true; d.hold = 1e9;
+}
 function place(s: Sim, who: Mutant | 'player', x: number, y: number, z: number): void {
   const b = who === 'player' ? s.player.body : who.body!;
   b.x = x; b.y = y; b.z = z; b.vy = 0; b.sync();
@@ -28,6 +33,7 @@ describe('you', () => {
   it('make footsteps: quieter walking, louder running, none crouched', () => {
     const s = fresh();
     still(s);
+    openLobbyDoor(s);
     place(s, 'player', 26, 0, -1); s.player.yaw = -Math.PI / 2; // along the Lobby, east
     s.game.events.length = 0;
     hold(s, 2, { forward: 1 });
@@ -67,6 +73,7 @@ describe('the cast, as the first engine had them', () => {
   it('you walk through a husk; it stops short of you rather than on you', () => {
     const s = fresh(), m = s.cast[1];
     still(s);
+    openLobbyDoor(s);
     place(s, m, 30, 0, -1);
     place(s, 'player', 27, 0, -1); s.player.yaw = -Math.PI / 2;
     hold(s, 1.5, { forward: 1 });

@@ -10,7 +10,8 @@ import { checkProgress } from '../src/sim/progress';
 import { field, openRules } from '../src/world/nav';
 import type { Run } from '../src/sim/run';
 
-/* A run across levels: ladders, dives, the lift, levels kept as you left them, and each level as it is ported. */
+/* A run across levels: ladders, dives, the lift, the Security elevator, levels kept as you left them, and each level
+   as it is ported. */
 
 const use = (run: Run, label: RegExp) => {
   const u = run.here.usables.find(q => !q.off && label.test(q.label() ?? ''));
@@ -18,21 +19,35 @@ const use = (run: Run, label: RegExp) => {
   u.act();
   stepRun(run, noInput()); // the run carries out the trip after the step
 };
+/** down from Security the usual way: the wing mended (as if with a kit), and its elevator */
+const down = (run: Run) => {
+  run.here.game.station!.circuits.SEC.broken = false;
+  use(run, /^Elevator: Main level$/);
+};
 
 describe('travel between levels', () => {
-  it('ladder A1 goes down to the main level and back up, and each level waits as you left it', () => {
+  it('the Security elevator is dead until the wing is mended', () => {
+    const run = makeRun(STATION, { seed: 4 });
+    use(run, /^Elevator: Main level$/);
+    expect(run.here.world.def.id).toBe('upper');
+    expect(run.here.game.events.some(e => e.type === 'say' && /The panel is dark/.test(e.text))).toBe(true);
+  });
+
+  it('the Security elevator goes down to the main level and back up, and each level waits as you left it', () => {
     const run = makeRun(STATION, { seed: 4 }), upper = run.here;
     give(run.here.game, 'pipe');
     upper.doors[3].open = true; upper.doors[3].hold = 1e9; // something to find again
-    use(run, /^Ladder down: Main level$/);
+    down(run);
     expect(run.here.world.def.id).toBe('main');
-    const m = run.here.world.def.marks['ladder:A1'], b = run.here.player.body;
+    const m = run.here.world.def.marks['elev:upper'], b = run.here.player.body;
     expect(Math.hypot(b.x - m.x, b.z - m.z)).toBeLessThan(0.01);
     expect(run.here.game).toBe(upper.game); // one game: what you carry came with you
     expect(run.here.game.inv.map(s => s.id)).toContain('pipe');
     expect(run.here.game.events.some(e => e.type === 'level' && e.id === 'main')).toBe(true);
-    use(run, /^Ladder up: Upper station$/);
+    use(run, /^Elevator: Upper station$/);
     expect(run.here).toBe(upper);
+    const u = upper.world.def.marks['elev:main'];
+    expect(Math.hypot(upper.player.body.x - u.x, upper.player.body.z - u.z)).toBeLessThan(0.01);
     expect(upper.doors[3].open).toBe(true);
   });
 
@@ -49,7 +64,7 @@ describe('travel between levels', () => {
   it('a run saved on the main level loads there, with the upper station as it was', () => {
     const run = makeRun(STATION, { seed: 4 });
     run.here.doors[3].unlocked = true;
-    use(run, /^Ladder down: Main level$/);
+    down(run);
     for (let k = 0; k < 60; k++) stepRun(run, noInput());
     const back = loadRun(STATION, JSON.parse(JSON.stringify(saveRun(run))));
     expect(back.here.world.def.id).toBe('main');
@@ -66,11 +81,11 @@ describe('the main level', () => {
     expect(validateStation(STATION, [L])).toEqual([]);
   });
 
-  it('from the foot of ladder A1: Horticulture and the ways on are open; the heavy doors want Gen-1', () => {
+  it('from the foot of the Security elevator: Horticulture and the ways on are open; the heavy doors want Gen-1', () => {
     const run = makeRun(STATION, { seed: 4 });
-    use(run, /^Ladder down: Main level$/);
+    down(run);
     const r = checkProgress(run.here);
-    expect(Object.keys(r.goals)).toEqual(expect.arrayContaining(['ladder A1 to Upper station', 'ladder CV to The cave', 'ladder B2 to Plant level']));
+    expect(Object.keys(r.goals)).toEqual(expect.arrayContaining(['elevator to Upper station', 'ladder CV to The cave', 'ladder B2 to Plant level']));
     expect(r.rooms.never).toEqual(expect.arrayContaining(['Seed vault', 'Stores', 'Trauma centre']));
     expect(r.softLocks).toEqual([]);
     const r2 = checkProgress(run.here, { main: true });

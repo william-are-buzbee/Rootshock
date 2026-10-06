@@ -30,22 +30,40 @@ describe('the upper station', () => {
     expect(missing).toEqual(['Cell E1', 'Cell W1', 'Phase 2']);
   });
 
-  it('lights as it did: dark on the Cargo side at the start, lit by its backup set elsewhere', () => {
-    const L = new Lighting(sim.world, stationPower(STATION.circuits, STATION.main));
-    const at = (name: string) => {
+  it('lights in two halves: the wing dead behind its cut, Ops on its backup set, Cargo dark', () => {
+    const at = (L: Lighting, name: string) => {
       const R = level.rooms.find(r => r.name === name)!;
       return L.at(R.id, (R.x0 + R.x1) / 2, (R.z0 + R.z1) / 2);
     };
-    expect(at('Cell W2')[0]).toBeGreaterThan(0.4); // always lit
-    expect(at('Security corridor')[0]).toBeGreaterThan(0.2); // emergency lights on the backup set
-    const em = at('Security corridor');
+    const L = new Lighting(sim.world, stationPower(STATION.circuits, STATION.main));
+    expect(at(L, 'Cell W2')[0]).toBeGreaterThan(0.4); // always lit
+    expect(at(L, 'Security corridor')[0]).toBe(0); // the wing's feed is cut
+    const em = at(L, 'Operations corridor');
+    expect(em[0]).toBeGreaterThan(0.2); // emergency lights on the backup set
     expect(em[2]).toBeLessThan(em[0] * 0.6); // amber, not white
-    expect(Math.max(...em)).toBeCloseTo(0.4 * Math.max(...level.rooms.find(r => r.name === 'Security corridor')!.lc), 5); // as visible as before
-    expect(at('Operations room')[0]).toBe(0); // no emergency lights: dark on backup
-    expect(at('Cargo cavern')[0]).toBe(0); // its backup set is not running
+    expect(Math.max(...em)).toBeCloseTo(0.4 * Math.max(...level.rooms.find(r => r.name === 'Operations corridor')!.lc), 5); // as visible as before
+    expect(at(L, 'Atrium')[0]).toBeGreaterThan(0.2); // the threshold: theirs, and lit
+    expect(at(L, 'Operations room')[0]).toBe(0); // no emergency lights: dark on backup
+    expect(at(L, 'Cargo cavern')[0]).toBe(0); // its backup set is not running
+    /* mended, the wing takes what Ops has: the backup set's amber */
+    const mended = structuredClone(STATION.circuits);
+    mended.SEC.broken = false;
+    const M = new Lighting(sim.world, stationPower(mended, STATION.main));
+    const wing = at(M, 'Security corridor');
+    expect(wing[0]).toBeGreaterThan(0.2);
+    expect(wing[2]).toBeLessThan(wing[0] * 0.6);
     const full = new Lighting(sim.world, fullPower);
     const R = level.rooms.find(r => r.name === 'Cargo cavern')!;
     expect(full.at(R.id, (R.x0 + R.x1) / 2, (R.z0 + R.z1) / 2)[0]).toBeGreaterThan(0.5);
+  });
+
+  it('floors the second floor in one colour: the gallery\'s slab stops at the door into Cargo control', () => {
+    const R = level.rooms.find(r => r.name === 'Cargo control')!, G = level.rooms.find(r => r.name === 'Gallery' && r.z1 - r.z0 > 10)!;
+    const under = (Q: typeof R) => level.blocks.filter(b => b.y1 === Q.y0 && b.x0 < Q.x1 && b.x1 > Q.x0 && b.z0 < Q.z1 && b.z1 > Q.z0);
+    const room = new Set(under(R).map(b => b.colour.join())), walk = new Set(under(G).map(b => b.colour.join()));
+    expect(room.size).toBe(1);
+    expect(walk.size).toBe(1);
+    expect([...room][0]).not.toBe([...walk][0]);
   });
 
   it('measures: chunks, memory, mesh', () => {

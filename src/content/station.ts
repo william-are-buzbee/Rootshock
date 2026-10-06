@@ -8,7 +8,6 @@ import { buildCave } from './levels/cave';
 /* The station: its levels top to bottom, its circuits, its ladderways. Ported from NEWSTATION in the first engine. */
 
 const ladders: StationDef['ladders'] = {
-  A1: { say: 'Fifty metres of ladder down the main shaft, in the dark.', ends: ['upper', 'main'] },
   A2: { broken: 'The ladderway is collapsed below this landing. Rubble fills the shaft.', ends: ['main', 'plant'] },
   CV: { say: 'Through root and broken concrete, and the station ends. Rock, and the sound of water.', ends: ['main', 'cave'] },
   A3: { say: 'Down the main shaft, and the last rungs go into black water.', ends: ['plant', 'sump'] },
@@ -27,6 +26,8 @@ export const STATION: StationDef = {
   ],
   circuits: {
     OPS: { on: true, back: true, tag: 'upper station' },
+    /* the Security wing hangs off Ops; the survivors cut its feed to blind the cameras on their side (world.md §8) */
+    SEC: { on: true, back: false, broken: true, feed: 'OPS', tag: 'Security wing' },
     RES: { on: true, back: false, tag: 'main level' },
     ENG: { on: true, back: false, tag: 'plant level' },
     HYD: { on: true, back: false, broken: true, tag: 'the sump' },

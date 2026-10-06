@@ -7,7 +7,7 @@ import { STEP } from '../src/core/loop';
 import { give } from '../src/sim/game';
 import { field, openRules } from '../src/world/nav';
 import { refreshFields } from '../src/sim/fields';
-import { BLOWS, hitMutant, type Mutant } from '../src/sim/cast';
+import { BLOWS, hitMutant, rounds, type Mutant } from '../src/sim/cast';
 
 /* The cast on the upper station: the graph they walk, what they notice, how they follow, and what hurts them. */
 
@@ -66,12 +66,12 @@ describe('the nav graph', () => {
 
 describe('what they notice', () => {
   it('a husk does not see you crouched and still behind it; it hears you run', () => {
-    const s = fresh(), m = s.cast[1]; // the Operations corridor
+    const s = fresh(), m = s.cast[1]; // the Operations corridor, which runs south from the atrium
     only(s, [m]);
-    m.post = true; m.yaw = Math.PI / 2; // facing east, keeping its place
-    place(s, m, 82, 0, -1);
-    place(s, 'player', 77, 0, -1);
-    face(s, 82, 1, -1);
+    m.post = true; m.yaw = 0; // facing south, keeping its place
+    place(s, m, 77, 0, 26);
+    place(s, 'player', 77, 0, 21);
+    face(s, 77, 1, 26);
     hold(s, 0.1, { crouch: true });
     hold(s, 2);
     expect(m.state).toBe('idle');
@@ -83,21 +83,50 @@ describe('what they notice', () => {
   it('one that has seen you comes, and hurts', () => {
     const s = fresh(), m = s.cast[1];
     only(s, [m]);
-    m.yaw = -Math.PI / 2; // facing you
-    place(s, m, 84, 0, -1);
-    place(s, 'player', 76, 0, -1);
-    face(s, 84, 1, -1);
+    m.yaw = Math.PI; // facing you, up the corridor
+    place(s, m, 77, 0, 30);
+    place(s, 'player', 77, 0, 22);
+    face(s, 77, 1, 30);
     hold(s, 0.5);
     expect(m.state).toBe('hunt');
     hold(s, 5);
-    expect(Math.hypot(m.x - 76, m.z + 1)).toBeLessThan(1.6);
+    expect(Math.hypot(m.x - 77, m.z - 22)).toBeLessThan(1.6);
     expect(s.game.hp).toBeLessThan(100);
+  });
+});
+
+describe('their rounds', () => {
+  it('Security\'s patrols keep their rounds to lit rooms: the wing joins them when it is mended, and in the dark there are none', () => {
+    const s = fresh(), m = s.cast[1]; // the Operations corridor
+    expect(m.lit).toBe(true);
+    step(s, noInput());
+    const names = () => new Set(rounds(s, m).map(id => s.world.rooms[id].name));
+    const now = names();
+    expect([...now]).toEqual(expect.arrayContaining(['Atrium', 'Operations corridor', 'Gallery']));
+    for (const dark of ['Lobby', 'Operations room', 'Cargo cavern']) expect(now.has(dark)).toBe(false); // the wing, a room with no emergency lights, Cargo
+    s.game.station!.circuits.SEC.broken = false; s.lighting = null; // the wing mended
+    expect(names().has('Lobby')).toBe(true);
+    s.game.station!.circuits.OPS.back = false; s.lighting = null; // and Ops' set stopped: nothing it can see by
+    expect(rounds(s, m)).toEqual([]);
+  });
+
+  it('one standing in the dark keeps still; when the light comes, it walks', () => {
+    const s = fresh(), m = s.cast[5]; // a husk on the Cargo floor, dark at the start
+    expect(m.lit).toBe(true);
+    only(s, [m]);
+    const x0 = m.x, z0 = m.z;
+    hold(s, 20);
+    expect(m.state).toBe('idle');
+    expect(Math.hypot(m.x - x0, m.z - z0)).toBeLessThan(0.3);
+    s.game.station!.circuits.CARGO.back = true; s.lighting = null;
+    hold(s, 30);
+    expect(Math.hypot(m.x - x0, m.z - z0)).toBeGreaterThan(2);
   });
 });
 
 describe('how they follow', () => {
   it('a husk slides a dead door open by hand to come through it', () => {
-    const s = fresh(), m = s.cast[5], d = s.doors[7]; // the Cargo door, x 109: dead at the start
+    const s = fresh(), m = s.cast[5], d = s.doors.find(d => d.def.x0 > 107 && d.def.x1 < 111 && d.def.z1 < 1)!; // the Cargo door, x 109: dead at the start
     only(s, [m]);
     s.game.hp = 1e9;
     expect(d.t).toBe(0);

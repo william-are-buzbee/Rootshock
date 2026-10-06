@@ -10,14 +10,18 @@ import type { World } from './world';
 export type PowerLevel = 0 | 1 | 2;
 export type Power = (circuit: string) => PowerLevel;
 
+/** the power on a circuit, from the circuits' state and whether Gen-1 runs. A branch has what the circuit feeding it
+ *  has, through its connection; any circuit has at least what its own backup set gives. */
+export function circuitPower(circuits: Record<string, CircuitDef>, main: boolean, c: string, depth = 0): PowerLevel {
+  const C = circuits[c];
+  if (!C) return 0;
+  const fed: PowerLevel = !C.on || C.broken ? 0 : C.feed ? (depth < 8 ? circuitPower(circuits, main, C.feed, depth + 1) : 0) : main ? 2 : 0;
+  return fed || (C.back ? 1 : 0);
+}
+
 /** the power on each circuit, from the circuits' state and whether Gen-1 runs */
 export function stationPower(circuits: Record<string, CircuitDef>, main: boolean): Power {
-  return c => {
-    const C = circuits[c];
-    if (!C) return 0;
-    if (main && C.on && !C.broken) return 2;
-    return C.back ? 1 : 0;
-  };
+  return c => circuitPower(circuits, main, c);
 }
 
 /** everything on: for looking at a level as built (?power=full) */

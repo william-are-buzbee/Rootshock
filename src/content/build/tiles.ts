@@ -407,18 +407,20 @@ export function finishLevel(start?: [number, number, number]) {
       return !!R && lo!.y0 + R.ht > D.y0 + 0.01;
     };
     if (D.below) {
+      /* a walkway's slab is its own floor, so it takes the walkway's colour; under a fitted room it is the doorway grey.
+         A run stops where the colour does, or a walkway's would carry on under the room its door opens into. */
+      const slabAt = (k: number): number | null => {
+        const R = roomAtTile(D, k);
+        if (!D.g[k] || (R && (R.hole || (R.air && through(k))))) return null;
+        return R?.open ? R.fl : -1;
+      };
       for (let j = 0; j < D.H; j++)
         for (let i = 0; i < D.W; ) {
-          const k = j * D.W + i, R = roomAtTile(D, k);
-          const solid = D.g[k] && !(R && (R.hole || (R.air && through(k))));
-          if (!solid) { i++; continue; }
+          const c = slabAt(j * D.W + i);
+          if (c === null) { i++; continue; }
           let n = 1;
-          while (i + n < D.W) {
-            const k2 = j * D.W + i + n, R2 = roomAtTile(D, k2);
-            if (!(D.g[k2] && !(R2 && (R2.hole || (R2.air && through(k2)))))) break;
-            n++;
-          }
-          b.block(X(D, i), D.y0 - SLAB, Z(D, j), X(D, i + n), D.y0, Z(D, j + 1), (R?.open ? hex(R.fl) : DOORPAL.fl) as Colour);
+          while (i + n < D.W && slabAt(j * D.W + i + n) === c) n++;
+          b.block(X(D, i), D.y0 - SLAB, Z(D, j), X(D, i + n), D.y0, Z(D, j + 1), (c >= 0 ? hex(c) : DOORPAL.fl) as Colour);
           i += n;
         }
     }

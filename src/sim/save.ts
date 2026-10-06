@@ -14,7 +14,8 @@ import { makeSim, type Sim, type SimOpts } from './sim';
    it is built again from the level. Fields over the nav graph are made again on load; a line of sight is looked along
    again. Loaded, a run plays on exactly as it would have. */
 
-export const SAVE_VERSION = 1;
+/** 2: the upper station laid out again (Security's wing and the atrium), so its doors and things are made in a new order */
+export const SAVE_VERSION = 2;
 
 /** copy the named fields of an object */
 const pick = <T extends object, K extends keyof T>(o: T, keys: readonly K[]): Pick<T, K> => {

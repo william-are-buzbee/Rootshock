@@ -12,7 +12,7 @@ import { makeSim } from './sim';
 
 export interface Problem { level: string; what: string; later?: boolean }
 
-const KINDS = new Set(['body', 'backup', 'panel', 'fuse', 'breaker', 'lift', 'ladder', 'stair', 'look', 'dive']);
+const KINDS = new Set(['body', 'backup', 'panel', 'fuse', 'breaker', 'lift', 'elev', 'ladder', 'stair', 'look', 'dive']);
 
 export function validateStation(station: StationDef, levels: LevelDef[] = station.levels.map(l => l.build())): Problem[] {
   const out: Problem[] = [], notes = NOTES('\u0001', '\u0002'), built = new Set(station.levels.map(l => l.id));
@@ -34,6 +34,7 @@ export function validateStation(station: StationDef, levels: LevelDef[] = statio
   const written = new Set<number>();
   for (const n of Object.values(notes)) { if (n.b.includes('\u0001')) written.add(1); if (n.b.includes('\u0002')) written.add(2); }
   const circuits = new Set(Object.keys(station.circuits));
+  for (const [k, C] of Object.entries(station.circuits)) if (C.feed && !circuits.has(C.feed)) out.push({ level: '', what: `circuit ${k} is fed from ${C.feed}, which does not exist` });
   for (const L of levels) {
     const bad = (what: string, later = false) => out.push({ level: L.id, what, ...(later ? { later } : {}) });
     const circuit = (c: string, of: string) => { if (c !== L.circuit && !circuits.has(c)) bad(`${of}: no circuit ${c}`); };
@@ -58,7 +59,7 @@ export function validateStation(station: StationDef, levels: LevelDef[] = statio
     for (const u of L.uses) {
       if (!KINDS.has(u.kind)) { bad(`a thing to use of unknown kind: ${u.kind}`); continue; }
       const c = u.opts.c as string | undefined;
-      if ((u.kind === 'backup' || u.kind === 'panel') && (!c || !circuits.has(c))) bad(`${u.kind} for a circuit that does not exist: ${c}`);
+      if ((u.kind === 'backup' || u.kind === 'panel' || u.kind === 'elev') && (!c || !circuits.has(c))) bad(`${u.kind} for a circuit that does not exist: ${c}`);
       if (u.kind === 'ladder') {
         const S = station.ladders[u.opts.id as string];
         if (!S) bad(`ladder ${u.opts.id} is not one of the station's ladderways`);
@@ -71,11 +72,11 @@ export function validateStation(station: StationDef, levels: LevelDef[] = statio
         if (S?.need?.power) circuit(S.need.power, `ladder ${u.opts.id}`);
       }
       if (u.kind === 'stair' && !built.has(u.opts.to as string)) bad(`stairs to ${u.opts.to}, not ported yet`, true);
-      if (u.kind === 'dive') {
-        const to = u.opts.to as string, T = levels.find(l => l.id === to);
-        if (!station.names[to]) bad(`a dive to ${to}, which is no level of the station`);
-        else if (!built.has(to)) bad(`a dive to ${station.names[to]}, not ported yet`, true);
-        else if (T && !T.marks['dive:' + L.id]) bad(`a dive to ${station.names[to]}, which has nowhere to come out from here (no mark dive:${L.id})`);
+      if (u.kind === 'dive' || u.kind === 'elev') {
+        const to = u.opts.to as string, T = levels.find(l => l.id === to), what = u.kind === 'dive' ? 'a dive' : 'an elevator', mark = u.kind + ':' + L.id;
+        if (!station.names[to]) bad(`${what} to ${to}, which is no level of the station`);
+        else if (!built.has(to)) bad(`${what} to ${station.names[to]}, not ported yet`, true);
+        else if (T && !T.marks[mark]) bad(`${what} to ${station.names[to]}, which has nowhere to come out from here (no mark ${mark})`);
       }
     }
     /* everything is somewhere a body can stand and reach it */
