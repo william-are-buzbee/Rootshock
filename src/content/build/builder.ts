@@ -200,6 +200,8 @@ export class LevelBuilder {
   mark(name: string, x: number, y: number, z: number, yaw: number): void { this.def.marks[name] = { x, y, z, yaw }; }
   /** a ceiling fitting its room's light shines down from */
   fixture(x: number, y: number, z: number): void { (this.def.fixtures ??= []).push({ x, y, z }); }
+  /** an air grille in a ceiling */
+  vent(x: number, y: number, z: number): void { (this.def.vents ??= []).push({ x, y, z }); }
   /** blood on the floor that can be walked out of */
   stain(x: number, y: number, z: number, r: number): void { (this.def.stains ??= []).push({ x, y, z, r }); }
 

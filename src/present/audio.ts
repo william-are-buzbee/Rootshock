@@ -34,6 +34,8 @@ export class Audio {
   private bed!: GainNode;
   /** a room's moving air: silent where the fans are dead */
   private air!: GainNode;
+  private airTone!: BiquadFilterNode;
+  private airPan: StereoPannerNode | null = null;
   /** the echo of a small room, a hall and a vast space, each as loud as the room you are in is like it */
   private space: GainNode[] = [];
   /** a failing tube */
@@ -89,8 +91,11 @@ export class Audio {
       const an = ac.createBufferSource(), af = ac.createBiquadFilter(), al = ac.createBiquadFilter();
       an.buffer = this.noise; an.loop = true; an.playbackRate.value = 0.7;
       af.type = 'bandpass'; af.frequency.value = 900; af.Q.value = 0.45; al.type = 'lowpass'; al.frequency.value = 2600;
-      this.air = ac.createGain(); this.air.gain.value = 0;
-      an.connect(af); af.connect(al); al.connect(this.air); this.air.connect(this.amb); an.start();
+      this.air = ac.createGain(); this.air.gain.value = 0; this.airTone = al;
+      this.airPan = ac.createStereoPanner ? ac.createStereoPanner() : null;
+      an.connect(af); af.connect(al); al.connect(this.air);
+      if (this.airPan) { this.air.connect(this.airPan); this.airPan.connect(this.amb); } else this.air.connect(this.amb);
+      an.start();
       /* a fluorescent tube's buzz: mains hum and its harsh overtones */
       const bz = ac.createOscillator(), bh = ac.createBiquadFilter();
       bz.type = 'sawtooth'; bz.frequency.value = 120; bh.type = 'highpass'; bh.frequency.value = 900;
@@ -143,9 +148,14 @@ export class Audio {
     this.under.frequency.setTargetAtTime(on ? 420 : 22000, this.ac.currentTime, on ? 0.05 : 0.12);
   }
 
-  /** the air moving in the room you are in, 0 (dead still) to 1 (its fans on Gen-1): spools up and runs down */
-  setAir(k: number): void {
-    if (this.ac && this.changed('air', k)) this.air.gain.setTargetAtTime(0.03 * k, this.ac.currentTime, k > 0 ? 1.2 : 0.9);
+  /** the air moving in the room you are in, 0 (dead still) to 1 (its fans on Gen-1): spools up and runs down. `near`
+   *  (0..1): how close its nearest grille is, which makes it louder and brighter; `pan`: which side the grille is on */
+  setAir(k: number, near = 0, pan = 0): void {
+    if (!this.ac || !this.changed('air', k, Math.round(near * 20), Math.round(pan * 20))) return;
+    const t = this.ac.currentTime;
+    this.air.gain.setTargetAtTime(0.03 * k * (0.55 + 0.9 * near), t, k > 0 ? 1.2 : 0.9);
+    this.airTone.frequency.setTargetAtTime(2000 + 2400 * near, t, 0.3);
+    this.airPan?.pan.setTargetAtTime(pan * near, t, 0.2);
   }
 
   /** the cave's air, 0 to 1 */
@@ -340,7 +350,12 @@ export class Audio {
           this.nz(1.4, (0.12 + 0.12 * k) * v, 260, 'bandpass', 0, 0.7, 520, 0.25);
           this.nz(0.9, (0.05 + 0.05 * k) * v, 1400, 'bandpass', 0.1, 1.2, 700, 0.2);
           break;
-        case 'drip': { const f = rnd(1400, 2600); this.tn(f, f * 0.5, 0.06, 'sine', 0.05 * v); this.tn(f, f * 0.5, 0.06, 'sine', 0.015 * v, 0.17); break; }
+        case 'drip': { // into water a plink and its echo off the surface; on stone (k 0) a short, dull tap
+          const f = rnd(1400, 2600);
+          if (k > 0.5 || o.k === undefined) { this.tn(f, f * 0.5, 0.06, 'sine', 0.05 * v); this.tn(f, f * 0.5, 0.06, 'sine', 0.015 * v, 0.17); }
+          else { this.tn(f * 0.7, f * 0.45, 0.025, 'triangle', 0.04 * v); this.nz(0.03, 0.03 * v, 2500, 'bandpass', 0, 2); }
+          break;
+        }
 
         /* what you do */
         case 'hit': this.nz(0.12, 0.5, 260); this.tn(95, 50, 0.14, 'square', 0.2); break;

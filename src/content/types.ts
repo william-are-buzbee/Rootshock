@@ -87,6 +87,11 @@ export interface FixtureDef {
   x: number; y: number; z: number;
 }
 
+/** an air grille in a ceiling: its middle */
+export interface VentDef {
+  x: number; y: number; z: number;
+}
+
 /** a pool of blood on a floor: its middle and about how far it runs */
 export interface StainDef {
   x: number; y: number; z: number; r: number;
@@ -182,6 +187,8 @@ export interface LevelDef {
   lamps: LampDef[];
   /** ceiling fittings: where each room's own light comes from, so it falls in pools below them (world/light.ts) */
   fixtures?: FixtureDef[];
+  /** air grilles in fitted ceilings: where a room's air is drawn to and heard from while its fans run (motes.ts) */
+  vents?: VentDef[];
   /** blood on the floor, wet enough to walk out of with it on your soles (present/render/prints.ts) */
   stains?: StainDef[];
   signs: SignDef[];

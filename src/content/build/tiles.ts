@@ -447,6 +447,18 @@ export function finishLevel(start?: [number, number, number]) {
           b.box(X(D, tx), Z(D, tz), 1.1, 0.06, 0.3, dead ? 0x2a2c2e : 0xe8eef2, { y: D.y0 + R.ht - 0.07, glow: dead ? 1 : 3, solid: false });
           if (!dead) b.fixture(X(D, tx), D.y0 + R.ht - 0.08, Z(D, tz));
         }
+      /* its air grilles: one at each end of a long room, at the far end of a short one, in the middle of its width and
+         clear of the light fittings. They are what the room's air is drawn toward while its fans run. */
+      const long = R.w >= R.h, n = long ? R.w : R.h, mid = Math.floor((long ? R.h : R.w) / 2);
+      const clear = (k: number) => (k % 3 === 1 && n > 1 ? (k === 0 ? 1 : k - 1) : k);
+      for (const k of n >= 6 ? [0, n - 1] : [n - 1]) {
+        const i = long ? clear(k) : mid, j = long ? mid : clear(k);
+        /* flush with the ceiling as built: on the 0.25 m grid, so a 3.2 m room's is at 3.25 */
+        const gx = X(D, R.x + i + 0.5), gz = Z(D, R.y + j + 0.5), gy = Math.ceil((D.y0 + R.ht) / 0.25 - 1e-6) * 0.25;
+        b.box(gx, gz, 0.6, 0.03, 0.6, 0x2a2c2e, { y: gy - 0.04, solid: false });
+        for (let s = 0; s < 4; s++) b.box(gx + (long ? 0 : -0.21 + s * 0.14), gz + (long ? -0.21 + s * 0.14 : 0), long ? 0.54 : 0.05, 0.02, long ? 0.05 : 0.54, 0x55585c, { y: gy - 0.06, solid: false });
+        b.vent(gx, gy - 0.05, gz);
+      }
     }
     /* platforms between this deck and the one above */
     for (const E of D.elevs) b.platform(X(D, E.tx), Z(D, E.tz), X(D, E.tx + E.w), Z(D, E.tz + E.h), E.lo.y0, E.hi.y0, 0x4a4f55, { name: E.name, circuit: E.c });
