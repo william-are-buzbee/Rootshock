@@ -230,6 +230,7 @@ function surfaceMesh(o: Out, w: World, sf: Surface): void {
   const m = floor ? 1 : 0.8;
   for (let j = 0; j < d.nz - 1; j++)
     for (let i = 0; i < d.nx - 1; i++) {
+      if (d.mask && !d.mask[j * (d.nx - 1) + i]) continue;
       const x0 = X(i), x1 = X(i + 1), z0 = Z(j), z1 = Z(j + 1), h00 = H(i, j), h10 = H(i + 1, j), h11 = H(i + 1, j + 1), h01 = H(i, j + 1);
       const l = src((x0 + x1) / 2, (h00 + h11) / 2, (z0 + z1) / 2, m), c = d.sides ? d.colour : scale3(d.colour, 0.94 + 0.06 * (((i * 7 + j * 13) % 5) / 4));
       const q: [number, number, number][] = [[x0, h00, z0], [x1, h10, z0], [x1, h11, z1], [x0, h01, z1]];

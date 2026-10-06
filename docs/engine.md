@@ -226,6 +226,9 @@ As built in step 5 (`world/nav.ts`, `sim/fields.ts`):
 - **Edges** go to the eight neighbouring columns: a walk (a step up to 0.5 m, as a body climbs), or a drop (down to
   2.5 m, one way). Diagonals only where both squares beside them are open, so no corner is cut through rock. A
   platform joins the spots on it at the bottom to the spots beside it at the top.
+- **Slopes** (step 8): a body climbs any floor that rises smoothly, a few centimetres a step, so a rise of up to a
+  metre between neighbours is a walk both ways too, if the ground between climbs without a step over 0.25 m. On a
+  steep floor a spot stands on the highest point under it. The cave's passages need both.
 - **Doors and platforms are decided when walked, not when built.** The graph runs through every door; a field asks
   each door's state as it spreads. Who passes, as the first engine had it:
   - **crawl** (skitters, worms): open doors, jammed ones (under), and light doors that open by themselves;
@@ -239,9 +242,8 @@ As built in step 5 (`world/nav.ts`, `sim/fields.ts`):
   at random, one new route a step across the whole cast.
 - **Agreed: mutants use stairs and elevators.** Stairs, ramps, walkways and drops are walked like any floor.
   Platforms: anything rides one that goes by itself; a husk calls one that has power, walks to its middle, rides it,
-  and steps off at the top (tested: Cargo on backup, a husk follows you up to Tier 1). **Ladders are not yet**: every
-  ladder on the upper station leads off the level, and the cast does not leave its level. Ladders within a level come
-  with the first level that has one (step 8).
+  and steps off at the top (tested: Cargo on backup, a husk follows you up to Tier 1). **Ladders**: the cast needs
+  none. Every ladder in the station leads off its level, and the cast does not leave its level.
 - A refuge (`safe`) is only kept out of the cast's rounds, as in the first engine; a hunter follows you into one.
 - **Fields are cheap** (step 6): each is made from arrays of who may enter which spot (no call per edge), only when you
   have moved or a door or platform has changed, and only as far out as anything could use it (90 m for a hunt, 40 for
@@ -463,7 +465,7 @@ Each step ends with something you can open and play.
      circuits that do not, cards nobody carries, codes written nowhere, ladders that do not say where they go, and
      anything placed out of reach of anywhere to stand. What waits on a level not yet ported (ladder A1's other end; the
      Armory code, on Aldana's hand in the sump) is marked as such, not as a mistake.
-8. **The other levels**, one at a time. **In progress: travel, the main level and the plant level done.**
+8. **The other levels**, one at a time. **Done.**
    - **Travel** (`sim/run.ts`): a run is every level you have been to, each its own sim and world, sharing one game
      (what you carry and know, the power) and one draw of chance. Only the level you are on moves; one you leave waits
      as you left it, as in the first engine. Ladders, stairs and the lift ask for a trip; the run takes you to the far
@@ -493,6 +495,41 @@ Each step ends with something you can open and play.
      main fuse, seat it, start Gen-1. 8 states, 54 ms. Switching power on is now taken at once like a key, and off is
      never tried: power only opens ways now that locks fail secure, and a switch can be thrown back. Before that, the
      plant level's connections and backup sets made 2,434 states and 1.2 s.
+   - **The sump and the drowned sump** (`content/levels/sump.ts`), ported from `buildSump` and `buildSumpDeep`: the
+     hall at wading depth, the pump station, its control office (the dive lantern, the last log), the filters; under
+     them the intake gallery, the flooded link, and Sergeant Aldana with the Armory code on her hand.
+   - **Water on a level** is real now: a deck's `wet` is wading water over every room and doorway, `deep` floods every
+     room over its roof. Where the water fills a room to the roof there is no surface to float up to, so you hang
+     where you are and swim up or down as you choose; the first engine held you at the floor. Your breath runs from
+     the moment you go in. **Dives** (the intake grates, the flooded link, the pool) are uses that travel, as ladders
+     do: each comes out at the far level's mark `dive:` + the level you left. The first dive under says "One lungful.
+     Count it."
+   - **Fixed on the way**: wading water tints the view and closes it in, and goggles thin the fog under water, as
+     before; the water is the first engine's colour; swimmers ride just under the surface of shallow water.
+   - **The cave** (`content/levels/cave.ts`), ported from `buildCave`: the entry passage from the breach, the upper
+     chamber and the spring branch climbing to the crack, the descent through breakdown, the great chamber and the
+     green's arboretum, the lower passage, and the lower chamber with its pool, which is the flooded link. 7 rooms,
+     568 props, 11 of the cast; built in 42 ms and compiled in 40; the nav graph (4,929 spots) 0.6 s; 1,819 chunks
+     (15 MB). The pool is real water you can wade and swim in; the first engine drew a dark disc and kept you out of
+     it with a hidden kerb.
+   - **Caves of any outline** (§14): built as the first engine wrote them (`caveShape`, `tunnel`, `chamber`, in
+     `tiles.ts`). Each is one room carved tile by tile, from just under its floor to just over its roof there
+     (`RoomDef.cells`); a deck's caves share one floor and one roof, masked to their tiles (`SurfaceDef.mask`), so
+     where a passage opens into a chamber there is no seam: the roof rises across the mouth instead of stepping. A
+     cave's roof now rides on its floor, as in the first engine (over the arboretum's hills it had stayed level).
+   - **Settled on the way**: the cave's passages are steeper than the nav graph allowed (the lower passage falls 12 m
+     in 15, and where a tunnel leaves a chamber the first tile can be steeper than 45°). A body always climbed them;
+     the graph now does too (§7). Before, the checker found the descent and the lower passage one-way drops and the
+     lower chamber out of reach. Proof: a test walks you by the graph from the pool up to the breach, 58 m higher.
+   - **Shot** beside the first engine, view for view: the sump at full power, the drowned sump and the cave with the
+     dev light on, and the arboretum under its new roof.
+   - **Checked**: each level validates clean, and so does the whole station: nothing waits any more (ladders A3 and
+     CV, the Armory code). The checker: from the foot of A3, the ladder and the dive (the lift with Gen-1); in the
+     drowned sump, both dives; from the breach, every chamber and passage and both ways out, no dead ends.
+   - **Cost**: a step with everyone awake, 0.12 ms in the sump, 0.07 drowned, 0.15 in the cave (worst 4.5 ms).
+   - **Not yet**: nothing counts your air for you. The drowned level is about 13 s across on one breath of 35; the
+     checker treats a dive as a way like any other. The last log in pump control sends you down "shaft B in the
+     filter room"; there is no shaft B (nor was there in the first engine's new station), only the intake grates.
 9. **Swap**: v2 becomes the game at the root; the old one is archived.
 
 ---
@@ -501,10 +538,11 @@ Each step ends with something you can open and play.
 
 1. **Grid cell size**: 0.25 m, kept. The upper station costs 16 MB of grid; a chunk that is all one room could be
    stored as a single value if a bigger level needs it.
-2. **Caves with irregular outlines.** The first engine's caves are tunnels and chambers of any shape (`caveShape`,
-   `tunnel`, `chamber`); the upper station has none. Their outline can be stamped cell by cell with surfaces masked
-   to it; to be built with the level that first needs it (step 8).
+
 ### Settled
+
+- **Caves with irregular outlines** (step 8): stamped tile by tile, with the floor and roof surfaces masked to them;
+  one floor and one roof for all of a deck's caves (§13, the cave).
 
 - **Locks without power** (step 8): fail-secure, as `world.md` §4 has it. A card reader or keypad stays locked with
   its circuit dead, and needs power to read; once a card or code has opened a door, it stays unlocked. The first

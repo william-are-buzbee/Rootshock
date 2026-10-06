@@ -1,6 +1,6 @@
 import { ITEMS, keyName } from '../content/items';
 import { STATION_NAMES } from '../content/names';
-import { end, give, giveKey, consume, makeNoise, power, readNote, say, sfx, type Game } from './game';
+import { end, give, giveKey, consume, makeNoise, power, readNote, say, sayOnce, sfx, type Game } from './game';
 import { locked, occupied, sendPlatform, type Door, type Platform } from './movers';
 import { eyeHeight } from './player';
 import type { Sim } from './sim';
@@ -139,6 +139,19 @@ export function buildUsables(sim: Sim): Usable[] {
           act: () => {
             if (!g.station?.built.includes(to)) { say(g, 'Where these lead is not built in v2 yet.'); return; }
             g.travel = { level: to, mark: 'stair:' + L.id };
+          },
+        });
+        break;
+      }
+      case 'dive': {
+        const to = o.to as string;
+        out.push({
+          ...base, label: () => o.label as string,
+          act: () => {
+            if (!g.station?.built.includes(to)) { say(g, 'Where this goes is not built in v2 yet.'); return; }
+            sfx(g, 'slosh');
+            g.travel = { level: to, mark: 'dive:' + L.id };
+            if (o.under) sayOnce(g, 'dive', g.worn.includes('rebreather') ? 'The rebreather ticks. You have time.' : 'One lungful. Count it.');
           },
         });
         break;

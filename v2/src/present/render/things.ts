@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { Colour } from '../../core/math';
-import { hex, scale3 } from '../../core/math';
+import { hex } from '../../core/math';
 import type { Sim } from '../../sim/sim';
 import type { DoorDef } from '../../content/types';
 import type { World } from '../../world/world';
@@ -208,9 +208,9 @@ export class Things {
 
   private water(w: World): void {
     if (!w.water.length) return;
-    const P: number[] = [], C: number[] = [], L: number[] = [], c = hex(0x123a40);
+    const P: number[] = [], C: number[] = [], L: number[] = [], c: Colour = [0.07, 0.13, 0.14]; // the first engine's water
     for (const s of w.water) {
-      const l = scale3(this.L.atPoint((s.x0 + s.x1) / 2, s.level + 0.1, (s.z0 + s.z1) / 2), 1.2);
+      const l = this.L.atPoint((s.x0 + s.x1) / 2, s.level + 0.1, (s.z0 + s.z1) / 2);
       for (const [x, z] of [[s.x0, s.z0], [s.x1, s.z0], [s.x1, s.z1], [s.x0, s.z0], [s.x1, s.z1], [s.x0, s.z1]]) {
         P.push(x, s.level, z); C.push(...c); L.push(l[0], l[1], l[2], 0);
       }

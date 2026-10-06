@@ -1,13 +1,15 @@
 import { describe, expect, it } from 'vitest';
+import { PI } from '../src/core/math';
 import { STATION } from '../src/content/station';
 import { makeRun, stepRun, saveRun, loadRun, levelDef } from '../src/sim/run';
 import { noInput } from '../src/sim/input';
 import { give } from '../src/sim/game';
 import { validateStation } from '../src/sim/validate';
 import { checkProgress } from '../src/sim/progress';
+import { field, openRules } from '../src/world/nav';
 import type { Run } from '../src/sim/run';
 
-/* A run across levels: ladders, the lift, levels kept as you left them, and the main level itself. */
+/* A run across levels: ladders, dives, the lift, levels kept as you left them, and each level as it is ported. */
 
 const use = (run: Run, label: RegExp) => {
   const u = run.here.usables.find(q => !q.off && label.test(q.label() ?? ''));
@@ -59,9 +61,8 @@ describe('travel between levels', () => {
 describe('the main level', () => {
   const L = levelDef(STATION, 'main');
 
-  it('validates: only ladders to levels not yet ported wait', () => {
-    const p = validateStation(STATION, [L]);
-    expect(p.filter(x => !x.later)).toEqual([]);
+  it('validates', () => {
+    expect(validateStation(STATION, [L])).toEqual([]);
   });
 
   it('from the foot of ladder A1: Horticulture and the ways on are open; the heavy doors want Gen-1', () => {
@@ -76,19 +77,22 @@ describe('the main level', () => {
   });
 });
 
+/** take a ladder by its name: A2 and B2 both read "down to the Plant level" */
+const ladder = (run: Run, id: string) => {
+  const i = run.here.world.def.uses.findIndex(u => u.kind === 'ladder' && (u.opts as { id?: string }).id === id);
+  run.here.usables.find(u => u.key === 'use' + i)!.act();
+  stepRun(run, noInput());
+};
+const at = (run: Run, mark: string) => {
+  const m = run.here.world.def.marks[mark], b = run.here.player.body;
+  return Math.hypot(b.x - m.x, b.z - m.z) < 0.01 && Math.abs(b.y - m.y) < 0.01;
+};
+
 describe('the plant level', () => {
   const L = levelDef(STATION, 'plant');
-  /** take a ladder by its name: A2 and B2 both read "down to the Plant level" */
-  const ladder = (run: Run, id: string) => {
-    const i = run.here.world.def.uses.findIndex(u => u.kind === 'ladder' && (u.opts as { id?: string }).id === id);
-    run.here.usables.find(u => u.key === 'use' + i)!.act();
-    stepRun(run, noInput());
-  };
 
-  it('validates: only ladder A3, to the sump, waits', () => {
-    const p = validateStation(STATION, [L]);
-    expect(p.filter(x => !x.later)).toEqual([]);
-    expect(p.map(x => x.what).join('\n')).toMatch(/A3/);
+  it('validates', () => {
+    expect(validateStation(STATION, [L])).toEqual([]);
   });
 
   it('A2 is collapsed; B2 goes down the exhaust shaft to the plant level and back', () => {
@@ -126,5 +130,125 @@ describe('the plant level', () => {
     g.commands.push({ type: 'lift', level: 'upper' });
     stepRun(run, noInput());
     expect(run.here.world.def.id).toBe('upper');
+  });
+});
+
+describe('the sump', () => {
+  const L = levelDef(STATION, 'sump');
+
+  it('validates', () => {
+    expect(validateStation(STATION, [L])).toEqual([]);
+  });
+
+  it('A3 goes down from the plant level into the water, where you wade and cannot run; and back up', () => {
+    const run = makeRun(STATION, { seed: 4, start: 'plant' });
+    ladder(run, 'A3');
+    expect(run.here.world.def.id).toBe('sump');
+    expect(at(run, 'ladder:A3')).toBe(true);
+    const p = run.here.player, b = p.body;
+    for (let k = 0; k < 30; k++) stepRun(run, { ...noInput(), yaw: k ? 0 : PI / 2 - p.yaw }); // face east, into the hall
+    for (let k = 0; k < 60; k++) stepRun(run, { ...noInput(), forward: 1, run: true });
+    expect(p.water).toBe('wading');
+    const x = b.x;
+    stepRun(run, { ...noInput(), forward: 1, run: true });
+    expect(Math.abs(b.x - x)).toBeLessThan(2.2 / 60 + 1e-6);
+    ladder(run, 'A3');
+    expect(run.here.world.def.id).toBe('plant');
+  });
+
+  it('from the foot of A3: the ladder and the dive are open; the lift wants Gen-1; with it, everything', () => {
+    const run = makeRun(STATION, { seed: 4, start: 'sump' });
+    const r = checkProgress(run.here);
+    expect(Object.keys(r.goals).sort()).toEqual(['dive to The sump, drowned', 'ladder A3 to Plant level']);
+    expect(r.rooms.never).toEqual(['Main lift', 'the doorway between Main lift and Shaft station']);
+    expect(r.items.never).toEqual([]);
+    expect(r.softLocks).toEqual([]);
+    expect(r.deadEnds).toEqual([]);
+    const r2 = checkProgress(run.here, { main: true });
+    expect(r2.rooms.never).toEqual([]);
+    expect(Object.keys(r2.goals)).toContain('the lift');
+  });
+});
+
+describe('the drowned sump', () => {
+  const L = levelDef(STATION, 'sumpdeep');
+
+  it('validates', () => {
+    expect(validateStation(STATION, [L])).toEqual([]);
+  });
+
+  it('down through the intake grates: no surface over you, so you hang where you are, swim up and down, and count', () => {
+    const run = makeRun(STATION, { seed: 4, start: 'sump' }), g = run.here.game;
+    use(run, /^Dive: the intake grates$/);
+    expect(run.here.world.def.id).toBe('sumpdeep');
+    expect(at(run, 'dive:sump')).toBe(true);
+    expect(g.events.some(e => e.type === 'say' && e.text === 'One lungful. Count it.')).toBe(true);
+    const p = run.here.player, b = p.body, y = b.y, air = p.air;
+    for (let k = 0; k < 120; k++) stepRun(run, noInput());
+    expect(p.water).toBe('swimming');
+    expect(p.under).toBe(true);
+    expect(Math.abs(b.y - y)).toBeLessThan(0.1); // not floated up against the roof
+    expect(p.air).toBeLessThan(air - 1.9);
+    for (let k = 0; k < 30; k++) stepRun(run, { ...noInput(), rise: true });
+    expect(b.y).toBeGreaterThan(y + 0.5);
+    use(run, /^Swim up: the intake grates$/);
+    expect(run.here.world.def.id).toBe('sump');
+    expect(at(run, 'dive:sumpdeep')).toBe(true);
+  });
+
+  it("Sergeant Aldana has the Armory code; the flooded link goes on to the cave", () => {
+    const run = makeRun(STATION, { seed: 4, start: 'sumpdeep' }), g = run.here.game;
+    use(run, /^Search the drowned sergeant$/);
+    expect(g.read).toContain('code');
+    expect(g.events.some(e => e.type === 'say' && e.text.includes(String(g.code)))).toBe(true);
+    const r = checkProgress(run.here);
+    expect(Object.keys(r.goals).sort()).toEqual(['dive to The cave', 'dive to The sump']);
+    expect(r.rooms.never).toEqual([]);
+    use(run, /^Swim on: the flooded link/);
+    expect(run.here.world.def.id).toBe('cave');
+    expect(at(run, 'dive:sumpdeep')).toBe(true);
+  });
+});
+
+describe('the cave', () => {
+  const L = levelDef(STATION, 'cave');
+
+  it('validates', () => {
+    expect(validateStation(STATION, [L])).toEqual([]);
+  });
+
+  it('through the breach behind the arboretum, and back', () => {
+    const run = makeRun(STATION, { seed: 4, start: 'main' });
+    ladder(run, 'CV');
+    expect(run.here.world.def.id).toBe('cave');
+    expect(at(run, 'ladder:CV')).toBe(true);
+    ladder(run, 'CV');
+    expect(run.here.world.def.id).toBe('main');
+  });
+
+  it('from the breach: every chamber and passage, and both ways out; nowhere to drop into and not climb out of', () => {
+    const run = makeRun(STATION, { seed: 4, start: 'cave' });
+    const r = checkProgress(run.here);
+    expect(Object.keys(r.goals).sort()).toEqual(['dive to The sump, drowned', 'ladder CV to Main level']);
+    expect(r.rooms.never).toEqual([]);
+    expect(r.items.never).toEqual([]);
+    expect(r.deadEnds).toEqual([]);
+  });
+
+  it('on your own feet from the pool in the lower chamber up to the breach, 58 m higher', () => {
+    const run = makeRun(STATION, { seed: 4, start: 'sumpdeep' });
+    use(run, /^Swim on: the flooded link/);
+    const sim = run.here, p = sim.player, b = p.body, nav = sim.fields!.nav, cv = sim.world.def.marks['ladder:CV'];
+    sim.game.god = true; // the cast is about; this is about the rock
+    const F = field(nav, nav.locate(cv.x, cv.y, cv.z), openRules(nav));
+    let t = 0;
+    for (; t < 150 * 60 && Math.hypot(b.x - cv.x, b.z - cv.z) > 1; t++) {
+      const i = nav.locate(b.x, b.y, b.z);
+      let next = i;
+      for (let k = nav.start[i]; k < nav.start[i + 1]; k++) if (F[nav.to[k]] < F[next]) next = nav.to[k];
+      stepRun(run, { ...noInput(), forward: 1, yaw: Math.atan2(b.x - nav.x[next], b.z - nav.z[next]) - p.yaw });
+    }
+    expect(Math.hypot(b.x - cv.x, b.z - cv.z)).toBeLessThan(1);
+    expect(b.y).toBeGreaterThan(-1);
   });
 });

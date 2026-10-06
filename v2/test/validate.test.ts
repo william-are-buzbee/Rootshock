@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { STATION } from '../src/content/station';
 import { buildUpper } from '../src/content/levels/upper';
 import { validateStation } from '../src/sim/validate';
+import { levelDef } from '../src/sim/run';
 
 /* The station's content, checked without playing it: part of `npm run check`. */
 
@@ -12,6 +13,10 @@ describe('level validation', () => {
     const p = validateStation(STATION, [upper]);
     expect(p.filter(x => !x.later)).toEqual([]);
     expect(p.filter(x => x.later).map(x => x.what)).toEqual(expect.arrayContaining(['door 16 wants code 1, written on a paper no level ported yet holds']));
+  });
+
+  it('with every level ported, the whole station validates, and nothing waits', () => {
+    expect(validateStation(STATION, STATION.levels.map(l => levelDef(STATION, l.id)))).toEqual([]);
   });
 
   it('catches a thing that does not exist, a card nobody has, a code written nowhere, and a thing out of reach', () => {

@@ -202,9 +202,11 @@ function frame(t: number): void {
   hurtFx = Math.max(0, hurtFx - dt * 0.9);
   events();
 
-  const p = sim.player, under = p.under;
-  U.uWet.value = under ? 1 : 0;
-  U.uFog.value += ((under ? 0.21 : 0.032) - U.uFog.value) * Math.min(1, dt * 4);
+  /* water: tinted and close in wading water, more so under it (less with goggles), as before */
+  const p = sim.player, under = p.under, wet = p.water !== 'dry';
+  U.uWet.value = under ? 1 : wet ? 0.4 : 0;
+  const fog = (under ? (g.worn.includes('goggles') ? 0.075 : 0.21) : wet ? 0.045 : 0.032) * (devFlags.bright ? 0.25 : 1);
+  U.uFog.value += (fog - U.uFog.value) * Math.min(1, dt * 4);
   panels.prompt(mode === 'play' ? sim.focus?.text ?? null : null);
   panels.status(g, p.air < p.airMax - 0.01 ? p.air / p.airMax : null, p.crouch, hurtFx);
 

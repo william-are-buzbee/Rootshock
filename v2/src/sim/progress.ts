@@ -34,7 +34,7 @@ export interface Report {
   states: number;
   rooms: { reached: string[]; never: string[] };
   items: { reached: string[]; never: string[] };
-  /** ways off the level (ladders, stairs, lifts, the surface) and the shortest route to each */
+  /** ways off the level (ladders, stairs, dives, lifts, the surface) and the shortest route to each */
   goals: Record<string, string[]>;
   /** each: what is lost, and the route that loses it */
   softLocks: { lost: string[]; route: string[] }[];
@@ -229,6 +229,7 @@ function goals(M: Model, st: St, R: Uint8Array): string[] {
       const other = S.ends?.find(e => e !== L.id);
       out.push('ladder ' + o.id + (other ? ' to ' + (s.names[other] ?? other) : ''));
     } else if (u.kind === 'stair') out.push('stairs to ' + o.to);
+    else if (u.kind === 'dive') out.push('dive to ' + (s.names[o.to as string] ?? o.to));
     else if (u.kind === 'lift' && pw(st, 'LIFT') === 2) out.push('the lift');
   });
   for (const [k, spots] of M.liftDoorAt) {

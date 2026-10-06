@@ -2,9 +2,10 @@ import type { StationDef } from './types';
 import { buildUpper } from './levels/upper';
 import { buildMain } from './levels/main';
 import { buildPlant } from './levels/plant';
+import { buildSump, buildSumpDeep } from './levels/sump';
+import { buildCave } from './levels/cave';
 
-/* The station: its levels top to bottom, its circuits, its ladderways. Ported from NEWSTATION in the first engine.
-   Levels not yet ported (main, plant, the sump, the cave) are added here as they are (engine.md §13, step 8). */
+/* The station: its levels top to bottom, its circuits, its ladderways. Ported from NEWSTATION in the first engine. */
 
 const ladders: StationDef['ladders'] = {
   A1: { say: 'Fifty metres of ladder down the main shaft, in the dark.', ends: ['upper', 'main'] },
@@ -20,6 +21,9 @@ export const STATION: StationDef = {
     { id: 'upper', name: 'Upper station', circuit: 'OPS', build: () => buildUpper(ladders) },
     { id: 'main', name: 'Main level', circuit: 'RES', build: () => buildMain(ladders) },
     { id: 'plant', name: 'Plant level', circuit: 'ENG', build: () => buildPlant(ladders) },
+    { id: 'sump', name: 'The sump', circuit: 'HYD', build: () => buildSump(ladders) },
+    { id: 'sumpdeep', name: 'The sump, drowned', circuit: 'DEEP', build: () => buildSumpDeep(ladders) },
+    { id: 'cave', name: 'The cave', circuit: 'CAVE', build: () => buildCave(ladders) },
   ],
   circuits: {
     OPS: { on: true, back: true, tag: 'upper station' },
@@ -29,6 +33,9 @@ export const STATION: StationDef = {
     LIFT: { on: true, back: false },
     CARGO: { on: false, back: false, tag: 'Cargo' },
     HORT: { on: true, back: true, tag: 'Horticulture' },
+    /* never wired: the drowned level's lights went with the water, and the cave never had any */
+    DEEP: { on: false, back: false },
+    CAVE: { on: false, back: false },
   },
   ladders,
   /* "This morning the main generator dropped." */

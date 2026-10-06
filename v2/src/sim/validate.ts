@@ -12,7 +12,7 @@ import { makeSim } from './sim';
 
 export interface Problem { level: string; what: string; later?: boolean }
 
-const KINDS = new Set(['body', 'backup', 'panel', 'fuse', 'breaker', 'lift', 'ladder', 'stair', 'look']);
+const KINDS = new Set(['body', 'backup', 'panel', 'fuse', 'breaker', 'lift', 'ladder', 'stair', 'look', 'dive']);
 
 export function validateStation(station: StationDef, levels: LevelDef[] = station.levels.map(l => l.build())): Problem[] {
   const out: Problem[] = [], notes = NOTES('\u0001', '\u0002'), built = new Set(station.levels.map(l => l.id));
@@ -71,6 +71,12 @@ export function validateStation(station: StationDef, levels: LevelDef[] = statio
         if (S?.need?.power) circuit(S.need.power, `ladder ${u.opts.id}`);
       }
       if (u.kind === 'stair' && !built.has(u.opts.to as string)) bad(`stairs to ${u.opts.to}, not ported yet`, true);
+      if (u.kind === 'dive') {
+        const to = u.opts.to as string, T = levels.find(l => l.id === to);
+        if (!station.names[to]) bad(`a dive to ${to}, which is no level of the station`);
+        else if (!built.has(to)) bad(`a dive to ${station.names[to]}, not ported yet`, true);
+        else if (T && !T.marks['dive:' + L.id]) bad(`a dive to ${station.names[to]}, which has nowhere to come out from here (no mark dive:${L.id})`);
+      }
     }
     /* everything is somewhere a body can stand and reach it */
     const sim = makeSim(L, { station }), nav = (sim.fields ?? makeFields(sim)).nav;

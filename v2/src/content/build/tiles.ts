@@ -40,6 +40,8 @@ export interface TRoom {
   lit: LitRule; lc: Colour; em: boolean; c: string; flick: boolean;
   open: boolean; hole: string | null; cave: boolean; air: boolean; sky?: number;
   nolamp: boolean; noroam: boolean; safe: boolean;
+  /** a cave of any outline (caveShape): its tiles are the deck's tiles marked with its id, and x, y, w, h bound them */
+  shaped?: boolean;
 }
 
 export interface TDoorOpts {
@@ -59,6 +61,7 @@ export interface LevelInfo { id: string; name: string; c: string; org?: [number,
 
 export interface Deck {
   lv: LevelInfo; name: string; c: string; W: number; H: number; org: [number, number]; y0: number; li: number;
+  /** wading water over every room (its depth), or every room flooded to the roof */
   wet: number; deep: number;
   g: Uint8Array; rm: Int16Array; nom: Uint8Array;
   rooms: TRoom[]; doors: Map<number, TDoorOpts & { x: number; y: number }>;
@@ -75,6 +78,8 @@ export interface Deck {
   uses: { kind: string; x: number; z: number; y: number; o: Record<string, unknown> }[];
   marks: Record<string, [number, number, number]>;
   conn: Set<string>;
+  /** standing water of its own (a pool): tiles x0, z0 to x1, z1, its surface in metres over the deck's floor */
+  water: [number, number, number, number, number][];
 }
 
 /* ---- the level being built: decks share a builder, a seeded rng, and the station's ladderways */
@@ -99,7 +104,7 @@ export function mkDeck(lv: LevelInfo, W: number, H: number, o: { y0?: number; li
     lv, name: lv.name, c: lv.c, W, H, org: lv.org ?? [0, 0], y0: o.y0 ?? 0, li: o.li ?? 0, wet: o.wet ?? 0, deep: o.deep ?? 0,
     g: new Uint8Array(W * H), rm: new Int16Array(W * H).fill(-1), nom: new Uint8Array(W * H),
     rooms: [], doors: new Map(), above: null, below: null, hf: null, cf: null, hset: null,
-    props: [], cols: [], lamps: [], elevs: [], stairs: [], items: [], notes: [], muts: [], uses: [], marks: {}, conn: new Set(),
+    props: [], cols: [], lamps: [], elevs: [], stairs: [], items: [], notes: [], muts: [], uses: [], marks: {}, conn: new Set(), water: [],
   };
   C().decks.push(D);
   return D;
@@ -221,6 +226,60 @@ export function cave(D: Deck, name: string, x: number, y: number, w: number, h: 
   return room(D, name, x, y, w, h, { ...ROCKP, cave: 1, ht: 4, lit: 'none', nolamp: 1, ...o });
 }
 
+/* ---- caves of any outline (engine.md §14). A shape is f(x, z) in tiles: the floor height at a point inside it, or null
+   outside. Tiles test their centres and go to the first shape that claims them; tile corners take the floor of the first
+   shape to set them, so where shapes meet, the earlier one rules. The room's x, y, w, h bound its tiles, as the other
+   terrain tools expect. In the compiled level a deck's shaped caves are one floor and one roof, masked to their tiles. */
+export function caveShape(D: Deck, name: string, f: (x: number, z: number) => number | null, o: TRoomOpts = {}): TRoom {
+  const R = room(D, name, 0, 0, 0, 0, { ...ROCKP, cave: 1, ht: 4, lit: 'none', nolamp: 1, ...o });
+  R.shaped = true;
+  const hf = field(D, 'hf'), W1 = D.W + 1, set = D.hset ?? (D.hset = new Uint8Array(W1 * (D.H + 1)));
+  let x0 = 1e9, y0 = 1e9, x1 = -1, y1 = -1;
+  for (let j = 0; j < D.H; j++)
+    for (let i = 0; i < D.W; i++) {
+      const k = j * D.W + i;
+      if (D.g[k]) continue;
+      const h = f(i + 0.5, j + 0.5);
+      if (h === null) continue;
+      D.g[k] = 1; D.rm[k] = R.id;
+      x0 = Math.min(x0, i); y0 = Math.min(y0, j); x1 = Math.max(x1, i); y1 = Math.max(y1, j);
+      for (const [ci, cj] of [[i, j], [i + 1, j], [i, j + 1], [i + 1, j + 1]]) {
+        const c = cj * W1 + ci;
+        if (set[c]) continue;
+        const q = f(ci, cj);
+        hf[c] = q === null ? h : q; set[c] = 1;
+      }
+    }
+  R.x = x0; R.y = y0; R.w = x1 - x0 + 1; R.h = y1 - y0 + 1;
+  return R;
+}
+/** a little wander in an outline, the same every time */
+const wob = (i: number, j: number) => 0.45 * Math.sin(i * 1.3 + j * 0.7) + 0.3 * Math.sin(j * 1.9 - i * 0.4);
+function nearPath(pts: [number, number, number][], x: number, z: number): { d: number; h: number } {
+  let d = 1e9, h = 0;
+  for (let s = 0; s < pts.length - 1; s++) {
+    const a = pts[s], b = pts[s + 1], dx = b[0] - a[0], dz = b[1] - a[1], t = clamp(((x - a[0]) * dx + (z - a[1]) * dz) / (dx * dx + dz * dz), 0, 1);
+    const e = Math.hypot(x - a[0] - dx * t, z - a[1] - dz * t);
+    if (e < d) { d = e; h = a[2] + (b[2] - a[2]) * t; }
+  }
+  return { d, h };
+}
+/** a passage along pts [[x, z, floor], ...], r tiles either side of its line */
+export function tunnel(D: Deck, name: string, pts: [number, number, number][], r: number, o: TRoomOpts = {}): TRoom {
+  return caveShape(D, name, (x, z) => { const q = nearPath(pts, x, z); return q.d < r + wob(x, z) * 0.6 ? q.h : null; }, o);
+}
+/** an elliptical chamber, its floor given by fl(x, z) */
+export function chamber(D: Deck, name: string, cx: number, cz: number, rx: number, rz: number, fl: (x: number, z: number) => number, o: TRoomOpts = {}): TRoom {
+  return caveShape(D, name, (x, z) => (Math.hypot((x - cx) / rx, (z - cz) / rz) < 1 + wob(x, z) / Math.max(rx, rz) ? fl(x, z) : null), o);
+}
+/** a pool in a cave floor: the floor sinks under standing water. (The first engine drew a dark disc and kept you out of it
+ *  with a hidden kerb; here the water is real, and you can wade and swim in it.) */
+export function pool(D: Deck, R: TRoom, cx: number, cz: number, r: number, depth: number): void {
+  const level = hfAt(D, cx * T, cz * T) - 0.35;
+  hill(D, cx, cz, r + 1, -depth, R);
+  D.water.push([cx - r - 1, cz - r - 1, cx + r + 1, cz + r + 1, level]);
+}
+
 /* ---- ways between layers */
 /** walk-up stairs between a hall and the rung above it. (tx, tz) is the first tile; dir is the way you climb. */
 export function stairs(lo: Deck, hi: Deck, tx: number, tz: number, len: number, dir: 'n' | 's' | 'e' | 'w'): void {
@@ -266,6 +325,12 @@ export function ladder(D: Deck, id: string, ix: number, iz: number, ax: number, 
   if (broken) for (let k2 = 0; k2 < 5; k2++) P(D, 'ico', ix + rnd(-0.4, 0.4), iz + rnd(-0.4, 0.4), rnd(0.2, 0.5), rnd(0.15, 0.35), rnd(0.2, 0.5), pick([0x5a5248, 0x4a443c, 0x6b6a64]), { c: 0 });
 }
 
+/** a way through water to another level (a dive): you arrive at that level's mark 'dive:' + this level's id. `under`: it
+ *  goes down into water with no air (the first time, you are told to count) */
+export function dive(D: Deck, x: number, z: number, y: number, to: string, label: string, under = false): void {
+  use(D, 'dive', x, z, y, { to, label, ...(under ? { under: 1 } : {}) });
+}
+
 /* ---- compile: every deck of the level, into the builder */
 const DOORPAL = { fl: [0.2, 0.21, 0.22] as Colour, wl: [0.27, 0.28, 0.3] as Colour, st: [0.22, 0.23, 0.25] as Colour };
 const SLAB = 0.25;
@@ -282,7 +347,7 @@ export function finishLevel(start?: [number, number, number]) {
   for (const D of decks) {
     /* rooms */
     for (const R of D.rooms) {
-      if (R.hole) continue;
+      if (R.hole || R.shaped) continue;
       const opts = {
         pal: { fl: R.fl, wl: R.wl, st: R.st } as Palette, lit: R.lit, lc: R.lc, em: R.em, circuit: R.c, flick: R.flick,
         nolamp: true, plain: R.open || R.cave, safe: R.safe, noroam: R.noroam, ...(R.sky !== undefined ? { sky: R.sky } : {}),
@@ -292,10 +357,19 @@ export function finishLevel(start?: [number, number, number]) {
         b.cave(R.name, x0, z0, x1, z1, {
           ...opts, y0: D.y0, ht: R.ht, res: T,
           floor: (x, z) => fieldAt(D, D.hf, x - D.org[0], z - D.org[1]),
-          ceil: (x, z) => fieldAt(D, D.cf, x - D.org[0], z - D.org[1]),
+          /* a cave's roof rides on its floor, as before */
+          ceil: (x, z) => fieldAt(D, D.hf, x - D.org[0], z - D.org[1]) + fieldAt(D, D.cf, x - D.org[0], z - D.org[1]),
         });
       } else b.room(R.name, x0, z0, x1, z1, { ...opts, y0: D.y0, ht: R.ht });
     }
+    shapedCaves(b, D);
+    /* water: wading depth over every room and doorway, or every room flooded over its roof; and pools */
+    if (D.wet || D.deep) {
+      const top = D.y0 + (D.wet || Math.max(2.4, ...D.rooms.map(R => R.ht)) + 1);
+      for (const R of D.rooms) if (!R.hole && R.w > 0) b.water(X(D, R.x), Z(D, R.y), X(D, R.x + R.w), Z(D, R.y + R.h), top);
+      for (const d of D.doors.values()) b.water(X(D, d.x), Z(D, d.y), X(D, d.x + 1), Z(D, d.y + 1), top);
+    }
+    for (const [x0, z0, x1, z1, lv] of D.water) b.water(X(D, x0), Z(D, z0), X(D, x1), Z(D, z1), D.y0 + lv);
     /* doorways, and the doors in them */
     for (const [k, d] of D.doors) {
       const x0 = X(D, d.x), z0 = Z(D, d.y), cx = x0 + T / 2, cz = z0 + T / 2;
@@ -406,3 +480,53 @@ export function finishLevel(start?: [number, number, number]) {
   return level;
 }
 
+
+/* A deck's caves of any outline: each a room carved tile by tile (from just under its floor to just over its roof there),
+   all of them under one floor and one roof, masked to their tiles. One surface, so where two caves meet the floor and
+   the roof run on without a seam; a roof's height over a corner is the floor there, plus the tallest headroom of the
+   caves that share the corner, plus the ceiling field. Their palette is the first cave's. */
+function shapedCaves(b: LevelBuilder, D: Deck): void {
+  const S = D.rooms.filter(R => R.shaped && R.w > 0);
+  if (!S.length) return;
+  const W = D.W, W1 = W + 1, ids = new Set(S.map(R => R.id)), q = 0.25;
+  let i0 = Infinity, j0 = Infinity, i1 = -Infinity, j1 = -Infinity;
+  for (const R of S) { i0 = Math.min(i0, R.x); j0 = Math.min(j0, R.y); i1 = Math.max(i1, R.x + R.w); j1 = Math.max(j1, R.y + R.h); }
+  const nx = i1 - i0 + 1, nz = j1 - j0 + 1, mask: number[] = new Array((nx - 1) * (nz - 1)).fill(0), ht = new Float32Array(nx * nz);
+  for (let j = j0; j < j1; j++)
+    for (let i = i0; i < i1; i++) {
+      const r = D.rm[j * W + i];
+      if (!ids.has(r)) continue;
+      mask[(j - j0) * (nx - 1) + (i - i0)] = 1;
+      for (const [di, dj] of [[0, 0], [1, 0], [0, 1], [1, 1]]) { const c = (j - j0 + dj) * nx + (i - i0 + di); ht[c] = Math.max(ht[c], D.rooms[r].ht); }
+    }
+  const hf = field(D, 'hf'), cf = field(D, 'cf');
+  const fl: number[] = [], cl: number[] = [];
+  for (let j = 0; j < nz; j++)
+    for (let i = 0; i < nx; i++) {
+      const c = (j + j0) * W1 + i + i0, f = D.y0 + hf[c];
+      fl.push(f); cl.push(f + ht[j * nx + i] + cf[c]);
+    }
+  /* carve each cave's tiles, and find how far the surfaces reach */
+  let lo = Infinity, hi = -Infinity;
+  for (const R of S) {
+    const lw = R.w, lz = R.h, clo: number[] = [], chi: number[] = [];
+    for (let j = R.y; j < R.y + R.h; j++)
+      for (let i = R.x; i < R.x + R.w; i++) {
+        if (D.rm[j * W + i] !== R.id) { clo.push(0); chi.push(0); continue; }
+        const cs = [[0, 0], [1, 0], [0, 1], [1, 1]].map(([di, dj]) => (j - j0 + dj) * nx + (i - i0 + di));
+        const f = Math.min(...cs.map(c => fl[c])), c = Math.max(...cs.map(k => cl[k]));
+        clo.push(Math.floor((f - 0.01) / q) * q); chi.push(Math.ceil((c + 0.01) / q) * q);
+        lo = Math.min(lo, f); hi = Math.max(hi, c);
+      }
+    const ylo = Math.min(...clo.filter((v, k) => v < chi[k])), yhi = Math.max(...chi.filter((v, k) => clo[k] < v));
+    const x0 = D.org[0] + R.x * T, z0 = D.org[1] + R.y * T;
+    const r = b.room(R.name, x0, z0, x0 + lw * T, z0 + lz * T, {
+      pal: { fl: R.fl, wl: R.wl, st: R.st }, lit: R.lit, lc: R.lc, em: R.em, circuit: R.c, flick: R.flick,
+      nolamp: true, plain: true, safe: R.safe, noroam: R.noroam, y0: ylo, ht: yhi - ylo,
+    });
+    r.cells = { res: T, nx: lw, nz: lz, lo: clo, hi: chi };
+  }
+  const x0 = D.org[0] + i0 * T, z0 = D.org[1] + j0 * T, x1 = D.org[0] + i1 * T, z1 = D.org[1] + j1 * T, P0 = S[0];
+  b.lattice('floor', x0, z0, x1, z1, T, nx, nz, fl, Math.floor(lo / q) * q - q, P0.fl, mask);
+  b.lattice('ceiling', x0, z0, x1, z1, T, nx, nz, cl, Math.ceil(hi / q) * q + q, scale3(hex(P0.wl), 0.6), mask);
+}
