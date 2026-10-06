@@ -14,7 +14,9 @@ import type { Sim } from './sim';
    - soft-locks: states you can get into from which something you could have reached is gone for good (a kit spent on
      the wrong panel, a fuse used where it does not help);
    - dead ends: places you can drop into and not get out of.
-   It does not model fights, light, air or falls longer than a body can take (a drop over 2.5 m is not on the graph). */
+   It does not model fights, light, air or falls longer than a body can take (a drop over 2.5 m is not on the graph).
+   Power only ever helps (a lock without it stays shut), so switching on is taken as done like a key picked up, and
+   switching off is never tried: it cannot open a way, and what can be switched back cannot lose one. */
 
 /** what the puzzle turns on */
 interface St {
@@ -66,6 +68,8 @@ interface Model {
   liftDoorAt: Map<number, number[]>;
   /** what each item lying about is */
   itemIds: string[];
+  /** Gen-1 was off at the start, so starting it is something to do */
+  mainGoal: boolean;
 }
 
 export function spotsNear(nav: Nav, x: number, y: number, z: number, r: number): number[] {
@@ -88,7 +92,7 @@ function model(sim: Sim, nav: Nav): Model {
   const liftDoorAt = new Map<number, number[]>();
   L.doors.forEach((D, k) => { if (D.lift) liftDoorAt.set(k, spotsNear(nav, (D.x0 + D.x1) / 2, D.y0 + 1.3, (D.z0 + D.z1) / 2, 2.6)); });
   return {
-    nav, level: L, codeNotes, liftDoorAt, doorAt: L.doors.map(D => spotsNear(nav, (D.x0 + D.x1) / 2, D.y0 + 1.3, (D.z0 + D.z1) / 2, 2.6)), itemIds: sim.items.map(it => it.id),
+    nav, level: L, codeNotes, liftDoorAt, doorAt: L.doors.map(D => spotsNear(nav, (D.x0 + D.x1) / 2, D.y0 + 1.3, (D.z0 + D.z1) / 2, 2.6)), itemIds: sim.items.map(it => it.id), mainGoal: false,
     useAt: L.uses.map(u => spotsNear(nav, u.x, u.y, u.z, 2.4)),
     itemAt: sim.items.map(it => spotsNear(nav, it.x, it.y + 0.05, it.z, 2)),
     noteAt: L.notes.map(n => spotsNear(nav, n.x, n.y + 0.05, n.z, 2)),
@@ -190,30 +194,31 @@ function actions(M: Model, st: St, R: Uint8Array): Action[] {
         break;
       case 'backup': {
         const c = o.c as string, C = s.circuits[c];
-        if (C) act((C.back ? 'stop' : 'start') + ' the ' + c + ' backup set', n => { n.station.circuits[c].back = !C.back; });
+        if (C && !C.back) act('start the ' + c + ' backup set', n => { n.station.circuits[c].back = true; }, true);
         break;
       }
       case 'panel': {
         const c = o.c as string, C = s.circuits[c];
         if (!C) return;
         if (C.broken) { if (st.kit > 0) act('mend the ' + c + ' connection with a kit', n => { n.kit--; Object.assign(n.station.circuits[c], { broken: false, on: true }); }); }
-        else act((C.on ? 'open' : 'close') + ' the ' + c + ' connection', n => { n.station.circuits[c].on = !C.on; });
+        else if (!C.on) act('close the ' + c + ' connection', n => { n.station.circuits[c].on = true; }, true);
         break;
       }
       case 'fuse':
         if (!s.fuseIn && st.fuse > 0) act('seat the fuse', n => { n.fuse--; n.station.fuseIn = true; });
         break;
       case 'breaker':
-        if (s.fuseIn) act((s.main ? 'stop' : 'start') + ' Gen-1', n => { n.station.main = !s.main; });
+        if (s.fuseIn && !s.main) act('start Gen-1', n => { n.station.main = true; }, true);
         break;
     }
   });
   return out;
 }
 
-/** the ways off the level you can take from here */
+/** the ways off the level you can take from here, and Gen-1 running (if it was not at the start) */
 function goals(M: Model, st: St, R: Uint8Array): string[] {
   const out: string[] = [], L = M.level, s = st.station;
+  if (M.mainGoal && s.main) out.push('Gen-1 running');
   L.uses.forEach((u: UseDef, ui) => {
     if (!M.useAt[ui].some(i => R[i])) return;
     const o = u.opts as Record<string, never>;
@@ -257,6 +262,7 @@ function fromSim(sim: Sim, nav: Nav, o: CheckOpts): St {
 export function checkProgress(sim: Sim, o: CheckOpts = {}): Report {
   const nav = (sim.fields ?? makeFields(sim)).nav, M = model(sim, nav), itemIds = M.itemIds;
   const s0 = fromSim(sim, nav, o);
+  M.mainGoal = !s0.station.main;
   if (s0.at < 0) throw new Error('you are not standing anywhere on the nav graph');
   /* breadth first over states: each remembers how it was reached, what it reaches, and where it can go next */
   const nodes: { st: St; from: number; steps: Action[]; goals: string[]; next: number[] }[] = [];
@@ -292,9 +298,10 @@ export function checkProgress(sim: Sim, o: CheckOpts = {}): Report {
       const all = clone(node.st, node.st.at), steps: Action[] = [];
       for (let guard = 0; guard < 1000; guard++) {
         const R2 = flood(M, all), B2 = floodBack(M, all);
-        const more = actions(M, all, R2).filter(a => a.mono && R2[a.at] && B2[a.at]);
-        if (!more.length) break;
-        for (const a of more) { a.apply(all); steps.push(a); }
+        /* one at a time: doing one can take another off the list (two backup sets for one circuit) */
+        const a = actions(M, all, R2).find(x => x.mono && R2[x.at] && B2[x.at]);
+        if (!a) break;
+        a.apply(all); steps.push(a);
       }
       node.next.push(add(all, n, steps));
     } else for (const a of acts) node.next.push(add(after(node.st, a), n, [a]));

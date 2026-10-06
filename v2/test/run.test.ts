@@ -75,3 +75,56 @@ describe('the main level', () => {
     expect(r2.items.never).toEqual([]);
   });
 });
+
+describe('the plant level', () => {
+  const L = levelDef(STATION, 'plant');
+  /** take a ladder by its name: A2 and B2 both read "down to the Plant level" */
+  const ladder = (run: Run, id: string) => {
+    const i = run.here.world.def.uses.findIndex(u => u.kind === 'ladder' && (u.opts as { id?: string }).id === id);
+    run.here.usables.find(u => u.key === 'use' + i)!.act();
+    stepRun(run, noInput());
+  };
+
+  it('validates: only ladder A3, to the sump, waits', () => {
+    const p = validateStation(STATION, [L]);
+    expect(p.filter(x => !x.later)).toEqual([]);
+    expect(p.map(x => x.what).join('\n')).toMatch(/A3/);
+  });
+
+  it('A2 is collapsed; B2 goes down the exhaust shaft to the plant level and back', () => {
+    const run = makeRun(STATION, { seed: 4, start: 'main' });
+    ladder(run, 'A2');
+    expect(run.here.world.def.id).toBe('main');
+    expect(run.here.game.events.some(e => e.type === 'say' && /collapsed/.test(e.text))).toBe(true);
+    ladder(run, 'B2');
+    expect(run.here.world.def.id).toBe('plant');
+    const m = run.here.world.def.marks['ladder:B2'], b = run.here.player.body;
+    expect(Math.hypot(b.x - m.x, b.z - m.z)).toBeLessThan(0.01);
+    ladder(run, 'B2');
+    expect(run.here.world.def.id).toBe('main');
+  });
+
+  it('from the foot of B2, Gen-1 can be started: the fuse, its socket, the breaker; nothing is lost on the way', () => {
+    const run = makeRun(STATION, { seed: 4, start: 'main' });
+    ladder(run, 'B2');
+    const r = checkProgress(run.here);
+    expect(r.goals['Gen-1 running']).toEqual(['take main fuse', 'seat the fuse', 'start Gen-1']);
+    expect(Object.keys(r.goals)).toEqual(expect.arrayContaining(['ladder B2 to Main level', 'ladder A3 to The sump', 'the lift']));
+    expect(r.rooms.never).toEqual([]);
+    expect(r.items.never).toEqual([]);
+    expect(r.softLocks).toEqual([]);
+  });
+
+  it('starting Gen-1 in the sim powers the station and opens the lift', () => {
+    const run = makeRun(STATION, { seed: 4, start: 'plant' }), g = run.here.game;
+    use(run, /^Take main fuse$/);
+    use(run, /^Fuse socket/);
+    expect(g.station!.fuseIn).toBe(true);
+    use(run, /^Gen-1 main breaker/);
+    expect(g.station!.main).toBe(true);
+    expect(g.events.some(e => e.type === 'power')).toBe(true);
+    g.commands.push({ type: 'lift', level: 'upper' });
+    stepRun(run, noInput());
+    expect(run.here.world.def.id).toBe('upper');
+  });
+});

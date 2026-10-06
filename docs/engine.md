@@ -463,7 +463,7 @@ Each step ends with something you can open and play.
      circuits that do not, cards nobody carries, codes written nowhere, ladders that do not say where they go, and
      anything placed out of reach of anywhere to stand. What waits on a level not yet ported (ladder A1's other end; the
      Armory code, on Aldana's hand in the sump) is marked as such, not as a mistake.
-8. **The other levels**, one at a time. **In progress: travel, and the main level, done.**
+8. **The other levels**, one at a time. **In progress: travel, the main level and the plant level done.**
    - **Travel** (`sim/run.ts`): a run is every level you have been to, each its own sim and world, sharing one game
      (what you carry and know, the power) and one draw of chance. Only the level you are on moves; one you leave waits
      as you left it, as in the first engine. Ladders, stairs and the lift ask for a trip; the run takes you to the far
@@ -484,6 +484,15 @@ Each step ends with something you can open and play.
      from the foot of ladder A1 reaches Horticulture and every way on, with Gen-1 everything; 10 states, 85 ms. The
      checker now takes what only ever adds (keys, codes, things carried) all at once and trims each route to what its
      goal needs, which took it from thousands of states to tens.
+   - **The plant level** (`content/levels/plant.ts`), ported from `buildPlant`: Engineering on the spine, Distribution
+     with each floor's service connection, the backup plant, the link, and the generator hall with Gen-1's fuse socket
+     and breaker. 32 rooms, 17 of the cast; built in 15 ms. Shot beside the first engine, view for view. Ladder A2
+     stays collapsed; B2 down the exhaust shaft is the way in.
+   - **Checked**: validation clean but for ladder A3, which waits for the sump. From the foot of B2 the checker reaches
+     every room and thing, and Gen-1 running (a goal of its own when it was off at the start) in three steps: take the
+     main fuse, seat it, start Gen-1. 8 states, 54 ms. Switching power on is now taken at once like a key, and off is
+     never tried: power only opens ways now that locks fail secure, and a switch can be thrown back. Before that, the
+     plant level's connections and backup sets made 2,434 states and 1.2 s.
 9. **Swap**: v2 becomes the game at the root; the old one is archived.
 
 ---

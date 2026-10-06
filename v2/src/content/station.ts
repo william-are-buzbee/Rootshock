@@ -1,6 +1,7 @@
 import type { StationDef } from './types';
 import { buildUpper } from './levels/upper';
 import { buildMain } from './levels/main';
+import { buildPlant } from './levels/plant';
 
 /* The station: its levels top to bottom, its circuits, its ladderways. Ported from NEWSTATION in the first engine.
    Levels not yet ported (main, plant, the sump, the cave) are added here as they are (engine.md §13, step 8). */
@@ -18,6 +19,7 @@ export const STATION: StationDef = {
   levels: [
     { id: 'upper', name: 'Upper station', circuit: 'OPS', build: () => buildUpper(ladders) },
     { id: 'main', name: 'Main level', circuit: 'RES', build: () => buildMain(ladders) },
+    { id: 'plant', name: 'Plant level', circuit: 'ENG', build: () => buildPlant(ladders) },
   ],
   circuits: {
     OPS: { on: true, back: true, tag: 'upper station' },
