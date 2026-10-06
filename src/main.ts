@@ -16,6 +16,7 @@ import { View } from './present/render/view';
 import { LevelView } from './present/render/levelView';
 import { HandsView } from './present/render/handsView';
 import { Motes } from './present/render/motes';
+import { Prints } from './present/render/prints';
 import { Cascade } from './present/cascade';
 import { updatePools } from './present/render/pools';
 import { U } from './present/render/shader';
@@ -88,6 +89,7 @@ let hurtFx = 0, hitFx = 0;
 const hitDir = document.getElementById('hitdir')!;
 
 const rig = new CameraRig();
+const prints = new Prints(view.scene, lighting);
 const motes = new Motes(view.scene, lighting, (x, y, z, k) => scape.gust(sim, x, y, z, k));
 const loop = new FixedLoop();
 const audio = new Audio();
@@ -163,6 +165,7 @@ function relightAll(L: Lighting): void {
   here.relight(L);
   handsView.setLighting(L);
   motes.setLighting(L);
+  prints.setLighting(L);
 }
 
 /** you are on another level: draw it, light it, and fade in as the first engine did */
@@ -175,6 +178,7 @@ function arrive(): void {
   handsView.sim = sim;
   handsView.setLighting(lighting);
   motes.setLighting(lighting);
+  prints.setLighting(lighting);
   rig.reset();
   const b = sim.player.body;
   prev.x = b.x; prev.y = b.y; prev.z = b.z;
@@ -265,6 +269,7 @@ function frame(t: number): void {
   motes.resize(view.renderer.domElement.height, view.camera.fov);
   motes.update(sim, view.camera.position, mode === 'play' ? dt : 0);
   updatePools(sim.world, lighting, view.camera.position, dt);
+  prints.update(sim, mode === 'play' ? dt : 0);
   hurtFx = Math.max(0, hurtFx - dt * 0.9);
   hitFx = Math.max(0, hitFx - dt * 1.6);
   hitDir.style.opacity = hitFx.toFixed(2);
