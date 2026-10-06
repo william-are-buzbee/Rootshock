@@ -282,6 +282,55 @@ describe('fighting', () => {
     expect(s.game.events.some(e => e.type === 'sfx' && e.name === 'whiff')).toBe(true);
   });
 
+  /** the two cavern worms, both close by you (a pair: one alone only touches you), awake and coming */
+  function wormPair() {
+    const s = fresh(), [a, b] = s.cast.filter(m => m.ai === 'worm');
+    only(s, [a, b]);
+    s.game.hp = 100;
+    const y = a.y, px = 220, pz = 2;
+    place(s, 'player', px, y, pz);
+    place(s, a, px + 1.0, y, pz);
+    place(s, b, px + 0.8, y, pz + 1.4);
+    b.cd = 1e9; // b only makes up the pair
+    face(s, px - 1, y + 1, pz); // looking away: no light on them
+    return { s, a, b };
+  }
+
+  it('a worm reaches for you with a tell first: heard, and a step back as it lifts is enough', () => {
+    const { s } = wormPair();
+    s.game.events.length = 0;
+    let rasp = -1, hurt = -1;
+    for (let t = 0; t < 3 && hurt < 0; t += STEP) {
+      step(s, noInput());
+      if (rasp < 0 && s.game.events.some(e => e.type === 'sfx' && e.name === 'rasp')) rasp = t;
+      if (s.game.hp < 100) hurt = t;
+    }
+    expect(rasp).toBeGreaterThanOrEqual(0);
+    expect(hurt - rasp).toBeGreaterThanOrEqual(BLOWS.worm.wind - 0.02);
+    expect(s.game.hp).toBe(88);
+    /* again, stepping back as it lifts */
+    const b = wormPair();
+    for (let t = 0; t < 2 && b.a.blow?.ph !== 'wind'; t += STEP) step(b.s, noInput());
+    expect(b.a.blow?.ph).toBe('wind');
+    b.s.game.events.length = 0;
+    hold(b.s, 0.3, { forward: 1 }); // facing away from it: forward is away
+    hold(b.s, 0.2);
+    expect(b.s.game.hp).toBe(100);
+    expect(b.s.game.events.some(e => e.type === 'sfx' && e.name === 'whiff')).toBe(true);
+  });
+
+  it('a light put on a worm as it lifts to reach puts it off', () => {
+    const { s, a } = wormPair();
+    s.game.light = 'flash';
+    for (let t = 0; t < 2 && a.blow?.ph !== 'wind'; t += STEP) step(s, noInput());
+    expect(a.blow?.ph).toBe('wind');
+    s.game.lightOn = true;
+    face(s, a.x, a.y + 0.3, a.z);
+    hold(s, 0.5);
+    expect(a.blow).toBe(null);
+    expect(s.game.hp).toBe(100);
+  });
+
   it('a knock back slides: a step over a few frames, not all at once', () => {
     const s = fresh(), w = s.cast[7];
     only(s, []);

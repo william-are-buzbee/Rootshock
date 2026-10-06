@@ -10,7 +10,7 @@ export type Surf = 'concrete' | 'metal' | 'rock' | 'wood' | 'wet';
 export interface Voice { d?: number; pan?: number; muffle?: number; big?: boolean; surf?: Surf; k?: number }
 
 const RANGE: Record<string, number> = {
-  door: 46, roar: 55, thud: 40, hstep: 18, moan: 28, tap: 24, skit: 24, slosh: 20, swing: 10, whiff: 14, heave: 20, gust: 24, strike: 30, knock: 32, groan: 55, tick: 12, settle: 45, step: 30, rattle: 30,
+  door: 46, roar: 55, thud: 40, hstep: 18, moan: 28, tap: 24, skit: 24, slosh: 20, swing: 10, whiff: 14, heave: 20, rasp: 12, gust: 24, strike: 30, knock: 32, groan: 55, tick: 12, settle: 45, step: 30, rattle: 30,
   breath: 10, mutter: 20, click: 14, gurgle: 22, growl: 30, slither: 10, bubble: 12, creak: 12, drip: 30, scrape: 20, crate: 30,
   'die-husk': 40, 'die-skitter': 36, 'die-bloat': 46, 'die-thresher': 50, 'die-worm': 20, 'die-swimmer': 20, 'die-grabber': 24,
 };
@@ -281,6 +281,10 @@ export class Audio {
         case 'moan': this.tn(190, 120, 0.7, 'sawtooth', 0.12 * v); this.tn(285, 170, 0.6, 'sine', 0.1 * v); break;
         case 'roar': this.tn(120, 55, 0.8, 'sawtooth', 0.4 * v); this.nz(0.7, 0.3 * v, 600); break;
         case 'swing': this.nz(0.14, 0.12 * v, 1200, 'bandpass'); break;
+        case 'rasp': // a worm or a swimmer about to take hold: a wet breath drawn in, and a click in the throat
+          this.nz(0.22, 0.09 * v, 2000, 'bandpass', 0, 3, 900, 0.06);
+          this.tn(1900, 1300, 0.02, 'square', 0.05 * v, 0.2);
+          break;
         case 'heave': // a husk drawing back to swing: a breath in through the teeth, and the start of a grunt
           this.nz(0.28, 0.1 * v, 1500, 'bandpass', 0, 2, 2400, 0.12);
           this.tn(130, 95, 0.32, 'sawtooth', 0.1 * v, 0.24, 0.04);

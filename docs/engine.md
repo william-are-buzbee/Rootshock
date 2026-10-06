@@ -380,7 +380,9 @@ sequence of inputs. The door rules, the labels and the answers are the first eng
   step round it as it commits is a step out of it. Then it recovers where the blow left it, not moving or turning,
   longer when it met nothing (a husk 0.5 s, 0.85 s on a miss). A blow of yours that catches it recovering does a
   quarter more and stuns it longer; one that catches it winding up loses it the blow. A swing loaded while you dodge
-  lands in that time; one begun after does not. ?dev, O draws each blow's arc while it is under way.
+  lands in that time; one begun after does not. A worm's (one of a pair; one alone only touches you) and a swimmer's
+  reach is the same three motions, short: a rasp and the head lifted for 0.3 s, a grab, a quarter of a second open; a
+  light put on a worm as it lifts puts it off. ?dev, O draws each blow's arc while it is under way.
 - **Nothing fights in one plane** (since): everything is drawn two-sided, so two faces in one plane (a button flush with
   its post, a box on a shelf or the floor, a crate on a crate) showed through each other as you moved. Each prop and
   each part of a thing is drawn 1 to 7 mm larger than it is, different for neighbours (`apart` in `levelMesh.ts`). A

@@ -431,11 +431,23 @@ export const BLOWS = {
   bigSkitter: { wind: 0.7, strike: 0.15, rec: 0.7, miss: 1.1, cd: 0.6, turn: 5, lock: 0.6, start: 1.1, reach: 1.1, arc: deg(45), lunge: 0.6, dmg: 45, tell: 'skit', big: true },
   /* both arms, side to side: hard to get round, but a long time open after */
   thresher: { wind: 0.6, strike: 0.15, rec: 0.9, miss: 1.3, cd: 0.4, turn: 6, lock: 0.65, start: 0.7, reach: 0.9, arc: deg(70), lunge: 0.25, dmg: 45, tell: 'growl', big: true },
+  /* a worm's or a swimmer's is hardly a blow: a short rasp, the head lifted and the hand drawn back, then a grab. Quick
+     to see, quick to be over: a step back as it lifts is enough */
+  worm: { wind: 0.3, strike: 0.08, rec: 0.25, miss: 0.4, cd: 1.0, turn: 8, lock: 0.5, start: 0.7, reach: 0.75, arc: deg(60), lunge: 0.15, dmg: 12, tell: 'rasp' },
+  swimmer: { wind: 0.3, strike: 0.08, rec: 0.25, miss: 0.4, cd: 0.9, turn: 8, lock: 0.5, start: 0.7, reach: 0.75, arc: deg(60), lunge: 0.2, dmg: 15, tell: 'rasp' },
 } satisfies Record<string, BlowKind>;
 
 /** the blow this one throws, if it throws one */
-export const blowKind = (m: Mutant): BlowKind | null =>
-  m.ai === 'husk' ? BLOWS.husk : m.ai === 'skitter' ? (m.big ? BLOWS.bigSkitter : BLOWS.skitter) : m.ai === 'thresher' ? BLOWS.thresher : null;
+export function blowKind(m: Mutant): BlowKind | null {
+  switch (m.ai) {
+    case 'husk': return BLOWS.husk;
+    case 'skitter': return m.big ? BLOWS.bigSkitter : BLOWS.skitter;
+    case 'thresher': return BLOWS.thresher;
+    case 'worm': return BLOWS.worm;
+    case 'swimmer': return BLOWS.swimmer;
+    default: return null;
+  }
+}
 
 /** where it is in its blow: the motion, and how far through it (0..1) */
 export function blowAt(m: Mutant): { ph: BlowPhase; q: number } | null {
@@ -618,10 +630,12 @@ const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
     const g = sim.game, F = sim.fields?.crawl, d = m.d;
     if (m.flee > 0) { m.flee -= dt; away(sim, m, 2.6); return; }
     const flash = g.lightOn && g.light === 'flash', lamp = g.lightOn && g.light === 'lantern';
-    if ((d < 10 && flash && inBeam(sim, m)) || (d < 4.5 && lamp)) { away(sim, m, 1.5); return; }
+    /* the light puts it off, its reach too */
+    if ((d < 10 && flash && inBeam(sim, m)) || (d < 4.5 && lamp)) { m.blow = null; away(sim, m, 1.5); return; }
+    if (blowStep(sim, m)) return;
     if (d < 5 || (d < 13 && sight(sim, m))) {
-      if (m.dp < 1.05 && Math.abs(m.dy) < 1) {
-        if (sim.wormN >= 2) { if (m.cd <= 0) { m.cd = 1.5; strikes(sim, m, 12); } }
+      if (inStart(m, BLOWS.worm)) {
+        if (sim.wormN >= 2) { turnTo(sim, m, 8); if (m.cd <= 0) beginBlow(sim, m, BLOWS.worm); }
         else sayOnce(g, 'touched', 'It only touches you. Its hand is warm.');
       } else if (F) chase(sim, m, 1.25, F);
       return;
@@ -635,8 +649,9 @@ const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
   swimmer(sim, m) {
     const g = sim.game, lamp = g.lightOn && g.light === 'lantern', F = sim.fields?.crawl;
     if (m.flee > 0) { m.flee -= dt; away(sim, m, 3); return; }
+    if (blowStep(sim, m)) return;
     if (m.d < (lamp ? 22 : 9)) {
-      if (m.dp < 1.05 && Math.abs(m.dy) < 1.4) { if (m.cd <= 0) { m.cd = 1.4; strikes(sim, m, 15); } }
+      if (inStart(m, BLOWS.swimmer)) { turnTo(sim, m, 8); if (m.cd <= 0) beginBlow(sim, m, BLOWS.swimmer); }
       else if (F) {
         chase(sim, m, 2.5, F);
         if (m.mv && (m.tk -= dt) < 0) { m.tk = 0.5; step_(sim, m, 'slosh'); }
@@ -737,8 +752,8 @@ export function hitMutant(sim: Sim, m: Mutant, w: { dmg: number; stun: number },
       if (m.state === 'idle' || m.state === 'lurk') { m.state = 'hunt'; m.lost = 0; m.post = false; }
       else if (m.hp < m.max * 0.4 && !m.fled && sim.rng.chance(0.5)) { m.state = 'flee'; m.st = 7; m.fled = true; m.blow = null; step_(sim, m, 'moan'); }
       break;
-    case 'worm': m.flee = 5; break;
-    case 'swimmer': m.flee = 3.5; break;
+    case 'worm': m.flee = 5; m.blow = null; break;
+    case 'swimmer': m.flee = 3.5; m.blow = null; break;
     case 'skitter': if (pow > 0.6 && m.blow?.ph !== 'after') m.blow = null; if (m.state === 'idle') { m.state = 'hunt'; m.lost = 0; } break;
     case 'thresher': if (m.state === 'idle' || m.state === 'patrol') { m.state = 'wind'; m.st = 0.5; } break;
     case 'bloat': sayOnce(g, 'bloat', 'It does not seem to notice.'); break;

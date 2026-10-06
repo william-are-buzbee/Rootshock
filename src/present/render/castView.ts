@@ -247,6 +247,18 @@ const ANIM: Record<string, (m: Mutant, M: Model) => void> = {
     M.hd.position.x = Math.sin(m.ph * sp + 0.9) * 0.08;
     M.hd.rotation.y = Math.sin(m.ph * 1.7) * 0.4;
     M.hand.position.z = 0.12 + Math.sin(m.ph * sp) * 0.1;
+    /* its reach: the head lifts and looks up, the hand drawn back, trembling at the last; then both go out and down at
+       you, and stay out a moment. e runs 0 to 1 up the wind-up, through 0 to -1 in the strike, back to 0 recovering */
+    const B = blowAt(m);
+    const e = !B ? 0 : B.ph === 'wind' ? ease(B.q) : B.ph === 'strike' ? 1 - 2 * B.q * B.q : -(1 - ease(Math.max(0, (B.q - 0.3) / 0.7)));
+    M.hd.position.y = 0.22 + (e >= 0 ? 0.14 : 0.04) * e;
+    M.hd.position.z = 0.3 - (e >= 0 ? 0.1 : 0.25) * e;
+    M.hd.rotation.x = -(e >= 0 ? 0.45 : 0.25) * e;
+    M.hd.rotation.z = B?.ph === 'wind' && B.q > 0.5 ? Math.sin(m.ph * 40) * 0.08 : 0;
+    M.hand.position.y = 0.1 + Math.max(0, e) * 0.15;
+    if (B) M.hand.position.z = 0.12 - (e >= 0 ? 0.12 : 0.38) * e;
+    M.segs[0].position.y += Math.max(0, e) * 0.1;
+    M.segs[1].position.y += Math.max(0, e) * 0.05;
   },
   grabber(m, M) {
     const a = m.grab > 0 ? 3 : 1, tn = Math.min(1, m.tense / 0.8);
