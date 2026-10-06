@@ -72,6 +72,8 @@ export interface Deck {
   props: TProp[];
   cols: [number, number, number, number, number, number][];
   lamps: { x: number; z: number; r: number; c: Colour }[];
+  /** blood on the floor: middle and reach, in metres */
+  stains: { x: number; z: number; r: number }[];
   elevs: { tx: number; tz: number; w: number; h: number; lo: Deck; hi: Deck; c: string; name: string }[];
   stairs: { tx: number; tz: number; len: number; dir: 'n' | 's' | 'e' | 'w'; lo: Deck; hi: Deck }[];
   items: { id: string; x: number; z: number; y: number; n: number }[];
@@ -106,7 +108,7 @@ export function mkDeck(lv: LevelInfo, W: number, H: number, o: { y0?: number; li
     lv, name: lv.name, c: lv.c, W, H, org: lv.org ?? [0, 0], y0: o.y0 ?? 0, li: o.li ?? 0, wet: o.wet ?? 0, deep: o.deep ?? 0,
     g: new Uint8Array(W * H), rm: new Int16Array(W * H).fill(-1), nom: new Uint8Array(W * H),
     rooms: [], doors: new Map(), above: null, below: null, hf: null, cf: null, hset: null,
-    props: [], cols: [], lamps: [], elevs: [], stairs: [], items: [], notes: [], muts: [], uses: [], marks: {}, conn: new Set(), water: [],
+    props: [], cols: [], lamps: [], stains: [], elevs: [], stairs: [], items: [], notes: [], muts: [], uses: [], marks: {}, conn: new Set(), water: [],
   };
   C().decks.push(D);
   return D;
@@ -161,6 +163,8 @@ export function lamp(D: Deck, x: number, z: number, r: number): void {
   bx(D, x, z, 0.5, 0.05, 0.5, 0x2a2c2e, { c: 0 });
   D.lamps.push({ x: x * T, z: z * T, r, c: [0.78, 0.74, 0.6] });
 }
+/** blood on the floor at (x, z) in tiles, reaching r metres: walked through, it comes away on your soles */
+export function stain(D: Deck, x: number, z: number, r: number): void { D.stains.push({ x: x * T, z: z * T, r }); }
 export function item(D: Deck, id: string, x: number, z: number, y = 0, n = 1): void { D.items.push({ id, x: x * T, z: z * T, y, n }); }
 export function note(D: Deck, key: string, x: number, z: number, y = 0): void { D.notes.push({ key, x: x * T, z: z * T, y }); }
 export function mut(D: Deck, type: string, x: number, z: number, o: Record<string, unknown> = {}): void { D.muts.push({ type, x, z, o }); }
@@ -470,6 +474,7 @@ export function finishLevel(start?: [number, number, number]) {
       b.collider(px(D, (x0 + x1) / 2), pz(D, (z0 + z1) / 2), x1 - x0, hi - lo, z1 - z0, y + lo);
     }
     for (const L of D.lamps) b.lamp(px(D, L.x), floorY(D, L.x, L.z), pz(D, L.z), L.r, L.c);
+    for (const S of D.stains) b.stain(px(D, S.x), floorY(D, S.x, S.z), pz(D, S.z), S.r);
     /* what the later steps need */
     for (const it of D.items) b.item(it.id, px(D, it.x), floorY(D, it.x, it.z) + it.y, pz(D, it.z), it.n);
     for (const nt of D.notes) b.note(nt.key, px(D, nt.x), floorY(D, nt.x, nt.z) + nt.y, pz(D, nt.z));

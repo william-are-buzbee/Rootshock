@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { Motes as Kind, RoomDef } from '../../content/types';
 import { power } from '../../sim/game';
+import { STEP } from '../../core/loop';
 import type { Sim } from '../../sim/sim';
 import type { Lighting } from '../../world/light';
 import { U } from './shader';
@@ -13,16 +14,23 @@ import { U } from './shader';
 
    The air moves by the power: with the room's circuit live, it is drawn toward the room's vent panels (or, with none,
    along the room's length); on a backup set, barely; dead, it hangs and slowly settles. A sealed room is still air, not
-   a problem to solve. A door that has been shut a while breathes out when it opens: a gust through the doorway toward
-   you, and a sound with it. Looks only: Math.random, never the sim's numbers. */
+   a problem to solve, and the dustiest: moving air carries most of it off, so a ventilated room shows a quarter of the
+   dust a stuffy one does, and a room on its backup set about half. When the power changes they thin or thicken over a
+   second or so.
+
+   Each speck has a velocity of its own. It eases toward the air's (slowly: dust keeps going a while), is nudged at
+   random rather than swung about a point, and is dragged along and shoved aside by anything moving through it, you
+   or the cast; it keeps that push until the air takes it back. A door that has been shut a while breathes out when it
+   opens: a gust of smaller specks through the doorway toward you, and a sound with it. Looks only: Math.random, never
+   the sim's numbers. */
 
 const N = 900;
 /** gust specks, kept apart from the drifting ones */
-const G = 150;
+const G = 80;
 const HX = 4, HY = 2, HZ = 4;
 const rnd = (a: number, b: number) => a + Math.random() * (b - a);
 
-/** each kind's colour, how many of the specks show, how big, and how it moves (lift: up, negative falls) */
+/** each kind's colour, how many of the specks show in still air, how big, and how it moves (lift: up, negative falls) */
 const KIND: Record<Kind, { c: [number, number, number]; show: number; size: number; lift: number; glow: number }> = {
   dust: { c: [0.95, 0.9, 0.8], show: 0.15, size: 1, lift: -0.006, glow: 0 },
   spores: { c: [0.72, 0.95, 0.48], show: 0.4, size: 1.35, lift: 0.012, glow: 0.02 },
@@ -39,8 +47,10 @@ void main(){
   float ca = dot(-tc / max(d, 0.001), uFlashDir);
   float beam = uFlash * (0.65 * smoothstep(0.91, 0.975, ca) + 0.42 * smoothstep(0.76, 0.92, ca)) * 2.3 / (1.0 + 0.055 * d * d);
   float lamp = uLamp * 1.2 / (1.0 + 0.2 * d * d);
-  vec3 light = aL + 0.6 * beam * vec3(1.0, 0.93, 0.78) + lamp * vec3(0.72, 0.92, 1.0);
-  vC = aCol * light * uExpo;
+  vec3 light = aL + 0.45 * beam * vec3(1.0, 0.93, 0.78) + lamp * vec3(0.72, 0.92, 1.0);
+  /* dust is never the brightest thing in view: bright light is given back softly */
+  vec3 c = aCol * light * uExpo;
+  vC = c / (1.0 + 0.35 * c);
   /* not right at the eye, not at the box's edge (where a speck comes back in), thinned by the fog */
   vA = aA * smoothstep(0.25, 0.8, d) * (1.0 - smoothstep(2.8, 3.9, d)) * exp(-d * uFog * 1.5);
   /* whole pixels, so a fleck is a crisp square and not a smudge */
@@ -55,21 +65,34 @@ void main(){
   gl_FragColor = vec4(vC, vA);
 }`;
 
-interface Air { fx: number; fz: number; speed: number; kind: Kind; vents: { x: number; z: number }[]; still: boolean }
+interface Air {
+  fx: number; fz: number; speed: number; kind: Kind; vents: { x: number; z: number }[]; still: boolean;
+  /** how much of the dust still air would hold this air holds: moving air carries it off */
+  holds: number;
+}
+
+/** what moves through the air: where, how fast, how wide and how tall */
+interface Mover { x: number; y: number; z: number; vx: number; vz: number; r: number; h: number }
+
+/** how fast a speck takes the air's velocity (per second: slow, so it keeps a push a while); a push's reach past a
+ *  body's side; how much of a body's own speed it gives what it passes through, and how hard it shoves it aside */
+const DRAG = 0.8, REACH = 0.45, CARRY = 5, SHOVE = 2.5;
 
 export class Motes {
   readonly points: THREE.Points;
   private geo = new THREE.BufferGeometry();
   private pos = new Float32Array((N + G) * 3);
+  private vel = new Float32Array((N + G) * 3);
   private col = new Float32Array((N + G) * 3);
   private lit = new Float32Array((N + G) * 3);
   private alpha = new Float32Array(N + G);
+  /** how opaque each speck is on its way to being, so the air thins or thickens over a second rather than at once */
+  private want = new Float32Array(N + G);
   private size = new Float32Array(N + G);
-  /** each speck's own: phase for its wander, whether it shows, and the room it is in (-1 in rock) */
+  /** each speck's own: its shade, size and whether it shows, and the room it is in (-1 in rock, -2 not yet asked) */
   private seed = new Float32Array(N + G);
   private room = new Int32Array(N + G).fill(-1);
-  /** the gusts: velocity and life left */
-  private gv = new Float32Array(G * 3);
+  /** the gusts' life left */
   private life = new Float32Array(G);
   private air = new Map<number, Air>();
   /** for each door: seconds since it was last fully shut, or Infinity while it stays shut from the start */
@@ -77,7 +100,8 @@ export class Motes {
   private wasOpen: boolean[] = [];
   private sim: Sim | null = null;
   private turn = 0;
-  private t = 0;
+  /** where your body was last frame, for how fast it moves */
+  private you: { x: number; z: number } | null = null;
   private mat: THREE.ShaderMaterial;
 
   constructor(scene: THREE.Object3D, private L: Lighting, private onGust: (x: number, y: number, z: number, k: number) => void) {
@@ -98,16 +122,16 @@ export class Motes {
     for (let i = 0; i < N + G; i++) this.seed[i] = Math.random();
   }
 
-  /** the power changed: the air is worked out again, and the specks take the new light */
+  /** the power changed: the air is worked out again, and the specks take the new light (and thin or thicken to it) */
   setLighting(L: Lighting): void {
     this.L = L;
     this.air.clear();
-    this.room.fill(-1);
+    for (let i = 0; i < N; i++) if (this.room[i] >= 0) this.room[i] = -3;
   }
 
-  /** pixels at one metre away for a speck about two centimetres across */
+  /** pixels at one metre away for a speck nearly three centimetres across */
   resize(height: number, fov: number): void {
-    this.mat.uniforms.uPx.value = (height / 2 / Math.tan((fov * Math.PI) / 360)) * 0.022;
+    this.mat.uniforms.uPx.value = (height / 2 / Math.tan((fov * Math.PI) / 360)) * 0.027;
   }
 
   private airOf(sim: Sim, R: RoomDef): Air {
@@ -124,45 +148,78 @@ export class Motes {
       const x = (D.x0 + D.x1) / 2, z = (D.z0 + D.z1) / 2;
       if (x > R.x0 - 1 && x < R.x1 + 1 && z > R.z0 - 1 && z < R.z1 + 1 && D.y0 < R.y0 + R.ht && D.y1 > R.y0) vents.push({ x, z });
     }
-    a = { fx: long ? sign : 0, fz: long ? 0 : sign, speed, kind, vents, still: speed === 0 };
+    const holds = cave ? 0.7 : pw === 2 ? 0.25 : pw === 1 ? 0.55 : 1;
+    a = { fx: long ? sign : 0, fz: long ? 0 : sign, speed, kind, vents, still: speed === 0, holds };
     this.air.set(R.id, a);
     return a;
   }
 
-  /** put speck i somewhere in the box about the eye */
-  private scatter(i: number, cx: number, cy: number, cz: number): void {
-    this.pos[i * 3] = cx + rnd(-HX, HX); this.pos[i * 3 + 1] = cy + rnd(-HY, HY); this.pos[i * 3 + 2] = cz + rnd(-HZ, HZ);
-    this.room[i] = -2;
+  /** the air's own velocity where speck i is: toward the nearest vent, or along the room, and its kind's lift */
+  private airVel(A: Air, x: number, z: number): [number, number, number] {
+    let fx = A.fx, fz = A.fz;
+    if (A.vents.length) {
+      let best = Infinity;
+      for (const v of A.vents) {
+        const dx = v.x - x, dz = v.z - z, d = Math.hypot(dx, dz);
+        if (d < best) { best = d; fx = dx / (d || 1); fz = dz / (d || 1); }
+      }
+    }
+    return [fx * A.speed, KIND[A.kind].lift * (A.still ? 1 : 0.4), fz * A.speed];
   }
 
-  /** which room speck i is in, and so its colour, light and whether it shows */
-  private place(sim: Sim, i: number): void {
+  /** put speck i somewhere in the box about the eye, moving with the air there */
+  private scatter(sim: Sim, i: number, cx: number, cy: number, cz: number): void {
+    const o = i * 3;
+    this.pos[o] = cx + rnd(-HX, HX); this.pos[o + 1] = cy + rnd(-HY, HY); this.pos[o + 2] = cz + rnd(-HZ, HZ);
+    this.place(sim, i, true);
+    const r = this.room[i];
+    this.vel.set(r >= 0 ? this.airVel(this.airOf(sim, sim.world.rooms[r]), this.pos[o], this.pos[o + 2]) : [0, 0, 0], o);
+  }
+
+  /** which room speck i is in, and so its colour, light and how opaque it should be; `fresh`: it shows so at once */
+  private place(sim: Sim, i: number, fresh = false): void {
     const x = this.pos[i * 3], y = this.pos[i * 3 + 1], z = this.pos[i * 3 + 2];
     const R = sim.world.roomAt(x, y, z);
     const gust = i >= N;
-    if (!R) { this.room[i] = -1; if (!gust) this.alpha[i] = 0; return; }
+    if (!R) { this.room[i] = -1; if (!gust) this.alpha[i] = this.want[i] = 0; return; }
     this.room[i] = R.id;
-    const K = KIND[this.airOf(sim, R).kind], l = this.L.lit(R.id, x, y, z), s = this.seed[i];
+    const A = this.airOf(sim, R), K = KIND[A.kind], l = this.L.lit(R.id, x, y, z), s = this.seed[i];
     /* pale flecks and dark grit: each its own shade of its kind's colour */
     const shade = 0.4 + 0.6 * ((s * 13.7) % 1);
     this.col[i * 3] = K.c[0] * shade; this.col[i * 3 + 1] = K.c[1] * shade; this.col[i * 3 + 2] = K.c[2] * shade;
     /* a spore glows a little of itself, so the green's dark is never quite empty */
     this.lit[i * 3] = l[0] + K.glow; this.lit[i * 3 + 1] = l[1] + K.glow * 1.6; this.lit[i * 3 + 2] = l[2] + K.glow * 0.6;
     this.size[i] = K.size * (0.6 + 0.8 * s * s);
-    if (!gust) this.alpha[i] = s < K.show ? 0.45 + 0.55 * ((s * 7.31) % 1) : 0;
+    if (gust) return;
+    /* how many show: the kind's share of still air, less as the air moves; each a little see-through, as dust is */
+    this.want[i] = s < K.show * A.holds ? (0.45 + 0.55 * ((s * 7.31) % 1)) * (0.8 + 0.2 * ((s * 3.17) % 1)) : 0;
+    if (fresh) this.alpha[i] = this.want[i];
+  }
+
+  /** you and the cast near you, and how fast each is going (you by the eye, which moves smoothly between steps) */
+  private movers(sim: Sim, cx: number, cz: number, dt: number): Mover[] {
+    const out: Mover[] = [], b = sim.player.body;
+    if (this.you && dt > 0) {
+      const vx = (cx - this.you.x) / dt, vz = (cz - this.you.z) / dt;
+      if (Math.hypot(vx, vz) < 12) out.push({ x: cx, y: b.y, z: cz, vx, vz, r: 0.35, h: 1.8 }); // faster is a jump in place
+    }
+    this.you = { x: cx, z: cz };
+    for (const m of sim.cast) {
+      if (m.dead || Math.abs(m.x - cx) > HX + 1 || Math.abs(m.z - cz) > HZ + 1) continue;
+      out.push({ x: m.x, y: m.y, z: m.z, vx: (m.x - m.px) / STEP, vz: (m.z - m.pz) / STEP, r: m.r, h: m.body?.h ?? 1 });
+    }
+    return out;
   }
 
   update(sim: Sim, cam: THREE.Vector3, dt: number): void {
-    const P = this.pos, cx = cam.x, cy = cam.y, cz = cam.z;
+    const P = this.pos, V = this.vel, cx = cam.x, cy = cam.y, cz = cam.z;
     if (sim !== this.sim) {
-      this.sim = sim; this.air.clear();
+      this.sim = sim; this.air.clear(); this.you = null;
       this.shut = sim.doors.map(() => Infinity);
       this.wasOpen = sim.doors.map(d => d.t > 0.02);
-      for (let i = 0; i < N; i++) this.scatter(i, cx, cy, cz);
+      for (let i = 0; i < N; i++) this.scatter(sim, i, cx, cy, cz);
       this.life.fill(0);
     }
-    this.t += dt;
-    const t = this.t;
 
     /* doors: one shut a while that starts to open breathes out at you */
     sim.doors.forEach((d, k) => {
@@ -176,47 +233,54 @@ export class Motes {
       this.wasOpen[k] = open;
     });
 
-    /* the drifting specks */
     const refresh = Math.ceil(N / 8);
     for (let n = 0; n < refresh; n++) { const i = (this.turn + n) % N; this.place(sim, i); }
     this.turn = (this.turn + refresh) % N;
-    for (let i = 0; i < N; i++) {
-      const o = i * 3;
-      let x = P[o], y = P[o + 1], z = P[o + 2];
-      /* out of the box: back in at the far side, and asked again where it is */
-      let moved = false;
-      if (x - cx > HX) { x -= 2 * HX; moved = true; } else if (cx - x > HX) { x += 2 * HX; moved = true; }
-      if (y - cy > HY) { y -= 2 * HY; moved = true; } else if (cy - y > HY) { y += 2 * HY; moved = true; }
-      if (z - cz > HZ) { z -= 2 * HZ; moved = true; } else if (cz - z > HZ) { z += 2 * HZ; moved = true; }
-      P[o] = x; P[o + 1] = y; P[o + 2] = z;
-      if (moved || this.room[i] === -2) this.place(sim, i);
-      const r = this.room[i];
-      if (r < 0) continue;
-      const A = this.airOf(sim, sim.world.rooms[r]), K = KIND[A.kind], s = this.seed[i] * 40;
-      let fx = A.fx, fz = A.fz;
-      if (A.vents.length) {
-        let best = Infinity;
-        for (const v of A.vents) {
-          const dx = v.x - x, dz = v.z - z, d = Math.hypot(dx, dz);
-          if (d < best) { best = d; fx = dx / (d || 1); fz = dz / (d || 1); }
-        }
-      }
-      /* the air's draw, each speck's own wander, and its weight */
-      const wand = A.still ? 0.012 : 0.03;
-      P[o] += (fx * A.speed + Math.sin(t * 0.37 + s) * wand) * dt;
-      P[o + 1] += (K.lift * (A.still ? 1 : 0.4) + Math.sin(t * 0.29 + s * 1.7) * wand * 0.6) * dt;
-      P[o + 2] += (fz * A.speed + Math.cos(t * 0.31 + s * 1.3) * wand) * dt;
-    }
+    const M = this.movers(sim, cx, cz, dt), fade = Math.min(1, dt * 1.2), kick = Math.sqrt(dt);
+    /* a gust's specks are finer, and the air slows them sooner */
+    const ease = 1 - Math.exp(-dt * DRAG), easeGust = 1 - Math.exp(-dt * DRAG * 2);
 
-    /* the gusts: thrown out fast, slowed by the air, gone in a second or two */
-    for (let g = 0; g < G; g++) {
-      const i = N + g, o = i * 3;
-      if (this.life[g] <= 0) { this.alpha[i] = 0; continue; }
-      this.life[g] -= dt;
-      const drag = Math.exp(-dt * 1.4);
-      this.gv[g * 3] *= drag; this.gv[g * 3 + 1] *= drag; this.gv[g * 3 + 2] *= drag;
-      P[o] += this.gv[g * 3] * dt; P[o + 1] += this.gv[g * 3 + 1] * dt; P[o + 2] += this.gv[g * 3 + 2] * dt;
-      this.alpha[i] = Math.min(1, this.life[g] / 0.8) * (0.5 + 0.5 * this.seed[i]);
+    for (let i = 0; i < N + G; i++) {
+      const o = i * 3, gust = i >= N;
+      if (gust) {
+        const g = i - N;
+        if (this.life[g] <= 0) { this.alpha[i] = 0; continue; }
+        this.life[g] -= dt;
+        this.alpha[i] = Math.min(1, this.life[g] / 0.8) * (0.4 + 0.4 * this.seed[i]);
+      } else {
+        /* out of the box: back in at the far side, a new speck moving with the air there */
+        let x = P[o], y = P[o + 1], z = P[o + 2], wrapped = false;
+        if (x - cx > HX) { x -= 2 * HX; wrapped = true; } else if (cx - x > HX) { x += 2 * HX; wrapped = true; }
+        if (y - cy > HY) { y -= 2 * HY; wrapped = true; } else if (cy - y > HY) { y += 2 * HY; wrapped = true; }
+        if (z - cz > HZ) { z -= 2 * HZ; wrapped = true; } else if (cz - z > HZ) { z += 2 * HZ; wrapped = true; }
+        P[o] = x; P[o + 1] = y; P[o + 2] = z;
+        if (wrapped || this.room[i] === -2) this.place(sim, i, true);
+        else if (this.room[i] === -3) this.place(sim, i);
+        if (wrapped && this.room[i] >= 0) V.set(this.airVel(this.airOf(sim, sim.world.rooms[this.room[i]]), x, z), o);
+        this.alpha[i] += (this.want[i] - this.alpha[i]) * fade;
+      }
+      const r = this.room[i];
+      if (r < 0 && !gust) continue;
+      /* toward the air's velocity, slowly, with a random nudge (still air barely stirs) */
+      if (r >= 0) {
+        const A = this.airOf(sim, sim.world.rooms[r]), a = this.airVel(A, P[o], P[o + 2]), stir = (A.still ? 0.012 : 0.035) * kick;
+        const e = gust ? easeGust : ease;
+        V[o] += (a[0] - V[o]) * e + (Math.random() - 0.5) * stir;
+        V[o + 1] += (a[1] - V[o + 1]) * e + (Math.random() - 0.5) * stir * 0.6;
+        V[o + 2] += (a[2] - V[o + 2]) * e + (Math.random() - 0.5) * stir;
+      }
+      /* what moves through it drags it along and shoves it aside, and it keeps that until the air takes it back */
+      for (const m of M) {
+        const dy = P[o + 1] - m.y;
+        if (dy < -0.1 || dy > m.h + 0.1) continue;
+        const dx = P[o] - m.x, dz = P[o + 2] - m.z, d = Math.hypot(dx, dz), reach = m.r + REACH;
+        if (d >= reach) continue;
+        const w = 1 - d / reach, sp = Math.hypot(m.vx, m.vz), pull = 1 - Math.exp(-dt * CARRY * w);
+        V[o] += (m.vx - V[o]) * pull; V[o + 2] += (m.vz - V[o + 2]) * pull;
+        const nx = d > 1e-3 ? dx / d : Math.random() - 0.5, nz = d > 1e-3 ? dz / d : Math.random() - 0.5;
+        V[o] += nx * sp * SHOVE * w * dt; V[o + 2] += nz * sp * SHOVE * w * dt;
+      }
+      P[o] += V[o] * dt; P[o + 1] += V[o + 1] * dt; P[o + 2] += V[o + 2] * dt;
     }
 
     for (const k of ['position', 'aCol', 'aL', 'aA', 'aS']) this.geo.getAttribute(k).needsUpdate = true;
@@ -226,7 +290,7 @@ export class Motes {
     const x = (D.x0 + D.x1) / 2, z = (D.z0 + D.z1) / 2, y = D.y0 + 1;
     /* toward your side of it */
     const nx = D.alongX ? 0 : Math.sign(cx - x) || 1, nz = D.alongX ? Math.sign(cz - z) || 1 : 0;
-    const n = Math.round(G * k);
+    const n = Math.round(G * 0.5 * k);
     for (let g = 0, made = 0; g < G && made < n; g++) {
       if (this.life[g] > 0) continue;
       made++;
@@ -235,13 +299,14 @@ export class Motes {
       this.pos[o + 1] = rnd(D.y0 + 0.1, Math.min(D.y1, D.y0 + 2.2));
       this.pos[o + 2] = D.alongX ? z - nz * 0.4 : D.z0 + (D.z1 - D.z0) * u;
       const sp = rnd(1.2, 2.4) * (0.6 + 0.4 * k);
-      this.gv[g * 3] = nx * sp + rnd(-0.4, 0.4); this.gv[g * 3 + 1] = rnd(-0.15, 0.3); this.gv[g * 3 + 2] = nz * sp + rnd(-0.4, 0.4);
+      this.vel[o] = nx * sp + rnd(-0.4, 0.4); this.vel[o + 1] = rnd(-0.15, 0.3); this.vel[o + 2] = nz * sp + rnd(-0.4, 0.4);
       this.life[g] = rnd(1.2, 2.4);
       this.place(sim, i);
-      this.size[i] *= 1.4;
+      /* finer than what hangs in the air: what a shut room has ground down and holds */
+      this.size[i] *= 0.7;
       if (this.room[i] < 0) {
         /* the far side is the door's own slab: take the dust's colour and the light where you are */
-        this.col.set(KIND.dust.c, o); this.lit.set([0.05, 0.05, 0.05], o); this.size[i] = 1.4;
+        this.col.set(KIND.dust.c, o); this.lit.set([0.05, 0.05, 0.05], o); this.size[i] = 0.7;
       }
     }
     this.onGust(x, y, z, k);

@@ -87,6 +87,11 @@ export interface FixtureDef {
   x: number; y: number; z: number;
 }
 
+/** a pool of blood on a floor: its middle and about how far it runs */
+export interface StainDef {
+  x: number; y: number; z: number; r: number;
+}
+
 /** a sign over a doorway: text on a plate, facing (yaw) the way it is read from */
 export interface SignDef {
   text: string;
@@ -177,6 +182,8 @@ export interface LevelDef {
   lamps: LampDef[];
   /** ceiling fittings: where each room's own light comes from, so it falls in pools below them (world/light.ts) */
   fixtures?: FixtureDef[];
+  /** blood on the floor, wet enough to walk out of with it on your soles (present/render/prints.ts) */
+  stains?: StainDef[];
   signs: SignDef[];
   items: ItemDef[];
   notes: NoteDef[];

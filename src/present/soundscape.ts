@@ -68,6 +68,13 @@ export function hearing(sim: Sim, x: number, y: number | undefined, z: number): 
   return { d: straight + extra * 0.6, pan: pan * (1 - clamp(extra / 20, 0, 0.5)), muffle: clamp(extra / 14, 0, 1) };
 }
 
+/** how much air is moving in a room, 0 to 1, by its circuit's power: a fitted room's fans rush softly on Gen-1, barely on
+ *  a backup set, and a dead room is still and silent, as its dust hangs (motes.ts). A cave's air is the bed's. */
+export function roomAir(R: RoomDef, pw: number): number {
+  if (R.cells) return 0;
+  return pw === 2 ? 1 : pw === 1 ? 0.3 : 0;
+}
+
 /** what each of the cast says at rest, and how often (seconds, least and most) */
 const IDLE: Partial<Record<string, { n: string; t: [number, number] }>> = {
   husk: { n: 'breath', t: [5, 11] }, skitter: { n: 'click', t: [3, 8] }, bloat: { n: 'gurgle', t: [4, 9] },
@@ -201,6 +208,7 @@ export class Soundscape {
 
     /* the room's echo: kept through a doorway, so passing between two halls does not shrink them */
     const R = w.roomAt(b.x, b.y + 1, b.z);
+    if (R) A.setAir(roomAir(R, power(g, R.circuit)));
     if (R && !R.doorway && R.id !== this.room) { this.room = R.id; A.setSpace(...spaceOf(R, cave || !!R.cells)); }
 
     /* Gen-1: loud and bright in its hall, along the rooms from it on its own level, a rumble in the rock on the rest */

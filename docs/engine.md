@@ -323,7 +323,8 @@ sequence of inputs. The door rules, the labels and the answers are the first eng
   has no need to say is the soundscape's (`present/soundscape.ts`): the cast breathing, clicking, gurgling and dragging
   themselves along, their deaths, crates scraping and landing, caves dripping, your heart when you are badly hurt. It
   reads the sim and never draws on its seeded numbers. Every room echoes by how much air is in it (three synthesised
-  echoes, a small room's, a hall's and a vast space's, mixed by the room's volume; rock rings more). Gen-1 is heard from
+  echoes, a small room's, a hall's and a vast space's, mixed by the room's volume; rock rings more). A fitted room's air is heard moving while its fans run: a soft rush on Gen-1, barely a breath on a backup set,
+  and none in a dead room, where the dust hangs (`roomAir`). Gen-1 is heard from
   its board in the generator hall, along the rooms, and winds up and down; on the other levels it is a rumble in the
   rock. A flickering room buzzes and crackles in step with its light: the shader and the soundscape both ask
   `present/flicker.ts` when the tube is dimmed.
@@ -341,9 +342,18 @@ sequence of inputs. The door rules, the labels and the answers are the first eng
   that flip are lit again (`LevelMesh.relightRooms`). Power going off is not staged, and the sim's light changes at
   once. Motes (`present/render/motes.ts`) hang in the air about you, square flecks lit as a surface is (by the room as much as by your beam, never brighter than the wall beside them): with a live circuit the air
   is drawn toward the room's vent panels or along it, on a backup set barely, and in a dead room it hangs and settles;
-  caves drift on their own. A room says what is in its air (`RoomDef.motes`): spores in Horticulture and the cave,
+  caves drift on their own. Moving air carries dust off: a ventilated room shows a quarter of a stuffy one's, a room on
+  its backup set about half. Each speck has its own velocity, easing toward the air's, and anything moving through it,
+  you or the cast, drags it along and shoves it aside; it keeps that push until the air takes it back. A room says what is in its air (`RoomDef.motes`): spores in Horticulture and the cave,
   red flecks in the Cargo nest and the nest residences, dust elsewhere. A door shut twenty seconds or more breathes out
   at you when it opens, with a gust you hear.
+- **Footprints** (since; `present/render/prints.ts`), yours and the cast's: one a pace as each walks, the way it
+  faces. Out of water soles are wet for a dozen prints or so, which dry off in half a minute; through blood (a pool
+  the level was built with, `LevelDef.stains`, or under one of the cast that fell) they are red for about ten, and
+  those stay; through what a green one bled, green. You and the husks leave a bare sole, left and right; the thresher
+  one twice the size; a skitter claw marks; a worm a smear. One of the cast badly hurt drips as it goes, more the
+  worse it is, so a thing that ran from you can be followed. None in water, on a crate or on a platform. The newest
+  256 are kept; they are looks only, not saved.
 - **A fight's feel** (since): a swing let go early is a jab, weaker and slow to recover from, not nothing; a blow that
   lands, or meets a wall, holds the swing still a moment (hit-stop) and dips the view; a hurt from one of the cast
   knocks the view away from it and flashes the edge of the screen on its side; a husk's or skitter's wind-up that you
