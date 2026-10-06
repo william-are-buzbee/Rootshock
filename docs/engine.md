@@ -327,7 +327,7 @@ sequence of inputs. The door rules, the labels and the answers are the first eng
   (`ambientFor`): a fitted room's pipes knock (more with its pumps running, sometimes a run of water hammer), its frame
   groans (more the bigger it is) and its metal ticks; a cave's rock settles, grit coming down after. When the power
   changes, metal ticks for a while as it warms or cools, and the pipes knock as the pumps take up or let go.
-  A fitted room's air is heard moving while its fans run: a soft rush on Gen-1, barely a breath on a backup set,
+  A fitted room's air is heard moving while its fans run, louder, brighter and to one side near a grille: a soft rush on Gen-1, barely a breath on a backup set,
   and none in a dead room, where the dust hangs (`roomAir`). Gen-1 is heard from
   its board in the generator hall, along the rooms, and winds up and down; on the other levels it is a rumble in the
   rock. A flickering room buzzes and crackles in step with its light: the shader and the soundscape both ask
@@ -345,7 +345,8 @@ sequence of inputs. The door rules, the labels and the answers are the first eng
   from where you are, each tube striking (on, off a moment, on) as it catches, and heard to near you; only the rooms
   that flip are lit again (`LevelMesh.relightRooms`). Power going off is not staged, and the sim's light changes at
   once. Motes (`present/render/motes.ts`) hang in the air about you, square flecks lit as a surface is (by the room as much as by your beam, never brighter than the wall beside them): with a live circuit the air
-  is drawn toward the room's vent panels or along it, on a backup set barely, and in a dead room it hangs and settles;
+  is drawn toward the room's ceiling grilles (`LevelDef.vents`: one at each end of a long fitted room, one in a short
+  one) and turns up into them, on a backup set barely, and in a dead room it hangs and settles;
   caves drift on their own. Moving air carries dust off: a ventilated room shows a quarter of a stuffy one's, a room on
   its backup set about half. Each speck has its own velocity, easing toward the air's, and anything moving through it,
   you or the cast, drags it along and shoves it aside; it keeps that push until the air takes it back. A room says what is in its air (`RoomDef.motes`): spores in Horticulture and the cave,

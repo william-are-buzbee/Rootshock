@@ -69,7 +69,7 @@ void main(){
 }`;
 
 interface Air {
-  fx: number; fz: number; speed: number; kind: Kind; vents: { x: number; z: number }[]; still: boolean;
+  fx: number; fz: number; speed: number; kind: Kind; vents: { x: number; y: number; z: number }[]; still: boolean;
   /** how much of the dust still air would hold this air holds: moving air carries it off */
   holds: number;
 }
@@ -144,12 +144,18 @@ export class Motes {
     /* a cave breathes on its own, slowly, whatever the power; a fitted room's air moves only while its fans do */
     const pw = power(sim.game, R.circuit), speed = cave ? 0.05 : pw === 2 ? 0.22 : pw === 1 ? 0.06 : 0;
     const long = R.x1 - R.x0 >= R.z1 - R.z0, sign = (R.id * 2654435761) % 2 ? 1 : -1;
-    const vents: { x: number; z: number }[] = [];
-    if (!cave) for (const d of sim.doors) {
-      const D = d.def;
-      if (!D.vent) continue;
-      const x = (D.x0 + D.x1) / 2, z = (D.z0 + D.z1) / 2;
-      if (x > R.x0 - 1 && x < R.x1 + 1 && z > R.z0 - 1 && z < R.z1 + 1 && D.y0 < R.y0 + R.ht && D.y1 > R.y0) vents.push({ x, z });
+    /* where it goes: the room's ceiling grilles, and any loose vent panel in its walls */
+    const vents: { x: number; y: number; z: number }[] = [];
+    if (!cave) {
+      for (const G of sim.world.def.vents ?? []) {
+        if (G.x > R.x0 && G.x < R.x1 && G.z > R.z0 && G.z < R.z1 && G.y > R.y0 && G.y < R.y0 + R.ht + 0.5) vents.push(G);
+      }
+      for (const d of sim.doors) {
+        const D = d.def;
+        if (!D.vent) continue;
+        const x = (D.x0 + D.x1) / 2, z = (D.z0 + D.z1) / 2;
+        if (x > R.x0 - 1 && x < R.x1 + 1 && z > R.z0 - 1 && z < R.z1 + 1 && D.y0 < R.y0 + R.ht && D.y1 > R.y0) vents.push({ x, y: (D.y0 + D.y1) / 2, z });
+      }
     }
     const holds = cave ? 0.7 : pw === 2 ? 0.25 : pw === 1 ? 0.55 : 1;
     a = { fx: long ? sign : 0, fz: long ? 0 : sign, speed, kind, vents, still: speed === 0, holds };
@@ -159,15 +165,17 @@ export class Motes {
 
   /** the air's own velocity where speck i is: toward the nearest vent, or along the room, and its kind's lift */
   private airVel(A: Air, x: number, z: number): [number, number, number] {
-    let fx = A.fx, fz = A.fz;
+    let fx = A.fx, fz = A.fz, up = 0;
     if (A.vents.length) {
       let best = Infinity;
       for (const v of A.vents) {
         const dx = v.x - x, dz = v.z - z, d = Math.hypot(dx, dz);
         if (d < best) { best = d; fx = dx / (d || 1); fz = dz / (d || 1); }
       }
+      /* near a grille the air turns up into it */
+      if (best < 2) { const k = 1 - best / 2; fx *= 1 - 0.6 * k; fz *= 1 - 0.6 * k; up = 0.8 * k; }
     }
-    return [fx * A.speed, KIND[A.kind].lift * (A.still ? 1 : 0.4), fz * A.speed];
+    return [fx * A.speed, KIND[A.kind].lift * (A.still ? 1 : 0.4) + up * A.speed, fz * A.speed];
   }
 
   /** put speck i somewhere in the box about the eye, moving with the air there */

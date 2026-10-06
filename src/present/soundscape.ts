@@ -238,7 +238,16 @@ export class Soundscape {
 
     /* the room's echo: kept through a doorway, so passing between two halls does not shrink them */
     const R = w.roomAt(b.x, b.y + 1, b.z);
-    if (R) A.setAir(roomAir(R, power(g, R.circuit)));
+    if (R) {
+      /* louder, brighter and to one side near the room's nearest grille */
+      let near = 0, pan = 0, best = Infinity;
+      for (const G of w.def.vents ?? []) {
+        if (G.x < R.x0 || G.x > R.x1 || G.z < R.z0 || G.z > R.z1 || G.y < R.y0 || G.y > R.y0 + R.ht + 0.5) continue;
+        const d = Math.hypot(G.x - b.x, G.y - b.y - 1.6, G.z - b.z);
+        if (d < best) { best = d; near = clamp(1 - d / 5, 0, 1); pan = hearing(sim, G.x, undefined, G.z).pan; }
+      }
+      A.setAir(roomAir(R, power(g, R.circuit)), near, pan);
+    }
     if (R && !R.doorway && R.id !== this.room) { this.room = R.id; A.setSpace(...spaceOf(R, cave || !!R.cells)); }
 
     /* Gen-1: loud and bright in its hall, along the rooms from it on its own level, a rumble in the rock on the rest */
