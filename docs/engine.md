@@ -353,22 +353,24 @@ sequence of inputs. The door rules, the labels and the answers are the first eng
   dark red flecks in the Cargo nest and the nest residences, dust elsewhere; even there most specks are dust, with the
   room's own kind among them. A door shut twenty seconds or more breathes out
   at you when it opens, with a gust you hear.
-- **Footprints** (since; `present/render/prints.ts`): squares, the one shape blood has in the station. Each walker
-  leaves a small square a pace, its size and pace by kind (yours and a husk's left and right, the thresher's bigger, a
-  skitter's small and quick, a worm's one wide one), smaller and fainter as what is on its soles runs out. Out of
+- **Footprints** (since; `present/render/prints.ts`): flat blocks, the one shape blood has in the station. Each
+  walker leaves one a pace, the size of the foot that made it (as the models in `castView` have them) and its pace by
+  kind (yours and a husk's left and right, the thresher's broader and further apart, a skitter's small, quick and
+  splayed wide, a worm's one wide patch), a touch smaller and fainter as what is on its soles runs out. Out of
   water they are wet for a dozen or so, which dry off in half a minute; through blood (a pool the level was built with,
   `LevelDef.stains`, or under one of the cast that fell) red for about ten, and those stay; through what a green one
-  bled, green. A print that comes down on one already there grows it (to 0.4 m) instead of lying on top. None in
+  bled, green. A print that comes down on one already there grows it (to 1.6 times its first size) instead of lying on top. None in
   water, on a crate or on a platform. The newest 256 are kept; they are looks only, not saved. Bleeding is for later.
 - **Drips** (since; `present/render/drips.ts`): a level's caves and rooms over standing water drip from fixed points
   (one to three a room, found from the level's id, so the same each load), each with roof above and a fall of a metre
   or more under it. A drop falls now and then; on water it spreads a square ring, on stone a small splash over a
   patch kept dark and wet; and it is heard where it lands (a plink on water, a tap on stone), not anywhere.
-- **A fight's feel** (since): a swing let go early is a jab, weaker and slow to recover from, not nothing; a blow that
+- **A fight's feel** (since): a swing let go early is a jab, weaker and slow to recover from, not nothing: it stuns and knocks
+  back in proportion to how far it was loaded (a quarter-loaded jab, a quarter as much); a blow that
   lands, or meets a wall, holds the swing still a moment (hit-stop) and dips the view; a hurt from one of the cast
   knocks the view away from it and flashes the edge of the screen on its side; a husk's or skitter's wind-up that you
   step back from is heard to miss; the cast are rocked back when struck, and a light one knocked back slides its
-  0.3 m over a sixth of a second. A swing lands on whatever in reach is nearest the crosshair (the nearer of two about
+  0.3 m (from a full blow) over a sixth of a second. A swing lands on whatever in reach is nearest the crosshair (the nearer of two about
   as near it), so with two in front of you, you choose which you hit by looking at it.
 - **Nothing fights in one plane** (since): everything is drawn two-sided, so two faces in one plane (a button flush with
   its post, a box on a shelf or the floor, a crate on a crate) showed through each other as you moved. Each prop and

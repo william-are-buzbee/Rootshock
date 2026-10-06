@@ -202,6 +202,27 @@ describe('fighting', () => {
     expect(total).toBeLessThan(0.4);
   });
 
+  it('a jab stuns and knocks back in proportion: much less than a loaded blow', () => {
+    const blow = (secs: number) => {
+      const s = fresh(), w = s.cast[7];
+      only(s, []);
+      give(s.game, 'pipe');
+      faceOff(s, w, 1.2, 0.3);
+      const x0 = w.x, z0 = w.z;
+      w.stun = 0;
+      hold(s, secs, { attack: true });
+      let stun = 0;
+      for (let t = 0; t < 1 && !stun; t += STEP) { step(s, noInput()); if (w.hp < 40) stun = w.stun; }
+      w.stun = 1e9; // held still, so the slide is the knock alone
+      hold(s, 0.5);
+      return { stun, slid: Math.hypot(w.x - x0, w.z - z0) };
+    };
+    const jab = blow(0.1), full = blow(1.1);
+    expect(jab.stun).toBeGreaterThan(0);
+    expect(jab.stun).toBeLessThan(full.stun * 0.5);
+    expect(jab.slid).toBeLessThan(full.slid * 0.5);
+  });
+
   it('a swing lands on the one at the crosshair, not merely the nearest', () => {
     const s = fresh(), [a, b] = s.cast.filter(m => m.ai === 'worm');
     only(s, []);

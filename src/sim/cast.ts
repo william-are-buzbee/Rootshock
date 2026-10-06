@@ -629,12 +629,14 @@ const KNOCK = { dist: 0.3, ease: 14 };
 export function hitMutant(sim: Sim, m: Mutant, w: { dmg: number; stun: number }, pow: number): void {
   const g = sim.game, p = sim.player.body;
   m.hp -= w.dmg * (0.3 + 0.7 * pow);
-  m.hit = 1;
-  m.stun = Math.max(m.stun, (w.stun * 1.2 * (0.25 + 0.75 * pow)) / m.mass);
+  /* a jab (pow under 1) stuns it and knocks it back in proportion, a quarter-strength jab a quarter as much; it is
+     rocked a little less */
+  m.hit = Math.max(m.hit, 0.3 + 0.7 * pow);
+  m.stun = Math.max(m.stun, (w.stun * 1.2 * pow) / m.mass);
   sfx(g, 'hit');
-  /* light enough to be knocked back a step: about 0.3 m, slid over a sixth of a second */
+  /* light enough to be knocked back a step: about 0.3 m from a full blow, slid over a sixth of a second */
   if (m.body && m.mass <= 1.5) {
-    const dx = m.x - p.x, dz = m.z - p.z, d = Math.hypot(dx, dz) || 1, v = KNOCK.dist * KNOCK.ease;
+    const dx = m.x - p.x, dz = m.z - p.z, d = Math.hypot(dx, dz) || 1, v = KNOCK.dist * pow * KNOCK.ease;
     m.kx = (dx / d) * v; m.kz = (dz / d) * v;
   }
   if (m.hp <= 0) { kill(sim, m); return; }
