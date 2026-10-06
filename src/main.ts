@@ -16,6 +16,7 @@ import { View } from './present/render/view';
 import { LevelView } from './present/render/levelView';
 import { HandsView } from './present/render/handsView';
 import { Motes } from './present/render/motes';
+import { Cascade } from './present/cascade';
 import { U } from './present/render/shader';
 import { Hud } from './present/ui/hud';
 import { Panels } from './present/ui/panels';
@@ -154,9 +155,19 @@ window.addEventListener('keydown', e => {
   } else if (c === 'Escape' || c === 'Tab' || c === 'KeyI' || (c === 'KeyE' && open !== 'inv') || (c === 'Space' && open === 'note')) panels.close();
 });
 
+/** a power change being seen to come on, or null */
+let cascade: Cascade | null = null;
+function relightAll(L: Lighting): void {
+  lighting = L;
+  here.relight(L);
+  handsView.setLighting(L);
+  motes.setLighting(L);
+}
+
 /** you are on another level: draw it, light it, and fade in as the first engine did */
 function arrive(): void {
   sim = run.here;
+  cascade = null;
   lighting = lightingNow();
   here = levelView();
   view.show(here.group);
@@ -182,13 +193,15 @@ function events(): void {
       case 'pad': openPanel(() => { panels.show('pad'); panels.renderPad(g); }); break;
       case 'lift': openPanel(() => panels.showLift(STATION.levels.map(l => ({ id: l.id, name: l.name, here: l.id === sim.world.def.id })))); break;
       case 'level': break; // the run has moved you already: see arrive()
-      case 'power':
-        lighting = lightingNow();
-        here.relight(lighting);
-        handsView.setLighting(lighting);
-        motes.setLighting(lighting);
+      case 'power': {
+        /* what comes on comes on room by room, out from where you are; what goes off goes at once */
+        const b = sim.player.body, R = sim.world.roomAt(b.x, b.y + 0.5, b.z);
+        const from = cascade ? cascade.L.to : lighting;
+        cascade = new Cascade(sim.world, from, lightingNow(), R?.id ?? -1, r => scape.strike(sim, sim.world.rooms[r]));
+        relightAll(cascade.L);
         if (ev.loud) audio.play('power');
         break;
+      }
       case 'hurt':
         hurtFx = ev.shake > 0 ? 1 : Math.max(hurtFx, 0.7); rig.shake = Math.max(rig.shake, ev.shake);
         if (ev.from) {
@@ -233,6 +246,11 @@ function frame(t: number): void {
   if (flick < 0 && Math.random() < dt * (g.batt < 20 ? 1.4 : 0.3)) flick = 0.05 + Math.random() * 0.2;
   if (flick > 0 && g.lightOn) { U.uFlash.value *= 0.25; U.uBounce.value *= 0.25; }
   here.update(mode === 'play' ? loop.alpha : 1);
+  if (cascade) {
+    const flipped = cascade.update(dt);
+    if (flipped.length) here.relightRooms(lighting, flipped);
+    if (cascade.done) { relightAll(cascade.L.to); cascade = null; }
+  }
   handsView.update(rig.bob, t / 1000);
   motes.resize(view.renderer.domElement.height, view.camera.fov);
   motes.update(sim, view.camera.position, mode === 'play' ? dt : 0);

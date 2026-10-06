@@ -84,4 +84,9 @@ export class Lighting {
   fitting(pw: [Colour, Colour], circuit: string): Colour {
     return pw[this.power(circuit) > 0 ? 1 : 0];
   }
+
+  /** a fitting's colour where it hangs (a light coming on room by room may say otherwise; present/cascade.ts) */
+  fittingIn(pw: [Colour, Colour], circuit: string, _room: number): Colour {
+    return this.fitting(pw, circuit);
+  }
 }

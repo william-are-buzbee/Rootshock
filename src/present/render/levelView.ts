@@ -37,6 +37,11 @@ export class LevelView {
     this.cast.setLighting(L);
   }
 
+  /** only these rooms: a light coming on room by room */
+  relightRooms(L: Lighting, rooms: Iterable<number>): void {
+    this.mesh.relightRooms(L, rooms);
+  }
+
   update(alpha: number): void {
     this.things.update();
     this.cast.update(alpha);
