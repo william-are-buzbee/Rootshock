@@ -1,7 +1,7 @@
 import { PI } from '../../core/math';
 import type { LevelDef, LadderDef } from '../types';
 import {
-  arch, beginLevel, bx, cave, door, elev, finishLevel, item, ladder, mkDeck, mul3, mut, note, P, roughen, room, stack, type Deck, type LevelInfo,
+  arch, beginLevel, bx, cave, door, elev, finishLevel, item, ladder, mkDeck, mul3, mut, note, P, roughen, room, stack, type Deck, type LevelInfo, type TRoomOpts,
 } from '../build/tiles';
 import {
   BAY, CELL, LOW, MED, OPS, SEC, UTIL, WALK, blood, bed, container, corpse, crates, desk, eggs, forklift, genset, gore, liftRoom, medbed, shelf, tbl,
@@ -78,10 +78,10 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
    between each. Dead and black until its backup set runs, which also moves the platforms, and wakes the nest that thickens
    toward the roof. East of it, the link to the exhaust shaft and ladderway B under the sealed fan door. */
 function buildCargo(lv: LevelInfo, D: Deck): void {
-  const cav = cave(D, 'Cargo cavern', 60, 8, 65, 14, { ...BAY, ht: 20, c: 'CARGO', lit: 'main', em: 1 }); arch(D, cav, 5); roughen(D, cav, 0, 1.2);
+  const cav = cave(D, 'Cargo cavern', 60, 8, 65, 14, { ...BAY, ht: 20, c: 'CARGO', lit: 'main', em: 1, motes: 'flesh' }); arch(D, cav, 5); roughen(D, cav, 0, 1.2);
   const tier = (y0: number, li: number) => mkDeck(lv, 140, 30, { y0, li }), T1 = tier(5, 1), T2 = tier(10, 2), T3 = tier(15, 3);
   stack(D, T1); stack(T1, T2); stack(T2, T3);
-  const TW = { ...WALK, ht: 5, c: 'CARGO' };
+  const TW: TRoomOpts = { ...WALK, ht: 5, c: 'CARGO', motes: 'flesh' };
   room(T1, 'Tier 1', 68, 8, 48, 5, TW); room(T2, 'Tier 2', 72, 8, 39, 5, TW); room(T3, 'Tier 3', 76, 8, 25, 5, TW);
   elev(D, T1, 70, 11, 2, 2, 'CARGO', 'Cargo platform'); elev(T1, T2, 74, 11, 2, 2, 'CARGO', 'Cargo platform'); elev(T2, T3, 78, 11, 2, 2, 'CARGO', 'Cargo platform');
   /* the gantry crane, on rails along both walls */

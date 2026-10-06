@@ -15,6 +15,7 @@ import { Soundscape } from './present/soundscape';
 import { View } from './present/render/view';
 import { LevelView } from './present/render/levelView';
 import { HandsView } from './present/render/handsView';
+import { Motes } from './present/render/motes';
 import { U } from './present/render/shader';
 import { Hud } from './present/ui/hud';
 import { Panels } from './present/ui/panels';
@@ -85,6 +86,7 @@ let hurtFx = 0, hitFx = 0;
 const hitDir = document.getElementById('hitdir')!;
 
 const rig = new CameraRig();
+const motes = new Motes(view.scene, lighting, (x, y, z, k) => scape.gust(sim, x, y, z, k));
 const loop = new FixedLoop();
 const audio = new Audio();
 const scape = new Soundscape(audio);
@@ -160,6 +162,7 @@ function arrive(): void {
   view.show(here.group);
   handsView.sim = sim;
   handsView.setLighting(lighting);
+  motes.setLighting(lighting);
   rig.reset();
   const b = sim.player.body;
   prev.x = b.x; prev.y = b.y; prev.z = b.z;
@@ -183,6 +186,7 @@ function events(): void {
         lighting = lightingNow();
         here.relight(lighting);
         handsView.setLighting(lighting);
+        motes.setLighting(lighting);
         if (ev.loud) audio.play('power');
         break;
       case 'hurt':
@@ -230,6 +234,8 @@ function frame(t: number): void {
   if (flick > 0 && g.lightOn) { U.uFlash.value *= 0.25; U.uBounce.value *= 0.25; }
   here.update(mode === 'play' ? loop.alpha : 1);
   handsView.update(rig.bob, t / 1000);
+  motes.resize(view.renderer.domElement.height, view.camera.fov);
+  motes.update(sim, view.camera.position, mode === 'play' ? dt : 0);
   hurtFx = Math.max(0, hurtFx - dt * 0.9);
   hitFx = Math.max(0, hitFx - dt * 1.6);
   hitDir.style.opacity = hitFx.toFixed(2);

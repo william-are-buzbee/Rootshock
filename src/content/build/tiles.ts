@@ -1,6 +1,6 @@
 import { PI, clamp, hex, scale3, type Colour } from '../../core/math';
 import type { Rng } from '../../core/rng';
-import type { LadderDef, LitRule, Shape } from '../types';
+import type { LadderDef, LitRule, Motes, Shape } from '../types';
 import { LevelBuilder, type Palette } from './builder';
 
 /* The first engine's way of laying out a level, kept so its levels port nearly line for line.
@@ -30,6 +30,8 @@ export interface TRoomOpts {
   cave?: number | boolean;
   /** only the air over lower rooms: no floor where a room lies below */
   air?: number | boolean;
+  /** what hangs in its air, if not dust */
+  motes?: Motes;
   sky?: number;
   nolamp?: number | boolean; noroam?: number | boolean; safe?: number | boolean;
 }
@@ -38,7 +40,7 @@ export interface TRoom {
   id: number; name: string; x: number; y: number; w: number; h: number;
   ht: number; fl: number; wl: number; st: number;
   lit: LitRule; lc: Colour; em: boolean; c: string; flick: boolean;
-  open: boolean; hole: string | null; cave: boolean; air: boolean; sky?: number;
+  open: boolean; hole: string | null; cave: boolean; air: boolean; sky?: number; motes?: Motes;
   nolamp: boolean; noroam: boolean; safe: boolean;
   /** a cave of any outline (caveShape): its tiles are the deck's tiles marked with its id, and x, y, w, h bound them */
   shaped?: boolean;
@@ -125,7 +127,7 @@ export function room(D: Deck, name: string, x: number, y: number, w: number, h: 
   const r: TRoom = {
     id: D.rooms.length, name, x, y, w, h, ht: o.ht ?? 3.2, fl: o.fl ?? 0x6b6e6a, wl: o.wl ?? 0x7c7f7a, st: o.st ?? 0x555555,
     lit: o.lit ?? 'main', lc: o.lc ?? WHITE, em: !!o.em, c: o.c ?? D.c, flick: !!o.flick,
-    open: !!o.open, hole: o.hole ? String(o.hole) : null, cave: !!o.cave, air: !!o.air, ...(o.sky !== undefined ? { sky: o.sky } : {}),
+    open: !!o.open, hole: o.hole ? String(o.hole) : null, cave: !!o.cave, air: !!o.air, ...(o.sky !== undefined ? { sky: o.sky } : {}), ...(o.motes ? { motes: o.motes } : {}),
     nolamp: !!o.nolamp, noroam: !!o.noroam, safe: !!o.safe,
   };
   D.rooms.push(r);
@@ -350,7 +352,7 @@ export function finishLevel(start?: [number, number, number]) {
       if (R.hole || R.shaped) continue;
       const opts = {
         pal: { fl: R.fl, wl: R.wl, st: R.st } as Palette, lit: R.lit, lc: R.lc, em: R.em, circuit: R.c, flick: R.flick,
-        nolamp: true, plain: R.open || R.cave, safe: R.safe, noroam: R.noroam, ...(R.sky !== undefined ? { sky: R.sky } : {}),
+        nolamp: true, plain: R.open || R.cave, safe: R.safe, noroam: R.noroam, ...(R.sky !== undefined ? { sky: R.sky } : {}), motes: R.motes,
       };
       const x0 = X(D, R.x), z0 = Z(D, R.y), x1 = X(D, R.x + R.w), z1 = Z(D, R.y + R.h);
       if (R.cave) {
@@ -522,7 +524,7 @@ function shapedCaves(b: LevelBuilder, D: Deck): void {
     const x0 = D.org[0] + R.x * T, z0 = D.org[1] + R.y * T;
     const r = b.room(R.name, x0, z0, x0 + lw * T, z0 + lz * T, {
       pal: { fl: R.fl, wl: R.wl, st: R.st }, lit: R.lit, lc: R.lc, em: R.em, circuit: R.c, flick: R.flick,
-      nolamp: true, plain: true, safe: R.safe, noroam: R.noroam, y0: ylo, ht: yhi - ylo,
+      nolamp: true, plain: true, safe: R.safe, noroam: R.noroam, y0: ylo, ht: yhi - ylo, motes: R.motes,
     });
     r.cells = { res: T, nx: lw, nz: lz, lo: clo, hi: chi };
   }

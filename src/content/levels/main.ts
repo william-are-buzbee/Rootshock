@@ -53,7 +53,7 @@ export function buildMain(ladders: Record<string, LadderDef>): LevelDef {
   const HB: TRoomOpts = { ...HAB, c: 'RES', lc: [0.85, 0.78, 0.62] }, fl: string[] = [];
   const flat = (D: Deck, x0: number, north: boolean, dc: number, nm: string, v: Flat) => {
     const y0 = north ? 8 : 19, fy = north ? 11 : 18, cz = north ? y0 + 1.1 : y0 + 1.9, back = north ? y0 + 0.3 : y0 + 2.7;
-    room(D, 'Residence ' + nm, x0, y0, 7, 3, { ...HB, fl: 0x74685a, lit: v[1] === 'worm' || v[1] === 'nest' ? 'none' : 'main' }); door(D, x0 + dc, fy, v[0]);
+    room(D, 'Residence ' + nm, x0, y0, 7, 3, { ...HB, fl: 0x74685a, lit: v[1] === 'worm' || v[1] === 'nest' ? 'none' : 'main', ...(v[1] === 'nest' ? { motes: 'flesh' } : {}) }); door(D, x0 + dc, fy, v[0]);
     bed(D, x0 + 0.4, y0 + 1.5, true, fl.length % 3 ? 0x5f6b78 : 0x7a5a50); tbl(D, x0 + 3.5, y0 + 1.5, 1.4, 0.8, 0x6b5a48); bx(D, x0 + 6.7, back, 0.45, 1.9, 0.45, 0x5a5448); bx(D, x0 + 5.4, back, 1.8, 0.45, 0.7, 0x6b5f58);
     item(D, v[2], x0 + 3.5, y0 + 1.5, 0.78); fl.push(nm);
     const cx = x0 + 3.5 + (v[1] === 'post' ? 1.5 : 0);
@@ -136,7 +136,7 @@ function buildSquare(G: Deck, S2: Deck, HB: TRoomOpts, GW: TRoomOpts, CM: TRoomO
 
 /* a flat of any shape: bed in the corner away from the door, table in the middle with what was left on it, and what happened here */
 function flatRect(D: Deck, x: number, y: number, w: number, h: number, dx: number, dy: number, nm: string, v: Flat, HB: TRoomOpts): void {
-  room(D, 'Residence ' + nm, x, y, w, h, { ...HB, fl: 0x74685a, lit: v[1] === 'worm' || v[1] === 'nest' ? 'none' : 'main' }); door(D, dx, dy, v[0]);
+  room(D, 'Residence ' + nm, x, y, w, h, { ...HB, fl: 0x74685a, lit: v[1] === 'worm' || v[1] === 'nest' ? 'none' : 'main', ...(v[1] === 'nest' ? { motes: 'flesh' } : {}) }); door(D, dx, dy, v[0]);
   const cx = x + w / 2, cz = y + h / 2, fx = dx < cx ? x + w - 0.6 : x + 0.6, fz = dy < cz ? y + h - 1.1 : y + 1.1, ox = dx < cx ? x + 0.4 : x + w - 0.4, oz = dy < cz ? y + h - 0.35 : y + 0.35;
   bed(D, fx, fz, true, 0x5f6b78); tbl(D, cx, cz, 1.2, 0.8, 0x6b5a48); item(D, v[2], cx, cz, 0.78); bx(D, ox, oz, 0.45, 1.9, 0.45, 0x5a5448);
   const vx = cx + (fx < cx ? 0.9 : -0.9), vz = cz + (fz < cz ? 0.7 : -0.7);

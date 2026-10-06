@@ -1,6 +1,6 @@
 import { Rng } from '../../core/rng';
 import { hex, scale3, type Colour } from '../../core/math';
-import type { DoorDef, LevelDef, LitRule, PropDef, RoomDef, Shape, Start, SurfaceDef } from '../types';
+import type { DoorDef, LevelDef, LitRule, Motes, PropDef, RoomDef, Shape, Start, SurfaceDef } from '../types';
 
 /* The authoring kit. Levels are written as calls on a LevelBuilder; finish() returns plain data.
    Everything random comes from the level's own seed, so a level is dressed the same way every time. */
@@ -28,6 +28,8 @@ export interface RoomOpts {
   flick?: boolean;
   /** no ceiling fittings */
   nolamp?: boolean;
+  /** what hangs in its air, if not dust */
+  motes?: Motes;
   /** rock or walkway, not a fitted room: plain walls */
   plain?: boolean;
   /** the roof painted as sky */
@@ -84,7 +86,7 @@ export class LevelBuilder {
       lit: o.lit ?? (fixed ? (dark ? 'none' : 'always') : 'always'),
       lc: o.lc ?? (fixed ? o.light! : WHITE),
       em: !!o.em, circuit: o.circuit ?? this.def.circuit, flick: !!o.flick, doorway: !!o.doorway, safe: !!o.safe, noroam: !!o.noroam,
-      ...(o.sky !== undefined ? { sky: hex(o.sky) } : {}),
+      ...(o.sky !== undefined ? { sky: hex(o.sky) } : {}), ...(o.motes && o.motes !== 'dust' ? { motes: o.motes } : {}),
     };
     this.def.rooms.push(r);
     if (o.nolamp) this.nolamp.add(r.id);

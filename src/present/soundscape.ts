@@ -111,6 +111,11 @@ export class Soundscape {
     this.audio.play(n, v);
   }
 
+  /** a door shut a while has opened and breathed out (motes.ts), this hard */
+  gust(sim: Sim, x: number, y: number, z: number, k: number): void {
+    this.at(sim, 'gust', x, y, z, { k });
+  }
+
   private at(sim: Sim, n: string, x: number, y: number, z: number, o: Voice = {}): void {
     this.audio.play(n, { ...o, ...hearing(sim, x, y, z) });
   }

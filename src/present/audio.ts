@@ -10,7 +10,7 @@ export type Surf = 'concrete' | 'metal' | 'rock' | 'wood' | 'wet';
 export interface Voice { d?: number; pan?: number; muffle?: number; big?: boolean; surf?: Surf; k?: number }
 
 const RANGE: Record<string, number> = {
-  door: 46, roar: 55, thud: 40, hstep: 18, moan: 28, tap: 24, skit: 24, slosh: 20, swing: 10, whiff: 14, step: 30, rattle: 30,
+  door: 46, roar: 55, thud: 40, hstep: 18, moan: 28, tap: 24, skit: 24, slosh: 20, swing: 10, whiff: 14, gust: 24, step: 30, rattle: 30,
   breath: 10, mutter: 20, click: 14, gurgle: 22, growl: 30, slither: 10, bubble: 12, creak: 12, drip: 30, scrape: 20, crate: 30,
   'die-husk': 40, 'die-skitter': 36, 'die-bloat': 46, 'die-thresher': 50, 'die-worm': 20, 'die-swimmer': 20, 'die-grabber': 24,
 };
@@ -297,6 +297,10 @@ export class Audio {
         case 'scrape': this.nz(0.25, 0.14 * v, 300, 'bandpass', 0, 2, 520, 0.03); this.nz(0.2, 0.1 * v, 150, 'lowpass'); break;
         case 'zap': this.nz(0.06, 0.14 * k, 4200, 'highpass'); this.tn(120, 118, 0.05, 'square', 0.03 * k); break;
         case 'tink': this.tn(2600, 2100, 0.012, 'square', 0.025 * k); break;
+        case 'gust': // a shut room's air let out: a long low breath, rising and falling away
+          this.nz(1.4, (0.12 + 0.12 * k) * v, 260, 'bandpass', 0, 0.7, 520, 0.25);
+          this.nz(0.9, (0.05 + 0.05 * k) * v, 1400, 'bandpass', 0.1, 1.2, 700, 0.2);
+          break;
         case 'drip': { const f = rnd(1400, 2600); this.tn(f, f * 0.5, 0.06, 'sine', 0.05 * v); this.tn(f, f * 0.5, 0.06, 'sine', 0.015 * v, 0.17); break; }
 
         /* what you do */

@@ -38,7 +38,7 @@ void main(){
   float facing = 0.35 + 0.65 * abs(dot(n, Ld));
   vec3 light = vL.rgb * sh * fk + vec3(0.014) / (1.0 + 3.0 * d * d);
   float ca = dot(-Ld, uFlashDir), rim = (ca - 0.952) / 0.007;
-  float spot = 0.75 * smoothstep(0.91, 0.975, ca) + 0.45 * smoothstep(0.76, 0.92, ca) + 0.12 * exp(-rim * rim);
+  float spot = 0.65 * smoothstep(0.91, 0.975, ca) + 0.42 * smoothstep(0.76, 0.92, ca) + 0.12 * exp(-rim * rim);
   light += uFlash * spot * facing * 2.3 / (1.0 + 0.055 * d * d) * vec3(1.0, 0.93, 0.78);
   light += uBounce / (1.0 + 0.18 * d * d) * vec3(1.0, 0.9, 0.76);
   light += uLamp * facing * 1.5 / (1.0 + 0.2 * d * d) * vec3(0.72, 0.92, 1.0);

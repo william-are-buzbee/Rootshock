@@ -7,6 +7,9 @@ import type { Colour } from '../core/math';
  *  'always': lc whatever the power (cells under their own supply). 'none': never. */
 export type LitRule = 'main' | 'always' | 'none';
 
+/** what hangs in a room's air: dust, unless it is the green's (spores) or the flesh's (flecks) */
+export type Motes = 'dust' | 'spores' | 'flesh';
+
 export interface RoomDef {
   id: number;
   name: string;
@@ -30,6 +33,8 @@ export interface RoomDef {
   /** for the cast: a refuge they do not enter (safe), a room they do not wander into (noroam) */
   safe: boolean;
   noroam: boolean;
+  /** what hangs in its air, if not dust: the green's spores, or the flesh's flecks (present/render/motes.ts) */
+  motes?: Motes;
   /** a cavern's roof painted as sky: its ceiling is this colour, and no fittings hang from it */
   sky?: Colour;
   /** a cave of any outline (engine.md §14): only these tiles are its own, each carved from lo to hi. The box above

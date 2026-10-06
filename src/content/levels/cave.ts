@@ -15,7 +15,7 @@ export const CAVE: LevelInfo = { id: 'cave', name: 'The cave', c: 'CAVE', org: [
 
 export function buildCave(ladders: Record<string, LadderDef>): LevelDef {
   beginLevel(CAVE, ladders);
-  const D = mkDeck(CAVE, 160, 70), wet: TRoomOpts = { lit: 'none', fl: 0x3a3832, wl: 0x4a453c, st: 0x4a453c };
+  const D = mkDeck(CAVE, 160, 70), wet: TRoomOpts = { lit: 'none', fl: 0x3a3832, wl: 0x4a453c, st: 0x4a453c, motes: 'spores' };
   const gf = (x: number) => -40 + clamp((x - 55) / 50, 0, 1) * 14;
   const entry = tunnel(D, 'Entry passage', [[125.5, 61, 0], [122, 53, -3], [118, 47, -6], [114.5, 43, -8]], 1.6, { ...wet, ht: 4 });
   const upper = chamber(D, 'Upper chamber', 112.5, 40, 7.5, 5, () => -8, { ...wet, ht: 6 }); vault(D, 112.5, 40, 7, 6, upper);
