@@ -322,7 +322,11 @@ sequence of inputs. The door rules, the labels and the answers are the first eng
   platform); you are heard jumping and landing, splashing in, gasping up; under water everything is dull. What the sim
   has no need to say is the soundscape's (`present/soundscape.ts`): the cast breathing, clicking, gurgling and dragging
   themselves along, their deaths, crates scraping and landing, caves dripping, your heart when you are badly hurt. It
-  reads the sim and never draws on its seeded numbers.
+  reads the sim and never draws on its seeded numbers. Every room echoes by how much air is in it (three synthesised
+  echoes, a small room's, a hall's and a vast space's, mixed by the room's volume; rock rings more). Gen-1 is heard from
+  its board in the generator hall, along the rooms, and winds up and down; on the other levels it is a rumble in the
+  rock. A flickering room buzzes and crackles in step with its light: the shader and the soundscape both ask
+  `present/flicker.ts` when the tube is dimmed.
 - **UI** stays in HTML over the canvas, with the current type and colours (Barlow Condensed, Newsreader, bone, ash,
   hazard).
 - **Dev tools** carry over (`?dev`, fly, god, level select, map), plus overlays for colliders, nav graph and noise.

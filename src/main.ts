@@ -131,7 +131,7 @@ function openPanel(fn: () => void): void {
   fn();
 }
 
-hud.onClick('title', () => { writeStore(SAVE_KEY, null); audio.start(); audio.setHum(!!sim.game.station?.main); setMode('play'); controls.lock(); });
+hud.onClick('title', () => { writeStore(SAVE_KEY, null); audio.start(); setMode('play'); controls.lock(); });
 hud.onClick('pause', () => { setMode('play'); controls.lock(); });
 document.getElementById('end')!.addEventListener('click', () => location.reload());
 
@@ -182,7 +182,6 @@ function events(): void {
         lighting = lightingNow();
         here.relight(lighting);
         handsView.setLighting(lighting);
-        audio.setHum(!!g.station?.main);
         if (ev.loud) audio.play('power');
         break;
       case 'hurt': hurtFx = ev.shake > 0 ? 1 : Math.max(hurtFx, 0.7); rig.shake = Math.max(rig.shake, ev.shake); break;
@@ -221,7 +220,7 @@ function frame(t: number): void {
   handsView.update(rig.bob, t / 1000);
   hurtFx = Math.max(0, hurtFx - dt * 0.9);
   events();
-  if (mode === 'play') scape.update(sim, dt);
+  if (mode === 'play') scape.update(sim, dt, t / 1000);
 
   /* water: tinted and close in wading water, more so under it (less with goggles), as before */
   const p = sim.player, under = p.under, wet = p.water !== 'dry';

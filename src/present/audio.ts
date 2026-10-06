@@ -20,16 +20,32 @@ const rnd = (a: number, b: number) => a + Math.random() * (b - a);
 export class Audio {
   private ac: AudioContext | null = null;
   private master!: GainNode;
-  /** everything in the world goes through here: muffled when your ears are under water */
+  /** every sound from the world goes through here, and from here into the room's echo */
   private bus!: GainNode;
+  /** the steady sounds (the drone, Gen-1, a cave's air, a tube's buzz): no echo of their own */
+  private amb!: GainNode;
+  /** muffles everything when your ears are under water */
   private under!: BiquadFilterNode;
   private dest!: AudioNode;
   private noise!: AudioBuffer;
-  private hum!: GainNode;
+  /** Gen-1: its note, how loud, how bright, and from which side */
+  private hum!: { o: OscillatorNode; sub: OscillatorNode; g: GainNode; f: BiquadFilterNode; p: StereoPannerNode | null };
   /** a cave's air moving */
   private bed!: GainNode;
+  /** the echo of a small room, a hall and a vast space, each as loud as the room you are in is like it */
+  private space: GainNode[] = [];
+  /** a failing tube */
+  private buzz!: GainNode;
   /** footsteps alternate feet */
   private foot = false;
+  /** what the steady sounds were last set to, so they are only touched when that changes */
+  private last: Record<string, string> = {};
+  private changed(k: string, ...v: number[]): boolean {
+    const s = v.map(x => x.toFixed(2)).join();
+    if (this.last[k] === s) return false;
+    this.last[k] = s;
+    return true;
+  }
 
   /** audio can only start on a click */
   start(): void {
@@ -40,36 +56,88 @@ export class Audio {
       this.master = ac.createGain(); this.master.gain.value = 0.55; this.master.connect(ac.destination);
       this.under = ac.createBiquadFilter(); this.under.type = 'lowpass'; this.under.frequency.value = 22000; this.under.connect(this.master);
       this.bus = ac.createGain(); this.bus.connect(this.under);
+      this.amb = ac.createGain(); this.amb.connect(this.under);
       this.dest = this.bus;
+      /* the echo: noise dying away, sooner and brighter for a small room, slower and darker for a vast one */
+      for (const [secs, dark] of [[0.45, 0.2], [1.6, 0.4], [3.4, 0.6]]) {
+        const cv = ac.createConvolver(), g = ac.createGain();
+        cv.buffer = this.impulse(secs, dark); g.gain.value = 0;
+        this.bus.connect(cv); cv.connect(g); g.connect(this.under);
+        this.space.push(g);
+      }
       this.noise = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
       const d = this.noise.getChannelData(0);
       for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
       /* the station's drone, and Gen-1's hum (silent until it runs) */
-      for (const f of [46, 49.3]) { const o = ac.createOscillator(), g = ac.createGain(); o.frequency.value = f; g.gain.value = 0.06; o.connect(g); g.connect(this.bus); o.start(); }
-      const o = ac.createOscillator(), fl = ac.createBiquadFilter();
-      this.hum = ac.createGain(); o.type = 'sawtooth'; o.frequency.value = 100; fl.type = 'lowpass'; fl.frequency.value = 220; this.hum.gain.value = 0;
-      o.connect(fl); fl.connect(this.hum); this.hum.connect(this.bus); o.start();
+      for (const f of [46, 49.3]) { const o = ac.createOscillator(), g = ac.createGain(); o.frequency.value = f; g.gain.value = 0.06; o.connect(g); g.connect(this.amb); o.start(); }
+      const o = ac.createOscillator(), sub = ac.createOscillator(), fl = ac.createBiquadFilter(), hg = ac.createGain(), sg = ac.createGain();
+      const hp = ac.createStereoPanner ? ac.createStereoPanner() : null;
+      o.type = 'sawtooth'; o.frequency.value = 25; sub.frequency.value = 12.5; sg.gain.value = 1.4;
+      fl.type = 'lowpass'; fl.frequency.value = 220; hg.gain.value = 0;
+      o.connect(fl); sub.connect(sg); sg.connect(fl); fl.connect(hg);
+      if (hp) { hg.connect(hp); hp.connect(this.amb); } else hg.connect(this.amb);
+      o.start(); sub.start();
+      this.hum = { o, sub, g: hg, f: fl, p: hp };
       /* air in the rock: noise, low and slow, silent until you are in a cave */
       const s = ac.createBufferSource(), bf = ac.createBiquadFilter();
       s.buffer = this.noise; s.loop = true; bf.type = 'bandpass'; bf.frequency.value = 240; bf.Q.value = 0.6;
       this.bed = ac.createGain(); this.bed.gain.value = 0;
-      s.connect(bf); bf.connect(this.bed); this.bed.connect(this.bus); s.start();
+      s.connect(bf); bf.connect(this.bed); this.bed.connect(this.amb); s.start();
+      /* a fluorescent tube's buzz: mains hum and its harsh overtones */
+      const bz = ac.createOscillator(), bh = ac.createBiquadFilter();
+      bz.type = 'sawtooth'; bz.frequency.value = 120; bh.type = 'highpass'; bh.frequency.value = 900;
+      this.buzz = ac.createGain(); this.buzz.gain.value = 0;
+      bz.connect(bh); bh.connect(this.buzz); this.buzz.connect(this.amb); bz.start();
     } catch { this.ac = null; }
   }
 
-  setHum(on: boolean): void {
-    if (this.ac) this.hum.gain.value = on ? 0.035 : 0;
+  /** a room's echo: noise dying away over `secs`, losing its highs first, more so the darker */
+  private impulse(secs: number, dark: number): AudioBuffer {
+    const ac = this.ac!, sr = ac.sampleRate, n = Math.floor(secs * sr), pre = Math.floor(0.012 * sr), b = ac.createBuffer(2, n, sr);
+    for (let c = 0; c < 2; c++) {
+      const d = b.getChannelData(c);
+      let lp = 0;
+      for (let i = pre; i < n; i++) {
+        const t = (i - pre) / sr, a = Math.min(0.97, dark + (0.5 * t) / secs);
+        lp = lp * a + (Math.random() * 2 - 1) * (1 - a);
+        d[i] = (lp * Math.exp((-6.9 * t) / secs)) / Math.sqrt((1 - a) / (1 + a));
+      }
+    }
+    return b;
+  }
+
+  /** Gen-1: running or not, how loud it is where you are (0..1), how muffled, which side. It winds up and down. */
+  setHum(on: boolean, level = 1, muffle = 0, pan = 0): void {
+    if (!this.ac || !this.changed('hum', +on, level, muffle, pan)) return;
+    const t = this.ac.currentTime, H = this.hum;
+    H.o.frequency.setTargetAtTime(on ? 100 : 25, t, on ? 0.8 : 1.6);
+    H.sub.frequency.setTargetAtTime(on ? 50 : 12.5, t, on ? 0.8 : 1.6);
+    H.g.gain.setTargetAtTime(on ? 0.12 * level : 0, t, on ? 0.5 : 1.4);
+    H.f.frequency.setTargetAtTime(160 + 1100 * level * (1 - muffle), t, 0.3);
+    H.p?.pan.setTargetAtTime(pan, t, 0.1);
+  }
+
+  /** the echo of where you are: how much of a small room's, a hall's and a vast space's */
+  setSpace(small: number, hall: number, vast: number): void {
+    if (!this.ac || !this.changed('space', small, hall, vast)) return;
+    const t = this.ac.currentTime;
+    [small, hall, vast].forEach((v, i) => this.space[i].gain.setTargetAtTime(v, t, 0.35));
+  }
+
+  /** a failing tube: how near (0..1), and whether it is dimmed this moment */
+  setBuzz(level: number, dim: boolean): void {
+    if (this.ac && this.changed('buzz', level, +dim)) this.buzz.gain.setTargetAtTime(0.018 * level * (dim ? 0.12 : 1), this.ac.currentTime, 0.008);
   }
 
   /** your ears under water: everything dull and close */
   setUnder(on: boolean): void {
-    if (!this.ac) return;
+    if (!this.ac || !this.changed('under', +on)) return;
     this.under.frequency.setTargetAtTime(on ? 420 : 22000, this.ac.currentTime, on ? 0.05 : 0.12);
   }
 
   /** the cave's air, 0 to 1 */
   setBed(k: number): void {
-    if (this.ac) this.bed.gain.setTargetAtTime(0.05 * k, this.ac.currentTime, 0.8);
+    if (this.ac && this.changed('bed', k)) this.bed.gain.setTargetAtTime(0.05 * k, this.ac.currentTime, 0.8);
   }
 
   /** where this sound's parts go: muffled by what is between, then to its side */
@@ -226,6 +294,8 @@ export class Audio {
           break;
         case 'crate': this.tn(170, 110, 0.15, 'sine', (0.25 + 0.4 * k) * v); this.nz(0.2, (0.3 + 0.4 * k) * v, 300); this.nz(0.06, 0.15 * k * v, 2000, 'bandpass', 0.01); break;
         case 'scrape': this.nz(0.25, 0.14 * v, 300, 'bandpass', 0, 2, 520, 0.03); this.nz(0.2, 0.1 * v, 150, 'lowpass'); break;
+        case 'zap': this.nz(0.06, 0.14 * k, 4200, 'highpass'); this.tn(120, 118, 0.05, 'square', 0.03 * k); break;
+        case 'tink': this.tn(2600, 2100, 0.012, 'square', 0.025 * k); break;
         case 'drip': { const f = rnd(1400, 2600); this.tn(f, f * 0.5, 0.06, 'sine', 0.05 * v); this.tn(f, f * 0.5, 0.06, 'sine', 0.015 * v, 0.17); break; }
 
         /* what you do */

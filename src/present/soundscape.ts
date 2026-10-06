@@ -1,16 +1,20 @@
+import type { RoomDef } from '../content/types';
 import { clamp } from '../core/math';
 import type { Mutant } from '../sim/cast';
-import type { SimEvent } from '../sim/game';
+import { power, type SimEvent } from '../sim/game';
 import type { Loose } from '../sim/loose';
 import type { Sim } from '../sim/sim';
+import { roomLight } from '../world/light';
 import type { Dyn, World } from '../world/world';
 import type { Audio, Surf, Voice } from './audio';
+import { flickerAt } from './flicker';
 
 /* Where each sound is, and the sounds nobody in the sim needs to know about. A sound from a place comes to you the way
    the cast hears you (engine.md §8): along the rooms between, so a closed door or a wall of rock muffles it and makes it
    further off than it looks. Feet are heard on what they fall on. The cast breathe, click and gurgle as they go, cry
-   out when they die; crates scrape and land; caves drip; your heart is heard when you are badly hurt. All of it is
-   looks only, so it draws on Math.random and never on the sim's seeded numbers. */
+   out when they die; crates scrape and land; caves drip; your heart is heard when you are badly hurt. Every room has
+   the echo its size gives it; Gen-1 is heard from where it stands; a failing tube buzzes and crackles as it flickers.
+   All of it is looks only, so it draws on Math.random and never on the sim's seeded numbers. */
 
 const rnd = (a: number, b: number) => a + Math.random() * (b - a);
 
@@ -26,6 +30,26 @@ export function floorAt(w: World, x: number, y: number, z: number, on: Dyn | nul
   const R = w.roomAt(x, y + 0.3, z);
   if (R?.cells || R?.sky !== undefined) return 'rock';
   return R?.plain ? 'metal' : 'concrete';
+}
+
+/** how much of each echo a room has, a small room's, a hall's and a vast space's, by how much air is in it: a cell or an
+ *  office (up to 200 m³) small, a corridor or a lab a hall, the Commons or the generator hall (5,000 m³ and up) vast.
+ *  Rock rings. */
+export function spaceOf(R: RoomDef, rock: boolean): [number, number, number] {
+  let vol = 0;
+  const c = R.cells;
+  if (c) { for (let k = 0; k < c.lo.length; k++) if (c.hi[k] > c.lo[k]) vol += c.res * c.res * (c.hi[k] - c.lo[k]); }
+  else vol = (R.x1 - R.x0) * (R.z1 - R.z0) * R.ht;
+  const L = Math.log10(Math.max(1, vol)), tri = (at: number, w: number) => Math.max(0, 1 - Math.abs(L - at) / w);
+  const sm = L <= 2.2 ? 1 : tri(2.2, 0.7), hall = tri(2.9, 0.8), vast = L >= 3.7 ? 1 : tri(3.7, 0.8), n = sm + hall + vast || 1;
+  const wet = (0.2 + (0.12 * hall) / n + (0.2 * vast) / n) * (rock ? 1.3 : 1);
+  return [(sm / n) * wet, (hall / n) * wet, (vast / n) * wet];
+}
+
+/** where Gen-1 is heard from: the board on its face, on the level it stands on; null on every other level */
+export function genAt(w: World): { x: number; y: number; z: number } | null {
+  const u = w.def.uses.find(u => u.kind === 'breaker');
+  return u ? { x: u.x, y: u.y - 1, z: u.z } : null;
 }
 
 /** how a sound made at (x, y, z) reaches you: how far it has to come, from which side, how muffled. Through the rooms
@@ -63,6 +87,11 @@ export class Soundscape {
   private heart = 0;
   private drip = 2;
   private bubbles = 2;
+  /** this level's Gen-1, the rooms near each room, the room whose echo you hear, a tube dimmed */
+  private gen: ReturnType<typeof genAt> = null;
+  private near = new Map<number, number[]>();
+  private room = -1;
+  private dim = false;
 
   constructor(private audio: Audio) {}
 
@@ -87,9 +116,12 @@ export class Soundscape {
   }
 
   /** a frame of play: what the sim does not say */
-  update(sim: Sim, dt: number): void {
+  update(sim: Sim, dt: number, t = 0): void {
     const p = sim.player, b = p.body, g = sim.game, w = sim.world, A = this.audio;
-    if (sim !== this.sim) { this.sim = sim; this.was = { water: p.water, under: p.under, air: p.air, vy: 0 }; }
+    if (sim !== this.sim) {
+      this.sim = sim; this.was = { water: p.water, under: p.under, air: p.air, vy: 0 };
+      this.gen = genAt(w); this.near.clear(); this.room = -1;
+    }
 
     /* water: in with a splash, under it everything dull, up again gasping */
     A.setUnder(p.under);
@@ -151,11 +183,44 @@ export class Soundscape {
     /* caves breathe and drip; so does anywhere near standing water */
     const cave = floorAt(w, b.x, b.y, b.z) === 'rock';
     A.setBed(cave ? 1 : 0);
+
+    /* the room's echo: kept through a doorway, so passing between two halls does not shrink them */
+    const R = w.roomAt(b.x, b.y + 1, b.z);
+    if (R && !R.doorway && R.id !== this.room) { this.room = R.id; A.setSpace(...spaceOf(R, cave || !!R.cells)); }
+
+    /* Gen-1: loud and bright in its hall, along the rooms from it on its own level, a rumble in the rock on the rest */
+    const main = !!g.station?.main, G = this.gen;
+    if (G) { const h = hearing(sim, G.x, G.y, G.z), v = clamp(1 - h.d / 90, 0, 1); A.setHum(main, Math.max(0.15, v * v), h.muffle, h.pan); }
+    else A.setHum(main, 0.15, 1, 0);
+
+    /* a failing tube, lit: it buzzes in its room and a little beyond, and crackles each time it dims */
+    let buzz = 0;
+    if (R) {
+      const lit = (r: RoomDef) => r.flick && Math.max(...roomLight(r, c => power(g, c))) > 0.02;
+      if (lit(R)) buzz = 1;
+      else if (this.nearTo(w, R.id).some(n => lit(w.rooms[n]))) buzz = 0.3;
+    }
+    const dim = flickerAt(t);
+    A.setBuzz(buzz, dim);
+    if (buzz && dim !== this.dim) A.play(dim ? 'zap' : 'tink', { k: buzz });
+    this.dim = dim;
     if ((this.drip -= dt) < 0) {
       this.drip = rnd(1.2, 4.5);
       const wet = cave || [[0, 0], [6, 0], [-6, 0], [0, 6], [0, -6]].some(([ox, oz]) => w.waterAt(b.x + ox, b.z + oz) > -Infinity);
       if (wet) A.play('drip', { d: rnd(3, 16), pan: rnd(-0.8, 0.8), muffle: rnd(0, 0.3) });
     }
+  }
+
+  /** the rooms next to a room, and through a doorway into the ones beyond it */
+  private nearTo(w: World, id: number): number[] {
+    let a = this.near.get(id);
+    if (!a) {
+      const s = new Set<number>();
+      for (const n of w.neighbours(id)) { s.add(n); if (w.rooms[n].doorway) for (const m of w.neighbours(n)) s.add(m); }
+      s.delete(id);
+      this.near.set(id, (a = [...s]));
+    }
+    return a;
   }
 }
 

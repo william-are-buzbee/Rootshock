@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { U } from './shader';
+import { flickerAt } from '../flicker';
 
 /** The renderer, the scene and the camera. It draws; it decides nothing. */
 export class View {
@@ -30,6 +31,7 @@ export class View {
 
   draw(time: number): void {
     U.uTime.value = time;
+    U.uFlick.value = flickerAt(time) ? 1 : 0;
     this.renderer.render(this.scene, this.camera);
   }
 }

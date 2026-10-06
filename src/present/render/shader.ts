@@ -24,7 +24,7 @@ void main(){
 
 const FS = /* glsl */ `
 uniform vec3 uFlashDir; uniform float uFlash; uniform float uLamp; uniform float uFog; uniform float uWet; uniform float uTime;
-uniform float uHit; uniform float uBright;
+uniform float uFlick; uniform float uHit; uniform float uBright;
 varying vec3 vW; varying vec3 vC; varying vec4 vL;
 void main(){
   vec3 n = normalize(cross(dFdx(vW), dFdy(vW)));
@@ -32,7 +32,7 @@ void main(){
   vec3 base = vC; float em = 0.0;
   if (base.r > 1.5) { base -= 2.0; em = 1.0; }
   float sh = 0.55 + 0.45 * (abs(n.y) * 0.95 + abs(n.x) * 0.7 + abs(n.z) * 0.5);
-  float fk = 1.0 - vL.a * 0.55 * step(0.72, fract(sin(floor(uTime * 11.0)) * 43758.5453));
+  float fk = 1.0 - vL.a * 0.55 * uFlick;
   float facing = 0.35 + 0.65 * abs(dot(n, Ld));
   vec3 light = vL.rgb * sh * fk + vec3(0.014) / (1.0 + 3.0 * d * d);
   float spot = smoothstep(0.80, 0.955, dot(-Ld, uFlashDir));
@@ -58,6 +58,8 @@ export const U = {
   uFog: { value: 0.032 },
   uWet: { value: 0 },
   uTime: { value: 0 },
+  /** 1 while flickering lights are dimmed (flicker.ts) */
+  uFlick: { value: 0 },
   uBright: { value: 0 },
 };
 

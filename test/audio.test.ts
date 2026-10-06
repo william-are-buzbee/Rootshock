@@ -5,7 +5,8 @@ import { makeSim, step, type Sim } from '../src/sim/sim';
 import { noInput, type Input } from '../src/sim/input';
 import { STEP } from '../src/core/loop';
 import { refreshFields } from '../src/sim/fields';
-import { floorAt, hearing } from '../src/present/soundscape';
+import { floorAt, genAt, hearing, spaceOf } from '../src/present/soundscape';
+import { flickerAt } from '../src/present/flicker';
 
 /* What the sound is told: what feet fall on, how a sound comes to you through the rooms, and the landings and jumps. The
    synthesis itself needs a browser; where a sound is does not. */
@@ -64,5 +65,33 @@ describe('you', () => {
     expect(land.length).toBe(1);
     expect(land[0].k).toBeGreaterThanOrEqual(0);
     expect(land[0].k).toBeLessThan(0.5);
+  });
+});
+
+describe('the station heard', () => {
+  const room = (s: Sim, name: string) => s.world.rooms.find(r => r.name === name)!;
+  const most = (w: number[]) => w.indexOf(Math.max(...w));
+
+  it('echoes by the size of the room: a guard post small, the generator hall vast, the cave more than either', () => {
+    const post = spaceOf(room(sim('upper'), 'Guard post'), false), hall = spaceOf(room(sim('plant'), 'Generator hall'), false);
+    expect(most(post)).toBe(0);
+    expect(most(hall)).toBe(2);
+    const cave = sim('cave'), c = cave.player.body, R = cave.world.roomAt(c.x, c.y + 1, c.z)!;
+    const sum = (w: number[]) => w.reduce((a, b) => a + b, 0);
+    expect(sum(spaceOf(R, true))).toBeGreaterThan(sum(post));
+  });
+
+  it('hears Gen-1 from its board on the plant level, and from nowhere in particular on the others', () => {
+    const plant = sim('plant'), G = genAt(plant.world)!;
+    expect(plant.world.roomAt(G.x, G.y + 1, G.z)?.name).toBe('Generator hall');
+    expect(genAt(sim('upper').world)).toBeNull();
+  });
+
+  it('flickers the same for the light and the buzz: by the slot, dim about a quarter of the time', () => {
+    expect(flickerAt(12.34)).toBe(flickerAt(12.34 + 0.01));
+    let dim = 0;
+    for (let k = 0; k < 2000; k++) if (flickerAt(k / 11 + 0.01)) dim++;
+    expect(dim / 2000).toBeGreaterThan(0.2);
+    expect(dim / 2000).toBeLessThan(0.36);
   });
 });
