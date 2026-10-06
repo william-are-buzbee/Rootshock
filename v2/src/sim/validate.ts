@@ -15,7 +15,7 @@ export interface Problem { level: string; what: string; later?: boolean }
 const KINDS = new Set(['body', 'backup', 'panel', 'fuse', 'breaker', 'lift', 'ladder', 'stair', 'look']);
 
 export function validateStation(station: StationDef, levels: LevelDef[] = station.levels.map(l => l.build())): Problem[] {
-  const out: Problem[] = [], notes = NOTES('\u0001', '\u0002'), names = new Set(station.levels.map(l => l.name));
+  const out: Problem[] = [], notes = NOTES('\u0001', '\u0002'), built = new Set(station.levels.map(l => l.id));
   /* what the whole station gives you: keys (from bodies and from things carried), and which codes are written down */
   const keys = new Set<string>(), codes = new Set<number>();
   for (const L of levels) {
@@ -62,11 +62,15 @@ export function validateStation(station: StationDef, levels: LevelDef[] = statio
       if (u.kind === 'ladder') {
         const S = station.ladders[u.opts.id as string];
         if (!S) bad(`ladder ${u.opts.id} is not one of the station's ladderways`);
-        else if (!S.broken && !S.to) bad(`ladder ${u.opts.id} does not say where it goes`);
-        else if (S.to && !names.has(S.to)) bad(`ladder ${u.opts.id} goes to ${S.to}, not ported yet`, true);
+        else if (!S.ends || !S.ends.includes(L.id)) bad(`ladder ${u.opts.id} does not say it joins this level to another`);
+        else {
+          const other = S.ends.find(e => e !== L.id)!;
+          if (!station.names[other]) bad(`ladder ${u.opts.id} goes to ${other}, which is no level of the station`);
+          else if (!built.has(other)) bad(`ladder ${u.opts.id} goes to ${station.names[other]}, not ported yet`, true);
+        }
         if (S?.need?.power) circuit(S.need.power, `ladder ${u.opts.id}`);
       }
-      if (u.kind === 'stair' && !station.levels.some(l => l.id === u.opts.to)) bad(`stairs to ${u.opts.to}, not ported yet`, true);
+      if (u.kind === 'stair' && !built.has(u.opts.to as string)) bad(`stairs to ${u.opts.to}, not ported yet`, true);
     }
     /* everything is somewhere a body can stand and reach it */
     const sim = makeSim(L, { station }), nav = (sim.fields ?? makeFields(sim)).nav;

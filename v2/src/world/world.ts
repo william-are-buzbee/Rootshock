@@ -103,7 +103,9 @@ export class World {
   }
   private dynNear(f: Footprint, ignore: Ignore, fn: (d: Dyn) => void): void {
     const skip = ignore === null ? null : typeof ignore === 'function' ? ignore : null;
+    const x0 = f.x - f.hx, x1 = f.x + f.hx, z0 = f.z - f.hz, z1 = f.z + f.hz;
     for (const d of this.dyn) {
+      if (d.x1 < x0 || d.x0 > x1 || d.z1 < z0 || d.z0 > z1) continue; // nowhere near: no call at all
       if (skip ? skip(d) : d === ignore) continue;
       if (meets(f, d.x0, d.z0, d.x1, d.z1)) fn(d);
     }

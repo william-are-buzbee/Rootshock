@@ -9,7 +9,7 @@ export class Overlay {
   private moving: THREE.LineSegments;
   on = false;
 
-  constructor(scene: THREE.Scene, private sim: Sim) {
+  constructor(scene: THREE.Object3D, private sim: Sim) {
     const w = sim.world, P: number[] = [];
     w.forEachBox(b => boxLines(b, P));
     const S: number[] = [];

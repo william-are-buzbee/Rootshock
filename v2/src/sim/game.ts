@@ -21,7 +21,9 @@ export type SimEvent =
   /** you were hurt (the screen flashes) and how hard the view shakes */
   | { type: 'hurt'; shake: number }
   | { type: 'shake'; k: number }
-  | { type: 'end'; win: boolean; msg: string };
+  | { type: 'end'; win: boolean; msg: string }
+  /** you are on another level now */
+  | { type: 'level'; id: string };
 
 export type Command =
   | { type: 'use'; slot: number }
@@ -39,6 +41,9 @@ export interface StationState {
   main: boolean;
   /** a fuse is in Gen-1's socket */
   fuseIn: boolean;
+  /** every level's name, and which are built */
+  names: Record<string, string>;
+  built: string[];
 }
 
 export interface Game {
@@ -62,6 +67,8 @@ export interface Game {
   /** the keypad in front of you: what it wants, what you have typed, which door */
   pad: { code: string; typed: string; door: number; miss?: string } | null;
   ended: { win: boolean; msg: string } | null;
+  /** you asked to go to another level: which, and the mark you arrive at there. The run carries it out. */
+  travel: { level: string; mark: string } | null;
   time: number;
   /** how far what you are doing carries (metres, through the air), and the last loud thing and how long it lingers */
   noise: number;
@@ -82,7 +89,7 @@ export function makeGame(rng: Rng, station: StationState | null): Game {
   const code = String(1000 + rng.int(9000)), code2 = String(1000 + rng.int(9000));
   return {
     station, inv: [], cap: 10, tools: [], keys: [], worn: [], weapon: null, notes: NOTES(code, code2), read: [], code, code2,
-    hp: 100, batt: 100, light: null, lightOn: false, pad: null, ended: null, time: 0,
+    hp: 100, batt: 100, light: null, lightOn: false, pad: null, ended: null, travel: null, time: 0,
     noise: 0, noiseI: 0, noiseT: 0, vis: 1, once: [], kills: 0, god: false, events: [], commands: [],
   };
 }

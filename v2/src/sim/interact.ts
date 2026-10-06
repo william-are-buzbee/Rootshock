@@ -114,22 +114,35 @@ export function buildUsables(sim: Sim): Usable[] {
         out.push({ ...base, label: () => 'Lift panel', act: () => { if (power(g, 'LIFT') < 2) { say(g, 'The lift is dead. It runs off Gen-1 and nothing else.'); sfx(g, 'deny'); return; } g.events.push({ type: 'lift' }); } });
         break;
       case 'ladder': {
-        const id = o.id as string, up = !!o.up;
+        const id = o.id as string, up = !!o.up, here = L.id;
+        const other = () => g.station?.ladders[id]?.ends?.find(e => e !== here);
         out.push({
-          ...base, label: () => (o.text as string) ?? (up ? 'Ladder up: ' : 'Ladder down: ') + (g.station?.ladders[id]?.to ?? 'nowhere'),
+          ...base, label: () => (o.text as string) ?? (up ? 'Ladder up: ' : 'Ladder down: ') + (g.station?.names[other() ?? ''] ?? 'nowhere'),
           act: () => {
-            const S = g.station?.ladders[id];
+            const S = g.station?.ladders[id], to = other();
             if (S?.broken) { say(g, S.broken); sfx(g, 'deny'); return; }
             const n = S?.need;
             if (n?.power && power(g, n.power) < 1) { say(g, n.msg ?? 'It will not open.'); sfx(g, 'deny'); return; }
-            say(g, 'The ladderway is clear. Where it leads is not built in v2 yet.');
+            if (!to || !g.station?.built.includes(to)) { say(g, 'The ladderway is clear. Where it leads is not built in v2 yet.'); return; }
+            if (S?.say) say(g, S.say);
+            sfx(g, 'step');
+            makeNoise(g, 6);
+            g.travel = { level: to, mark: 'ladder:' + id };
           },
         });
         break;
       }
-      case 'stair':
-        out.push({ ...base, label: () => (o.up ? 'Stairs up' : 'Stairs down'), act: () => say(g, 'Where these lead is not built in v2 yet.') });
+      case 'stair': {
+        const to = o.to as string;
+        out.push({
+          ...base, label: () => (o.up ? 'Stairs up' : 'Stairs down') + (g.station?.names[to] ? ': ' + g.station.names[to] : ''),
+          act: () => {
+            if (!g.station?.built.includes(to)) { say(g, 'Where these lead is not built in v2 yet.'); return; }
+            g.travel = { level: to, mark: 'stair:' + L.id };
+          },
+        });
         break;
+      }
       case 'look':
         out.push({ ...base, label: () => (o.label as string) ?? 'Look', act: () => say(g, o.text as string) });
         break;

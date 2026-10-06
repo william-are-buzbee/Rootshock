@@ -106,6 +106,8 @@ export interface Mutant {
   dead: boolean;
   /** 0..1 of its fall when it dies */
   gone: number;
+  /** steps it has stood still: a body at rest is not asked about its footing */
+  still: number;
 }
 
 const dt = STEP;
@@ -132,7 +134,7 @@ export function makeCast(sim: Sim, defs: MutantDef[]): Mutant[] {
       post: !!o.post, sit: !!o.sit, holt: !!o.holt, big: !!o.big, hx: def.x, hz: def.z, room,
       wt: rnd(1, 5), wm: 0, wx: 0, wz: 0, tk: 0, lost: 0, bt: 0, burst: false, flee: 0, ct: rnd(6, 14), cdir: 0, tgt: false,
       grab: 0, tense: 0, wind: 0, windT: 1, dest: -1, F: null, stk: 0, fled: false, side: 0, ride: null, spot: -1,
-      mv: 0, d: 99, dp: 99, dy: 0, los: false, losAt: -99, hit: 0, ph: rnd(9), dead: false, gone: 0,
+      mv: 0, d: 99, dp: 99, dy: 0, los: false, losAt: -99, hit: 0, ph: rnd(9), dead: false, gone: 0, still: 0,
     };
     return m;
   });
@@ -584,9 +586,9 @@ export function updateCast(sim: Sim): void {
     m.px = m.x; m.py = m.y; m.pz = m.z;
     if (m.hit > 0) m.hit = Math.max(0, m.hit - dt * 4);
     if (m.dead) { if (m.gone < 1) m.gone = Math.min(1, m.gone + dt * 2.5); continue; }
-    const mb = m.body;
+    const mb = m.body, resting = !!mb && m.still > 2 && mb.ground && mb.vy === 0 && !mb.on, ox = mb?.x, oz = mb?.z;
     if (mb) {
-      settle(sim.world, mb);
+      if (!resting) settle(sim.world, mb);
       m.x = mb.x; m.y = mb.y; m.z = mb.z;
       if (Fs && !m.ride) { const s = Fs.nav.locate(mb.x, mb.y, mb.z); if (s >= 0) m.spot = s; }
     }
@@ -600,7 +602,10 @@ export function updateCast(sim: Sim): void {
     if (m.stun > 0) m.stun -= dt;
     else AI[m.ai](sim, m);
     if (mb) {
-      fall(sim.world, mb, dt);
+      /* a body that has stood still on firm ground for a few steps stays where it is: its weight would only put it back */
+      const moved = mb.x !== ox || mb.z !== oz;
+      if (moved || !resting) fall(sim.world, mb, dt);
+      m.still = moved ? 0 : m.still + 1;
       m.x = mb.x; m.y = mb.y; m.z = mb.z;
     }
     if (sim.game.ended) return;

@@ -463,7 +463,27 @@ Each step ends with something you can open and play.
      circuits that do not, cards nobody carries, codes written nowhere, ladders that do not say where they go, and
      anything placed out of reach of anywhere to stand. What waits on a level not yet ported (ladder A1's other end; the
      Armory code, on Aldana's hand in the sump) is marked as such, not as a mistake.
-8. **The other levels**, one at a time.
+8. **The other levels**, one at a time. **In progress: travel, and the main level, done.**
+   - **Travel** (`sim/run.ts`): a run is every level you have been to, each its own sim and world, sharing one game
+     (what you carry and know, the power) and one draw of chance. Only the level you are on moves; one you leave waits
+     as you left it, as in the first engine. Ladders, stairs and the lift ask for a trip; the run takes you to the far
+     level's mark for the way you came (a ladderway now names the two levels it joins). A level is built the first time
+     you go there (the main level: 1 s, its nav graph most of it, behind the fade). A run saves and loads whole. The
+     page keeps each level's drawing once made, so going back is only showing it again.
+   - **The main level** (`content/levels/main.ts`), ported from `buildMain`, `buildSquare`, `flatRect`, `groundFloor`
+     and `buildHorticulture`: the Commons and its galleries and flats, the Square, Horticulture and the arboretum. 165
+     rooms, 2,808 props, 71 doors, 69 of the cast; built in 46 ms. Shot beside the first engine with full power, view
+     for view; the dressing that the first engine scattered by chance falls differently, as it did between its loads.
+   - **Settled on the way**: storeys 3.5 m apart, not 3.4, so floors fall on the grid (§14); open air over a lower room
+     has no floor only where that room reaches up through it (the street under its cavern), not over a flat's roof; a
+     cavern's sky is drawn (its roof in its colour, lit up, no fittings), as before.
+   - **Cost**: a step on the main level, everyone awake, 0.7 ms (worst 2 ms); the upper station 0.25 ms. What made the
+     difference: a body standing still on firm ground is not asked about its footing, and the moving things near a
+     footprint are found by their bounds before anything else is asked of them.
+   - **Checked**: validation clean (the ladders on to the plant level and the cave wait for those levels); the checker
+     from the foot of ladder A1 reaches Horticulture and every way on, with Gen-1 everything; 10 states, 85 ms. The
+     checker now takes what only ever adds (keys, codes, things carried) all at once and trims each route to what its
+     goal needs, which took it from thousands of states to tens.
 9. **Swap**: v2 becomes the game at the root; the old one is archived.
 
 ---
@@ -475,10 +495,15 @@ Each step ends with something you can open and play.
 2. **Caves with irregular outlines.** The first engine's caves are tunnels and chambers of any shape (`caveShape`,
    `tunnel`, `chamber`); the upper station has none. Their outline can be stamped cell by cell with surfaces masked
    to it; to be built with the level that first needs it (step 8).
-3. **Storey heights off the 0.25 m grid.** The main level's storeys are 3.4 m apart; the grid would make them 3.5.
-   Either the content moves to 3.5 m or the slabs become exact solids. Decide when porting the main level.
+3. **Locks without power.** v2 keeps the first engine's rule that a card reader or keypad with no power is no lock
+   (the door slides by hand). `world.md` §4 agrees a change to fail-secure: locked with the power off, the reader
+   needing power to read. The progression checker shows what the old rule allows: on the main level, stopping
+   Horticulture's backup set opens the card door to the labs without the guard's card. To decide before the levels
+   that lean on locks are tuned.
 
 ### Settled
+
+- **Storey heights** (step 8): 3.5 m, on the grid. The main level's storeys were 3.4 m; the 10 cm is not to be seen.
 
 - **Mutants on stairs, ladders and elevators**: yes (§7).
 - **Physical objects**: yes, unless they cost the frame rate (§6).

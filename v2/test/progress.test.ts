@@ -52,7 +52,7 @@ describe('a level built to go wrong', () => {
   /* a hall with one splice kit and two burned-out connections, each powering the heavy door to its own way down; and a
      pit off the hall you can drop into and not climb out of */
   const station: StationDef = {
-    levels: [], ladders: {}, main: true, start: 'trap',
+    levels: [], ladders: {}, main: true, start: 'trap', names: { trap: 'Trap' },
     circuits: { MAIN: { on: true, back: false }, A: { on: false, back: false, broken: true }, B: { on: false, back: false, broken: true } },
   };
   const b = new LevelBuilder('trap', 'Trap', { circuit: 'MAIN' });

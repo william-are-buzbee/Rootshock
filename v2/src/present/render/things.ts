@@ -142,7 +142,7 @@ export class Things {
     for (const s of this.signs) s.mat.color.setScalar(L.power(s.circuit) ? 1 : 0.3);
   }
 
-  constructor(private scene: THREE.Scene, private sim: Sim, private L: Lighting) {
+  constructor(private scene: THREE.Object3D, private sim: Sim, private L: Lighting) {
     const w = sim.world;
     for (const d of sim.doors) {
       const D = d.def, { body, lights } = doorParts(D), long = Math.max(D.x1 - D.x0, D.z1 - D.z0), need = D.kind === 'heavy' ? 2 : 1;

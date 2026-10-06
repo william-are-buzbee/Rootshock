@@ -33,7 +33,7 @@ const PLATFORM = ['y', 'target', 'wait', 'moving', 'armed'] as const;
 const LOOSE = ['x', 'y', 'z', 'vx', 'vy', 'vz', 'awake', 'ground', 'still', 'woke'] as const;
 const MUTANT = ['x', 'y', 'z', 'px', 'py', 'pz', 'yaw', 'state', 'st', 'cd', 'stun', 'hp', 'post', 'wt', 'wm', 'wx', 'wz', 'tk',
   'lost', 'bt', 'burst', 'flee', 'ct', 'cdir', 'tgt', 'grab', 'tense', 'wind', 'windT', 'stk', 'fled', 'side', 'spot', 'mv',
-  'hit', 'ph', 'dead', 'gone', 'dest', 'los', 'losAt'] as const;
+  'hit', 'ph', 'dead', 'gone', 'dest', 'los', 'losAt', 'still'] as const;
 
 /** what a rider stands on, by the moving thing's id */
 const onId = (r: { on: { id: number } | null }) => r.on?.id ?? 0;
@@ -100,14 +100,18 @@ export function save(sim: Sim): Save {
 
 /** a sim of `level` as the save left it */
 export function load(level: LevelDef, data: Save, o: SimOpts = {}): Sim {
+  /* a level of a run that is not the one you are on shares the run's game and chance: those are not this save's to set */
+  const shared = !!o.game;
   if (data.v !== SAVE_VERSION) throw new Error(`save version ${data.v}, expected ${SAVE_VERSION}`);
   if (data.level !== level.id) throw new Error(`save is of ${data.level}, not ${level.id}`);
   const sim = makeSim(level, o), g = sim.game;
   g.events.length = 0; // what it said as it began was said long ago
   sim.tick = data.tick;
-  sim.rng = new Rng(data.rng);
-  put(g, data.game as Partial<Game>);
-  g.notes = NOTES(g.code, g.code2);
+  if (!shared) {
+    sim.rng = new Rng(data.rng);
+    put(g, data.game as Partial<Game>);
+    g.notes = NOTES(g.code, g.code2);
+  }
 
   put(sim.player, data.player as never);
   put(sim.player.body, data.body as never);

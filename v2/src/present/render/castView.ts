@@ -225,7 +225,7 @@ interface Shown { m: Mutant; M: Model; mat: THREE.ShaderMaterial; blood: boolean
 export class CastView {
   private shown: Shown[] = [];
 
-  constructor(private scene: THREE.Scene, private sim: Sim, private L: Lighting) {
+  constructor(private scene: THREE.Object3D, private sim: Sim, private L: Lighting) {
     for (const m of sim.cast) {
       const mat = dynamicMaterial(), M = BUILD[m.model](mat, m);
       scene.add(M.g);

@@ -11,7 +11,7 @@ describe('level validation', () => {
   it('finds no mistakes in the station; what waits on other levels is marked as such', () => {
     const p = validateStation(STATION, [upper]);
     expect(p.filter(x => !x.later)).toEqual([]);
-    expect(p.filter(x => x.later).map(x => x.what)).toEqual(expect.arrayContaining(['ladder A1 goes to Main level, not ported yet', 'door 16 wants code 1, written on a paper no level ported yet holds']));
+    expect(p.filter(x => x.later).map(x => x.what)).toEqual(expect.arrayContaining(['door 16 wants code 1, written on a paper no level ported yet holds']));
   });
 
   it('catches a thing that does not exist, a card nobody has, a code written nowhere, and a thing out of reach', () => {

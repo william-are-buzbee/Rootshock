@@ -38,7 +38,7 @@ export interface TRoom {
   id: number; name: string; x: number; y: number; w: number; h: number;
   ht: number; fl: number; wl: number; st: number;
   lit: LitRule; lc: Colour; em: boolean; c: string; flick: boolean;
-  open: boolean; hole: string | null; cave: boolean; air: boolean;
+  open: boolean; hole: string | null; cave: boolean; air: boolean; sky?: number;
   nolamp: boolean; noroam: boolean; safe: boolean;
 }
 
@@ -120,7 +120,7 @@ export function room(D: Deck, name: string, x: number, y: number, w: number, h: 
   const r: TRoom = {
     id: D.rooms.length, name, x, y, w, h, ht: o.ht ?? 3.2, fl: o.fl ?? 0x6b6e6a, wl: o.wl ?? 0x7c7f7a, st: o.st ?? 0x555555,
     lit: o.lit ?? 'main', lc: o.lc ?? WHITE, em: !!o.em, c: o.c ?? D.c, flick: !!o.flick,
-    open: !!o.open, hole: o.hole ? String(o.hole) : null, cave: !!o.cave, air: !!o.air,
+    open: !!o.open, hole: o.hole ? String(o.hole) : null, cave: !!o.cave, air: !!o.air, ...(o.sky !== undefined ? { sky: o.sky } : {}),
     nolamp: !!o.nolamp, noroam: !!o.noroam, safe: !!o.safe,
   };
   D.rooms.push(r);
@@ -285,7 +285,7 @@ export function finishLevel(start?: [number, number, number]) {
       if (R.hole) continue;
       const opts = {
         pal: { fl: R.fl, wl: R.wl, st: R.st } as Palette, lit: R.lit, lc: R.lc, em: R.em, circuit: R.c, flick: R.flick,
-        nolamp: true, plain: R.open || R.cave, safe: R.safe, noroam: R.noroam,
+        nolamp: true, plain: R.open || R.cave, safe: R.safe, noroam: R.noroam, ...(R.sky !== undefined ? { sky: R.sky } : {}),
       };
       const x0 = X(D, R.x), z0 = Z(D, R.y), x1 = X(D, R.x + R.w), z1 = Z(D, R.y + R.h);
       if (R.cave) {
@@ -320,17 +320,22 @@ export function finishLevel(start?: [number, number, number]) {
         else b.sign(text, cx, y, z0 + T + 0.03, 0, circuit);
       }
     }
-    /* floors under an upper deck: a slab under every tile that is not a hole (or air over a room below), row by row */
+    /* floors under an upper deck: a slab under every tile that is not a hole (or air over a room below that reaches up
+       through it: the street's cavern under its own sky, not a flat's ceiling), row by row */
+    const through = (k: number) => {
+      const lo = dnAt(D, k), R = lo && roomAtTile(lo, k);
+      return !!R && lo!.y0 + R.ht > D.y0 + 0.01;
+    };
     if (D.below) {
       for (let j = 0; j < D.H; j++)
         for (let i = 0; i < D.W; ) {
           const k = j * D.W + i, R = roomAtTile(D, k);
-          const solid = D.g[k] && !(R && (R.hole || (R.air && dnAt(D, k))));
+          const solid = D.g[k] && !(R && (R.hole || (R.air && through(k))));
           if (!solid) { i++; continue; }
           let n = 1;
           while (i + n < D.W) {
             const k2 = j * D.W + i + n, R2 = roomAtTile(D, k2);
-            if (!(D.g[k2] && !(R2 && (R2.hole || (R2.air && dnAt(D, k2)))))) break;
+            if (!(D.g[k2] && !(R2 && (R2.hole || (R2.air && through(k2)))))) break;
             n++;
           }
           b.block(X(D, i), D.y0 - SLAB, Z(D, j), X(D, i + n), D.y0, Z(D, j + 1), (R?.open ? hex(R.fl) : DOORPAL.fl) as Colour);
@@ -354,7 +359,7 @@ export function finishLevel(start?: [number, number, number]) {
       }
     /* ceiling fittings, every third tile, as before */
     for (const R of D.rooms) {
-      if (R.nolamp || R.open || R.hole || R.cave) continue;
+      if (R.nolamp || R.open || R.hole || R.cave || R.sky !== undefined || R.air) continue;
       for (let j = 0; j < R.h; j++)
         for (let i = 0; i < R.w; i++) {
           if (i % 3 !== (R.w > 1 ? 1 : 0) || j % 3 !== (R.h > 1 ? 1 : 0)) continue;

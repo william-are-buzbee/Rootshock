@@ -30,6 +30,8 @@ export interface RoomOpts {
   nolamp?: boolean;
   /** rock or walkway, not a fitted room: plain walls */
   plain?: boolean;
+  /** the roof painted as sky */
+  sky?: number | Colour;
   doorway?: boolean;
   safe?: boolean;
   noroam?: boolean;
@@ -82,6 +84,7 @@ export class LevelBuilder {
       lit: o.lit ?? (fixed ? (dark ? 'none' : 'always') : 'always'),
       lc: o.lc ?? (fixed ? o.light! : WHITE),
       em: !!o.em, circuit: o.circuit ?? this.def.circuit, flick: !!o.flick, doorway: !!o.doorway, safe: !!o.safe, noroam: !!o.noroam,
+      ...(o.sky !== undefined ? { sky: hex(o.sky) } : {}),
     };
     this.def.rooms.push(r);
     if (o.nolamp) this.nolamp.add(r.id);

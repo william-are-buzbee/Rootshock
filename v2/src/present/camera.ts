@@ -17,6 +17,11 @@ export class CameraRig {
   shake = 0;
   private fwd = { x: 0, y: 0, z: -1 };
 
+  /** a new place (another level): no easing in from where you were */
+  reset(): void {
+    this.cy = NaN;
+  }
+
   update(cam: THREE.PerspectiveCamera, sim: Sim, prev: Prev, alpha: number, dt: number, look: { yaw: number; pitch: number }): void {
     const p = sim.player, b = p.body;
     const x = prev.x + (b.x - prev.x) * alpha, y = prev.y + (b.y - prev.y) * alpha, z = prev.z + (b.z - prev.z) * alpha;

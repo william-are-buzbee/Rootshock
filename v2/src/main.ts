@@ -2,8 +2,9 @@ import { FixedLoop } from './core/loop';
 import { testbed } from './content/levels/testbed';
 import { STATION } from './content/station';
 import { Lighting } from './world/light';
-import { applyCommands, makeSim, step, type Sim } from './sim/sim';
-import { load, save } from './sim/save';
+import { applyCommands, makeSim, type Sim } from './sim/sim';
+import { loadRun, makeRun, saveRun, soloRun, stepRun, type Run } from './sim/run';
+import { save } from './sim/save';
 import { checkProgress, describe, type CheckOpts } from './sim/progress';
 import { readStore, writeStore } from './present/store';
 import { power } from './sim/game';
@@ -11,17 +12,16 @@ import { CameraRig, type Prev } from './present/camera';
 import { Controls } from './present/controls';
 import { Audio } from './present/audio';
 import { View } from './present/render/view';
-import { Things } from './present/render/things';
-import { CastView } from './present/render/castView';
+import { LevelView } from './present/render/levelView';
 import { HandsView } from './present/render/handsView';
-import { Overlay } from './present/render/overlay';
 import { U } from './present/render/shader';
 import { Hud } from './present/ui/hud';
 import { Panels } from './present/ui/panels';
 
 /* Boot: content -> world -> sim, and the page around it. The frame runs whole sim steps for the time that passed, then draws
-   between the last two. The sim reports what happened as events (messages, sounds, a note to show, the power changing);
-   the menus send what the player chose back as commands. */
+   between the last two. The sim reports what happened as events (messages, sounds, a note to show, the power changing,
+   another level); the menus send what the player chose back as commands. A run holds every level you have been to;
+   each is drawn as its own group, kept once made. */
 
 const params = new URLSearchParams(location.search);
 const DEV = params.has('dev');
@@ -38,19 +38,20 @@ try {
 
 /* which level: the station's start by default; ?level=<id> for another, or the test bed. ?power=full: everything on. */
 const want = params.get('level') ?? STATION.start;
-const entry = STATION.levels.find(l => l.id === want);
-const level = want === 'testbed' || !entry ? testbed() : entry.build();
-const station = want === 'testbed' || !entry ? undefined : STATION;
-if (station && params.get('power') === 'full') { station.main = true; for (const c of Object.values(station.circuits)) { c.on = true; c.broken = false; } }
+const inStation = STATION.levels.some(l => l.id === want);
+if (inStation && params.get('power') === 'full') { STATION.main = true; for (const c of Object.values(STATION.circuits)) { c.on = true; c.broken = false; } }
 /* a run left part way (paused, tab hidden, page closed) goes on from where it was; going on uses the save up, so a
    death is still a death. Dev pages and the test bed do not save. */
-const SAVE_KEY = 'rootshock-v2:' + level.id, saving = !DEV && !!station;
+const SAVE_KEY = 'rootshock-v2:run', saving = !DEV && inStation && !params.has('level');
 const stored = saving ? readStore(SAVE_KEY) : null;
-let resumed: Sim | null = null;
-if (stored) try { resumed = load(level, JSON.parse(stored), { station }); } catch { writeStore(SAVE_KEY, null); }
-const sim: Sim = resumed ?? makeSim(level, { seed: (Math.random() * 2 ** 32) >>> 0, station });
+let resumed: Run | null = null;
+if (stored) try { resumed = loadRun(STATION, JSON.parse(stored)); } catch { writeStore(SAVE_KEY, null); }
+const seed = (Math.random() * 2 ** 32) >>> 0;
+const run: Run = resumed ?? (inStation ? makeRun(STATION, { seed, start: want }) : soloRun(makeSim(testbed(), { seed })));
+let sim: Sim = run.here;
+let mode: 'title' | 'play' | 'pause' | 'panel' | 'end' = 'title';
 function suspend(): void {
-  if (saving && sim.tick > 0 && !sim.game.ended && mode !== 'title' && mode !== 'end') writeStore(SAVE_KEY, JSON.stringify(save(sim)));
+  if (saving && sim.tick > 0 && !sim.game.ended && mode !== 'title' && mode !== 'end') writeStore(SAVE_KEY, JSON.stringify(saveRun(run)));
 }
 if (resumed) {
   document.getElementById('titleg')!.textContent = 'Click to go on where you left off';
@@ -63,23 +64,28 @@ if (resumed) {
 }
 document.addEventListener('visibilitychange', () => { if (document.hidden) suspend(); });
 window.addEventListener('pagehide', suspend);
+
+/* each level drawn once, and lit by the power as it is when you are there */
 const lightingNow = () => new Lighting(sim.world, c => power(sim.game, c));
 let lighting = lightingNow();
-const t0 = performance.now();
-view.setLevel(sim.world, lighting);
-const meshMs = performance.now() - t0;
-const things = new Things(view.scene, sim, lighting);
-const castView = new CastView(view.scene, sim, lighting);
+const levels = new Map<Sim, LevelView>();
+function levelView(): LevelView {
+  let lv = levels.get(sim);
+  if (!lv) levels.set(sim, (lv = new LevelView(sim, lighting, DEV)));
+  else lv.relight(lighting);
+  return lv;
+}
+let here = levelView();
+view.show(here.group);
 view.scene.add(view.camera); // the hand rides on it
 const handsView = new HandsView(view.camera, sim, lighting);
 let hurtFx = 0;
-const overlay = DEV ? new Overlay(view.scene, sim) : null;
 
 const rig = new CameraRig();
 const loop = new FixedLoop();
 const audio = new Audio();
 const prev: Prev = { x: 0, y: 0, z: 0 };
-let mode: 'title' | 'play' | 'pause' | 'panel' | 'end' = 'title';
+const fade = document.getElementById('fade')!;
 
 const controls = new Controls(canvas, () => { if (mode === 'play') setMode('pause'); }, text => panels.say(text));
 const panels = new Panels(c => sim.game.commands.push(c), () => sim.game, () => { if (mode === 'panel') { setMode('play'); controls.lock(); } });
@@ -89,7 +95,7 @@ if (DEV) {
   controls.onKey.set('KeyV', () => { sim.player.fly = !sim.player.fly; });
   controls.onKey.set('KeyG', () => { sim.game.god = !sim.game.god; });
   controls.onKey.set('KeyB', () => { devFlags.bright = !devFlags.bright; U.uBright.value = devFlags.bright ? 0.55 : 0; });
-  if (overlay) controls.onKey.set('KeyO', () => overlay.toggle());
+  controls.onKey.set('KeyO', () => here.overlay?.toggle());
 }
 
 function setMode(m: typeof mode): void {
@@ -125,6 +131,22 @@ window.addEventListener('keydown', e => {
   } else if (c === 'Escape' || c === 'Tab' || c === 'KeyI' || (c === 'KeyE' && open !== 'inv') || (c === 'Space' && open === 'note')) panels.close();
 });
 
+/** you are on another level: draw it, light it, and fade in as the first engine did */
+function arrive(): void {
+  sim = run.here;
+  lighting = lightingNow();
+  here = levelView();
+  view.show(here.group);
+  handsView.sim = sim;
+  handsView.setLighting(lighting);
+  rig.reset();
+  const b = sim.player.body;
+  prev.x = b.x; prev.y = b.y; prev.z = b.z;
+  fade.style.transition = 'none';
+  fade.style.opacity = '1';
+  requestAnimationFrame(() => { fade.style.transition = 'opacity .65s'; fade.style.opacity = '0'; });
+}
+
 /** what the sim reported this frame */
 function events(): void {
   const g = sim.game, b = sim.player.body;
@@ -134,12 +156,11 @@ function events(): void {
       case 'sfx': if (ev.x !== undefined) audio.at(ev.name, ev.x, ev.z!, { x: b.x, z: b.z, yaw: sim.player.yaw }, ev.big); else audio.play(ev.name, ev.d ?? 0); break;
       case 'note': openPanel(() => panels.showNote(g, ev.key)); break;
       case 'pad': openPanel(() => { panels.show('pad'); panels.renderPad(g); }); break;
-      case 'lift': openPanel(() => panels.showLift(STATION.levels.map(l => ({ id: l.id, name: l.name, here: l.id === level.id })))); break;
+      case 'lift': openPanel(() => panels.showLift(STATION.levels.map(l => ({ id: l.id, name: l.name, here: l.id === sim.world.def.id })))); break;
+      case 'level': break; // the run has moved you already: see arrive()
       case 'power':
         lighting = lightingNow();
-        view.relight(lighting);
-        things.setLighting(lighting);
-        castView.setLighting(lighting);
+        here.relight(lighting);
         handsView.setLighting(lighting);
         audio.setHum(!!g.station?.main);
         if (ev.loud) audio.play('power');
@@ -158,13 +179,15 @@ function frame(t: number): void {
   requestAnimationFrame(frame);
   const dt = last ? Math.min(0.25, (t - last) / 1000) : 0;
   last = t;
-  /* the world runs while you play; while a menu is open it stands still and only takes the menu's commands */
+  /* the world runs while you play; while a menu is open it stands still and only takes the menu's commands. A lift
+     chosen from its panel is a command: the step after it is the one that takes you. */
   if (mode === 'play') {
     const n = loop.advance(dt);
     for (let k = 0; k < n; k++) {
       const b = sim.player.body;
       prev.x = b.x; prev.y = b.y; prev.z = b.z;
-      step(sim, controls.take());
+      stepRun(run, controls.take());
+      if (run.here !== sim) { events(); arrive(); }
     }
   } else if (mode === 'panel') applyCommands(sim);
   if (!sim.tick) { const b = sim.player.body; prev.x = b.x; prev.y = b.y; prev.z = b.z; }
@@ -174,11 +197,9 @@ function frame(t: number): void {
   flick -= dt;
   if (flick < 0 && Math.random() < dt * (g.batt < 20 ? 1.4 : 0.3)) flick = 0.05 + Math.random() * 0.2;
   if (flick > 0 && g.lightOn) U.uFlash.value *= 0.25;
-  things.update();
-  castView.update(mode === 'play' ? loop.alpha : 1);
+  here.update(mode === 'play' ? loop.alpha : 1);
   handsView.update(rig.bob, t / 1000);
   hurtFx = Math.max(0, hurtFx - dt * 0.9);
-  overlay?.update();
   events();
 
   const p = sim.player, under = p.under;
@@ -188,13 +209,16 @@ function frame(t: number): void {
   panels.status(g, p.air < p.airMax - 0.01 ? p.air / p.airMax : null, p.crouch, hurtFx);
 
   const b = sim.player.body, room = sim.world.roomAt(b.x, b.y + 0.5, b.z);
-  hud.setRoom(room?.name ?? '', level.name, mode === 'title' ? 0 : dt); // the label waits for you to open your eyes
+  hud.setRoom(room?.name ?? '', sim.world.def.name, mode === 'title' ? 0 : dt); // the label waits for you to open your eyes
   if (dt > 0) fps += (1 / dt - fps) * 0.05;
-  hud.dev(DEV ? `${b.x.toFixed(2)} ${b.y.toFixed(2)} ${b.z.toFixed(2)}  ${room?.name ?? 'rock'}  ${b.ground ? 'ground' : 'air'}  ${Math.round(fps)} fps\n${sim.world.grid.chunkCount} chunks  mesh ${meshMs.toFixed(0)} ms  ${['fly', 'god', 'bright'].filter(k => k === 'fly' ? sim.player.fly : k === 'god' ? sim.game.god : devFlags.bright).join(' ')}\nV fly  G god  B bright  O colliders` : null);
+  hud.dev(DEV ? `${b.x.toFixed(2)} ${b.y.toFixed(2)} ${b.z.toFixed(2)}  ${room?.name ?? 'rock'}  ${b.ground ? 'ground' : 'air'}  ${Math.round(fps)} fps\n${sim.world.def.name}: ${sim.world.grid.chunkCount} chunks  mesh ${here.meshMs.toFixed(0)} ms  ${['fly', 'god', 'bright'].filter(k => k === 'fly' ? sim.player.fly : k === 'god' ? sim.game.god : devFlags.bright).join(' ')}\nV fly  G god  B bright  O colliders` : null);
   view.draw(t / 1000);
 }
-/* ?dev: the sim on the window, for poking at from the console or a test script */
-if (DEV) (window as unknown as { rs: unknown }).rs = { sim, overlay, step, save: () => save(sim), progress: (o?: CheckOpts) => describe(checkProgress(sim, o)) };
+/* ?dev: the run on the window, for poking at from the console or a test script */
+if (DEV) (window as unknown as { rs: unknown }).rs = {
+  run, get sim() { return sim; }, step: stepRun, save: () => save(sim), saveRun: () => saveRun(run),
+  progress: (o?: CheckOpts) => describe(checkProgress(sim, o)),
+};
 
 setMode('title');
 requestAnimationFrame(frame);

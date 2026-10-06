@@ -78,7 +78,8 @@ export function corpse(D: Deck, x: number, z: number, c: number, ns: boolean, o:
 }
 
 /* ---- growth: the green kind */
-const GR = [0x3f6a3a, 0x4f7a40, 0x2f5a34, 0x5a7a3a, 0x6a8a44, 0x2a4a2c];
+/** the greens of the garden */
+export const GR = [0x3f6a3a, 0x4f7a40, 0x2f5a34, 0x5a7a3a, 0x6a8a44, 0x2a4a2c];
 export function bush(D: Deck, x: number, z: number, s: number): void {
   for (let k = 0; k < 3; k++) P(D, 'ico', x + rnd(-0.2, 0.2) * s, z + rnd(-0.2, 0.2) * s, rnd(0.5, 1) * s, rnd(0.4, 0.9) * s, rnd(0.5, 1) * s, pick(GR), { c: 0, y: rnd(0, 0.2) });
 }

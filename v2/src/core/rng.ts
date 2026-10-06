@@ -28,6 +28,10 @@ export class Rng {
   state(): number {
     return this.s;
   }
+  /** go back to a state (a save's) */
+  restore(s: number): void {
+    this.s = s >>> 0;
+  }
 }
 
 export function hashString(s: string): number {

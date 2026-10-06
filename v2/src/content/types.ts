@@ -30,6 +30,8 @@ export interface RoomDef {
   /** for the cast: a refuge they do not enter (safe), a room they do not wander into (noroam) */
   safe: boolean;
   noroam: boolean;
+  /** a cavern's roof painted as sky: its ceiling is this colour, and no fittings hang from it */
+  sky?: Colour;
 }
 
 /** solid built back into open space: a platform, a step, a plinth. Part of the world, not a prop. */
@@ -174,8 +176,8 @@ export interface CircuitDef { on: boolean; back: boolean; broken?: boolean; tag?
 /** a ladderway between two levels: broken (why it does not go), or needing something to pass */
 export interface LadderDef {
   broken?: string; need?: { power?: string; msg?: string }; say?: string;
-  /** the level at its other end */
-  to?: string;
+  /** the two levels it joins, by id */
+  ends?: [string, string];
 }
 
 export interface StationDef {
@@ -188,4 +190,6 @@ export interface StationDef {
   start: string;
   /** what you are told as it begins */
   intro?: string;
+  /** every level's name, ported or not (a ladder names where it goes before that level is built) */
+  names: Record<string, string>;
 }
