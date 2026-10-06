@@ -10,14 +10,20 @@ import type { Sim } from './sim';
 
 export { wstats, type WeaponStats };
 
-/* Your hands (engine.md §8). A swing is two motions: hold to load it, let go to throw it. Let go early and nothing
-   happens. A gun fires on the press. As the first engine had them. */
+/* Your hands (engine.md §8). A swing is two motions: hold to load it, let go to throw it. Let go early and it is a jab:
+   quicker to throw, weaker, and it leaves your arm slow to come back, so it pushes something off you but does not
+   win a fight. A blow that lands stops the swing for a moment (hit-stop), so you feel it land. A gun fires on the
+   press. */
 
 export interface Hands {
   /** seconds a swing has been loading; -1 when not */
   chg: number;
   full: boolean;
-  swing: { t: number; dur: number; done: boolean } | null;
+  swing: { t: number; dur: number; done: boolean; pow: number } | null;
+  /** after a jab, the arm coming back: no new swing until it is in */
+  rec: number;
+  /** a blow has landed: the swing holds still this long */
+  stop: number;
   /** a gun's cooldown */
   gcd: number;
   /** a gun's kick, 1 dying to 0, and its flash */
@@ -27,7 +33,10 @@ export interface Hands {
   held: boolean;
 }
 
-export const makeHands = (): Hands => ({ chg: -1, full: false, swing: null, gcd: 0, kick: 0, muzzle: 0, held: false });
+export const makeHands = (): Hands => ({ chg: -1, full: false, swing: null, rec: 0, stop: 0, gcd: 0, kick: 0, muzzle: 0, held: false });
+
+/** a jab: how hard, at the least and as it nears a full load; how long the arm takes to come back */
+const JAB = { min: 0.25, max: 0.7, rec: 0.3 };
 
 const dt = STEP;
 const wet = (sim: Sim) => sim.player.water !== 'dry';
@@ -38,25 +47,28 @@ export function updateHands(sim: Sim, input: Input): void {
   if (h.gcd > 0) h.gcd -= dt;
   if (h.kick > 0) h.kick = Math.max(0, h.kick - dt * 5);
   if (h.muzzle > 0) h.muzzle -= dt;
+  if (h.rec > 0) h.rec -= dt;
   const press = input.attack && !h.held, release = !input.attack && h.held;
   h.held = input.attack;
   if (w.gun) { h.chg = -1; h.swing = null; if (press) fire(sim, w); return; }
-  if (press && !h.swing && h.chg < 0) { h.chg = 0; h.full = false; }
+  if (press && !h.swing && h.chg < 0 && h.rec <= 0) { h.chg = 0; h.full = false; }
   if (h.chg >= 0) {
     h.chg += dt;
     if (h.chg >= loadTime(sim, w) && !h.full) { h.full = true; sfx(g, 'load'); }
   }
   if (release && h.chg >= 0) {
-    const pow = h.chg / loadTime(sim, w);
+    const f = h.chg / loadTime(sim, w), pow = f >= 1 ? 1 : JAB.min + (JAB.max - JAB.min) * f;
     h.chg = -1;
-    if (pow >= 1) { h.swing = { t: 0, dur: (0.2 + 0.05 * w.mass) * (wet(sim) ? 1.3 : 1), done: false }; sfx(g, 'swing'); }
+    h.swing = { t: 0, dur: (0.2 + 0.05 * w.mass) * (wet(sim) ? 1.3 : 1) * (pow < 1 ? 0.8 : 1), done: false, pow };
+    sfx(g, 'swing');
   }
   const s = h.swing;
   if (s) {
-    s.t += dt;
+    if (h.stop > 0) h.stop -= dt;
+    else s.t += dt;
     const q = Math.min(1, s.t / s.dur);
-    if (q >= (g.weapon ? 0.45 : 0.4) && !s.done) { s.done = true; strike(sim, w, 1); }
-    if (q >= 1) h.swing = null;
+    if (q >= (g.weapon ? 0.45 : 0.4) && !s.done) { s.done = true; strike(sim, w, s.pow); }
+    if (q >= 1) { h.swing = null; if (s.pow < 1) h.rec = JAB.rec; }
   }
 }
 
@@ -93,11 +105,18 @@ function strike(sim: Sim, w: WeaponStats, pow: number): void {
   if (best) {
     hitMutant(sim, best, w, pow);
     makeNoise(g, 6 + 4 * pow);
+    landed(sim, 0.3 + 0.7 * pow);
     return;
   }
   /* nothing there but the wall */
   const r = w.reach - 0.3, cy = A.ey - 0.3;
-  if (sim.world.raycast(A.ex, cy, A.ez, A.ex + pfx * r, cy, A.ez + pfz * r, seeThrough) < 1) { sfx(g, 'clang'); makeNoise(g, 8); }
+  if (sim.world.raycast(A.ex, cy, A.ez, A.ex + pfx * r, cy, A.ez + pfz * r, seeThrough) < 1) { sfx(g, 'clang'); makeNoise(g, 8); landed(sim, 0.6); }
+}
+
+/** a blow met something: the swing stops for a moment, and the view takes the jolt */
+function landed(sim: Sim, k: number): void {
+  sim.hands.stop = 0.035 + 0.035 * k;
+  sim.game.events.push({ type: 'impact', k });
 }
 
 function fire(sim: Sim, w: WeaponStats): void {

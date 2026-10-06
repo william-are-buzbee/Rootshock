@@ -10,7 +10,7 @@ export type Surf = 'concrete' | 'metal' | 'rock' | 'wood' | 'wet';
 export interface Voice { d?: number; pan?: number; muffle?: number; big?: boolean; surf?: Surf; k?: number }
 
 const RANGE: Record<string, number> = {
-  door: 46, roar: 55, thud: 40, hstep: 18, moan: 28, tap: 24, skit: 24, slosh: 20, swing: 10, step: 30, rattle: 30,
+  door: 46, roar: 55, thud: 40, hstep: 18, moan: 28, tap: 24, skit: 24, slosh: 20, swing: 10, whiff: 14, step: 30, rattle: 30,
   breath: 10, mutter: 20, click: 14, gurgle: 22, growl: 30, slither: 10, bubble: 12, creak: 12, drip: 30, scrape: 20, crate: 30,
   'die-husk': 40, 'die-skitter': 36, 'die-bloat': 46, 'die-thresher': 50, 'die-worm': 20, 'die-swimmer': 20, 'die-grabber': 24,
 };
@@ -258,6 +258,7 @@ export class Audio {
         case 'moan': this.tn(190, 120, 0.7, 'sawtooth', 0.12 * v); this.tn(285, 170, 0.6, 'sine', 0.1 * v); break;
         case 'roar': this.tn(120, 55, 0.8, 'sawtooth', 0.4 * v); this.nz(0.7, 0.3 * v, 600); break;
         case 'swing': this.nz(0.14, 0.12 * v, 1200, 'bandpass'); break;
+        case 'whiff': this.nz(big ? 0.32 : 0.22, (big ? 0.2 : 0.15) * v, big ? 600 : 1000, 'bandpass', 0, 1.5, big ? 200 : 320, 0.05); break; // a blow that met nothing
         case 'breath': // a husk at rest: in, and a long way out
           this.nz(0.6, 0.06 * v, 600, 'bandpass', 0, 3, 900, 0.4);
           this.nz(0.9, 0.07 * v, 800, 'bandpass', 0.7, 3, 450, 0.2);

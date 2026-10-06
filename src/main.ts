@@ -81,7 +81,8 @@ let here = levelView();
 view.show(here.group);
 view.scene.add(view.camera); // the hand rides on it
 const handsView = new HandsView(view.camera, sim, lighting);
-let hurtFx = 0;
+let hurtFx = 0, hitFx = 0;
+const hitDir = document.getElementById('hitdir')!;
 
 const rig = new CameraRig();
 const loop = new FixedLoop();
@@ -184,7 +185,18 @@ function events(): void {
         handsView.setLighting(lighting);
         if (ev.loud) audio.play('power');
         break;
-      case 'hurt': hurtFx = ev.shake > 0 ? 1 : Math.max(hurtFx, 0.7); rig.shake = Math.max(rig.shake, ev.shake); break;
+      case 'hurt':
+        hurtFx = ev.shake > 0 ? 1 : Math.max(hurtFx, 0.7); rig.shake = Math.max(rig.shake, ev.shake);
+        if (ev.from) {
+          /* which way it came from, as you face: 0 ahead, a quarter turn right, half behind */
+          const b = sim.player.body, a = Math.atan2(ev.from.x - b.x, -(ev.from.z - b.z)) + sim.player.yaw;
+          rig.struck(a);
+          hitDir.style.setProperty('--hx', (50 + 50 * Math.sin(a)).toFixed(1) + '%');
+          hitDir.style.setProperty('--hy', (50 - 50 * Math.cos(a)).toFixed(1) + '%');
+          hitFx = 1;
+        }
+        break;
+      case 'impact': rig.impact(ev.k); break;
       case 'shake': rig.shake = Math.max(rig.shake, ev.k); break;
       case 'end': setMode('end'); if (document.pointerLockElement) document.exitPointerLock(); panels.showEnd(g, ev.win, ev.msg); break;
     }
@@ -219,6 +231,8 @@ function frame(t: number): void {
   here.update(mode === 'play' ? loop.alpha : 1);
   handsView.update(rig.bob, t / 1000);
   hurtFx = Math.max(0, hurtFx - dt * 0.9);
+  hitFx = Math.max(0, hitFx - dt * 1.6);
+  hitDir.style.opacity = hitFx.toFixed(2);
   events();
   if (mode === 'play') scape.update(sim, dt, t / 1000);
 

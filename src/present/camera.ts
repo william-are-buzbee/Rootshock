@@ -24,6 +24,22 @@ export class CameraRig {
   private snap = true;
   private t = 0;
   private bounce = 0;
+  /** jolts to the view, in radians (yaw, pitch, roll): put on at once, easing off */
+  private jolt = { y: 0, p: 0, r: 0 };
+
+  /** your blow landed, this hard (0..1): the view dips into it */
+  impact(k: number): void {
+    this.jolt.p -= 0.022 * k;
+    this.jolt.r += 0.012 * k;
+  }
+
+  /** you were struck from `bearing` (radians from straight ahead, clockwise): the view is knocked away from it */
+  struck(bearing: number): void {
+    const side = Math.sin(bearing), ahead = Math.cos(bearing);
+    this.jolt.y += 0.07 * side;
+    this.jolt.r -= 0.06 * side;
+    this.jolt.p += 0.045 * ahead;
+  }
 
   /** a new place (another level): no easing in from where you were */
   reset(): void {
@@ -42,7 +58,9 @@ export class CameraRig {
     this.shake = Math.max(0, this.shake - dt * 1.6);
     const k = this.shake * 0.08, j = () => (Math.random() * 2 - 1) * k;
     cam.position.set(x + j(), this.cy + this.eye + Math.sin(this.bob) * 0.035 + j(), z + j());
-    cam.rotation.set(pitch, yaw, 0);
+    const J = this.jolt, ease = Math.exp(-dt * 9);
+    J.y *= ease; J.p *= ease; J.r *= ease;
+    cam.rotation.set(pitch + J.p, yaw + J.y, J.r);
     /* the hand follows the eye a beat late (about 70 ms), wanders with the stride and, standing, with your breath */
     this.t += dt;
     const sway = Math.min(1, p.moved / STEP / 3), by = yaw + Math.sin(this.bob * 0.5) * 0.022 * sway + Math.sin(this.t * 0.7) * 0.004;

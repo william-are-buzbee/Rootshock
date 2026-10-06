@@ -4,6 +4,7 @@ import { Rng } from '../core/rng';
 import { syncBody } from './body';
 import { restoreRoute } from './cast';
 import type { Game } from './game';
+import { makeHands } from './combat';
 import { buildUsables, type WorldItem } from './interact';
 import { doorBox, placePlatform } from './movers';
 import { makeSim, type Sim, type SimOpts } from './sim';
@@ -135,7 +136,9 @@ export function load(level: LevelDef, data: Save, o: SimOpts = {}): Sim {
       if (m.dead) { const k = sim.world.dyn.indexOf(m.body.dyn); if (k >= 0) sim.world.dyn.splice(k, 1); }
     }
   });
-  sim.hands = structuredClone(data.hands);
+  /* a save from before jabs and hit-stop: its swing was a full one */
+  sim.hands = { ...makeHands(), ...structuredClone(data.hands) };
+  if (sim.hands.swing) sim.hands.swing.pow ??= 1;
   sim.lighting = null;
   const F = sim.fields, d = data.fields;
   if (F && d) {

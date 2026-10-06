@@ -128,19 +128,60 @@ describe('how they follow', () => {
 });
 
 describe('fighting', () => {
-  it('a swing must be loaded: let go early and nothing happens; loaded, it lands', () => {
-    const s = fresh(), w = s.cast[7]; // a worm in the cavern
+  it('a swing let go early is a jab: it lands for less than a loaded one, and the arm is slow to come back', () => {
+    const blow = (secs: number) => {
+      const s = fresh(), w = s.cast[7]; // a worm in the cavern
+      only(s, []);
+      w.stun = 1e9;
+      give(s.game, 'pipe');
+      faceOff(s, w, 1.2, 0.3);
+      hold(s, secs, { attack: true });
+      hold(s, 0.5);
+      return { s, lost: 40 - w.hp };
+    };
+    const jab = blow(0.1), full = blow(1.1);
+    expect(jab.lost).toBeGreaterThan(0);
+    expect(full.lost).toBeGreaterThan(jab.lost * 1.5);
+    /* straight after a jab, a press does not start another */
+    const s = jab.s;
+    s.hands.rec = 0.2;
+    hold(s, STEP, { attack: true });
+    expect(s.hands.chg).toBe(-1);
+  });
+
+  it('a blow that lands holds the swing still a moment, and says so', () => {
+    const s = fresh(), w = s.cast[7];
     only(s, []);
     w.stun = 1e9;
     give(s.game, 'pipe');
     faceOff(s, w, 1.2, 0.3);
-    hold(s, 0.3, { attack: true });
-    hold(s, 0.5);
-    expect(w.hp).toBe(40);
     hold(s, 1.1, { attack: true });
-    hold(s, 0.5);
-    expect(w.hp).toBeLessThan(40);
-    expect(w.hp).toBeGreaterThan(0);
+    s.game.events.length = 0;
+    let stopped = false;
+    for (let t = 0; t < 0.5; t += STEP) { step(s, noInput()); if (s.hands.stop > 0) stopped = true; }
+    expect(stopped).toBe(true);
+    expect(s.game.events.some(e => e.type === 'impact')).toBe(true);
+  });
+
+  it('a husk blow can be stepped back from: it whiffs, and you are not hurt; one that lands says where it came from', () => {
+    const s = fresh(), m = s.cast[5];
+    only(s, [m]);
+    s.game.hp = 100;
+    faceOff(s, m, 1.1, 1.2);
+    m.state = 'hunt';
+    let wound = false;
+    for (let t = 0; t < 1 && !wound; t += STEP) { step(s, noInput()); wound = m.wind > 0; }
+    expect(wound).toBe(true);
+    s.game.events.length = 0;
+    hold(s, 0.45, { forward: -1 }); // backing off as it winds up
+    expect(s.game.hp).toBe(100);
+    expect(s.game.events.some(e => e.type === 'sfx' && e.name === 'whiff')).toBe(true);
+    /* standing still for the next */
+    s.game.events.length = 0;
+    hold(s, 3);
+    const hurt = s.game.events.find(e => e.type === 'hurt');
+    expect(s.game.hp).toBeLessThan(100);
+    expect(hurt?.type === 'hurt' && hurt.from).toBeTruthy();
   });
 
   it('a pistol fires on the press, spends a round, is heard, and kills', () => {
