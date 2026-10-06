@@ -45,9 +45,12 @@ describe('motes', () => {
     const { sim, m, M } = air(false), cam = new THREE.Vector3(66, 1.62, 0), dt = 1 / 60;
     m.update(sim, cam, dt);
     m.update(sim, cam, dt);
-    /* the specks in a strip ahead of you, low enough for your body */
-    const near = [...Array(900).keys()].filter(i => M.room[i] >= 0 && M.pos[i * 3] > 66.5 && M.pos[i * 3] < 67.5 && Math.abs(M.pos[i * 3 + 2]) < 0.6 && M.pos[i * 3 + 1] < 1.7);
-    expect(near.length).toBeGreaterThan(3);
+    /* twenty specks of the corridor's, put in a strip ahead of you, low enough for your body, and at rest (where the
+       scatter happens to put them is chance: a strip that small can hold three or none) */
+    const corridor = sim.world.roomAt(67, 1, 0)!.id;
+    const near = [...Array(900).keys()].filter(i => M.room[i] === corridor).slice(0, 20);
+    expect(near.length).toBe(20);
+    near.forEach((i, k) => { M.pos.set([66.5 + (k % 5) * 0.25, 0.4 + (k % 4) * 0.3, -0.5 + (k % 3) * 0.5], i * 3); M.vel.fill(0, i * 3, i * 3 + 3); });
     for (let t = 0; t < 0.5; t += dt) { cam.x += 4 * dt; m.update(sim, cam, dt); } // run east through them
     const vx = near.reduce((s, i) => s + M.vel[i * 3], 0) / near.length;
     expect(vx).toBeGreaterThan(0.3);
