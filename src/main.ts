@@ -15,6 +15,8 @@ import { Soundscape } from './present/soundscape';
 import { View } from './present/render/view';
 import { LevelView } from './present/render/levelView';
 import { HandsView } from './present/render/handsView';
+import { Motes } from './present/render/motes';
+import { Cascade } from './present/cascade';
 import { U } from './present/render/shader';
 import { Hud } from './present/ui/hud';
 import { Panels } from './present/ui/panels';
@@ -81,9 +83,11 @@ let here = levelView();
 view.show(here.group);
 view.scene.add(view.camera); // the hand rides on it
 const handsView = new HandsView(view.camera, sim, lighting);
-let hurtFx = 0;
+let hurtFx = 0, hitFx = 0;
+const hitDir = document.getElementById('hitdir')!;
 
 const rig = new CameraRig();
+const motes = new Motes(view.scene, lighting, (x, y, z, k) => scape.gust(sim, x, y, z, k));
 const loop = new FixedLoop();
 const audio = new Audio();
 const scape = new Soundscape(audio);
@@ -151,14 +155,25 @@ window.addEventListener('keydown', e => {
   } else if (c === 'Escape' || c === 'Tab' || c === 'KeyI' || (c === 'KeyE' && open !== 'inv') || (c === 'Space' && open === 'note')) panels.close();
 });
 
+/** a power change being seen to come on, or null */
+let cascade: Cascade | null = null;
+function relightAll(L: Lighting): void {
+  lighting = L;
+  here.relight(L);
+  handsView.setLighting(L);
+  motes.setLighting(L);
+}
+
 /** you are on another level: draw it, light it, and fade in as the first engine did */
 function arrive(): void {
   sim = run.here;
+  cascade = null;
   lighting = lightingNow();
   here = levelView();
   view.show(here.group);
   handsView.sim = sim;
   handsView.setLighting(lighting);
+  motes.setLighting(lighting);
   rig.reset();
   const b = sim.player.body;
   prev.x = b.x; prev.y = b.y; prev.z = b.z;
@@ -178,13 +193,27 @@ function events(): void {
       case 'pad': openPanel(() => { panels.show('pad'); panels.renderPad(g); }); break;
       case 'lift': openPanel(() => panels.showLift(STATION.levels.map(l => ({ id: l.id, name: l.name, here: l.id === sim.world.def.id })))); break;
       case 'level': break; // the run has moved you already: see arrive()
-      case 'power':
-        lighting = lightingNow();
-        here.relight(lighting);
-        handsView.setLighting(lighting);
+      case 'power': {
+        /* what comes on comes on room by room, out from where you are; what goes off goes at once */
+        const b = sim.player.body, R = sim.world.roomAt(b.x, b.y + 0.5, b.z);
+        const from = cascade ? cascade.L.to : lighting;
+        cascade = new Cascade(sim.world, from, lightingNow(), R?.id ?? -1, r => scape.strike(sim, sim.world.rooms[r]));
+        relightAll(cascade.L);
         if (ev.loud) audio.play('power');
         break;
-      case 'hurt': hurtFx = ev.shake > 0 ? 1 : Math.max(hurtFx, 0.7); rig.shake = Math.max(rig.shake, ev.shake); break;
+      }
+      case 'hurt':
+        hurtFx = ev.shake > 0 ? 1 : Math.max(hurtFx, 0.7); rig.shake = Math.max(rig.shake, ev.shake);
+        if (ev.from) {
+          /* which way it came from, as you face: 0 ahead, a quarter turn right, half behind */
+          const b = sim.player.body, a = Math.atan2(ev.from.x - b.x, -(ev.from.z - b.z)) + sim.player.yaw;
+          rig.struck(a);
+          hitDir.style.setProperty('--hx', (50 + 50 * Math.sin(a)).toFixed(1) + '%');
+          hitDir.style.setProperty('--hy', (50 - 50 * Math.cos(a)).toFixed(1) + '%');
+          hitFx = 1;
+        }
+        break;
+      case 'impact': rig.impact(ev.k); break;
       case 'shake': rig.shake = Math.max(rig.shake, ev.k); break;
       case 'end': setMode('end'); if (document.pointerLockElement) document.exitPointerLock(); panels.showEnd(g, ev.win, ev.msg); break;
     }
@@ -193,7 +222,7 @@ function events(): void {
   if (panels.open === 'inv') panels.renderInv();
 }
 
-let last = 0, fps = 60, flick = 0;
+let last = 0, fps = 60, flick = 0, expo = 1;
 function frame(t: number): void {
   requestAnimationFrame(frame);
   const dt = last ? Math.min(0.25, (t - last) / 1000) : 0;
@@ -215,10 +244,28 @@ function frame(t: number): void {
   const g = sim.game;
   flick -= dt;
   if (flick < 0 && Math.random() < dt * (g.batt < 20 ? 1.4 : 0.3)) flick = 0.05 + Math.random() * 0.2;
-  if (flick > 0 && g.lightOn) U.uFlash.value *= 0.25;
+  if (flick > 0 && g.lightOn) { U.uFlash.value *= 0.25; U.uBounce.value *= 0.25; }
   here.update(mode === 'play' ? loop.alpha : 1);
+  /* the eye: it opens in the dark, slowly, and narrows against light quickly, so a room coming on glares a moment.
+     It adapts to what is around you and to your own light, close in front of you. */
+  {
+    const b = sim.player.body, l = lighting.atPoint(b.x, b.y + 1, b.z);
+    const seen = Math.max(l[0], l[1], l[2]) + U.uFlash.value * 0.12 + U.uBounce.value * 2 + U.uLamp.value * 0.3;
+    const k = Math.min(1, Math.max(0, (seen - 0.02) / 0.48)), want = devFlags.bright ? 1 : 1.4 - 0.5 * k * k * (3 - 2 * k);
+    expo += (want - expo) * Math.min(1, dt * (want > expo ? 0.6 : 4));
+    U.uExpo.value = expo;
+  }
+  if (cascade) {
+    const flipped = cascade.update(dt);
+    if (flipped.length) here.relightRooms(lighting, flipped);
+    if (cascade.done) { relightAll(cascade.L.to); cascade = null; }
+  }
   handsView.update(rig.bob, t / 1000);
+  motes.resize(view.renderer.domElement.height, view.camera.fov);
+  motes.update(sim, view.camera.position, mode === 'play' ? dt : 0);
   hurtFx = Math.max(0, hurtFx - dt * 0.9);
+  hitFx = Math.max(0, hitFx - dt * 1.6);
+  hitDir.style.opacity = hitFx.toFixed(2);
   events();
   if (mode === 'play') scape.update(sim, dt, t / 1000);
 

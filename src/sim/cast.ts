@@ -387,7 +387,7 @@ function roam(sim: Sim, m: Mutant, spd: number): void {
 function strikes(sim: Sim, m: Mutant, dmg: number): void {
   /* you are on something well above it: it cannot reach */
   if (!m.fixed && sim.player.body.y - m.y > 1.4) return;
-  hurtBy(sim.game, dmg, DEATH[m.ai]);
+  hurtBy(sim.game, dmg, DEATH[m.ai], { x: m.x, z: m.z });
 }
 
 const step_ = (sim: Sim, m: Mutant, name: string, big = false) => sfx(sim.game, name, m, big);
@@ -416,7 +416,7 @@ const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
         if (m.lost > 8) { m.state = 'idle'; m.dest = -1; m.wt = rnd(sim, 2, 5); break; }
         if (m.wind > 0) {
           m.wind -= dt;
-          if (m.wind <= 0) { if (m.dp < m.r + 1.25 && Math.abs(m.dy) < 1.4) strikes(sim, m, 20); m.cd = 0.9; }
+          if (m.wind <= 0) { if (m.dp < m.r + 1.25 && Math.abs(m.dy) < 1.4) strikes(sim, m, 20); else step_(sim, m, 'whiff'); m.cd = 0.9; }
           break;
         }
         if (m.dp < m.r + 0.85 && Math.abs(m.dy) < 1.2) { turnTo(sim, m, 10); if (m.cd <= 0) { m.wind = 0.45; step_(sim, m, 'swing'); } }
@@ -456,7 +456,7 @@ const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
     if (m.wind > 0) {
       m.wind -= dt;
       turnTo(sim, m, 6);
-      if (m.wind <= 0) { m.cd = big ? 1.5 : 1; if (m.dp < m.r + (big ? 1.6 : 1.15) && Math.abs(m.dy) < 1.4) strikes(sim, m, big ? 45 : 22); }
+      if (m.wind <= 0) { m.cd = big ? 1.5 : 1; if (m.dp < m.r + (big ? 1.6 : 1.15) && Math.abs(m.dy) < 1.4) strikes(sim, m, big ? 45 : 22); else step_(sim, m, 'whiff', big); }
       return;
     }
     if (m.dp < m.r + (big ? 1.1 : 0.75) && Math.abs(m.dy) < 1.2) { if (m.cd <= 0) { m.windT = m.wind = big ? 0.7 : 0.5; step_(sim, m, 'skit'); } }

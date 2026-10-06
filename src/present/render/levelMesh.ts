@@ -59,16 +59,40 @@ export class LevelMesh {
   /** work out every vertex's light (and every fitting's colour) under this lighting */
   relight(L: Lighting): void {
     const o = this.o, n = o.count;
-    for (let i = 0; i < n; i++) {
-      const r = o.room[i], l = r >= 0 ? L.at(r, o.sx[i], o.sz[i]) : BLACK, m = o.m[i];
-      this.light[i * 4] = l[0] * m; this.light[i * 4 + 1] = l[1] * m; this.light[i * 4 + 2] = l[2] * m; this.light[i * 4 + 3] = o.flick[i];
+    for (let i = 0; i < n; i++) this.vertex(L, i);
+    for (const [first, count, pw, circuit] of o.pw) this.fitting(L, first, count, pw, circuit);
+    this.geometry.getAttribute('aLight').needsUpdate = true;
+    this.geometry.getAttribute('aCol').needsUpdate = true;
+  }
+
+  /** only these rooms' vertices and fittings: a light coming on room by room (present/cascade.ts) */
+  relightRooms(L: Lighting, rooms: Iterable<number>): void {
+    const o = this.o;
+    if (!this.byRoom) {
+      this.byRoom = new Map();
+      for (let i = 0; i < o.count; i++) { let a = this.byRoom.get(o.room[i]); if (!a) this.byRoom.set(o.room[i], (a = [])); a.push(i); }
+      this.pwByRoom = new Map();
+      o.pw.forEach((f, k) => { const r = o.room[f[0]]; let a = this.pwByRoom!.get(r); if (!a) this.pwByRoom!.set(r, (a = [])); a.push(k); });
     }
-    for (const [first, count, pw, circuit] of o.pw) {
-      const c = L.fitting(pw, circuit);
-      for (let i = first; i < first + count; i++) this.col.set(c, i * 3);
+    for (const r of rooms) {
+      for (const i of this.byRoom.get(r) ?? []) this.vertex(L, i);
+      for (const k of this.pwByRoom!.get(r) ?? []) { const [first, count, pw, circuit] = o.pw[k]; this.fitting(L, first, count, pw, circuit); }
     }
     this.geometry.getAttribute('aLight').needsUpdate = true;
     this.geometry.getAttribute('aCol').needsUpdate = true;
+  }
+
+  private byRoom: Map<number, number[]> | null = null;
+  private pwByRoom: Map<number, number[]> | null = null;
+
+  private vertex(L: Lighting, i: number): void {
+    const o = this.o, r = o.room[i], l = r >= 0 ? L.at(r, o.sx[i], o.sz[i]) : BLACK, m = o.m[i];
+    this.light[i * 4] = l[0] * m; this.light[i * 4 + 1] = l[1] * m; this.light[i * 4 + 2] = l[2] * m; this.light[i * 4 + 3] = o.flick[i];
+  }
+
+  private fitting(L: Lighting, first: number, count: number, pw: [Colour, Colour], circuit: string): void {
+    const c = L.fittingIn(pw, circuit, this.o.room[first]);
+    for (let i = first; i < first + count; i++) this.col.set(c, i * 3);
   }
 }
 

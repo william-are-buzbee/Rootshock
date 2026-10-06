@@ -21,8 +21,10 @@ export type SimEvent =
   | { type: 'lift' }
   | { type: 'power'; loud: boolean }
   /** you were hurt (the screen flashes) and how hard the view shakes */
-  | { type: 'hurt'; shake: number }
+  | { type: 'hurt'; shake: number; from?: { x: number; z: number } }
   | { type: 'shake'; k: number }
+  /** a blow of yours landed, on something or on a wall, this hard (0..1): the view takes a jolt */
+  | { type: 'impact'; k: number }
   | { type: 'end'; win: boolean; msg: string }
   /** you are on another level now */
   | { type: 'level'; id: string };
@@ -241,19 +243,20 @@ export function makeNoise(g: Game, r: number): void {
 }
 
 /** hurt by something with hands or teeth: what you wear takes some of it */
-export function hurtBy(g: Game, dmg: number, why: string): void {
+export function hurtBy(g: Game, dmg: number, why: string, from?: { x: number; z: number }): void {
   let k = 1;
   if (g.worn.includes('tacvest')) k *= 0.55;
   else if (g.worn.includes('armor')) k *= 0.7;
   if (g.worn.includes('hardhat')) k *= 0.9;
-  hurt(g, dmg * k, why, 0.45);
+  hurt(g, dmg * k, why, 0.45, true, from);
 }
 
-export function hurt(g: Game, dmg: number, why: string, shake = 0.45, sound = true): void {
+/** `from`: where the blow came from, if it came from somewhere (the view is knocked away from it) */
+export function hurt(g: Game, dmg: number, why: string, shake = 0.45, sound = true, from?: { x: number; z: number }): void {
   if (g.ended || g.god) return;
   g.hp -= dmg;
   if (sound) sfx(g, 'hurt');
-  g.events.push({ type: 'hurt', shake });
+  g.events.push({ type: 'hurt', shake, from });
   if (g.hp <= 0) { g.hp = 0; end(g, false, why); }
 }
 

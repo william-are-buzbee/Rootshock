@@ -111,6 +111,20 @@ export class Soundscape {
     this.audio.play(n, v);
   }
 
+  /** a room's tubes strike as the power comes on (cascade.ts): heard from near, a few at a time */
+  strike(sim: Sim, R: RoomDef): void {
+    const b = sim.player.body, x = (R.x0 + R.x1) / 2, z = (R.z0 + R.z1) / 2;
+    if (this.struck >= 3 || Math.hypot(x - b.x, z - b.z) > 30 || R.lit === 'none') return;
+    this.struck++;
+    this.at(sim, 'strike', x, R.y0 + R.ht - 0.3, z);
+  }
+  private struck = 0;
+
+  /** a door shut a while has opened and breathed out (motes.ts), this hard */
+  gust(sim: Sim, x: number, y: number, z: number, k: number): void {
+    this.at(sim, 'gust', x, y, z, { k });
+  }
+
   private at(sim: Sim, n: string, x: number, y: number, z: number, o: Voice = {}): void {
     this.audio.play(n, { ...o, ...hearing(sim, x, y, z) });
   }
@@ -118,6 +132,7 @@ export class Soundscape {
   /** a frame of play: what the sim does not say */
   update(sim: Sim, dt: number, t = 0): void {
     const p = sim.player, b = p.body, g = sim.game, w = sim.world, A = this.audio;
+    this.struck = 0;
     if (sim !== this.sim) {
       this.sim = sim; this.was = { water: p.water, under: p.under, air: p.air, vy: 0 };
       this.gen = genAt(w); this.near.clear(); this.room = -1;

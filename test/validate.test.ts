@@ -19,6 +19,16 @@ describe('level validation', () => {
     expect(validateStation(STATION, STATION.levels.map(l => levelDef(STATION, l.id)))).toEqual([]);
   });
 
+  it('the air says whose ground it is: spores in the green, flecks in the nests, dust elsewhere', () => {
+    const air = (lv: string, name: string) => levelDef(STATION, lv).rooms.find(R => R.name === name)?.motes ?? 'dust';
+    expect(air('main', 'Arboretum')).toBe('spores');
+    expect(air('main', 'Tissue lab')).toBe('spores');
+    expect(air('cave', 'Great chamber')).toBe('spores');
+    expect(air('upper', 'Cargo cavern')).toBe('flesh');
+    expect(air('upper', 'Operations corridor')).toBe('dust');
+    expect(levelDef(STATION, 'main').rooms.some(R => R.name.startsWith('Residence') && R.motes === 'flesh')).toBe(true);
+  });
+
   it('catches a thing that does not exist, a card nobody has, a code written nowhere, and a thing out of reach', () => {
     const L = structuredClone(upper);
     L.items.push({ id: 'unobtainium', x: 30, y: 0, z: -1, n: 1 });

@@ -2,7 +2,11 @@ import * as THREE from 'three';
 
 /* One shader for everything, carried over from the first engine.
    Light = baked light (per vertex for the level, per object for things that move) + flashlight cone + lantern,
-   flat-shaded from screen-space derivatives. No ambient floor: unlit is black. A colour channel above 1.5 is emissive. */
+   flat-shaded from screen-space derivatives. No ambient floor: unlit is black. A colour channel above 1.5 is emissive.
+   The flashlight is a reflector's beam: a hot centre, a faint bright ring at its rim, a wide dim spill; and what it
+   lights close by throws some of it back around you (uBounce, measured by one ray a frame in camera.ts).
+   Then the eye: everything is scaled by how open it is (uExpo: wide in the dark, narrowed in light; main.ts), and the
+   dark is never quite flat, but grained, most where it is darkest. */
 
 const VS = /* glsl */ `
 attribute vec3 aCol;
@@ -24,7 +28,7 @@ void main(){
 
 const FS = /* glsl */ `
 uniform vec3 uFlashDir; uniform float uFlash; uniform float uLamp; uniform float uFog; uniform float uWet; uniform float uTime;
-uniform float uFlick; uniform float uHit; uniform float uBright;
+uniform float uFlick; uniform float uHit; uniform float uBright; uniform float uBounce; uniform float uExpo;
 varying vec3 vW; varying vec3 vC; varying vec4 vL;
 void main(){
   vec3 n = normalize(cross(dFdx(vW), dFdy(vW)));
@@ -35,14 +39,19 @@ void main(){
   float fk = 1.0 - vL.a * 0.55 * uFlick;
   float facing = 0.35 + 0.65 * abs(dot(n, Ld));
   vec3 light = vL.rgb * sh * fk + vec3(0.014) / (1.0 + 3.0 * d * d);
-  float spot = smoothstep(0.80, 0.955, dot(-Ld, uFlashDir));
+  float ca = dot(-Ld, uFlashDir), rim = (ca - 0.952) / 0.007;
+  float spot = 0.65 * smoothstep(0.91, 0.975, ca) + 0.42 * smoothstep(0.76, 0.92, ca) + 0.12 * exp(-rim * rim);
   light += uFlash * spot * facing * 2.3 / (1.0 + 0.055 * d * d) * vec3(1.0, 0.93, 0.78);
+  light += uBounce / (1.0 + 0.18 * d * d) * vec3(1.0, 0.9, 0.76);
   light += uLamp * facing * 1.5 / (1.0 + 0.2 * d * d) * vec3(0.72, 0.92, 1.0);
   light += vec3(uBright);
   vec3 c = mix(base * light, base, em);
   c += uHit * vec3(0.45, 0.08, 0.06);
   c *= exp(-d * uFog);
   c = mix(c, c * vec3(0.5, 0.85, 0.9), uWet);
+  c *= uExpo;
+  float gr = fract(sin(dot(gl_FragCoord.xy + fract(uTime * 7.13) * 91.7, vec2(12.9898, 78.233))) * 43758.5453) - 0.5;
+  c += gr * 0.022 * (1.0 - smoothstep(0.0, 0.35, dot(c, vec3(0.3, 0.59, 0.11))));
 #ifdef ALPHA
   gl_FragColor = vec4(c, ALPHA);
 #else
@@ -61,6 +70,10 @@ export const U = {
   /** 1 while flickering lights are dimmed (flicker.ts) */
   uFlick: { value: 0 },
   uBright: { value: 0 },
+  /** the flashlight thrown back by whatever it is lighting close by */
+  uBounce: { value: 0 },
+  /** how open the eye is: above 1 adapted to the dark, below to the light */
+  uExpo: { value: 1 },
 };
 
 /** the level's material: light baked into each vertex */

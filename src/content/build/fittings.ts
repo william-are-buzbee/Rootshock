@@ -11,7 +11,8 @@ export const HAB = { fl: 0x7b7568, wl: 0x9a9588, st: 0x3f7f6b };
 export const MED = { fl: 0x9aa39d, wl: 0xb9c4bd, st: 0x8c2f24 };
 export const SEC = { fl: 0x55585c, wl: 0x70747a, st: 0x39485a };
 export const OPS = { fl: 0x6a665e, wl: 0x8c887e, st: 0x8a7a4a };
-export const HRT = { fl: 0x3d4a30, wl: 0x5a6a4c, st: 0x2f5a34 };
+/** Horticulture: the green's own, and its air is full of spores */
+export const HRT: TRoomOpts = { fl: 0x3d4a30, wl: 0x5a6a4c, st: 0x2f5a34, motes: 'spores' };
 export const BAY: TRoomOpts = { fl: 0x4a4c4e, wl: 0x5e6164, st: 0xb89b2e, ht: 8, em: 1 };
 export const WALK: TRoomOpts = { open: 1, ht: 4, em: 1, fl: 0x5a5d60, wl: 0x5e6164, nolamp: 1 };
 export const LOW: [number, number, number] = [0.66, 0.68, 0.72];
