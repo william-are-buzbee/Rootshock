@@ -8,10 +8,10 @@ import { Lighting } from '../src/world/light';
 import { Prints } from '../src/present/render/prints';
 
 /* Footprints (present/render/prints.ts), headless: wet ones after water, red ones after blood, a pace apart; the cast's
-   too; and what bleeds pools, one square that grows where it stands, a trail of them as it goes. */
+   too; a print on one already there grows it. */
 
 const level = buildUpper(STATION.ladders);
-type Print = { x: number; z: number; stuff: 'wet' | 'red' | 'green'; k: number; size: number; pool: boolean };
+type Print = { x: number; z: number; stuff: 'wet' | 'red' | 'green'; k: number; size: number };
 const list = (p: Prints) => (p as unknown as { list: Print[] }).list;
 
 function setUp() {
@@ -73,27 +73,20 @@ describe('footprints', () => {
     const before = list(p).length;
     walkIt(sk, S.x - 2, S.x + 4, S.z);
     expect(list(p).length).toBeGreaterThan(before + 3); // a skitter's pace is short: more prints in less ground
-    expect(list(p).every(q => !q.pool)).toBe(true); // a whole husk does not bleed
   });
 
-  it('what bleeds pools: one square under it that grows while it stands, a trail of them as it goes; you too', () => {
+  it('a print that comes down on one already there grows it instead of lying on top', () => {
     const { sim, p } = setUp();
-    const husk = sim.cast.find(m => m.ai === 'husk')!;
-    for (const m of sim.cast) if (m !== husk) m.dead = true;
-    husk.hp = husk.max * 0.1; husk.x = 66; husk.z = 0.5; husk.y = 0;
-    if (husk.body) { husk.body.ground = true; husk.body.on = null; }
-    for (let t = 0; t < 6; t += 1 / 60) p.update(sim, 1 / 60); // standing
-    let pools = list(p).filter(q => q.pool);
-    expect(pools.length).toBe(1);
-    expect(pools[0].size).toBeGreaterThan(0.25); // grown
-    for (let x = 66; x <= 76; x += 0.02) { husk.x = x; p.update(sim, 1 / 60); } // walking off
-    pools = list(p).filter(q => q.pool);
-    expect(pools.length).toBeGreaterThan(3);
-    /* you, badly hurt, bleed as well; whole, not at all */
-    husk.hp = husk.max; // it stops bleeding
-    const n = list(p).filter(q => q.pool).length;
-    sim.game.hp = 20;
-    for (let t = 0; t < 4; t += 1 / 60) p.update(sim, 1 / 60);
-    expect(list(p).filter(q => q.pool).length).toBe(n + 1);
+    type Step = (sim: Sim, F: object, g: object, x: number, y: number, z: number, face: number, wet: boolean, firm: boolean) => void;
+    const step = (p as unknown as { step: Step }).step.bind(p), gait = { size: 0.12, pace: 0.75, side: 0.1 };
+    const F = { x: 66, z: 0, gone: 0, left: false, wet: 0, blood: 1, sap: false };
+    step(sim, F, gait, 66, 0, 0, 0, false, true);
+    const first = list(p)[0].size;
+    F.left = false; F.blood = 1;
+    step(sim, F, gait, 66, 0, 0, 0, false, true); // the same foot in the same place
+    expect(list(p).length).toBe(1);
+    expect(list(p)[0].size).toBeGreaterThan(first);
+    for (let k = 0; k < 30; k++) { F.left = false; F.blood = 1; step(sim, F, gait, 66, 0, 0, 0, false, true); }
+    expect(list(p)[0].size).toBeLessThanOrEqual(0.4); // up to a point
   });
 });

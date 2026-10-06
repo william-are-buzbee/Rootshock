@@ -348,15 +348,13 @@ sequence of inputs. The door rules, the labels and the answers are the first eng
   dark red flecks in the Cargo nest and the nest residences, dust elsewhere; even there most specks are dust, with the
   room's own kind among them. A door shut twenty seconds or more breathes out
   at you when it opens, with a gust you hear.
-- **Footprints and bleeding** (since; `present/render/prints.ts`): squares, the one shape blood has in the station.
-  Each walker leaves a small square a pace, its size and pace by kind (yours and a husk's left and right, the
-  thresher's bigger, a skitter's small and quick, a worm's one wide one), smaller and fainter as what is on its soles
-  runs out. Out of water they are wet for a dozen or so, which dry off in half a minute; through blood (a pool the
-  level was built with, `LevelDef.stains`, one something bled, or under one of the cast that fell) red for about ten,
-  and those stay; through what a green one bled, green. One of the cast badly hurt, or you below half your health,
-  bleeds: every so often, sooner the worse it is, the square under it grows or a new one starts, so standing makes one
-  spreading pool and walking a trail. None in water, on a crate or on a platform. The newest 256 are kept; they are
-  looks only, not saved.
+- **Footprints** (since; `present/render/prints.ts`): squares, the one shape blood has in the station. Each walker
+  leaves a small square a pace, its size and pace by kind (yours and a husk's left and right, the thresher's bigger, a
+  skitter's small and quick, a worm's one wide one), smaller and fainter as what is on its soles runs out. Out of
+  water they are wet for a dozen or so, which dry off in half a minute; through blood (a pool the level was built with,
+  `LevelDef.stains`, or under one of the cast that fell) red for about ten, and those stay; through what a green one
+  bled, green. A print that comes down on one already there grows it (to 0.4 m) instead of lying on top. None in
+  water, on a crate or on a platform. The newest 256 are kept; they are looks only, not saved. Bleeding is for later.
 - **A fight's feel** (since): a swing let go early is a jab, weaker and slow to recover from, not nothing; a blow that
   lands, or meets a wall, holds the swing still a moment (hit-stop) and dips the view; a hurt from one of the cast
   knocks the view away from it and flashes the edge of the screen on its side; a husk's or skitter's wind-up that you

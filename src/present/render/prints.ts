@@ -7,15 +7,14 @@ import { U } from './shader';
 /* What is left on the floor: squares, the one shape blood has in this station (content's blood(), a dark red box).
 
    Footprints, yours and the cast's: out of water soles are wet for a dozen prints or so, and those dry off in half a
-   minute; through blood (a pool on the floor, one that something bled, or under one of the cast that fell) they are
-   red for about ten, and those stay; through what a green one bled, green. Each print is a small square under the
-   foot, smaller and fainter as what is on the sole runs out. A walker's size and pace set its squares': you and the
-   husks a pace apart, left and right; the thresher bigger and further apart; a skitter small and quick; a worm one
-   wide square where it dragged itself.
+   minute; through blood (a pool on the floor, or under one of the cast that fell) they are red for about ten, and
+   those stay; through what a green one bled, green. Each print is a small square under the foot, smaller and fainter
+   as what is on the sole runs out. A walker's size and pace set its squares': you and the husks a pace apart, left
+   and right; the thresher bigger and further apart; a skitter small and quick; a worm one wide square where it
+   dragged itself.
 
-   Bleeding: one of the cast badly hurt, or you below half your health, bleeds where it is. Every so often (sooner the
-   worse it is) the square under it grows, or if there is none, a new one starts there, so standing still makes one
-   spreading pool and walking a trail of them. Those pools are blood like any other underfoot.
+   A print that comes down on one already there grows that square (up to a point) rather than lying on top of it, so
+   a path walked over and over darkens into one patch instead of a pile of squares. (Bleeding is for later.)
 
    None in water, on a crate or on a platform. The newest 256 are kept. Looks only: not part of the sim, and not saved. */
 
@@ -24,8 +23,8 @@ const MAX = 256;
 const WET_LEFT = 0.86, BLOOD_LEFT = 0.8;
 /** seconds a wet print takes to dry */
 const DRY = 32;
-/** a pool of bleeding: how big it starts, how much it grows each time, how big it gets */
-const POOL = { start: 0.16, grow: 0.07, most: 0.75 };
+/** a print come down on one already there: how much it grows that one, and how big it can get */
+const GROW = { by: 0.035, most: 0.4 };
 
 /** what a print is of: water, blood, or a green one's sap */
 type Stuff = 'wet' | 'red' | 'green';
@@ -66,12 +65,11 @@ void main(){
   gl_FragColor = vec4(vC, vA);
 }`;
 
-/** a square on the floor: where, of what, how strong (0..1), how old, how big, and whether something bled it */
-interface Print { x: number; y: number; z: number; stuff: Stuff; k: number; age: number; size: number; pool: boolean }
+/** a square on the floor: where, of what, how strong (0..1), how old, how big */
+interface Print { x: number; y: number; z: number; stuff: Stuff; k: number; age: number; size: number }
 
-/** a walker's soles and wounds: where it was, how far since its last print, which foot, what is on its feet, and how
- *  long since it last bled */
-interface Feet { x: number; z: number; gone: number; left: boolean; wet: number; blood: number; sap: boolean; bled: number }
+/** a walker's soles: where it was, how far since its last print, which foot, what is on its feet */
+interface Feet { x: number; z: number; gone: number; left: boolean; wet: number; blood: number; sap: boolean }
 
 export class Prints {
   private geo = new THREE.InstancedBufferGeometry();
@@ -128,21 +126,19 @@ export class Prints {
     return Math.abs(dx * c - dz * s) < h + more && Math.abs(dx * s + dz * c) < h + more;
   }
 
-  /** the pool something bled that lies under (x, z) on the floor at y, if any */
-  private poolAt(x: number, y: number, z: number, more: number): number {
+  /** a print of `stuff` that (x, z) on the floor at y lies on, if any */
+  private printAt(x: number, y: number, z: number, stuff: Stuff): number {
     for (let k = 0; k < this.list.length; k++) {
       const P = this.list[k];
-      if (P.pool && Math.abs(P.y - y) < 0.3 && Prints.under(x, z, P.x, P.z, this.iYaw[k], P.size / 2, more)) return k;
+      if (P.stuff === stuff && Math.abs(P.y - y) < 0.3 && Prints.under(x, z, P.x, P.z, this.iYaw[k], P.size / 2, 0)) return k;
     }
     return -1;
   }
 
-  /** what is underfoot at (x, z) on the floor at y: a pool the level was built with, one something bled, or what one of
-   *  the cast that fell bled (blood, or a green one's sap) */
+  /** what is underfoot at (x, z) on the floor at y: a pool the level was built with, or what one of the cast that fell
+   *  bled (blood, or a green one's sap). A print is not: walking back over your own trail does not wet your soles again. */
   private spilt(sim: Sim, x: number, y: number, z: number): 'red' | 'green' | null {
     for (const S of sim.world.def.stains ?? []) if (Math.abs(S.y - y) < 0.5 && Math.hypot(S.x - x, S.z - z) < S.r + 0.12) return 'red';
-    const p = this.poolAt(x, y, z, 0.05);
-    if (p >= 0) return this.list[p].stuff === 'green' ? 'green' : 'red';
     for (const m of sim.cast) {
       if (!m.dead || m.fixed || m.swim || Math.abs(m.y - y) > 0.5) continue;
       if (Math.hypot(m.x - x, m.z - z) < m.r * 1.2 + 0.12) return m.green ? 'green' : 'red';
@@ -151,8 +147,8 @@ export class Prints {
   }
 
   /** a square at (x, y, z), turned to `yaw`, of `stuff`, this strong and this big */
-  private put(x: number, y: number, z: number, yaw: number, size: number, stuff: Stuff, k: number, pool = false): void {
-    const P: Print = { x, y: y + 0.012, z, stuff, k, age: 0, size, pool }, i = this.next;
+  private put(x: number, y: number, z: number, yaw: number, size: number, stuff: Stuff, k: number): void {
+    const P: Print = { x, y: y + 0.012, z, stuff, k, age: 0, size }, i = this.next;
     this.next = (this.next + 1) % MAX;
     this.list[i] = P;
     this.iPos.set([P.x, P.y, P.z], i * 3);
@@ -173,28 +169,20 @@ export class Prints {
     if (s) { F.blood = 1; F.sap = s === 'green'; }
     if (F.wet < 0.08 && F.blood < 0.1) return;
     const stuff: Stuff = F.blood >= 0.1 ? (F.sap ? 'green' : 'red') : 'wet', k = stuff === 'wet' ? F.wet : F.blood;
-    /* smaller as what is on the sole runs out, and turned a little off true, as a foot comes down */
-    this.put(fx, y, fz, face + (Math.random() - 0.5) * 0.5, g.size * (0.5 + 0.5 * k), stuff, k);
+    const on = this.printAt(fx, y, fz, stuff);
+    if (on >= 0) {
+      /* on a print already there: that one grows, and is as fresh as this foot */
+      const P = this.list[on];
+      P.size = Math.min(GROW.most, P.size + GROW.by); P.k = Math.max(P.k, k); P.age = 0;
+      this.iSize[on] = P.size;
+      this.geo.getAttribute('iSize').needsUpdate = true;
+    } else {
+      /* smaller as what is on the sole runs out, and turned a little off true, as a foot comes down */
+      this.put(fx, y, fz, face + (Math.random() - 0.5) * 0.5, g.size * (0.5 + 0.5 * k), stuff, k);
+    }
     F.wet *= WET_LEFT; F.blood *= BLOOD_LEFT;
     if (F.wet < 0.08) F.wet = 0;
     if (F.blood < 0.1) F.blood = 0;
-  }
-
-  /** something bleeding at (x, y, z), `hurt` (0..1) badly, a while since it last did: the pool under it grows, or a
-   *  new one starts there */
-  private bleed(F: Feet, x: number, y: number, z: number, hurt: number, green: boolean, dt: number, ok: boolean): void {
-    F.bled += dt;
-    if (!ok || F.bled < 0.6 + 2.4 * (1 - hurt)) return;
-    F.bled = 0;
-    const k = this.poolAt(x, y, z, 0);
-    if (k >= 0) {
-      const P = this.list[k];
-      P.size = Math.min(POOL.most, P.size + POOL.grow);
-      this.iSize[k] = P.size;
-      this.geo.getAttribute('iSize').needsUpdate = true;
-      return;
-    }
-    this.put(x, y, z, Math.random() * Math.PI, POOL.start, green ? 'green' : 'red', 1, true);
   }
 
   private reset(sim: Sim): void {
@@ -204,11 +192,10 @@ export class Prints {
   }
 
   private static feet(x: number, z: number, sap: boolean): Feet {
-    return { x, z, gone: 0, left: false, wet: 0, blood: 0, sap, bled: 0 };
+    return { x, z, gone: 0, left: false, wet: 0, blood: 0, sap };
   }
 
-  /** a frame: a print every pace each walker goes (not a jump in place, and not you flying), the hurt bleed, and wet
-   *  prints dry */
+  /** a frame: a print every pace each walker goes (not a jump in place, and not you flying), and wet prints dry */
   update(sim: Sim, dt: number): void {
     if (sim !== this.sim) this.reset(sim);
     const w = sim.world, p = sim.player, b = p.body;
@@ -216,8 +203,6 @@ export class Prints {
     const Y = (this.you ??= Prints.feet(b.x, b.z, false)), firmY = b.ground && !b.on, dryY = p.water === 'dry';
     if (!p.fly) this.walked(Y, b.x, b.z, YOU.pace, () => this.step(sim, Y, YOU, b.x, b.y, b.z, p.yaw, !dryY, firmY));
     Y.x = b.x; Y.z = b.z;
-    const g = sim.game;
-    if (g.hp < 50 && !g.ended && !g.god) this.bleed(Y, b.x, b.y, b.z, 1 - g.hp / 50, false, dt, firmY && dryY && !p.fly);
     /* the cast that walk; one of the cast faces (sin yaw, cos yaw), which is the prints' yaw plus a half turn */
     for (const m of sim.cast) {
       const G = GAIT[m.ai];
@@ -225,16 +210,15 @@ export class Prints {
       let F = this.feet.get(m);
       if (!F) this.feet.set(m, (F = Prints.feet(m.x, m.z, !!m.green)));
       const mb = m.body, face = m.yaw + Math.PI, wet = w.waterAt(m.x, m.z) > m.y + 0.05, firm = !mb || (mb.ground && !mb.on);
-      const feet = F, hurt = 1 - m.hp / m.max;
+      const feet = F;
       this.walked(feet, m.x, m.z, G.pace, () => this.step(sim, feet, G, m.x, m.y, m.z, face, wet, firm));
       F.x = m.x; F.z = m.z;
-      if (hurt > 0.4) this.bleed(F, m.x, m.y, m.z, (hurt - 0.4) / 0.6, !!m.green, dt, firm && !wet);
     }
-    /* drying: water goes, blood and sap stay; prints fainter as the sole ran out, pools solid */
+    /* drying: water goes, blood and sap stay; prints fainter as the sole ran out */
     this.list.forEach((P, k) => {
       P.age += dt;
       this.iCol.set(COLOUR[P.stuff], k * 3);
-      this.iA[k] = P.pool ? 0.92 : P.stuff === 'wet' ? 0.45 * P.k * Math.max(0, 1 - P.age / DRY) : 0.3 + 0.6 * P.k;
+      this.iA[k] = P.stuff === 'wet' ? 0.45 * P.k * Math.max(0, 1 - P.age / DRY) : 0.3 + 0.6 * P.k;
     });
     this.geo.getAttribute('iCol').needsUpdate = true;
     this.geo.getAttribute('iA').needsUpdate = true;
