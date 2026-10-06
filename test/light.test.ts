@@ -5,8 +5,9 @@ import { makeSim } from '../src/sim/sim';
 import { Lighting, fullPower } from '../src/world/light';
 import { Cascade } from '../src/present/cascade';
 
-/* Power coming on, room by room (present/cascade.ts): it starts where you are, reaches the far end last, ends exactly as
-   the new power lights it, and going dark is not staged. */
+/* Light on the upper station. Power coming on, room by room (present/cascade.ts): it starts where you are, reaches the
+   far end last, ends exactly as the new power lights it, and going dark is not staged. Light in pools under the ceiling
+   fittings (world/light.ts): what you see and what the cast see you by. */
 
 const sim = makeSim(buildUpper(STATION.ladders), { seed: 3, station: STATION });
 const w = sim.world, dark = new Lighting(w, () => 0), lit = new Lighting(w, fullPower);
@@ -38,5 +39,30 @@ describe('the power coming on', () => {
     for (const R of w.rooms) expect(centre(C.L, R.id)).toEqual(centre(dark, R.id));
     C.update(0.001);
     expect(C.done).toBe(true);
+  });
+});
+
+describe('light in pools', () => {
+  const corridor = named('Operations corridor'), R = w.rooms[corridor];
+  const fx = lit.fixtures.get(corridor)!;
+
+  it('a fitted room has its fittings, and a cave or a walkway has none', () => {
+    expect(fx.length).toBeGreaterThan(2);
+    expect(lit.fixtures.has(named('Cargo cavern'))).toBe(false);
+    expect(lit.pool(named('Cargo cavern'), 150, 0, 0)).toBe(1);
+  });
+
+  it('the floor under a fitting is lit above the room, between two below it, and the ceiling darkest', () => {
+    const f = fx[1], under = lit.pool(corridor, f.x, R.y0, f.z);
+    const between = lit.pool(corridor, (fx[0].x + fx[1].x) / 2, R.y0, (fx[0].z + fx[1].z) / 2);
+    const ceiling = lit.pool(corridor, f.x + 1.5, R.y0 + R.ht, f.z);
+    expect(under).toBeGreaterThan(1);
+    expect(between).toBeLessThan(under);
+    expect(ceiling).toBeLessThan(between);
+  });
+
+  it('what the cast see you by follows the pools: you are harder to see between the lights than under one', () => {
+    const f = fx[1], a = lit.atPoint(f.x, R.y0 + 0.5, f.z), b = lit.atPoint((fx[0].x + fx[1].x) / 2, R.y0 + 0.5, R.z0 + 0.3);
+    expect(Math.max(...b)).toBeLessThan(Math.max(...a));
   });
 });

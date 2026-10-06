@@ -331,7 +331,11 @@ sequence of inputs. The door rules, the labels and the answers are the first eng
   sways with your stride (`present/camera.ts`); its cone is a reflector's (a hot centre, a faint ring at its rim, a
   wide dim spill); and a wall close in front of it throws a little light back around you (one ray a frame). The eye
   adapts (`uExpo`): it opens slowly in the dark and narrows fast in light, so a room coming on glares. The dark is
-  grained in the shader, most where it is darkest. A room on its backup set is lit amber; its brightest channel, which
+  grained in the shader, most where it is darkest. A fitted room's light falls in pools under its ceiling fittings (`LevelDef.fixtures`, `POOL` in `world/light.ts`):
+  a point takes 0.55 of the room's light plus 1.3 times what its fittings throw at it, down and falling off, so the
+  floor under a tube is lit above the room's level and the corners and the ceiling below it. The shader does it per
+  pixel for the rooms near you (`render/pools.ts`); what moves, and what the cast see you by, ask `Lighting.lit`, so
+  between the lights you are a little harder to see. A room on its backup set is lit amber; its brightest channel, which
   is what the cast see you by, is what it was. Power that comes on is seen to (`present/cascade.ts`): room by room out
   from where you are, each tube striking (on, off a moment, on) as it catches, and heard to near you; only the rooms
   that flip are lit again (`LevelMesh.relightRooms`). Power going off is not staged, and the sim's light changes at

@@ -441,6 +441,7 @@ export function finishLevel(start?: [number, number, number]) {
           if (i % 3 !== (R.w > 1 ? 1 : 0) || j % 3 !== (R.h > 1 ? 1 : 0)) continue;
           const dead = R.lit === 'none', tx = R.w === 2 ? R.x + 1 : R.x + i + 0.5, tz = R.h === 2 ? R.y + 1 : R.y + j + 0.5;
           b.box(X(D, tx), Z(D, tz), 1.1, 0.06, 0.3, dead ? 0x2a2c2e : 0xe8eef2, { y: D.y0 + R.ht - 0.07, glow: dead ? 1 : 3, solid: false });
+          if (!dead) b.fixture(X(D, tx), D.y0 + R.ht - 0.08, Z(D, tz));
         }
     }
     /* platforms between this deck and the one above */

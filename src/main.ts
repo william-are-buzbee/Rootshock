@@ -17,6 +17,7 @@ import { LevelView } from './present/render/levelView';
 import { HandsView } from './present/render/handsView';
 import { Motes } from './present/render/motes';
 import { Cascade } from './present/cascade';
+import { updatePools } from './present/render/pools';
 import { U } from './present/render/shader';
 import { Hud } from './present/ui/hud';
 import { Panels } from './present/ui/panels';
@@ -263,6 +264,7 @@ function frame(t: number): void {
   handsView.update(rig.bob, t / 1000);
   motes.resize(view.renderer.domElement.height, view.camera.fov);
   motes.update(sim, view.camera.position, mode === 'play' ? dt : 0);
+  updatePools(sim.world, lighting, view.camera.position, dt);
   hurtFx = Math.max(0, hurtFx - dt * 0.9);
   hitFx = Math.max(0, hitFx - dt * 1.6);
   hitDir.style.opacity = hitFx.toFixed(2);

@@ -232,7 +232,7 @@ export class Things {
       t.place();
       const p = t.litAt ? { x: t.litAt[0], y: t.litAt[1], z: t.litAt[2] } : t.mesh.position, w = this.sim.world;
       const R = w.roomAt(p.x, p.y + 0.3, p.z) ?? w.roomAt(p.x, p.y + 1.2, p.z);
-      const l = R ? this.L.at(R.id, p.x, p.z) : [0, 0, 0];
+      const l = R ? this.L.lit(R.id, p.x, p.y + 0.3, p.z) : [0, 0, 0];
       (t.mat.uniforms.uLight.value as THREE.Vector3).set(l[0], l[1], l[2]);
     }
   }

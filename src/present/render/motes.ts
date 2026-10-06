@@ -24,9 +24,9 @@ const rnd = (a: number, b: number) => a + Math.random() * (b - a);
 
 /** each kind's colour, how many of the specks show, how big, and how it moves (lift: up, negative falls) */
 const KIND: Record<Kind, { c: [number, number, number]; show: number; size: number; lift: number; glow: number }> = {
-  dust: { c: [0.95, 0.9, 0.8], show: 0.5, size: 1, lift: -0.006, glow: 0 },
-  spores: { c: [0.72, 0.95, 0.48], show: 1, size: 1.35, lift: 0.012, glow: 0.02 },
-  flesh: { c: [0.9, 0.42, 0.36], show: 0.55, size: 1.15, lift: -0.012, glow: 0 },
+  dust: { c: [0.95, 0.9, 0.8], show: 0.15, size: 1, lift: -0.006, glow: 0 },
+  spores: { c: [0.72, 0.95, 0.48], show: 0.4, size: 1.35, lift: 0.012, glow: 0.02 },
+  flesh: { c: [0.9, 0.42, 0.36], show: 0.22, size: 1.15, lift: -0.012, glow: 0 },
 };
 
 const VS = /* glsl */ `
@@ -142,7 +142,7 @@ export class Motes {
     const gust = i >= N;
     if (!R) { this.room[i] = -1; if (!gust) this.alpha[i] = 0; return; }
     this.room[i] = R.id;
-    const K = KIND[this.airOf(sim, R).kind], l = this.L.at(R.id, x, z), s = this.seed[i];
+    const K = KIND[this.airOf(sim, R).kind], l = this.L.lit(R.id, x, y, z), s = this.seed[i];
     /* pale flecks and dark grit: each its own shade of its kind's colour */
     const shade = 0.4 + 0.6 * ((s * 13.7) % 1);
     this.col[i * 3] = K.c[0] * shade; this.col[i * 3 + 1] = K.c[1] * shade; this.col[i * 3 + 2] = K.c[2] * shade;

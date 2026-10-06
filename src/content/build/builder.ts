@@ -198,6 +198,8 @@ export class LevelBuilder {
   mutant(type: string, x: number, y: number, z: number, opts: Record<string, unknown> = {}): void { this.def.mutants.push({ type, x, y, z, opts }); }
   use(kind: string, x: number, y: number, z: number, opts: Record<string, unknown> = {}): void { this.def.uses.push({ kind, x, y, z, opts }); }
   mark(name: string, x: number, y: number, z: number, yaw: number): void { this.def.marks[name] = { x, y, z, yaw }; }
+  /** a ceiling fitting its room's light shines down from */
+  fixture(x: number, y: number, z: number): void { (this.def.fixtures ??= []).push({ x, y, z }); }
 
   /** the level as built so far (for adapters that need to look back at it) */
   get level(): Readonly<LevelDef> {
