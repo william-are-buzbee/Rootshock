@@ -15,8 +15,8 @@ export class Hud {
   /** fade the room's name in when you enter it, and out again */
   setRoom(name: string, level: string, dt: number): void {
     const el = $('roomn');
-    if (name && name !== this.room) {
-      this.room = name;
+    if (name && name + '|' + level !== this.room) {
+      this.room = name + '|' + level; // the same name on another level is another room
       el.innerHTML = '';
       el.append(name);
       const s = document.createElement('small');

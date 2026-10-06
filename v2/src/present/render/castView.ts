@@ -225,7 +225,7 @@ interface Shown { m: Mutant; M: Model; mat: THREE.ShaderMaterial; blood: boolean
 export class CastView {
   private shown: Shown[] = [];
 
-  constructor(private scene: THREE.Scene, private sim: Sim, private L: Lighting) {
+  constructor(private scene: THREE.Object3D, private sim: Sim, private L: Lighting) {
     for (const m of sim.cast) {
       const mat = dynamicMaterial(), M = BUILD[m.model](mat, m);
       scene.add(M.g);
@@ -248,7 +248,10 @@ export class CastView {
     const w = this.sim.world;
     for (const s of this.shown) {
       const { m, M, mat } = s, g = M.g;
-      const x = m.px + (m.x - m.px) * alpha, y = m.py + (m.y - m.py) * alpha, z = m.pz + (m.z - m.pz) * alpha;
+      const x = m.px + (m.x - m.px) * alpha, z = m.pz + (m.z - m.pz) * alpha;
+      let y = m.py + (m.y - m.py) * alpha;
+      /* a swimmer rides just under the surface of shallow water, and a little off the floor of deep (as before) */
+      if (m.swim) { const d = w.waterAt(x, z) - y; if (d > 0) y += d < 2 ? Math.max(0, d - 0.23) : 0.3; }
       g.position.set(x, y, z);
       g.rotation.y = m.yaw;
       mat.uniforms.uHit.value = m.hit;

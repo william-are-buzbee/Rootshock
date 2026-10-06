@@ -25,6 +25,13 @@ export class Surface {
     this.lo = Math.min(...def.h);
     this.hi = Math.max(...def.h);
   }
+  /** is it there over (x, z)? Everywhere in its bounds, unless it is masked */
+  has(x: number, z: number): boolean {
+    const d = this.def;
+    if (!d.mask) return true;
+    const i = Math.min(Math.max(Math.floor((x - d.x0) / d.res), 0), d.nx - 2), j = Math.min(Math.max(Math.floor((z - d.z0) / d.res), 0), d.nz - 2);
+    return d.mask[j * (d.nx - 1) + i] === 1;
+  }
   /** its height at (x, z), blended from the lattice; outside its bounds, the height at the nearest edge */
   heightAt(x: number, z: number): number {
     const d = this.def, fx = Math.min(Math.max((x - d.x0) / d.res, 0), d.nx - 1 - 1e-9), fz = Math.min(Math.max((z - d.z0) / d.res, 0), d.nz - 1 - 1e-9);
@@ -36,7 +43,9 @@ export class Surface {
     const d = this.def;
     let best = d.kind === 'floor' ? -Infinity : Infinity;
     for (const [x, z] of samples(f)) {
-      const h = this.heightAt(Math.min(Math.max(x, d.x0), d.x1), Math.min(Math.max(z, d.z0), d.z1));
+      const cx = Math.min(Math.max(x, d.x0), d.x1), cz = Math.min(Math.max(z, d.z0), d.z1);
+      if (d.mask && !this.has(cx, cz)) continue;
+      const h = this.heightAt(cx, cz);
       best = d.kind === 'floor' ? Math.max(best, h) : Math.min(best, h);
     }
     return best;
@@ -67,7 +76,15 @@ export class World {
     this.surfaces = def.surfaces.map(s => new Surface(s));
     this.water = def.water;
     /* carve the rooms, then build the blocks back in */
-    for (const r of def.rooms) this.grid.fill(r.x0, r.y0, r.z0, r.x1, r.y0 + r.ht, r.z1, r.id);
+    for (const r of def.rooms) {
+      const c = r.cells;
+      if (!c) { this.grid.fill(r.x0, r.y0, r.z0, r.x1, r.y0 + r.ht, r.z1, r.id); continue; }
+      for (let j = 0; j < c.nz; j++)
+        for (let i = 0; i < c.nx; i++) {
+          const k = j * c.nx + i;
+          if (c.lo[k] < c.hi[k]) this.grid.fill(r.x0 + i * c.res, c.lo[k], r.z0 + j * c.res, r.x0 + (i + 1) * c.res, c.hi[k], r.z0 + (j + 1) * c.res, r.id);
+        }
+    }
     def.blocks.forEach((b, i) => this.grid.fill(b.x0, b.y0, b.z0, b.x1, b.y1, b.z1, blockCell(i)));
     for (const p of def.props) {
       if (!p.solid || p.loose) continue;
@@ -103,7 +120,9 @@ export class World {
   }
   private dynNear(f: Footprint, ignore: Ignore, fn: (d: Dyn) => void): void {
     const skip = ignore === null ? null : typeof ignore === 'function' ? ignore : null;
+    const x0 = f.x - f.hx, x1 = f.x + f.hx, z0 = f.z - f.hz, z1 = f.z + f.hz;
     for (const d of this.dyn) {
+      if (d.x1 < x0 || d.x0 > x1 || d.z1 < z0 || d.z0 > z1) continue; // nowhere near: no call at all
       if (skip ? skip(d) : d === ignore) continue;
       if (meets(f, d.x0, d.z0, d.x1, d.z1)) fn(d);
     }
@@ -269,7 +288,7 @@ export class World {
   private surfaceRay(s: Surface, ax: number, ay: number, az: number, dx: number, dy: number, dz: number, limit: number): number {
     const d = s.def, inside = (t: number) => {
       const x = ax + dx * t, z = az + dz * t;
-      if (x < d.x0 || x > d.x1 || z < d.z0 || z > d.z1) return false;
+      if (x < d.x0 || x > d.x1 || z < d.z0 || z > d.z1 || !s.has(x, z)) return false;
       const y = ay + dy * t, h = s.heightAt(x, z);
       return d.kind === 'floor' ? y < h && y > d.base : y > h && y < d.base;
     };

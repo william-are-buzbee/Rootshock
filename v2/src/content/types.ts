@@ -30,6 +30,12 @@ export interface RoomDef {
   /** for the cast: a refuge they do not enter (safe), a room they do not wander into (noroam) */
   safe: boolean;
   noroam: boolean;
+  /** a cavern's roof painted as sky: its ceiling is this colour, and no fittings hang from it */
+  sky?: Colour;
+  /** a cave of any outline (engine.md §14): only these tiles are its own, each carved from lo to hi. The box above
+   *  (x0 to x1, y0 to y0 + ht) bounds them. Tile (i, j) has its low corner at (x0 + i * res, z0 + j * res); a tile with
+   *  lo >= hi is not the room's. */
+  cells?: { res: number; nx: number; nz: number; lo: number[]; hi: number[] };
 }
 
 /** solid built back into open space: a platform, a step, a plinth. Part of the world, not a prop. */
@@ -93,6 +99,9 @@ export interface SurfaceDef {
   sides: boolean;
   /** solid but not drawn: the ramp under a flight of steps */
   hidden?: boolean;
+  /** only some of its lattice squares are there ((nx - 1) by (nz - 1), row by row; 1 where it is): the floor or roof of
+   *  caves of any outline */
+  mask?: number[];
 }
 
 /** standing water: a level over a rectangle */
@@ -174,8 +183,8 @@ export interface CircuitDef { on: boolean; back: boolean; broken?: boolean; tag?
 /** a ladderway between two levels: broken (why it does not go), or needing something to pass */
 export interface LadderDef {
   broken?: string; need?: { power?: string; msg?: string }; say?: string;
-  /** the level at its other end */
-  to?: string;
+  /** the two levels it joins, by id */
+  ends?: [string, string];
 }
 
 export interface StationDef {
@@ -188,4 +197,6 @@ export interface StationDef {
   start: string;
   /** what you are told as it begins */
   intro?: string;
+  /** every level's name, ported or not (a ladder names where it goes before that level is built) */
+  names: Record<string, string>;
 }

@@ -9,14 +9,14 @@ export class Overlay {
   private moving: THREE.LineSegments;
   on = false;
 
-  constructor(scene: THREE.Scene, private sim: Sim) {
+  constructor(scene: THREE.Object3D, private sim: Sim) {
     const w = sim.world, P: number[] = [];
     w.forEachBox(b => boxLines(b, P));
     const S: number[] = [];
     for (const s of w.surfaces) {
-      const d = s.def;
-      for (let j = 0; j < d.nz; j++) for (let i = 0; i < d.nx - 1; i++) S.push(d.x0 + i * d.res, d.h[j * d.nx + i], d.z0 + j * d.res, d.x0 + (i + 1) * d.res, d.h[j * d.nx + i + 1], d.z0 + j * d.res);
-      for (let i = 0; i < d.nx; i++) for (let j = 0; j < d.nz - 1; j++) S.push(d.x0 + i * d.res, d.h[j * d.nx + i], d.z0 + j * d.res, d.x0 + i * d.res, d.h[(j + 1) * d.nx + i], d.z0 + (j + 1) * d.res);
+      const d = s.def, on = (i: number, j: number) => !d.mask || s.has(d.x0 + (i + 0.5) * d.res, d.z0 + (j + 0.5) * d.res);
+      for (let j = 0; j < d.nz; j++) for (let i = 0; i < d.nx - 1; i++) if (on(i, j) || on(i, j - 1)) S.push(d.x0 + i * d.res, d.h[j * d.nx + i], d.z0 + j * d.res, d.x0 + (i + 1) * d.res, d.h[j * d.nx + i + 1], d.z0 + j * d.res);
+      for (let i = 0; i < d.nx; i++) for (let j = 0; j < d.nz - 1; j++) if (on(i, j) || on(i - 1, j)) S.push(d.x0 + i * d.res, d.h[j * d.nx + i], d.z0 + j * d.res, d.x0 + i * d.res, d.h[(j + 1) * d.nx + i], d.z0 + (j + 1) * d.res);
     }
     this.fixed = new THREE.LineSegments(lineGeo([...P]), new THREE.LineBasicMaterial({ color: 0x9a9a90 }));
     const sl = new THREE.LineSegments(lineGeo(S), new THREE.LineBasicMaterial({ color: 0x5fae6a }));

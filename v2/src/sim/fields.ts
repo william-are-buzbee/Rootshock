@@ -69,12 +69,12 @@ const isOpen = (d: Door) => d.t > 0.9;
 /** a light door on a live circuit, not locked: it opens for whatever comes near */
 export const opensItself = (d: Door, pw: number) => {
   const D = d.def;
-  return D.kind === 'light' && !(D.stuck || D.vent || D.seal || D.lift) && pw > 0 && !locked(d, pw);
+  return D.kind === 'light' && !(D.stuck || D.vent || D.seal || D.lift) && pw > 0 && !locked(d);
 };
 /** a door no hand can work */
-export const doorShut = (d: Door, pw: number) => {
+export const doorShut = (d: Door) => {
   const D = d.def;
-  return D.seal || D.vent || D.lift || D.stuck || D.kind === 'heavy' || locked(d, pw);
+  return D.seal || D.vent || D.lift || D.stuck || D.kind === 'heavy' || locked(d);
 };
 
 /** may a body of this kind enter the door it is walking into? */
@@ -83,7 +83,7 @@ export function doorPasses(sim: Sim, d: Door, who: Walker): boolean {
   if (isOpen(d)) return true;
   const pw = power(sim.game, d.def.circuit);
   if (opensItself(d, pw)) return true;
-  return who === 'crawl' ? d.def.stuck : !doorShut(d, pw);
+  return who === 'crawl' ? d.def.stuck : !doorShut(d);
 }
 
 /** may it take this platform? */
@@ -102,6 +102,19 @@ export function rulesFor(sim: Sim, F: Fields, who: Walker): Rules {
   sim.platforms.forEach((p, k) => { R.lifts[k] = liftPasses(sim, p, who) ? 1 : 0; });
   c.tick = sim.tick;
   return R;
+}
+
+/** the rules for a round's route: by the level's shape alone (headroom, which platforms it can ever take), not by how
+ *  the doors stand. Doors are met as they come (a shut one is worked, waited at, or the round given up), and the route
+ *  can be made again exactly from a save. */
+const routes = new WeakMap<Fields, Partial<Record<Walker, Rules>>>();
+export function routeRules(sim: Sim, F: Fields, who: Walker): Rules {
+  let c = routes.get(F);
+  if (!c) routes.set(F, (c = {}));
+  return (c[who] ??= {
+    blocked: F.low[who], enter: null, drop: 0.5,
+    lifts: Uint8Array.from(sim.platforms, p => (!p.def.call || who === 'hands' ? 1 : 0)),
+  });
 }
 
 /** sound goes where air goes: through open doors freely, through shut ones muffled; not up a lift shaft's ride */

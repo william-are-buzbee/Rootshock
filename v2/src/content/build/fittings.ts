@@ -78,7 +78,8 @@ export function corpse(D: Deck, x: number, z: number, c: number, ns: boolean, o:
 }
 
 /* ---- growth: the green kind */
-const GR = [0x3f6a3a, 0x4f7a40, 0x2f5a34, 0x5a7a3a, 0x6a8a44, 0x2a4a2c];
+/** the greens of the garden */
+export const GR = [0x3f6a3a, 0x4f7a40, 0x2f5a34, 0x5a7a3a, 0x6a8a44, 0x2a4a2c];
 export function bush(D: Deck, x: number, z: number, s: number): void {
   for (let k = 0; k < 3; k++) P(D, 'ico', x + rnd(-0.2, 0.2) * s, z + rnd(-0.2, 0.2) * s, rnd(0.5, 1) * s, rnd(0.4, 0.9) * s, rnd(0.5, 1) * s, pick(GR), { c: 0, y: rnd(0, 0.2) });
 }
@@ -120,6 +121,20 @@ export function overgrow(D: Deck, R: TRoom, dens: number, glow: boolean): void {
     }
 }
 const C01 = () => rnd(1);
+/** dress a cave: n things on its own tiles, some of them glowing */
+export function caveDress(D: Deck, R: TRoom, n: number, glow: boolean): void {
+  for (let k = 0, tries = 0; k < n && tries < n * 20; tries++) {
+    const x = R.x + rnd(R.w), z = R.y + rnd(R.h), t = Math.floor(z) * D.W + Math.floor(x);
+    if (D.rm[t] !== R.id) continue;
+    k++;
+    const u = C01();
+    if (u < 0.35) moss(D, x, z, rnd(1, 2.4));
+    else if (u < 0.6) bush(D, x, z, rnd(0.6, 1.3));
+    else if (u < 0.85) shroom(D, x, z, rnd(0.6, 2), glow && C01() < 0.4);
+    else P(D, 'ico', x, z, rnd(0.6, 1.4), rnd(0.4, 0.9), rnd(0.6, 1.4), pick([0x5a5248, 0x4a443c, 0x6b6a64]), { c: 1 });
+    if (glow && u > 0.6 && u < 0.85 && C01() < 0.25) D.lamps.push({ x: x * T, z: z * T, r: rnd(4, 7), c: [0.1, 0.36, 0.2] });
+  }
+}
 
 /* ---- cargo */
 const CC = [0x6a4a34, 0x3a5a6a, 0x5a5a3a, 0x6b5a3c, 0x4a4a52, 0x7a3a2a];

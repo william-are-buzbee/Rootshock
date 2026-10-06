@@ -1,6 +1,6 @@
 import { clamp } from '../core/math';
 import type { World } from '../world/world';
-import { fall, fits, makeBody, settle, walk, STEP_UP, type Body } from './body';
+import { fall, fits, footprint, makeBody, settle, walk, STEP_UP, type Body } from './body';
 import type { Input } from './input';
 
 export const STAND = 1.8;
@@ -110,9 +110,11 @@ export function updatePlayer(w: World, p: Player, inp: Input, dt: number): { str
   }
   p.moved = Math.hypot(b.x - ox, b.z - oz);
 
-  /* weight; in deep water you float at the surface, and swim up or down */
+  /* weight; in deep water you float at the surface, and swim up or down. Under a roof the water fills (the drowned
+     sump), there is no surface to float to: you hang where you are. */
   if (swim) {
-    const target = inp.rise ? 2 : inp.sink ? -2 : clamp((depth - SWIM - 0.05) * 3, -1, 1);
+    const flooded = w.ceilingAbove(footprint(b), b.y + b.h, b.skip, level) <= level;
+    const target = inp.rise ? 2 : inp.sink ? -2 : flooded ? 0 : clamp((depth - SWIM - 0.05) * 3, -1, 1);
     b.vy += (target - b.vy) * Math.min(1, dt * 6);
     p.impact = fall(w, b, dt, 0).impact;
   } else p.impact = fall(w, b, dt).impact;

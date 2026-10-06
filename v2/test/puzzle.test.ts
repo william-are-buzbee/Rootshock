@@ -131,7 +131,9 @@ describe('the upper station, played', () => {
     expect(said(s).join(' ')).toMatch(/fan door is sealed/);
     s.game.station!.circuits.CARGO.back = true;
     use(s, find(s, /Ladder/, B1), [-1, 0]);
-    expect(said(s).join(' ')).toMatch(/ladderway is clear/);
+    expect(said(s).join(' ')).toMatch(/rung over rung/);
+    expect(s.game.travel).toEqual({ level: 'main', mark: 'ladder:B1' }); // the run takes you down
+    s.game.travel = null;
     use(s, find(s, /Take main fuse/), [0, 1]);
     expect(s.game.inv.map(i => i.id)).toContain('fuse');
     use(s, find(s, /Call the surface lift/), [0, 1]);

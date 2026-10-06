@@ -45,16 +45,20 @@ export interface SimOpts {
   seed?: number | string;
   /** the station this level belongs to: its circuits and ladderways. Without one, everything is powered. */
   station?: StationDef;
+  /** another level of the same run: its game (what you carry and know, the power) and its draws of chance */
+  game?: Game;
+  rng?: Rng;
 }
 
 export function makeSim(level: LevelDef, o: SimOpts = {}): Sim {
-  const world = new World(level), s = level.start, rng = new Rng(o.seed ?? level.seed);
+  const world = new World(level), s = level.start, rng = o.rng ?? new Rng(o.seed ?? level.seed);
   const loose = new LooseSet(level.props.filter(p => p.loose).map(p => makeLoose(world, p)), world);
   const station: StationState | null = o.station ? {
-    circuits: JSON.parse(JSON.stringify(o.station.circuits)), ladders: JSON.parse(JSON.stringify(o.station.ladders)), main: o.station.main, fuseIn: false,
+    circuits: structuredClone(o.station.circuits), ladders: structuredClone(o.station.ladders), main: o.station.main, fuseIn: false,
+    names: { ...o.station.names }, built: o.station.levels.map(l => l.id),
   } : null;
   const sim: Sim = {
-    tick: 0, world, loose, rng, game: makeGame(rng, station),
+    tick: 0, world, loose, rng, game: o.game ?? makeGame(rng, station),
     player: makePlayer(world, s.x, s.y, s.z, s.yaw),
     doors: level.doors.map(d => makeDoor(world, d)),
     platforms: level.platforms.map(p => makePlatform(world, p)),
@@ -64,7 +68,7 @@ export function makeSim(level: LevelDef, o: SimOpts = {}): Sim {
   sim.usables = buildUsables(sim);
   sim.cast = makeCast(sim, level.mutants);
   if (sim.cast.length) { sim.fields = makeFields(sim); refreshFields(sim, sim.fields); }
-  if (o.station && level.id === o.station.start && o.station.intro) say(sim.game, o.station.intro);
+  if (!o.game && o.station && level.id === o.station.start && o.station.intro) say(sim.game, o.station.intro);
   return sim;
 }
 
@@ -101,7 +105,13 @@ function command(sim: Sim, c: Command): void {
     case 'pad': padKey(g, sim, c.key); break;
     case 'padClose': g.pad = null; break;
     case 'read': if (g.notes[c.key]) { g.events.push({ type: 'note', key: c.key }); sfx(g, 'paper'); } break;
-    case 'lift': say(g, 'The lift goes nowhere yet: no other level is built in v2.'); break;
+    case 'lift': {
+      const here = sim.world.def.id;
+      if (c.level === here) break;
+      if (!g.station?.built.includes(c.level)) { say(g, (g.station?.names[c.level] ?? 'That level') + ' is not built in v2 yet.'); break; }
+      g.travel = { level: c.level, mark: 'lift' };
+      break;
+    }
   }
 }
 

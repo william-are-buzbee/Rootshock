@@ -1,6 +1,6 @@
 import { ITEMS, keyName } from '../content/items';
 import { STATION_NAMES } from '../content/names';
-import { end, give, giveKey, consume, makeNoise, power, readNote, say, sfx, type Game } from './game';
+import { end, give, giveKey, consume, makeNoise, power, readNote, say, sayOnce, sfx, type Game } from './game';
 import { locked, occupied, sendPlatform, type Door, type Platform } from './movers';
 import { eyeHeight } from './player';
 import type { Sim } from './sim';
@@ -16,6 +16,8 @@ export interface Usable {
   label(): string | null;
   act(): void;
   off?: boolean;
+  /** a name for one whose state a save must keep (a body searched) */
+  key?: string;
 }
 
 /** an item lying in the world */
@@ -33,9 +35,9 @@ export function buildUsables(sim: Sim): Usable[] {
     const note = g.notes[n.key];
     if (note) out.push({ x: n.x, y: n.y + 0.05, z: n.z, r: 2, label: () => 'Read: ' + note.t.toLowerCase(), act: () => readNote(g, n.key) });
   }
-  for (const u of L.uses) {
+  L.uses.forEach((u, ui) => {
     const o = u.opts as Record<string, never>;
-    const base = { x: u.x, y: u.y, z: u.z, r: 2.4 };
+    const base = { x: u.x, y: u.y, z: u.z, r: 2.4, key: 'use' + ui };
     switch (u.kind) {
       case 'body': {
         const use: Usable = {
@@ -112,27 +114,53 @@ export function buildUsables(sim: Sim): Usable[] {
         out.push({ ...base, label: () => 'Lift panel', act: () => { if (power(g, 'LIFT') < 2) { say(g, 'The lift is dead. It runs off Gen-1 and nothing else.'); sfx(g, 'deny'); return; } g.events.push({ type: 'lift' }); } });
         break;
       case 'ladder': {
-        const id = o.id as string, up = !!o.up;
+        const id = o.id as string, up = !!o.up, here = L.id;
+        const other = () => g.station?.ladders[id]?.ends?.find(e => e !== here);
         out.push({
-          ...base, label: () => (o.text as string) ?? (up ? 'Ladder up: ' : 'Ladder down: ') + (g.station?.ladders[id]?.to ?? 'nowhere'),
+          ...base, label: () => (o.text as string) ?? (up ? 'Ladder up: ' : 'Ladder down: ') + (g.station?.names[other() ?? ''] ?? 'nowhere'),
           act: () => {
-            const S = g.station?.ladders[id];
+            const S = g.station?.ladders[id], to = other();
             if (S?.broken) { say(g, S.broken); sfx(g, 'deny'); return; }
             const n = S?.need;
             if (n?.power && power(g, n.power) < 1) { say(g, n.msg ?? 'It will not open.'); sfx(g, 'deny'); return; }
-            say(g, 'The ladderway is clear. Where it leads is not built in v2 yet.');
+            if (!to || !g.station?.built.includes(to)) { say(g, 'The ladderway is clear. Where it leads is not built in v2 yet.'); return; }
+            if (S?.say) say(g, S.say);
+            sfx(g, 'step');
+            makeNoise(g, 6);
+            g.travel = { level: to, mark: 'ladder:' + id };
           },
         });
         break;
       }
-      case 'stair':
-        out.push({ ...base, label: () => (o.up ? 'Stairs up' : 'Stairs down'), act: () => say(g, 'Where these lead is not built in v2 yet.') });
+      case 'stair': {
+        const to = o.to as string;
+        out.push({
+          ...base, label: () => (o.up ? 'Stairs up' : 'Stairs down') + (g.station?.names[to] ? ': ' + g.station.names[to] : ''),
+          act: () => {
+            if (!g.station?.built.includes(to)) { say(g, 'Where these lead is not built in v2 yet.'); return; }
+            g.travel = { level: to, mark: 'stair:' + L.id };
+          },
+        });
         break;
+      }
+      case 'dive': {
+        const to = o.to as string;
+        out.push({
+          ...base, label: () => o.label as string,
+          act: () => {
+            if (!g.station?.built.includes(to)) { say(g, 'Where this goes is not built in v2 yet.'); return; }
+            sfx(g, 'slosh');
+            g.travel = { level: to, mark: 'dive:' + L.id };
+            if (o.under) sayOnce(g, 'dive', g.worn.includes('rebreather') ? 'The rebreather ticks. You have time.' : 'One lungful. Count it.');
+          },
+        });
+        break;
+      }
       case 'look':
         out.push({ ...base, label: () => (o.label as string) ?? 'Look', act: () => say(g, o.text as string) });
         break;
     }
-  }
+  });
   return out;
 }
 
@@ -179,10 +207,11 @@ export function doorLabel(sim: Sim, d: Door): string | null {
   const L = power(g, D.circuit), rd = D.card ? 'Card reader' : 'Keypad';
   if (D.kind === 'heavy') {
     if (L < 2) return 'Heavy door: no power';
-    if (locked(d, L)) return rd;
+    if (locked(d)) return rd;
     return d.open ? 'Door control: close' : 'Door control: open';
   }
-  if (L > 0) return locked(d, L) ? rd : null;
+  if (L > 0) return locked(d) ? rd : null;
+  if (locked(d)) return rd + ': dark'; // fail-secure: no power, no way through
   return d.open ? 'Slide the door shut' : 'Slide the door open';
 }
 
@@ -203,7 +232,8 @@ export function doorAct(sim: Sim, d: Door): void {
   if (D.vent) { d.open = true; sfx(g, 'clang', at); makeNoise(g, 7); say(g, 'The panel comes away in your hands. There is a way through.'); return; }
   const L = power(g, D.circuit), heavy = D.kind === 'heavy';
   if (heavy && L < 2) { say(g, L ? 'The backup set cannot move a door this size.' : 'A door this heavy does not move without power.'); sfx(g, 'deny'); return; }
-  if (locked(d, L)) {
+  if (locked(d)) {
+    if (L === 0) { say(g, D.card ? 'The reader is dark. It needs power to read a card, and the door will not slide.' : 'The keypad is dark, and the door will not slide.'); sfx(g, 'deny'); return; }
     if (D.card) {
       if (!g.keys.includes(D.card)) { say(g, 'The reader wants: ' + keyName(D.card) + '.'); sfx(g, 'deny'); return; }
       d.unlocked = true; sfx(g, 'take'); say(g, 'The reader takes the card.');

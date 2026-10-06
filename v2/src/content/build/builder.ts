@@ -30,6 +30,8 @@ export interface RoomOpts {
   nolamp?: boolean;
   /** rock or walkway, not a fitted room: plain walls */
   plain?: boolean;
+  /** the roof painted as sky */
+  sky?: number | Colour;
   doorway?: boolean;
   safe?: boolean;
   noroam?: boolean;
@@ -82,6 +84,7 @@ export class LevelBuilder {
       lit: o.lit ?? (fixed ? (dark ? 'none' : 'always') : 'always'),
       lc: o.lc ?? (fixed ? o.light! : WHITE),
       em: !!o.em, circuit: o.circuit ?? this.def.circuit, flick: !!o.flick, doorway: !!o.doorway, safe: !!o.safe, noroam: !!o.noroam,
+      ...(o.sky !== undefined ? { sky: hex(o.sky) } : {}),
     };
     this.def.rooms.push(r);
     if (o.nolamp) this.nolamp.add(r.id);
@@ -150,6 +153,11 @@ export class LevelBuilder {
     this.def.surfaces.push(s);
   }
 
+  /** a surface given as its lattice of heights, nx by nz corners `res` apart from (x0, z0); masked to some squares if `mask` */
+  lattice(kind: 'floor' | 'ceiling', x0: number, z0: number, x1: number, z1: number, res: number, nx: number, nz: number, h: number[], base: number, c: number | Colour, mask?: number[]): void {
+    this.def.surfaces.push({ kind, x0, z0, x1, z1, res, nx, nz, h, base, colour: hex(c), sides: false, ...(mask ? { mask } : {}) });
+  }
+
   /** standing water over a rectangle, its surface at `level` */
   water(x0: number, z0: number, x1: number, z1: number, level: number): void {
     this.def.water.push({ x0, z0, x1, z1, level });
@@ -206,7 +214,9 @@ export class LevelBuilder {
     for (const s of this.def.surfaces) {
       if (s.kind !== 'floor' || x < s.x0 || x > s.x1 || z < s.z0 || z > s.z1) continue;
       const fx = Math.min((x - s.x0) / s.res, s.nx - 1 - 1e-9), fz = Math.min((z - s.z0) / s.res, s.nz - 1 - 1e-9);
-      const i = Math.floor(fx), j = Math.floor(fz), u = fx - i, v = fz - j, h = s.h, n = s.nx;
+      const i = Math.floor(fx), j = Math.floor(fz);
+      if (s.mask && !s.mask[j * (s.nx - 1) + i]) continue;
+      const u = fx - i, v = fz - j, h = s.h, n = s.nx;
       y = Math.max(y, h[j * n + i] * (1 - u) * (1 - v) + h[j * n + i + 1] * u * (1 - v) + h[(j + 1) * n + i] * (1 - u) * v + h[(j + 1) * n + i + 1] * u * v);
     }
     return y === -Infinity ? 0 : y;

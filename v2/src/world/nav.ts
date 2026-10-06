@@ -112,16 +112,17 @@ function build(w: World, doors: NavDoor[], lifts: NavLift[]): Nav {
     for (let ix = Math.floor(x0 / NAV); ix < Math.ceil(x1 / NAV); ix++) {
       const x = (ix + 0.5) * NAV, z = (iz + 0.5) * NAV, f = circle(x, z, R);
       /* floors in this column: rock or a block with open space over it, and any sloped floor */
-      const cand: number[] = [];
+      const cand: number[] = [], up: number[] = [];
       const ci = Math.floor(x / CELL), ck = Math.floor(z / CELL);
-      for (let j = j0; j < j1; j++) if (g.get(ci, j, ck) < 0 && g.get(ci, j + 1, ck) >= 0) cand.push((j + 1) * CELL);
+      for (let j = j0; j < j1; j++) if (g.get(ci, j, ck) < 0 && g.get(ci, j + 1, ck) >= 0) { cand.push((j + 1) * CELL); up.push(0.3); }
+      /* a sloped floor: on a steep one (a cave's mouth), what a body stands on is higher than the middle by up to its radius */
       for (const s of w.surfaces) {
         const d = s.def;
-        if (d.kind === 'floor' && x >= d.x0 && x <= d.x1 && z >= d.z0 && z <= d.z1) cand.push(s.heightAt(x, z));
+        if (d.kind === 'floor' && x >= d.x0 && x <= d.x1 && z >= d.z0 && z <= d.z1 && s.has(x, z)) { cand.push(s.heightAt(x, z)); up.push(0.3 + 2 * R); }
       }
       const here: number[] = [];
-      for (const c of cand) {
-        const gy = w.groundBelow(f, c + 0.3);
+      for (const [n, c] of cand.entries()) {
+        const gy = w.groundBelow(f, c + up[n]);
         if (gy === -Infinity || gy < c - 0.3) continue;
         if (w.overlap(f, gy + 0.01, gy + LOW)) continue;
         if (here.some(i => Math.abs(spots[i].y - gy) < 0.4)) continue;
@@ -140,6 +141,18 @@ function build(w: World, doors: NavDoor[], lifts: NavLift[]): Nav {
     }
 
   const near = (list: number[] | undefined, y: number) => !!list && list.some(i => Math.abs(spots[i].y - y) <= STEP_UP);
+  /* a slope steeper than a step a metre (a cave passage): a body climbs it a little at a time, so it is a walk both ways
+     if the ground from the lower spot to the higher one rises smoothly, never more than a step at once */
+  const smooth = (A: { x: number; y: number; z: number }, B: { x: number; y: number; z: number }) => {
+    const n = Math.ceil(Math.hypot(B.x - A.x, B.z - A.z) / 0.1);
+    let y = A.y;
+    for (let k = 1; k <= n; k++) {
+      const f = circle(A.x + ((B.x - A.x) * k) / n, A.z + ((B.z - A.z) * k) / n, R), g = w.groundBelow(f, y + STEP_UP / 2);
+      if (g === -Infinity || g < y - STEP_UP / 2 || w.overlap(f, g + 0.01, g + LOW)) return false;
+      y = g;
+    }
+    return Math.abs(y - B.y) < 0.1;
+  };
   /* links between neighbouring spots: a step up or down, or a drop one way; the way between must be clear */
   const edges: [number, number, Edge, number, number][] = [];
   for (const [k, list] of byCol) {
@@ -151,12 +164,13 @@ function build(w: World, doors: NavDoor[], lifts: NavLift[]): Nav {
       for (const a of list)
         for (const b of other) {
           const A = spots[a], B = spots[b], rise = B.y - A.y;
-          if (rise > STEP_UP || -rise > DROP || (diag && Math.abs(rise) > STEP_UP)) continue;
+          const slope = Math.abs(rise) > STEP_UP && Math.abs(rise) < 2 * STEP_UP * (diag ? Math.SQRT2 : 1) && (rise > 0 ? smooth(A, B) : smooth(B, A));
+          if (!slope && (rise > STEP_UP || -rise > DROP || (diag && Math.abs(rise) > STEP_UP))) continue;
           const top = Math.max(A.y, B.y), mx = (A.x + B.x) / 2, mz = (A.z + B.z) / 2;
           /* the way between must be clear: on a diagonal, the corner it cuts and both squares beside it */
           if (w.overlap(circle(mx, mz, R), top + 0.01, top + LOW)) continue;
           if (diag && !(near(byCol.get(colKey(ix + dx, iz)), A.y) && near(byCol.get(colKey(ix, iz + dz)), A.y))) continue;
-          edges.push([a, b, -rise > STEP_UP ? Edge.Drop : Edge.Walk, -1, diag ? Math.SQRT2 * NAV : NAV]);
+          edges.push([a, b, -rise > STEP_UP && !slope ? Edge.Drop : Edge.Walk, -1, diag ? Math.SQRT2 * NAV : NAV]);
         }
     }
   }

@@ -28,7 +28,7 @@ export class HandsView {
   private mesh: THREE.Mesh | null = null;
   private id: string | null | undefined = undefined;
 
-  constructor(camera: THREE.Camera, private sim: Sim, private L: Lighting) {
+  constructor(camera: THREE.Camera, public sim: Sim, private L: Lighting) {
     this.vm.rotation.z = -0.15;
     camera.add(this.vm);
   }

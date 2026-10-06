@@ -1,16 +1,11 @@
 import * as THREE from 'three';
-import type { World } from '../../world/world';
-import type { Lighting } from '../../world/light';
-import { buildLevelMesh, type LevelMesh } from './levelMesh';
-import { U, staticMaterial } from './shader';
+import { U } from './shader';
 
 /** The renderer, the scene and the camera. It draws; it decides nothing. */
 export class View {
   readonly renderer: THREE.WebGLRenderer;
   readonly scene = new THREE.Scene();
   readonly camera = new THREE.PerspectiveCamera(72, 1, 0.06, 140);
-  private level: THREE.Mesh | null = null;
-  private levelMesh: LevelMesh | null = null;
 
   constructor(canvas: HTMLCanvasElement) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -27,20 +22,10 @@ export class View {
     size();
   }
 
-  setLevel(w: World, L: Lighting): void {
-    if (this.level) {
-      this.scene.remove(this.level);
-      this.level.geometry.dispose();
-    }
-    this.levelMesh = buildLevelMesh(w, L);
-    this.level = new THREE.Mesh(this.levelMesh.geometry, staticMaterial());
-    this.level.frustumCulled = false;
-    this.scene.add(this.level);
-  }
-
-  /** the power changed: light the level again (the mesh stays) */
-  relight(L: Lighting): void {
-    this.levelMesh?.relight(L);
+  /** show this level's group, and only it */
+  show(group: THREE.Object3D): void {
+    if (group.parent !== this.scene) this.scene.add(group);
+    for (const c of this.scene.children) if (c !== this.camera && c.type === 'Group') c.visible = c === group;
   }
 
   draw(time: number): void {
