@@ -1,0 +1,378 @@
+import type { DoorDef, LevelDef, UseDef } from '../content/types';
+import { ITEMS } from '../content/items';
+import { NOTES } from '../content/notes';
+import { Edge, type Nav } from '../world/nav';
+import { power, type Game, type StationState } from './game';
+import { makeFields } from './fields';
+import type { Sim } from './sim';
+
+/* The progression checker (world.md §4, engine.md §10). It plays the level as a puzzle, not as a game: what you hold
+   and know, how the power stands, and where you can get to, with the real nav graph and the real door rules. From a
+   start (or any save) it searches every state you could bring about, and reports:
+   - what you can reach at all (rooms, things, ways off the level) and what you never can;
+   - the shortest list of things to do to reach each way off;
+   - soft-locks: states you can get into from which something you could have reached is gone for good (a kit spent on
+     the wrong panel, a fuse used where it does not help);
+   - dead ends: places you can drop into and not get out of.
+   It does not model fights, light, air or falls longer than a body can take (a drop over 2.5 m is not on the graph). */
+
+/** what the puzzle turns on */
+interface St {
+  /** keys, codes known ('#1', '#2'), bodies searched ('b<use>'), things taken ('i<item>'), doors unlocked ('d<door>') */
+  have: Set<string>;
+  fuse: number;
+  kit: number;
+  station: StationState;
+  /** where you are: a nav spot */
+  at: number;
+}
+
+export interface Report {
+  /** distinct states searched */
+  states: number;
+  rooms: { reached: string[]; never: string[] };
+  items: { reached: string[]; never: string[] };
+  /** ways off the level (ladders, stairs, lifts, the surface) and the shortest route to each */
+  goals: Record<string, string[]>;
+  /** each: what is lost, and the route that loses it */
+  softLocks: { lost: string[]; route: string[] }[];
+  /** places you can drop into and not get out of: a room, and how you got there */
+  deadEnds: { room: string; route: string[] }[];
+}
+
+export interface CheckOpts {
+  /** facts from elsewhere taken as given: Gen-1 running (it is on another level), codes or keys known */
+  main?: boolean;
+  have?: string[];
+  /** stop after this many states */
+  limit?: number;
+}
+
+const RELEVANT = new Set(['fuse', 'kit']);
+
+/** what the puzzle needs to know about the level: precomputed once */
+interface Model {
+  nav: Nav;
+  level: LevelDef;
+  /** spots something can be reached from (within its reach, standing below it), for each use, item and note */
+  useAt: number[][];
+  itemAt: number[][];
+  noteAt: number[][];
+  /** notes that give the codes away */
+  codeNotes: Map<string, '#1' | '#2'>;
+  /** the surface lift doors: where you stand to use them */
+  liftDoorAt: Map<number, number[]>;
+  /** what each item lying about is */
+  itemIds: string[];
+}
+
+export function spotsNear(nav: Nav, x: number, y: number, z: number, r: number): number[] {
+  const out: number[] = [];
+  for (let i = 0; i < nav.n; i++) {
+    const dy = y - nav.y[i];
+    if (dy < -0.5 || dy > 2.5) continue;
+    if (Math.hypot(nav.x[i] - x, nav.z[i] - z) <= r) out.push(i);
+  }
+  return out;
+}
+
+function model(sim: Sim, nav: Nav): Model {
+  const L = sim.world.def;
+  const probe = NOTES('\u0001', '\u0002'), codeNotes = new Map<string, '#1' | '#2'>();
+  for (const [k, n] of Object.entries(probe)) {
+    if (n.b.includes('\u0001')) codeNotes.set(k, '#1');
+    else if (n.b.includes('\u0002')) codeNotes.set(k, '#2');
+  }
+  const liftDoorAt = new Map<number, number[]>();
+  L.doors.forEach((D, k) => { if (D.lift) liftDoorAt.set(k, spotsNear(nav, (D.x0 + D.x1) / 2, D.y0 + 1.3, (D.z0 + D.z1) / 2, 2.6)); });
+  return {
+    nav, level: L, codeNotes, liftDoorAt, itemIds: sim.items.map(it => it.id),
+    useAt: L.uses.map(u => spotsNear(nav, u.x, u.y, u.z, 2.4)),
+    itemAt: sim.items.map(it => spotsNear(nav, it.x, it.y + 0.05, it.z, 2)),
+    noteAt: L.notes.map(n => spotsNear(nav, n.x, n.y + 0.05, n.z, 2)),
+  };
+}
+
+const pw = (st: St, c: string) => power({ station: st.station } as Game, c);
+
+/** may you go through this door, as things stand? */
+function passDoor(D: DoorDef, k: number, st: St): boolean {
+  if (D.seal || D.lift) return false;
+  if (D.stuck || D.vent) return true; // under it, crouching; a loose panel prised off
+  const p = pw(st, D.circuit);
+  const credential = st.have.has('d' + k) || (D.card ? st.have.has(D.card) : D.code ? st.have.has('#' + D.code) : true);
+  const lockedNow = !!(D.card || D.code) && p > 0 && !credential; // a dead lock is no lock
+  if (D.kind === 'heavy') return p === 2 && !lockedNow;
+  return !lockedNow; // powered it opens for you; dead, it slides by hand
+}
+
+/** everywhere you can get to from where you stand */
+function flood(M: Model, st: St): Uint8Array {
+  const nav = M.nav, seen = new Uint8Array(nav.n), q = [st.at];
+  const doorOk = M.level.doors.map((D, k) => passDoor(D, k, st));
+  const liftOk = M.level.platforms.map(P => !P.call || pw(st, P.call.circuit) >= 1);
+  seen[st.at] = 1;
+  while (q.length) {
+    const a = q.pop()!;
+    for (let e = nav.start[a]; e < nav.start[a + 1]; e++) {
+      const b = nav.to[e];
+      if (seen[b]) continue;
+      if (nav.door[b] >= 0 && !doorOk[nav.door[b]]) continue;
+      if (nav.kind[e] === Edge.Lift && !liftOk[nav.lift[e]]) continue;
+      seen[b] = 1;
+      q.push(b);
+    }
+  }
+  return seen;
+}
+
+const keyOf = (st: St) => {
+  const s = st.station, c = Object.keys(s.circuits).sort().map(k => { const C = s.circuits[k]; return k + (C.on ? 1 : 0) + (C.back ? 1 : 0) + (C.broken ? 1 : 0); });
+  return [st.at, [...st.have].sort().join(','), st.fuse, st.kit, s.main ? 1 : 0, s.fuseIn ? 1 : 0, c.join('')].join('|');
+};
+const clone = (st: St, at: number): St => ({ have: new Set(st.have), fuse: st.fuse, kit: st.kit, station: structuredClone(st.station), at });
+
+interface Action { label: string; at: number; next: St }
+
+/** what you could do from here, and what each leaves you with */
+function actions(M: Model, st: St, R: Uint8Array): Action[] {
+  const out: Action[] = [], L = M.level;
+  const where = (spots: number[]) => spots.find(i => R[i]) ?? -1;
+  /* things to take that matter to the puzzle (keys, fuses, kits) */
+  M.itemAt.forEach((spots, i) => {
+    const id = M.itemIds[i], it = ITEMS[id];
+    if (st.have.has('i' + i) || !(it?.key || RELEVANT.has(id))) return;
+    const at = where(spots);
+    if (at < 0) return;
+    const n = clone(st, at);
+    n.have.add('i' + i);
+    if (it.key) n.have.add(it.key);
+    if (id === 'fuse') n.fuse++;
+    if (id === 'kit') n.kit++;
+    out.push({ label: 'take ' + it.n.toLowerCase(), at, next: n });
+  });
+  /* papers that give a code away */
+  M.noteAt.forEach((spots, i) => {
+    const code = M.codeNotes.get(L.notes[i].key);
+    if (!code || st.have.has(code)) return;
+    const at = where(spots);
+    if (at < 0) return;
+    const n = clone(st, at);
+    n.have.add(code);
+    out.push({ label: 'read ' + L.notes[i].key, at, next: n });
+  });
+  L.uses.forEach((u, ui) => {
+    const at = where(M.useAt[ui]);
+    if (at < 0) return;
+    const o = u.opts as Record<string, never>, s = st.station;
+    const act = (label: string, f: (n: St) => void) => { const n = clone(st, at); f(n); out.push({ label, at, next: n }); };
+    switch (u.kind) {
+      case 'body':
+        if (st.have.has('b' + ui)) return;
+        act(((o.label as string) ?? 'search the body').toLowerCase(), n => {
+          n.have.add('b' + ui);
+          for (const k of (o.keys as string[]) ?? []) n.have.add(k);
+          if (o.note) n.have.add('#1');
+        });
+        break;
+      case 'backup': {
+        const c = o.c as string, C = s.circuits[c];
+        if (C) act((C.back ? 'stop' : 'start') + ' the ' + c + ' backup set', n => { n.station.circuits[c].back = !C.back; });
+        break;
+      }
+      case 'panel': {
+        const c = o.c as string, C = s.circuits[c];
+        if (!C) return;
+        if (C.broken) { if (st.kit > 0) act('mend the ' + c + ' connection with a kit', n => { n.kit--; Object.assign(n.station.circuits[c], { broken: false, on: true }); }); }
+        else act((C.on ? 'open' : 'close') + ' the ' + c + ' connection', n => { n.station.circuits[c].on = !C.on; });
+        break;
+      }
+      case 'fuse':
+        if (!s.fuseIn && st.fuse > 0) act('seat the fuse', n => { n.fuse--; n.station.fuseIn = true; });
+        break;
+      case 'breaker':
+        if (s.fuseIn) act((s.main ? 'stop' : 'start') + ' Gen-1', n => { n.station.main = !s.main; });
+        break;
+    }
+  });
+  /* a door you can unlock stays unlocked: worth remembering only where the power might later go */
+  return out;
+}
+
+/** the ways off the level you can take from here */
+function goals(M: Model, st: St, R: Uint8Array): string[] {
+  const out: string[] = [], L = M.level, s = st.station;
+  L.uses.forEach((u: UseDef, ui) => {
+    if (!M.useAt[ui].some(i => R[i])) return;
+    const o = u.opts as Record<string, never>;
+    if (u.kind === 'ladder') {
+      const S = s.ladders[o.id as string];
+      if (!S || S.broken) return;
+      if (S.need?.power && pw(st, S.need.power) < 1) return;
+      out.push('ladder ' + o.id + (S.to ? ' to ' + S.to : ''));
+    } else if (u.kind === 'stair') out.push('stairs to ' + o.to);
+    else if (u.kind === 'lift' && pw(st, 'LIFT') === 2) out.push('the lift');
+  });
+  for (const [k, spots] of M.liftDoorAt) {
+    const D = L.doors[k];
+    if (spots.some(i => R[i]) && pw(st, D.circuit) === 2 && pw(st, L.circuit) === 2 && (st.have.has('surf') || st.have.has('lift'))) out.push('the surface');
+  }
+  return out;
+}
+
+/** the state of a sim as the puzzle sees it */
+function fromSim(sim: Sim, nav: Nav, o: CheckOpts): St {
+  const g = sim.game, b = sim.player.body;
+  const have = new Set<string>([...g.keys, ...(o.have ?? [])]);
+  for (const k of g.read) {
+    const n = g.notes[k];
+    if (n?.b.includes(g.code)) have.add('#1');
+    if (n?.b.includes(g.code2)) have.add('#2');
+  }
+  sim.items.forEach((it, i) => { if (it.taken) have.add('i' + i); });
+  for (const u of sim.usables) if (u.off && u.key) have.add('b' + u.key.slice(3));
+  sim.doors.forEach((d, k) => { if (d.unlocked) have.add('d' + k); });
+  const station: StationState = g.station ? structuredClone(g.station) : { circuits: {}, ladders: {}, main: true, fuseIn: true };
+  if (o.main !== undefined) station.main = o.main;
+  return {
+    have, station, at: nav.locate(b.x, b.y, b.z),
+    fuse: g.inv.find(s => s.id === 'fuse')?.n ?? 0, kit: g.inv.find(s => s.id === 'kit')?.n ?? 0,
+  };
+}
+
+/** check a level from where a sim stands (a fresh one: the start; a loaded one: that save) */
+export function checkProgress(sim: Sim, o: CheckOpts = {}): Report {
+  const nav = (sim.fields ?? makeFields(sim)).nav, M = model(sim, nav), itemIds = M.itemIds;
+  const s0 = fromSim(sim, nav, o);
+  if (s0.at < 0) throw new Error('you are not standing anywhere on the nav graph');
+  /* breadth first over states: each remembers how it was reached, what it reaches, and where it can go next */
+  const nodes: { st: St; from: number; label: string; goals: string[]; next: number[] }[] = [];
+  const index = new Map<string, number>();
+  const roomsSeen = new Set<number>(), itemsSeen = new Set<number>();
+  const add = (st: St, from: number, label: string) => {
+    const k = keyOf(st);
+    if (index.has(k)) return index.get(k)!;
+    index.set(k, nodes.length);
+    nodes.push({ st, from, label, goals: [], next: [] });
+    return nodes.length - 1;
+  };
+  add(s0, -1, 'start');
+  const limit = o.limit ?? 20000, deadEnds: Report['deadEnds'] = [], deadRooms = new Set<number>();
+  for (let n = 0; n < nodes.length && n < limit; n++) {
+    const node = nodes[n], R = flood(M, node.st);
+    for (let i = 0; i < nav.n; i++) if (R[i] && nav.room[i] >= 0) roomsSeen.add(nav.room[i]);
+    M.itemAt.forEach((sp, i) => { if (sp.some(j => R[j])) itemsSeen.add(i); });
+    node.goals = goals(M, node.st, R);
+    for (const a of actions(M, node.st, R)) node.next.push(add(a.next, n, a.label));
+    /* dead ends: somewhere you can get to but not back from, from which nothing leads on */
+    const back = floodBack(M, node.st), done = new Uint8Array(nav.n);
+    for (let i = 0; i < nav.n; i++) {
+      if (!R[i] || back[i] || done[i]) continue;
+      /* a place you can get to but not back from: does anything lead on from it? */
+      const there = clone(node.st, i), R2 = flood(M, there);
+      let canReturn = false;
+      for (let j = 0; j < nav.n; j++) if (R2[j]) { done[j] = 1; if (back[j]) canReturn = true; }
+      if (canReturn || goals(M, there, R2).length || actions(M, there, R2).length) continue;
+      const room = nav.room[i];
+      if (deadRooms.has(room)) continue;
+      deadRooms.add(room);
+      deadEnds.push({ room: room >= 0 ? nameOf(sim, room) : 'nowhere', route: routeTo(nodes, n) });
+    }
+  }
+  /* soft-locks: from each state, which goals can still be reached? (backwards over the state graph, per goal) */
+  const all = new Set(nodes.flatMap(x => x.goals)), canStill = new Map<string, Uint8Array>();
+  const prev: number[][] = nodes.map(() => []);
+  nodes.forEach((x, i) => { for (const j of x.next) prev[j].push(i); });
+  for (const goal of all) {
+    const ok = new Uint8Array(nodes.length), q: number[] = [];
+    nodes.forEach((x, i) => { if (x.goals.includes(goal)) { ok[i] = 1; q.push(i); } });
+    while (q.length) { const j = q.pop()!; for (const i of prev[j]) if (!ok[i]) { ok[i] = 1; q.push(i); } }
+    canStill.set(goal, ok);
+  }
+  const softLocks: Report['softLocks'] = [], seenLoss = new Set<string>();
+  nodes.forEach((_x, i) => {
+    const lost = [...all].filter(g => !canStill.get(g)![i]);
+    const k = lost.join('|');
+    if (lost.length && !seenLoss.has(k)) { seenLoss.add(k); softLocks.push({ lost, route: routeTo(nodes, i) }); }
+  });
+  const goalsOut: Report['goals'] = {};
+  for (const goal of all) {
+    const i = nodes.findIndex(x => x.goals.includes(goal)); // breadth first: the first is the shortest
+    goalsOut[goal] = routeTo(nodes, i);
+  }
+  const roomName = (id: number) => nameOf(sim, id);
+  const named = (ids: number[]) => [...new Set(ids.map(roomName))].sort();
+  return {
+    states: nodes.length,
+    rooms: {
+      reached: named([...roomsSeen]),
+      never: named(sim.world.rooms.map(r => r.id).filter(id => !roomsSeen.has(id) && (nav.byRoom.get(id)?.length ?? 0) > 0)),
+    },
+    items: {
+      reached: [...itemsSeen].map(i => ITEMS[itemIds[i]]?.n ?? itemIds[i]).sort(),
+      never: itemIds.map((id, i) => [id, i] as const).filter(([, i]) => !itemsSeen.has(i) && !sim.items[i].taken).map(([id]) => ITEMS[id]?.n ?? id).sort(),
+    },
+    goals: goalsOut, softLocks, deadEnds,
+  };
+}
+
+/** a room by its name; a doorway (which has none) by the rooms it joins */
+function nameOf(sim: Sim, id: number): string {
+  const R = sim.world.rooms[id];
+  if (R.name) return R.name;
+  const nb = sim.world.neighbours(id).map(n => sim.world.rooms[n].name).filter(Boolean);
+  return nb.length ? 'the doorway between ' + nb.join(' and ') : 'room ' + id;
+}
+
+function routeTo(nodes: { from: number; label: string }[], i: number): string[] {
+  const out: string[] = [];
+  for (let k = i; k > 0; k = nodes[k].from) out.push(nodes[k].label);
+  return out.reverse();
+}
+
+/** everywhere you could have come from to get here: the flood over the edges backwards */
+function floodBack(M: Model, st: St): Uint8Array {
+  const nav = M.nav, seen = new Uint8Array(nav.n), q = [st.at], back = backEdges(nav);
+  const doorOk = M.level.doors.map((D, k) => passDoor(D, k, st));
+  const liftOk = M.level.platforms.map(P => !P.call || pw(st, P.call.circuit) >= 1);
+  seen[st.at] = 1;
+  while (q.length) {
+    const b = q.pop()!;
+    if (nav.door[b] >= 0 && !doorOk[nav.door[b]]) continue;
+    for (let k = back.start[b]; k < back.start[b + 1]; k++) {
+      const e = back.edge[k], a = back.from[k];
+      if (seen[a]) continue;
+      if (nav.kind[e] === Edge.Lift && !liftOk[nav.lift[e]]) continue;
+      if (nav.door[a] >= 0 && !doorOk[nav.door[a]]) continue;
+      seen[a] = 1;
+      q.push(a);
+    }
+  }
+  return seen;
+}
+
+/** the graph's edges by where they arrive: for each spot, the edges into it and where each comes from */
+const backs = new WeakMap<Nav, { start: Int32Array; edge: Int32Array; from: Int32Array }>();
+function backEdges(nav: Nav) {
+  let r = backs.get(nav);
+  if (r) return r;
+  const n = nav.n, m = nav.to.length, start = new Int32Array(n + 1), edge = new Int32Array(m), from = new Int32Array(m);
+  for (let e = 0; e < m; e++) start[nav.to[e] + 1]++;
+  for (let i = 0; i < n; i++) start[i + 1] += start[i];
+  const fill = start.slice(0, n);
+  for (let a = 0; a < n; a++) for (let e = nav.start[a]; e < nav.start[a + 1]; e++) { const p = fill[nav.to[e]]++; edge[p] = e; from[p] = a; }
+  backs.set(nav, (r = { start, edge, from }));
+  return r;
+}
+
+/** the report as text, for the console */
+export function describe(r: Report): string {
+  const lines = [`${r.states} states searched.`];
+  lines.push(`Rooms reached: ${r.rooms.reached.length}; never: ${r.rooms.never.join(', ') || 'none'}.`);
+  lines.push(`Things never in reach: ${r.items.never.join(', ') || 'none'}.`);
+  for (const [g, route] of Object.entries(r.goals)) lines.push(`${g}: ${route.length ? route.join(' → ') : 'from where you stand'}.`);
+  if (!Object.keys(r.goals).length) lines.push('No way off the level can be reached.');
+  for (const s of r.softLocks) lines.push(`SOFT-LOCK: ${s.route.join(' → ')} loses ${s.lost.join(', ')}.`);
+  for (const d of r.deadEnds) lines.push(`DEAD END: ${d.room}, after ${d.route.join(' → ') || 'nothing'}.`);
+  return lines.join('\n');
+}

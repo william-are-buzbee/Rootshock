@@ -4,7 +4,7 @@ import { STEP } from '../core/loop';
 import { Edge, edgeCost, field as fieldFrom } from '../world/nav';
 import type { Dyn } from '../world/world';
 import { fall, makeBody, settle, walk, type Body } from './body';
-import { doorShut, opensItself, rulesFor, type Fields, type Walker } from './fields';
+import { doorShut, opensItself, routeRules, rulesFor, type Fields, type Walker } from './fields';
 import { hurtBy, power, sayOnce, sfx } from './game';
 import { sendPlatform, type Door } from './movers';
 import { eyeHeight } from './player';
@@ -351,7 +351,12 @@ function pickDest(sim: Sim, m: Mutant): void {
 
 function fieldTo(sim: Sim, m: Mutant, k: number): Float32Array {
   const Fs = sim.fields!;
-  return fieldFrom(Fs.nav, k, rulesFor(sim, Fs, m.walker), m.F ?? undefined);
+  return fieldFrom(Fs.nav, k, routeRules(sim, Fs, m.walker), m.F ?? undefined);
+}
+
+/** after a load: the route to where it was going, made again (it depends on the level's shape alone) */
+export function restoreRoute(sim: Sim, m: Mutant): void {
+  m.F = sim.fields && m.dest >= 0 ? fieldTo(sim, m, m.dest) : null;
 }
 
 const roamCache = new WeakMap<object, number[]>();

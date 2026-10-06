@@ -16,6 +16,8 @@ export interface Usable {
   label(): string | null;
   act(): void;
   off?: boolean;
+  /** a name for one whose state a save must keep (a body searched) */
+  key?: string;
 }
 
 /** an item lying in the world */
@@ -33,9 +35,9 @@ export function buildUsables(sim: Sim): Usable[] {
     const note = g.notes[n.key];
     if (note) out.push({ x: n.x, y: n.y + 0.05, z: n.z, r: 2, label: () => 'Read: ' + note.t.toLowerCase(), act: () => readNote(g, n.key) });
   }
-  for (const u of L.uses) {
+  L.uses.forEach((u, ui) => {
     const o = u.opts as Record<string, never>;
-    const base = { x: u.x, y: u.y, z: u.z, r: 2.4 };
+    const base = { x: u.x, y: u.y, z: u.z, r: 2.4, key: 'use' + ui };
     switch (u.kind) {
       case 'body': {
         const use: Usable = {
@@ -132,7 +134,7 @@ export function buildUsables(sim: Sim): Usable[] {
         out.push({ ...base, label: () => (o.label as string) ?? 'Look', act: () => say(g, o.text as string) });
         break;
     }
-  }
+  });
   return out;
 }
 

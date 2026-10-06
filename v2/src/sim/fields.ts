@@ -104,6 +104,19 @@ export function rulesFor(sim: Sim, F: Fields, who: Walker): Rules {
   return R;
 }
 
+/** the rules for a round's route: by the level's shape alone (headroom, which platforms it can ever take), not by how
+ *  the doors stand. Doors are met as they come (a shut one is worked, waited at, or the round given up), and the route
+ *  can be made again exactly from a save. */
+const routes = new WeakMap<Fields, Partial<Record<Walker, Rules>>>();
+export function routeRules(sim: Sim, F: Fields, who: Walker): Rules {
+  let c = routes.get(F);
+  if (!c) routes.set(F, (c = {}));
+  return (c[who] ??= {
+    blocked: F.low[who], enter: null, drop: 0.5,
+    lifts: Uint8Array.from(sim.platforms, p => (!p.def.call || who === 'hands' ? 1 : 0)),
+  });
+}
+
 /** sound goes where air goes: through open doors freely, through shut ones muffled; not up a lift shaft's ride */
 function soundRules(sim: Sim, F: Fields): Rules {
   const R = F.rules.sound.R, e = R.enter!;

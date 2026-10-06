@@ -293,7 +293,7 @@ sequence of inputs. The door rules, the labels and the answers are the first eng
 - **Stable ids.** Each world numbers what moves from 1, in the order it is made, so a level loaded twice gives the
   same ids and a save can name things by them.
 - **Save and load** serialise the sim state: entities, circuits, inventory, flags, the player. The world model is
-  rebuilt from content, never saved.
+  rebuilt from content, never saved. A loaded run plays on exactly as the original would have (step 7).
 - **Headless.** The sim runs in Node without a browser. That enables:
   - **Unit tests** for queries, the body controller, door rules, power.
   - **Level validation** at build time: every ladder has two ends, every key, card and code exists somewhere
@@ -440,7 +440,29 @@ Each step ends with something you can open and play.
      other rather than jostle.
    - **Not yet**: starting again without reloading the page (a reload needs a click to start); the dev map, menu and
      level select; the wet and underwater camera (no water on the upper station).
-7. **Save and load, level validation, the progression checker.**
+7. **Save and load, level validation, the progression checker. Done.**
+   - **Save and load** (`sim/save.ts`): a save is plain data, everything that can change and nothing that cannot (the
+     world is built again from the level): the game, you, doors, platforms, crates, what lies about and what was
+     searched, the cast to the last timer, what each body stands on, and the fields over the nav graph (packed; they are
+     made in turn, so cannot be made again exactly). A round's route is now made from the level's shape alone, so it can
+     be. Proof: a run saved, written out as text, loaded, and played on for 1,200 steps alongside the original matches
+     it exactly. About 200 KB.
+   - **In the page**: a run left part way (paused, the tab hidden, the page closed) is kept, and the title offers to go
+     on from it, or to start again. Going on uses the save up, so a death is still a death: there was no saving at all
+     in the first engine, and this keeps its stakes while not losing a run to a closed tab. Dev pages do not save.
+   - **The progression checker** (`sim/progress.ts`): plays the level as a puzzle (keys, codes known, fuses and kits,
+     every circuit's state, where you stand) over the real nav graph with the real door and platform rules, searching
+     every state you can bring about, from the start or from any save. It reports the rooms and things you never reach,
+     the shortest list of things to do to reach each way off the level, soft-locks (what a choice loses for good), and
+     dead ends (places you can drop into and not climb out of). Facts from levels not yet built can be given (Gen-1
+     running, a code known). On the upper station: 105 states in 0.2 s; both ladderways reachable (B once Cargo has its
+     backup set), the Armory and the hazard store shut until Gen-1, no soft-locks, no dead ends; given Gen-1 and the
+     Armory code, everything is in reach and the surface pass is all the way out needs. Proved also on a small level
+     built to go wrong: one kit, two burned connections, and a pit. `rs.progress()` prints it in a `?dev` page.
+   - **Level validation** (`sim/validate.ts`, run by the tests and so by `npm run check`): things that do not exist,
+     circuits that do not, cards nobody carries, codes written nowhere, ladders that do not say where they go, and
+     anything placed out of reach of anywhere to stand. What waits on a level not yet ported (ladder A1's other end; the
+     Armory code, on Aldana's hand in the sump) is marked as such, not as a mistake.
 8. **The other levels**, one at a time.
 9. **Swap**: v2 becomes the game at the root; the old one is archived.
 

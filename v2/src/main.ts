@@ -3,6 +3,9 @@ import { testbed } from './content/levels/testbed';
 import { STATION } from './content/station';
 import { Lighting } from './world/light';
 import { applyCommands, makeSim, step, type Sim } from './sim/sim';
+import { load, save } from './sim/save';
+import { checkProgress, describe, type CheckOpts } from './sim/progress';
+import { readStore, writeStore } from './present/store';
 import { power } from './sim/game';
 import { CameraRig, type Prev } from './present/camera';
 import { Controls } from './present/controls';
@@ -39,7 +42,27 @@ const entry = STATION.levels.find(l => l.id === want);
 const level = want === 'testbed' || !entry ? testbed() : entry.build();
 const station = want === 'testbed' || !entry ? undefined : STATION;
 if (station && params.get('power') === 'full') { station.main = true; for (const c of Object.values(station.circuits)) { c.on = true; c.broken = false; } }
-const sim: Sim = makeSim(level, { seed: (Math.random() * 2 ** 32) >>> 0, station });
+/* a run left part way (paused, tab hidden, page closed) goes on from where it was; going on uses the save up, so a
+   death is still a death. Dev pages and the test bed do not save. */
+const SAVE_KEY = 'rootshock-v2:' + level.id, saving = !DEV && !!station;
+const stored = saving ? readStore(SAVE_KEY) : null;
+let resumed: Sim | null = null;
+if (stored) try { resumed = load(level, JSON.parse(stored), { station }); } catch { writeStore(SAVE_KEY, null); }
+const sim: Sim = resumed ?? makeSim(level, { seed: (Math.random() * 2 ** 32) >>> 0, station });
+function suspend(): void {
+  if (saving && sim.tick > 0 && !sim.game.ended && mode !== 'title' && mode !== 'end') writeStore(SAVE_KEY, JSON.stringify(save(sim)));
+}
+if (resumed) {
+  document.getElementById('titleg')!.textContent = 'Click to go on where you left off';
+  const line = document.createElement('p'), again = document.createElement('a');
+  line.className = 'v2';
+  again.href = '#'; again.textContent = 'Or start again from the cell.';
+  again.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); writeStore(SAVE_KEY, null); location.reload(); });
+  line.append(again);
+  document.getElementById('title')!.append(line);
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden) suspend(); });
+window.addEventListener('pagehide', suspend);
 const lightingNow = () => new Lighting(sim.world, c => power(sim.game, c));
 let lighting = lightingNow();
 const t0 = performance.now();
@@ -70,6 +93,7 @@ if (DEV) {
 }
 
 function setMode(m: typeof mode): void {
+  if (m === 'pause') suspend();
   mode = m;
   controls.enabled = m === 'play';
   hud.show('title', m === 'title');
@@ -81,7 +105,7 @@ function openPanel(fn: () => void): void {
   fn();
 }
 
-hud.onClick('title', () => { audio.start(); audio.setHum(!!sim.game.station?.main); setMode('play'); controls.lock(); });
+hud.onClick('title', () => { writeStore(SAVE_KEY, null); audio.start(); audio.setHum(!!sim.game.station?.main); setMode('play'); controls.lock(); });
 hud.onClick('pause', () => { setMode('play'); controls.lock(); });
 document.getElementById('end')!.addEventListener('click', () => location.reload());
 
@@ -170,7 +194,7 @@ function frame(t: number): void {
   view.draw(t / 1000);
 }
 /* ?dev: the sim on the window, for poking at from the console or a test script */
-if (DEV) (window as unknown as { rs: unknown }).rs = { sim, overlay, step };
+if (DEV) (window as unknown as { rs: unknown }).rs = { sim, overlay, step, save: () => save(sim), progress: (o?: CheckOpts) => describe(checkProgress(sim, o)) };
 
 setMode('title');
 requestAnimationFrame(frame);

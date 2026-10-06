@@ -59,6 +59,11 @@ export function makeDoor(w: World, def: DoorDef): Door {
 /** how far a jammed door stands open: enough to crouch under */
 const STUCK = 0.45; // its foot 1.07 m up: room for a crouch (1 m)
 
+/** put a platform's box where its top is (after a load) */
+export function placePlatform(p: Platform): void {
+  Object.assign(p.dyn, { y0: p.y - THICK, y1: p.y });
+}
+
 export function makePlatform(w: World, def: PlatformDef): Platform {
   const dyn: Dyn = { kind: 'mover', id: w.newId(), x0: def.x0, z0: def.z0, x1: def.x1, z1: def.z1, y0: def.y0 - THICK, y1: def.y0 };
   w.dyn.push(dyn);
@@ -114,7 +119,7 @@ export function updateDoor(d: Door, riders: Rider[], movers: { x: number; y: num
 }
 
 /** the door at openness t: it slides straight up by its own height */
-function doorBox(d: Door, t: number): Box {
+export function doorBox(d: Door, t: number): Box {
   const lift = (d.def.y1 - d.def.y0 - 0.02) * t; // open, 2 cm of it shows under the lintel, as before
   return { x0: d.def.x0, z0: d.def.z0, x1: d.def.x1, z1: d.def.z1, y0: d.def.y0 + lift, y1: d.def.y1 + lift };
 }
