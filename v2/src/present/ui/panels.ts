@@ -19,7 +19,9 @@ export class Panels {
     $('invb').addEventListener('click', e => {
       const t = e.target as HTMLElement;
       const dr = t.closest<HTMLElement>('[data-d]'), tl = t.closest<HTMLElement>('[data-t]'), us = t.closest<HTMLElement>('[data-i]'), nt = t.closest<HTMLElement>('[data-n]');
+      const wn = t.closest<HTMLElement>('[data-w]');
       if (dr) this.send({ type: 'drop', slot: +dr.dataset.d! });
+      else if (wn) this.send({ type: 'unwear', id: wn.dataset.w! });
       else if (tl) this.send({ type: 'light', tool: tl.dataset.t! });
       else if (us) this.send({ type: 'use', slot: +us.dataset.i! });
       else if (nt) { this.send({ type: 'read', key: nt.dataset.n! }); return; }
@@ -101,12 +103,12 @@ export class Panels {
           '<small>' + esc(it.d ?? '') + (on ? ' In hand.' : '') + '</small></button><button class="drop" data-d="' + i + '">Put down</button></div>';
       } else h += '<div class="slot empty"></div>';
     }
-    const worn = ["Prisoner's garb", ...g.worn.map(k => ITEMS[k].n)], keys = g.keys.map(keyName);
+    const worn = "<p>Prisoner's garb</p>" + g.worn.map(k => '<button data-w="' + k + '">' + esc(ITEMS[k].n) + '</button>').join(''), keys = g.keys.map(keyName);
     h += '</div><div class="cols"><section><h3>Lights</h3>' +
       (g.tools.length ? g.tools.map(k => '<button data-t="' + k + '">' + esc(ITEMS[k].n) + (g.light === k ? (g.lightOn ? ' (on)' : ' (ready)') : '') + '</button>').join('') : '<p>None</p>') +
-      '</section><section><h3>Worn</h3><p>' + worn.map(esc).join('<br>') + '</p></section><section><h3>Keys</h3><p>' + (keys.length ? keys.map(esc).join('<br>') : 'None') +
+      '</section><section><h3>Worn</h3>' + worn + '</section><section><h3>Keys</h3><p>' + (keys.length ? keys.map(esc).join('<br>') : 'None') +
       '</p></section><section><h3>Papers</h3>' + (g.read.length ? g.read.map(k => '<button data-n="' + k + '">' + esc(g.notes[k].t) + '</button>').join('') : '<p>None</p>') +
-      '</section></div><p class="hint">Click an item to use it or take it in hand. Tab closes.</p>';
+      '</section></div><p class="hint">Click an item to use it, put it on or take it in hand; click something worn to take it off. Tab closes.</p>';
     $('invb').innerHTML = h;
   }
   showNote(g: Game, key: string): void {

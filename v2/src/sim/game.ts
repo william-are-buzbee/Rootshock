@@ -29,6 +29,8 @@ export type Command =
   | { type: 'use'; slot: number }
   | { type: 'drop'; slot: number }
   | { type: 'light'; tool: string }
+  /** take off something worn, into a free hand */
+  | { type: 'unwear'; id: string }
   | { type: 'pad'; key: string }
   | { type: 'padClose' }
   | { type: 'lift'; level: string }
@@ -204,9 +206,23 @@ export function useItem(g: Game, i: number): void {
     if (!has(g, 'flash') && !has(g, 'lantern')) say(g, 'Nothing to put it in.');
     else if (g.batt > 90) say(g, 'The light is still strong.');
     else { g.batt = 100; consume(g, i); say(g, 'Fresh battery.'); }
+  } else if (it.worn) {
+    consume(g, i);
+    if (!g.worn.includes(s.id)) g.worn.push(s.id);
+    say(g, 'You put the ' + it.n.toLowerCase() + ' on.'); sfx(g, 'take');
   } else if (s.id === 'fuse') say(g, 'It belongs in a generator.');
   else if (s.id === 'kit') say(g, 'It mends a broken service connection. One of them.');
   else if (it.per) say(g, 'Ammunition. It needs the gun.');
+}
+
+/** take off something worn: it goes into your hands, if they have room */
+export function unwear(g: Game, id: string): void {
+  const k = g.worn.indexOf(id), it = ITEMS[id];
+  if (k < 0 || !it) return;
+  if (g.inv.length >= g.cap) { say(g, 'Your hands are full. Tab, and put something down.'); return; }
+  g.worn.splice(k, 1);
+  g.inv.push({ id, n: 1 });
+  say(g, 'You take the ' + it.n.toLowerCase() + ' off.'); sfx(g, 'take');
 }
 
 /** say it the first time only */
