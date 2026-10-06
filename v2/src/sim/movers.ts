@@ -78,8 +78,9 @@ export function sendPlatform(p: Platform, target: 0 | 1): void {
 
 const overlaps = (a: Box, b: Box): boolean => a.x0 < b.x1 && a.x1 > b.x0 && a.y0 < b.y1 && a.y1 > b.y0 && a.z0 < b.z1 && a.z1 > b.z0;
 
-/** a locked door: a reader or keypad not yet satisfied, while its circuit has any power (a dead lock is no lock) */
-export const locked = (d: Door, power: number): boolean => !!(d.def.card || d.def.code) && !d.unlocked && power > 0;
+/** a locked door: a reader or keypad not yet satisfied. Fail-secure (world.md §4): it stays locked with the power off,
+ *  and the reader needs power to read. Once a card or code has opened it, it stays unlocked. */
+export const locked = (d: Door): boolean => !!(d.def.card || d.def.code) && !d.unlocked;
 
 /** something in the doorway, which it must not close on */
 export function occupied(d: Door, riders: Rider[]): boolean {
@@ -100,7 +101,7 @@ export function updateDoor(d: Door, riders: Rider[], movers: { x: number; y: num
     if (D.kind === 'heavy') {
       if (power < 2 && d.open && !occupied(d, riders)) { d.open = false; moved = true; }
     } else if (power > 0) {
-      if (locked(d, power)) {
+      if (locked(d)) {
         if (d.open && !occupied(d, riders)) { d.open = false; moved = true; }
       } else {
         const cx = (D.x0 + D.x1) / 2, cz = (D.z0 + D.z1) / 2;

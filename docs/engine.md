@@ -495,13 +495,11 @@ Each step ends with something you can open and play.
 2. **Caves with irregular outlines.** The first engine's caves are tunnels and chambers of any shape (`caveShape`,
    `tunnel`, `chamber`); the upper station has none. Their outline can be stamped cell by cell with surfaces masked
    to it; to be built with the level that first needs it (step 8).
-3. **Locks without power.** v2 keeps the first engine's rule that a card reader or keypad with no power is no lock
-   (the door slides by hand). `world.md` §4 agrees a change to fail-secure: locked with the power off, the reader
-   needing power to read. The progression checker shows what the old rule allows: on the main level, stopping
-   Horticulture's backup set opens the card door to the labs without the guard's card. To decide before the levels
-   that lean on locks are tuned.
-
 ### Settled
+
+- **Locks without power** (step 8): fail-secure, as `world.md` §4 has it. A card reader or keypad stays locked with
+  its circuit dead, and needs power to read; once a card or code has opened a door, it stays unlocked. The first
+  engine's rule (a dead lock is no lock) let a backup set switched off open a card door; the checker found it.
 
 - **Storey heights** (step 8): 3.5 m, on the grid. The main level's storeys were 3.4 m; the 10 cm is not to be seen.
 

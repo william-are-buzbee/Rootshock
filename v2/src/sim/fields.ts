@@ -69,12 +69,12 @@ const isOpen = (d: Door) => d.t > 0.9;
 /** a light door on a live circuit, not locked: it opens for whatever comes near */
 export const opensItself = (d: Door, pw: number) => {
   const D = d.def;
-  return D.kind === 'light' && !(D.stuck || D.vent || D.seal || D.lift) && pw > 0 && !locked(d, pw);
+  return D.kind === 'light' && !(D.stuck || D.vent || D.seal || D.lift) && pw > 0 && !locked(d);
 };
 /** a door no hand can work */
-export const doorShut = (d: Door, pw: number) => {
+export const doorShut = (d: Door) => {
   const D = d.def;
-  return D.seal || D.vent || D.lift || D.stuck || D.kind === 'heavy' || locked(d, pw);
+  return D.seal || D.vent || D.lift || D.stuck || D.kind === 'heavy' || locked(d);
 };
 
 /** may a body of this kind enter the door it is walking into? */
@@ -83,7 +83,7 @@ export function doorPasses(sim: Sim, d: Door, who: Walker): boolean {
   if (isOpen(d)) return true;
   const pw = power(sim.game, d.def.circuit);
   if (opensItself(d, pw)) return true;
-  return who === 'crawl' ? d.def.stuck : !doorShut(d, pw);
+  return who === 'crawl' ? d.def.stuck : !doorShut(d);
 }
 
 /** may it take this platform? */

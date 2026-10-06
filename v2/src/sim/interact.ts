@@ -194,10 +194,11 @@ export function doorLabel(sim: Sim, d: Door): string | null {
   const L = power(g, D.circuit), rd = D.card ? 'Card reader' : 'Keypad';
   if (D.kind === 'heavy') {
     if (L < 2) return 'Heavy door: no power';
-    if (locked(d, L)) return rd;
+    if (locked(d)) return rd;
     return d.open ? 'Door control: close' : 'Door control: open';
   }
-  if (L > 0) return locked(d, L) ? rd : null;
+  if (L > 0) return locked(d) ? rd : null;
+  if (locked(d)) return rd + ': dark'; // fail-secure: no power, no way through
   return d.open ? 'Slide the door shut' : 'Slide the door open';
 }
 
@@ -218,7 +219,8 @@ export function doorAct(sim: Sim, d: Door): void {
   if (D.vent) { d.open = true; sfx(g, 'clang', at); makeNoise(g, 7); say(g, 'The panel comes away in your hands. There is a way through.'); return; }
   const L = power(g, D.circuit), heavy = D.kind === 'heavy';
   if (heavy && L < 2) { say(g, L ? 'The backup set cannot move a door this size.' : 'A door this heavy does not move without power.'); sfx(g, 'deny'); return; }
-  if (locked(d, L)) {
+  if (locked(d)) {
+    if (L === 0) { say(g, D.card ? 'The reader is dark. It needs power to read a card, and the door will not slide.' : 'The keypad is dark, and the door will not slide.'); sfx(g, 'deny'); return; }
     if (D.card) {
       if (!g.keys.includes(D.card)) { say(g, 'The reader wants: ' + keyName(D.card) + '.'); sfx(g, 'deny'); return; }
       d.unlocked = true; sfx(g, 'take'); say(g, 'The reader takes the card.');

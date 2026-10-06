@@ -32,7 +32,7 @@ describe('the upper station', () => {
   it('with Gen-1 running and the Armory code known (both from below), everything is in reach and the surface is open', () => {
     const r2 = checkProgress(s, { main: true, have: ['#1'] });
     expect(r2.items.never).toEqual([]);
-    expect(r2.goals['the surface']).toEqual(['take surface lift pass']);
+    expect(r2.goals['the surface']).toEqual(['key the code at door 16', 'take surface lift pass']); // the Armory, then its pass
     expect(r2.rooms.never.every(n => /Cell|Phase 2|Surface cage|doorway/.test(n))).toBe(true); // welded, or the way out itself
   });
 

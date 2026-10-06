@@ -60,6 +60,8 @@ interface Model {
   noteAt: number[][];
   /** notes that give the codes away */
   codeNotes: Map<string, '#1' | '#2'>;
+  /** each door's reader or keypad: where you stand to use it */
+  doorAt: number[][];
   /** the surface lift doors: where you stand to use them */
   liftDoorAt: Map<number, number[]>;
   /** what each item lying about is */
@@ -86,7 +88,7 @@ function model(sim: Sim, nav: Nav): Model {
   const liftDoorAt = new Map<number, number[]>();
   L.doors.forEach((D, k) => { if (D.lift) liftDoorAt.set(k, spotsNear(nav, (D.x0 + D.x1) / 2, D.y0 + 1.3, (D.z0 + D.z1) / 2, 2.6)); });
   return {
-    nav, level: L, codeNotes, liftDoorAt, itemIds: sim.items.map(it => it.id),
+    nav, level: L, codeNotes, liftDoorAt, doorAt: L.doors.map(D => spotsNear(nav, (D.x0 + D.x1) / 2, D.y0 + 1.3, (D.z0 + D.z1) / 2, 2.6)), itemIds: sim.items.map(it => it.id),
     useAt: L.uses.map(u => spotsNear(nav, u.x, u.y, u.z, 2.4)),
     itemAt: sim.items.map(it => spotsNear(nav, it.x, it.y + 0.05, it.z, 2)),
     noteAt: L.notes.map(n => spotsNear(nav, n.x, n.y + 0.05, n.z, 2)),
@@ -100,8 +102,8 @@ function passDoor(D: DoorDef, k: number, st: St): boolean {
   if (D.seal || D.lift) return false;
   if (D.stuck || D.vent) return true; // under it, crouching; a loose panel prised off
   const p = pw(st, D.circuit);
-  const credential = st.have.has('d' + k) || (D.card ? st.have.has(D.card) : D.code ? st.have.has('#' + D.code) : true);
-  const lockedNow = !!(D.card || D.code) && p > 0 && !credential; // a dead lock is no lock
+  /* fail-secure: locked until a card or code has opened it, which takes power at the time */
+  const lockedNow = !!(D.card || D.code) && !st.have.has('d' + k);
   if (D.kind === 'heavy') return p === 2 && !lockedNow;
   return !lockedNow; // powered it opens for you; dead, it slides by hand
 }
@@ -163,6 +165,14 @@ function actions(M: Model, st: St, R: Uint8Array): Action[] {
     const at = where(spots);
     if (at < 0) return;
     out.push({ id: 'note' + i, label: 'read ' + L.notes[i].key, at, mono: true, apply: n => { n.have.add(code); } });
+  });
+  /* a reader or keypad you have the card or the code for, with power to read it: once opened, it stays unlocked */
+  L.doors.forEach((D, k) => {
+    if (!(D.card || D.code) || st.have.has('d' + k) || D.seal || D.lift) return;
+    if (!(D.card ? st.have.has(D.card) : st.have.has('#' + D.code)) || pw(st, D.circuit) === 0) return;
+    const at = where(M.doorAt[k]);
+    if (at < 0) return;
+    out.push({ id: 'door' + k, label: (D.card ? 'use the card at door ' : 'key the code at door ') + k, at, mono: true, apply: n => { n.have.add('d' + k); } });
   });
   L.uses.forEach((u, ui) => {
     const at = where(M.useAt[ui]);

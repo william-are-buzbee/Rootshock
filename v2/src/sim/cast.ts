@@ -216,7 +216,7 @@ function doorAhead(sim: Sim, m: Mutant, d: Door): 'go' | 'wait' | 'no' {
   if (m.walker === 'crawl' && d.def.stuck) return 'go';
   const pw = power(sim.game, d.def.circuit);
   if (opensItself(d, pw)) return 'wait'; // it is opening for us
-  if (m.opens && !doorShut(d, pw)) {
+  if (m.opens && !doorShut(d)) {
     if (!d.open) {
       d.open = true; d.hold = 3;
       sfx(sim.game, 'door', { x: (d.def.x0 + d.def.x1) / 2, z: (d.def.z0 + d.def.z1) / 2 });
