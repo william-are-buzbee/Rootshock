@@ -281,6 +281,10 @@ Each phase is playable on its own.
 8. **Taking you rather than killing you.** Do the Security flesh (or any of the flesh) want you changed rather than dead: pinned
    down and infected, or killed and the body mutated after? Does a body need to be alive to change? For now they kill you. (The
    death screen already says "Grafted" and "Lowfield keeps what it is given", which allows either.)
+9. **Security's ways in and out.** To be revisited as a whole. The rule for now: nothing skips Security's dark opening, and
+   the way into the Commons is somewhere that takes some access to reach, not a walk from the start. As built, both ways down
+   are earned (the elevator wants the wing mended; ladderway B wants Operations' card and Cargo's power), and both land at the
+   main level's shaft station, a walk from the Commons. Whether that landing should itself need access is part of the question.
 
 ---
 
