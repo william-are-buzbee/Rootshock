@@ -233,7 +233,15 @@ export class CastView {
     }
   }
 
-  setLighting(L: Lighting): void { this.L = L; }
+  setLighting(L: Lighting): void {
+    this.L = L;
+    for (const b of this.bloods) this.light(b);
+  }
+  private bloods: THREE.Mesh[] = [];
+  private light(mesh: THREE.Mesh): void {
+    const p = mesh.position, R = this.sim.world.roomAt(p.x, p.y + 0.3, p.z), l = R ? this.L.at(R.id, p.x, p.z) : [0, 0, 0];
+    ((mesh.material as THREE.ShaderMaterial).uniforms.uLight.value as THREE.Vector3).set(l[0], l[1], l[2]);
+  }
 
   /** draw everything where it is, `alpha` of the way through the step */
   update(alpha: number): void {
@@ -263,8 +271,8 @@ export class CastView {
     mesh.position.set(m.x, m.y + 0.012, m.z);
     mesh.rotation.y = Math.random() * PI;
     mesh.frustumCulled = false;
-    const R = this.sim.world.roomAt(m.x, m.y + 0.3, m.z), l = R ? this.L.at(R.id, m.x, m.z) : [0, 0, 0];
-    (mat.uniforms.uLight.value as THREE.Vector3).set(l[0], l[1], l[2]);
+    this.light(mesh);
+    this.bloods.push(mesh);
     this.scene.add(mesh);
   }
 }

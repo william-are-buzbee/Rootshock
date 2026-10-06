@@ -59,7 +59,6 @@ export function buildUsables(sim: Sim): Usable[] {
             if (!C) return;
             C.back = !C.back;
             g.events.push({ type: 'power', loud: false });
-            sfx(g, 'door');
             say(g, C.back ? (power(g, c) === 2 ? 'The backup set turns over. With Gen-1 on the floor it changes nothing.' : 'The backup set catches. Half-light in the halls; the rooms stay dark. Doors that can, will open for anything.') : 'The backup set coughs out.');
           },
         });
@@ -115,7 +114,7 @@ export function buildUsables(sim: Sim): Usable[] {
       case 'ladder': {
         const id = o.id as string, up = !!o.up;
         out.push({
-          ...base, label: () => (o.text as string) ?? (up ? 'Ladder up' : 'Ladder down'),
+          ...base, label: () => (o.text as string) ?? (up ? 'Ladder up: ' : 'Ladder down: ') + (g.station?.ladders[id]?.to ?? 'nowhere'),
           act: () => {
             const S = g.station?.ladders[id];
             if (S?.broken) { say(g, S.broken); sfx(g, 'deny'); return; }
@@ -153,6 +152,7 @@ function platformUse(sim: Sim, p: Platform, end: 0 | 1): Usable {
       if (power(g, call.circuit) < 1) { say(g, 'No power to it. The platform sits where it stopped.'); sfx(g, 'deny'); return; }
       sendPlatform(p, onIt() ? (end ? 0 : 1) : end);
       sfx(g, 'door', { x: (d.x0 + d.x1) / 2, z: (d.z0 + d.z1) / 2 });
+      makeNoise(g, 12);
     },
   };
 }
@@ -200,7 +200,7 @@ export function doorAct(sim: Sim, d: Door): void {
   }
   if (D.seal) { say(g, D.msg ?? 'It does not move. Something on the other side shifts its weight.'); sfx(g, 'deny'); return; }
   if (D.stuck) { say(g, 'Jammed at waist height. You could get under it. Not everything could.'); return; }
-  if (D.vent) { d.open = true; sfx(g, 'clang', at); say(g, 'The panel comes away in your hands. There is a way through.'); return; }
+  if (D.vent) { d.open = true; sfx(g, 'clang', at); makeNoise(g, 7); say(g, 'The panel comes away in your hands. There is a way through.'); return; }
   const L = power(g, D.circuit), heavy = D.kind === 'heavy';
   if (heavy && L < 2) { say(g, L ? 'The backup set cannot move a door this size.' : 'A door this heavy does not move without power.'); sfx(g, 'deny'); return; }
   if (locked(d, L)) {
@@ -226,6 +226,7 @@ export function doorAct(sim: Sim, d: Door): void {
 export function padKey(g: Game, sim: Sim, k: string): void {
   const p = g.pad;
   if (!p) return;
+  p.miss = undefined;
   if (k === 'C') p.typed = '';
   else if (p.typed.length < 4) p.typed += k;
   sfx(g, 'take');
@@ -235,7 +236,7 @@ export function padKey(g: Game, sim: Sim, k: string): void {
       if (d) d.unlocked = true;
       g.pad = null;
       say(g, 'The keypad goes green.');
-    } else { sfx(g, 'deny'); p.typed = ''; }
+    } else { sfx(g, 'deny'); p.miss = p.typed; p.typed = ''; }
   }
 }
 

@@ -1,5 +1,5 @@
 import type { CircuitDef, LadderDef } from '../content/types';
-import { ITEMS, keyName } from '../content/items';
+import { ITEMS, keyName, wstats } from '../content/items';
 import { NOTES, type Note } from '../content/notes';
 import type { Rng } from '../core/rng';
 import type { PowerLevel } from '../world/light';
@@ -13,7 +13,7 @@ export interface Slot { id: string; n: number }
 
 export type SimEvent =
   | { type: 'say'; text: string }
-  | { type: 'sfx'; name: string; x?: number; z?: number; big?: boolean }
+  | { type: 'sfx'; name: string; x?: number; z?: number; big?: boolean; d?: number }
   | { type: 'note'; key: string }
   | { type: 'pad' }
   | { type: 'lift' }
@@ -60,7 +60,7 @@ export interface Game {
   light: string | null;
   lightOn: boolean;
   /** the keypad in front of you: what it wants, what you have typed, which door */
-  pad: { code: string; typed: string; door: number } | null;
+  pad: { code: string; typed: string; door: number; miss?: string } | null;
   ended: { win: boolean; msg: string } | null;
   time: number;
   /** how far what you are doing carries (metres, through the air), and the last loud thing and how long it lingers */
@@ -72,6 +72,8 @@ export interface Game {
   /** things that are said once */
   once: string[];
   kills: number;
+  /** dev: nothing hurts */
+  god: boolean;
   events: SimEvent[];
   commands: Command[];
 }
@@ -81,7 +83,7 @@ export function makeGame(rng: Rng, station: StationState | null): Game {
   return {
     station, inv: [], cap: 10, tools: [], keys: [], worn: [], weapon: null, notes: NOTES(code, code2), read: [], code, code2,
     hp: 100, batt: 100, light: null, lightOn: false, pad: null, ended: null, time: 0,
-    noise: 0, noiseI: 0, noiseT: 0, vis: 1, once: [], kills: 0, events: [], commands: [],
+    noise: 0, noiseI: 0, noiseT: 0, vis: 1, once: [], kills: 0, god: false, events: [], commands: [],
   };
 }
 
@@ -96,8 +98,9 @@ export function power(g: Game, c: string): PowerLevel {
 }
 
 export const say = (g: Game, text: string): void => { g.events.push({ type: 'say', text }); };
-export const sfx = (g: Game, name: string, at?: { x: number; z: number }, big?: boolean): void => {
-  g.events.push({ type: 'sfx', name, x: at?.x, z: at?.z, big });
+/** a sound: from a place, or (without one) your own, `d` metres' worth quieter */
+export const sfx = (g: Game, name: string, at?: { x: number; z: number }, big?: boolean, d?: number): void => {
+  g.events.push({ type: 'sfx', name, x: at?.x, z: at?.z, big, d });
 };
 
 export const has = (g: Game, id: string): boolean => g.tools.includes(id) || g.inv.some(s => s.id === id);
@@ -137,7 +140,8 @@ export function give(g: Game, id: string, n = 1): boolean {
   if (g.inv.length >= g.cap) { say(g, 'Your hands are full. Tab, and put something down.'); return false; }
   g.inv.push({ id, n });
   say(g, it.n + (n > 1 ? ' ×' + n : '') + '.');
-  if (it.w && !g.weapon) g.weapon = id;
+  /* into your hand if it is empty, or if this hits harder than what is in it */
+  if (it.w && (!g.weapon || wstats(id).dmg > wstats(g.weapon).dmg)) g.weapon = id;
   return true;
 }
 
@@ -220,10 +224,10 @@ export function hurtBy(g: Game, dmg: number, why: string): void {
   hurt(g, dmg * k, why, 0.45);
 }
 
-export function hurt(g: Game, dmg: number, why: string, shake = 0.45): void {
-  if (g.ended) return;
+export function hurt(g: Game, dmg: number, why: string, shake = 0.45, sound = true): void {
+  if (g.ended || g.god) return;
   g.hp -= dmg;
-  sfx(g, 'hurt');
+  if (sound) sfx(g, 'hurt');
   g.events.push({ type: 'hurt', shake });
   if (g.hp <= 0) { g.hp = 0; end(g, false, why); }
 }

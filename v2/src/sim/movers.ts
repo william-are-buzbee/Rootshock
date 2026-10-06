@@ -57,7 +57,7 @@ export function makeDoor(w: World, def: DoorDef): Door {
 }
 
 /** how far a jammed door stands open: enough to crouch under */
-const STUCK = 0.45; // its foot 1.06 m up: room for a crouch (1 m)
+const STUCK = 0.45; // its foot 1.07 m up: room for a crouch (1 m)
 
 export function makePlatform(w: World, def: PlatformDef): Platform {
   const dyn: Dyn = { kind: 'mover', id: w.newId(), x0: def.x0, z0: def.z0, x1: def.x1, z1: def.z1, y0: def.y0 - THICK, y1: def.y0 };
@@ -115,20 +115,20 @@ export function updateDoor(d: Door, riders: Rider[], movers: { x: number; y: num
 
 /** the door at openness t: it slides straight up by its own height */
 function doorBox(d: Door, t: number): Box {
-  const lift = (d.def.y1 - d.def.y0) * t * 0.98;
+  const lift = (d.def.y1 - d.def.y0 - 0.02) * t; // open, 2 cm of it shows under the lintel, as before
   return { x0: d.def.x0, z0: d.def.z0, x1: d.def.x1, z1: d.def.z1, y0: d.def.y0 + lift, y1: d.def.y1 + lift };
 }
 
 /** a platform goes to its other end once something steps on and stays a moment; it carries what is on it. Whoever rode
  *  it there has to step off and on again to send it back, so it does not take you away while you stand and look. */
-export function updatePlatform(p: Platform, riders: Rider[], dt: number): void {
+export function updatePlatform(p: Platform, riders: Rider[], dt: number): 'moving' | 'arrived' | null {
   const d = p.def, on = riders.filter(r => r.on === p.dyn);
-  if (!p.moving && d.call) return; // a called platform waits for its button
+  if (!p.moving && d.call) return null; // a called platform waits for its button
   if (!p.moving) {
     if (!on.length) p.armed = true;
     p.wait = on.length && p.armed ? p.wait + dt : 0;
     if (p.wait > 0.8) { p.target = p.target ? 0 : 1; p.moving = true; p.wait = 0; p.armed = false; }
-    return;
+    return null;
   }
   const goal = p.target ? d.y1 : d.y0, dir = Math.sign(goal - p.y);
   let dy = dir * LIFT_SPEED * dt;
@@ -137,10 +137,11 @@ export function updatePlatform(p: Platform, riders: Rider[], dt: number): void {
   /* something under it on the way down, or beside it in the shaft: stop and go back */
   if (riders.some(r => !on.includes(r) && overlaps(box, r.dyn)) || (dy > 0 && on.some(r => !r.clear(0, dy, 0)))) {
     p.target = p.target ? 0 : 1;
-    return;
+    return 'moving';
   }
   p.y += dy;
   Object.assign(p.dyn, box);
   for (const r of on) { r.y += dy; r.sync(); }
-  if (p.y === goal) { p.moving = false; p.armed = on.length === 0; }
+  if (p.y === goal) { p.moving = false; p.armed = on.length === 0; return 'arrived'; }
+  return 'moving';
 }

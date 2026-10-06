@@ -5,7 +5,8 @@ import { makeSim, step, type Sim } from '../src/sim/sim';
 import { noInput, type Input } from '../src/sim/input';
 import { STEP } from '../src/core/loop';
 import { give } from '../src/sim/game';
-import { field } from '../src/world/nav';
+import { field, openRules } from '../src/world/nav';
+import { refreshFields } from '../src/sim/fields';
 import type { Mutant } from '../src/sim/cast';
 
 /* The cast on the upper station: the graph they walk, what they notice, how they follow, and what hurts them. */
@@ -46,16 +47,19 @@ describe('the nav graph', () => {
     for (const R of s.world.rooms) expect(nav.byRoom.get(R.id)?.length ?? 0, R.name).toBeGreaterThan(0);
     for (const m of s.cast) if (m.body) expect(nav.locate(m.x, m.y, m.z), `${m.type} at ${m.x},${m.z}`).toBeGreaterThanOrEqual(0);
     /* on foot, with no doors in the way, every spot is reachable from your cell, platforms included */
-    const b = s.player.body, d = field(nav, nav.locate(b.x, b.y, b.z), () => 0);
+    const b = s.player.body, d = field(nav, nav.locate(b.x, b.y, b.z), openRules(nav));
     expect(d.filter(v => v === Infinity).length).toBe(0);
   });
 
-  it('a field for each kind of body: big ones keep out of doors; sound is muffled by a shut one', () => {
-    const s = fresh(), F = s.fields!;
-    const husk = s.cast[5], spot = F.nav.locate(husk.x, husk.y, husk.z); // in the Cargo cavern
-    expect(F.hands[spot]).toBeLessThan(Infinity);
-    expect(F.big[spot]).toBe(Infinity); // the way there is through doors
-    expect(F.crawl[spot]).toBe(Infinity); // Cargo is dead: its door stays shut to what has no hands
+  it('a field for each kind of body: big ones keep out of doors; shut doors muffle sound; none runs on for ever', () => {
+    const s = fresh(), F = s.fields!, nav = F.nav;
+    expect(F.hands[nav.locate(150, 0, -1)]).toBe(Infinity); // 90 m and more from your cell: beyond any hunt
+    place(s, 'player', 102, 0, -1); // by the Cargo door, dead at the start
+    refreshFields(s, F);
+    const spot = nav.locate(114, 0, -1); // just through it
+    expect(F.hands[spot]).toBeLessThan(20); // a hand slides it
+    expect(F.crawl[spot]).toBe(Infinity); // what has no hands waits behind it
+    expect(F.big[spot]).toBe(Infinity); // the big ones take no doors
     expect(F.sound[spot]).toBeGreaterThan(F.hands[spot]); // and it muffles what you do
   });
 });

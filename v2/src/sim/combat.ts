@@ -1,4 +1,4 @@
-import { ITEMS } from '../content/items';
+import { wstats, type WeaponStats } from '../content/items';
 import { clamp } from '../core/math';
 import { STEP } from '../core/loop';
 import type { Dyn } from '../world/world';
@@ -8,29 +8,10 @@ import type { Input } from './input';
 import { eyeHeight } from './player';
 import type { Sim } from './sim';
 
+export { wstats, type WeaponStats };
+
 /* Your hands (engine.md §8). A swing is two motions: hold to load it, let go to throw it. Let go early and nothing
    happens. A gun fires on the press. As the first engine had them. */
-
-export interface WeaponStats {
-  dmg: number;
-  /** seconds to load a swing (before the wind-up's own .15) */
-  time: number;
-  reach: number;
-  stun: number;
-  mass: number;
-  gun?: boolean;
-  range?: number;
-  cone?: number;
-  ammo?: string;
-  cd?: number;
-}
-
-export function wstats(id: string | null): WeaponStats {
-  const w = (id && ITEMS[id]?.w) || { mass: 0.6, type: 'fist' as const, len: 0 };
-  if (w.gun) return { time: 0.3, reach: 0, stun: 0.5, dmg: w.dmg ?? 0, mass: w.mass, gun: true, range: w.range, cone: w.cone, ammo: w.ammo, cd: w.cd };
-  const dmg = w.type === 'edge' ? 14 + 9 * w.mass : w.type === 'fist' ? 5 : 12 * Math.pow(w.mass, 0.85);
-  return { dmg, time: 0.3 + 0.2 * w.mass, reach: 1.3 + (w.len ?? 0), stun: 0.15 + 0.2 * w.mass, mass: w.mass };
-}
 
 export interface Hands {
   /** seconds a swing has been loading; -1 when not */
@@ -115,8 +96,8 @@ function strike(sim: Sim, w: WeaponStats, pow: number): void {
     return;
   }
   /* nothing there but the wall */
-  const r = w.reach - 0.3;
-  if (sim.world.raycast(A.ex, A.ey, A.ez, A.ex + A.fx * r, A.ey + A.fy * r, A.ez + A.fz * r, seeThrough) < 1) { sfx(g, 'clang'); makeNoise(g, 8); }
+  const r = w.reach - 0.3, cy = A.ey - 0.3;
+  if (sim.world.raycast(A.ex, cy, A.ez, A.ex + pfx * r, cy, A.ez + pfz * r, seeThrough) < 1) { sfx(g, 'clang'); makeNoise(g, 8); }
 }
 
 function fire(sim: Sim, w: WeaponStats): void {

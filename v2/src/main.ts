@@ -4,7 +4,6 @@ import { STATION } from './content/station';
 import { Lighting } from './world/light';
 import { applyCommands, makeSim, step, type Sim } from './sim/sim';
 import { power } from './sim/game';
-import { AIR } from './sim/player';
 import { CameraRig, type Prev } from './present/camera';
 import { Controls } from './present/controls';
 import { Audio } from './present/audio';
@@ -59,9 +58,16 @@ const audio = new Audio();
 const prev: Prev = { x: 0, y: 0, z: 0 };
 let mode: 'title' | 'play' | 'pause' | 'panel' | 'end' = 'title';
 
-const controls = new Controls(canvas, () => { if (mode === 'play') setMode('pause'); });
+const controls = new Controls(canvas, () => { if (mode === 'play') setMode('pause'); }, text => panels.say(text));
 const panels = new Panels(c => sim.game.commands.push(c), () => sim.game, () => { if (mode === 'panel') { setMode('play'); controls.lock(); } });
-if (overlay) controls.onKey.set('KeyG', () => overlay.toggle());
+/* ?dev keys, as the first engine had them: V fly, G god, B bright; and O for the collider overlay */
+const devFlags = { bright: false };
+if (DEV) {
+  controls.onKey.set('KeyV', () => { sim.player.fly = !sim.player.fly; });
+  controls.onKey.set('KeyG', () => { sim.game.god = !sim.game.god; });
+  controls.onKey.set('KeyB', () => { devFlags.bright = !devFlags.bright; U.uBright.value = devFlags.bright ? 0.55 : 0; });
+  if (overlay) controls.onKey.set('KeyO', () => overlay.toggle());
+}
 
 function setMode(m: typeof mode): void {
   mode = m;
@@ -75,7 +81,7 @@ function openPanel(fn: () => void): void {
   fn();
 }
 
-hud.onClick('title', () => { audio.start(); setMode('play'); controls.lock(); });
+hud.onClick('title', () => { audio.start(); audio.setHum(!!sim.game.station?.main); setMode('play'); controls.lock(); });
 hud.onClick('pause', () => { setMode('play'); controls.lock(); });
 document.getElementById('end')!.addEventListener('click', () => location.reload());
 
@@ -101,7 +107,7 @@ function events(): void {
   for (const ev of g.events.splice(0)) {
     switch (ev.type) {
       case 'say': panels.say(ev.text); break;
-      case 'sfx': if (ev.x !== undefined) audio.at(ev.name, ev.x, ev.z!, { x: b.x, z: b.z, yaw: sim.player.yaw }, ev.big); else audio.play(ev.name); break;
+      case 'sfx': if (ev.x !== undefined) audio.at(ev.name, ev.x, ev.z!, { x: b.x, z: b.z, yaw: sim.player.yaw }, ev.big); else audio.play(ev.name, ev.d ?? 0); break;
       case 'note': openPanel(() => panels.showNote(g, ev.key)); break;
       case 'pad': openPanel(() => { panels.show('pad'); panels.renderPad(g); }); break;
       case 'lift': openPanel(() => panels.showLift(STATION.levels.map(l => ({ id: l.id, name: l.name, here: l.id === level.id })))); break;
@@ -155,12 +161,12 @@ function frame(t: number): void {
   U.uWet.value = under ? 1 : 0;
   U.uFog.value += ((under ? 0.21 : 0.032) - U.uFog.value) * Math.min(1, dt * 4);
   panels.prompt(mode === 'play' ? sim.focus?.text ?? null : null);
-  panels.status(g, p.air < AIR - 0.01 ? p.air / AIR : null, p.crouch, hurtFx);
+  panels.status(g, p.air < p.airMax - 0.01 ? p.air / p.airMax : null, p.crouch, hurtFx);
 
   const b = sim.player.body, room = sim.world.roomAt(b.x, b.y + 0.5, b.z);
-  hud.setRoom(room?.name ?? '', level.name, dt);
+  hud.setRoom(room?.name ?? '', level.name, mode === 'title' ? 0 : dt); // the label waits for you to open your eyes
   if (dt > 0) fps += (1 / dt - fps) * 0.05;
-  hud.dev(DEV ? `${b.x.toFixed(2)} ${b.y.toFixed(2)} ${b.z.toFixed(2)}  ${room?.name ?? 'rock'}  ${b.ground ? 'ground' : 'air'}  ${Math.round(fps)} fps\n${sim.world.grid.chunkCount} chunks  mesh ${meshMs.toFixed(0)} ms` : null);
+  hud.dev(DEV ? `${b.x.toFixed(2)} ${b.y.toFixed(2)} ${b.z.toFixed(2)}  ${room?.name ?? 'rock'}  ${b.ground ? 'ground' : 'air'}  ${Math.round(fps)} fps\n${sim.world.grid.chunkCount} chunks  mesh ${meshMs.toFixed(0)} ms  ${['fly', 'god', 'bright'].filter(k => k === 'fly' ? sim.player.fly : k === 'god' ? sim.game.god : devFlags.bright).join(' ')}\nV fly  G god  B bright  O colliders` : null);
   view.draw(t / 1000);
 }
 /* ?dev: the sim on the window, for poking at from the console or a test script */

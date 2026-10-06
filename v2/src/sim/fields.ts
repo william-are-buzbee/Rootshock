@@ -1,4 +1,4 @@
-import { buildNav, Edge, field, type Nav, type Pass } from '../world/nav';
+import { buildNav, field, type Nav, type Rules } from '../world/nav';
 import { power } from './game';
 import { locked, type Door, type Platform } from './movers';
 import type { Sim } from './sim';
@@ -11,7 +11,7 @@ import type { Sim } from './sim';
    - hands: any door a hand can work: not welded, not a panel, not the lift's, not jammed, not heavy, not locked;
    - big: no doors at all. They are too big for the frames.
    Platforms: anything rides one that goes by itself; a hand can call one that has power.
-   A refuge is on the graph like anywhere else, so a field still leads to you there; the cast stop at its threshold. */
+   A refuge (`safe`) is only kept out of the cast's rounds; a hunter follows you into one, as it always did. */
 
 export type Walker = 'crawl' | 'hands' | 'big';
 /** the headroom each needs */
@@ -29,6 +29,14 @@ export interface Fields {
   /** the spot you were on when they were made */
   from: number;
   turn: number;
+  /** for each kind of body, the spots too low for it */
+  low: Record<Walker, Uint8Array>;
+  /** the spots in each door */
+  doorSpots: number[][];
+  /** the rules each kind walks by, made once a step at most */
+  rules: Record<Walker | 'sound', { tick: number; R: Rules }>;
+  /** what each field was last made from */
+  made: Record<string, string>;
 }
 
 /* the graph depends only on the level's fixed shape, so every run of a level shares one */
@@ -46,7 +54,15 @@ export function makeFields(sim: Sim): Fields {
       if (nav.x[i] > D.x0 && nav.x[i] < D.x1 && nav.z[i] > D.z0 && nav.z[i] < D.z1 && Math.abs(nav.y[i] - D.y0) < 0.4) onLift[i] = k;
     });
   }
-  return { nav, crawl: inf(), hands: inf(), big: inf(), sound: inf(), onLift, from: -1, turn: 0 };
+  const lowFor = (h: number) => { const a = new Uint8Array(n); for (let i = 0; i < n; i++) if (nav.head[i] < h) a[i] = 1; return a; };
+  const doorSpots: number[][] = sim.doors.map(() => []);
+  for (let i = 0; i < n; i++) if (nav.door[i] >= 0) doorSpots[nav.door[i]].push(i);
+  const rules = (enter: boolean) => ({ tick: -1, R: { blocked: new Uint8Array(n), enter: enter ? new Float32Array(n) : null, lifts: new Uint8Array(sim.platforms.length), drop: enter ? 0 : 0.5 } });
+  return {
+    nav, crawl: inf(), hands: inf(), big: inf(), sound: inf(), onLift, from: -1, turn: 0,
+    low: { crawl: lowFor(HEAD.crawl), hands: lowFor(HEAD.hands), big: lowFor(HEAD.big) }, doorSpots,
+    rules: { crawl: rules(false), hands: rules(false), big: rules(false), sound: rules(true) }, made: {},
+  };
 }
 
 const isOpen = (d: Door) => d.t > 0.9;
@@ -76,39 +92,53 @@ export function liftPasses(sim: Sim, p: Platform, who: Walker): boolean {
   return who === 'hands' && power(sim.game, p.def.call.circuit) > 0;
 }
 
-export function passFor(sim: Sim, F: Fields, who: Walker): Pass {
-  const head = HEAD[who], nav = F.nav;
-  return (_a, b, kind, lift) => {
-    if (nav.head[b] < head) return null;
-    const dr = nav.door[b];
-    if (dr >= 0 && !doorPasses(sim, sim.doors[dr], who)) return null;
-    if (kind === Edge.Lift && !liftPasses(sim, sim.platforms[lift], who)) return null;
-    return kind === Edge.Drop ? 0.5 : 0;
-  };
+/** the rules for one kind of body as the doors and platforms stand now: made once a step at most, and shared */
+export function rulesFor(sim: Sim, F: Fields, who: Walker): Rules {
+  const c = F.rules[who];
+  if (c.tick === sim.tick) return c.R;
+  const R = c.R;
+  R.blocked.set(F.low[who]);
+  sim.doors.forEach((d, k) => { if (!doorPasses(sim, d, who)) for (const i of F.doorSpots[k]) R.blocked[i] = 1; });
+  sim.platforms.forEach((p, k) => { R.lifts[k] = liftPasses(sim, p, who) ? 1 : 0; });
+  c.tick = sim.tick;
+  return R;
 }
 
 /** sound goes where air goes: through open doors freely, through shut ones muffled; not up a lift shaft's ride */
-export function soundPass(sim: Sim, nav: Nav): Pass {
-  return (_a, b, kind) => {
-    if (kind === Edge.Lift) return null;
-    const dr = nav.door[b];
-    if (dr < 0) return 0;
-    const d = sim.doors[dr];
-    if (d.t > 0.5) return 0;
-    return d.def.kind === 'heavy' || d.def.seal ? 12 : 6;
-  };
+function soundRules(sim: Sim, F: Fields): Rules {
+  const R = F.rules.sound.R, e = R.enter!;
+  sim.doors.forEach((d, k) => {
+    const v = d.t > 0.5 ? 0 : d.def.kind === 'heavy' || d.def.seal ? 12 : 6;
+    for (const i of F.doorSpots[k]) e[i] = v;
+  });
+  return R;
 }
 
-/** a step of upkeep: refresh one field, the next in turn */
+/** how far out each field is worth making: past it nothing could use it. A hunt is given up long before 90 m of
+ *  corridor; the loudest thing you do (a gun) carries 36. */
+const LIMIT = { crawl: 90, hands: 90, big: 90, sound: 40 } as const;
+type Which = keyof typeof LIMIT;
+const ORDER: Which[] = ['crawl', 'hands', 'big', 'sound'];
+
+/** what a field was last made from: where you stood and how the doors and platforms stood */
+function stateKey(sim: Sim, F: Fields, w: Which): string {
+  let k = String(F.from);
+  if (w === 'sound') { for (const d of sim.doors) k += d.t > 0.5 ? '1' : '0'; return k; }
+  const R = rulesFor(sim, F, w);
+  sim.doors.forEach((_d, i) => { const s = F.doorSpots[i]; k += s.length && R.blocked[s[0]] ? '0' : '1'; });
+  for (const l of R.lifts) k += l;
+  return k;
+}
+
+/** a step of upkeep: the next field in turn, made again only if you have moved or a door or platform has changed */
 export function updateFields(sim: Sim, F: Fields): void {
   const b = sim.player.body, at = F.nav.locate(b.x, b.y, b.z);
   if (at >= 0) F.from = at;
   if (F.from < 0) return;
-  const which = F.turn++ % 4;
-  if (which === 0) field(F.nav, F.from, passFor(sim, F, 'crawl'), F.crawl);
-  else if (which === 1) field(F.nav, F.from, passFor(sim, F, 'hands'), F.hands);
-  else if (which === 2) field(F.nav, F.from, passFor(sim, F, 'big'), F.big);
-  else field(F.nav, F.from, soundPass(sim, F.nav), F.sound);
+  const w = ORDER[F.turn++ % 4], key = stateKey(sim, F, w);
+  if (F.made[w] === key) return;
+  F.made[w] = key;
+  field(F.nav, F.from, w === 'sound' ? soundRules(sim, F) : rulesFor(sim, F, w), F[w], LIMIT[w]);
 }
 
 /** all four now (at the start, or after a jump in place) */

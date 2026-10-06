@@ -179,31 +179,64 @@ function build(w: World, doors: NavDoor[], lifts: NavLift[]): Nav {
 
 /* ---- fields: distance from one spot to every other, by a rule for who may pass where */
 
-/** may this edge be taken? (from spot a to spot b) null if not; else what it costs over its length */
-export type Pass = (a: number, b: number, kind: Edge, lift: number) => number | null;
+/** who may go where, as arrays (no call per edge): spots that may not be entered, what entering a spot costs on top of
+ *  the way there (a shut door muffling a sound), which platforms may be ridden, what a drop costs on top */
+export interface Rules {
+  blocked: Uint8Array;
+  enter: Float32Array | null;
+  lifts: Uint8Array;
+  drop: number;
+}
 
-/** distances from `from` over the graph, each edge costing its length plus what `pass` adds (null: closed). Walked
- *  backwards: the field says how far each spot is from `from` when walking toward it. */
-export function field(nav: Nav, from: number, pass: Pass, out?: Float32Array): Float32Array {
+/** anywhere, on foot: every spot, every platform */
+export function openRules(nav: Nav): Rules {
+  let lifts = 0;
+  for (let e = 0; e < nav.lift.length; e++) lifts = Math.max(lifts, nav.lift[e] + 1);
+  return { blocked: new Uint8Array(nav.n), enter: null, lifts: new Uint8Array(lifts).fill(1), drop: 0 };
+}
+
+/** may the edge e (from spot a into spot b) be taken under these rules? null if not; else what it costs */
+export function edgeCost(nav: Nav, R: Rules, e: number, b: number): number | null {
+  if (R.blocked[b]) return null;
+  const k = nav.kind[e];
+  if (k === Edge.Lift && !R.lifts[nav.lift[e]]) return null;
+  return nav.len[e] + (k === Edge.Drop ? R.drop : 0) + (R.enter ? R.enter[b] : 0);
+}
+
+/** distances from `from` over the graph by these rules, out to `limit` (beyond it, Infinity). Walked backwards: the
+ *  field says how far each spot is from `from` when walking toward it. */
+export function field(nav: Nav, from: number, R: Rules, out?: Float32Array, limit = Infinity): Float32Array {
   const d = out ?? new Float32Array(nav.n);
   d.fill(Infinity);
   if (from < 0) return d;
-  /* the graph's edges run forward; a field to `from` needs them backward. Build the reverse once per nav. */
-  const rev = reverse(nav);
-  const heap = new Heap(nav.n);
+  /* the graph's edges run forward; a field to `from` needs them backward. Built once per nav. */
+  const rev = reverse(nav), heap = heapFor(nav);
+  const { blocked, enter, lifts, drop } = R, kind = nav.kind, lift = nav.lift, len = nav.len;
+  heap.size = 0;
   d[from] = 0;
   heap.push(from, 0);
   while (heap.size) {
     const b = heap.pop(), db = d[b];
+    if (db > limit) break;
+    /* a spot that may not be entered is never on the way to anywhere (but the start always is) */
+    if (b !== from && blocked[b]) continue;
+    const eb = enter ? enter[b] : 0;
     for (let e = rev.start[b]; e < rev.start[b + 1]; e++) {
-      const a = rev.from[e], fe = rev.edge[e], c = pass(a, b, nav.kind[fe] as Edge, nav.lift[fe]);
-      if (c === null) continue;
-      const nd = db + nav.len[fe] + c;
+      const a = rev.from[e], fe = rev.edge[e], k = kind[fe];
+      if (k === Edge.Lift && !lifts[lift[fe]]) continue;
+      const nd = db + len[fe] + eb + (k === Edge.Drop ? drop : 0);
       if (nd < d[a]) { d[a] = nd; heap.push(a, nd); }
     }
   }
   return d;
 }
+
+const heaps = new WeakMap<Nav, Heap>();
+const heapFor = (nav: Nav) => {
+  let h = heaps.get(nav);
+  if (!h) heaps.set(nav, (h = new Heap(nav.n)));
+  return h;
+};
 
 const reverses = new WeakMap<Nav, { start: Int32Array; from: Int32Array; edge: Int32Array }>();
 function reverse(nav: Nav) {

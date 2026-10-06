@@ -23,7 +23,7 @@ export class Hud {
       s.textContent = level;
       el.append(s);
       el.style.opacity = '1';
-      this.roomTimer = 3;
+      this.roomTimer = 2.6;
     } else if (this.roomTimer > 0 && (this.roomTimer -= dt) <= 0) el.style.opacity = '0';
   }
 

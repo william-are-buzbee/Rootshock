@@ -1,10 +1,10 @@
 import type { MutantDef } from '../content/types';
 import { angLerp, clamp, PI, TAU } from '../core/math';
 import { STEP } from '../core/loop';
-import { Edge, field as fieldFrom } from '../world/nav';
+import { Edge, edgeCost, field as fieldFrom } from '../world/nav';
 import type { Dyn } from '../world/world';
 import { fall, makeBody, settle, walk, type Body } from './body';
-import { doorShut, opensItself, passFor, type Fields, type Walker } from './fields';
+import { doorShut, opensItself, rulesFor, type Fields, type Walker } from './fields';
 import { hurtBy, power, sayOnce, sfx } from './game';
 import { sendPlatform, type Door } from './movers';
 import { eyeHeight } from './player';
@@ -115,6 +115,13 @@ export function makeCast(sim: Sim, defs: MutantDef[]): Mutant[] {
   return defs.filter(d => MT[d.type]).map((def, id) => {
     const S = MT[def.type], o = def.opts as Record<string, number | undefined>;
     const body = S.fixed ? null : makeBody(sim.world, def.x, def.y, def.z, S.cr, S.h);
+    if (body) {
+      /* as the first engine had it: you pass through all but the solid ones, and they stop short of you rather than
+         push; so none of them is ever held up by you either */
+      const own = body.dyn, you = sim.player.body.dyn;
+      body.dyn.soft = !S.solid;
+      body.skip = d => d === own || d === you;
+    }
     const room = sim.world.roomAt(def.x, def.y + 0.5, def.z)?.id ?? -1;
     const m: Mutant = {
       id, type: def.type, ai: S.ai ?? (def.type as Ai), model: S.model ?? def.type, green: !!S.green, body,
@@ -181,13 +188,14 @@ function go(sim: Sim, m: Mutant, tx: number, tz: number, spd: number): boolean {
   dx /= d; dz /= d;
   m.yaw = angLerp(m.yaw, Math.atan2(dx, dz), Math.min(1, dt * 8));
   const st = Math.min(d, spd * dt);
-  /* a refuge it does not go into */
-  const ahead = sim.world.roomAt(b.x + dx * (st + m.r), b.y + 0.5, b.z + dz * (st + m.r));
-  if (ahead?.safe) { m.mv = 0; return false; }
-  const ox = b.x, oz = b.z, hit = walk(sim.world, b, dx * st, dz * st);
+  /* it stops short of you: close enough to reach, never on top of you */
+  const p = sim.player.body, nx = b.x + dx * st, nz = b.z + dz * st, nd = Math.hypot(nx - p.x, nz - p.z);
+  if (Math.abs(m.dy) < 1.5 && nd < m.r + 0.3 && nd < m.dp) { m.mv = 0; return true; }
+  const ox = b.x, oz = b.z;
+  walk(sim.world, b, dx * st, dz * st);
   const moved = Math.hypot(b.x - ox, b.z - oz) >= st * 0.3;
   /* wedged on a corner or against another of them: sidestep, and keep to the same side until it clears. Not round you. */
-  if (!moved && hit !== sim.player.body.dyn) {
+  if (!moved) {
     if (!m.side) m.side = sim.rng.chance(0.5) ? 1 : -1;
     for (const q of [m.side, -m.side]) {
       const px = b.x, pz = b.z;
@@ -223,7 +231,7 @@ function follow(sim: Sim, m: Mutant, F: Float32Array, spd: number, away: boolean
   if (m.ride) return ride(sim, m, Fs);
   const nav = Fs.nav, i = m.spot;
   if (i < 0) return false;
-  const pass = passFor(sim, Fs, m.walker);
+  const R = rulesFor(sim, Fs, m.walker);
   /* downhill: the cheapest way on (the field is float32, so compare scores with each other, not with F[i]);
      uphill (away): the farthest neighbour that is farther than here */
   let bv = away ? F[i] : Infinity, best = -1, be = -1;
@@ -231,9 +239,9 @@ function follow(sim: Sim, m: Mutant, F: Float32Array, spd: number, away: boolean
   for (let e = nav.start[i]; e < nav.start[i + 1]; e++) {
     const j = nav.to[e], v = F[j];
     if (!Number.isFinite(v)) continue;
-    const c = pass(i, j, nav.kind[e] as Edge, nav.lift[e]);
+    const c = edgeCost(nav, R, e, j);
     if (c === null) continue;
-    const score = away ? v : v + nav.len[e] + c;
+    const score = away ? v : v + c;
     if (away ? score > bv : score < bv) { bv = score; best = j; be = e; }
   }
   if (best < 0) return false;
@@ -306,7 +314,6 @@ function away(sim: Sim, m: Mutant, spd: number, F?: Float32Array): boolean {
 /** a charge: straight on, whatever is there. False when it hits something. */
 function chargeMove(sim: Sim, m: Mutant, spd: number): boolean {
   const b = m.body!, st = spd * dt, dx = Math.sin(m.cdir) * st, dz = Math.cos(m.cdir) * st;
-  if (sim.world.roomAt(b.x + dx * 4, b.y + 0.5, b.z + dz * 4)?.safe) { m.mv = 0; return false; }
   const ox = b.x, oz = b.z;
   walk(sim.world, b, dx, dz);
   m.yaw = m.cdir;
@@ -344,7 +351,7 @@ function pickDest(sim: Sim, m: Mutant): void {
 
 function fieldTo(sim: Sim, m: Mutant, k: number): Float32Array {
   const Fs = sim.fields!;
-  return fieldFrom(Fs.nav, k, passFor(sim, Fs, m.walker), m.F ?? undefined);
+  return fieldFrom(Fs.nav, k, rulesFor(sim, Fs, m.walker), m.F ?? undefined);
 }
 
 const roamCache = new WeakMap<object, number[]>();

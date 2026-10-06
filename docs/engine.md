@@ -242,8 +242,10 @@ As built in step 5 (`world/nav.ts`, `sim/fields.ts`):
   and steps off at the top (tested: Cargo on backup, a husk follows you up to Tier 1). **Ladders are not yet**: every
   ladder on the upper station leads off the level, and the cast does not leave its level. Ladders within a level come
   with the first level that has one (step 8).
-- A refuge (`safe`) is on the graph like anywhere else, so a field still leads to you there; the cast stop at its
-  threshold.
+- A refuge (`safe`) is only kept out of the cast's rounds, as in the first engine; a hunter follows you into one.
+- **Fields are cheap** (step 6): each is made from arrays of who may enter which spot (no call per edge), only when you
+  have moved or a door or platform has changed, and only as far out as anything could use it (90 m for a hunt, 40 for
+  sound).
 
 ---
 
@@ -412,7 +414,32 @@ Each step ends with something you can open and play.
      collector). Worth smoothing before the bigger levels.
    - **Not yet**: ladders for the cast (§7); memory of where you were heard (§8); body against body by mass (§6:
      bodies block each other; a blow knocks light ones back).
-6. **Parity check** against the current upper station. Fix the feel before going on.
+6. **Parity check against the first engine's upper station. Done.**
+   - **How**: an audit of every player-facing behaviour of the first engine on the upper station, each checked in both
+     codebases (found at parity: movement and camera numbers, noise and visibility, light and battery,
+     items, weapons, the cast's stats and states, doors, interaction, HUD, sounds, content); the same six views shot in
+     both (`?dev=newstation` in the first engine), at the start's power; the cost of a step timed in the same browser.
+   - **Looks**: the same, view for view, once an open door was lit by its doorway (it had been lit by the rock it slid
+     into, and drawn black) and slid as far up as before.
+   - **Fixed**: your footsteps (a step every 1.7 m, 2.3 running, quieter walking, none crouched); hunters follow you
+     into refuges again; a better weapon goes into your hand as you take it; a gun's label counts its rounds; you walk
+     through the soft ones of the cast (all but the bloat and the thresher), which stop short of you; a platform is
+     heard when called, rattles and thuds; the opening line; Gen-1 coming up is heard (30 m) and felt; a power change
+     clunks; a prised panel is heard; ladders say where they go; a wrong code shows a moment; the papers' sound; a
+     missed swing rings off what is straight ahead; the end screen counts what you put down; the death screen stays
+     red; the room's name waits for you to open your eyes; blood is relit with the room; the rebreather holds 150 s of
+     air; drowning is quiet; capture refused once falls back to dragging with a hint (refused later, it pauses; Esc
+     pauses while dragging); Q loads a swing; a drag never swings. Dev keys as before: V fly, G god, B bright (O for
+     the collider overlay); `?power=full` starts the hum.
+   - **Cost**: a step was 1.3 ms against the first engine's 0.08 ms a frame, with spikes to 13 ms; now 0.45 ms, with
+     the worst about 2 ms (one 6 ms outlier, the collector). Loading takes 1 s against 0.5 s; half of it is the nav
+     graph, which could be stored with the level later.
+   - **Different on purpose**: sound goes through the rooms, not the walls (§8); a mutant on another tier sees and
+     hears you (one world, walkways are not safe ground); husks call and ride a powered platform (agreed in §7); crates
+     and furniture block sight; signs dim with their own door's circuit rather than the level's; the cast block each
+     other rather than jostle.
+   - **Not yet**: starting again without reloading the page (a reload needs a click to start); the dev map, menu and
+     level select; the wet and underwater camera (no water on the upper station).
 7. **Save and load, level validation, the progression checker.**
 8. **The other levels**, one at a time.
 9. **Swap**: v2 becomes the game at the root; the old one is archived.

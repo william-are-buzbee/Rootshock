@@ -172,7 +172,11 @@ export interface LevelDef {
 export interface CircuitDef { on: boolean; back: boolean; broken?: boolean; tag?: string }
 
 /** a ladderway between two levels: broken (why it does not go), or needing something to pass */
-export interface LadderDef { broken?: string; need?: { power?: string; msg?: string }; say?: string }
+export interface LadderDef {
+  broken?: string; need?: { power?: string; msg?: string }; say?: string;
+  /** the level at its other end */
+  to?: string;
+}
 
 export interface StationDef {
   levels: { id: string; name: string; circuit: string; build: () => LevelDef }[];
@@ -182,4 +186,6 @@ export interface StationDef {
   main: boolean;
   /** where the game begins: this level's own start */
   start: string;
+  /** what you are told as it begins */
+  intro?: string;
 }

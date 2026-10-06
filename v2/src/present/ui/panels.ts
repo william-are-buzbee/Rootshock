@@ -81,10 +81,12 @@ export class Panels {
     $('bat').style.opacity = g.lightOn ? '1' : '0.45';
     $('o2w').classList.toggle('hide', airFrac === null);
     if (airFrac !== null) $('o2').style.width = (airFrac * 100).toFixed(1) + '%';
-    const name = g.weapon ? ITEMS[g.weapon].n : 'Bare hands';
+    let name = g.weapon ? ITEMS[g.weapon].n : 'Bare hands';
+    const w = g.weapon ? ITEMS[g.weapon].w : null;
+    if (w?.gun) name += ' (' + (g.inv.find(q => q.id === w.ammo)?.n ?? 0) + ')';
     const wt = esc(name) + (crouch ? '<span>crouched</span>' : '') + (g.lightOn ? '<span>' + (g.light === 'flash' ? 'flashlight' : 'lantern') + '</span>' : '');
     if (wt !== this.wpnText) { this.wpnText = wt; $('wpn').innerHTML = wt; }
-    $('vig').style.opacity = String(Math.max(hurtFx, g.hp < 35 ? (35 - g.hp) / 50 : 0));
+    if (!g.ended) $('vig').style.opacity = String(Math.max(hurtFx, g.hp < 35 ? (35 - g.hp) / 50 : 0)); // dead, it stays red
   }
 
   /* ---- the menus */
@@ -114,8 +116,14 @@ export class Panels {
     art.children[1].textContent = n.b;
     this.show('note');
   }
+  /** a wrong code stays on the display a moment (350 ms, as before) before it clears */
+  private miss: { code: string; until: number } | null = null;
   renderPad(g: Game): void {
-    $('padd').textContent = ((g.pad?.typed ?? '') + '····').slice(0, 4);
+    const m = g.pad?.miss, now = performance.now();
+    if (m && (!this.miss || this.miss.code !== m)) this.miss = { code: m, until: now + 350 };
+    if (!m) this.miss = null;
+    const show = this.miss && now < this.miss.until ? this.miss.code : g.pad?.typed ?? '';
+    $('padd').textContent = (show + '····').slice(0, 4);
   }
   showLift(levels: { id: string; name: string; here: boolean }[]): void {
     let h = '<h2>Lift <span>Gen-1 running</span></h2>';
@@ -128,7 +136,7 @@ export class Panels {
     $('endh').textContent = win ? 'Surface' : 'Grafted';
     $('endp').textContent = !win ? msg + ' Lowfield keeps what it is given.'
       : 'The lift climbs for a long time. When the doors open it is raining, and the rain is the first thing in nine days that has asked nothing of you. Six floors down, something green and something red go on disagreeing about who the station belongs to. ' +
-        mm + ':' + ss + ' underground, ' + g.read.length + ' of ' + Object.keys(g.notes).length + ' papers read.';
+        mm + ':' + ss + ' underground, ' + g.kills + ' put down, ' + g.read.length + ' of ' + Object.keys(g.notes).length + ' papers read.';
     setTimeout(() => $('end').classList.remove('hide'), win ? 300 : 900);
     if (!win) $('vig').style.opacity = '1';
   }

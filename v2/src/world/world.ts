@@ -6,7 +6,13 @@ import { meets, samples, segmentBox, type Box, type Footprint } from './shapes';
 export interface Dyn extends Box {
   kind: 'mover' | 'loose' | 'body';
   id: number;
+  /** a body you can walk through (a husk, a worm: they stop short of you rather than block you, as they always did) */
+  soft?: boolean;
 }
+
+/** what a query sees through: one moving thing, or a test for which */
+export type Ignore = Dyn | null | ((d: Dyn) => boolean);
+const skipper = (ig: Ignore) => (typeof ig === 'function' ? ig : (d: Dyn) => d === ig);
 
 /** what a query ran into: nothing, the fixed world, or something that moves */
 export type Hit = null | 'world' | Dyn;
@@ -95,8 +101,12 @@ export class World {
         }
       }
   }
-  private dynNear(f: Footprint, ignore: Dyn | null, fn: (d: Dyn) => void): void {
-    for (const d of this.dyn) if (d !== ignore && meets(f, d.x0, d.z0, d.x1, d.z1)) fn(d);
+  private dynNear(f: Footprint, ignore: Ignore, fn: (d: Dyn) => void): void {
+    const skip = ignore === null ? null : typeof ignore === 'function' ? ignore : null;
+    for (const d of this.dyn) {
+      if (skip ? skip(d) : d === ignore) continue;
+      if (meets(f, d.x0, d.z0, d.x1, d.z1)) fn(d);
+    }
   }
   private surfacesNear(f: Footprint, fn: (s: Surface) => void): void {
     for (const s of this.surfaces) if (meets(f, s.def.x0, s.def.z0, s.def.x1, s.def.z1)) fn(s);
@@ -127,7 +137,7 @@ export class World {
   }
 
   /** does anything solid overlap the footprint between heights y0 and y1? */
-  overlap(f: Footprint, y0: number, y1: number, ignore: Dyn | null = null): Hit {
+  overlap(f: Footprint, y0: number, y1: number, ignore: Ignore = null): Hit {
     const g = this.grid, j0 = Math.floor(y0 / CELL), j1 = Math.floor((y1 - EPS) / CELL);
     let hit: Hit = null;
     this.columns(f, (i, k) => {
@@ -148,7 +158,7 @@ export class World {
   }
 
   /** the highest surface under the footprint whose top is at or below `top`: what it stands on */
-  groundBelow(f: Footprint, top: number, ignore: Dyn | null = null): number {
+  groundBelow(f: Footprint, top: number, ignore: Ignore = null): number {
     const g = this.grid, jt = Math.floor(top / CELL + EPS) - 1;
     let best = -Infinity;
     this.columns(f, (i, k) => {
@@ -167,12 +177,14 @@ export class World {
     return best;
   }
 
-  /** the lowest surface over the footprint whose underside is at or above `from`: what it would hit its head on */
-  ceilingAbove(f: Footprint, from: number, ignore: Dyn | null = null): number {
-    const g = this.grid, jf = Math.ceil(from / CELL - EPS);
+  /** the lowest surface over the footprint whose underside is at or above `from`: what it would hit its head on.
+   *  `upTo`: nothing higher matters to the caller (Infinity is returned for anything above it), which spares a climb
+   *  through every empty cell of a tall cavern. */
+  ceilingAbove(f: Footprint, from: number, ignore: Ignore = null, upTo = Infinity): number {
+    const g = this.grid, jf = Math.ceil(from / CELL - EPS), n1 = Math.min(4096, Math.ceil((upTo - from) / CELL) + 1);
     let best = Infinity;
     this.columns(f, (i, k) => {
-      for (let j = jf, n = 0; n < 4096; j++, n++) if (g.get(i, j, k) < 0) { best = Math.min(best, j * CELL); return; }
+      for (let j = jf, n = 0; n < n1; j++, n++) if (g.get(i, j, k) < 0) { best = Math.min(best, j * CELL); return; }
     });
     const consider = (y0: number) => { if (y0 >= from - EPS && y0 < best) best = y0; };
     this.boxesNear(f, b => consider(b.y0));
@@ -186,7 +198,7 @@ export class World {
   }
 
   /** how far (0..1) a footprint can travel by (dx, dz) before it runs into something; 1 if all the way */
-  sweep(f: Footprint, y0: number, y1: number, dx: number, dz: number, ignore: Dyn | null = null): number {
+  sweep(f: Footprint, y0: number, y1: number, dx: number, dz: number, ignore: Ignore = null): number {
     const at = (t: number): Footprint => ({ ...f, x: f.x + dx * t, z: f.z + dz * t });
     const len = Math.hypot(dx, dz), stepLen = Math.max(0.05, Math.min(f.hx, f.hz) * 0.5), n = Math.max(1, Math.ceil(len / stepLen));
     let ok = 0;
@@ -207,7 +219,7 @@ export class World {
   }
 
   /** if the footprint overlaps something, the smallest nudge (dx, dy, dz) that frees it; null if it is clear or stuck */
-  pushOut(f: Footprint, y0: number, y1: number, ignore: Dyn | null = null): [number, number, number] | null {
+  pushOut(f: Footprint, y0: number, y1: number, ignore: Ignore = null): [number, number, number] | null {
     if (!this.overlap(f, y0, y1, ignore)) return null;
     for (const d of [0.02, 0.05, 0.1, 0.2, 0.35, 0.5, 0.75]) {
       if (!this.overlap(f, y0 + d, y1 + d, ignore)) return [0, d, 0];
@@ -221,7 +233,7 @@ export class World {
 
   /** where a straight line from a to b first meets anything solid, as a fraction 0..1 of the way; 1 if it is clear.
    *  `ignore`: one moving thing to see through, or a test for which to see through (bodies, for a line of sight) */
-  raycast(ax: number, ay: number, az: number, bx: number, by: number, bz: number, ignore: Dyn | null | ((d: Dyn) => boolean) = null): number {
+  raycast(ax: number, ay: number, az: number, bx: number, by: number, bz: number, ignore: Ignore = null): number {
     const dx = bx - ax, dy = by - ay, dz = bz - az;
     let best = this.gridRay(ax, ay, az, dx, dy, dz);
     /* fixed solids: the buckets the line passes over */
@@ -231,7 +243,7 @@ export class World {
       const a = this.boxes.get(this.bkey(Math.floor(x / B), Math.floor(z / B)));
       if (a) for (const b of a) if (!seen.has(b)) { seen.add(b); best = Math.min(best, segmentBox(ax, ay, az, dx, dy, dz, b)); }
     }
-    const skip = typeof ignore === 'function' ? ignore : (d: Dyn) => d === ignore;
+    const skip = skipper(ignore);
     for (const d of this.dyn) if (!skip(d)) best = Math.min(best, segmentBox(ax, ay, az, dx, dy, dz, d));
     for (const s of this.surfaces) best = Math.min(best, this.surfaceRay(s, ax, ay, az, dx, dy, dz, best));
     return Math.min(1, best);
