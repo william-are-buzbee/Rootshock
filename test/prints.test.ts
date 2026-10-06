@@ -7,10 +7,11 @@ import { power } from '../src/sim/game';
 import { Lighting } from '../src/world/light';
 import { Prints } from '../src/present/render/prints';
 
-/* Footprints (present/render/prints.ts), headless: wet ones after water, red ones after blood, a pace apart. */
+/* Footprints (present/render/prints.ts), headless: wet ones after water, red ones after blood, a pace apart; the cast's
+   too, and a hurt one's drips. */
 
 const level = buildUpper(STATION.ladders);
-type Print = { x: number; z: number; wet: number; blood: number };
+type Print = { x: number; z: number; stuff: 'wet' | 'red' | 'green'; k: number };
 const list = (p: Prints) => (p as unknown as { list: Print[] }).list;
 
 function setUp() {
@@ -41,7 +42,7 @@ describe('footprints', () => {
     const L = list(p);
     expect(L.length).toBeGreaterThan(8);
     expect(L.length).toBeLessThan(20);
-    expect(L.every(q => q.wet > 0 && q.blood === 0)).toBe(true);
+    expect(L.every(q => q.stuff === 'wet' && q.k > 0)).toBe(true);
     expect(Math.abs(L[1].x - L[0].x - 0.75)).toBeLessThan(0.1);
     expect(Math.sign(L[0].z) !== Math.sign(L[1].z)).toBe(true); // left, right
   });
@@ -51,8 +52,31 @@ describe('footprints', () => {
     const S = level.stains!.find(s => Math.abs(s.z) < 1.5 && s.x > 80 && s.x < 92)!; // the one in the Operations corridor
     expect(S).toBeTruthy();
     walk(sim, p, S.x - 3, S.x + 8);
-    const red = list(p).filter(q => q.blood > 0);
+    const red = list(p).filter(q => q.stuff === 'red');
     expect(red.length).toBeGreaterThan(4);
     expect(Math.min(...red.map(q => q.x))).toBeGreaterThan(S.x - S.r - 0.3);
+  });
+
+  it('the cast leave theirs: a husk through blood walks red soles out of it; a skitter claws; one badly hurt drips', () => {
+    const { sim, p } = setUp();
+    const S = level.stains!.find(s => Math.abs(s.z) < 1.5 && s.x > 80 && s.x < 92)!;
+    const husk = sim.cast.find(m => m.ai === 'husk')!, sk = sim.cast.find(m => m.ai === 'skitter')!;
+    for (const m of sim.cast) if (m !== husk && m !== sk) m.dead = true;
+    const walkIt = (m: typeof husk, x0: number, x1: number, z: number) => {
+      m.z = z; m.y = 0; m.yaw = Math.PI / 2; // facing east
+      if (m.body) { m.body.ground = true; m.body.on = null; }
+      for (let x = x0; x <= x1; x += 0.05) { m.x = x; p.update(sim, 1 / 60); }
+    };
+    walkIt(husk, S.x - 2, S.x + 6, S.z);
+    const soles = list(p).filter(q => q.stuff === 'red');
+    expect(soles.length).toBeGreaterThan(3);
+    const before = list(p).length;
+    walkIt(sk, S.x - 2, S.x + 4, S.z);
+    expect(list(p).length).toBeGreaterThan(before + 3); // a skitter's pace is short: more prints in less ground
+    /* a husk at a tenth of its life, on a clean floor, drips */
+    husk.hp = husk.max * 0.1;
+    const n0 = list(p).length;
+    walkIt(husk, 62, 70, 0.5);
+    expect(list(p).length).toBeGreaterThan(n0 + 3);
   });
 });

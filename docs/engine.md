@@ -346,10 +346,13 @@ sequence of inputs. The door rules, the labels and the answers are the first eng
   you or the cast, drags it along and shoves it aside; it keeps that push until the air takes it back. A room says what is in its air (`RoomDef.motes`): spores in Horticulture and the cave,
   red flecks in the Cargo nest and the nest residences, dust elsewhere. A door shut twenty seconds or more breathes out
   at you when it opens, with a gust you hear.
-- **Footprints** (since; `present/render/prints.ts`): one a pace (0.75 m) as you walk, left and right, the way you
-  face. Out of water your soles are wet for a dozen prints or so, which dry off in half a minute; through blood (a
-  pool the level was built with, `LevelDef.stains`, or under one of the cast that fell) they are red for about ten,
-  and those stay. None in water, on a crate or on a platform. The newest 160 are kept; they are looks only, not saved.
+- **Footprints** (since; `present/render/prints.ts`), yours and the cast's: one a pace as each walks, the way it
+  faces. Out of water soles are wet for a dozen prints or so, which dry off in half a minute; through blood (a pool
+  the level was built with, `LevelDef.stains`, or under one of the cast that fell) they are red for about ten, and
+  those stay; through what a green one bled, green. You and the husks leave a bare sole, left and right; the thresher
+  one twice the size; a skitter claw marks; a worm a smear. One of the cast badly hurt drips as it goes, more the
+  worse it is, so a thing that ran from you can be followed. None in water, on a crate or on a platform. The newest
+  256 are kept; they are looks only, not saved.
 - **A fight's feel** (since): a swing let go early is a jab, weaker and slow to recover from, not nothing; a blow that
   lands, or meets a wall, holds the swing still a moment (hit-stop) and dips the view; a hurt from one of the cast
   knocks the view away from it and flashes the edge of the screen on its side; a husk's or skitter's wind-up that you
