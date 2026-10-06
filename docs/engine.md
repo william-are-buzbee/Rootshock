@@ -13,7 +13,8 @@ agreed, what is proposed, and what is still open, in the same way as `world.md`.
 
 ## 1. Why rebuild
 
-The current game (`index.html`, one file) grew a 3D world on top of a 2D engine, and only part of the engine followed.
+The first engine (`index.html`, one file; now `archive/first-engine.html`) grew a 3D world on top of a 2D engine, and
+only part of the engine followed.
 
 - **Two physics worlds.** The player uses `probe()`, which understands stacked layers, terrain, stairs, elevators and
   ceilings. Mutants, dropped items and melee use `collides()`, a flat tile mask: to them a 30 cm crate is a wall and a
@@ -35,7 +36,8 @@ None of this is a reason to lose what works. The content, the look, the sound an
 ## 2. Decisions so far
 
 - **Agreed: a rewrite, not a retrofit.** The engine is rebuilt; content and design are carried over.
-- **Agreed: it lives in `v2/`.** The current game stays at the root, playable, until v2 reaches parity and replaces it.
+- **Agreed: it lives in `v2/`** until it replaces the first engine. **Done (step 9):** it is the game, at the repository
+  root; the first engine is archived at `archive/first-engine.html`.
 - **Agreed: TypeScript.** Types catch the class of mistake a game this size keeps making (a tile index where a metre was
   meant, a missing field on a level definition) before the game runs.
 - **Agreed: a build step (Vite).** The source is many small files; a build tool bundles them into a static page.
@@ -65,10 +67,9 @@ present   renderer, audio, HUD and menus; reads sim state, sends input in
 **The one hard rule (agreed once this doc is agreed): `sim/` and `world/` never import three.js or touch the DOM.**
 That is what makes save/load, a headless run, tests and the progression checker possible.
 
-### Layout (proposed)
+### Layout (proposed; at the repository root since step 9)
 
 ```
-v2/
   index.html
   package.json, tsconfig.json, vite.config.ts
   src/
@@ -456,7 +457,8 @@ Each step ends with something you can open and play.
      every circuit's state, where you stand) over the real nav graph with the real door and platform rules, searching
      every state you can bring about, from the start or from any save. It reports the rooms and things you never reach,
      the shortest list of things to do to reach each way off the level, soft-locks (what a choice loses for good), and
-     dead ends (places you can drop into and not climb out of). Facts from levels not yet built can be given (Gen-1
+     dead ends (places you can drop into and not climb out of); and, since step 9, breath under water (below).
+     Facts from levels not yet built can be given (Gen-1
      running, a code known). On the upper station: 105 states in 0.2 s; both ladderways reachable (B once Cargo has its
      backup set), the Armory and the hazard store shut until Gen-1, no soft-locks, no dead ends; given Gen-1 and the
      Armory code, everything is in reach and the surface pass is all the way out needs. Proved also on a small level
@@ -527,10 +529,29 @@ Each step ends with something you can open and play.
      CV, the Armory code). The checker: from the foot of A3, the ladder and the dive (the lift with Gen-1); in the
      drowned sump, both dives; from the breach, every chamber and passage and both ways out, no dead ends.
    - **Cost**: a step with everyone awake, 0.12 ms in the sump, 0.07 drowned, 0.15 in the cave (worst 4.5 ms).
-   - **Not yet**: nothing counts your air for you. The drowned level is about 13 s across on one breath of 35; the
-     checker treats a dive as a way like any other. The last log in pump control sends you down "shaft B in the
-     filter room"; there is no shaft B (nor was there in the first engine's new station), only the intake grates.
-9. **Swap**: v2 becomes the game at the root; the old one is archived.
+   - **Logs are logs**: the last one in pump control sends you down "shaft B in the filter room", which the sump does
+     not have. What a paper says is what its writer believed, not a map.
+9. **Swap. Done.** v2 is the game.
+   - **Where things are**: the game's sources are at the repository root (`index.html`, `src/`, `test/`); the first
+     engine is archived, as it was, at `archive/first-engine.html`. Pages publishes the game at the site's root and the
+     archive beside it (`.github/workflows/pages.yml`); `check.yml` runs types, tests and a build on every pull request
+     but those that touch only the docs. The title links to the test bed, the station with the lights on, and the first
+     engine. A run in progress keeps its save across the move.
+   - **Breath in the checker**: where water fills a room to its roof, a place counts as in reach only if you can get
+     there and on to air (or a dive up into it) on the breath you have now, swimming at 2.4 m/s; with a rebreather on
+     you hold 150 s, without it 35. A rebreather counts while you wear it, and once taken (it goes on as you take it).
+     Each thing is judged on its own; one breath is not planned around several. Through a dive down into such water, the
+     report says what the far side holds on the breath you would take down. On the drowned sump one breath reaches
+     everything, so the rebreather changes nothing there yet; on 12 s, the flooded link to the cave is out of reach.
+     Proved also on a small level: 100 m of flooded tunnel, out of reach on one breath, in reach with the rebreather on,
+     and out again when it comes off.
+   - **Worn things come off**: click one under Worn in the inventory and it goes into a free hand; use it there to put it
+     on again. A rebreather taken off under water leaves you one lungful.
+   - **The tracker** (`?dev`, P): the checker's report from where you stand, at the top left, run again when what it
+     depends on changes (what you hold, wear and know, the power, the room you are in) and every half second under
+     water, so your reach shrinks as your breath does. A text version of the "reachable now" overlay `world.md` §5
+     asks of the dev map, which is not built yet. It costs what the checker costs: 0.2 s on the upper station when you
+     change room with it open.
 
 ---
 
@@ -552,8 +573,9 @@ Each step ends with something you can open and play.
 
 - **Mutants on stairs, ladders and elevators**: yes (§7).
 - **Physical objects**: yes, unless they cost the frame rate (§6).
-- **Publishing v2 while it is in progress (agreed)**: GitHub Pages, from a workflow (`.github/workflows/pages.yml`).
-  Every push to `main` publishes the old game at the site root, as now, and the latest v2 build at `/v2/`. This needs
-  the repository's Pages source set to **GitHub Actions** (Settings → Pages → Build and deployment → Source).
+- **Publishing (agreed)**: GitHub Pages, from a workflow (`.github/workflows/pages.yml`). Every push to `main` publishes
+  the game at the site root and the first engine at `archive/first-engine.html` (until step 9: the first engine at the
+  root and v2 at `/v2/`). This needs the repository's Pages source set to **GitHub Actions** (Settings → Pages → Build
+  and deployment → Source).
 - **`station-plan.md`**: dropped. It was an earlier idea; the station now lives in the level builders, which are the
   reference for its layout and coordinates.

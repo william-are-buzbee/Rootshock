@@ -1,6 +1,7 @@
 name: pages
 
-# Publishes the site on every push to main: the current game at the root, as before, and the latest v2 build at /v2/.
+# Publishes the site on every push to main: the game at the root, and the first engine, archived, at
+# /archive/first-engine.html.
 # Needs Settings -> Pages -> Build and deployment -> Source set to "GitHub Actions".
 on:
   push:
@@ -26,16 +27,12 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: v2/package-lock.json
       - run: npm ci
-        working-directory: v2
       - run: npm run build
-        working-directory: v2
       - name: Assemble the site
         run: |
-          mkdir _site
-          git ls-files | grep -vE '^(v2/|\.github/|\.claude/)' | xargs -d '\n' cp --parents -t _site
-          cp -r v2/dist _site/v2
+          cp -r dist _site
+          cp -r archive _site/archive
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site

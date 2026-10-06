@@ -14,6 +14,7 @@ export class Panels {
   open: Panel | null = null;
   private promptText = '';
   private wpnText = '';
+  private invHtml = '';
 
   constructor(private send: (c: Command) => void, private game: () => Game, private onClose: () => void) {
     $('invb').addEventListener('click', e => {
@@ -46,7 +47,7 @@ export class Panels {
     this.closeAll();
     this.open = p;
     $(p).classList.remove('hide');
-    if (p === 'inv') this.renderInv();
+    if (p === 'inv') { this.invHtml = ''; this.renderInv(); }
     if (document.pointerLockElement) document.exitPointerLock();
   }
   close(): void {
@@ -109,6 +110,10 @@ export class Panels {
       '</section><section><h3>Worn</h3>' + worn + '</section><section><h3>Keys</h3><p>' + (keys.length ? keys.map(esc).join('<br>') : 'None') +
       '</p></section><section><h3>Papers</h3>' + (g.read.length ? g.read.map(k => '<button data-n="' + k + '">' + esc(g.notes[k].t) + '</button>').join('') : '<p>None</p>') +
       '</section></div><p class="hint">Click an item to use it, put it on or take it in hand; click something worn to take it off. Tab closes.</p>';
+    /* drawn again only when it changes: drawn every frame, a button pressed for longer than a frame was gone before the
+       press ended, and the click never landed */
+    if (h === this.invHtml) return;
+    this.invHtml = h;
     $('invb').innerHTML = h;
   }
   showNote(g: Game, key: string): void {

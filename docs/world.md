@@ -7,8 +7,8 @@ picked up by anyone (or any session) without the conversation that produced it. 
 - **Proposed**: a direction both sides like, not yet committed.
 - **Open**: needs a decision before it is built.
 
-The station itself (layout, levels, coordinates) is in the level builders in `index.html` (`NEWSTATION`, behind
-`?dev=newstation`), and later in `v2/src/content/levels`.
+The station itself (layout, levels, coordinates) is in the level builders in `src/content/levels`, ported from the first
+engine's `NEWSTATION` (archived in `archive/first-engine.html`, behind `?dev=newstation`).
 
 ---
 
@@ -241,8 +241,8 @@ Each phase is playable on its own.
 4. **Endings.**
 5. **Level by level:** make each level its own "pass 3": a local loop that can leave a player unsure how to go on after trying most
    doors, with a thread or two into the larger game. Start with the upper station.
-6. **Switch over** to the new station and retire the old one. Rewriting the old floor-numbered text is not a priority; it will be
-   rewritten as part of the levels.
+6. **Switch over** to the new station and retire the old one. **Done** (`engine.md` §13, step 9). Rewriting the old
+   floor-numbered text is not a priority; it will be rewritten as part of the levels.
 
 ---
 

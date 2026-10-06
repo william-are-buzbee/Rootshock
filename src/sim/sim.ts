@@ -109,7 +109,7 @@ function command(sim: Sim, c: Command): void {
     case 'lift': {
       const here = sim.world.def.id;
       if (c.level === here) break;
-      if (!g.station?.built.includes(c.level)) { say(g, (g.station?.names[c.level] ?? 'That level') + ' is not built in v2 yet.'); break; }
+      if (!g.station?.built.includes(c.level)) { say(g, (g.station?.names[c.level] ?? 'That level') + ' is not built yet.'); break; }
       g.travel = { level: c.level, mark: 'lift' };
       break;
     }

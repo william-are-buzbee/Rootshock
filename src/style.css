@@ -21,8 +21,8 @@ canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
 .screen .keys b { color: var(--bone); font-weight: 500; display: inline-block; min-width: 5.2em; }
 .screen .go { font-size: 24px; font-weight: 600; color: var(--hazard); border-top: 3px solid var(--hazard); padding-top: 10px; max-width: 860px; }
 @media (prefers-reduced-motion: reduce) { #roomn { transition: none; } }
-.screen p.v2 { font-family: var(--sign); font-size: 16px; color: var(--ash); }
-.screen p.v2 a { color: var(--hazard); }
+.screen p.aside { font-family: var(--sign); font-size: 16px; color: var(--ash); }
+.screen p.aside a { color: var(--hazard); }
 
 /* the HUD and the panels, as the first engine had them */
 :root { --paper: #cfc7ae; --ink: #1d1a15; }

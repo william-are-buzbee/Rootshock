@@ -41,7 +41,8 @@ const want = params.get('level') ?? STATION.start;
 const inStation = STATION.levels.some(l => l.id === want);
 if (inStation && params.get('power') === 'full') { STATION.main = true; for (const c of Object.values(STATION.circuits)) { c.on = true; c.broken = false; } }
 /* a run left part way (paused, tab hidden, page closed) goes on from where it was; going on uses the save up, so a
-   death is still a death. Dev pages and the test bed do not save. */
+   death is still a death. Dev pages and the test bed do not save. (The key keeps the name it had when this was v2, so
+   a run in progress survives the move to the site's root.) */
 const SAVE_KEY = 'rootshock-v2:run', saving = !DEV && inStation && !params.has('level');
 const stored = saving ? readStore(SAVE_KEY) : null;
 let resumed: Run | null = null;
@@ -56,7 +57,7 @@ function suspend(): void {
 if (resumed) {
   document.getElementById('titleg')!.textContent = 'Click to go on where you left off';
   const line = document.createElement('p'), again = document.createElement('a');
-  line.className = 'v2';
+  line.className = 'aside';
   again.href = '#'; again.textContent = 'Or start again from the cell.';
   again.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); writeStore(SAVE_KEY, null); location.reload(); });
   line.append(again);

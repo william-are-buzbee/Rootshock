@@ -6,8 +6,8 @@ import { column, corpse, liftRoom, shelf } from '../build/fittings';
 /* The sump, 162 m down. Everything drains here; with Gen-1 dead the pumps stopped and it flooded. A 6 m hall (tiles 12 to
    51) at wading depth, the pump station at its east end, and under it the drowned level: the intake gallery, where root
    mass chokes the pump intakes and the flooded link comes in from the cave. Sergeant Aldana went down there and did not
-   come back. Ported from the first engine (index.html: buildSump, buildSumpDeep) on the tile adapter, in tile units.
-   The water is real now: you wade in the hall, and below you swim, with no surface to come up to. */
+   come back. Ported from the first engine (archive/first-engine.html: buildSump, buildSumpDeep) on the tile adapter,
+   in tile units. The water is real now: you wade in the hall, and below you swim, with no surface to come up to. */
 
 export const SUMP: LevelInfo = { id: 'sump', name: 'The sump', c: 'HYD', org: [-10, -30] };
 export const SUMPDEEP: LevelInfo = { id: 'sumpdeep', name: 'The sump, drowned', c: 'DEEP', org: [-10, -30] };
