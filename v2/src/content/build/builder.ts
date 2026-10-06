@@ -167,8 +167,8 @@ export class LevelBuilder {
   }
 
   /** a platform over (x0, z0)-(x1, z1) that carries what stands on it between heights y0 and y1 */
-  platform(x0: number, z0: number, x1: number, z1: number, y0: number, y1: number, c = 0xb89b2e): void {
-    this.def.platforms.push({ x0, z0, x1, z1, y0, y1, colour: hex(c) });
+  platform(x0: number, z0: number, x1: number, z1: number, y0: number, y1: number, c = 0xb89b2e, call?: { name: string; circuit: string }): void {
+    this.def.platforms.push({ x0, z0, x1, z1, y0, y1, colour: hex(c), ...(call ? { call } : {}) });
   }
 
   /** an invisible box that bodies cannot enter, base at y (default: the floor) */

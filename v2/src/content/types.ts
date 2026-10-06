@@ -137,6 +137,8 @@ export interface PlatformDef {
   x0: number; z0: number; x1: number; z1: number;
   y0: number; y1: number;
   colour: Colour;
+  /** worked by a button on a circuit (the station's cargo platforms); without it, it goes when stood on */
+  call?: { name: string; circuit: string };
 }
 
 export interface Start { x: number; y: number; z: number; yaw: number }

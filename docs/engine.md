@@ -254,6 +254,13 @@ components, not code threaded through the frame loop:
 - **Interaction**: anything with `interactable` is found by one query (in reach, in view, unobstructed), as today's
   `findInt`.
 
+**As built in step 4.** The game's state is plain data in the sim (`sim/game.ts`): circuits and Gen-1, keys, what you
+carry (ten slots), lights and battery, what you wear, papers read, health, the run's keypad codes. What happens comes out
+as events (a message, a sound and where it came from, a note to show, a keypad, the power changing, the end); what the
+player chooses in a menu goes back in as commands, applied at the start of the next step, so a run is still only a
+sequence of inputs. The door rules, the labels and the answers are the first engine's, line for line
+(`sim/movers.ts`, `sim/interact.ts`). The world stands still while a menu is open, as it did.
+
 ---
 
 ## 10. Determinism, saving, testing
@@ -342,7 +349,25 @@ Each step ends with something you can open and play.
      checker.
    - **Measured** on the upper station: 58 rooms, 726 props, 2,081 chunks (16 MB of grid), 52 ms to build and
      compile, 200 to 300 ms to mesh in the browser (about 1 s under the test runner), 67,000 vertices.
-4. **Doors, power, interaction, items, inventory, notes, HUD.** The upper station's access puzzle works end to end.
+4. **Doors, power, interaction, items, inventory, notes, HUD. Done.**
+   - **Power**: circuits, backup sets, service connections, Gen-1's fuse and breaker; a change relights the level,
+     door lights and signs (1.4 ms).
+   - **Doors** with all their rules: light doors open for you on a live circuit and slide by hand on a dead one; heavy
+     doors need Gen-1 and their button; card readers and keypads (the Armory code is drawn per run); welded, jammed
+     (crouch under) and loose-panel doors; the surface lift as the way out.
+   - **Things to use**: items to take (drawn as they were), notes to read (all eighteen, word for word), corpses to
+     search for cards, backup sets, panels, cargo platforms called and ridden on power, ladders that check their gates.
+     Ladders, stairs and the lift say so when the level they lead to is not built yet.
+   - **You**: health, falls and drowning hurt, a flashlight to find and a battery that runs down, ten slots, the end
+     screen (death, or the surface).
+   - **The HUD and menus** as they were: messages, the use prompt, health, breath and battery bars, what is in hand;
+     the inventory (Tab), a note, the keypad, the lift panel. The sounds, synthesised as before.
+   - **Proof** (`test/puzzle.test.ts`): the upper station's gates played headless through the real interaction (stand
+     near, look, press E): the flashlight, the officer's card and the control room, heavy doors on backup, the Armory
+     keypad on Gen-1 with the run's code, Cargo's doors by hand, its backup set and the platform up to Tier 1,
+     ladderway B's gate, the fuse, the dead surface lift, a note, a fall.
+   - **Not yet**: weapons are carried and taken in hand but not swung (step 5, with the cast); travel between levels
+     waits for the other levels (step 8); saving (step 7).
 5. **Mutants.** Nav graph, flow fields, perception, the cast's behaviours, combat.
 6. **Parity check** against the current upper station. Fix the feel before going on.
 7. **Save and load, level validation, the progression checker.**
