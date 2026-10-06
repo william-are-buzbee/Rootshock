@@ -7,7 +7,7 @@ import type { Sim } from './sim';
 import { riders } from './sim';
 
 /* What you can use, and what using it does: E on whatever you are looking at. The labels and the answers are the first
-   engine's (interaction, in index.html), so the station reads as it did. */
+   engine's (interaction, in archive/first-engine.html), so the station reads as it did. */
 
 export interface Usable {
   x: number; y: number; z: number;
@@ -123,7 +123,7 @@ export function buildUsables(sim: Sim): Usable[] {
             if (S?.broken) { say(g, S.broken); sfx(g, 'deny'); return; }
             const n = S?.need;
             if (n?.power && power(g, n.power) < 1) { say(g, n.msg ?? 'It will not open.'); sfx(g, 'deny'); return; }
-            if (!to || !g.station?.built.includes(to)) { say(g, 'The ladderway is clear. Where it leads is not built in v2 yet.'); return; }
+            if (!to || !g.station?.built.includes(to)) { say(g, 'The ladderway is clear. Where it leads is not built yet.'); return; }
             if (S?.say) say(g, S.say);
             sfx(g, 'step');
             makeNoise(g, 6);
@@ -137,7 +137,7 @@ export function buildUsables(sim: Sim): Usable[] {
         out.push({
           ...base, label: () => (o.up ? 'Stairs up' : 'Stairs down') + (g.station?.names[to] ? ': ' + g.station.names[to] : ''),
           act: () => {
-            if (!g.station?.built.includes(to)) { say(g, 'Where these lead is not built in v2 yet.'); return; }
+            if (!g.station?.built.includes(to)) { say(g, 'Where these lead is not built yet.'); return; }
             g.travel = { level: to, mark: 'stair:' + L.id };
           },
         });
@@ -148,7 +148,7 @@ export function buildUsables(sim: Sim): Usable[] {
         out.push({
           ...base, label: () => o.label as string,
           act: () => {
-            if (!g.station?.built.includes(to)) { say(g, 'Where this goes is not built in v2 yet.'); return; }
+            if (!g.station?.built.includes(to)) { say(g, 'Where this goes is not built yet.'); return; }
             sfx(g, 'slosh');
             g.travel = { level: to, mark: 'dive:' + L.id };
             if (o.under) sayOnce(g, 'dive', g.worn.includes('rebreather') ? 'The rebreather ticks. You have time.' : 'One lungful. Count it.');

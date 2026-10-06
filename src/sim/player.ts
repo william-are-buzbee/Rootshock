@@ -15,6 +15,8 @@ const SWIM = 1.3;
 /** how high you can haul yourself out of water onto a ledge */
 const CLIMB_OUT = 1.7;
 export const AIR = 35;
+/** the air you can hold, as you are dressed: four times as much with a rebreather on */
+export const airFor = (worn: readonly string[]): number => (worn.includes('rebreather') ? 150 : AIR);
 
 export interface Player {
   body: Body;

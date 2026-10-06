@@ -3,7 +3,8 @@ import { STATION } from '../src/content/station';
 import { buildUpper } from '../src/content/levels/upper';
 import { LevelBuilder } from '../src/content/build/builder';
 import type { StationDef } from '../src/content/types';
-import { makeSim } from '../src/sim/sim';
+import { makeSim, step } from '../src/sim/sim';
+import { noInput } from '../src/sim/input';
 import { checkProgress, describe as describeReport } from '../src/sim/progress';
 import { load, save } from '../src/sim/save';
 
@@ -86,5 +87,58 @@ describe('a level built to go wrong', () => {
 
   it('reports the pit as a dead end', () => {
     expect(r.deadEnds.map(d => d.room)).toContain('Pit');
+  });
+});
+
+describe('breath', () => {
+  /* two dry rooms joined by 100 m of tunnel flooded to its roof: 42 s of swimming, more than one breath (35 s) holds,
+     well within a rebreather's (150 s). The rebreather is lying in the west room. */
+  const station: StationDef = { levels: [], ladders: {}, main: true, start: 'flood', names: { flood: 'Flood', on: 'On' }, circuits: { MAIN: { on: true, back: false } } };
+  const level = (rebreather: boolean) => {
+    const b = new LevelBuilder('flood', 'Flood', { circuit: 'MAIN' });
+    b.room('West', 0, 0, 6, 6, { ht: 3 });
+    b.room('Flooded tunnel', 6, 2, 106, 4, { ht: 2 });
+    b.water(6, 2, 106, 4, 2.5);
+    b.room('East', 106, 0, 112, 6, { ht: 3 });
+    b.use('stair', 110, 0.4, 3, { to: 'on', up: 0 });
+    if (rebreather) b.item('rebreather', 2, 0, 1);
+    b.start(3, 3, 0);
+    return b.finish();
+  };
+  const bare = level(false);
+
+  it('a swim longer than your breath is out of reach; with a rebreather on it is not; take it off and it is again', () => {
+    const s = makeSim(bare, { seed: 1, station });
+    let r = checkProgress(s);
+    expect(r.air).toEqual({ now: 35, max: 35 });
+    expect(r.rooms.never).toEqual(['East']);
+    expect(r.goals['stairs to on']).toBeUndefined();
+    s.game.worn.push('rebreather');
+    r = checkProgress(s);
+    expect(r.air.max).toBe(150);
+    expect(r.rooms.never).toEqual([]);
+    expect(r.goals['stairs to on']).toEqual([]);
+    s.game.commands.push({ type: 'unwear', id: 'rebreather' });
+    step(s, noInput());
+    expect(s.game.worn).toEqual([]);
+    expect(s.game.inv.map(x => x.id)).toEqual(['rebreather']); // in your hands, where it does you no good
+    expect(checkProgress(s).rooms.never).toEqual(['East']);
+  });
+
+  it('a rebreather to be found counts once taken', () => {
+    const r = checkProgress(makeSim(level(true), { seed: 1, station }));
+    expect(r.rooms.never).toEqual([]);
+    expect(r.goals['stairs to on']).toEqual(['take rebreather']);
+  });
+
+  it('half way along, what counts is the breath you have left', () => {
+    const s = makeSim(bare, { seed: 1, station }), b = s.player.body;
+    b.x = 60; b.z = 3; s.player.air = 25; // 54 m to go east, 46 back west: about 19 s either way
+    expect(checkProgress(s).rooms.never).toEqual([]);
+    s.player.air = 15;
+    const r = checkProgress(s);
+    expect(r.air.now).toBe(15);
+    expect(r.rooms.reached).not.toContain('West');
+    expect(r.rooms.reached).not.toContain('East');
   });
 });

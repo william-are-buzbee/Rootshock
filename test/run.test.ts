@@ -5,6 +5,7 @@ import { makeRun, stepRun, saveRun, loadRun, levelDef } from '../src/sim/run';
 import { noInput } from '../src/sim/input';
 import { give } from '../src/sim/game';
 import { validateStation } from '../src/sim/validate';
+import { makeSim } from '../src/sim/sim';
 import { checkProgress } from '../src/sim/progress';
 import { field, openRules } from '../src/world/nav';
 import type { Run } from '../src/sim/run';
@@ -194,6 +195,41 @@ describe('the drowned sump', () => {
     use(run, /^Swim up: the intake grates$/);
     expect(run.here.world.def.id).toBe('sump');
     expect(at(run, 'dive:sumpdeep')).toBe(true);
+  });
+
+  it('the checker counts the breath you have: on 12 s, the flooded link to the cave is out of reach', () => {
+    const run = makeRun(STATION, { seed: 4, start: 'sumpdeep' });
+    expect(Object.keys(checkProgress(run.here).goals).sort()).toEqual(['dive to The cave', 'dive to The sump']);
+    run.here.player.air = 12;
+    const r = checkProgress(run.here);
+    expect(r.air).toEqual({ now: 12, max: 35 });
+    expect(Object.keys(r.goals)).toEqual(['dive to The sump']);
+    expect(r.rooms.never).toEqual(['Flooded link', 'Intake main']);
+  });
+
+  it('from the sump, the checker looks through the dive at the drowned level, on the breath you would take down', () => {
+    const run = makeRun(STATION, { seed: 4, start: 'sump' });
+    const far = (id: string) => run.sims.get(id) ?? makeSim(levelDef(STATION, id), { station: STATION, seed: 1 });
+    const t = checkProgress(run.here, { through: far }).through['dive to The sump, drowned'];
+    expect(t).toEqual({ air: 35, rooms: ['Flooded link', 'Intake gallery', 'Intake main'], never: [], goals: ['dive to The cave', 'dive to The sump'] });
+  });
+
+  it('a rebreather is worn when taken, taken off into your hands, and put on again; off under water, you have one lungful', () => {
+    const run = makeRun(STATION, { seed: 4, start: 'sumpdeep' }), sim = run.here, g = sim.game, p = sim.player;
+    give(g, 'rebreather');
+    stepRun(run, noInput());
+    expect(p.airMax).toBe(150);
+    p.air = 120;
+    g.commands.push({ type: 'unwear', id: 'rebreather' });
+    stepRun(run, noInput());
+    expect(g.inv.map(s => s.id)).toEqual(['rebreather']);
+    expect(p.airMax).toBe(35);
+    expect(p.air).toBeLessThanOrEqual(35);
+    g.commands.push({ type: 'use', slot: 0 });
+    stepRun(run, noInput());
+    expect(g.worn).toEqual(['rebreather']);
+    expect(g.inv).toEqual([]);
+    expect(p.airMax).toBe(150);
   });
 
   it("Sergeant Aldana has the Armory code; the flooded link goes on to the cave", () => {

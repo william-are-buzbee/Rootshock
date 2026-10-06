@@ -8,8 +8,8 @@ import { caveDress, tree } from '../build/fittings';
    the breach behind the arboretum: the entry passage falls to the upper chamber (the spring branch climbs away east toward
    the surface); the descent, through breakdown, into the great chamber, where the green has made its real arboretum; the
    lower passage narrows to the lower chamber, half flooded, and its pool is the flooded link to the sump.
-   Ported from the first engine (index.html, buildCave) on the tile adapter: its tunnels and chambers are caves of any
-   outline (engine.md §14). */
+   Ported from the first engine (archive/first-engine.html, buildCave) on the tile adapter: its tunnels and chambers are
+   caves of any outline (engine.md §14). */
 
 export const CAVE: LevelInfo = { id: 'cave', name: 'The cave', c: 'CAVE', org: [-10, -140] };
 

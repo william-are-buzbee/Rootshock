@@ -9,7 +9,8 @@ import {
 
 /* Upper station, 40 m down. Security and Ops (x 14 to 94) off the main shaft; the Cargo cavern (x 110 to 240); the exhaust
    shaft (x 260). Start here.
-   Ported from the first engine (index.html, buildUpper and buildCargo2) on the tile adapter: tile units, as it had them.
+   Ported from the first engine (archive/first-engine.html, buildUpper and buildCargo2) on the tile adapter: tile units,
+   as it had them.
    The frame: org [-10, -30], so tile i is plan x = 2i - 10 and tile j is plan z = 2j - 30. */
 
 export const UPPER: LevelInfo = { id: 'upper', name: 'Upper station', c: 'OPS', org: [-10, -30] };

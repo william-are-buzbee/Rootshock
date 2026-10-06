@@ -33,6 +33,13 @@ export class Hud {
     if (frac !== null) $('o2').style.width = (frac * 100).toFixed(1) + '%';
   }
 
+  /** the dev tracker: what the progression checker says from where you stand */
+  track(text: string | null): void {
+    const el = $('track');
+    el.classList.toggle('hide', text === null);
+    if (text !== null && el.textContent !== text) el.textContent = text;
+  }
+
   dev(text: string | null): void {
     const el = $('devtag');
     el.classList.toggle('hide', text === null);

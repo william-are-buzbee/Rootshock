@@ -7,12 +7,12 @@ import { Lighting } from '../world/light';
 import { castBodies, castMovers, makeCast, updateCast, type Mutant } from './cast';
 import { makeHands, updateHands, type Hands } from './combat';
 import { makeFields, refreshFields, updateFields, type Fields } from './fields';
-import { hurt, makeGame, makeNoise, power, runLight, toggleLight, useItem, type Command, type Game, type StationState, say, sfx } from './game';
+import { hurt, makeGame, makeNoise, power, runLight, toggleLight, unwear, useItem, type Command, type Game, type StationState, say, sfx } from './game';
 import type { Input } from './input';
 import { buildUsables, findUsable, itemUse, padKey, type Usable, type WorldItem } from './interact';
 import { LooseSet, makeLoose } from './loose';
 import { makeDoor, makePlatform, updateDoor, updatePlatform, type Door, type Platform, type Rider } from './movers';
-import { AIR, eyeHeight, makePlayer, updatePlayer, type Player } from './player';
+import { airFor, eyeHeight, makePlayer, updatePlayer, type Player } from './player';
 
 /* The simulation: everything that is true about the game, advanced one fixed step at a time.
    Nothing here touches three.js or the page (engine.md §3). */
@@ -102,13 +102,14 @@ function command(sim: Sim, c: Command): void {
       break;
     }
     case 'light': toggleLight(g, c.tool, underWater(sim)); break;
+    case 'unwear': unwear(g, c.id); break;
     case 'pad': padKey(g, sim, c.key); break;
     case 'padClose': g.pad = null; break;
     case 'read': if (g.notes[c.key]) { g.events.push({ type: 'note', key: c.key }); sfx(g, 'paper'); } break;
     case 'lift': {
       const here = sim.world.def.id;
       if (c.level === here) break;
-      if (!g.station?.built.includes(c.level)) { say(g, (g.station?.names[c.level] ?? 'That level') + ' is not built in v2 yet.'); break; }
+      if (!g.station?.built.includes(c.level)) { say(g, (g.station?.names[c.level] ?? 'That level') + ' is not built yet.'); break; }
       g.travel = { level: c.level, mark: 'lift' };
       break;
     }
@@ -137,7 +138,9 @@ export function step(sim: Sim, input: Input): void {
     else if (how === 'moving' && sim.rng.chance(STEP * 6)) sfx(g, 'hstep', at, true);
   }
 
-  sim.player.airMax = g.worn.includes('rebreather') ? 150 : AIR;
+  /* take a rebreather off under water and you have what is in your lungs */
+  sim.player.airMax = airFor(g.worn);
+  sim.player.air = Math.min(sim.player.air, sim.player.airMax);
   const { stride, hit } = updatePlayer(sim.world, sim.player, input, STEP);
   /* walking into something loose shoves it */
   if (hit && hit !== 'world' && hit.kind === 'loose') {

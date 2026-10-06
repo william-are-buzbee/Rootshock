@@ -6,7 +6,7 @@ import { MED, UTIL, corpse, genset, liftRoom, medbed, overgrow, panel, shelf, tb
 /* The plant level, 140 m down. Dead and black. Engineering on the spine (the machine shop, the parts store, Distribution
    with every floor's service connection, the backup plant); the link corridor; the generator hall, Gen-1 at its east
    end against the exhaust shaft, where the green comes down. The west end is going green too.
-   Ported from the first engine (index.html, buildPlant) on the tile adapter, in tile units. */
+   Ported from the first engine (archive/first-engine.html, buildPlant) on the tile adapter, in tile units. */
 
 export const PLANT: LevelInfo = { id: 'plant', name: 'Plant level', c: 'ENG', org: [-10, -30] };
 

@@ -7,8 +7,8 @@ import { LevelBuilder, type Palette } from './builder';
 
    A level is one or more decks: grids of 2 m tiles, each a walkable layer at its own height (a hall, and walkways
    above it). Rooms, doors, caves and terrain are laid out on the tiles; props are placed in tile units with sizes in
-   metres. Nothing is built until finish(), which compiles every deck into v2 shapes: rooms carved in the grid, floor
-   slabs under every upper deck, walkways with rails at their open edges, doors with doorways, platforms, cave
+   metres. Nothing is built until finish(), which compiles every deck into the world's shapes: rooms carved in the grid,
+   floor slabs under every upper deck, walkways with rails at their open edges, doors with doorways, platforms, cave
    surfaces from the terrain fields, ceiling fittings, and the props.
 
    Positions: tile (i, j) has its low corner at the deck's org + (2i, 2j) in plan metres. */

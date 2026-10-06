@@ -3,7 +3,7 @@ import { testbed } from './content/levels/testbed';
 import { STATION } from './content/station';
 import { Lighting } from './world/light';
 import { applyCommands, makeSim, type Sim } from './sim/sim';
-import { loadRun, makeRun, saveRun, soloRun, stepRun, type Run } from './sim/run';
+import { levelDef, loadRun, makeRun, saveRun, soloRun, stepRun, type Run } from './sim/run';
 import { save } from './sim/save';
 import { checkProgress, describe, type CheckOpts } from './sim/progress';
 import { readStore, writeStore } from './present/store';
@@ -41,7 +41,8 @@ const want = params.get('level') ?? STATION.start;
 const inStation = STATION.levels.some(l => l.id === want);
 if (inStation && params.get('power') === 'full') { STATION.main = true; for (const c of Object.values(STATION.circuits)) { c.on = true; c.broken = false; } }
 /* a run left part way (paused, tab hidden, page closed) goes on from where it was; going on uses the save up, so a
-   death is still a death. Dev pages and the test bed do not save. */
+   death is still a death. Dev pages and the test bed do not save. (The key keeps the name it had when this was v2, so
+   a run in progress survives the move to the site's root.) */
 const SAVE_KEY = 'rootshock-v2:run', saving = !DEV && inStation && !params.has('level');
 const stored = saving ? readStore(SAVE_KEY) : null;
 let resumed: Run | null = null;
@@ -56,7 +57,7 @@ function suspend(): void {
 if (resumed) {
   document.getElementById('titleg')!.textContent = 'Click to go on where you left off';
   const line = document.createElement('p'), again = document.createElement('a');
-  line.className = 'v2';
+  line.className = 'aside';
   again.href = '#'; again.textContent = 'Or start again from the cell.';
   again.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); writeStore(SAVE_KEY, null); location.reload(); });
   line.append(again);
@@ -89,13 +90,30 @@ const fade = document.getElementById('fade')!;
 
 const controls = new Controls(canvas, () => { if (mode === 'play') setMode('pause'); }, text => panels.say(text));
 const panels = new Panels(c => sim.game.commands.push(c), () => sim.game, () => { if (mode === 'panel') { setMode('play'); controls.lock(); } });
-/* ?dev keys, as the first engine had them: V fly, G god, B bright; and O for the collider overlay */
-const devFlags = { bright: false };
+/* ?dev keys, as the first engine had them: V fly, G god, B bright; O for the collider overlay; P for the tracker */
+const devFlags = { bright: false, track: false };
 if (DEV) {
   controls.onKey.set('KeyV', () => { sim.player.fly = !sim.player.fly; });
   controls.onKey.set('KeyG', () => { sim.game.god = !sim.game.god; });
   controls.onKey.set('KeyB', () => { devFlags.bright = !devFlags.bright; U.uBright.value = devFlags.bright ? 0.55 : 0; });
   controls.onKey.set('KeyO', () => here.overlay?.toggle());
+  controls.onKey.set('KeyP', () => { devFlags.track = !devFlags.track; tracked = ''; });
+}
+
+/* the tracker (?dev, P): the progression checker on where you stand, run again whenever what it depends on changes (what
+   you hold, wear and know, the power, the room you are in) and every half second while you are under water, so you see
+   your breath's reach shrink. A level on the far side of a dive is looked at as it stands, or fresh if not yet visited. */
+let tracked = '', trackT = 0;
+const previews = new Map<string, Sim>();
+function track(dt: number): void {
+  if (!devFlags.track || !inStation) { hud.track(null); return; }
+  const g = sim.game, b = sim.player.body, R = sim.world.roomAt(b.x, b.y + 0.5, b.z);
+  const sig = JSON.stringify([sim.world.def.id, R?.id, g.inv, g.worn, g.keys, g.read, g.station, sim.doors.map(d => d.unlocked), sim.items.map(i => i.taken)]);
+  trackT -= dt;
+  if (sig === tracked && !(sim.player.under && trackT <= 0)) return;
+  tracked = sig; trackT = 0.5;
+  const far = (id: string) => run.sims.get(id) ?? previews.get(id) ?? (previews.set(id, makeSim(levelDef(STATION, id), { station: STATION, seed: 1 })), previews.get(id)!);
+  try { hud.track(describe(checkProgress(sim, { through: far }))); } catch (e) { hud.track('The tracker cannot say: ' + (e as Error).message); }
 }
 
 function setMode(m: typeof mode): void {
@@ -213,7 +231,8 @@ function frame(t: number): void {
   const b = sim.player.body, room = sim.world.roomAt(b.x, b.y + 0.5, b.z);
   hud.setRoom(room?.name ?? '', sim.world.def.name, mode === 'title' ? 0 : dt); // the label waits for you to open your eyes
   if (dt > 0) fps += (1 / dt - fps) * 0.05;
-  hud.dev(DEV ? `${b.x.toFixed(2)} ${b.y.toFixed(2)} ${b.z.toFixed(2)}  ${room?.name ?? 'rock'}  ${b.ground ? 'ground' : 'air'}  ${Math.round(fps)} fps\n${sim.world.def.name}: ${sim.world.grid.chunkCount} chunks  mesh ${here.meshMs.toFixed(0)} ms  ${['fly', 'god', 'bright'].filter(k => k === 'fly' ? sim.player.fly : k === 'god' ? sim.game.god : devFlags.bright).join(' ')}\nV fly  G god  B bright  O colliders` : null);
+  if (DEV) track(dt);
+  hud.dev(DEV ? `${b.x.toFixed(2)} ${b.y.toFixed(2)} ${b.z.toFixed(2)}  ${room?.name ?? 'rock'}  ${b.ground ? 'ground' : 'air'}  ${Math.round(fps)} fps\n${sim.world.def.name}: ${sim.world.grid.chunkCount} chunks  mesh ${here.meshMs.toFixed(0)} ms  ${['fly', 'god', 'bright'].filter(k => k === 'fly' ? sim.player.fly : k === 'god' ? sim.game.god : devFlags.bright).join(' ')}\nV fly  G god  B bright  O colliders  P tracker` : null);
   view.draw(t / 1000);
 }
 /* ?dev: the run on the window, for poking at from the console or a test script */

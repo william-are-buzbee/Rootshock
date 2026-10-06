@@ -10,7 +10,8 @@ import {
 
 /* The main level, 90 m down: the Commons (a street of residences under a cavern roof, three storeys of flats on
    galleries), the Square at its east end, and Horticulture beyond the airlock. Ported from the first engine
-   (index.html: buildMain, buildSquare, flatRect, groundFloor, buildHorticulture) on the tile adapter, in tile units.
+   (archive/first-engine.html: buildMain, buildSquare, flatRect, groundFloor, buildHorticulture) on the tile adapter, in
+   tile units.
    One change: the storeys are 3.5 m apart (the first engine had 3.4), so floors fall on the 0.25 m grid (engine.md §14). */
 
 export const MAIN: LevelInfo = { id: 'main', name: 'Main level', c: 'RES', org: [-10, -30] };
