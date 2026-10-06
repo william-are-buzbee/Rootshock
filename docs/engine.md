@@ -327,6 +327,23 @@ sequence of inputs. The door rules, the labels and the answers are the first eng
   its board in the generator hall, along the rooms, and winds up and down; on the other levels it is a rumble in the
   rock. A flickering room buzzes and crackles in step with its light: the shader and the soundscape both ask
   `present/flicker.ts` when the tube is dimmed.
+- **Light and air** (since): the flashlight is held, not glued to the eye: the beam trails the view by about 70 ms and
+  sways with your stride (`present/camera.ts`); its cone is a reflector's (a hot centre, a faint ring at its rim, a
+  wide dim spill); and a wall close in front of it throws a little light back around you (one ray a frame). The eye
+  adapts (`uExpo`): it opens slowly in the dark and narrows fast in light, so a room coming on glares. The dark is
+  grained in the shader, most where it is darkest. A room on its backup set is lit amber; its brightest channel, which
+  is what the cast see you by, is what it was. Power that comes on is seen to (`present/cascade.ts`): room by room out
+  from where you are, each tube striking (on, off a moment, on) as it catches, and heard to near you; only the rooms
+  that flip are lit again (`LevelMesh.relightRooms`). Power going off is not staged, and the sim's light changes at
+  once. Motes (`present/render/motes.ts`) hang in the air about you and show in your beam: with a live circuit the air
+  is drawn toward the room's vent panels or along it, on a backup set barely, and in a dead room it hangs and settles;
+  caves drift on their own. A room says what is in its air (`RoomDef.motes`): spores in Horticulture and the cave,
+  red flecks in the Cargo nest and the nest residences, dust elsewhere. A door shut twenty seconds or more breathes out
+  at you when it opens, with a gust you hear.
+- **A fight's feel** (since): a swing let go early is a jab, weaker and slow to recover from, not nothing; a blow that
+  lands, or meets a wall, holds the swing still a moment (hit-stop) and dips the view; a hurt from one of the cast
+  knocks the view away from it and flashes the edge of the screen on its side; a husk's or skitter's wind-up that you
+  step back from is heard to miss; the cast are rocked back when struck.
 - **UI** stays in HTML over the canvas, with the current type and colours (Barlow Condensed, Newsreader, bone, ash,
   hazard).
 - **Dev tools** carry over (`?dev`, fly, god, level select, map), plus overlays for colliders, nav graph and noise.
