@@ -323,7 +323,8 @@ sequence of inputs. The door rules, the labels and the answers are the first eng
   has no need to say is the soundscape's (`present/soundscape.ts`): the cast breathing, clicking, gurgling and dragging
   themselves along, their deaths, crates scraping and landing, caves dripping, your heart when you are badly hurt. It
   reads the sim and never draws on its seeded numbers. Every room echoes by how much air is in it (three synthesised
-  echoes, a small room's, a hall's and a vast space's, mixed by the room's volume; rock rings more). Gen-1 is heard from
+  echoes, a small room's, a hall's and a vast space's, mixed by the room's volume; rock rings more). A fitted room's air is heard moving while its fans run: a soft rush on Gen-1, barely a breath on a backup set,
+  and none in a dead room, where the dust hangs (`roomAir`). Gen-1 is heard from
   its board in the generator hall, along the rooms, and winds up and down; on the other levels it is a rumble in the
   rock. A flickering room buzzes and crackles in step with its light: the shader and the soundscape both ask
   `present/flicker.ts` when the tube is dimmed.

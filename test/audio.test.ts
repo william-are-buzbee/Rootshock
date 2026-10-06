@@ -5,7 +5,7 @@ import { makeSim, step, type Sim } from '../src/sim/sim';
 import { noInput, type Input } from '../src/sim/input';
 import { STEP } from '../src/core/loop';
 import { refreshFields } from '../src/sim/fields';
-import { floorAt, genAt, hearing, spaceOf } from '../src/present/soundscape';
+import { floorAt, genAt, hearing, roomAir, spaceOf } from '../src/present/soundscape';
 import { flickerAt } from '../src/present/flicker';
 
 /* What the sound is told: what feet fall on, how a sound comes to you through the rooms, and the landings and jumps. The
@@ -93,5 +93,17 @@ describe('the station heard', () => {
     for (let k = 0; k < 2000; k++) if (flickerAt(k / 11 + 0.01)) dim++;
     expect(dim / 2000).toBeGreaterThan(0.2);
     expect(dim / 2000).toBeLessThan(0.36);
+  });
+});
+
+describe('the air', () => {
+  it('rushes in a fitted room on Gen-1, barely on a backup set, not at all in a dead room or a cave', () => {
+    const up = sim('upper'), corridor = up.world.rooms.find(R => R.name === 'Operations corridor')!;
+    expect(roomAir(corridor, 2)).toBe(1);
+    expect(roomAir(corridor, 1)).toBeGreaterThan(0);
+    expect(roomAir(corridor, 1)).toBeLessThan(0.5);
+    expect(roomAir(corridor, 0)).toBe(0);
+    const cave = sim('cave').world.rooms.find(R => R.name === 'Great chamber')!;
+    expect(roomAir(cave, 2)).toBe(0);
   });
 });
