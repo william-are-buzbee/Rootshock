@@ -12,7 +12,11 @@ import { dynamicMaterial, glassMaterial } from './shader';
 /* What moves, drawn where the sim says it is: doors, platforms, loose crates. And the water, which does not move but
    is see-through, so it is drawn on its own. Each moving thing is lit by the room it is in. */
 
-interface Moving { mesh: THREE.Object3D; mat: THREE.ShaderMaterial; place(): void }
+interface Moving {
+  mesh: THREE.Object3D; mat: THREE.ShaderMaterial; place(): void;
+  /** where its light is taken from, if not where it is now: a door is lit by its doorway, even slid up into the rock */
+  litAt?: [number, number, number];
+}
 
 /** a part of a fitting: a box (or other shape) of a colour, sized, tipped about z, and placed in the fitting's own frame */
 export type Part = [shape: 'box' | 'cyl' | 'ico', c: number | Colour, sx: number, sy: number, sz: number, x: number, y: number, z: number, rz?: number];
@@ -148,9 +152,10 @@ export class Things {
         m.scale.set(long / 2, 1, 1);
         if (D.vent) m.visible = d.t < 0.5;
       };
-      this.add(parts(body), place);
+      const at: [number, number, number] = [(D.x0 + D.x1) / 2, D.y0, (D.z0 + D.z1) / 2];
+      this.add(parts(body), place, at);
       /* its lights show only with power enough to work it */
-      if (lights.length) this.add(parts(lights), m => { place(m); m.visible = this.L.power(D.circuit) >= need && !D.vent; });
+      if (lights.length) this.add(parts(lights), m => { place(m); m.visible = this.L.power(D.circuit) >= need && !D.vent; }, at);
     }
     for (const p of sim.platforms) {
       const D = p.def;
@@ -194,11 +199,11 @@ export class Things {
     return mesh;
   }
 
-  private add(geo: THREE.BufferGeometry, place: (m: THREE.Mesh) => void): void {
+  private add(geo: THREE.BufferGeometry, place: (m: THREE.Mesh) => void, litAt?: [number, number, number]): void {
     const mat = dynamicMaterial(), mesh = new THREE.Mesh(geo, mat);
     mesh.frustumCulled = false;
     this.scene.add(mesh);
-    this.list.push({ mesh, mat, place: () => place(mesh) });
+    this.list.push({ mesh, mat, place: () => place(mesh), litAt });
   }
 
   private water(w: World): void {
@@ -225,7 +230,8 @@ export class Things {
     this.syncItems();
     for (const t of this.list) {
       t.place();
-      const p = t.mesh.position, w = this.sim.world, R = w.roomAt(p.x, p.y + 0.3, p.z) ?? w.roomAt(p.x, p.y + 1.2, p.z);
+      const p = t.litAt ? { x: t.litAt[0], y: t.litAt[1], z: t.litAt[2] } : t.mesh.position, w = this.sim.world;
+      const R = w.roomAt(p.x, p.y + 0.3, p.z) ?? w.roomAt(p.x, p.y + 1.2, p.z);
       const l = R ? this.L.at(R.id, p.x, p.z) : [0, 0, 0];
       (t.mat.uniforms.uLight.value as THREE.Vector3).set(l[0], l[1], l[2]);
     }

@@ -1,10 +1,10 @@
 import type { MutantDef } from '../content/types';
 import { angLerp, clamp, PI, TAU } from '../core/math';
 import { STEP } from '../core/loop';
-import { Edge, field as fieldFrom } from '../world/nav';
+import { Edge, edgeCost, field as fieldFrom } from '../world/nav';
 import type { Dyn } from '../world/world';
 import { fall, makeBody, settle, walk, type Body } from './body';
-import { doorShut, opensItself, passFor, type Fields, type Walker } from './fields';
+import { doorShut, opensItself, rulesFor, type Fields, type Walker } from './fields';
 import { hurtBy, power, sayOnce, sfx } from './game';
 import { sendPlatform, type Door } from './movers';
 import { eyeHeight } from './player';
@@ -223,7 +223,7 @@ function follow(sim: Sim, m: Mutant, F: Float32Array, spd: number, away: boolean
   if (m.ride) return ride(sim, m, Fs);
   const nav = Fs.nav, i = m.spot;
   if (i < 0) return false;
-  const pass = passFor(sim, Fs, m.walker);
+  const R = rulesFor(sim, Fs, m.walker);
   /* downhill: the cheapest way on (the field is float32, so compare scores with each other, not with F[i]);
      uphill (away): the farthest neighbour that is farther than here */
   let bv = away ? F[i] : Infinity, best = -1, be = -1;
@@ -231,9 +231,9 @@ function follow(sim: Sim, m: Mutant, F: Float32Array, spd: number, away: boolean
   for (let e = nav.start[i]; e < nav.start[i + 1]; e++) {
     const j = nav.to[e], v = F[j];
     if (!Number.isFinite(v)) continue;
-    const c = pass(i, j, nav.kind[e] as Edge, nav.lift[e]);
+    const c = edgeCost(nav, R, e, j);
     if (c === null) continue;
-    const score = away ? v : v + nav.len[e] + c;
+    const score = away ? v : v + c;
     if (away ? score > bv : score < bv) { bv = score; best = j; be = e; }
   }
   if (best < 0) return false;
@@ -344,7 +344,7 @@ function pickDest(sim: Sim, m: Mutant): void {
 
 function fieldTo(sim: Sim, m: Mutant, k: number): Float32Array {
   const Fs = sim.fields!;
-  return fieldFrom(Fs.nav, k, passFor(sim, Fs, m.walker), m.F ?? undefined);
+  return fieldFrom(Fs.nav, k, rulesFor(sim, Fs, m.walker), m.F ?? undefined);
 }
 
 const roamCache = new WeakMap<object, number[]>();

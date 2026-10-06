@@ -84,7 +84,7 @@ export function fall(w: World, b: Body, dt: number, gravity = GRAVITY): Landing 
     if (!b.ground) out.impact = -b.vy;
     ny = g; b.vy = 0; b.ground = true;
   } else b.ground = false;
-  const c = w.ceilingAbove(f, b.y + b.h, b.dyn);
+  const c = w.ceilingAbove(f, b.y + b.h, b.dyn, Math.max(b.y, ny) + b.h + 0.5);
   if (ny + b.h > c) {
     ny = Math.max(g, c - b.h);
     if (b.vy > 0) b.vy = 0;

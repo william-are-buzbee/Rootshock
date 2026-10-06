@@ -98,7 +98,7 @@ export class LooseSet {
     let ny = o.y + o.vy * dt;
     if (ny <= g) { ny = g; o.vy = 0; o.ground = true; }
     else o.ground = false;
-    const c = w.ceilingAbove(f, o.y + o.h, o.dyn);
+    const c = w.ceilingAbove(f, o.y + o.h, o.dyn, Math.max(o.y, ny) + o.h + 0.5);
     if (ny + o.h > c) { ny = Math.max(g, c - o.h); if (o.vy > 0) o.vy = 0; }
     if (ny !== o.y) this.wakeRiders(o, tick);
     o.y = ny;

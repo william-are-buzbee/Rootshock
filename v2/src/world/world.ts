@@ -167,12 +167,14 @@ export class World {
     return best;
   }
 
-  /** the lowest surface over the footprint whose underside is at or above `from`: what it would hit its head on */
-  ceilingAbove(f: Footprint, from: number, ignore: Dyn | null = null): number {
-    const g = this.grid, jf = Math.ceil(from / CELL - EPS);
+  /** the lowest surface over the footprint whose underside is at or above `from`: what it would hit its head on.
+   *  `upTo`: nothing higher matters to the caller (Infinity is returned for anything above it), which spares a climb
+   *  through every empty cell of a tall cavern. */
+  ceilingAbove(f: Footprint, from: number, ignore: Dyn | null = null, upTo = Infinity): number {
+    const g = this.grid, jf = Math.ceil(from / CELL - EPS), n1 = Math.min(4096, Math.ceil((upTo - from) / CELL) + 1);
     let best = Infinity;
     this.columns(f, (i, k) => {
-      for (let j = jf, n = 0; n < 4096; j++, n++) if (g.get(i, j, k) < 0) { best = Math.min(best, j * CELL); return; }
+      for (let j = jf, n = 0; n < n1; j++, n++) if (g.get(i, j, k) < 0) { best = Math.min(best, j * CELL); return; }
     });
     const consider = (y0: number) => { if (y0 >= from - EPS && y0 < best) best = y0; };
     this.boxesNear(f, b => consider(b.y0));
