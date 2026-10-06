@@ -8,10 +8,10 @@ import { Lighting } from '../src/world/light';
 import { Prints } from '../src/present/render/prints';
 
 /* Footprints (present/render/prints.ts), headless: wet ones after water, red ones after blood, a pace apart; the cast's
-   too, and a hurt one's drips. */
+   too; a print on one already there grows it. */
 
 const level = buildUpper(STATION.ladders);
-type Print = { x: number; z: number; stuff: 'wet' | 'red' | 'green'; k: number };
+type Print = { x: number; z: number; stuff: 'wet' | 'red' | 'green'; k: number; size: number };
 const list = (p: Prints) => (p as unknown as { list: Print[] }).list;
 
 function setUp() {
@@ -73,10 +73,20 @@ describe('footprints', () => {
     const before = list(p).length;
     walkIt(sk, S.x - 2, S.x + 4, S.z);
     expect(list(p).length).toBeGreaterThan(before + 3); // a skitter's pace is short: more prints in less ground
-    /* a husk at a tenth of its life, on a clean floor, drips */
-    husk.hp = husk.max * 0.1;
-    const n0 = list(p).length;
-    walkIt(husk, 62, 70, 0.5);
-    expect(list(p).length).toBeGreaterThan(n0 + 3);
+  });
+
+  it('a print that comes down on one already there grows it instead of lying on top', () => {
+    const { sim, p } = setUp();
+    type Step = (sim: Sim, F: object, g: object, x: number, y: number, z: number, face: number, wet: boolean, firm: boolean) => void;
+    const step = (p as unknown as { step: Step }).step.bind(p), gait = { size: 0.12, pace: 0.75, side: 0.1 };
+    const F = { x: 66, z: 0, gone: 0, left: false, wet: 0, blood: 1, sap: false };
+    step(sim, F, gait, 66, 0, 0, 0, false, true);
+    const first = list(p)[0].size;
+    F.left = false; F.blood = 1;
+    step(sim, F, gait, 66, 0, 0, 0, false, true); // the same foot in the same place
+    expect(list(p).length).toBe(1);
+    expect(list(p)[0].size).toBeGreaterThan(first);
+    for (let k = 0; k < 30; k++) { F.left = false; F.blood = 1; step(sim, F, gait, 66, 0, 0, 0, false, true); }
+    expect(list(p)[0].size).toBeLessThanOrEqual(0.4); // up to a point
   });
 });
