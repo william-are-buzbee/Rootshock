@@ -16,7 +16,10 @@ const inside = (m: Motes) => m as unknown as Inside;
 
 function air(full: boolean) {
   const sim = makeSim(level, { seed: 5, station: STATION });
-  if (full) { sim.game.station!.main = true; for (const c of Object.values(sim.game.station!.circuits)) { c.on = true; c.broken = false; } }
+  /* full: Gen-1 on and every circuit fed; otherwise dead, the backup sets off too (still air) */
+  const st = sim.game.station!;
+  if (full) { st.main = true; for (const c of Object.values(st.circuits)) { c.on = true; c.broken = false; } }
+  else { st.main = false; for (const c of Object.values(st.circuits)) c.back = false; }
   const L = new Lighting(sim.world, c => power(sim.game, c)), m = new Motes(new THREE.Group(), L, () => {});
   return { sim, m, M: inside(m) };
 }
