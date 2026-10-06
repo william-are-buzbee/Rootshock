@@ -341,7 +341,9 @@ sequence of inputs. The door rules, the labels and the answers are the first eng
   that flip are lit again (`LevelMesh.relightRooms`). Power going off is not staged, and the sim's light changes at
   once. Motes (`present/render/motes.ts`) hang in the air about you, square flecks lit as a surface is (by the room as much as by your beam, never brighter than the wall beside them): with a live circuit the air
   is drawn toward the room's vent panels or along it, on a backup set barely, and in a dead room it hangs and settles;
-  caves drift on their own. A room says what is in its air (`RoomDef.motes`): spores in Horticulture and the cave,
+  caves drift on their own. Moving air carries dust off: a ventilated room shows a quarter of a stuffy one's, a room on
+  its backup set about half. Each speck has its own velocity, easing toward the air's, and anything moving through it,
+  you or the cast, drags it along and shoves it aside; it keeps that push until the air takes it back. A room says what is in its air (`RoomDef.motes`): spores in Horticulture and the cave,
   red flecks in the Cargo nest and the nest residences, dust elsewhere. A door shut twenty seconds or more breathes out
   at you when it opens, with a gust you hear.
 - **A fight's feel** (since): a swing let go early is a jab, weaker and slow to recover from, not nothing; a blow that
