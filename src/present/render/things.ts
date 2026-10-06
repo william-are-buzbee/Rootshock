@@ -5,7 +5,7 @@ import type { Sim } from '../../sim/sim';
 import type { DoorDef } from '../../content/types';
 import type { World } from '../../world/world';
 import type { Lighting } from '../../world/light';
-import { propVerts } from './levelMesh';
+import { apart, propVerts } from './levelMesh';
 import { TEMPLATES } from './templates';
 import { dynamicMaterial, glassMaterial } from './shader';
 
@@ -24,14 +24,15 @@ export type Part = [shape: 'box' | 'cyl' | 'ico', c: number | Colour, sx: number
 /** many parts as one geometry */
 export function parts(list: Part[]): THREE.BufferGeometry {
   const P: number[] = [], C: number[] = [];
-  for (const [shape, c, sx, sy, sz, x, y, z, rz] of list) {
-    const src = TEMPLATES[shape], col = hex(c), cz = Math.cos(rz ?? 0), szn = Math.sin(rz ?? 0);
+  list.forEach(([shape, c, sx, sy, sz, x, y, z, rz], k) => {
+    const src = TEMPLATES[shape], col = hex(c), cz = Math.cos(rz ?? 0), szn = Math.sin(rz ?? 0), e = 2 * apart(k);
     for (let v = 0; v < src.length; v += 3) {
-      const X = src[v] * sx, Y = src[v + 1] * sy;
-      P.push(X * cz - Y * szn + x, X * szn + Y * cz + y, src[v + 2] * sz + z);
+      /* each part a hair larger than it is, by its place in the list, so flush parts do not fight (levelMesh's apart) */
+      const X = src[v] * (sx + e), Y = src[v + 1] * (sy + e);
+      P.push(X * cz - Y * szn + x, X * szn + Y * cz + y, src[v + 2] * (sz + e) + z);
       C.push(col[0], col[1], col[2]);
     }
-  }
+  });
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(P), 3));
   g.setAttribute('aCol', new THREE.BufferAttribute(new Float32Array(C), 3));
@@ -169,11 +170,12 @@ export class Things {
       this.signs.push({ mat: m.material as THREE.MeshBasicMaterial, circuit: s.circuit });
     }
     this.setLighting(L);
-    for (const o of sim.loose.all) {
-      const pts: number[] = [];
-      propVerts({ ...o.prop, ry: 0 }, (x, y, z) => pts.push(x, y, z), { x: 0, y: 0, z: 0 });
+    sim.loose.all.forEach((o, k) => {
+      /* a hair larger than it is, so a crate on the floor or on another does not fight it (levelMesh's apart) */
+      const pts: number[] = [], e = apart(k), P = o.prop;
+      propVerts({ ...P, ry: 0, sx: P.sx + 2 * e, sy: P.sy + 2 * e, sz: P.sz + 2 * e }, (x, y, z) => pts.push(x, y, z), { x: 0, y: -e, z: 0 });
       this.add(coloured(new Float32Array(pts), o.prop.colour), m => m.position.set(o.x, o.y, o.z));
-    }
+    });
     for (const n of w.def.notes) this.addFixed(parts(itemParts('note')), n.x, n.y, n.z, lie(n.x, n.z) * 0.3);
     this.water(w);
   }

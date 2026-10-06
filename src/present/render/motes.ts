@@ -31,10 +31,13 @@ const HX = 4, HY = 2, HZ = 4;
 const rnd = (a: number, b: number) => a + Math.random() * (b - a);
 
 /** each kind's colour, how many of the specks show in still air, how big, and how it moves (lift: up, negative falls) */
-const KIND: Record<Kind, { c: [number, number, number]; show: number; size: number; lift: number; glow: number }> = {
-  dust: { c: [0.95, 0.9, 0.8], show: 0.15, size: 1, lift: -0.006, glow: 0 },
-  spores: { c: [0.72, 0.95, 0.48], show: 0.4, size: 1.35, lift: 0.012, glow: 0.02 },
-  flesh: { c: [0.9, 0.42, 0.36], show: 0.22, size: 1.15, lift: -0.012, glow: 0 },
+/*  `share`: of the specks that show, how many are the kind's own; the rest are ordinary dust, so the green's air or a
+    nest's is dust with spores or flecks in it, not air of another colour. Flecks are dark, a dried maroon: matter, not
+    a tint of the light. */
+const KIND: Record<Kind, { c: [number, number, number]; show: number; share: number; size: number; lift: number; glow: number }> = {
+  dust: { c: [0.95, 0.9, 0.8], show: 0.15, share: 1, size: 1, lift: -0.006, glow: 0 },
+  spores: { c: [0.72, 0.95, 0.48], show: 0.4, share: 0.5, size: 1.35, lift: 0.012, glow: 0.02 },
+  flesh: { c: [0.5, 0.15, 0.12], show: 0.22, share: 0.35, size: 1.15, lift: -0.012, glow: 0 },
 };
 
 const VS = /* glsl */ `
@@ -183,7 +186,9 @@ export class Motes {
     const gust = i >= N;
     if (!R) { this.room[i] = -1; if (!gust) this.alpha[i] = this.want[i] = 0; return; }
     this.room[i] = R.id;
-    const A = this.airOf(sim, R), K = KIND[A.kind], l = this.L.lit(R.id, x, y, z), s = this.seed[i];
+    const A = this.airOf(sim, R), s = this.seed[i], l = this.L.lit(R.id, x, y, z);
+    /* the room's own kind of speck, or ordinary dust among them */
+    const own = KIND[A.kind], K = (s * 5.71) % 1 < own.share ? own : KIND.dust;
     /* pale flecks and dark grit: each its own shade of its kind's colour */
     const shade = 0.4 + 0.6 * ((s * 13.7) % 1);
     this.col[i * 3] = K.c[0] * shade; this.col[i * 3 + 1] = K.c[1] * shade; this.col[i * 3 + 2] = K.c[2] * shade;
@@ -192,7 +197,7 @@ export class Motes {
     this.size[i] = K.size * (0.6 + 0.8 * s * s);
     if (gust) return;
     /* how many show: the kind's share of still air, less as the air moves; each a little see-through, as dust is */
-    this.want[i] = s < K.show * A.holds ? (0.45 + 0.55 * ((s * 7.31) % 1)) * (0.8 + 0.2 * ((s * 3.17) % 1)) : 0;
+    this.want[i] = s < own.show * A.holds ? (0.45 + 0.55 * ((s * 7.31) % 1)) * (0.8 + 0.2 * ((s * 3.17) % 1)) : 0;
     if (fresh) this.alpha[i] = this.want[i];
   }
 
