@@ -29,7 +29,7 @@ const KIND: Record<Kind, { c: [number, number, number]; show: number; size: numb
 
 const VS = /* glsl */ `
 attribute vec3 aCol; attribute vec3 aL; attribute float aA; attribute float aS;
-uniform vec3 uFlashDir; uniform float uFlash; uniform float uLamp; uniform float uFog; uniform float uPx;
+uniform vec3 uFlashDir; uniform float uFlash; uniform float uLamp; uniform float uFog; uniform float uPx; uniform float uExpo;
 varying vec3 vC; varying float vA;
 void main(){
   vec4 mv = modelViewMatrix * vec4(position, 1.0);
@@ -38,7 +38,7 @@ void main(){
   float beam = uFlash * (0.65 * smoothstep(0.91, 0.975, ca) + 0.42 * smoothstep(0.76, 0.92, ca)) * 2.3 / (1.0 + 0.055 * d * d);
   float lamp = uLamp * 1.2 / (1.0 + 0.2 * d * d);
   vec3 light = aL * 0.22 + beam * vec3(1.0, 0.93, 0.78) + lamp * vec3(0.72, 0.92, 1.0);
-  vC = aCol * light;
+  vC = aCol * light * uExpo;
   /* not right at the eye, not at the box's edge (where a speck comes back in), thinned by the fog */
   vA = aA * smoothstep(0.25, 0.8, d) * (1.0 - smoothstep(2.8, 3.9, d)) * exp(-d * uFog * 1.5);
   gl_PointSize = clamp(uPx * aS / max(-mv.z, 0.1), 1.0, 7.0);
@@ -87,7 +87,7 @@ export class Motes {
     this.geo.setAttribute('aA', attr(this.alpha, 1));
     this.geo.setAttribute('aS', attr(this.size, 1));
     this.mat = new THREE.ShaderMaterial({
-      uniforms: { uFlashDir: U.uFlashDir, uFlash: U.uFlash, uLamp: U.uLamp, uFog: U.uFog, uPx: { value: 4 } },
+      uniforms: { uFlashDir: U.uFlashDir, uFlash: U.uFlash, uLamp: U.uLamp, uFog: U.uFog, uExpo: U.uExpo, uPx: { value: 4 } },
       vertexShader: VS, fragmentShader: FS, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
     });
     this.points = new THREE.Points(this.geo, this.mat);

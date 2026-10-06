@@ -23,12 +23,19 @@ export function stationPower(circuits: Record<string, CircuitDef>, main: boolean
 /** everything on: for looking at a level as built (?power=full) */
 export const fullPower: Power = () => 2;
 
-/** a room's own light under the given power */
+/** emergency lighting's cast: amber, so a room on its backup set says so at a glance */
+const EMERGENCY: Colour = [1, 0.68, 0.45];
+
+/** a room's own light under the given power. On a backup set, its emergency lights: two fifths as bright, amber, and
+ *  (since the cast see by the brightest channel) exactly as easy to be seen by as the white they replace. */
 export function roomLight(R: RoomDef, power: Power): Colour {
   if (R.lit === 'always') return R.lc;
   if (R.lit === 'none') return BLACK;
   const l = power(R.circuit);
-  return l === 2 ? R.lc : l === 1 && R.em ? scale3(R.lc, 0.4) : BLACK;
+  if (l === 2) return R.lc;
+  if (l !== 1 || !R.em) return BLACK;
+  const c: Colour = [R.lc[0] * EMERGENCY[0], R.lc[1] * EMERGENCY[1], R.lc[2] * EMERGENCY[2]], top = Math.max(...c);
+  return top > 0 ? scale3(c, (0.4 * Math.max(...R.lc)) / top) : BLACK;
 }
 
 export class Lighting {

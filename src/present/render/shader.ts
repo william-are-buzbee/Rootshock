@@ -4,7 +4,9 @@ import * as THREE from 'three';
    Light = baked light (per vertex for the level, per object for things that move) + flashlight cone + lantern,
    flat-shaded from screen-space derivatives. No ambient floor: unlit is black. A colour channel above 1.5 is emissive.
    The flashlight is a reflector's beam: a hot centre, a faint bright ring at its rim, a wide dim spill; and what it
-   lights close by throws some of it back around you (uBounce, measured by one ray a frame in camera.ts). */
+   lights close by throws some of it back around you (uBounce, measured by one ray a frame in camera.ts).
+   Then the eye: everything is scaled by how open it is (uExpo: wide in the dark, narrowed in light; main.ts), and the
+   dark is never quite flat, but grained, most where it is darkest. */
 
 const VS = /* glsl */ `
 attribute vec3 aCol;
@@ -26,7 +28,7 @@ void main(){
 
 const FS = /* glsl */ `
 uniform vec3 uFlashDir; uniform float uFlash; uniform float uLamp; uniform float uFog; uniform float uWet; uniform float uTime;
-uniform float uFlick; uniform float uHit; uniform float uBright; uniform float uBounce;
+uniform float uFlick; uniform float uHit; uniform float uBright; uniform float uBounce; uniform float uExpo;
 varying vec3 vW; varying vec3 vC; varying vec4 vL;
 void main(){
   vec3 n = normalize(cross(dFdx(vW), dFdy(vW)));
@@ -47,6 +49,9 @@ void main(){
   c += uHit * vec3(0.45, 0.08, 0.06);
   c *= exp(-d * uFog);
   c = mix(c, c * vec3(0.5, 0.85, 0.9), uWet);
+  c *= uExpo;
+  float gr = fract(sin(dot(gl_FragCoord.xy + fract(uTime * 7.13) * 91.7, vec2(12.9898, 78.233))) * 43758.5453) - 0.5;
+  c += gr * 0.022 * (1.0 - smoothstep(0.0, 0.35, dot(c, vec3(0.3, 0.59, 0.11))));
 #ifdef ALPHA
   gl_FragColor = vec4(c, ALPHA);
 #else
@@ -67,6 +72,8 @@ export const U = {
   uBright: { value: 0 },
   /** the flashlight thrown back by whatever it is lighting close by */
   uBounce: { value: 0 },
+  /** how open the eye is: above 1 adapted to the dark, below to the light */
+  uExpo: { value: 1 },
 };
 
 /** the level's material: light baked into each vertex */

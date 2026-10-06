@@ -38,6 +38,9 @@ describe('the upper station', () => {
     };
     expect(at('Cell W2')[0]).toBeGreaterThan(0.4); // always lit
     expect(at('Security corridor')[0]).toBeGreaterThan(0.2); // emergency lights on the backup set
+    const em = at('Security corridor');
+    expect(em[2]).toBeLessThan(em[0] * 0.6); // amber, not white
+    expect(Math.max(...em)).toBeCloseTo(0.4 * Math.max(...level.rooms.find(r => r.name === 'Security corridor')!.lc), 5); // as visible as before
     expect(at('Operations room')[0]).toBe(0); // no emergency lights: dark on backup
     expect(at('Cargo cavern')[0]).toBe(0); // its backup set is not running
     const full = new Lighting(sim.world, fullPower);

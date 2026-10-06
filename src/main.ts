@@ -222,7 +222,7 @@ function events(): void {
   if (panels.open === 'inv') panels.renderInv();
 }
 
-let last = 0, fps = 60, flick = 0;
+let last = 0, fps = 60, flick = 0, expo = 1;
 function frame(t: number): void {
   requestAnimationFrame(frame);
   const dt = last ? Math.min(0.25, (t - last) / 1000) : 0;
@@ -246,6 +246,15 @@ function frame(t: number): void {
   if (flick < 0 && Math.random() < dt * (g.batt < 20 ? 1.4 : 0.3)) flick = 0.05 + Math.random() * 0.2;
   if (flick > 0 && g.lightOn) { U.uFlash.value *= 0.25; U.uBounce.value *= 0.25; }
   here.update(mode === 'play' ? loop.alpha : 1);
+  /* the eye: it opens in the dark, slowly, and narrows against light quickly, so a room coming on glares a moment.
+     It adapts to what is around you and to your own light, close in front of you. */
+  {
+    const b = sim.player.body, l = lighting.atPoint(b.x, b.y + 1, b.z);
+    const seen = Math.max(l[0], l[1], l[2]) + U.uFlash.value * 0.12 + U.uBounce.value * 2 + U.uLamp.value * 0.3;
+    const k = Math.min(1, Math.max(0, (seen - 0.02) / 0.48)), want = devFlags.bright ? 1 : 1.4 - 0.5 * k * k * (3 - 2 * k);
+    expo += (want - expo) * Math.min(1, dt * (want > expo ? 0.6 : 4));
+    U.uExpo.value = expo;
+  }
   if (cascade) {
     const flipped = cascade.update(dt);
     if (flipped.length) here.relightRooms(lighting, flipped);
