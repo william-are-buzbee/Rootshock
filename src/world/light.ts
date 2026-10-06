@@ -23,6 +23,12 @@ export function stationPower(circuits: Record<string, CircuitDef>, main: boolean
 /** everything on: for looking at a level as built (?power=full) */
 export const fullPower: Power = () => 2;
 
+/** how a ceiling fitting throws its room's light: down (falling off as the cube of the angle from straight down) and
+ *  out (as r² / (r² + d²)); a point gets `base` of its room's light plus `gain` times what its fittings throw at it,
+ *  so the floor under a fitting is lit above the room's level and a corner or the ceiling below it. The shader does the
+ *  same sum per pixel (render/shader.ts); the sim and everything that moves ask `lit` (engine.md §11). */
+export const POOL = { r2: 9, base: 0.55, gain: 1.3 };
+
 /** emergency lighting's cast: amber, so a room on its backup set says so at a glance */
 const EMERGENCY: Colour = [1, 0.68, 0.45];
 
@@ -42,6 +48,8 @@ export class Lighting {
   private rooms: Colour[];
   /** for each room, the lamps that stand in it */
   private lamps = new Map<number, { x: number; z: number; r: number; c: Colour }[]>();
+  /** for each room, its ceiling fittings (not in rooms lit by lamps of their own) */
+  private fix = new Map<number, { x: number; y: number; z: number }[]>();
 
   constructor(private w: World, readonly power: Power) {
     this.rooms = w.rooms.map(R => roomLight(R, power));
@@ -61,6 +69,37 @@ export class Lighting {
       if (!a) this.lamps.set(R.id, (a = []));
       a.push({ x: L.x, z: L.z, r: L.r, c: L.colour });
     }
+    for (const F of w.def.fixtures ?? []) {
+      const R = w.roomAt(F.x, F.y - 0.3, F.z);
+      if (!R || this.lamps.has(R.id)) continue;
+      let a = this.fix.get(R.id);
+      if (!a) this.fix.set(R.id, (a = []));
+      a.push(F);
+    }
+  }
+
+  /** the rooms that have fittings, and each one's fittings */
+  get fixtures(): ReadonlyMap<number, readonly { x: number; y: number; z: number }[]> {
+    return this.fix;
+  }
+
+  /** how much of its room's light reaches a point, by where it stands to the room's fittings: 1 where it has none */
+  pool(room: number, x: number, y: number, z: number): number {
+    const F = this.fix.get(room);
+    if (!F) return 1;
+    let s = 0;
+    for (const f of F) {
+      const dx = x - f.x, dy = f.y - y, dz = z - f.z;
+      if (dy <= 0) continue;
+      const d2 = dx * dx + dy * dy + dz * dz, c = dy / Math.sqrt(d2);
+      s += (c * c * c * POOL.r2) / (POOL.r2 + d2);
+    }
+    return POOL.base + POOL.gain * Math.min(s, 1);
+  }
+
+  /** the light at a point in a room: its own (or a lamp's), in its fittings' pools */
+  lit(room: number, x: number, y: number, z: number): Colour {
+    return scale3(this.at(room, x, z), this.pool(room, x, y, z));
   }
 
   hasLamps(room: number): boolean {
@@ -81,10 +120,10 @@ export class Lighting {
     return out;
   }
 
-  /** the light at a point anywhere: by the room it is in */
+  /** the light at a point anywhere: by the room it is in, and where it stands to that room's fittings */
   atPoint(x: number, y: number, z: number): Colour {
     const R = this.w.roomAt(x, y, z);
-    return R ? this.at(R.id, x, z) : BLACK;
+    return R ? this.lit(R.id, x, y, z) : BLACK;
   }
 
   /** a fitting's colour: dead or live by its circuit */

@@ -142,7 +142,7 @@ export class Motes {
     const gust = i >= N;
     if (!R) { this.room[i] = -1; if (!gust) this.alpha[i] = 0; return; }
     this.room[i] = R.id;
-    const K = KIND[this.airOf(sim, R).kind], l = this.L.at(R.id, x, z), s = this.seed[i];
+    const K = KIND[this.airOf(sim, R).kind], l = this.L.lit(R.id, x, y, z), s = this.seed[i];
     /* pale flecks and dark grit: each its own shade of its kind's colour */
     const shade = 0.4 + 0.6 * ((s * 13.7) % 1);
     this.col[i * 3] = K.c[0] * shade; this.col[i * 3 + 1] = K.c[1] * shade; this.col[i * 3 + 2] = K.c[2] * shade;

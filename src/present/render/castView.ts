@@ -239,7 +239,7 @@ export class CastView {
   }
   private bloods: THREE.Mesh[] = [];
   private light(mesh: THREE.Mesh): void {
-    const p = mesh.position, R = this.sim.world.roomAt(p.x, p.y + 0.3, p.z), l = R ? this.L.at(R.id, p.x, p.z) : [0, 0, 0];
+    const p = mesh.position, R = this.sim.world.roomAt(p.x, p.y + 0.3, p.z), l = R ? this.L.lit(R.id, p.x, p.y, p.z) : [0, 0, 0];
     ((mesh.material as THREE.ShaderMaterial).uniforms.uLight.value as THREE.Vector3).set(l[0], l[1], l[2]);
   }
 
@@ -258,7 +258,7 @@ export class CastView {
       g.rotation.y = m.yaw;
       g.rotation.x = m.dead || m.fixed ? 0 : -0.32 * m.hit * m.hit / Math.max(1, m.mass);
       mat.uniforms.uHit.value = m.hit;
-      const R = w.roomAt(x, y + 0.5, z) ?? w.roomAt(x, y + 1.2, z), l = R ? this.L.at(R.id, x, z) : [0, 0, 0];
+      const R = w.roomAt(x, y + 0.5, z) ?? w.roomAt(x, y + 1.2, z), l = R ? this.L.lit(R.id, x, y + 0.8, z) : [0, 0, 0];
       (mat.uniforms.uLight.value as THREE.Vector3).set(l[0], l[1], l[2]);
       if (m.dead) {
         /* it folds down where it fell, and leaves itself on the floor */

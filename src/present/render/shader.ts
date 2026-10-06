@@ -1,10 +1,13 @@
 import * as THREE from 'three';
+import { POOL } from '../../world/light';
 
 /* One shader for everything, carried over from the first engine.
    Light = baked light (per vertex for the level, per object for things that move) + flashlight cone + lantern,
    flat-shaded from screen-space derivatives. No ambient floor: unlit is black. A colour channel above 1.5 is emissive.
    The flashlight is a reflector's beam: a hot centre, a faint bright ring at its rim, a wide dim spill; and what it
    lights close by throws some of it back around you (uBounce, measured by one ray a frame in camera.ts).
+   The level's own light falls in pools under its ceiling fittings: for the rooms near you (pools.ts), each pixel in one
+   takes base + gain x what that room's fittings throw at it, as world/light.ts reckons it for everything that moves.
    Then the eye: everything is scaled by how open it is (uExpo: wide in the dark, narrowed in light; main.ts), and the
    dark is never quite flat, but grained, most where it is darkest. */
 
@@ -26,7 +29,34 @@ void main(){
   gl_Position = projectionMatrix * viewMatrix * w;
 }`;
 
+/** how many rooms near you are pooled, and how many fittings in them, at most */
+export const POOL_ROOMS = 12, POOL_FIX = 32;
+const f1 = (x: number) => x.toFixed(3);
+
 const FS = /* glsl */ `
+#ifdef STATIC
+uniform vec4 uFix[${POOL_FIX}]; uniform vec4 uBoxA[${POOL_ROOMS}]; uniform vec2 uBoxB[${POOL_ROOMS}]; uniform int uBoxN; uniform int uFixN;
+/* how much of its room's light reaches this pixel by the room's fittings: 1 outside the rooms near you */
+float pooled(vec3 p){
+  for (int b = 0; b < ${POOL_ROOMS}; b++) {
+    if (b >= uBoxN) break;
+    vec4 A = uBoxA[b]; vec2 B = uBoxB[b];
+    if (p.x < A.x || p.x > A.z || p.z < A.y || p.z > A.w || p.y < B.x || p.y > B.y) continue;
+    float s = 0.0;
+    for (int i = 0; i < ${POOL_FIX}; i++) {
+      if (i >= uFixN) break;
+      vec4 F = uFix[i];
+      if (int(F.w) != b) continue;
+      vec3 v = F.xyz - p;
+      if (v.y <= 0.0) continue;
+      float d2 = dot(v, v), c = v.y * inversesqrt(d2);
+      s += c * c * c * ${f1(POOL.r2)} / (${f1(POOL.r2)} + d2);
+    }
+    return ${f1(POOL.base)} + ${f1(POOL.gain)} * min(s, 1.0);
+  }
+  return 1.0;
+}
+#endif
 uniform vec3 uFlashDir; uniform float uFlash; uniform float uLamp; uniform float uFog; uniform float uWet; uniform float uTime;
 uniform float uFlick; uniform float uHit; uniform float uBright; uniform float uBounce; uniform float uExpo;
 varying vec3 vW; varying vec3 vC; varying vec4 vL;
@@ -38,7 +68,11 @@ void main(){
   float sh = 0.55 + 0.45 * (abs(n.y) * 0.95 + abs(n.x) * 0.7 + abs(n.z) * 0.5);
   float fk = 1.0 - vL.a * 0.55 * uFlick;
   float facing = 0.35 + 0.65 * abs(dot(n, Ld));
+#ifdef STATIC
+  vec3 light = vL.rgb * pooled(vW) * sh * fk + vec3(0.014) / (1.0 + 3.0 * d * d);
+#else
   vec3 light = vL.rgb * sh * fk + vec3(0.014) / (1.0 + 3.0 * d * d);
+#endif
   float ca = dot(-Ld, uFlashDir), rim = (ca - 0.952) / 0.007;
   float spot = 0.65 * smoothstep(0.91, 0.975, ca) + 0.42 * smoothstep(0.76, 0.92, ca) + 0.12 * exp(-rim * rim);
   light += uFlash * spot * facing * 2.3 / (1.0 + 0.055 * d * d) * vec3(1.0, 0.93, 0.78);
@@ -50,7 +84,10 @@ void main(){
   c *= exp(-d * uFog);
   c = mix(c, c * vec3(0.5, 0.85, 0.9), uWet);
   c *= uExpo;
-  float gr = fract(sin(dot(gl_FragCoord.xy + fract(uTime * 7.13) * 91.7, vec2(12.9898, 78.233))) * 43758.5453) - 0.5;
+  /* a hash with no sin in it (a sin hash shows patterns on some GPUs), moved every frame */
+  vec3 h3 = fract(vec3(gl_FragCoord.xyx + floor(fract(uTime * 7.13) * 977.0)) * 0.1031);
+  h3 += dot(h3, h3.yzx + 33.33);
+  float gr = fract((h3.x + h3.y) * h3.z) - 0.5;
   c += gr * 0.022 * (1.0 - smoothstep(0.0, 0.35, dot(c, vec3(0.3, 0.59, 0.11))));
 #ifdef ALPHA
   gl_FragColor = vec4(c, ALPHA);
@@ -74,6 +111,12 @@ export const U = {
   uBounce: { value: 0 },
   /** how open the eye is: above 1 adapted to the dark, below to the light */
   uExpo: { value: 1 },
+  /** the rooms near you that have fittings (x0, z0, x1, z1; y0, y1) and their fittings (x, y, z, which room): pools.ts */
+  uFix: { value: Array.from({ length: POOL_FIX }, () => new THREE.Vector4()) },
+  uBoxA: { value: Array.from({ length: POOL_ROOMS }, () => new THREE.Vector4()) },
+  uBoxB: { value: Array.from({ length: POOL_ROOMS }, () => new THREE.Vector2()) },
+  uBoxN: { value: 0 },
+  uFixN: { value: 0 },
 };
 
 /** the level's material: light baked into each vertex */

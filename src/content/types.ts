@@ -82,6 +82,11 @@ export interface LampDef {
   colour: Colour;
 }
 
+/** a ceiling fitting: a point its room's light shines down from */
+export interface FixtureDef {
+  x: number; y: number; z: number;
+}
+
 /** a sign over a doorway: text on a plate, facing (yaw) the way it is read from */
 export interface SignDef {
   text: string;
@@ -170,6 +175,8 @@ export interface LevelDef {
   doors: DoorDef[];
   platforms: PlatformDef[];
   lamps: LampDef[];
+  /** ceiling fittings: where each room's own light comes from, so it falls in pools below them (world/light.ts) */
+  fixtures?: FixtureDef[];
   signs: SignDef[];
   items: ItemDef[];
   notes: NoteDef[];
