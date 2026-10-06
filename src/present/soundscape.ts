@@ -75,6 +75,15 @@ export function roomAir(R: RoomDef, pw: number): number {
   return pw === 2 ? 1 : pw === 1 ? 0.3 : 0;
 }
 
+/** the station's own noises: which a place makes now and then, and how likely each. A fitted room's pipes knock (more
+ *  with its pumps running), its frame groans (more the bigger it is) and its metal ticks; a cave's rock settles, and
+ *  groans deep down. */
+export function ambientFor(R: RoomDef, cave: boolean, powered: boolean): { n: string; w: number }[] {
+  if (cave) return [{ n: 'settle', w: 3 }, { n: 'groan', w: 0.7 }];
+  const [, hall, vast] = spaceOf(R, false);
+  return [{ n: 'knock', w: powered ? 3 : 1.5 }, { n: 'groan', w: 0.4 + hall + 2 * vast }, { n: 'tick', w: 0.8 }];
+}
+
 /** what each of the cast says at rest, and how often (seconds, least and most) */
 const IDLE: Partial<Record<string, { n: string; t: [number, number] }>> = {
   husk: { n: 'breath', t: [5, 11] }, skitter: { n: 'click', t: [3, 8] }, bloat: { n: 'gurgle', t: [4, 9] },
@@ -99,6 +108,12 @@ export class Soundscape {
   private near = new Map<number, number[]>();
   private room = -1;
   private dim = false;
+  /** the station's own noises: when the next comes; ticks still to come after the power changed, and when; a knock
+   *  waiting as the pumps take up or let go */
+  private amb = rnd(5, 12);
+  private ticks = 0;
+  private tickT = 0;
+  private knockT = -1;
 
   constructor(private audio: Audio) {}
 
@@ -126,6 +141,21 @@ export class Soundscape {
     this.at(sim, 'strike', x, R.y0 + R.ht - 0.3, z);
   }
   private struck = 0;
+
+  /** the power changed: metal ticks as it warms or cools for a while after, and the pipes knock as the pumps change */
+  powerChanged(): void {
+    this.ticks = 8 + Math.floor(Math.random() * 6);
+    this.tickT = rnd(0.6, 1.4);
+    this.knockT = rnd(1.5, 3.5);
+  }
+
+  /** somewhere for one of the station's noises to come from: in your room or one near it, overhead (the pipes and the
+   *  frame run there) or, in a cave, in its roof */
+  private somewhere(w: World, R: RoomDef): { x: number; y: number; z: number } {
+    const rooms = [R.id, ...this.nearTo(w, R.id)].map(i => w.rooms[i]).filter(r => !r.doorway);
+    const S = rooms[Math.floor(Math.random() * rooms.length)] ?? R;
+    return { x: rnd(S.x0, S.x1), y: S.y0 + S.ht - 0.3, z: rnd(S.z0, S.z1) };
+  }
 
   /** a door shut a while has opened and breathed out (motes.ts), this hard */
   gust(sim: Sim, x: number, y: number, z: number, k: number): void {
@@ -223,6 +253,30 @@ export class Soundscape {
       if (lit(R)) buzz = 1;
       else if (this.nearTo(w, R.id).some(n => lit(w.rooms[n]))) buzz = 0.3;
     }
+    /* the station's own noises, now and then, from somewhere near: what kind by where you are */
+    if (R && !g.ended) {
+      const pw = power(g, R.circuit) > 0, rock = cave || !!R.cells;
+      if ((this.amb -= dt) < 0) {
+        this.amb = rnd(7, 20);
+        const pick = ambientFor(R, rock, pw), sum = pick.reduce((s, a) => s + a.w, 0);
+        let r = Math.random() * sum, n = pick[0].n;
+        for (const a of pick) { r -= a.w; if (r <= 0) { n = a.n; break; } }
+        const at = this.somewhere(w, R);
+        this.at(sim, n, at.x, at.y, at.z, { k: Math.random() < 0.3 ? rnd(0.5, 1) : 0 });
+      }
+      /* after the power changed: ticks, slowing as the metal settles, and a knock as the pumps take up or let go */
+      if (this.ticks > 0 && (this.tickT -= dt) < 0) {
+        this.ticks--;
+        this.tickT = rnd(0.3, 1.2) * (1 + (14 - this.ticks) * 0.15);
+        const at = this.somewhere(w, R);
+        this.at(sim, 'tick', at.x, at.y, at.z);
+      }
+      if (this.knockT > 0 && (this.knockT -= dt) <= 0 && !rock) {
+        const at = this.somewhere(w, R);
+        this.at(sim, 'knock', at.x, at.y, at.z, { k: rnd(0.5, 1) });
+      }
+    }
+
     const dim = flickerAt(t);
     A.setBuzz(buzz, dim);
     if (buzz && dim !== this.dim) A.play(dim ? 'zap' : 'tink', { k: buzz });

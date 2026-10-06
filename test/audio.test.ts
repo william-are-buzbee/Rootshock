@@ -5,7 +5,7 @@ import { makeSim, step, type Sim } from '../src/sim/sim';
 import { noInput, type Input } from '../src/sim/input';
 import { STEP } from '../src/core/loop';
 import { refreshFields } from '../src/sim/fields';
-import { floorAt, genAt, hearing, roomAir, spaceOf } from '../src/present/soundscape';
+import { ambientFor, floorAt, genAt, hearing, roomAir, spaceOf } from '../src/present/soundscape';
 import { flickerAt } from '../src/present/flicker';
 
 /* What the sound is told: what feet fall on, how a sound comes to you through the rooms, and the landings and jumps. The
@@ -105,5 +105,20 @@ describe('the air', () => {
     expect(roomAir(corridor, 0)).toBe(0);
     const cave = sim('cave').world.rooms.find(R => R.name === 'Great chamber')!;
     expect(roomAir(cave, 2)).toBe(0);
+  });
+});
+
+describe("the station's own noises", () => {
+  const top = (a: { n: string; w: number }[]) => [...a].sort((p, q) => q.w - p.w)[0].n;
+  it('a cave settles; a fitted room knocks, more with its pumps running; a big hall groans more than a corridor', () => {
+    const up = sim('upper'), room = (n: string) => up.world.rooms.find(R => R.name === n)!;
+    const cave = sim('cave').world.rooms.find(R => R.name === 'Great chamber')!;
+    expect(top(ambientFor(cave, true, false))).toBe('settle');
+    const corridor = room('Operations corridor');
+    expect(top(ambientFor(corridor, false, true))).toBe('knock');
+    const w = (a: { n: string; w: number }[], n: string) => a.find(x => x.n === n)!.w;
+    expect(w(ambientFor(corridor, false, true), 'knock')).toBeGreaterThan(w(ambientFor(corridor, false, false), 'knock'));
+    const main = sim('main').world.rooms.reduce((a, R) => ((R.x1 - R.x0) * (R.z1 - R.z0) * R.ht > (a.x1 - a.x0) * (a.z1 - a.z0) * a.ht && !R.cells ? R : a));
+    expect(w(ambientFor(main, false, true), 'groan')).toBeGreaterThan(w(ambientFor(corridor, false, true), 'groan'));
   });
 });
