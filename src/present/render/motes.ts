@@ -6,8 +6,10 @@ import type { Lighting } from '../../world/light';
 import { U } from './shader';
 
 /* What hangs in the air near you: dust, the green's spores, the flesh's flecks (RoomDef.motes). Nine hundred specks in
-   a box that travels with the eye; one that drifts out of the box comes back in at the far side. They are seen in your
-   beam and hardly at all in a room's own light, as dust is.
+   a box that travels with the eye; one that drifts out of the box comes back in at the far side. Each is a fleck of
+   matter, square and a couple of centimetres across, lit as a surface is: by the room's light as much as by your
+   beam, and never brighter than a wall beside it would be (drawn over what is behind, not added to it). Some are pale,
+   some dark grit.
 
    The air moves by the power: with the room's circuit live, it is drawn toward the room's vent panels (or, with none,
    along the room's length); on a backup set, barely; dead, it hangs and slowly settles. A sealed room is still air, not
@@ -22,8 +24,8 @@ const rnd = (a: number, b: number) => a + Math.random() * (b - a);
 
 /** each kind's colour, how many of the specks show, how big, and how it moves (lift: up, negative falls) */
 const KIND: Record<Kind, { c: [number, number, number]; show: number; size: number; lift: number; glow: number }> = {
-  dust: { c: [0.95, 0.9, 0.8], show: 0.7, size: 1, lift: -0.006, glow: 0 },
-  spores: { c: [0.72, 0.95, 0.48], show: 1, size: 1.35, lift: 0.012, glow: 0.05 },
+  dust: { c: [0.95, 0.9, 0.8], show: 0.5, size: 1, lift: -0.006, glow: 0 },
+  spores: { c: [0.72, 0.95, 0.48], show: 1, size: 1.35, lift: 0.012, glow: 0.02 },
   flesh: { c: [0.9, 0.42, 0.36], show: 0.55, size: 1.15, lift: -0.012, glow: 0 },
 };
 
@@ -37,21 +39,20 @@ void main(){
   float ca = dot(-tc / max(d, 0.001), uFlashDir);
   float beam = uFlash * (0.65 * smoothstep(0.91, 0.975, ca) + 0.42 * smoothstep(0.76, 0.92, ca)) * 2.3 / (1.0 + 0.055 * d * d);
   float lamp = uLamp * 1.2 / (1.0 + 0.2 * d * d);
-  vec3 light = aL * 0.22 + beam * vec3(1.0, 0.93, 0.78) + lamp * vec3(0.72, 0.92, 1.0);
+  vec3 light = aL + 0.6 * beam * vec3(1.0, 0.93, 0.78) + lamp * vec3(0.72, 0.92, 1.0);
   vC = aCol * light * uExpo;
   /* not right at the eye, not at the box's edge (where a speck comes back in), thinned by the fog */
   vA = aA * smoothstep(0.25, 0.8, d) * (1.0 - smoothstep(2.8, 3.9, d)) * exp(-d * uFog * 1.5);
-  gl_PointSize = clamp(uPx * aS / max(-mv.z, 0.1), 1.0, 7.0);
+  /* whole pixels, so a fleck is a crisp square and not a smudge */
+  gl_PointSize = floor(clamp(uPx * aS / max(-mv.z, 0.1), 2.0, 14.0));
   gl_Position = projectionMatrix * mv;
 }`;
 
 const FS = /* glsl */ `
 varying vec3 vC; varying float vA;
 void main(){
-  float r = length(gl_PointCoord - 0.5);
-  float a = vA * smoothstep(0.5, 0.1, r);
-  if (a < 0.003) discard;
-  gl_FragColor = vec4(vC, a);
+  if (vA < 0.01) discard;
+  gl_FragColor = vec4(vC, vA);
 }`;
 
 interface Air { fx: number; fz: number; speed: number; kind: Kind; vents: { x: number; z: number }[]; still: boolean }
@@ -88,7 +89,7 @@ export class Motes {
     this.geo.setAttribute('aS', attr(this.size, 1));
     this.mat = new THREE.ShaderMaterial({
       uniforms: { uFlashDir: U.uFlashDir, uFlash: U.uFlash, uLamp: U.uLamp, uFog: U.uFog, uExpo: U.uExpo, uPx: { value: 4 } },
-      vertexShader: VS, fragmentShader: FS, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+      vertexShader: VS, fragmentShader: FS, transparent: true, depthWrite: false,
     });
     this.points = new THREE.Points(this.geo, this.mat);
     this.points.frustumCulled = false;
@@ -104,9 +105,9 @@ export class Motes {
     this.room.fill(-1);
   }
 
-  /** pixels per metre at one metre away, for a speck about a centimetre across */
+  /** pixels at one metre away for a speck about two centimetres across */
   resize(height: number, fov: number): void {
-    this.mat.uniforms.uPx.value = (height / 2 / Math.tan((fov * Math.PI) / 360)) * 0.011;
+    this.mat.uniforms.uPx.value = (height / 2 / Math.tan((fov * Math.PI) / 360)) * 0.022;
   }
 
   private airOf(sim: Sim, R: RoomDef): Air {
@@ -142,7 +143,9 @@ export class Motes {
     if (!R) { this.room[i] = -1; if (!gust) this.alpha[i] = 0; return; }
     this.room[i] = R.id;
     const K = KIND[this.airOf(sim, R).kind], l = this.L.at(R.id, x, z), s = this.seed[i];
-    this.col.set(K.c, i * 3);
+    /* pale flecks and dark grit: each its own shade of its kind's colour */
+    const shade = 0.4 + 0.6 * ((s * 13.7) % 1);
+    this.col[i * 3] = K.c[0] * shade; this.col[i * 3 + 1] = K.c[1] * shade; this.col[i * 3 + 2] = K.c[2] * shade;
     /* a spore glows a little of itself, so the green's dark is never quite empty */
     this.lit[i * 3] = l[0] + K.glow; this.lit[i * 3 + 1] = l[1] + K.glow * 1.6; this.lit[i * 3 + 2] = l[2] + K.glow * 0.6;
     this.size[i] = K.size * (0.6 + 0.8 * s * s);
