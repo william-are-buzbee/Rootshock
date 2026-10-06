@@ -335,7 +335,7 @@ sequence of inputs. The door rules, the labels and the answers are the first eng
   is what the cast see you by, is what it was. Power that comes on is seen to (`present/cascade.ts`): room by room out
   from where you are, each tube striking (on, off a moment, on) as it catches, and heard to near you; only the rooms
   that flip are lit again (`LevelMesh.relightRooms`). Power going off is not staged, and the sim's light changes at
-  once. Motes (`present/render/motes.ts`) hang in the air about you and show in your beam: with a live circuit the air
+  once. Motes (`present/render/motes.ts`) hang in the air about you, square flecks lit as a surface is (by the room as much as by your beam, never brighter than the wall beside them): with a live circuit the air
   is drawn toward the room's vent panels or along it, on a backup set barely, and in a dead room it hangs and settles;
   caves drift on their own. A room says what is in its air (`RoomDef.motes`): spores in Horticulture and the cave,
   red flecks in the Cargo nest and the nest residences, dust elsewhere. A door shut twenty seconds or more breathes out
