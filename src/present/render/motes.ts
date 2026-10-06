@@ -24,9 +24,9 @@ const rnd = (a: number, b: number) => a + Math.random() * (b - a);
 
 /** each kind's colour, how many of the specks show, how big, and how it moves (lift: up, negative falls) */
 const KIND: Record<Kind, { c: [number, number, number]; show: number; size: number; lift: number; glow: number }> = {
-  dust: { c: [0.95, 0.9, 0.8], show: 0.5, size: 1, lift: -0.006, glow: 0 },
-  spores: { c: [0.72, 0.95, 0.48], show: 1, size: 1.35, lift: 0.012, glow: 0.02 },
-  flesh: { c: [0.9, 0.42, 0.36], show: 0.55, size: 1.15, lift: -0.012, glow: 0 },
+  dust: { c: [0.95, 0.9, 0.8], show: 0.15, size: 1, lift: -0.006, glow: 0 },
+  spores: { c: [0.72, 0.95, 0.48], show: 0.4, size: 1.35, lift: 0.012, glow: 0.02 },
+  flesh: { c: [0.9, 0.42, 0.36], show: 0.22, size: 1.15, lift: -0.012, glow: 0 },
 };
 
 const VS = /* glsl */ `
