@@ -204,6 +204,7 @@ function events(): void {
         const from = cascade ? cascade.L.to : lighting;
         cascade = new Cascade(sim.world, from, lightingNow(), R?.id ?? -1, r => scape.strike(sim, sim.world.rooms[r]));
         relightAll(cascade.L);
+        scape.powerChanged();
         if (ev.loud) audio.play('power');
         break;
       }

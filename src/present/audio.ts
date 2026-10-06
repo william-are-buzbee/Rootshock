@@ -10,7 +10,7 @@ export type Surf = 'concrete' | 'metal' | 'rock' | 'wood' | 'wet';
 export interface Voice { d?: number; pan?: number; muffle?: number; big?: boolean; surf?: Surf; k?: number }
 
 const RANGE: Record<string, number> = {
-  door: 46, roar: 55, thud: 40, hstep: 18, moan: 28, tap: 24, skit: 24, slosh: 20, swing: 10, whiff: 14, gust: 24, strike: 30, step: 30, rattle: 30,
+  door: 46, roar: 55, thud: 40, hstep: 18, moan: 28, tap: 24, skit: 24, slosh: 20, swing: 10, whiff: 14, gust: 24, strike: 30, knock: 32, groan: 55, tick: 12, settle: 45, step: 30, rattle: 30,
   breath: 10, mutter: 20, click: 14, gurgle: 22, growl: 30, slither: 10, bubble: 12, creak: 12, drip: 30, scrape: 20, crate: 30,
   'die-husk': 40, 'die-skitter': 36, 'die-bloat': 46, 'die-thresher': 50, 'die-worm': 20, 'die-swimmer': 20, 'die-grabber': 24,
 };
@@ -310,6 +310,27 @@ export class Audio {
         case 'scrape': this.nz(0.25, 0.14 * v, 300, 'bandpass', 0, 2, 520, 0.03); this.nz(0.2, 0.1 * v, 150, 'lowpass'); break;
         case 'zap': this.nz(0.06, 0.14 * k, 4200, 'highpass'); this.tn(120, 118, 0.05, 'square', 0.03 * k); break;
         case 'tink': this.tn(2600, 2100, 0.012, 'square', 0.025 * k); break;
+        /* the station's own noises (soundscape.ts) */
+        case 'knock': // a pipe knocking; k: how many, as water hammer runs along it
+          for (let i = 0, at = 0, n = 1 + Math.round(k * 4); i < n; i++, at += rnd(0.1, 0.22)) {
+            const f = rnd(140, 190), fall = 1 - i / (n + 1);
+            this.tn(f, f * 0.6, 0.09, 'square', 0.08 * v * fall, at); this.nz(0.07, 0.12 * v * fall, 700, 'bandpass', at, 3);
+          }
+          break;
+        case 'groan': // the structure taking its load: a long, low metal moan
+          this.tn(rnd(48, 62), rnd(38, 46), rnd(1.6, 2.6), 'sawtooth', 0.05 * v, 0, 0.6);
+          this.nz(2.2, 0.035 * v, 240, 'bandpass', 0, 5, rnd(380, 520), 0.7);
+          break;
+        case 'tick': { // metal warming or cooling
+          const f = rnd(2200, 3400);
+          this.tn(f, f * 0.8, 0.008, 'square', 0.035 * v);
+          if (Math.random() < 0.35) this.tn(f * 0.9, f * 0.7, 0.008, 'square', 0.025 * v, rnd(0.05, 0.12));
+          break;
+        }
+        case 'settle': // rock settling: a dull shift in the dark, and grit coming down after it
+          this.nz(0.9, 0.18 * v, 90, 'lowpass', 0, 1, 0, 0.15);
+          for (let i = 0, at = rnd(0.3, 0.6); i < 2 + Math.floor(Math.random() * 3); i++, at += rnd(0.05, 0.3)) this.tn(rnd(1800, 3200), 1500, 0.02, 'triangle', 0.03 * v, at);
+          break;
         case 'strike': // a tube's starter clicks and it catches with a burst of mains buzz
           this.tn(2400, 2000, 0.012, 'square', 0.05 * v);
           this.tn(100, 100, 0.12, 'square', 0.03 * v, 0.03);
