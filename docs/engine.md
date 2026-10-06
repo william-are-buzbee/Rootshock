@@ -446,7 +446,7 @@ Each step ends with something you can open and play.
      searched, the cast to the last timer, what each body stands on, and the fields over the nav graph (packed; they are
      made in turn, so cannot be made again exactly). A round's route is now made from the level's shape alone, so it can
      be. Proof: a run saved, written out as text, loaded, and played on for 1,200 steps alongside the original matches
-     it exactly. About 200 KB.
+     it exactly. 180 KB on the upper station, all but 21 KB of it the fields.
    - **In the page**: a run left part way (paused, the tab hidden, the page closed) is kept, and the title offers to go
      on from it, or to start again. Going on uses the save up, so a death is still a death: there was no saving at all
      in the first engine, and this keeps its stakes while not losing a run to a closed tab. Dev pages do not save.
