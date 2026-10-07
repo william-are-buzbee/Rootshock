@@ -292,7 +292,10 @@ components, not code threaded through the frame loop:
   that is not hunting takes the state `answer` and walks the route (its own copy). The overseer's hand (a thresher, `hand`)
   is summoned by every alarm wherever it is, by a way made with the door rules for its size (it passes no door, so that way
   never changes), and gives up where it gets no nearer for three seconds. On a level with an overseer the cameras see for
-  it: dead, they are dark and no alarm sounds. Saves keep each camera's state and the alarms; the routes are made again.
+  it: dead, they are dark and no alarm sounds. A smashed speaker mutes its zone (`Sim.mute`): an alarm there still runs, so
+  the bolts hold, but its klaxon never goes round, so nothing answers it; one sounded otherwise than by being seen does not
+  start. A speaker is used from below only, and hangs in its room's ceiling. Saves keep each camera's state, the muted zones
+  and the alarms; the routes are made again.
 
 **As built in step 4.** The game's state is plain data in the sim (`sim/game.ts`): circuits and Gen-1, keys, what you
 carry (ten slots), lights and battery, what you wear, papers read, health, the run's keypad codes. What happens comes out

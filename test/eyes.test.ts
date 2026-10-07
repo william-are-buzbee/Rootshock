@@ -7,7 +7,7 @@ import { STEP } from '../src/core/loop';
 import { give } from '../src/sim/game';
 import { EYES, soundZone } from '../src/sim/eyes';
 import { hitMutant } from '../src/sim/cast';
-import { doorAct, doorLabel } from '../src/sim/interact';
+import { doorAct, doorLabel, findUsable } from '../src/sim/interact';
 import { load, save } from '../src/sim/save';
 
 /* The overseer's eyes and voice (sim/eyes.ts), on the upper station: cameras that hold you sound their zone, and the
@@ -84,7 +84,7 @@ describe('the zone alarm', () => {
     hold(s, 0.1);
     expect(m.state).toBe('answer');
     const sp = level.speakers!.find(q => q.zone === 'atrium')!;
-    hold(s, 8);
+    for (let t = 0; t < 10 && m.state === 'answer'; t += STEP) step(s, noInput());
     expect(Math.hypot(m.x - sp.x, m.z - sp.z)).toBeLessThan(3.5);
     expect(m.state).toBe('idle'); // there, it stands and looks about; it never came for you
     const x = m.x, z = m.z;
@@ -249,5 +249,93 @@ describe('the overseer\'s bolts', () => {
     hold(t.s, EYES.sound + 1);
     expect(t.s.alarms).toEqual([]);
     expect(t.maint.bolt).toBe(0);
+  });
+});
+
+describe('a smashed speaker', () => {
+  /** look at a thing from where you stand */
+  const lookAt = (s: Sim, x: number, y: number, z: number) => {
+    const p = s.player, b = p.body, dx = x - b.x, dz = z - b.z, dy = y - (b.y + 1.6);
+    p.yaw = Math.atan2(-dx, -dz); p.pitch = Math.atan2(dy, Math.hypot(dx, dz));
+  };
+  const speakerUse = (s: Sim, zone: string) => {
+    const S = level.speakers!.find(q => q.zone === zone)!;
+    return s.usables.find(u => u.x === S.x && u.z === S.z && u.y > S.y + 3)!;
+  };
+
+  it('the Operations corridor\'s is in reach from the floor; smashing it takes something in your hand, and is loud', () => {
+    const s = fresh(), u = speakerUse(s, 'ops');
+    still(s);
+    place(s, 77, 0, 25.6);
+    hold(s, 0.1);
+    lookAt(s, u.x, u.y, u.z);
+    expect(findUsable(s)?.text).toBe('Smash the speaker');
+    u.act();
+    expect(s.mute).toEqual([]); // bare hands
+    give(s.game, 'baton');
+    s.game.noiseI = 0;
+    u.act();
+    expect(s.mute).toEqual(['ops']);
+    expect(s.game.noiseI).toBeGreaterThanOrEqual(14);
+    expect(u.label()).toBeNull();
+  });
+
+  it('the atrium\'s hangs high in the well: out of reach from the floor, in reach leaning from the gallery\'s rail', () => {
+    const s = fresh(), u = speakerUse(s, 'atrium');
+    still(s);
+    place(s, u.x, 0, u.z);
+    hold(s, 0.1);
+    lookAt(s, u.x, u.y, u.z);
+    expect(findUsable(s)?.text).not.toBe('Smash the speaker');
+    place(s, 84.5, 5, u.z); // on the east gallery, at the rail
+    hold(s, 0.1);
+    expect(s.player.body.x).toBeGreaterThan(84);
+    lookAt(s, u.x, u.y, u.z);
+    expect(findUsable(s)?.text).toBe('Smash the speaker');
+  });
+
+  it('not from the deck above: only from under it', () => {
+    const s = fresh(), u = speakerUse(s, 'ops');
+    s.player.body.y = 5;
+    expect(u.label()).toBeNull();
+  });
+
+  it('the zone has no voice: seen there, the doors are still bolted, but no klaxon, and nothing comes', () => {
+    const s = fresh(), h = s.cast.find(m => m.type === 'hand')!, m = s.cast[1];
+    for (const q of s.cast) if (q !== h && q !== m) q.stun = 1e9;
+    s.mute.push('ops');
+    place(s, 77, 0, 20); // in view of the corridor's north camera
+    s.game.events.length = 0;
+    hold(s, EYES.hold + 0.3);
+    expect(s.alarms.map(a => a.zone)).toEqual(['ops']); // it saw you
+    expect(s.doors.some(d => d.bolting > 0 || d.bolt > 0)).toBe(true); // and its bolts are its own
+    hold(s, 2);
+    expect(sounded(s, 'klaxon')).toBe(false);
+    expect(m.state).not.toBe('answer');
+    expect(h.state).not.toBe('go');
+    /* sounded any other way, it does not sound at all */
+    const t = fresh();
+    t.mute.push('wing');
+    soundZone(t, 'wing');
+    expect(t.alarms).toEqual([]);
+  });
+
+  it('smashed while it sounds, the klaxon stops at its next round', () => {
+    const s = fresh();
+    still(s);
+    place(s, 30, -4.5, -25);
+    soundZone(s, 'atrium');
+    hold(s, 2);
+    s.mute.push('atrium');
+    s.game.events.length = 0;
+    hold(s, 3);
+    expect(sounded(s, 'klaxon')).toBe(false);
+  });
+
+  it('a save keeps it smashed', () => {
+    const s = fresh();
+    s.mute.push('ops');
+    const t = load(level, save(s), { station: STATION });
+    expect(t.mute).toEqual(['ops']);
   });
 });

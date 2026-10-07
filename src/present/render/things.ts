@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { Colour } from '../../core/math';
 import { hex } from '../../core/math';
 import type { Sim } from '../../sim/sim';
-import { camLive } from '../../sim/eyes';
+import { camLive, speakerY, voiced } from '../../sim/eyes';
 import type { DoorDef } from '../../content/types';
 import type { World } from '../../world/world';
 import type { Lighting } from '../../world/light';
@@ -181,11 +181,16 @@ export class Things {
       this.add(parts([['box', [2.9, 0.35, 0.3], 0.05, 0.05, 0.05, 0, 0.1, 0]]), m => { place(m); m.visible = live() && c.hold > 0; });
     }
     for (const S of w.def.speakers ?? []) {
-      const R = w.roomAt(S.x, S.y + 1, S.z), y = R ? R.y0 + R.ht : S.y + 3;
-      this.add(parts([['box', 0x2c2f33, 0.5, 0.12, 0.5, 0, -0.06, 0], ['cyl', 0x3a3d40, 0.34, 0.22, 0.34, 0, -0.23, 0]]), m => m.position.set(S.x, y, S.z));
+      /* it hangs from the ceiling: lit by the room under it, not by what is above */
+      const y = speakerY(w, S), dead = () => !voiced(sim, S.zone), at: [number, number, number] = [S.x, y - 1, S.z];
+      this.add(parts([['box', 0x2c2f33, 0.5, 0.12, 0.5, 0, -0.06, 0]]), m => m.position.set(S.x, y, S.z), at);
+      /* a smashed one's horn hangs off its mount by the wires */
+      this.add(parts([['cyl', 0x3a3d40, 0.34, 0.22, 0.34, 0, -0.23, 0]]), m => {
+        m.position.set(S.x, y - (dead() ? 0.12 : 0), S.z); m.rotation.set(dead() ? 0.9 : 0, 0, dead() ? 0.3 : 0);
+      }, at);
       this.add(parts([['box', [2.9, 1.6, 0.3], 0.16, 0.12, 0.16, 0, -0.4, 0]]), m => {
         m.position.set(S.x, y, S.z);
-        m.visible = sim.alarms.some(a => a.zone === S.zone) && Math.floor(performance.now() / 300) % 2 === 0;
+        m.visible = !dead() && sim.alarms.some(a => a.zone === S.zone) && Math.floor(performance.now() / 300) % 2 === 0;
       });
     }
     for (const s of w.def.signs) {

@@ -104,10 +104,11 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   stairs(D, T1, 46, 11, 6, 'n');
   const GW: TRoomOpts = { ...WALK, ht: 4.5, c: 'OPS' };
   room(T1, 'Gallery', 39, 9, 10, 2, GW); room(T1, 'Gallery', 47, 11, 2, 10, GW);
-  /* the atrium's eyes: one on the threshold from the south-west corner, one under the gallery on the stair and Cargo's door */
-  speaker(D, 'atrium', 40.5, 17.5); camera(D, 39.3, 20.6, 3.8, PI, 'OPS', 'atrium'); camera(D, 48.6, 11.4, 4.2, -PI / 4, 'OPS', 'atrium');
+  /* the atrium's eyes: one on the threshold from the south-west corner, one under the gallery on the stair and Cargo's door;
+     its speaker high in the well by the east gallery's rail, out of reach but from there */
+  speaker(D, 'atrium', 46.7, 19.6); camera(D, 39.3, 20.6, 3.8, PI, 'OPS', 'atrium'); camera(D, 48.6, 11.4, 4.2, -PI / 4, 'OPS', 'atrium');
   /* where the light changes, it starts: eggs at the threshold, on their side */
-  eggs(D, 39.4, 13.4, 2); eggs(D, 39.3, 15.6, 3); blood(D, 40.5, 17.5, 1.4);
+  eggs(D, 39.4, 13.4, 2); eggs(D, 39.3, 15.6, 3); blood(D, 46.3, 19.3, 1.4);
   /* the second leg: south to the operations room, offices either side, maintenance and the Ops backup set */
   room(D, 'Operations corridor', 42, 21, 3, 13, { ...OPS, ht: 4.5, em: 1 });
   speaker(D, 'ops', 43.5, 27.5); camera(D, 44.6, 21.3, 3.8, 0, 'OPS', 'ops'); camera(D, 42.4, 33.6, 3.8, PI, 'OPS', 'ops'); mut(D, 'husk', 43.5, 25); mut(D, 'husk', 41, 18.5); blood(D, 43, 27.5, 1.2);

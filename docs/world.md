@@ -440,7 +440,10 @@ cancerous growth, rather than a second level-sized area competing for attention.
   klaxon goes round for twelve seconds (again from the start if you are seen again), and each time it goes round, any husk
   that hears it and is not already after you leaves its rounds or its post and hurries to the speaker. There it stands and
   looks about a while, then goes back to its rounds; it finds you only if it sees or hears you on the way. A camera can be
-  smashed with something in your hand: loud. Five so far: two in the atrium (the threshold, and the stair and Cargo's door),
+  smashed with something in your hand: loud. So can a zone's speaker, and that zone has no voice: seen there, the doors
+  about you are still bolted (they are the overseer's, not the alarm's), but no klaxon sounds, and nothing hears it or comes.
+  The wing's and the Operations corridor's hang in a ceiling you can reach; the atrium's hangs high in the well, in reach
+  only leaning out from the east gallery's rail. Cameras, five so far: two in the atrium (the threshold, and the stair and Cargo's door),
   one at each end of the Operations corridor, and one down the wing's corridor, dead until the cut is mended. Mending it sounds
   the wing (its circuit comes live on the board).
 - **The overseer and its hand: built.** The overseer is grown into the monitor wall of the operations room, cords of flesh
@@ -491,8 +494,8 @@ whether or not the wing is mended.
 
 **What the game needs for it**
 
-- **New:** breaking a speaker. (Cameras, the zone alarm, the overseer, its hand, its bolts and the window's glass are built:
-  above.)
+- **New:** nothing for now. (Cameras, the zone alarm and its speakers, the overseer, its hand, its bolts and the window's
+  glass are built: above.)
 - **Content:** done. The window is three bays of glass in Cargo control's east wall (`DoorDef.glass`: a sealed pane that stops
   bodies and lets sight through). In the dark the bay is black but for the nest's own glow: pustules among the eggs on the
   rungs, and its edge, creeping west over the floor below the window toward the door, a sick red.

@@ -42,6 +42,8 @@ export interface Sim {
   /** the overseer's eyes, and the zone alarms sounding (sim/eyes.ts) */
   cams: Cam[];
   alarms: Alarm[];
+  /** the zones whose speaker is smashed: their alarms sound no more */
+  mute: string[];
 }
 
 export interface SimOpts {
@@ -72,7 +74,7 @@ export function makeSim(level: LevelDef, o: SimOpts = {}): Sim {
     doors: level.doors.map(d => makeDoor(world, d)),
     platforms: level.platforms.map(p => makePlatform(world, p)),
     items: level.items.map(it => ({ ...it, taken: false })),
-    usables: [], focus: null, cast: [], fields: null, hands: makeHands(), wormN: 0, lighting: null, cams: [], alarms: [],
+    usables: [], focus: null, cast: [], fields: null, hands: makeHands(), wormN: 0, lighting: null, cams: [], alarms: [], mute: [],
   };
   sim.cams = makeCams(sim);
   sim.usables = buildUsables(sim);

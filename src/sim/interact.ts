@@ -5,7 +5,7 @@ import { locked, occupied, sendPlatform, type Door, type Platform } from './move
 import { eyeHeight } from './player';
 import type { Sim } from './sim';
 import { riders } from './sim';
-import { soundZone } from './eyes';
+import { soundZone, speakerY } from './eyes';
 
 /* What you can use, and what using it does: E on whatever you are looking at. The labels and the answers are the first
    engine's (interaction, in archive/first-engine.html), so the station reads as it did. */
@@ -31,17 +31,23 @@ export function buildUsables(sim: Sim): Usable[] {
     out.push({ x: (D.x0 + D.x1) / 2, y: D.y0 + (D.vent ? 0.6 : 1.3), z: (D.z0 + D.z1) / 2, r: D.vent ? 1.7 : 2.6, label: () => doorLabel(sim, d), act: () => doorAct(sim, d) });
   }
   for (const p of sim.platforms) if (p.def.call) out.push(platformUse(sim, p, 0), platformUse(sim, p, 1));
-  /* a camera can be smashed, with something in your hand, and is heard well off */
+  /* a camera can be smashed, with something in your hand, and is heard well off; so can a zone's speaker, in the ceiling
+     (or, over the atrium's well, leaning out from the gallery's rail), but only from below */
+  const smash = (at: { x: number; y: number; z: number }, done: () => void) => () => {
+    if (!g.weapon) { say(g, 'With what? You would want something heavy in your hand.'); sfx(g, 'deny'); return; }
+    done();
+    sfx(g, 'smash', at, true);
+    makeNoise(g, 14);
+  };
   for (const c of sim.cams) {
     const C = c.def;
+    out.push({ x: C.x, y: C.y, z: C.z, r: 2.4, label: () => (c.broken ? null : 'Smash the camera'), act: smash(C, () => { c.broken = true; c.hold = 0; }) });
+  }
+  for (const S of L.speakers ?? []) {
+    const at = { x: S.x, y: speakerY(sim.world, S) - 0.25, z: S.z };
     out.push({
-      x: C.x, y: C.y, z: C.z, r: 2.4, label: () => (c.broken ? null : 'Smash the camera'),
-      act: () => {
-        if (!g.weapon) { say(g, 'With what? You would want something heavy in your hand.'); sfx(g, 'deny'); return; }
-        c.broken = true; c.hold = 0;
-        sfx(g, 'smash', C, true);
-        makeNoise(g, 14);
-      },
+      ...at, r: 3.2, label: () => (sim.mute.includes(S.zone) || sim.player.body.y > at.y - 2 ? null : 'Smash the speaker'),
+      act: smash(at, () => { sim.mute.push(S.zone); }),
     });
   }
   for (const it of sim.items) out.push(itemUse(sim, it));
