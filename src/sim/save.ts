@@ -62,6 +62,8 @@ export interface Save {
   /** the cameras (smashed, and how long each has held you) and the alarms sounding; none in a save from before them */
   cams?: { broken: boolean; hold: number }[];
   alarms?: { zone: string; t: number; spot: number; next: number }[];
+  /** the zones whose speaker is smashed */
+  mute?: string[];
   /** the fields over the nav graph as they stood (they are made in turn, so cannot be made again exactly) */
   fields: { from: number; turn: number; made: Record<string, string>; crawl: string; hands: string; big: string; sound: string } | null;
 }
@@ -99,6 +101,7 @@ export function save(sim: Sim): Save {
     on: [sim.player.body, ...sim.loose.all, ...sim.cast.map(m => m.body)].map(r => (r ? onId(r) : 0)),
     cams: sim.cams.map(c => ({ broken: c.broken, hold: c.hold })),
     alarms: sim.alarms.map(a => ({ zone: a.zone, t: a.t, spot: a.spot, next: a.next })),
+    mute: [...sim.mute],
     fields: sim.fields && {
       from: sim.fields.from, turn: sim.fields.turn, made: { ...sim.fields.made },
       crawl: pack(sim.fields.crawl), hands: pack(sim.fields.hands), big: pack(sim.fields.big), sound: pack(sim.fields.sound),
@@ -155,6 +158,7 @@ export function load(level: LevelDef, data: Save, o: SimOpts = {}): Sim {
   }
   for (const m of sim.cast) restoreRoute(sim, m);
   sim.cams.forEach((c, i) => { const s = data.cams?.[i]; if (s) { c.broken = s.broken; c.hold = s.hold; } });
+  sim.mute = [...(data.mute ?? [])];
   restoreAlarms(sim, data.alarms ?? []);
   /* the hand on its way to an alarm goes by the alarm's own way, the halls alone */
   for (const m of sim.cast) if (m.state === 'go') { const a = sim.alarms.find(q => q.spot === m.dest); if (a) m.F = Float32Array.from(a.big); }
