@@ -101,9 +101,10 @@ The testers and those they turned, centred on Horticulture.
   Knowing the cameras fed the overseer, the survivors cut the service connection to their own wing and lived in the dark (§8).
   The survivors killed themselves, or made a run for an exit and were killed or stopped by something on the way. None of them
   made it.
-- **Why the exit (proposed).** The surface lift scans for a clean body (§3). The changed cannot pass it, and anyone clean who did
-  would bring the owners' purge down on everyone left below. Breaking it is the flesh's logic in small: act first or be annihilated.
-  It is also why a clean stranger walking out of Holding is a threat to them.
+- **Why they hold the way out (open).** Not a scanner (the clean-body scan is dropped: §6, question 10). A working idea: the flesh
+  fear being found more than anything (see *Secrecy*, above); anyone who reaches the surface and talks brings the people with fire.
+  So the way out is not a door they cannot pass but one they will not let be opened, and anyone walking out of Holding is a
+  witness.
 - **Towards you:** for now, they want you dead. (Whether they would rather take you, and how, is open: §6.)
 - **Towards the Commons:** kinship and threat at once, as the plants and the flesh are to each other.
 - **Territory:** Security and the Cargo cavern.
@@ -133,14 +134,17 @@ and adds politics above it.
 
 ## 3. The player
 
-**Accession 31.** Delivered sedated in a sealed crate, signed for like seed, held for transfer to Horticulture (see the intake slip
-in holding). Nobody came to collect them, and then Gen-1 dropped.
+**Who you are (open).** The old answer (Accession 31, delivered sedated in a crate, signed for like seed) is dropped: nobody is
+trafficked in. The working picture: you are staff, held in Security's **medical isolation suite**, a well-appointed set of rooms
+rarely used, for staff who may have been exposed to something (or, less often, held for something they did). Why you were in
+it is open; the isolation framing would allow a choice at the start ("are you changing, this time?") if mutation becomes a
+player state. (The papers in the suite tell this story now; others still tell the old one of accessions and transfers:
+the chief of security's, the keeper's, Holt's memorandum.)
 
 - **Start:** an unaligned pawn.
 - **End:** the physical, mechanical arbiter of the station, and its political actor: kingmaker, liaison, or neither.
-- **Why both sides need you (proposed):** the surface lift has a decontamination scanner and will only carry a clean body. Each tribe
-  needs a clean courier to get anything, or anyone, out. That is why you are worth keeping alive and using, and it is why your own
-  mutation decides which endings remain open.
+- **Why either side needs you (open).** The decontamination scanner that made you a "clean courier" is dropped (§6, question 10).
+  Whether you are clean at all is open: you bash a great deal of mutant apart, and it is hard to believe none of it got on you.
 
 ---
 
@@ -157,6 +161,9 @@ in holding). Nobody came to collect them, and then Gen-1 dropped.
   progression. (Jammed half-open doors and loose panels are flavour unless given a cost.)
 - **No soft-locks.** Non-linear routes plus spendable resources make soft-locks likely. The progression checker (below) must prove
   every save can still finish.
+- **Nothing was built for this (proposed).** Nobody who built or runs the station could know an outbreak like this was possible.
+  Every defence in it is ordinary equipment doing a job it was never meant for: Security's cameras, fail-safe cell doors, a desk
+  the overseer grew into. A lock or a gate that only makes sense if someone saw this coming does not belong.
 
 ### Doors and locks (agreed)
 
@@ -221,13 +228,14 @@ same kit could have mended Cargo's platforms (and whatever they lead to) or a ba
 - **Proposed additions:** doors barred from one side (shortcuts you open from the far side); draining the sump (deep becomes wading,
   the cave pool falls; a whole level changes state); Gen-1 capacity.
 
-### Mutation and the drugs (proposed)
+### Mutation and the drugs (shelved)
 
-- **The drugs are the player's upgrades and their infection, in one item.** Painkiller: slow healing, no pain feedback. Stimulant:
-  speed, no need to rest. Rave tablet: you see what is hidden, and things that are not there. Anaesthetic: silence, or slowness.
-- **Every dose adds mutagen.** Mutation is a stat the player chooses to raise, not only a death.
-- **What mutation changes:** how the green treats you (vines part, rootworms ignore you, the great chamber opens); how the flesh
-  treat you; whether the surface scanner will pass you.
+Set aside, not decided against. The product line will probably be in the game in some form, but not necessarily as the player's
+upgrades; and whether the player mutates at all, and what it changes, is open with the rest of who you are (§3).
+
+- *Shelved idea:* the drugs as upgrades and infection in one item (painkiller: slow healing, no pain feedback; stimulant: speed;
+  rave tablet: you see what is hidden, and things that are not there), every dose adding mutagen, mutation as a stat the player
+  raises; it would change how the green and the flesh treat you.
 
 ### Factions (proposed)
 
@@ -240,7 +248,8 @@ same kit could have mended Cargo's platforms (and whatever they lead to) or a ba
 
 ### Endings (proposed)
 
-1. **Surface lift:** the proper exit. Gen-1, a credential (the surface pass or the director's key), and a clean scan.
+1. **Surface lift:** the proper exit. Gen-1 and a credential (the surface pass or the director's key); what else, if anything, is
+   open (§6, question 10).
 2. **Exhaust shaft:** climb out past the fans. They must be stopped, which means power *off*: the inverse of the first.
 3. **The spring crack:** widened, through the heart of the green.
 4. **Staying:** take fully and become part of the station. An ending, not a death.
@@ -270,7 +279,8 @@ Each phase is playable on its own.
 ## 6. Open questions
 
 1. **Who owns the facility?** Corporation, government or individual, and is there a **third pressure**: their purge protocol as a
-   clock, or an ending of its own?
+   clock, or an ending of its own? Whoever they are, they cannot know an outbreak like this is possible, so a purge could only be a
+   generic incident response (lose contact for so long, seal the shaft, send a team), not a plan for mutants.
 2. **Full mutation:** death, ending, or a playable state? (Leaning: playable, at least partway.)
 3. **Can you walk among the mutants unharmed?** If yes, faction AI is a real engine job (truce, territory). If no, the politics stay
    at arm's length, through terminals and intercoms.
@@ -285,6 +295,19 @@ Each phase is playable on its own.
    the way into the Commons is somewhere that takes some access to reach, not a walk from the start. As built, both ways down
    are earned (the elevator wants the wing mended; ladderway B wants Operations' card and Cargo's power), and both land at the
    main level's shaft station, a walk from the Commons. Whether that landing should itself need access is part of the question.
+10. **Why don't they just leave?** The scanner at the surface lift is dropped: detaining someone for a positive test is a stretch
+   even here, and the mutants do not need one way out. The flesh could learn to bore through rock; Horticulture's green could
+   walk out of the cave. So why stay? What their talk points at is that the mutagen (this strain, here) will either be smothered
+   in the crib or spread, and to them spreading is inevitable. Candidates, none agreed:
+   - **The crib.** This strain was bred under grow lights, in warm, wet, filtered air. The surface (winter, sun, drought) would
+     kill it as it is. The station is where it can still change fast enough to survive up there: it stays to grow up first.
+   - **The roots.** The green is tethered to something it cannot move (a mother growth in the great chamber, say), and plants
+     do not walk out: they are carried, as seed and spore and down the water. It may be leaving already, slowly, through the
+     spring crack (the third ending). What it wants is carriers.
+   - **The lid.** The flesh need nobody up top to notice until they are too many to smother. They stay, and keep everyone else
+     in, because a witness is the end of them (see the Security flesh, above).
+   Crib, roots and lid together would split the tribes over you: the flesh want you kept in (you are a witness), the green want
+   you to leave (you are a carrier).
 
 ---
 
@@ -326,9 +349,9 @@ cancerous growth, rather than a second level-sized area competing for attention.
 
 **The beats (agreed)**
 
-1. **Opening: dark, and no flashlight.** You wake in Holding, in the survivors' wing, which is dead (see Power, below). Holding's
-   own low light and the amber of the far half at the end of the highway are all there is; you go slowly, tensely, up to the
-   main floor. The first fear should be a sound: something heard and not seen.
+1. **Opening: dark, and no flashlight.** The power goes out, and the isolation suite's doors let go (see Holding, below). The
+   only light is a flashlight on the floor, still on, where a guard dropped it; you go to it, and then up, slowly, tensely, into
+   the survivors' dead wing. The first fear should be a sound: something heard and not seen.
 2. **The flashlight, on a body.** It opens choices: go back and see the start properly, or explore the eerily quiet rooms and the
    main hallway.
 3. **The infected half.** Rooms and vents full of skitters and eggs; patrols down the hallways. The line between safe and not
@@ -352,12 +375,30 @@ cancerous growth, rather than a second level-sized area competing for attention.
   doors and card readers wake. **What it costs:** the wing's cameras wake too, you are easier to see in the light, and the patrols'
   rounds now take in the wing (below). The overseer sees the circuit come live on its board and sounds that zone at once, so the
   first thing the mended feed brings is the patrols, to the cut.
-- **Timing (open, not urgent):** whatever kills the wing must happen no earlier than your cell's release, or Holding's fail-safe
-  doors would have let go before. A plausible answer: Holding's doors hold on their own battery, sized to ride out a full main and
-  backup outage, and release when it runs down so no one is left sealed in. (The tangle is a sign the player needs a better reason
-  to be here; a later question.)
+- **Timing:** the game starts as the power goes out, and the isolation suite's doors, fail-safe, let go (see Holding, below). No
+  battery holds them first.
 - **The surface lift (proposed):** what mends it is one unique part, not a kit. Count its locks before adding any: Gen-1, a
-  credential, a clean scan and the mend are already four.
+  credential and the mend are three.
+
+**Holding: the medical isolation suite (proposed)**
+
+- **What it is.** Not a prison: a well-funded lab's isolation suite, for staff who may have been exposed (and, rarely, held for
+  something they did). Nice, and almost never used. You are the only one in it, living.
+- **Bigger, darker, lower.** About twice today's size each way (roughly 35 by 25 m), but smaller than the atrium, which stays the
+  level's big moment. Sunk a storey below the wing (the 50 m of rock between levels has room to spare; nothing else moves), with
+  a wide stair up to the Security corridor.
+- **More going on.** A few isolation rooms round a common area (table, sofas, a kitchenette); a nurses' or guards' station half
+  a storey up, looking down over it (an echo of the Cargo overlook), which takes in today's guard post.
+- **The light.** None of its own. The flashlight on the floor at the foot of the station's stair, on the guard who dropped it,
+  lights itself and a little round it, and goes out when you take it. Exit signs over the stair glow green on their own
+  batteries (as the code requires), a second, quieter light to follow. Nothing hunts you here.
+- **Built.** A storey down (-4.5 m), under the wing's north side: a double-height hall (22 by 20 m) with a kitchenette, a
+  table, a sofa before a dead screen and plants nobody watered; three isolation rooms off it, room 3 with its own washroom;
+  and over the hall's south end, at the wing's level, the nurses' station, a balcony with the station's desk, which a double
+  stair up the east wall climbs to, and which opens onto the Security corridor. You wake in room 1, whose door looks across
+  the hall at the stair's foot: a guard face down there, his flashlight still on beside him, and an exit sign. A patient lies
+  in room 2. The old cells and guard post are gone. The suite and the station are refuges, and dark with the wing; mended,
+  they light amber like the rest of it.
 
 **The layout (proposed)**
 

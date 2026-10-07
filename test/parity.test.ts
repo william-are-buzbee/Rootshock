@@ -27,7 +27,7 @@ const still = (s: Sim, keep: Mutant[] = []) => { for (const m of s.cast) if (!ke
 
 describe('you', () => {
   it('are told why the door is open as you wake', () => {
-    expect(fresh().game.events.some(e => e.type === 'say' && /lock on your cell has let go/.test(e.text))).toBe(true);
+    expect(fresh().game.events.some(e => e.type === 'say' && /lock on your door lets go/.test(e.text))).toBe(true);
   });
 
   it('make footsteps: quieter walking, louder running, none crouched', () => {
@@ -91,7 +91,9 @@ describe('the cast, as the first engine had them', () => {
     const s = fresh(), m = s.cast[1], b = s.player.body, nav = s.fields!.nav;
     still(s, [m]);
     s.game.hp = 1e9;
-    /* you in your cell; it in the hall outside, some way off along the way in */
+    /* you in a refuge (the shaft station); it in the lobby outside, some way off along the way in */
+    place(s, 'player', 9, 0, 1);
+    hold(s, 0.2); // the fields catch up with where you are
     let from = -1;
     for (let i = 0; i < nav.n; i++) {
       const R = s.world.rooms[nav.room[i]], d = s.fields!.hands[i];

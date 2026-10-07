@@ -214,7 +214,11 @@ export function itemUse(sim: Sim, it: WorldItem): Usable {
     label: () => (it.taken ? null : 'Take ' + ITEMS[it.id].n.toLowerCase()),
     act: () => {
       const per = ITEMS[it.id].per;
-      if (give(g, it.id, it.raw && per ? it.n / per : it.n)) { it.taken = true; use.off = true; sfx(g, 'take'); }
+      if (give(g, it.id, it.raw && per ? it.n / per : it.n)) {
+        it.taken = true; use.off = true; sfx(g, 'take');
+        const k = sim.items.indexOf(it);
+        if (sim.world.def.lamps.some(L => L.item === k)) g.events.push({ type: 'relight' });
+      }
     },
   };
   return use;

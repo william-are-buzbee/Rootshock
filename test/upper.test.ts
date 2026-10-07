@@ -16,9 +16,10 @@ describe('the upper station', () => {
     expect(JSON.stringify(again)).toBe(JSON.stringify(level));
   });
 
-  it('starts you standing in your cell', () => {
+  it('starts you standing in your isolation room, a storey under the wing', () => {
     const b = sim.player.body;
-    expect(sim.world.roomAt(b.x, b.y + 1, b.z)?.name).toBe('Cell W2');
+    expect(sim.world.roomAt(b.x, b.y + 1, b.z)?.name).toBe('Isolation room 1');
+    expect(b.y).toBeCloseTo(-4.5);
     expect(sim.world.groundBelow(circle(b.x, b.z, b.r), b.y + 0.1)).toBeCloseTo(b.y);
     expect(sim.world.overlap(circle(b.x, b.z, b.r), b.y + 0.01, b.y + 1.8, b.dyn)).toBe(null);
   });
@@ -27,7 +28,7 @@ describe('the upper station', () => {
     const r = reach(sim);
     const named = new Set(level.rooms.map(R => R.name).filter(Boolean));
     const missing = [...named].filter(n => !r.rooms.has(n)).sort();
-    expect(missing).toEqual(['Cell E1', 'Cell W1', 'Phase 2']);
+    expect(missing).toEqual(['Phase 2']);
   });
 
   it('lights in two halves: the wing dead behind its cut, Ops on its backup set, Cargo dark', () => {
@@ -36,7 +37,7 @@ describe('the upper station', () => {
       return L.at(R.id, (R.x0 + R.x1) / 2, (R.z0 + R.z1) / 2);
     };
     const L = new Lighting(sim.world, stationPower(STATION.circuits, STATION.main));
-    expect(at(L, 'Cell W2')[0]).toBeGreaterThan(0.4); // always lit
+    expect(at(L, 'Isolation room 2')[0]).toBe(0); // the suite is the wing's, and dark with it
     expect(at(L, 'Security corridor')[0]).toBe(0); // the wing's feed is cut
     const em = at(L, 'Operations corridor');
     expect(em[0]).toBeGreaterThan(0.2); // emergency lights on the backup set
@@ -55,6 +56,20 @@ describe('the upper station', () => {
     const full = new Lighting(sim.world, fullPower);
     const R = level.rooms.find(r => r.name === 'Cargo cavern')!;
     expect(full.at(R.id, (R.x0 + R.x1) / 2, (R.z0 + R.z1) / 2)[0]).toBeGreaterThan(0.5);
+  });
+
+  it('lights the suite by a flashlight dropped still on, which goes out when taken, and by its exit signs', () => {
+    const hall = level.rooms.find(r => r.name === 'Isolation suite')!, k = level.items.findIndex(it => it.id === 'flash');
+    const F = level.items[k], lamp = level.lamps.find(l => l.item === k)!;
+    expect(lamp).toBeTruthy();
+    const power = stationPower(STATION.circuits, STATION.main), on = new Lighting(sim.world, power), off = new Lighting(sim.world, power, i => i === k);
+    expect(Math.max(...on.at(hall.id, F.x, F.z))).toBeGreaterThan(0.3);
+    expect(Math.max(...off.at(hall.id, F.x, F.z))).toBe(0);
+    expect(Math.max(...on.at(hall.id, hall.x0 + 2, hall.z1 - 2))).toBe(0); // the far corner: black
+    /* the exit signs: green, a little light each, whatever the power */
+    const signs = level.lamps.filter(l => l.colour[1] > l.colour[0] * 3);
+    expect(signs.length).toBe(2);
+    for (const S of signs) expect(Math.max(...off.atPoint(S.x, S.y + 0.5, S.z))).toBeGreaterThan(0.1);
   });
 
   it('floors the second floor in one colour: the gallery\'s slab stops at the door into Cargo control', () => {

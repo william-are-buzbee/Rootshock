@@ -43,6 +43,7 @@ describe('motes', () => {
 
   it('what you walk through is carried and shoved along, and keeps going after you stop', () => {
     const { sim, m, M } = air(false), cam = new THREE.Vector3(66, 1.62, 0), dt = 1 / 60;
+    const b = sim.player.body; b.x = 66; b.y = 0; b.z = 0; b.sync(); // your body is under the eye (you start a storey down)
     m.update(sim, cam, dt);
     m.update(sim, cam, dt);
     /* twenty specks of the corridor's, put in a strip ahead of you, low enough for your body, and at rest (where the

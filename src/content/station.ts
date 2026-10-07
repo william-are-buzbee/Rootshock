@@ -42,6 +42,6 @@ export const STATION: StationDef = {
   /* "This morning the main generator dropped." */
   main: false,
   start: 'upper',
-  intro: 'Gen-1 has dropped. The lock on your cell has let go.',
+  intro: 'The lights go out, and the lock on your door lets go.',
   names: { upper: 'Upper station', main: 'Main level', plant: 'Plant level', sump: 'The sump', sumpdeep: 'The sump, drowned', cave: 'The cave' },
 };

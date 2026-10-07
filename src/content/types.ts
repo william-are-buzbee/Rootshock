@@ -80,6 +80,8 @@ export interface LampDef {
   x: number; y: number; z: number;
   r: number;
   colour: Colour;
+  /** the thing lying about that gives it (a flashlight dropped still on): it goes out once that is taken. Its index in items. */
+  item?: number;
 }
 
 /** a ceiling fitting: a point its room's light shines down from */

@@ -50,12 +50,14 @@ export function roomLight(R: RoomDef, power: Power): Colour {
 
 export class Lighting {
   private rooms: Colour[];
-  /** for each room, the lamps that stand in it */
+  /** for each room, the lamps that stand in it (a room keeps its place here when its lamps go out, so the mesh cut for
+   *  their pools still matches) */
   private lamps = new Map<number, { x: number; z: number; r: number; c: Colour }[]>();
   /** for each room, its ceiling fittings (not in rooms lit by lamps of their own) */
   private fix = new Map<number, { x: number; y: number; z: number }[]>();
 
-  constructor(private w: World, readonly power: Power) {
+  /** `taken`: whether a thing lying about has been picked up, so a lamp it gives (a dropped flashlight) is out */
+  constructor(private w: World, readonly power: Power, taken: (item: number) => boolean = () => false) {
     this.rooms = w.rooms.map(R => roomLight(R, power));
     /* a doorway is lit by what is either side of it, a little less */
     for (const R of w.rooms) {
@@ -71,7 +73,7 @@ export class Lighting {
       if (!R) continue;
       let a = this.lamps.get(R.id);
       if (!a) this.lamps.set(R.id, (a = []));
-      a.push({ x: L.x, z: L.z, r: L.r, c: L.colour });
+      a.push({ x: L.x, z: L.z, r: L.r, c: L.item !== undefined && taken(L.item) ? BLACK : L.colour });
     }
     for (const F of w.def.fixtures ?? []) {
       const R = w.roomAt(F.x, F.y - 0.3, F.z);

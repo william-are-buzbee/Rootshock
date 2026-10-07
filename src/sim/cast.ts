@@ -1,7 +1,6 @@
 import type { MutantDef } from '../content/types';
 import { angLerp, clamp, PI, TAU } from '../core/math';
 import { STEP } from '../core/loop';
-import { Lighting } from '../world/light';
 import { Edge, edgeCost, field as fieldFrom } from '../world/nav';
 import type { Dyn } from '../world/world';
 import { fall, makeBody, settle, walk, type Body } from './body';
@@ -9,7 +8,7 @@ import { doorShut, opensItself, routeRules, rulesFor, type Fields, type Walker }
 import { hurtBy, power, sayOnce, sfx } from './game';
 import { sendPlatform, type Door } from './movers';
 import { eyeHeight } from './player';
-import type { Sim } from './sim';
+import { simLighting, type Sim } from './sim';
 
 /* The cast (engine.md §7, §8): what lives in the station, ported from the first engine's behaviours. Each is a body that
    walks like yours, so it has weight, falls, rides platforms and is stopped by what stops you; they block each other
@@ -371,7 +370,7 @@ export function restoreRoute(sim: Sim, m: Mutant): void {
 }
 
 /** the level's light as the power stands: what the cast see by (made again when the power changes) */
-const lighting = (sim: Sim) => (sim.lighting ??= new Lighting(sim.world, c => power(sim.game, c)));
+const lighting = (sim: Sim) => (sim.lighting ??= simLighting(sim));
 const LIT = 0.02;
 const lit = (sim: Sim, x: number, y: number, z: number) => Math.max(...lighting(sim).atPoint(x, y, z)) > LIT;
 function litRoom(sim: Sim, id: number): boolean {

@@ -347,7 +347,8 @@ sequence of inputs. The door rules, the labels and the answers are the first eng
   is what the cast see you by, is what it was. Power that comes on is seen to (`present/cascade.ts`): room by room out
   from where you are, each tube striking (on, off a moment, on) as it catches, and heard to near you; only the rooms
   that flip are lit again (`LevelMesh.relightRooms`). Power going off is not staged, and the sim's light changes at
-  once. Motes (`present/render/motes.ts`) hang in the air about you, square flecks lit as a surface is (by the room as much as by your beam, never brighter than the wall beside them): with a live circuit the air
+  once. A lamp can be given by a thing lying about (`LampDef.item`: a flashlight dropped still on); once that is taken the
+  lamp is out, and the level is lit again at once (`relight`), with no tubes striking. Motes (`present/render/motes.ts`) hang in the air about you, square flecks lit as a surface is (by the room as much as by your beam, never brighter than the wall beside them): with a live circuit the air
   is drawn toward the room's ceiling grilles (`LevelDef.vents`: one at each end of a long fitted room, one in a short
   one) and turns up into them, on a backup set barely, and in a dead room it hangs and settles;
   caves drift on their own. Moving air carries dust off: a ventilated room shows a quarter of a stuffy one's, a room on

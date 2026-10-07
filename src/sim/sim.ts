@@ -50,6 +50,11 @@ export interface SimOpts {
   rng?: Rng;
 }
 
+/** the level's light as things stand: the power, and lamps that went with whatever gave them */
+export function simLighting(sim: Sim): Lighting {
+  return new Lighting(sim.world, c => power(sim.game, c), i => !!sim.items[i]?.taken);
+}
+
 export function makeSim(level: LevelDef, o: SimOpts = {}): Sim {
   const world = new World(level), s = level.start, rng = o.rng ?? new Rng(o.seed ?? level.seed);
   const loose = new LooseSet(level.props.filter(p => p.loose).map(p => makeLoose(world, p)), world);
@@ -173,7 +178,7 @@ export function step(sim: Sim, input: Input): void {
   runLight(g, STEP, underWater(sim));
   /* how easily you are seen: the light you stand in, your own, and crouching */
   if (sim.cast.length) {
-    sim.lighting ??= new Lighting(sim.world, c => power(g, c));
+    sim.lighting ??= simLighting(sim);
     const c = sim.lighting.atPoint(b.x, b.y + 0.5, b.z), lum = Math.max(c[0], c[1], c[2]);
     g.vis = clamp(0.3 + lum * 0.8 + (g.lightOn ? 0.35 : 0), 0.3, 1.3) * (p.crouch ? 0.6 : 1);
   }
@@ -187,6 +192,7 @@ export function step(sim: Sim, input: Input): void {
   /* the power changed: the light is made again; Gen-1 coming up is heard all over the floor and felt, anything less clunks */
   for (let i = n0; i < g.events.length; i++) {
     const e = g.events[i];
+    if (e.type === 'relight') sim.lighting = null;
     if (e.type !== 'power') continue;
     sim.lighting = null;
     if (e.loud) { makeNoise(g, 30); g.events.push({ type: 'shake', k: 0.4 }); }

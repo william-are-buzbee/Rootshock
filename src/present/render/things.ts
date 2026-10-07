@@ -42,8 +42,9 @@ export function parts(list: Part[]): THREE.BufferGeometry {
 const LIVE: Colour = [2.3, 2.9, 2.4];
 const R90 = Math.PI / 2;
 
-/** something lying on the floor, as the first engine drew it (itemMesh); anything else is a sheet of paper */
-function itemParts(id: string): Part[] {
+/** something lying on the floor, as the first engine drew it (itemMesh); anything else is a sheet of paper. `on`: it gives a
+ *  light of its own where it lies (a flashlight dropped still on), so its lens glows */
+function itemParts(id: string, on = false): Part[] {
   switch (id) {
     case 'baton': return [['cyl', 0x1c1e20, 0.05, 0.55, 0.05, 0, 0.03, 0, R90], ['cyl', 0x3a3d40, 0.06, 0.14, 0.06, -0.2, 0.03, 0, R90]];
     case 'adjwrench': return [['box', 0xb8bcc0, 0.36, 0.03, 0.05, 0, 0.02, 0], ['box', 0xb8bcc0, 0.08, 0.03, 0.12, 0.2, 0.02, 0]];
@@ -59,7 +60,7 @@ function itemParts(id: string): Part[] {
     case 'wrench': return [['box', 0x8a3a2a, 0.45, 0.035, 0.06, 0, 0.02, 0], ['box', 0x9a9ea4, 0.1, 0.035, 0.13, 0.24, 0.02, 0]];
     case 'knife': return [['box', 0x22262a, 0.12, 0.025, 0.03, -0.1, 0.015, 0], ['box', 0xc8ccd0, 0.22, 0.01, 0.045, 0.07, 0.01, 0]];
     case 'axe': return [['box', 0x7a5a34, 0.9, 0.04, 0.045, 0, 0.03, 0], ['box', 0xa82a20, 0.14, 0.035, 0.24, 0.38, 0.03, 0.06]];
-    case 'flash': return [['cyl', 0x2a2c2e, 0.06, 0.2, 0.06, 0, 0.035, 0, R90], ['cyl', 0xc9a227, 0.075, 0.05, 0.075, 0.11, 0.04, 0, R90]];
+    case 'flash': return [['cyl', 0x2a2c2e, 0.06, 0.2, 0.06, 0, 0.035, 0, R90], ['cyl', 0xc9a227, 0.075, 0.05, 0.075, 0.11, 0.04, 0, R90], ...(on ? [['cyl', [2.9, 2.85, 2.6], 0.065, 0.01, 0.065, 0.137, 0.04, 0, R90] as Part] : [])];
     case 'lantern': return [['cyl', 0xc9a227, 0.14, 0.06, 0.14, 0, 0.03, 0], ['cyl', [2.4, 2.6, 2.7], 0.11, 0.14, 0.11, 0, 0.13, 0], ['cyl', 0xc9a227, 0.14, 0.05, 0.14, 0, 0.225, 0], ['box', 0x2a2c2e, 0.16, 0.02, 0.02, 0, 0.3, 0]];
     case 'batt': return [['cyl', 0xb87333, 0.045, 0.1, 0.045, 0, 0.05, 0], ['cyl', 0x22262a, 0.047, 0.04, 0.047, 0, 0.03, 0]];
     case 'medkit': return [['box', 0xd4d8d4, 0.32, 0.14, 0.22, 0, 0.07, 0], ['box', 0xa82a20, 0.12, 0.01, 0.04, 0, 0.145, 0], ['box', 0xa82a20, 0.04, 0.01, 0.12, 0, 0.145, 0]];
@@ -185,8 +186,8 @@ export class Things {
   private itemMeshes: { mesh: THREE.Object3D; taken: () => boolean }[] = [];
   private syncItems(): void {
     for (; this.items < this.sim.items.length; this.items++) {
-      const it = this.sim.items[this.items];
-      const m = this.addFixed(parts(itemParts(it.id)), it.x, it.y, it.z, lie(it.x, it.z));
+      const it = this.sim.items[this.items], k = this.items, on = this.sim.world.def.lamps.some(L => L.item === k);
+      const m = this.addFixed(parts(itemParts(it.id, on)), it.x, it.y, it.z, lie(it.x, it.z));
       this.itemMeshes.push({ mesh: m, taken: () => it.taken });
     }
     for (const im of this.itemMeshes) im.mesh.visible = !im.taken();
