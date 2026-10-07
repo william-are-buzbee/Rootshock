@@ -755,7 +755,7 @@ const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
   /* the operations centre grown into one growth: it sees you itself in its own room and sounds its zone, and what comes near
      its controls it lashes, with the tell of a grabber */
   overseer(sim, m) {
-    if (m.zone && seeP(sim, m, 14)) soundZone(sim, m.zone);
+    if (m.zone && seeP(sim, m, 14)) soundZone(sim, m.zone, true);
     if (m.dp < 2.2 && Math.abs(m.dy) < 2.5 && sight(sim, m)) {
       if (m.tense === 0) step_(sim, m, 'growl');
       m.tense += dt;

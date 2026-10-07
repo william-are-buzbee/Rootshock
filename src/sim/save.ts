@@ -31,7 +31,7 @@ const GAME = ['inv', 'cap', 'tools', 'keys', 'worn', 'weapon', 'read', 'code', '
 const PLAYER = ['yaw', 'pitch', 'crouch', 'wantStand', 'moved', 'impact', 'water', 'air', 'airMax', 'under', 'slow', 'kx', 'kz',
   'running', 'jumped', 'stepD', 'fly'] as const;
 const BODY = ['x', 'y', 'z', 'vy', 'h', 'ground'] as const;
-const DOOR = ['t', 'open', 'unlocked', 'hold'] as const;
+const DOOR = ['t', 'open', 'unlocked', 'hold', 'bolt', 'bolting'] as const;
 const PLATFORM = ['y', 'target', 'wait', 'moving', 'armed'] as const;
 const LOOSE = ['x', 'y', 'z', 'vx', 'vy', 'vz', 'awake', 'ground', 'still', 'woke'] as const;
 const MUTANT = ['x', 'y', 'z', 'px', 'py', 'pz', 'yaw', 'state', 'st', 'cd', 'stun', 'hp', 'post', 'wt', 'wm', 'wx', 'wz', 'tk',

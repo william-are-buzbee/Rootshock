@@ -12,7 +12,7 @@ export interface Voice { d?: number; pan?: number; muffle?: number; big?: boolea
 const RANGE: Record<string, number> = {
   door: 46, roar: 55, thud: 40, hstep: 18, moan: 28, tap: 24, skit: 24, slosh: 20, swing: 10, whiff: 14, heave: 20, rasp: 12, gust: 24, strike: 30, knock: 32, groan: 55, tick: 12, settle: 45, step: 30, rattle: 30,
   breath: 10, mutter: 20, click: 14, gurgle: 22, growl: 30, slither: 10, bubble: 12, creak: 12, drip: 30, scrape: 20, crate: 30,
-  klaxon: 70, cam: 16, smash: 34,
+  klaxon: 70, cam: 16, smash: 34, 'bolt-draw': 24, bolt: 26, 'bolt-free': 18,
   'die-husk': 40, 'die-skitter': 36, 'die-bloat': 46, 'die-thresher': 50, 'die-worm': 20, 'die-swimmer': 20, 'die-grabber': 24,
 };
 
@@ -372,6 +372,10 @@ export class Audio {
         case 'klaxon': this.tn(620, 600, 0.55, 'square', 0.07 * v, 0, 0.02); this.tn(470, 455, 0.55, 'square', 0.07 * v, 0.62, 0.02); this.nz(1.1, 0.03 * v, 900, 'bandpass', 0, 1); break;
         case 'cam': this.nz(0.28, 0.06 * v, 2400, 'bandpass', 0, 4, 1600, 0.04); this.tn(1900, 1900, 0.06, 'sine', 0.06 * v, 0.3); break;
         case 'smash': this.nz(0.25, 0.5 * v, 3800, 'highpass'); this.nz(0.2, 0.4 * v, 500, 'bandpass', 0.02, 1.5); this.tn(900, 300, 0.15, 'triangle', 0.12 * v); break;
+        /* a door's bolt being drawn by its motor, going home, and letting go */
+        case 'bolt-draw': this.tn(110, 160, 0.9, 'sawtooth', 0.05 * v, 0, 0.1); this.nz(0.9, 0.05 * v, 900, 'bandpass', 0, 2, 0, 0.1); break;
+        case 'bolt': this.nz(0.08, 0.6 * v, 1600, 'bandpass', 0, 1.2); this.tn(180, 90, 0.12, 'square', 0.12 * v); break;
+        case 'bolt-free': this.nz(0.06, 0.3 * v, 1200, 'bandpass'); this.tn(140, 200, 0.08, 'square', 0.06 * v); break;
         case 'hit': this.nz(0.12, 0.5, 260); this.tn(95, 50, 0.14, 'square', 0.2); break;
         case 'clang': this.tn(900, 700, 0.18, 'triangle', 0.15); this.nz(0.05, 0.2, 2000, 'bandpass'); break;
         case 'hurt': this.tn(180, 60, 0.35, 'sawtooth', 0.3); this.nz(0.2, 0.3, 500); break;

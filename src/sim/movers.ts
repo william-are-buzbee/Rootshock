@@ -28,6 +28,9 @@ export interface Door {
   unlocked: boolean;
   /** seconds left before it may close */
   hold: number;
+  /** the overseer's: seconds left bolted, and before a bolt being drawn goes home (sim/eyes.ts) */
+  bolt: number;
+  bolting: number;
 }
 
 export interface Platform {
@@ -51,7 +54,7 @@ const THICK = 0.2;
 export function makeDoor(w: World, def: DoorDef): Door {
   const dyn: Dyn = { kind: 'mover', id: w.newId(), x0: def.x0, y0: def.y0, z0: def.z0, x1: def.x1, y1: def.y1, z1: def.z1 };
   w.dyn.push(dyn);
-  const d: Door = { def, dyn, t: def.stuck ? STUCK : def.open ? 1 : 0, open: def.open, unlocked: false, hold: 0 };
+  const d: Door = { def, dyn, t: def.stuck ? STUCK : def.open ? 1 : 0, open: def.open, unlocked: false, hold: 0, bolt: 0, bolting: 0 };
   Object.assign(d.dyn, doorBox(d, d.t));
   return d;
 }
@@ -80,7 +83,8 @@ const overlaps = (a: Box, b: Box): boolean => a.x0 < b.x1 && a.x1 > b.x0 && a.y0
 
 /** a locked door: a reader or keypad not yet satisfied. Fail-secure (world.md §4): it stays locked with the power off,
  *  and the reader needs power to read. Once a card or code has opened it, it stays unlocked. */
-export const locked = (d: Door): boolean => !!(d.def.card || d.def.code) && !d.unlocked;
+/** locked: by its card or code, not given yet, or bolted by the overseer */
+export const locked = (d: Door): boolean => (!!(d.def.card || d.def.code) && !d.unlocked) || d.bolt > 0;
 
 /** something in the doorway, which it must not close on */
 export function occupied(d: Door, riders: Rider[]): boolean {

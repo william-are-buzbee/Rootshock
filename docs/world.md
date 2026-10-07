@@ -449,8 +449,11 @@ cancerous growth, rather than a second level-sized area competing for attention.
   dies mid-note, and no alarm sounds again. The hand is a thresher made of Security's staff (220 to the rib freak's 150): it
   keeps the second leg, hears every alarm wherever it is, and goes at a run by the halls; too big for any door frame, open or
   shut, so every side room is a refuge from it. On its way it hunts you only if it meets you. Once there it keeps the place,
-  wandering and charging about it. Not yet: a door the overseer locks on you; the hand stopping its seeking when the
-  overseer dies (it stops being summoned, but stays a thresher in the halls).
+  wandering and charging about it. When the overseer dies the hand is summoned no more, but stays a thresher in the halls.
+- **The overseer's bolts: built.** Seen (by a camera, or by the overseer itself), every door within nine metres of you that
+  has power is bolted: you hear each bolt being drawn for a second before it goes home, time to get through, and it holds
+  while the alarm sounds. A dead door cannot be bolted, and cutting a bolted door's power lets its bolt go. Card and keypad
+  doors keep their own locks.
 - **Patrols → their own senses.** Sight, light and sound, as everywhere else. They do not know where you are because the overseer
   does; they come to an alarm they can hear, not to the overseer.
 - **Patrols walk lit rooms only (agreed: every husk, everywhere).** Husks hunt by sight, so they keep their rounds where they
@@ -488,8 +491,8 @@ whether or not the wing is mended.
 
 **What the game needs for it**
 
-- **New:** glass: solid to bodies, clear to sight and light (the bay window). A door the overseer can lock. Breaking a
-  speaker. (Cameras, the zone alarm, the overseer and the hand are built: above.)
+- **New:** glass: solid to bodies, clear to sight and light (the bay window). Breaking a speaker. (Cameras, the zone alarm,
+  the overseer, its hand and its bolts are built: above.)
 - **Content:** done but for the window's glass.
 - **Already there:** patrols (the cast keep rounds), vents (loose panels; crawling under), grabbing and dragging (a start for the
   hand), caves of any outline (for the nest's organic shapes), backup sets and the power rules, the progression checker (to prove

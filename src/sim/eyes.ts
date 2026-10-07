@@ -40,8 +40,8 @@ export interface Alarm {
 }
 
 /** held this long, you sound the zone; the zone sounds this long, again from the start each time it is sounded; its
- *  sound carries this far; it goes round every so often */
-export const EYES = { hold: 1.4, sound: 12, reach: 34, every: 1.3 };
+ *  sound carries this far; it goes round every so often; the doors this near you are bolted, a bolt this long being drawn */
+export const EYES = { hold: 1.4, sound: 12, reach: 34, every: 1.3, bolts: 9, draw: 1.1 };
 
 const seeThrough = (d: Dyn) => d.kind === 'body';
 
@@ -64,8 +64,9 @@ export function camSees(sim: Sim, c: Cam): boolean {
   return sim.world.raycast(C.x, C.y, C.z, b.x, hy, b.z, seeThrough) >= 1;
 }
 
-/** sound a zone: its speaker goes, and goes on going a while; whatever hears it comes */
-export function soundZone(sim: Sim, zone: string): void {
+/** sound a zone: its speaker goes, and goes on going a while; whatever hears it comes. `seen`: you were seen (by a
+ *  camera or the overseer itself), so it bolts the doors about you as well */
+export function soundZone(sim: Sim, zone: string, seen = false): void {
   const sp = sim.world.def.speakers?.find(s => s.zone === zone), F = sim.fields;
   if (!sp || !F || blinded(sim)) return;
   const on = sim.alarms.find(a => a.zone === zone);
@@ -73,6 +74,29 @@ export function soundZone(sim: Sim, zone: string): void {
   const spot = F.nav.locate(sp.x, sp.y, sp.z);
   if (spot < 0) return;
   sim.alarms.push(makeAlarm(sim, zone, spot, EYES.sound));
+  if (seen) boltAbout(sim);
+}
+
+/** the overseer bolts the doors about you that have power: each is heard being drawn a moment before it goes home, and
+ *  holds while the alarm sounds. A dead door cannot be bolted, and one that loses its power lets its bolt go. */
+function boltAbout(sim: Sim): void {
+  const b = sim.player.body, g = sim.game;
+  for (const d of sim.doors) {
+    const D = d.def, cx = (D.x0 + D.x1) / 2, cz = (D.z0 + D.z1) / 2;
+    if (D.seal || D.vent || D.lift || D.stuck || D.card || D.code || d.bolt > 0 || d.bolting > 0) continue;
+    if (Math.hypot(cx - b.x, cz - b.z) > EYES.bolts || Math.abs(D.y0 - b.y) > 3 || power(g, D.circuit) < 1) continue;
+    d.bolting = EYES.draw;
+    sfx(g, 'bolt-draw', { x: cx, y: D.y0 + 2, z: cz });
+  }
+}
+
+function updateBolts(sim: Sim): void {
+  const g = sim.game, sounding = sim.alarms.length > 0;
+  for (const d of sim.doors) {
+    const D = d.def, at = { x: (D.x0 + D.x1) / 2, y: D.y0 + 2, z: (D.z0 + D.z1) / 2 }, live = power(g, D.circuit) >= 1;
+    if (d.bolting > 0 && (d.bolting -= STEP) <= 0) { d.bolting = 0; if (live && sounding) { d.bolt = EYES.sound; sfx(g, 'bolt', at); } }
+    if (d.bolt > 0 && (!live || !sounding || (d.bolt -= STEP) <= 0)) { d.bolt = 0; sfx(g, 'bolt-free', at); }
+  }
 }
 
 function makeAlarm(sim: Sim, zone: string, spot: number, t: number): Alarm {
@@ -100,13 +124,14 @@ export function updateEyes(sim: Sim): void {
     }
     sim.alarms = [];
     for (const c of sim.cams) c.hold = 0;
+    updateBolts(sim);
     return;
   }
   for (const c of sim.cams) {
     if (!camLive(sim, c) || !camSees(sim, c)) { c.hold = 0; continue; }
     if (c.hold === 0) sfx(g, 'cam', c.def); // it has you: the servo turns, the light goes red
     c.hold += STEP;
-    if (c.hold >= EYES.hold) soundZone(sim, c.def.zone);
+    if (c.hold >= EYES.hold) soundZone(sim, c.def.zone, true);
   }
   for (const a of sim.alarms) {
     a.t -= STEP;
@@ -122,4 +147,5 @@ export function updateEyes(sim: Sim): void {
     }
   }
   sim.alarms = sim.alarms.filter(a => a.t > 0);
+  updateBolts(sim);
 }

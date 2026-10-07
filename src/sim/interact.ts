@@ -247,6 +247,7 @@ export function doorLabel(sim: Sim, d: Door): string | null {
   if (D.seal) return 'Jammed shut';
   if (D.stuck) return sim.player.crouch ? null : 'Jammed half open';
   const L = power(g, D.circuit), rd = D.card ? 'Card reader' : 'Keypad';
+  if (d.bolt > 0) return 'Bolted';
   if (D.kind === 'heavy') {
     if (L < 2) return 'Heavy door: no power';
     if (locked(d)) return rd;
@@ -270,6 +271,7 @@ export function doorAct(sim: Sim, d: Door): void {
     return;
   }
   if (D.seal) { say(g, D.msg ?? 'It does not move. Something on the other side shifts its weight.'); sfx(g, 'deny'); return; }
+  if (d.bolt > 0) { say(g, 'Bolted, from somewhere else. The lock hums with the power behind it.'); sfx(g, 'deny'); return; }
   if (D.stuck) { say(g, 'Jammed at waist height. You could get under it. Not everything could.'); return; }
   if (D.vent) { d.open = true; sfx(g, 'clang', at); makeNoise(g, 7); say(g, 'The panel comes away in your hands. There is a way through.'); return; }
   const L = power(g, D.circuit), heavy = D.kind === 'heavy';

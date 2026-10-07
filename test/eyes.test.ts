@@ -7,6 +7,7 @@ import { STEP } from '../src/core/loop';
 import { give } from '../src/sim/game';
 import { EYES, soundZone } from '../src/sim/eyes';
 import { hitMutant } from '../src/sim/cast';
+import { doorAct, doorLabel } from '../src/sim/interact';
 import { load, save } from '../src/sim/save';
 
 /* The overseer's eyes and voice (sim/eyes.ts), on the upper station: cameras that hold you sound their zone, and the
@@ -200,5 +201,53 @@ describe('the overseer and its hand', () => {
     expect(s.alarms).toEqual([]);
     soundZone(s, 'wing');
     expect(s.alarms).toEqual([]);
+  });
+});
+
+describe('the overseer\'s bolts', () => {
+  /** in the Operations corridor, in view of its north camera, between the logistics office and maintenance */
+  const setUp = () => {
+    const s = fresh();
+    still(s);
+    place(s, 77, 0, 20);
+    const near = (x: number) => s.doors.find(d => Math.abs((d.def.x0 + d.def.x1) / 2 - x) < 1 && Math.abs((d.def.z0 + d.def.z1) / 2 - 27) < 1)!;
+    return { s, logistics: near(73), maint: near(81) };
+  };
+
+  it('seen, the doors about you that have power are bolted: heard being drawn first, then shut and held', () => {
+    const { s, logistics, maint } = setUp();
+    s.game.events.length = 0;
+    hold(s, EYES.hold + 0.2);
+    expect(s.alarms.map(a => a.zone)).toContain('ops');
+    expect(logistics.bolting).toBeGreaterThan(0); // the tell: you can still get through
+    expect(maint.bolting).toBeGreaterThan(0);
+    expect(sounded(s, 'bolt-draw')).toBe(true);
+    hold(s, EYES.draw + 1);
+    for (const d of [logistics, maint]) {
+      expect(d.bolt).toBeGreaterThan(0);
+      expect(doorLabel(s, d)).toBe('Bolted');
+    }
+    hold(s, 1);
+    expect(logistics.t).toBeLessThan(0.05); // open at the start; bolted, it shut
+    s.game.events.length = 0;
+    doorAct(s, maint);
+    expect(s.game.events.some(e => e.type === 'say' && /Bolted/.test(e.text))).toBe(true);
+  });
+
+  it('a bolt holds only with power behind it, and lets go when the alarm ends', () => {
+    const { s, logistics, maint } = setUp();
+    hold(s, EYES.hold + EYES.draw + 0.5);
+    expect(maint.bolt).toBeGreaterThan(0);
+    s.game.station!.circuits.OPS.back = false; s.lighting = null; // cut the power: the bolts go
+    hold(s, 0.1);
+    expect(maint.bolt).toBe(0);
+    expect(logistics.bolt).toBe(0);
+    const t = setUp();
+    hold(t.s, EYES.hold + EYES.draw + 0.5);
+    expect(t.maint.bolt).toBeGreaterThan(0);
+    place(t.s, 30, -4.5, -25); // gone from its sight: the alarm runs down
+    hold(t.s, EYES.sound + 1);
+    expect(t.s.alarms).toEqual([]);
+    expect(t.maint.bolt).toBe(0);
   });
 });
