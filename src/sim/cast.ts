@@ -9,7 +9,7 @@ import { hurtBy, power, sayOnce, sfx } from './game';
 import { sendPlatform, type Door } from './movers';
 import { eyeHeight } from './player';
 import { simLighting, type Sim } from './sim';
-import { soundZone } from './eyes';
+import { manned, soundZone } from './eyes';
 
 /* The cast (engine.md §7, §8): what lives in the station, ported from the first engine's behaviours. Each is a body that
    walks like yours, so it has weight, falls, rides platforms and is stopped by what stops you; they block each other
@@ -82,8 +82,9 @@ export interface Mutant {
   opens: boolean; low: boolean; noDoors: boolean; fixed: boolean; swim: boolean; solid: boolean;
   /** a guard that keeps its post until it notices you; one sitting down; one grown over; a big one */
   post: boolean; sit: boolean; holt: boolean; big: boolean;
-  /** the overseer's: the zone it sounds when it sees you itself */
+  /** the overseer's: the zone it sounds when it sees you itself, and the circuit its screens and board are on */
   zone: string | null;
+  screens: string | null;
   /** where it started, which it keeps near */
   hx: number; hz: number;
   room: number;
@@ -143,7 +144,7 @@ export function makeCast(sim: Sim, defs: MutantDef[]): Mutant[] {
       hp: S.hp, max: S.hp, mass: S.mass, r: S.r,
       walker: S.noDoors ? 'big' : S.opens ? 'hands' : 'crawl',
       opens: !!S.opens, low: !!S.low, noDoors: !!S.noDoors, fixed: !!S.fixed, swim: !!S.swim, solid: !!S.solid,
-      post: !!o.post, sit: !!o.sit, holt: !!o.holt, big: !!o.big, zone: (def.opts.zone as string | undefined) ?? null, hx: def.x, hz: def.z, room,
+      post: !!o.post, sit: !!o.sit, holt: !!o.holt, big: !!o.big, zone: (def.opts.zone as string | undefined) ?? null, screens: (def.opts.screens as string | undefined) ?? null, hx: def.x, hz: def.z, room,
       wt: rnd(1, 5), wm: 0, wx: 0, wz: 0, tk: 0, lost: 0, bt: 0, burst: false, flee: 0, ct: rnd(6, 14), cdir: 0, tgt: false,
       grab: 0, tense: 0, blow: null, dest: -1, F: null, stk: 0, fled: false, side: 0, ride: null, spot: -1,
       mv: 0, d: 99, dp: 99, dy: 0, los: false, losAt: -99, hit: 0, kx: 0, kz: 0, ph: rnd(9), dead: false, gone: 0, still: 0,
@@ -595,6 +596,21 @@ const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
         else if ((m.stk += dt) > 3) { m.stk = 0; m.state = 'idle'; m.dest = -1; m.wt = rnd(sim, 2, 4); }
         break;
       }
+      case 'fix': {
+        /* a drill: the lights went, so to the board, and the breaker back on (drill(), below) */
+        if (notices(sim, m)) break;
+        const D = sim.drills.find(q => q.spot === m.dest);
+        if (!D || !m.F || m.dest < 0 || !Number.isFinite(m.F[m.spot])) { m.state = 'idle'; m.dest = -1; m.wt = rnd(sim, 2, 4); break; }
+        if (m.spot === m.dest || m.F[m.spot] < 1.5) {
+          turnTo(sim, m, 6);
+          if ((m.st -= dt) <= 0) { restore(sim, D); m.state = 'idle'; m.dest = -1; m.wt = rnd(sim, 4, 8); }
+          break;
+        }
+        m.st = 1.2;
+        if (follow(sim, m, m.F, 2.2, false)) m.stk = 0;
+        else if ((m.stk += dt) > 4) { m.stk = 0; m.state = 'idle'; m.dest = -1; m.wt = rnd(sim, 2, 4); }
+        break;
+      }
       case 'hunt':
         if (blowStep(sim, m)) break;
         if (m.hp < m.max * 0.4 && !m.fled && d > 2.8) { m.state = 'flee'; m.st = 7; m.fled = true; step_(sim, m, 'moan'); break; }
@@ -753,10 +769,11 @@ const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
   },
 
   /* the arms are bait. the thing is the head on the wall above them. */
-  /* the operations centre grown into one growth: it sees you itself in its own room and sounds its zone, and what comes near
-     its controls it lashes, with the tell of a grabber */
+  /* the operations centre's staff grown into one body at its screens: it watches the hall through its glass with its own
+     eyes, and sounds its zone when it sees you, if its board has power under its hands; what comes near, it lashes, with
+     the tell of a grabber */
   overseer(sim, m) {
-    if (m.zone && seeP(sim, m, 14)) soundZone(sim, m.zone, true);
+    if (m.zone && seeP(sim, m, 30) && manned(sim)) soundZone(sim, m.zone, true);
     if (m.dp < 2.2 && Math.abs(m.dy) < 2.5 && sight(sim, m)) {
       if (m.tense === 0) step_(sim, m, 'growl');
       m.tense += dt;
@@ -779,8 +796,83 @@ const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
   },
 };
 
+/* Power-failure drill (world.md §8). The staff were drilled for a dead circuit as for an alarm, and habit is what they have
+   left: those caught in the dark when a breaker goes may go to its board and throw it back on. Each one caught has a fair
+   chance to go at once, so a crowd nearly always sends someone and one alone may not; any other who is still in the dark
+   later goes, its odds climbing until, three minutes on, it surely would. One who reaches the light has stopped noticing.
+   That is the whole of their wit: a habit and a hand. They do not hunt whoever did it, cut anything, or mend a cut cable. */
+export interface Drill {
+  c: string;
+  /** the board: where its breaker is, and the spot to stand at it */
+  x: number; y: number; z: number; spot: number;
+  /** seconds since it went */
+  t: number;
+  /** each one caught in the dark (its id), and when it would go */
+  due: { id: number; at: number }[];
+}
+const DRILL = { now: 0.25, quick: [1.5, 4], last: 180, first: 30 };
+
+/** does circuit `rc` take its power through `c`? */
+function fedBy(sim: Sim, rc: string, c: string): boolean {
+  const C = sim.game.station?.circuits;
+  for (let k = rc, n = 0; k && n < 8; k = C?.[k]?.feed ?? '', n++) if (k === c) return true;
+  return false;
+}
+const caught = (m: Mutant) => m.ai === 'husk' && !m.dead && !m.post && m.state !== 'hunt' && m.state !== 'fix';
+
+/** a breaker opened by hand at (x, y, z): who it leaves in the dark, and when each would go to throw it back */
+export function drill(sim: Sim, c: string, x: number, y: number, z: number): void {
+  const F = sim.fields;
+  if (!F) return;
+  sim.drills = sim.drills.filter(D => D.c !== c);
+  sim.lighting = null;
+  const due: Drill['due'] = [];
+  for (const m of sim.cast) {
+    if (!caught(m)) continue;
+    const R = sim.world.roomAt(m.x, m.y + 0.5, m.z);
+    if (!R || !fedBy(sim, R.circuit, c) || lit(sim, m.x, m.y + 1, m.z)) continue;
+    const at = sim.rng.chance(DRILL.now) ? sim.rng.range(DRILL.quick[0], DRILL.quick[1]) : DRILL.first + (DRILL.last - DRILL.first) * Math.sqrt(sim.rng.range(0, 1));
+    due.push({ id: m.id, at });
+  }
+  const spot = F.nav.locate(x, y - 1.3, z);
+  if (due.length && spot >= 0) sim.drills.push({ c, x, y, z, spot, t: 0, due });
+}
+
+/** the breaker back on: heard, and the light with it */
+function restore(sim: Sim, D: Drill): void {
+  const C = sim.game.station?.circuits[D.c], g = sim.game;
+  sim.drills = sim.drills.filter(q => q !== D);
+  if (!C || C.on || C.broken) return;
+  C.on = true;
+  g.events.push({ type: 'power', loud: false });
+  sfx(g, 'clang', { x: D.x, y: D.y, z: D.z });
+  const b = sim.player.body;
+  if (Math.hypot(b.x - D.x, b.z - D.z) < 24) sayOnce(g, 'drill', 'Somewhere close, a breaker slams home. They remember that much.');
+}
+
+function updateDrills(sim: Sim): void {
+  for (const D of [...sim.drills]) {
+    const C = sim.game.station?.circuits[D.c];
+    if (!C || C.on) { sim.drills = sim.drills.filter(q => q !== D); continue; }
+    D.t += dt;
+    for (const e of D.due) {
+      const m = sim.cast[e.id];
+      if (e.at < 0 || D.t < e.at) continue;
+      e.at = -1;
+      /* still in the dark, and free to go: to the board, if it can get there */
+      if (!m || !caught(m) || lit(sim, m.x, m.y + 1, m.z) || m.spot < 0 || !sim.fields) continue;
+      const F = fieldTo(sim, m, D.spot);
+      if (!Number.isFinite(F[m.spot])) continue;
+      step_(sim, m, 'mutter');
+      m.state = 'fix'; m.post = false; m.dest = D.spot; m.F = F; m.st = 1.2; m.stk = 0;
+    }
+    D.due = D.due.filter(e => e.at >= 0);
+  }
+}
+
 /** a step of everything alive */
 export function updateCast(sim: Sim): void {
+  updateDrills(sim);
   const b = sim.player.body, Fs = sim.fields;
   let wn = 0;
   for (const m of sim.cast) if (m.ai === 'worm' && !m.dead && m.flee <= 0 && m.dp < 2.6) wn++;

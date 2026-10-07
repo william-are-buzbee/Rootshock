@@ -6,6 +6,7 @@ import { eyeHeight } from './player';
 import type { Sim } from './sim';
 import { riders } from './sim';
 import { soundZone, speakerY } from './eyes';
+import { drill } from './cast';
 
 /* What you can use, and what using it does: E on whatever you are looking at. The labels and the answers are the first
    engine's (interaction, in archive/first-engine.html), so the station reads as it did. */
@@ -108,6 +109,8 @@ export function buildUsables(sim: Sim): Usable[] {
               if (o.zone) soundZone(sim, o.zone as string);
             } else {
               C.on = !C.on;
+              /* opened by hand: those it leaves in the dark may go to throw it back (sim/cast.ts, drill) */
+              if (!C.on) drill(sim, c, u.x, u.y, u.z);
               /* a branch takes what its feed has; anything else takes Gen-1 */
               const live = power(g, C.feed ?? c) > 0, up = C.feed ? (live ? 'The ' + name + ' takes power.' : 'Nothing upstream to take.') : g.station!.main ? 'That floor takes power.' : 'Nothing upstream to take.';
               say(g, C.on ? 'Switch closed. ' + up : C.feed ? 'Switch open. The ' + name + ' is cut off.' : 'Switch open. That floor is cut off from Gen-1.');
@@ -279,7 +282,7 @@ export function doorAct(sim: Sim, d: Door): void {
     return;
   }
   if (D.seal) { say(g, D.msg ?? 'It does not move. Something on the other side shifts its weight.'); sfx(g, 'deny'); return; }
-  if (d.bolt > 0) { say(g, D.keep ? 'Bolted from the inside. The lock hums with the power behind it, and on the other side something wet shifts against the door.' : 'Bolted, from somewhere else. The lock hums with the power behind it.'); sfx(g, 'deny'); return; }
+  if (d.bolt > 0) { say(g, 'Bolted, from somewhere else. The lock hums with the power behind it.'); sfx(g, 'deny'); return; }
   if (D.stuck) { say(g, 'Jammed at waist height. You could get under it. Not everything could.'); return; }
   if (D.vent) { d.open = true; sfx(g, 'clang', at); makeNoise(g, 7); say(g, 'The panel comes away in your hands. There is a way through.'); return; }
   const L = power(g, D.circuit), heavy = D.kind === 'heavy';

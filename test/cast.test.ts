@@ -21,6 +21,12 @@ function place(s: Sim, who: Mutant | 'player', x: number, y: number, z: number):
   if (who !== 'player') { who.x = who.px = x; who.y = who.py = y; who.z = who.pz = z; }
 }
 /** stand `dist` from it on whichever side has room, and look at it */
+/** the cast by where they start, not by the order they were made in (each deck's are made in turn, the lowest first) */
+const startRoom = (s: Sim, m: Mutant) => s.world.roomAt(m.x, m.y + 0.5, m.z)?.name;
+const rangeSkitter = (s: Sim) => s.cast.find(m => m.ai === 'skitter' && startRoom(s, m) === 'Firing range')!;
+const cargoHusk = (s: Sim) => s.cast.find(m => m.ai === 'husk' && !m.post && startRoom(s, m) === 'Cargo cavern')!;
+const cavernWorm = (s: Sim) => s.cast.find(m => m.ai === 'worm')!;
+
 function faceOff(s: Sim, m: Mutant, dist: number, at = 0.5): void {
   for (const a of [-Math.PI / 2, Math.PI / 2, 0, Math.PI]) {
     const x = m.x + Math.sin(a) * dist, z = m.z + Math.cos(a) * dist;
@@ -102,11 +108,11 @@ describe('their rounds', () => {
     const names = () => new Set(rounds(s).map(id => s.world.rooms[id].name));
     const now = names();
     expect([...now]).toEqual(expect.arrayContaining(['Atrium', 'Operations corridor', 'Gallery', 'Muster hall']));
-    for (const dark of ['Checkpoint', 'Operations room', 'Cargo cavern']) expect(now.has(dark)).toBe(false); // the wing, a room with no emergency lights, Cargo
+    for (const dark of ['Checkpoint', 'Firing range', 'Cargo cavern']) expect(now.has(dark)).toBe(false); // the wing, a room with no emergency lights, Cargo
     s.game.station!.circuits.SEC.broken = false; s.lighting = null; // the wing mended
     expect(names().has('Checkpoint')).toBe(true);
-    s.game.station!.circuits.OPS.back = false; s.lighting = null; // and Ops' set stopped: nothing it can see by but the nest's own glow
-    expect([...names()].every(n => /^Tier/.test(n))).toBe(true);
+    s.game.station!.circuits.OPS.back = false; s.lighting = null; // and Ops' set stopped: nothing to see by but the flesh's own glow
+    expect([...names()].every(n => /^Tier|^Operations room$/.test(n))).toBe(true); // the nest's, and the overseer's
   });
 
   it('one standing in the dark makes for the nearest light it can get to', () => {
@@ -121,7 +127,7 @@ describe('their rounds', () => {
   });
 
   it('one in the dark with no light it can get to keeps still; when the light comes, it walks', () => {
-    const s = fresh(), m = s.cast[5]; // a husk on the Cargo floor: dark, and Cargo's link is behind Operations' card
+    const s = fresh(), m = cargoHusk(s); // a husk on the Cargo floor: dark, and Cargo's link is behind Operations' card
     only(s, [m]);
     const x0 = m.x, z0 = m.z;
     hold(s, 20);
@@ -135,7 +141,7 @@ describe('their rounds', () => {
 
 describe('how they follow', () => {
   it('a husk slides a dead door open by hand to come through it', () => {
-    const s = fresh(), m = s.cast[5], d = s.doors.find(d => d.def.x0 > 107 && d.def.x1 < 111 && d.def.z1 < 1)!; // the Cargo door, x 109: dead at the start
+    const s = fresh(), m = cargoHusk(s), d = s.doors.find(d => d.def.x0 > 107 && d.def.x1 < 111 && d.def.z1 < 1)!; // the Cargo door, x 109: dead at the start
     only(s, [m]);
     s.game.hp = 1e9;
     expect(d.t).toBe(0);
@@ -148,7 +154,7 @@ describe('how they follow', () => {
   });
 
   it('with Cargo on its backup set, a husk calls the platform and rides it up after you', () => {
-    const s = fresh(), m = s.cast[5], nav = s.fields!.nav;
+    const s = fresh(), m = cargoHusk(s), nav = s.fields!.nav;
     s.game.station!.circuits.CARGO.back = true;
     only(s, [m]);
     s.game.hp = 1e9;
@@ -168,7 +174,7 @@ describe('how they follow', () => {
 describe('fighting', () => {
   it('a swing let go early is a jab: it lands for less than a loaded one, and the arm is slow to come back', () => {
     const blow = (secs: number) => {
-      const s = fresh(), w = s.cast[7]; // a worm in the cavern
+      const s = fresh(), w = cavernWorm(s); // a worm in the cavern
       only(s, []);
       w.stun = 1e9;
       give(s.game, 'pipe');
@@ -188,7 +194,7 @@ describe('fighting', () => {
   });
 
   it('a blow that lands holds the swing still a moment, and says so', () => {
-    const s = fresh(), w = s.cast[7];
+    const s = fresh(), w = cavernWorm(s);
     only(s, []);
     w.stun = 1e9;
     give(s.game, 'pipe');
@@ -202,7 +208,7 @@ describe('fighting', () => {
   });
 
   it('a husk blow can be stepped back from: it whiffs, and you are not hurt; one that lands says where it came from', () => {
-    const s = fresh(), m = s.cast[5];
+    const s = fresh(), m = cargoHusk(s);
     only(s, [m]);
     s.game.hp = 100;
     faceOff(s, m, 1.1, 1.2);
@@ -224,7 +230,7 @@ describe('fighting', () => {
 
   /** a husk hunting you from just in front, run to where its wind-up has stopped turning */
   function committed(dmg = 100) {
-    const s = fresh(), m = s.cast[5];
+    const s = fresh(), m = cargoHusk(s);
     only(s, [m]);
     s.game.hp = dmg;
     faceOff(s, m, 1.1, 1.2);
@@ -287,7 +293,7 @@ describe('fighting', () => {
 
   it('caught recovering from its own blow, it takes yours worse; struck as it winds up, it loses the blow', () => {
     const struck = (ph: 'after' | null) => {
-      const s = fresh(), m = s.cast[5];
+      const s = fresh(), m = cargoHusk(s);
       only(s, [m]);
       m.state = 'hunt';
       m.blow = ph && { ph, t: 0, hit: false };
@@ -298,7 +304,7 @@ describe('fighting', () => {
     expect(open.lost).toBeGreaterThan(shut.lost * 1.2);
     expect(open.stun).toBeGreaterThan(shut.stun * 1.5);
     expect(open.m.blow?.ph).toBe('after'); // still recovering
-    const s = fresh(), m = s.cast[5];
+    const s = fresh(), m = cargoHusk(s);
     m.state = 'hunt';
     m.blow = { ph: 'wind', t: 0.3, hit: false };
     hitMutant(s, m, { dmg: 10, stun: 0.3 }, 0.3);
@@ -306,7 +312,7 @@ describe('fighting', () => {
   });
 
   it('a skitter rears and drops where it was aimed: a step aside once it has stopped turning, and it lands on nothing', () => {
-    const s = fresh(), k = s.cast[4], K = BLOWS.skitter;
+    const s = fresh(), k = rangeSkitter(s), K = BLOWS.skitter;
     only(s, [k]);
     s.game.hp = 100;
     faceOff(s, k, 1.0, 0.4);
@@ -370,7 +376,7 @@ describe('fighting', () => {
   });
 
   it('a knock back slides: a step over a few frames, not all at once', () => {
-    const s = fresh(), w = s.cast[7];
+    const s = fresh(), w = cavernWorm(s);
     only(s, []);
     w.stun = 1e9;
     give(s.game, 'pipe');
@@ -389,7 +395,7 @@ describe('fighting', () => {
 
   it('a jab stuns and knocks back in proportion: much less than a loaded blow', () => {
     const blow = (secs: number) => {
-      const s = fresh(), w = s.cast[7];
+      const s = fresh(), w = cavernWorm(s);
       only(s, []);
       give(s.game, 'pipe');
       faceOff(s, w, 1.2, 0.3);
@@ -430,7 +436,7 @@ describe('fighting', () => {
   });
 
   it('a pistol fires on the press, spends a round, is heard, and kills', () => {
-    const s = fresh(), k = s.cast[4]; // the firing range skitter
+    const s = fresh(), k = rangeSkitter(s); // the firing range skitter
     only(s, []);
     k.stun = 1e9;
     give(s.game, 'pistol'); give(s.game, 'ammo9');

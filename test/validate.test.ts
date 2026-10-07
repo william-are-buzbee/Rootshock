@@ -36,7 +36,7 @@ describe('level validation', () => {
     const inside = (R: typeof corridor) => V.filter(v => v.x > R.x0 && v.x < R.x1 && v.z > R.z0 && v.z < R.z1 && v.y > R.y0 + R.ht - 0.3 && v.y < R.y0 + R.ht + 0.3);
     expect(inside(corridor).length).toBe(2); // a long room: one at each end
     expect(inside(L.rooms.find(R => R.name === 'Cargo cavern')!).length).toBe(0);
-    for (const v of V) for (const f of F) expect(Math.hypot(v.x - f.x, v.z - f.z)).toBeGreaterThan(0.5);
+    for (const v of V) for (const f of F) if (Math.abs(v.y - f.y) < 1) expect(Math.hypot(v.x - f.x, v.z - f.z)).toBeGreaterThan(0.5); // in the same ceiling
   });
 
   it('catches a thing that does not exist, a card nobody has, a code written nowhere, and a thing out of reach', () => {

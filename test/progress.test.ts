@@ -18,8 +18,8 @@ describe('the upper station', () => {
 
   it('can be left two ways, neither at once: the elevator with the wing mended, or ladder B through Cargo', () => {
     expect(r.goals['elevator to Main level']).toEqual(['take splice kit', 'mend the SEC connection with a kit']);
-    /* Cargo is behind the deputy director's card, and she is behind the overseer's door: bolted until its feed is cut */
-    expect(r.goals['ladder B1 to Main level']).toEqual(['open the CTL connection', 'search the manager', 'use the card at door 26', 'start the CARGO backup set']);
+    /* Cargo is behind the deputy director's card, and she is at the far end of the muster hall, under the overseer's glass */
+    expect(r.goals['ladder B1 to Main level']).toEqual(['search the manager', 'use the card at door 26', 'start the CARGO backup set']);
     expect(r.goals['the surface']).toBeUndefined(); // that wants Gen-1, five floors down
   });
 
@@ -42,18 +42,18 @@ describe('the upper station', () => {
     const r2 = checkProgress(s, { main: true, have: ['#1'] });
     expect(r2.items.never).toEqual([]);
     expect(r2.goals['the surface']).toEqual(['key the code at door 20', 'take surface lift pass']); // the Armory, then its pass
-    expect(r2.rooms.never.every(n => /Cell|Phase 2|Surface cage|doorway/.test(n))).toBe(true); // welded, or the way out itself
+    expect(r2.rooms.never.every(n => /Cell|Phase 2|Operations room|Surface cage|doorway/.test(n))).toBe(true); // welded, or the way out itself
   });
 
   it('works from a save: what you have done is taken as done', () => {
     const a = makeSim(upper, { seed: 7, station: STATION });
     a.game.station!.circuits.CARGO.back = true;
     const r3 = checkProgress(load(upper, JSON.parse(JSON.stringify(save(a))), { seed: 7, station: STATION }));
-    expect(r3.goals['ladder B1 to Main level']).toEqual(['open the CTL connection', 'search the manager', 'use the card at door 26']);
+    expect(r3.goals['ladder B1 to Main level']).toEqual(['search the manager', 'use the card at door 26']);
   });
 
   it('reads as text', () => {
-    expect(describeReport(r)).toMatch(/ladder B1 to Main level: open the CTL connection → search the manager → use the card at door 26 → start the CARGO backup set/);
+    expect(describeReport(r)).toMatch(/ladder B1 to Main level: search the manager → use the card at door 26 → start the CARGO backup set/);
   });
 });
 

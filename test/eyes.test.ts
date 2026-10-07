@@ -5,7 +5,7 @@ import { makeSim, step, type Sim } from '../src/sim/sim';
 import { noInput } from '../src/sim/input';
 import { STEP } from '../src/core/loop';
 import { give, power } from '../src/sim/game';
-import { EYES, soundZone } from '../src/sim/eyes';
+import { EYES, camLive, manned, soundZone } from '../src/sim/eyes';
 import { hitMutant } from '../src/sim/cast';
 import { doorAct, doorLabel, findUsable } from '../src/sim/interact';
 import { load, save } from '../src/sim/save';
@@ -142,6 +142,7 @@ describe('the overseer and its hand', () => {
     } finally { EYES.reach = reach; }
     expect(m.state).not.toBe('answer');
     expect(h.state).toBe('go'); // the hand hears it anyway
+    m.stun = 1e9; // and the husk keeps out of its way: a body in its path is not what this is about
     const sp = level.speakers!.find(q => q.zone === 'atrium')!;
     let nearest = Infinity;
     for (let t = 0; t < 24; t += STEP) { step(s, noInput()); nearest = Math.min(nearest, Math.hypot(h.x - sp.x, h.z - sp.z)); } // from the muster hall
@@ -175,11 +176,11 @@ describe('the overseer and its hand', () => {
   it('the overseer sees you itself and sounds its zone, and lashes what comes near', () => {
     const s = fresh(), o = overseer(s);
     for (const q of s.cast) if (q !== o) q.stun = 1e9;
-    place(s, o.x, 0, o.z - 3.4);
+    place(s, o.x, o.y, o.z - 3.4);
     hold(s, 0.5);
     expect(s.alarms.map(a => a.zone)).toContain('ops');
     const hp = s.game.hp;
-    place(s, o.x, 0, o.z - 1.9);
+    place(s, o.x, o.y, o.z - 1.9);
     hold(s, 1.5);
     expect(s.game.hp).toBeLessThan(hp);
   });
@@ -252,64 +253,113 @@ describe('the overseer\'s bolts', () => {
   });
 });
 
-describe('the overseer\'s own door', () => {
-  const keep = (s: Sim) => s.doors.find(d => d.def.keep)!;
-  const sw = (s: Sim) => s.usables.find(u => /Breaker, Operations room/.test(u.label() ?? ''))!;
+describe('the overseer is flesh: an eye at each of its screens, a hand on its board', () => {
+  const brk = (s: Sim, name: string) => s.usables.find(u => new RegExp('Breaker, ' + name).test(u.label() ?? ''))!;
+  const overseer = (s: Sim) => s.cast.find(m => m.ai === 'overseer')!;
+  /** on the court's floor, out from under its glass: right under it, its sill hides you */
+  const underGlass = (s: Sim) => { const o = overseer(s); place(s, o.x, -1.25, o.z - 14); };
 
-  it('it holds its door bolted from inside for as long as it has power: no card, no code, no way through', () => {
-    const s = fresh(), d = keep(s);
+  it('it watches the hall through its glass with its own eyes, and sounds its zone when it sees you', () => {
+    const s = fresh(), o = overseer(s);
+    for (const q of s.cast) if (q !== o) q.stun = 1e9;
+    underGlass(s);
+    hold(s, 0.5);
+    expect(s.alarms.map(a => a.zone)).toContain('ops');
+  });
+
+  it('its room\'s breaker darkens its screens and its board: no camera sees for it, and what it sees itself it cannot sound', () => {
+    const s = fresh(), c = threshold(s);
     still(s);
-    hold(s, 0.1);
-    expect(d.def.circuit).toBe('CTL');
-    expect(d.bolt).toBeGreaterThan(0);
-    expect(doorLabel(s, d)).toBe('Bolted');
-    hold(s, EYES.sound + 2); // no alarm, and it holds anyway
-    expect(d.bolt).toBeGreaterThan(0);
+    brk(s, 'Operations room').act();
+    expect(manned(s)).toBe(false);
+    expect(camLive(s, c)).toBe(false); // the camera has its own power: it is the eye at the screen that is in the dark
+    inView(s);
+    hold(s, 3);
+    expect(s.alarms).toEqual([]);
+    overseer(s).stun = 0; // awake, and looking
+    underGlass(s);
+    hold(s, 1);
+    expect(s.alarms).toEqual([]);
+    expect(overseer(s).dead).toBe(false); // alive; only blind and handless
+    brk(s, 'Operations room').act(); // on again: it sees again
+    inView(s);
+    hold(s, EYES.hold + 0.3);
+    expect(s.alarms.map(a => a.zone)).toContain('atrium');
+  });
+
+  it('its door is grown shut: no way in on the first pass', () => {
+    const s = fresh(), o = overseer(s);
+    const d = s.doors.find(q => q.def.seal && !q.def.glass && Math.abs(q.def.y0 - 5) < 0.1)!;
+    expect(d).toBeTruthy();
     s.game.events.length = 0;
     doorAct(s, d);
-    expect(s.game.events.some(e => e.type === 'say' && /Bolted from the inside/.test(e.text))).toBe(true);
+    expect(s.game.events.some(e => e.type === 'say' && /Bodies/.test(e.text))).toBe(true);
+    expect(s.world.roomAt(o.x, o.y + 1, o.z)?.name).toBe('Operations room');
   });
+});
 
-  it('its switch is at the hall\'s far end: opened, the bolt lets go, the east bays go dark, and the door slides', () => {
-    const s = fresh(), d = keep(s);
-    still(s);
-    hold(s, 0.1);
-    const u = sw(s);
-    expect(u.label()).toBe('Breaker, Operations room: closed');
-    expect(Math.hypot(u.x - (d.def.x0 + d.def.x1) / 2, u.z - (d.def.z0 + d.def.z1) / 2)).toBeGreaterThan(50); // across the hall
-    s.game.events.length = 0;
-    u.act();
-    hold(s, 0.1);
-    expect(d.bolt).toBe(0);
-    expect(sounded(s, 'bolt-free')).toBe(true);
-    expect(doorLabel(s, d)).toBe('Slide the door open');
-    const east = s.cams.filter(c => c.def.circuit === 'CTL');
-    expect(east.length).toBe(2);
-    for (const c of east) expect(power(s.game, c.def.circuit)).toBe(0); // its eyes on the east bays, dark with them
-    u.act(); // closed again: it takes the door back
-    hold(s, 0.1);
-    expect(d.bolt).toBeGreaterThan(0);
-  });
-
-  it('killed, it lets its door go', () => {
-    const s = fresh(), d = keep(s), o = s.cast.find(m => m.ai === 'overseer')!;
-    still(s);
-    hold(s, 0.1);
-    hitMutant(s, o, { dmg: 10000, stun: 0 }, 1);
+describe('the power-failure drill', () => {
+  const brk = (s: Sim, name: string) => s.usables.find(u => new RegExp('Breaker, ' + name).test(u.label() ?? ''))!;
+  /** a husk on its rounds put in the hall's east bays, which hang off the operations room's breaker; everything else still */
+  const setUp = () => {
+    const s = fresh(), m = s.cast.find(q => q.ai === 'husk' && !q.post)!;
+    for (const q of s.cast) if (q !== m) q.stun = 1e9;
+    place(s, 30, -4.5, -25); // you, out of it all, a storey down
+    const b = m.body!; b.x = m.x = 70; b.y = m.y = 0; b.z = m.z = 36; b.sync();
     hold(s, 0.2);
-    expect(d.bolt).toBe(0);
+    return { s, m };
+  };
+
+  it('those an opened breaker leaves in the dark are each given a time to go, within three minutes; posts and the lit are not', () => {
+    const { s, m } = setUp();
+    brk(s, 'Operations room').act();
+    expect(s.drills.length).toBe(1);
+    const D = s.drills[0];
+    expect(D.c).toBe('CTL');
+    const post = s.cast.find(q => q.post && q.y > 4)!; // the one kept at the grown door, in the dark with it
+    expect(D.due.map(e => e.id)).toContain(m.id);
+    expect(D.due.map(e => e.id)).not.toContain(post.id);
+    for (const e of D.due) {
+      expect(e.at).toBeGreaterThan(0);
+      expect(e.at).toBeLessThanOrEqual(180);
+      const q = s.cast[e.id];
+      expect(s.world.roomAt(q.x, q.y + 0.5, q.z)?.circuit).toBe('CTL'); // every one of them caught by this breaker
+    }
   });
 
-  it('a save keeps it bolted, and opened', () => {
-    const s = fresh();
-    still(s);
-    hold(s, 0.1);
-    sw(s).act();
-    hold(s, 0.1);
-    const t = load(level, JSON.parse(JSON.stringify(save(s))), { seed: 7, station: STATION });
-    hold(t, 0.1);
-    expect(keep(t).bolt).toBe(0);
-    expect(keep(fresh()).bolt).toBe(0); // not yet stepped
+  it('one sent goes to the board and throws the breaker back on, and it is heard', () => {
+    const { s, m } = setUp();
+    brk(s, 'Operations room').act();
+    for (const e of s.drills[0].due) e.at = e.id === m.id ? 0.3 : 1e9;
+    hold(s, 0.5);
+    expect(m.state).toBe('fix');
+    s.game.events.length = 0;
+    let back = false;
+    for (let t = 0; t < 90 && !back; t += STEP) { step(s, noInput()); back = s.game.station!.circuits.CTL.on; }
+    expect(back).toBe(true);
+    expect(sounded(s, 'clang')).toBe(true);
+    expect(s.drills).toEqual([]);
+    expect(manned(s)).toBe(true);
+  });
+
+  it('one who reaches the light has stopped noticing: the breaker stays open', () => {
+    const { s, m } = setUp();
+    brk(s, 'Operations room').act();
+    const b = m.body!; b.x = m.x = 30; b.z = m.z = 36; b.sync(); // into the lit west end
+    for (const e of s.drills[0].due) e.at = e.id === m.id ? 0.3 : 1e9;
+    hold(s, 1);
+    expect(m.state).not.toBe('fix');
+    expect(s.game.station!.circuits.CTL.on).toBe(false);
+  });
+
+  it('a save made while one goes to the board plays on the same', () => {
+    const { s, m } = setUp();
+    brk(s, 'Operations room').act();
+    for (const e of s.drills[0].due) e.at = e.id === m.id ? 0.3 : 1e9;
+    hold(s, 2);
+    const a = load(level, JSON.parse(JSON.stringify(save(s))), { seed: 7, station: STATION });
+    hold(s, 3); hold(a, 3);
+    expect(JSON.stringify(save(a))).toBe(JSON.stringify(save(s)));
   });
 });
 
@@ -322,7 +372,7 @@ describe('the electrical room\'s board', () => {
     expect(Math.max(...b.map(u => Math.hypot(u.x - b[0].x, u.z - b[0].z)))).toBeLessThan(4);
   });
 
-  it('the hall\'s breaker darkens it and its own cameras, and its speaker with them; the overseer\'s keep its power', () => {
+  it('the hall\'s breaker darkens it and its own cameras, and its speaker with them; the east bays keep their power', () => {
     const s = fresh();
     still(s);
     brk(s, 'Muster hall').act();
