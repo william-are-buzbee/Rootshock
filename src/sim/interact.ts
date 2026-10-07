@@ -242,6 +242,7 @@ export function itemUse(sim: Sim, it: WorldItem): Usable {
 
 export function doorLabel(sim: Sim, d: Door): string | null {
   const D = d.def, g = sim.game;
+  if (D.glass) return null;
   if (D.vent) return d.open ? null : 'Loose panel';
   if (D.lift) return 'Call the surface lift';
   if (D.seal) return 'Jammed shut';

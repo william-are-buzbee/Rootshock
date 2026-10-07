@@ -160,7 +160,8 @@ export const castMovers = (sim: Sim): Body[] => sim.cast.filter(m => !m.dead && 
 
 /* ---- perception */
 
-const seeThrough = (d: Dyn) => d.kind === 'body';
+/** what sight goes through: bodies, and glass */
+const seeThrough = (d: Dyn) => d.kind === 'body' || !!d.glass;
 
 /** a clear line from its eye to yours: through no wall, door or crate. Looked along at most every tenth of a second. */
 function sight(sim: Sim, m: Mutant): boolean {

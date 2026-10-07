@@ -485,15 +485,17 @@ Mended, the wing lights amber, Security control's reader wakes, and the Security
 shaft station and back (ladderway A is gone). The highway runs east from the Lobby
 through the dark wing and opens without a door into the atrium; the second leg runs south to the operations room past
 the offices and Maintenance (the Ops backup set). The gallery climbs the core's east side to +5 and branches east to
-Cargo control, whose east wall is the window: black for now. Cargo is behind Operations' card (the deputy director, at
+Cargo control, whose east wall is the window: three bays of glass over the bay. Cargo is behind Operations' card (the deputy director, at
 the far end), so it comes last. The Armory's and the hazard store's heavy doors run off Ops' bus, so they wait on Gen-1
 whether or not the wing is mended.
 
 **What the game needs for it**
 
-- **New:** glass: solid to bodies, clear to sight and light (the bay window). Breaking a speaker. (Cameras, the zone alarm,
-  the overseer, its hand and its bolts are built: above.)
-- **Content:** done but for the window's glass.
+- **New:** breaking a speaker. (Cameras, the zone alarm, the overseer, its hand, its bolts and the window's glass are built:
+  above.)
+- **Content:** done. The window is three bays of glass in Cargo control's east wall (`DoorDef.glass`: a sealed pane that stops
+  bodies and lets sight through). In the dark the bay is black but for the nest's own glow: pustules among the eggs on the
+  rungs, and its edge, creeping west over the floor below the window toward the door, a sick red.
 - **Already there:** patrols (the cast keep rounds), vents (loose panels; crawling under), grabbing and dragging (a start for the
   hand), caves of any outline (for the nest's organic shapes), backup sets and the power rules, the progression checker (to prove
   the level, and every way of spending power in it, can still be finished).

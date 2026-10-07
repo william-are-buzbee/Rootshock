@@ -52,7 +52,7 @@ const DOOR_NEAR = 2.5;
 const LIFT_SPEED = 1.5;
 const THICK = 0.2;
 export function makeDoor(w: World, def: DoorDef): Door {
-  const dyn: Dyn = { kind: 'mover', id: w.newId(), x0: def.x0, y0: def.y0, z0: def.z0, x1: def.x1, y1: def.y1, z1: def.z1 };
+  const dyn: Dyn = { kind: 'mover', id: w.newId(), x0: def.x0, y0: def.y0, z0: def.z0, x1: def.x1, y1: def.y1, z1: def.z1, ...(def.glass ? { glass: true } : {}) };
   w.dyn.push(dyn);
   const d: Door = { def, dyn, t: def.stuck ? STUCK : def.open ? 1 : 0, open: def.open, unlocked: false, hold: 0, bolt: 0, bolting: 0 };
   Object.assign(d.dyn, doorBox(d, d.t));

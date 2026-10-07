@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { STATION } from '../src/content/station';
 import { buildUpper } from '../src/content/levels/upper';
-import { makeSim } from '../src/sim/sim';
+import { makeSim, step } from '../src/sim/sim';
+import { noInput } from '../src/sim/input';
 import { reach } from '../src/sim/reach';
 import { Lighting, stationPower, fullPower } from '../src/world/light';
 import { buildLevelMesh } from '../src/present/render/levelMesh';
@@ -75,6 +76,19 @@ describe('the upper station', () => {
     const signs = level.lamps.filter(l => l.colour[1] > l.colour[0] * 3);
     expect(signs.length).toBe(2);
     for (const S of signs) expect(Math.max(...off.atPoint(S.x, S.y + 0.5, S.z))).toBeGreaterThan(0.1);
+  });
+
+  it('looks out over the bay through glass: it stops you, and sight goes through it', () => {
+    const s = makeSim(level, { seed: 1, station: STATION }), panes = s.doors.filter(d => d.def.glass);
+    expect(panes.length).toBe(3);
+    const P = panes[1].def, x = P.x0 - 1.2, z = (P.z0 + P.z1) / 2, y = P.y0 + 1.6;
+    /* a line from Cargo control out into the bay: glass is no wall to an eye, but it is to a ray that sees nothing through it */
+    expect(s.world.raycast(x, y, z, x + 12, y - 2, z, d => d.kind === 'body' || !!d.glass)).toBe(1);
+    expect(s.world.raycast(x, y, z, x + 12, y - 2, z, () => false)).toBeLessThan(1);
+    /* and you walk into it and no further */
+    const b = s.player.body; b.x = x; b.y = P.y0; b.z = z; b.sync();
+    for (let k = 0; k < 120; k++) step(s, { ...noInput(), forward: 1 });
+    expect(b.x).toBeLessThan(P.x1);
   });
 
   it('floors the second floor in one colour: the gallery\'s slab stops at the door into Cargo control', () => {

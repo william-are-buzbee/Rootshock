@@ -8,6 +8,8 @@ export interface Dyn extends Box {
   id: number;
   /** a body you can walk through (a husk, a worm: they stop short of you rather than block you, as they always did) */
   soft?: boolean;
+  /** glass: it stops what moves, and what looks goes through it */
+  glass?: boolean;
 }
 
 /** what a query sees through: one moving thing, or a test for which */

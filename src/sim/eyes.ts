@@ -43,7 +43,8 @@ export interface Alarm {
  *  sound carries this far; it goes round every so often; the doors this near you are bolted, a bolt this long being drawn */
 export const EYES = { hold: 1.4, sound: 12, reach: 34, every: 1.3, bolts: 9, draw: 1.1 };
 
-const seeThrough = (d: Dyn) => d.kind === 'body';
+/** what sight goes through: bodies, and glass */
+const seeThrough = (d: Dyn) => d.kind === 'body' || !!d.glass;
 
 export function makeCams(sim: Sim): Cam[] {
   return (sim.world.def.cameras ?? []).map(def => ({ def, broken: false, hold: 0 }));

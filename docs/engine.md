@@ -280,7 +280,9 @@ components, not code threaded through the frame loop:
   through its service connection, or is a branch (`feed`) that has whatever the circuit feeding it has, through its
   own; either way, at least what its own backup set gives. The Security wing is a branch off Ops (`world.md` §8).
 - **Doors**: one system runs the rules for light, heavy, stuck, sealed, vent and lift doors, card and keypad locks.
-  Collision, pathing and sight learn a door's state from its mover, never from a special case.
+  Collision, pathing and sight learn a door's state from its mover, never from a special case. A window is a door too: sealed,
+  and glass (`DoorDef.glass`), so it stops what moves while every sight check (the cast's, the cameras', your flashlight's)
+  looks through it; it is drawn as a tinted pane.
 - **Interaction**: anything with `interactable` is found by one query (in reach, in view, unobstructed), as today's
   `findInt`.
 - **Cameras and zone alarms** (`sim/eyes.ts`, `world.md` §8): `LevelDef.cameras` (a lens, a yaw, a cone, a range, a circuit,

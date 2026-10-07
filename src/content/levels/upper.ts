@@ -130,9 +130,9 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   door(D, 59, 14, { sg: [['Cargo cavern', 'w']] });
   door(T1, 49, 16, { sg: [['Cargo control', 'w']] }); room(T1, 'Cargo control', 50, 12, 9, 7, { ...UTIL, c: 'CARGO', ht: 4 });
   tbl(T1, 58.3, 15, 0.8, 4, 0x3a3d40); bx(T1, 57.4, 15, 0.45, 0.45, 0.45, 0x2c2f33); for (const z of [14.2, 15.8]) bx(T1, 58.4, z, 0.5, 0.3, 0.06, 0x22262a, { y: 0.76, c: 0, pw: [[0.04, 0.05, 0.05], [2.2, 2.5, 2.75]], pc: 'CARGO' });
-  /* the window onto the bay: black glass for now (glass you can see through is still to be built: world.md §8) */
-  bx(T1, 58.98, 15, 0.04, 2.2, 9.6, 0x0b0d0f, { y: 0.9, c: 0 }); for (let k = 0; k < 5; k++) bx(T1, 58.96, 12.6 + k * 1.2, 0.06, 2.2, 0.08, 0x2a2c2e, { y: 0.9, c: 0 });
-  use(T1, 'look', 58.4, 15, 1.5, { label: 'Look out over the bay', text: 'Thick glass over the bay, and the floor a long way down. Nothing out there gives back any light.' });
+  /* the window onto the bay: three bays of glass in the east wall, high over the floor (world.md §8) */
+  for (const r of [13, 15, 17]) door(T1, 59, r, { seal: true, glass: true, c: 'CARGO' });
+  use(T1, 'look', 58.4, 15, 1.5, { label: 'Look out over the bay', text: 'Thick glass, and the bay a long way down. Out on the rungs something glows, the colour of a healing burn.' });
   buildCargo(D, T1, T2, T3);
   /* the overseer, grown into the monitor wall of the operations room; and its hand, keeping the second leg, too big for
      any door (world.md §8). Last, so the cast made before keep their places. */
@@ -170,7 +170,14 @@ function buildCargo(D: Deck, T1: Deck, T2: Deck, T3: Deck): void {
   for (const [x, z] of [[76, 9], [84, 11], [90, 9], [96, 10.6], [103, 9.4], [108, 10]]) eggs(T2, x, z, 5); gore(T2, 93, 10, 4); mut(T2, 'skitter', 86, 10); mut(T2, 'skitter', 97, 11); mut(T2, 'skitter', 105, 9.6);
   mut(T2, 'grabber', 90, 8.12, { yaw: 0 });
   for (const [x, z] of [[77, 9], [80, 11], [83, 9.4], [86, 10.8], [89, 9], [92, 11], [95, 9.6], [98, 10.6]]) eggs(T3, x, z, 6); gore(T3, 88, 10, 5); gore(T3, 94, 9.6, 4);
-  mut(T3, 'skitter', 82, 10); mut(T3, 'skitter', 90, 11.4); mut(T3, 'skitter', 97, 9); bx(T3, 96, 9.4, 1.1, 0.6, 1.1, 0x6b5a3c); item(T3, 'fuse', 96, 9.4, 0.6); item(T3, 'batt', 95, 10.4, 0.02, 2);
+  mut(T3, 'skitter', 82, 10); mut(T3, 'skitter', 90, 11.4); mut(T3, 'skitter', 97, 9);
+  /* the nest's own light: pustules among the eggs that glow a sick red, enough to be seen across the bay in the dark; and
+     its edge, creeping west over the floor toward the door, below Cargo control's window */
+  for (const [x, z, n] of [[66, 19.5, 3], [70, 17.8, 4], [73.5, 19.6, 5], [77, 18.2, 4]] as const) eggs(D, x, z, n);
+  for (const [Dk, x, z] of [[D, 66.6, 19.2], [D, 70.5, 18], [D, 74, 19.4], [T1, 85, 10], [T2, 84, 11], [T2, 90, 9], [T3, 80, 11], [T3, 86, 10.8], [T3, 92, 11]] as const) {
+    for (let k = 0; k < 5; k++) P(Dk, 'ico', x + (k - 2) * 0.22, z + ((k * 7) % 3 - 1) * 0.25, 0.38, 0.3, 0.38, [2.6, 0.9, 0.55], { y: 0.05 + (k % 2) * 0.2, c: 0 });
+    Dk.lamps.push({ x: x * 2, z: z * 2, r: 5.5, c: [0.55, 0.18, 0.1], h: 0.5 });
+  } bx(T3, 96, 9.4, 1.1, 0.6, 1.1, 0x6b5a3c); item(T3, 'fuse', 96, 9.4, 0.6); item(T3, 'batt', 95, 10.4, 0.02, 2);
   /* south of the floor: the cargo office, with the backup set, and the vehicle bay */
   room(D, 'Cargo office', 62, 23, 4, 4, { ...UTIL, c: 'CARGO' }); door(D, 63, 22, { sg: [['Cargo office', 'n']] });
   desk(D, 63.4, 26.3, 1.8, 0.7); note(D, 'manifest', 63.1, 26.25, 0.78); item(D, 'batt', 63.75, 26.3, 0.78); genset(D, 'CARGO', 65.3, 23.7, 64.7, 24.3); item(D, 'bandage', 62.4, 23.5, 0.02);
