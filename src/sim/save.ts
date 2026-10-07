@@ -3,6 +3,7 @@ import { NOTES } from '../content/notes';
 import { Rng } from '../core/rng';
 import { syncBody } from './body';
 import { restoreRoute } from './cast';
+import { restoreAlarms } from './eyes';
 import type { Game } from './game';
 import { makeHands } from './combat';
 import { buildUsables, type WorldItem } from './interact';
@@ -58,6 +59,9 @@ export interface Save {
   hands: Sim['hands'];
   /** what each rider stands on (by id): the player, the loose things, the cast, in that order */
   on: number[];
+  /** the cameras (smashed, and how long each has held you) and the alarms sounding; none in a save from before them */
+  cams?: { broken: boolean; hold: number }[];
+  alarms?: { zone: string; t: number; spot: number; next: number }[];
   /** the fields over the nav graph as they stood (they are made in turn, so cannot be made again exactly) */
   fields: { from: number; turn: number; made: Record<string, string>; crawl: string; hands: string; big: string; sound: string } | null;
 }
@@ -93,6 +97,8 @@ export function save(sim: Sim): Save {
     cast: sim.cast.map(m => ({ ...pick(m, MUTANT), ride: structuredClone(m.ride), blow: structuredClone(m.blow), body: m.body ? pick(m.body, BODY) : null })),
     hands: structuredClone(sim.hands),
     on: [sim.player.body, ...sim.loose.all, ...sim.cast.map(m => m.body)].map(r => (r ? onId(r) : 0)),
+    cams: sim.cams.map(c => ({ broken: c.broken, hold: c.hold })),
+    alarms: sim.alarms.map(a => ({ zone: a.zone, t: a.t, spot: a.spot, next: a.next })),
     fields: sim.fields && {
       from: sim.fields.from, turn: sim.fields.turn, made: { ...sim.fields.made },
       crawl: pack(sim.fields.crawl), hands: pack(sim.fields.hands), big: pack(sim.fields.big), sound: pack(sim.fields.sound),
@@ -148,6 +154,8 @@ export function load(level: LevelDef, data: Save, o: SimOpts = {}): Sim {
     unpack(d.crawl, F.crawl); unpack(d.hands, F.hands); unpack(d.big, F.big); unpack(d.sound, F.sound);
   }
   for (const m of sim.cast) restoreRoute(sim, m);
+  sim.cams.forEach((c, i) => { const s = data.cams?.[i]; if (s) { c.broken = s.broken; c.hold = s.hold; } });
+  restoreAlarms(sim, data.alarms ?? []);
   const byId = new Map(sim.world.dyn.map(d => [d.id, d]));
   [sim.player.body, ...sim.loose.all, ...sim.cast.map(m => m.body)].forEach((r, i) => { if (r) r.on = byId.get(data.on[i]) ?? null; });
   return sim;

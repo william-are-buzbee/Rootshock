@@ -540,14 +540,40 @@ const turnTo = (sim: Sim, m: Mutant, k: number) => {
 };
 const rnd = (sim: Sim, a: number, b?: number) => sim.rng.range(a, b);
 
+/** a husk at rest or on its way somewhere notices you: in front of it and seen, or heard. Then it hunts. */
+function notices(sim: Sim, m: Mutant): boolean {
+  const p = sim.player.body, facing = m.d < 2.5 || ((p.x - m.x) * Math.sin(m.yaw) + (p.z - m.z) * Math.cos(m.yaw)) / (m.dp || 1) > -0.2;
+  if (!((facing && seeP(sim, m, 15)) || hears(sim, m))) return false;
+  m.state = 'hunt'; m.lost = 0; m.post = false; m.dest = -1; step_(sim, m, 'moan');
+  return true;
+}
+
+/** a zone alarm it hears (sim/eyes.ts): a husk not already after you leaves its rounds, or its post, and goes to the
+ *  speaker, as Security's staff were drilled to. The way there is the alarm's, copied: a round makes its next route in
+ *  the one it has. */
+export function answer(sim: Sim, m: Mutant, spot: number, route: Float32Array): void {
+  if (m.dead || m.ai !== 'husk' || (m.state !== 'idle' && m.state !== 'lurk' && m.state !== 'answer') || m.spot < 0) return;
+  if (m.state === 'answer' && m.dest === spot) return;
+  if (!(route[m.spot] > 2.5)) return; // there already, or no way there
+  step_(sim, m, 'mutter');
+  m.state = 'answer'; m.post = false; m.dest = spot; m.F = Float32Array.from(route); m.wt = 0; m.stk = 0;
+}
+
 const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
   husk(sim, m) {
-    const p = sim.player.body, F = sim.fields?.hands, d = m.d;
+    const F = sim.fields?.hands, d = m.d;
     switch (m.state) {
       case 'idle': {
-        const facing = d < 2.5 || ((p.x - m.x) * Math.sin(m.yaw) + (p.z - m.z) * Math.cos(m.yaw)) / (m.dp || 1) > -0.2;
-        if ((facing && seeP(sim, m, 15)) || hears(sim, m)) { m.state = 'hunt'; m.lost = 0; m.post = false; step_(sim, m, 'moan'); break; }
+        if (notices(sim, m)) break;
         if (!m.post) roam(sim, m, 1.3);
+        break;
+      }
+      case 'answer': {
+        /* to the alarm, at a hurry; there, it stands and looks about a while before its rounds again */
+        if (notices(sim, m)) break;
+        if (!m.F || m.dest < 0 || m.spot === m.dest || m.F[m.spot] < 1.5) { m.state = 'idle'; m.dest = -1; m.wt = rnd(sim, 6, 12); break; }
+        if (follow(sim, m, m.F, 2.6, false)) m.stk = 0;
+        else if ((m.stk += dt) > 3) { m.stk = 0; m.state = 'idle'; m.dest = -1; m.wt = rnd(sim, 2, 4); }
         break;
       }
       case 'hunt':

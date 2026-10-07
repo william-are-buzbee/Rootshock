@@ -55,6 +55,13 @@ export function validateStation(station: StationDef, levels: LevelDef[] = statio
       }
     });
     for (const P of L.platforms) if (P.call) circuit(P.call.circuit, `platform ${P.call.name}`);
+    /* every camera on a circuit, sounding a zone that has a speaker; one speaker a zone */
+    for (const C of L.cameras ?? []) {
+      circuit(C.circuit, `camera at ${C.x}, ${C.z}`);
+      if (!(L.speakers ?? []).some(s => s.zone === C.zone)) bad(`camera at ${C.x}, ${C.z} sounds zone ${C.zone}, which has no speaker`);
+    }
+    const zones = (L.speakers ?? []).map(s => s.zone);
+    for (const z of new Set(zones)) if (zones.filter(q => q === z).length > 1) bad(`zone ${z} has more than one speaker`);
     for (const s of L.signs) circuit(s.circuit, `sign ${s.text}`);
     for (const u of L.uses) {
       if (!KINDS.has(u.kind)) { bad(`a thing to use of unknown kind: ${u.kind}`); continue; }
@@ -87,6 +94,8 @@ export function validateStation(station: StationDef, levels: LevelDef[] = statio
     for (const u of L.uses) reach(`${u.kind} at ${u.x}, ${u.z}`, u.x, u.y, u.z, 2.4);
     if (nav.locate(L.start.x, L.start.y, L.start.z) < 0) bad('the start is not on the nav graph');
     for (const [k, m] of Object.entries(L.marks)) if (nav.locate(m.x, m.y, m.z) < 0) bad(`mark ${k} is not on the nav graph`);
+    for (const s of L.speakers ?? []) if (nav.locate(s.x, s.y, s.z) < 0) bad(`the speaker for zone ${s.zone} has nowhere under it to stand`);
+    for (const C of L.cameras ?? []) if (sim.world.solidAt(C.x, C.y, C.z)) bad(`camera at ${C.x}, ${C.z} is inside a wall`);
   }
   return out;
 }

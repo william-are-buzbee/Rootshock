@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { Colour } from '../../core/math';
 import { hex } from '../../core/math';
 import type { Sim } from '../../sim/sim';
+import { camLive } from '../../sim/eyes';
 import type { DoorDef } from '../../content/types';
 import type { World } from '../../world/world';
 import type { Lighting } from '../../world/light';
@@ -100,6 +101,12 @@ function doorParts(D: DoorDef): { body: Part[]; lights: Part[] } {
   return { body, lights };
 }
 
+/** a camera in its own frame: looking along +z from its lens at the origin, on a stalk up to its mount */
+const CAM: Part[] = [
+  ['box', 0xb8bcc0, 0.17, 0.17, 0.36, 0, 0, -0.2], ['box', 0x15181b, 0.12, 0.12, 0.03, 0, 0, 0.0],
+  ['box', 0x2c2f33, 0.05, 0.4, 0.05, 0, 0.28, -0.3], ['box', 0x2c2f33, 0.14, 0.04, 0.14, 0, 0.48, -0.3],
+];
+
 /** a platform as the first engine drew it: deck, hazard edges, corner posts, a control post; its top at y 0 */
 function platformParts(w: number, h: number): Part[] {
   const out: Part[] = [
@@ -162,6 +169,23 @@ export class Things {
     for (const p of sim.platforms) {
       const D = p.def;
       this.add(parts(platformParts(D.x1 - D.x0, D.z1 - D.z0)), m => m.position.set((D.x0 + D.x1) / 2, p.y, (D.z0 + D.z1) / 2));
+    }
+    /* the overseer's eyes: a light that is green while one watches, red while it holds you, and none when it is dead; a
+       smashed one hangs askew. Its zones' speakers, with a beacon that turns while the zone sounds. */
+    for (const c of sim.cams) {
+      const C = c.def, live = () => camLive(sim, c);
+      const place = (m: THREE.Object3D) => { m.position.set(C.x, C.y, C.z); m.rotation.set(c.broken ? 0.7 : 0, C.yaw, c.broken ? 0.4 : 0); };
+      this.add(parts(CAM), place);
+      this.add(parts([['box', [0.4, 2.6, 0.7], 0.045, 0.045, 0.045, 0, 0.1, 0]]), m => { place(m); m.visible = live() && c.hold === 0; });
+      this.add(parts([['box', [2.9, 0.35, 0.3], 0.05, 0.05, 0.05, 0, 0.1, 0]]), m => { place(m); m.visible = live() && c.hold > 0; });
+    }
+    for (const S of w.def.speakers ?? []) {
+      const R = w.roomAt(S.x, S.y + 1, S.z), y = R ? R.y0 + R.ht : S.y + 3;
+      this.add(parts([['box', 0x2c2f33, 0.5, 0.12, 0.5, 0, -0.06, 0], ['cyl', 0x3a3d40, 0.34, 0.22, 0.34, 0, -0.23, 0]]), m => m.position.set(S.x, y, S.z));
+      this.add(parts([['box', [2.9, 1.6, 0.3], 0.16, 0.12, 0.16, 0, -0.4, 0]]), m => {
+        m.position.set(S.x, y, S.z);
+        m.visible = sim.alarms.some(a => a.zone === S.zone) && Math.floor(performance.now() / 300) % 2 === 0;
+      });
     }
     for (const s of w.def.signs) {
       const m = signMesh(s.text);

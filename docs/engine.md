@@ -283,6 +283,12 @@ components, not code threaded through the frame loop:
   Collision, pathing and sight learn a door's state from its mover, never from a special case.
 - **Interaction**: anything with `interactable` is found by one query (in reach, in view, unobstructed), as today's
   `findInt`.
+- **Cameras and zone alarms** (`sim/eyes.ts`, `world.md` §8): `LevelDef.cameras` (a lens, a yaw, a cone, a range, a circuit,
+  a zone) and `LevelDef.speakers` (one a zone: the floor under it). A live camera sees you as the cast do (range times how
+  visible you are, the cone, a clear line); held `EYES.hold` it sounds its zone. An alarm keeps a route to its speaker and how
+  far its sound carries (both made once, when it starts, and again on load); each time the klaxon goes round, a husk in earshot
+  that is not hunting takes the state `answer` and walks the route (its own copy). Saves keep each camera's state and the
+  alarms; the routes are made again.
 
 **As built in step 4.** The game's state is plain data in the sim (`sim/game.ts`): circuits and Gen-1, keys, what you
 carry (ten slots), lights and battery, what you wear, papers read, health, the run's keypad codes. What happens comes out

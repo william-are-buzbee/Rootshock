@@ -74,6 +74,9 @@ export interface Deck {
   props: TProp[];
   cols: [number, number, number, number, number, number][];
   lamps: { x: number; z: number; r: number; c: Colour; it?: Deck['items'][number]; h?: number }[];
+  /** cameras (in tile units, their lens h metres up, yaw as the cast's) and the zones' speakers */
+  cams: { x: number; z: number; h: number; yaw: number; fov: number; range: number; c: string; zone: string }[];
+  speakers: { zone: string; x: number; z: number }[];
   /** blood on the floor: middle and reach, in metres */
   stains: { x: number; z: number; r: number }[];
   elevs: { tx: number; tz: number; w: number; h: number; lo: Deck; hi: Deck; c: string; name: string }[];
@@ -110,7 +113,7 @@ export function mkDeck(lv: LevelInfo, W: number, H: number, o: { y0?: number; li
     lv, name: lv.name, c: lv.c, W, H, org: lv.org ?? [0, 0], y0: o.y0 ?? 0, li: o.li ?? 0, wet: o.wet ?? 0, deep: o.deep ?? 0, ground: !!o.ground,
     g: new Uint8Array(W * H), rm: new Int16Array(W * H).fill(-1), nom: new Uint8Array(W * H),
     rooms: [], doors: new Map(), above: null, below: null, hf: null, cf: null, hset: null,
-    props: [], cols: [], lamps: [], stains: [], elevs: [], stairs: [], items: [], notes: [], muts: [], uses: [], marks: {}, conn: new Set(), water: [],
+    props: [], cols: [], lamps: [], cams: [], speakers: [], stains: [], elevs: [], stairs: [], items: [], notes: [], muts: [], uses: [], marks: {}, conn: new Set(), water: [],
   };
   C().decks.push(D);
   return D;
@@ -498,6 +501,8 @@ export function finishLevel(start?: [number, number, number]) {
     for (const it of D.items) { items.set(it, b.level.items.length); b.item(it.id, px(D, it.x), floorY(D, it.x, it.z) + it.y, pz(D, it.z), it.n); }
     for (const L of D.lamps) b.lamp(px(D, L.x), floorY(D, L.x, L.z) + (L.h ?? 1), pz(D, L.z), L.r, L.c, L.it && items.get(L.it));
     for (const S of D.stains) b.stain(px(D, S.x), floorY(D, S.x, S.z), pz(D, S.z), S.r);
+    for (const C of D.cams) b.camera(X(D, C.x), floorY(D, C.x * T, C.z * T) + C.h, Z(D, C.z), C.yaw, { fov: C.fov, range: C.range, circuit: C.c, zone: C.zone });
+    for (const S of D.speakers) b.speaker(S.zone, X(D, S.x), floorY(D, S.x * T, S.z * T), Z(D, S.z));
     for (const nt of D.notes) b.note(nt.key, px(D, nt.x), floorY(D, nt.x, nt.z) + nt.y, pz(D, nt.z));
     for (const m of D.muts) b.mutant(m.type, X(D, m.x), floorY(D, m.x * T, m.z * T), Z(D, m.z), m.o);
     for (const u of D.uses) b.use(u.kind, X(D, u.x), floorY(D, u.x * T, u.z * T) + u.y, Z(D, u.z), u.o);
