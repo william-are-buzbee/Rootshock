@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { STATION } from '../src/content/station';
 import { buildUpper } from '../src/content/levels/upper';
-import { makeSim, step, type Sim } from '../src/sim/sim';
+import { makeSim, simLighting, step, type Sim } from '../src/sim/sim';
 import { noInput, type Input } from '../src/sim/input';
 import { STEP } from '../src/core/loop';
 import { give } from '../src/sim/game';
@@ -96,23 +96,32 @@ describe('what they notice', () => {
 });
 
 describe('their rounds', () => {
-  it('Security\'s patrols keep their rounds to lit rooms: the wing joins them when it is mended, and in the dark there are none', () => {
-    const s = fresh(), m = s.cast[1]; // the Operations corridor
-    expect(m.lit).toBe(true);
+  it('husks keep their rounds to lit rooms: the wing joins them when it is mended, and in the dark there are none', () => {
+    const s = fresh();
     step(s, noInput());
-    const names = () => new Set(rounds(s, m).map(id => s.world.rooms[id].name));
+    const names = () => new Set(rounds(s).map(id => s.world.rooms[id].name));
     const now = names();
     expect([...now]).toEqual(expect.arrayContaining(['Atrium', 'Operations corridor', 'Gallery']));
     for (const dark of ['Lobby', 'Operations room', 'Cargo cavern']) expect(now.has(dark)).toBe(false); // the wing, a room with no emergency lights, Cargo
     s.game.station!.circuits.SEC.broken = false; s.lighting = null; // the wing mended
     expect(names().has('Lobby')).toBe(true);
     s.game.station!.circuits.OPS.back = false; s.lighting = null; // and Ops' set stopped: nothing it can see by
-    expect(rounds(s, m)).toEqual([]);
+    expect(rounds(s)).toEqual([]);
   });
 
-  it('one standing in the dark keeps still; when the light comes, it walks', () => {
-    const s = fresh(), m = s.cast[5]; // a husk on the Cargo floor, dark at the start
-    expect(m.lit).toBe(true);
+  it('one standing in the dark makes for the nearest light it can get to', () => {
+    const s = fresh(), m = s.cast[1];
+    only(s, [m]);
+    place(s, m, 70, 0, 50); // in the operations room: no emergency lights, dark on the backup set
+    const lum = () => Math.max(...simLighting(s).atPoint(m.x, m.y + 0.5, m.z));
+    expect(lum()).toBe(0);
+    hold(s, 20);
+    expect(m.state).toBe('idle'); // not hunting you: going to the light
+    expect(lum()).toBeGreaterThan(0.1);
+  });
+
+  it('one in the dark with no light it can get to keeps still; when the light comes, it walks', () => {
+    const s = fresh(), m = s.cast[5]; // a husk on the Cargo floor: dark, and Cargo's link is behind Operations' card
     only(s, [m]);
     const x0 = m.x, z0 = m.z;
     hold(s, 20);

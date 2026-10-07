@@ -17,8 +17,8 @@ export class Staged extends Lighting {
   constructor(w: World, readonly from: Lighting, readonly to: Lighting, readonly on: Uint8Array) {
     super(w, to.power);
   }
-  override at(room: number, x: number, z: number): Colour {
-    return (this.on[room] ? this.to : this.from).at(room, x, z);
+  override at(room: number, x: number, z: number, y?: number): Colour {
+    return (this.on[room] ? this.to : this.from).at(room, x, z, y);
   }
   override hasLamps(room: number): boolean {
     return (this.on[room] ? this.to : this.from).hasLamps(room);

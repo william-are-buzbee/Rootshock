@@ -76,8 +76,6 @@ export interface Mutant {
   opens: boolean; low: boolean; noDoors: boolean; fixed: boolean; swim: boolean; solid: boolean;
   /** a guard that keeps its post until it notices you; one sitting down; one grown over; a big one */
   post: boolean; sit: boolean; holt: boolean; big: boolean;
-  /** keeps its rounds to lit rooms, and in the dark keeps still: it hunts by sight (world.md §8) */
-  lit: boolean;
   /** where it started, which it keeps near */
   hx: number; hz: number;
   room: number;
@@ -137,7 +135,7 @@ export function makeCast(sim: Sim, defs: MutantDef[]): Mutant[] {
       hp: S.hp, max: S.hp, mass: S.mass, r: S.r,
       walker: S.noDoors ? 'big' : S.opens ? 'hands' : 'crawl',
       opens: !!S.opens, low: !!S.low, noDoors: !!S.noDoors, fixed: !!S.fixed, swim: !!S.swim, solid: !!S.solid,
-      post: !!o.post, sit: !!o.sit, holt: !!o.holt, big: !!o.big, lit: !!o.lit, hx: def.x, hz: def.z, room,
+      post: !!o.post, sit: !!o.sit, holt: !!o.holt, big: !!o.big, hx: def.x, hz: def.z, room,
       wt: rnd(1, 5), wm: 0, wx: 0, wz: 0, tk: 0, lost: 0, bt: 0, burst: false, flee: 0, ct: rnd(6, 14), cdir: 0, tgt: false,
       grab: 0, tense: 0, blow: null, dest: -1, F: null, stk: 0, fled: false, side: 0, ride: null, spot: -1,
       mv: 0, d: 99, dp: 99, dy: 0, los: false, losAt: -99, hit: 0, kx: 0, kz: 0, ph: rnd(9), dead: false, gone: 0, still: 0,
@@ -340,16 +338,24 @@ function roomWp(sim: Sim, m: Mutant): void {
 
 const picked = new WeakMap<Sim, number>();
 
-/** staff still keep rounds: pick a room anywhere and walk there. One that keeps to the light picks only a lit room,
- *  and standing in the dark goes nowhere until the light comes back. */
+/** staff still keep rounds, and keep to the light: they hunt by sight (world.md §8). A round goes to a lit room picked at
+ *  random; one standing in the dark makes for the nearest lit room it can get to, and with none keeps still until the
+ *  light comes. */
 function pickDest(sim: Sim, m: Mutant): void {
   const Fs = sim.fields;
   if (!Fs || m.spot < 0) { m.wt = 3; return; }
-  if (m.lit && !lit(sim, m.x, m.y + 0.5, m.z)) { m.wt = 2; return; }
   /* one new route a step at most, across the whole cast */
   if (picked.get(sim) === sim.tick) { m.wt = 0.05; return; }
   picked.set(sim, sim.tick);
-  const rooms = rounds(sim, m);
+  const rooms = rounds(sim);
+  if (!lit(sim, m.x, m.y + 0.5, m.z)) {
+    const k = nearestIn(sim, m, rooms);
+    if (k < 0) { m.wt = 3; return; }
+    m.F = fieldTo(sim, m, k);
+    if (!Number.isFinite(m.F[m.spot])) { m.wt = 3; return; }
+    m.dest = k;
+    return;
+  }
   if (!rooms.length) { m.wt = 5; return; }
   const R = sim.rng.pick(rooms), spots = Fs.nav.byRoom.get(R) ?? [];
   if (!spots.length) { m.wt = 0.5; return; }
@@ -378,9 +384,18 @@ function litRoom(sim: Sim, id: number): boolean {
   return Math.max(...lighting(sim).at(id, (R.x0 + R.x1) / 2, (R.z0 + R.z1) / 2)) > LIT;
 }
 
-/** the rooms its rounds can take it to, as the power stands */
-export function rounds(sim: Sim, m: Mutant): number[] {
-  return m.lit ? roamRooms(sim).filter(R => litRoom(sim, R)) : roamRooms(sim);
+/** the rooms the cast's rounds can take them to, as the power stands: the lit ones */
+export function rounds(sim: Sim): number[] {
+  return roamRooms(sim).filter(R => litRoom(sim, R));
+}
+
+/** of these rooms, the spot nearest it can get to as the doors stand now (a locked door bars it), or -1. Only the choice
+ *  needs the doors; the route there is made as any round's is, and a save keeps the choice. */
+function nearestIn(sim: Sim, m: Mutant, rooms: number[]): number {
+  const Fs = sim.fields!, from = fieldFrom(Fs.nav, m.spot, rulesFor(sim, Fs, m.walker));
+  let best = -1;
+  for (const R of rooms) for (const k of Fs.nav.byRoom.get(R) ?? []) if (from[k] < (best < 0 ? Infinity : from[best])) best = k;
+  return best;
 }
 
 const roamCache = new WeakMap<object, number[]>();

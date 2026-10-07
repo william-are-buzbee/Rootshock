@@ -186,8 +186,11 @@ export class Things {
   private itemMeshes: { mesh: THREE.Object3D; taken: () => boolean }[] = [];
   private syncItems(): void {
     for (; this.items < this.sim.items.length; this.items++) {
-      const it = this.sim.items[this.items], k = this.items, on = this.sim.world.def.lamps.some(L => L.item === k);
-      const m = this.addFixed(parts(itemParts(it.id, on)), it.x, it.y, it.z, lie(it.x, it.z));
+      const it = this.sim.items[this.items], k = this.items, lamps = this.sim.world.def.lamps.filter(L => L.item === k);
+      /* one that gives a light points at the farthest of its pools: its beam */
+      const far = lamps.reduce<(typeof lamps)[number] | null>((a, L) => (!a || Math.hypot(L.x - it.x, L.z - it.z) > Math.hypot(a.x - it.x, a.z - it.z) ? L : a), null);
+      const yaw = far && Math.hypot(far.x - it.x, far.z - it.z) > 0.1 ? Math.atan2(-(far.z - it.z), far.x - it.x) : lie(it.x, it.z);
+      const m = this.addFixed(parts(itemParts(it.id, lamps.length > 0)), it.x, it.y, it.z, yaw);
       this.itemMeshes.push({ mesh: m, taken: () => it.taken });
     }
     for (const im of this.itemMeshes) im.mesh.visible = !im.taken();

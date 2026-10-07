@@ -52,7 +52,7 @@ export class Lighting {
   private rooms: Colour[];
   /** for each room, the lamps that stand in it (a room keeps its place here when its lamps go out, so the mesh cut for
    *  their pools still matches) */
-  private lamps = new Map<number, { x: number; z: number; r: number; c: Colour }[]>();
+  private lamps = new Map<number, { x: number; y: number; z: number; r: number; c: Colour }[]>();
   /** for each room, its ceiling fittings (not in rooms lit by lamps of their own) */
   private fix = new Map<number, { x: number; y: number; z: number }[]>();
 
@@ -69,11 +69,11 @@ export class Lighting {
       this.rooms[R.id] = scale3(sum as unknown as Colour, 0.8 / near.length);
     }
     for (const L of w.def.lamps) {
-      const R = w.roomAt(L.x, L.y + 0.1, L.z) ?? w.roomAt(L.x, L.y + 1, L.z);
+      const R = w.roomAt(L.x, L.y, L.z) ?? w.roomAt(L.x, L.y + 0.1, L.z) ?? w.roomAt(L.x, L.y + 1, L.z);
       if (!R) continue;
       let a = this.lamps.get(R.id);
       if (!a) this.lamps.set(R.id, (a = []));
-      a.push({ x: L.x, z: L.z, r: L.r, c: L.item !== undefined && taken(L.item) ? BLACK : L.colour });
+      a.push({ x: L.x, y: L.y, z: L.z, r: L.r, c: L.item !== undefined && taken(L.item) ? BLACK : L.colour });
     }
     for (const F of w.def.fixtures ?? []) {
       const R = w.roomAt(F.x, F.y - 0.3, F.z);
@@ -105,20 +105,21 @@ export class Lighting {
 
   /** the light at a point in a room: its own (or a lamp's), in its fittings' pools */
   lit(room: number, x: number, y: number, z: number): Colour {
-    return scale3(this.at(room, x, z), this.pool(room, x, y, z));
+    return scale3(this.at(room, x, z, y), this.pool(room, x, y, z));
   }
 
   hasLamps(room: number): boolean {
     return this.lamps.has(room);
   }
 
-  /** the light at (x, z) in a room: the room's own, or a lamp's pool where that is brighter */
-  at(room: number, x: number, z: number): Colour {
+  /** the light at (x, z) in a room: the room's own, or a lamp's pool where that is brighter. Given a height, a lamp's
+   *  reach is measured from where it is, so it does not light a ceiling far over it */
+  at(room: number, x: number, z: number, y?: number): Colour {
     const base = this.rooms[room] ?? BLACK, lamps = this.lamps.get(room);
     if (!lamps) return base;
     const out: [number, number, number] = [base[0], base[1], base[2]];
     for (const L of lamps) {
-      const d = Math.hypot(x - L.x, z - L.z);
+      const d = y === undefined ? Math.hypot(x - L.x, z - L.z) : Math.hypot(x - L.x, y - L.y, z - L.z);
       if (d >= L.r) continue;
       const f = 1 - d / L.r;
       for (let k = 0; k < 3; k++) out[k] = Math.max(out[k], L.c[k] * f);

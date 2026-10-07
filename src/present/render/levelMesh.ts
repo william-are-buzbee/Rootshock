@@ -86,7 +86,7 @@ export class LevelMesh {
   private pwByRoom: Map<number, number[]> | null = null;
 
   private vertex(L: Lighting, i: number): void {
-    const o = this.o, r = o.room[i], l = r >= 0 ? L.at(r, o.sx[i], o.sz[i]) : BLACK, m = o.m[i];
+    const o = this.o, r = o.room[i], l = r >= 0 ? L.at(r, o.sx[i], o.sz[i], o.P[i * 3 + 1]) : BLACK, m = o.m[i];
     this.light[i * 4] = l[0] * m; this.light[i * 4 + 1] = l[1] * m; this.light[i * 4 + 2] = l[2] * m; this.light[i * 4 + 3] = o.flick[i];
   }
 
