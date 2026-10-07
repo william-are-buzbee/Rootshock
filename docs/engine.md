@@ -282,9 +282,12 @@ components, not code threaded through the frame loop:
 - **Doors**: one system runs the rules for light, heavy, stuck, sealed, vent and lift doors, card and keypad locks.
   Collision, pathing and sight learn a door's state from its mover, never from a special case. A window is a door too: sealed,
   and glass (`DoorDef.glass`), so it stops what moves while every sight check (the cast's, the cameras', your flashlight's)
-  looks through it; it is drawn as a tinted pane. The overseer's own door (`DoorDef.keep`) is bolted for as long as it lives
-  and the door has power; the progression checker, which does not fight, takes it as held, and tries switching its circuit
-  off, the one place switching off can open a way.
+  looks through it; it is drawn as a tinted pane.
+- **The overseer's room and the staff's drill** (`world.md` §8): the overseer works through flesh, so its cameras, its zone
+  alarms and its bolts all want power at its own room (`opts.screens`, `manned` in `sim/eyes.ts`); its own eyes see through
+  its glass regardless. A breaker opened by hand starts a drill (`drill` in `sim/cast.ts`): each husk it leaves in the dark is
+  given a time to go (a quarter at once, the rest between 30 s and 180 s, later more likely), and goes to the board to throw
+  it back if it is still in the dark then (state `fix`). Saves keep the drills.
 - **Interaction**: anything with `interactable` is found by one query (in reach, in view, unobstructed), as today's
   `findInt`.
 - **Cameras and zone alarms** (`sim/eyes.ts`, `world.md` §8): `LevelDef.cameras` (a lens, a yaw, a cone, a range, a circuit,

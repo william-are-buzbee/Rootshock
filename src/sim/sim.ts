@@ -4,7 +4,7 @@ import { STEP } from '../core/loop';
 import { World } from '../world/world';
 import { clamp } from '../core/math';
 import { Lighting } from '../world/light';
-import { castBodies, castMovers, makeCast, updateCast, type Mutant } from './cast';
+import { castBodies, castMovers, makeCast, updateCast, type Drill, type Mutant } from './cast';
 import { makeCams, updateEyes, type Alarm, type Cam } from './eyes';
 import { makeHands, updateHands, type Hands } from './combat';
 import { makeFields, refreshFields, updateFields, type Fields } from './fields';
@@ -44,6 +44,8 @@ export interface Sim {
   alarms: Alarm[];
   /** the zones whose speaker is smashed: their alarms sound no more */
   mute: string[];
+  /** breakers opened by hand, and the staff caught in the dark who may go to throw them back (sim/cast.ts) */
+  drills: Drill[];
 }
 
 export interface SimOpts {
@@ -74,7 +76,7 @@ export function makeSim(level: LevelDef, o: SimOpts = {}): Sim {
     doors: level.doors.map(d => makeDoor(world, d)),
     platforms: level.platforms.map(p => makePlatform(world, p)),
     items: level.items.map(it => ({ ...it, taken: false })),
-    usables: [], focus: null, cast: [], fields: null, hands: makeHands(), wormN: 0, lighting: null, cams: [], alarms: [], mute: [],
+    usables: [], focus: null, cast: [], fields: null, hands: makeHands(), wormN: 0, lighting: null, cams: [], alarms: [], mute: [], drills: [],
   };
   sim.cams = makeCams(sim);
   sim.usables = buildUsables(sim);

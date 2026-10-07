@@ -15,8 +15,9 @@ import { makeSim, type Sim, type SimOpts } from './sim';
    it is built again from the level. Fields over the nav graph are made again on load; a line of sight is looked along
    again. Loaded, a run plays on exactly as it would have. */
 
-/** 2: the upper station laid out again (Security's wing and the atrium), so its doors and things are made in a new order */
-export const SAVE_VERSION = 2;
+/** 2: the upper station laid out again (Security's wing and the atrium), so its doors and things are made in a new order.
+ *  3: again (the muster hall, and the operations room behind glass), with the staff's power-failure drills */
+export const SAVE_VERSION = 3;
 
 /** copy the named fields of an object */
 const pick = <T extends object, K extends keyof T>(o: T, keys: readonly K[]): Pick<T, K> => {
@@ -64,6 +65,8 @@ export interface Save {
   alarms?: { zone: string; t: number; spot: number; next: number }[];
   /** the zones whose speaker is smashed */
   mute?: string[];
+  /** breakers opened by hand, and who may go to throw them back */
+  drills?: Sim['drills'];
   /** the fields over the nav graph as they stood (they are made in turn, so cannot be made again exactly) */
   fields: { from: number; turn: number; made: Record<string, string>; crawl: string; hands: string; big: string; sound: string } | null;
 }
@@ -101,6 +104,7 @@ export function save(sim: Sim): Save {
     on: [sim.player.body, ...sim.loose.all, ...sim.cast.map(m => m.body)].map(r => (r ? onId(r) : 0)),
     cams: sim.cams.map(c => ({ broken: c.broken, hold: c.hold })),
     alarms: sim.alarms.map(a => ({ zone: a.zone, t: a.t, spot: a.spot, next: a.next })),
+    drills: structuredClone(sim.drills),
     mute: [...sim.mute],
     fields: sim.fields && {
       from: sim.fields.from, turn: sim.fields.turn, made: { ...sim.fields.made },
@@ -159,6 +163,7 @@ export function load(level: LevelDef, data: Save, o: SimOpts = {}): Sim {
   for (const m of sim.cast) restoreRoute(sim, m);
   sim.cams.forEach((c, i) => { const s = data.cams?.[i]; if (s) { c.broken = s.broken; c.hold = s.hold; } });
   sim.mute = [...(data.mute ?? [])];
+  sim.drills = structuredClone(data.drills ?? []);
   restoreAlarms(sim, data.alarms ?? []);
   /* the hand on its way to an alarm goes by the alarm's own way, the halls alone */
   for (const m of sim.cast) if (m.state === 'go') { const a = sim.alarms.find(q => q.spot === m.dest); if (a) m.F = Float32Array.from(a.big); }

@@ -49,7 +49,7 @@ export interface TRoom {
 }
 
 export interface TDoorOpts {
-  kind?: 'light' | 'heavy'; open?: boolean; card?: string; code?: number; stuck?: boolean; seal?: boolean; vent?: boolean; lift?: boolean; glass?: boolean; keep?: boolean;
+  kind?: 'light' | 'heavy'; open?: boolean; card?: string; code?: number; stuck?: boolean; seal?: boolean; vent?: boolean; lift?: boolean; glass?: boolean;
   c?: string; msg?: string;
   /** signs over it: [text, which side of the doorway it is read from] */
   sg?: [string, 'n' | 's' | 'e' | 'w'][];
@@ -411,7 +411,7 @@ export function finishLevel(start?: [number, number, number]) {
       const y0 = floorY(D, (d.x + 0.5) * T, (d.y + 0.5) * T);
       b.door(ns ? x0 : cx - th / 2, ns ? cz - th / 2 : z0, ns ? x0 + T : cx + th / 2, ns ? cz + th / 2 : z0 + T, 2.4, {
         kind: d.kind ?? 'light', alongX: ns, open: !!d.open, stuck: !!d.stuck, seal: !!d.seal, vent: !!d.vent, lift: !!d.lift,
-        card: d.card, code: d.code, circuit, msg: d.msg, ...(d.glass ? { glass: true } : {}), ...(d.keep ? { keep: true } : {}),
+        card: d.card, code: d.code, circuit, msg: d.msg, ...(d.glass ? { glass: true } : {}),
       });
       b.level.doors[b.level.doors.length - 1].y0 = y0;
       b.level.doors[b.level.doors.length - 1].y1 = y0 + 2.4;

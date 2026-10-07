@@ -27,11 +27,11 @@ describe('the upper station', () => {
     expect(sim.world.overlap(circle(b.x, b.z, b.r), b.y + 0.01, b.y + 1.8, b.dyn)).toBe(null);
   });
 
-  it('can be walked: every room is reachable on foot from the start, except the welded ones', () => {
+  it('can be walked: every room is reachable on foot from the start, except the welded and the grown shut', () => {
     const r = reach(sim);
     const named = new Set(level.rooms.map(R => R.name).filter(Boolean));
     const missing = [...named].filter(n => !r.rooms.has(n)).sort();
-    expect(missing).toEqual(['Phase 2']);
+    expect(missing).toEqual(['Operations room', 'Phase 2']); // the overseer's, its door grown shut
   });
 
   it('lights in two halves: the wing dead behind its cut, Ops on its backup set, Cargo dark', () => {
@@ -47,7 +47,8 @@ describe('the upper station', () => {
     expect(em[2]).toBeLessThan(em[0] * 0.6); // amber, not white
     expect(Math.max(...em)).toBeCloseTo(0.4 * Math.max(...level.rooms.find(r => r.name === 'Operations corridor')!.lc), 5); // as visible as before
     expect(at(L, 'Atrium')[0]).toBeGreaterThan(0.2); // the threshold: theirs, and lit
-    expect(at(L, 'Operations room')[0]).toBe(0); // no emergency lights: dark on backup
+    expect(at(L, 'Firing range')[0]).toBe(0); // no emergency lights: dark on backup
+    expect(at(L, 'Operations room')[0]).toBeGreaterThan(0.2); // its emergency lights: seen through its glass
     expect(at(L, 'Cargo cavern')[0]).toBe(0); // its backup set is not running
     /* mended, the wing takes what Ops has: the backup set's amber */
     const mended = structuredClone(STATION.circuits);
@@ -102,10 +103,10 @@ describe('the upper station', () => {
     expect([...room][0]).not.toBe([...walk][0]);
   });
 
-  it('sinks the muster court 1.25 m under the hall, with steps down both long sides, and lifts its ceiling to 7 m', () => {
+  it('sinks the muster court 1.25 m under the hall, with steps down both long sides, and lifts its ceiling to 8.5 m', () => {
     const court = level.rooms.find(r => r.name === 'Muster court')!, hall = level.rooms.filter(r => r.name === 'Muster hall');
     expect(court.y0).toBeCloseTo(-1.25);
-    expect(court.y0 + court.ht).toBeCloseTo(7);
+    expect(court.y0 + court.ht).toBeCloseTo(8.5);
     expect(hall.length).toBe(4);
     for (const H of hall) expect(H.y0 + H.ht).toBeCloseTo(4.5);
     const mx = (court.x0 + court.x1) / 2 + 6, mz = (court.z0 + court.z1) / 2, w = sim.world; // clear of the hand, which stands in the middle
