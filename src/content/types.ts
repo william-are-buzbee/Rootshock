@@ -150,6 +150,8 @@ export interface DoorDef {
   vent: boolean;
   /** the main lift's door */
   lift: boolean;
+  /** a pane of glass, sealed: bodies stop at it, sight and light go through (a window) */
+  glass?: boolean;
   card?: string;
   code?: number;
   circuit: string;

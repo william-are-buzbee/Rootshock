@@ -280,15 +280,19 @@ components, not code threaded through the frame loop:
   through its service connection, or is a branch (`feed`) that has whatever the circuit feeding it has, through its
   own; either way, at least what its own backup set gives. The Security wing is a branch off Ops (`world.md` §8).
 - **Doors**: one system runs the rules for light, heavy, stuck, sealed, vent and lift doors, card and keypad locks.
-  Collision, pathing and sight learn a door's state from its mover, never from a special case.
+  Collision, pathing and sight learn a door's state from its mover, never from a special case. A window is a door too: sealed,
+  and glass (`DoorDef.glass`), so it stops what moves while every sight check (the cast's, the cameras', your flashlight's)
+  looks through it; it is drawn as a tinted pane.
 - **Interaction**: anything with `interactable` is found by one query (in reach, in view, unobstructed), as today's
   `findInt`.
 - **Cameras and zone alarms** (`sim/eyes.ts`, `world.md` §8): `LevelDef.cameras` (a lens, a yaw, a cone, a range, a circuit,
   a zone) and `LevelDef.speakers` (one a zone: the floor under it). A live camera sees you as the cast do (range times how
   visible you are, the cone, a clear line); held `EYES.hold` it sounds its zone. An alarm keeps a route to its speaker and how
   far its sound carries (both made once, when it starts, and again on load); each time the klaxon goes round, a husk in earshot
-  that is not hunting takes the state `answer` and walks the route (its own copy). Saves keep each camera's state and the
-  alarms; the routes are made again.
+  that is not hunting takes the state `answer` and walks the route (its own copy). The overseer's hand (a thresher, `hand`)
+  is summoned by every alarm wherever it is, by a way made with the door rules for its size (it passes no door, so that way
+  never changes), and gives up where it gets no nearer for three seconds. On a level with an overseer the cameras see for
+  it: dead, they are dark and no alarm sounds. Saves keep each camera's state and the alarms; the routes are made again.
 
 **As built in step 4.** The game's state is plain data in the sim (`sim/game.ts`): circuits and Gen-1, keys, what you
 carry (ten slots), lights and battery, what you wear, papers read, health, the run's keypad codes. What happens comes out

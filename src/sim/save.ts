@@ -31,7 +31,7 @@ const GAME = ['inv', 'cap', 'tools', 'keys', 'worn', 'weapon', 'read', 'code', '
 const PLAYER = ['yaw', 'pitch', 'crouch', 'wantStand', 'moved', 'impact', 'water', 'air', 'airMax', 'under', 'slow', 'kx', 'kz',
   'running', 'jumped', 'stepD', 'fly'] as const;
 const BODY = ['x', 'y', 'z', 'vy', 'h', 'ground'] as const;
-const DOOR = ['t', 'open', 'unlocked', 'hold'] as const;
+const DOOR = ['t', 'open', 'unlocked', 'hold', 'bolt', 'bolting'] as const;
 const PLATFORM = ['y', 'target', 'wait', 'moving', 'armed'] as const;
 const LOOSE = ['x', 'y', 'z', 'vx', 'vy', 'vz', 'awake', 'ground', 'still', 'woke'] as const;
 const MUTANT = ['x', 'y', 'z', 'px', 'py', 'pz', 'yaw', 'state', 'st', 'cd', 'stun', 'hp', 'post', 'wt', 'wm', 'wx', 'wz', 'tk',
@@ -156,6 +156,8 @@ export function load(level: LevelDef, data: Save, o: SimOpts = {}): Sim {
   for (const m of sim.cast) restoreRoute(sim, m);
   sim.cams.forEach((c, i) => { const s = data.cams?.[i]; if (s) { c.broken = s.broken; c.hold = s.hold; } });
   restoreAlarms(sim, data.alarms ?? []);
+  /* the hand on its way to an alarm goes by the alarm's own way, the halls alone */
+  for (const m of sim.cast) if (m.state === 'go') { const a = sim.alarms.find(q => q.spot === m.dest); if (a) m.F = Float32Array.from(a.big); }
   const byId = new Map(sim.world.dyn.map(d => [d.id, d]));
   [sim.player.body, ...sim.loose.all, ...sim.cast.map(m => m.body)].forEach((r, i) => { if (r) r.on = byId.get(data.on[i]) ?? null; });
   return sim;

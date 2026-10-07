@@ -154,6 +154,7 @@ export class Things {
   constructor(private scene: THREE.Object3D, private sim: Sim, private L: Lighting) {
     const w = sim.world;
     for (const d of sim.doors) {
+      if (d.def.glass) { this.pane(d.def); continue; }
       const D = d.def, { body, lights } = doorParts(D), long = Math.max(D.x1 - D.x0, D.z1 - D.z0), need = D.kind === 'heavy' ? 2 : 1;
       const place = (m: THREE.Object3D) => {
         m.position.set((d.dyn.x0 + d.dyn.x1) / 2, d.dyn.y0 + 1.2, (d.dyn.z0 + d.dyn.z1) / 2);
@@ -234,6 +235,19 @@ export class Things {
     mesh.frustumCulled = false;
     this.scene.add(mesh);
     this.list.push({ mesh, mat, place: () => place(mesh), litAt });
+  }
+
+  /** a window's pane: faintly tinted glass in a dark frame, lit where it stands when the level is drawn */
+  private pane(D: DoorDef): void {
+    const cx = (D.x0 + D.x1) / 2, cz = (D.z0 + D.z1) / 2, l = this.L.atPoint(cx, D.y0 + 1.2, cz), rot = D.alongX ? 0 : Math.PI / 2;
+    const g = parts([['box', [0.55, 0.66, 0.7], 2, 2.4, 0.03, 0, 0, 0]]), n = g.getAttribute('position').count, L = new Float32Array(n * 4);
+    for (let i = 0; i < n; i++) L.set([0.02 + l[0], 0.025 + l[1], 0.03 + l[2], 0], i * 4); // in the dark it is all but gone
+    g.setAttribute('aLight', new THREE.BufferAttribute(L, 4));
+    const m = new THREE.Mesh(g, glassMaterial(0.18));
+    m.position.set(cx, D.y0 + 1.2, cz); m.rotation.y = rot; m.frustumCulled = false; m.renderOrder = 1;
+    this.scene.add(m);
+    const frame: Part[] = [['box', 0x2a2c2e, 2, 0.08, 0.12, 0, 1.2, 0], ['box', 0x2a2c2e, 2, 0.08, 0.12, 0, -1.2, 0], ['box', 0x2a2c2e, 0.08, 2.4, 0.12, -0.96, 0, 0], ['box', 0x2a2c2e, 0.08, 2.4, 0.12, 0.96, 0, 0]];
+    this.add(parts(frame), f => { f.position.set(cx, D.y0 + 1.2, cz); f.rotation.y = rot; }, [cx, D.y0, cz]);
   }
 
   private water(w: World): void {

@@ -6,7 +6,8 @@ import type { Dyn } from '../world/world';
 import { U } from './render/shader';
 
 /** what the beam's bounce passes through: the cast, not the walls */
-const seeThrough = (d: Dyn) => d.kind === 'body';
+/** what sight goes through: bodies, and glass */
+const seeThrough = (d: Dyn) => d.kind === 'body' || !!d.glass;
 
 /** where the player's body was at the start of the latest step, so the camera can draw between steps */
 export interface Prev { x: number; y: number; z: number }

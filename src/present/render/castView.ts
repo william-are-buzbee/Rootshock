@@ -213,6 +213,12 @@ const ANIM: Record<string, (m: Mutant, M: Model) => void> = {
     M.hd.rotation.y = Math.sin(m.ph * 0.23) * 0.2;
     for (const a of M.arms) a.rotation.x = Math.sin(m.ph * 0.9) * 0.06;
   },
+  /* the overseer breathes as a bloat does, and as it tenses to lash its arms come up, shaking */
+  overseer(m, M) {
+    ANIM.bloat(m, M);
+    const t = Math.min(1, m.tense / 0.9);
+    if (t > 0) for (const a of M.arms) a.rotation.x = -2.2 * t + Math.sin(m.ph * 30) * 0.1 * t;
+  },
   thresher(m, M) {
     const wild = m.state === 'charge' || m.state === 'wind', op = wild ? 1.2 + Math.sin(m.ph * 24) * 0.14 : m.state === 'recover' ? 0.75 : 0.2 + Math.sin(m.ph * 1.4) * 0.1;
     for (const o of M.doors) o.d.rotation.y = o.s * op;

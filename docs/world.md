@@ -442,7 +442,18 @@ cancerous growth, rather than a second level-sized area competing for attention.
   looks about a while, then goes back to its rounds; it finds you only if it sees or hears you on the way. A camera can be
   smashed with something in your hand: loud. Five so far: two in the atrium (the threshold, and the stair and Cargo's door),
   one at each end of the Operations corridor, and one down the wing's corridor, dead until the cut is mended. Mending it sounds
-  the wing (its circuit comes live on the board). Until the overseer is built, the cameras sound their zones themselves.
+  the wing (its circuit comes live on the board).
+- **The overseer and its hand: built.** The overseer is grown into the monitor wall of the operations room, cords of flesh
+  into every screen. It sees you itself in its own room (and sounds the Operations zone, so the hand comes to its door), and
+  lashes what comes near, with a grabber's tell. Killed, the camera lights go out up and down the level for good, the klaxon
+  dies mid-note, and no alarm sounds again. The hand is a thresher made of Security's staff (220 to the rib freak's 150): it
+  keeps the second leg, hears every alarm wherever it is, and goes at a run by the halls; too big for any door frame, open or
+  shut, so every side room is a refuge from it. On its way it hunts you only if it meets you. Once there it keeps the place,
+  wandering and charging about it. When the overseer dies the hand is summoned no more, but stays a thresher in the halls.
+- **The overseer's bolts: built.** Seen (by a camera, or by the overseer itself), every door within nine metres of you that
+  has power is bolted: you hear each bolt being drawn for a second before it goes home, time to get through, and it holds
+  while the alarm sounds. A dead door cannot be bolted, and cutting a bolted door's power lets its bolt go. Card and keypad
+  doors keep their own locks.
 - **Patrols → their own senses.** Sight, light and sound, as everywhere else. They do not know where you are because the overseer
   does; they come to an alarm they can hear, not to the overseer.
 - **Patrols walk lit rooms only (agreed: every husk, everywhere).** Husks hunt by sight, so they keep their rounds where they
@@ -474,16 +485,17 @@ Mended, the wing lights amber, Security control's reader wakes, and the Security
 shaft station and back (ladderway A is gone). The highway runs east from the Lobby
 through the dark wing and opens without a door into the atrium; the second leg runs south to the operations room past
 the offices and Maintenance (the Ops backup set). The gallery climbs the core's east side to +5 and branches east to
-Cargo control, whose east wall is the window: black for now. Cargo is behind Operations' card (the deputy director, at
+Cargo control, whose east wall is the window: three bays of glass over the bay. Cargo is behind Operations' card (the deputy director, at
 the far end), so it comes last. The Armory's and the hazard store's heavy doors run off Ops' bus, so they wait on Gen-1
 whether or not the wing is mended.
 
 **What the game needs for it**
 
-- **New:** glass: solid to bodies, clear to sight and light (the bay window). A door the overseer can lock. The overseer
-  itself, and the hand (and the cameras seeing only for the overseer). Breaking a speaker. (Cameras and the zone alarm are
-  built: above.)
-- **Content:** done but for the window's glass.
+- **New:** breaking a speaker. (Cameras, the zone alarm, the overseer, its hand, its bolts and the window's glass are built:
+  above.)
+- **Content:** done. The window is three bays of glass in Cargo control's east wall (`DoorDef.glass`: a sealed pane that stops
+  bodies and lets sight through). In the dark the bay is black but for the nest's own glow: pustules among the eggs on the
+  rungs, and its edge, creeping west over the floor below the window toward the door, a sick red.
 - **Already there:** patrols (the cast keep rounds), vents (loose panels; crawling under), grabbing and dragging (a start for the
   hand), caves of any outline (for the nest's organic shapes), backup sets and the power rules, the progression checker (to prove
   the level, and every way of spending power in it, can still be finished).
