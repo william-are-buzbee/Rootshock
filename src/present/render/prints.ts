@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { Mutant } from '../../sim/cast';
 import type { Sim } from '../../sim/sim';
 import type { Lighting } from '../../world/light';
-import { U } from './shader';
+import { LIFT, U } from './shader';
 
 /* What is left on the floor: flat blocks, the one shape blood has in this station (content's blood(), a dark red box).
 
@@ -61,9 +61,10 @@ void main(){
 
 const FS = /* glsl */ `
 varying vec3 vC; varying float vA;
+${LIFT}
 void main(){
   if (vA < 0.01) discard;
-  gl_FragColor = vec4(vC, vA);
+  gl_FragColor = vec4(lift(vC), vA);
 }`;
 
 /** a print on the floor: where, of what, how strong (0..1), how old, how big (across and along) and how big it began */

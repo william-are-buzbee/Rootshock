@@ -47,7 +47,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   P(D, 'cyl', 37.15, 13.16, 0.07, 0.6, 0.07, 0x1d1f21, { y: 1.15, rz: 0.35, c: 0 }); P(D, 'cyl', 37.65, 13.16, 0.07, 0.45, 0.07, 0x1d1f21, { y: 1.3, rz: -0.3, c: 0 });
   corpse(D, 36.2, 13.9, 0x2c3440, false, { label: 'Search the guard', say: 'A guard, bolt cutters still in his hand. Behind him the feed to the wing is cut clean through.' });
   /* the wing's eyes, dead with it until the cut is mended: one down the corridor from the lobby end */
-  speaker(D, 'wing', 30, 14.5); camera(D, 21.4, 13.3, 3.9, PI / 2, 'SEC', 'wing');
+  speaker(D, 'wing', 30, 14.5, 'PA'); camera(D, 21.4, 13.3, 3.9, PI / 2, 'SEC', 'wing');
   /* what was left of a barricade across the mouth of the wing */
   bx(D, 38.4, 13.7, 1.8, 0.75, 0.7, 0x5b5d5f, { ry: 0.5 }); crates(D, 38.3, 15.3, 2);
   /* North, a storey down: the medical isolation suite (world.md §8). Rooms round a tall common hall, and over its south
@@ -114,12 +114,14 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   room(T1, 'Gallery', 39, 9, 10, 2, GW); room(T1, 'Gallery', 47, 11, 2, 10, GW);
   /* the atrium's eye: one on the threshold from the south-west corner; its speaker high in the well by the east gallery's
      rail, out of reach but from there */
-  speaker(D, 'atrium', 46.7, 19.6); camera(D, 39.3, 20.6, 3.8, PI, 'OPS', 'atrium');
+  speaker(D, 'atrium', 46.7, 19.6, 'PA'); camera(D, 39.3, 20.6, 3.8, PI, 'OPS', 'atrium');
   /* where the light changes, it starts: eggs at the threshold, on their side */
   eggs(D, 39.4, 13.4, 2); eggs(D, 39.3, 15.6, 3); blood(D, 46.3, 19.3, 1.4);
   /* the second leg: south from the atrium between the offices, and out into the muster hall */
   room(D, 'Operations corridor', 42, 21, 3, 6, { ...OPS, ht: 4.5, em: 1 });
-  camera(D, 44.6, 21.3, 3.8, 0, 'OPS', 'ops'); mut(D, 'husk', 43.5, 24); mut(D, 'husk', 41, 18.5); blood(D, 43, 22.7, 1.2);
+  /* the overseer's own zone sounds here, on Ops' feed and not its own switch, so it still calls the hand to its door
+     once that switch is open */
+  speaker(D, 'ops', 43.5, 25, 'PA'); camera(D, 44.6, 21.3, 3.8, 0, 'OPS', 'ops'); mut(D, 'husk', 43.5, 24); mut(D, 'husk', 41, 18.5); blood(D, 43, 22.7, 1.2);
   for (const [nm, x, y, dopt, east] of [['Office: operations', 37, 22, { open: true }, false], ['Office: chief of security', 46, 22, { card: 'o' }, true]] as const) {
     room(D, nm, x, y, 4, 4, { ...OPS, lc: [0.85, 0.78, 0.62] }); door(D, east ? x - 1 : x + 4, y + 1, dopt);
     desk(D, x + 2, y + 3.4, 1.8, 0.7, { c: 0x4a3a2c }); bx(D, x + 2, y + 2.7, 0.45, 0.45, 0.45, 0x2c2f33); shelf(D, east ? x + 3.7 : x + 0.3, y + 1.6, 0.5, 1.8, { cols: [0x7a4a34, 0x4d5a66, 0x8a7a4a] });
@@ -133,7 +135,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
      coffer, and rooms off every side, each a refuge from the hand, which no door admits. Its east bays and the operations
      room off them hang off their own switch (CTL); the overseer holds that door bolted while it has power, and the switch
      is in the electrical room at the far, west end. */
-  const MH: TRoomOpts = { ...OPS, ht: 4.5, em: 1, lc: [0.86, 0.82, 0.72] };
+  const MH: TRoomOpts = { ...OPS, ht: 4.5, em: 1, lc: [0.86, 0.82, 0.72], c: 'HALL' };
   for (const [x, y, w, h] of [[16, 27, 8, 12], [24, 27, 12, 2], [24, 37, 12, 2]] as const) room(D, 'Muster hall', x, y, w, h, MH);
   room(D, 'Muster hall', 36, 27, 9, 12, { ...MH, c: 'CTL' });
   /* the court: 1.25 m down (five steps; floors keep to the grid's quarter metres), with steps the length of both long sides (they sat on them for the muster) and a glass
@@ -142,7 +144,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   flight(D, 24, 29, 12, 2, -1.25, 0, 'n', 5); flight(D, 24, 35, 12, 2, -1.25, 0, 's', 5);
   for (const x of [23.96, 36.04]) { bx(D, x, 33, 0.06, 1, 16, [0.42, 0.52, 0.55]); bx(D, x, 33, 0.12, 0.06, 16.1, 0x5a5d60, { y: 1, c: 0 }); }
   bx(D, 30, 33, 2.6, 1.1, 0.5, 0x22262a, { y: 6.2, c: 0 });
-  for (const z of [32.86, 33.14]) bx(D, 30, z, 2.2, 0.7, 0.02, [0.05, 0.04, 0.04], { y: 6.4, c: 0, pw: [[0.05, 0.04, 0.04], [2.6, 0.5, 0.3]], pc: 'OPS' });
+  for (const z of [32.86, 33.14]) bx(D, 30, z, 2.2, 0.7, 0.02, [0.05, 0.04, 0.04], { y: 6.4, c: 0, pw: [[0.05, 0.04, 0.04], [2.6, 0.5, 0.3]], pc: 'HALL' });
   for (const x of [29.5, 30.5]) bx(D, x, 33, 0.04, 0.9, 0.04, 0x2a2c2e, { y: 7.3, c: 0 });
   for (const [x, z, c] of [[27, 29.03, 0x39485a], [33, 29.03, 0x8a7a4a], [27, 36.97, 0x8a7a4a], [33, 36.97, 0x39485a]] as const) bx(D, x, z, 1.4, 2.2, 0.04, c, { y: 5.9, c: 0 });
   bx(D, 24.7, 33, 0.6, 1.1, 0.5, 0x4a3a2c); P(D, 'cyl', 24.5, 31.6, 0.05, 2.2, 0.05, 0x8a8a84, { c: 0 }); bx(D, 24.5, 31.8, 0.03, 0.6, 0.9, 0x39485a, { y: 1.5, c: 0 });
@@ -160,17 +162,22 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   for (const [x, z, ry] of [[39, 33, 0], [42.5, 31.4, 0.4], [42, 35.2, -0.3], [38, 29.2, PI / 2]] as const) {
     bx(D, x, z, 0.3, 1.05, 2.4, 0xc9a227, { ry }); bx(D, x, z, 0.32, 0.12, 2.42, 0x2a2c2e, { y: 0.6, ry, c: 0 });
   }
-  /* its eyes: the corners, the north wall over the court, and one high in the coffer; the east bays' on CTL, one over
-     the overseer's door. The west speaker hangs low enough to reach; the east one sounds the overseer's own zone */
-  speaker(D, 'muster', 19.5, 33); speaker(D, 'ops', 42.5, 37.5);
-  camera(D, 16.3, 27.3, 4, PI / 4, 'OPS', 'muster'); camera(D, 16.3, 38.7, 4, (3 * PI) / 4, 'OPS', 'muster');
-  camera(D, 30, 27.2, 4, 0, 'OPS', 'muster'); camera(D, 24.1, 33, 7.6, PI / 2, 'OPS', 'muster');
+  /* its eyes: the corners, the north wall over the court, and one high in the coffer, all on the hall's own breaker;
+     the east bays' on CTL, one over the overseer's door, sounding its own zone. The speaker hangs low enough to reach */
+  speaker(D, 'muster', 19.5, 33, 'PA');
+  camera(D, 16.3, 27.3, 4, PI / 4, 'HALL', 'muster'); camera(D, 16.3, 38.7, 4, (3 * PI) / 4, 'HALL', 'muster');
+  camera(D, 30, 27.2, 4, 0, 'HALL', 'muster'); camera(D, 24.1, 33, 7.6, PI / 2, 'HALL', 'muster');
   camera(D, 44.7, 27.3, 4, -PI / 4, 'CTL', 'ops'); camera(D, 42.5, 38.75, 4, PI, 'CTL', 'ops');
 
-  /* west, off the hall's far end: the electrical room, with the operations room's switch, and the one who came for it */
+  /* west, off the hall's far end: the electrical room, and the one who came for it. Its board breaks Ops' feed out to
+     the hall (HALL: its lights, the court, four of its cameras), the operations room and the east bays (CTL: the door
+     the overseer bolts), and Security's PA (every zone's speaker): each a trade. A lamp over the cabinet for each, and
+     one for Ops itself */
   room(D, 'Electrical room', 10, 31, 5, 4, { ...UTIL, c: 'OPS', safe: 1 }); door(D, 15, 32, { sg: [['Electrical', 'e']] });
-  panel(D, 'CTL', 10.04, 32.5, 'e');
-  bx(D, 12.5, 31.2, 4.4, 2.2, 0.6, 0x4a4f55); for (let k = 0; k < 4; k++) bx(D, 11.2 + k * 0.9, 31.52, 0.5, 0.3, 0.04, [0.2, 0.2, 0.2], { y: 1.5, c: 0, pw: [[0.2, 0.2, 0.2], [0.4, 2.6, 0.6]], pc: 'OPS' });
+  bx(D, 10.03, 32.5, 0.04, 1.7, 3.4, 0x3a3d40, { y: 0.55, c: 0 });
+  for (const [c, z] of [['HALL', 31.6], ['CTL', 32.5], ['PA', 33.4]] as const) panel(D, c, 10.04, z, 'e', { brk: 1 });
+  bx(D, 12.5, 31.2, 4.4, 2.2, 0.6, 0x4a4f55);
+  for (const [k, c] of (['HALL', 'CTL', 'PA', 'OPS'] as const).entries()) bx(D, 11.2 + k * 0.9, 31.52, 0.5, 0.3, 0.04, [0.2, 0.2, 0.2], { y: 1.5, c: 0, pw: [[0.2, 0.2, 0.2], [0.4, 2.6, 0.6]], pc: c });
   bx(D, 13.8, 34.2, 1.2, 1.6, 1, 0x44525a); bx(D, 12.4, 34.85, 3.4, 0.08, 0.3, 0x2a2c2e, { y: 2.8, c: 0 }); item(D, 'batt', 11, 34.4, 0.02);
   corpse(D, 16.9, 32.8, 0x2c3440, true, { label: 'Search the guard', say: 'A guard, a step short of the electrical room. REYES, on the name tape. Opened from the side, by something that kept going.' });
   blood(D, 17.6, 33.4, 1.8);

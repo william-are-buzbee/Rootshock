@@ -192,8 +192,8 @@ export class LevelBuilder {
     (this.def.cameras ??= []).push({ x, y, z, yaw, ...o });
   }
   /** a zone's speaker: (x, y, z) the floor under it */
-  speaker(zone: string, x: number, y: number, z: number): void {
-    (this.def.speakers ??= []).push({ zone, x, y, z });
+  speaker(zone: string, x: number, y: number, z: number, o: { circuit?: string; pa?: string } = {}): void {
+    (this.def.speakers ??= []).push({ zone, x, y, z, ...o });
   }
   lamp(x: number, y: number, z: number, r: number, c: Colour, item?: number): void {
     this.def.lamps.push({ x, y, z, r, colour: c, ...(item !== undefined ? { item } : {}) });

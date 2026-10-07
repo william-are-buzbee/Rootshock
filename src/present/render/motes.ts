@@ -4,7 +4,7 @@ import { power } from '../../sim/game';
 import { STEP } from '../../core/loop';
 import type { Sim } from '../../sim/sim';
 import type { Lighting } from '../../world/light';
-import { U } from './shader';
+import { LIFT, U } from './shader';
 
 /* What hangs in the air near you: dust, the green's spores, the flesh's flecks (RoomDef.motes). Nine hundred specks in
    a box that travels with the eye; one that drifts out of the box comes back in at the far side. Each is a fleck of
@@ -63,9 +63,10 @@ void main(){
 
 const FS = /* glsl */ `
 varying vec3 vC; varying float vA;
+${LIFT}
 void main(){
   if (vA < 0.01) discard;
-  gl_FragColor = vec4(vC, vA);
+  gl_FragColor = vec4(lift(vC), vA);
 }`;
 
 interface Air {

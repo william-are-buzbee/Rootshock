@@ -78,7 +78,7 @@ export interface Deck {
   lamps: { x: number; z: number; r: number; c: Colour; it?: Deck['items'][number]; h?: number }[];
   /** cameras (in tile units, their lens h metres up, yaw as the cast's) and the zones' speakers */
   cams: { x: number; z: number; h: number; yaw: number; fov: number; range: number; c: string; zone: string }[];
-  speakers: { zone: string; x: number; z: number }[];
+  speakers: { zone: string; x: number; z: number; pa?: string }[];
   /** blood on the floor: middle and reach, in metres */
   stains: { x: number; z: number; r: number }[];
   elevs: { tx: number; tz: number; w: number; h: number; lo: Deck; hi: Deck; c: string; name: string }[];
@@ -518,7 +518,10 @@ export function finishLevel(start?: [number, number, number]) {
     for (const L of D.lamps) b.lamp(px(D, L.x), floorY(D, L.x, L.z) + (L.h ?? 1), pz(D, L.z), L.r, L.c, L.it && items.get(L.it));
     for (const S of D.stains) b.stain(px(D, S.x), floorY(D, S.x, S.z), pz(D, S.z), S.r);
     for (const C of D.cams) b.camera(X(D, C.x), floorY(D, C.x * T, C.z * T) + C.h, Z(D, C.z), C.yaw, { fov: C.fov, range: C.range, circuit: C.c, zone: C.zone });
-    for (const S of D.speakers) b.speaker(S.zone, X(D, S.x), floorY(D, S.x * T, S.z * T), Z(D, S.z));
+    for (const S of D.speakers) {
+      const R = roomAtTile(D, Math.floor(S.z) * D.W + Math.floor(S.x));
+      b.speaker(S.zone, X(D, S.x), floorY(D, S.x * T, S.z * T), Z(D, S.z), { circuit: R?.c ?? D.c, ...(S.pa ? { pa: S.pa } : {}) });
+    }
     for (const nt of D.notes) b.note(nt.key, px(D, nt.x), floorY(D, nt.x, nt.z) + nt.y, pz(D, nt.z));
     for (const m of D.muts) b.mutant(m.type, X(D, m.x), floorY(D, m.x * T, m.z * T), Z(D, m.z), m.o);
     for (const u of D.uses) b.use(u.kind, X(D, u.x), floorY(D, u.x * T, u.z * T) + u.y, Z(D, u.z), u.o);

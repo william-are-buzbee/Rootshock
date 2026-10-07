@@ -30,6 +30,10 @@ void main(){
 }`;
 
 /** how many rooms near you are pooled, and how many fittings in them, at most */
+/** the screen's tone curve: mid-tones lifted, black left black, so a lit room reads as lit on a screen. Every shader
+ *  that draws into the scene ends with it, so nothing stands out against the rest */
+export const LIFT = /* glsl */ `vec3 lift(vec3 c){ return pow(max(c, vec3(0.0)), vec3(0.78)); }`;
+
 export const POOL_ROOMS = 12, POOL_FIX = 32;
 const f1 = (x: number) => x.toFixed(3);
 
@@ -60,6 +64,7 @@ float pooled(vec3 p){
 uniform vec3 uFlashDir; uniform float uFlash; uniform float uLamp; uniform float uFog; uniform float uWet; uniform float uTime;
 uniform float uFlick; uniform float uHit; uniform float uBright; uniform float uBounce; uniform float uExpo;
 varying vec3 vW; varying vec3 vC; varying vec4 vL;
+${LIFT}
 void main(){
   vec3 n = normalize(cross(dFdx(vW), dFdy(vW)));
   vec3 tc = cameraPosition - vW; float d = length(tc); vec3 Ld = tc / max(d, 0.001);
@@ -83,7 +88,7 @@ void main(){
   c += uHit * vec3(0.45, 0.08, 0.06);
   c *= exp(-d * uFog);
   c = mix(c, c * vec3(0.5, 0.85, 0.9), uWet);
-  c *= uExpo;
+  c = lift(c * uExpo);
   /* a hash with no sin in it (a sin hash shows patterns on some GPUs), moved every frame */
   vec3 h3 = fract(vec3(gl_FragCoord.xyx + floor(fract(uTime * 7.13) * 977.0)) * 0.1031);
   h3 += dot(h3, h3.yzx + 33.33);
@@ -101,7 +106,7 @@ export const U = {
   uFlashDir: { value: new THREE.Vector3(0, 0, -1) },
   uFlash: { value: 0 },
   uLamp: { value: 0 },
-  uFog: { value: 0.032 },
+  uFog: { value: 0.02 },
   uWet: { value: 0 },
   uTime: { value: 0 },
   /** 1 while flickering lights are dimmed (flicker.ts) */

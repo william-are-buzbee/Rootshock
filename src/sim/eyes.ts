@@ -14,8 +14,8 @@ import type { Sim } from './sim';
    you, so there is time to step out. The alarm sounds from the zone's speaker for a while, and whatever hears it comes:
    the changed answer it from drill, to the speaker, not to you (sim/cast.ts, 'answer'), and the overseer's hand hears every
    one, wherever it is (sim/cast.ts, summon). The answers: keep out of its cone, cut its power, or smash it (loud); or
-   smash the zone's speaker (as loud), and the zone has no voice: seen there, the doors about you are still bolted, but
-   nothing hears it and nothing comes.
+   smash the zone's speaker (as loud), or cut its power or its PA's, and the zone has no voice: seen there, the doors
+   about you are still bolted, but nothing hears it and nothing comes.
    The cameras see for the overseer: on a level that has one, they go dark for good when it dies, and no alarm sounds
    again. Its own door (`keep`) it holds bolted from inside for as long as it lives and the door has power. */
 
@@ -61,8 +61,16 @@ export function speakerY(w: World, S: SpeakerDef): number {
   return R ? R.y0 + R.ht : S.y + 3;
 }
 
-/** the zone's speaker is whole: what it sounds is heard */
+/** the zone's speaker is whole */
 export const voiced = (sim: Sim, zone: string): boolean => !sim.mute.includes(zone);
+
+/** the zone's speaker can sound: whole, with power where it hangs, and on its PA system if it has one. A dead one is
+ *  as quiet as a smashed one: seen there, the doors are still bolted, but nothing hears it */
+export function heard(sim: Sim, zone: string): boolean {
+  if (!voiced(sim, zone)) return false;
+  const S = sim.world.def.speakers?.find(s => s.zone === zone), g = sim.game;
+  return !S || ((!S.circuit || power(g, S.circuit) >= 1) && (!S.pa || power(g, S.pa) >= 1));
+}
 
 /** it can see: whole, with power to it, and someone to see for */
 export const camLive = (sim: Sim, c: Cam): boolean => !c.broken && power(sim.game, c.def.circuit) >= 1 && !blinded(sim);
@@ -80,7 +88,7 @@ export function camSees(sim: Sim, c: Cam): boolean {
  *  camera or the overseer itself), so it bolts the doors about you as well */
 export function soundZone(sim: Sim, zone: string, seen = false): void {
   const sp = sim.world.def.speakers?.find(s => s.zone === zone), F = sim.fields;
-  if (!sp || !F || blinded(sim) || (!seen && !voiced(sim, zone))) return;
+  if (!sp || !F || blinded(sim) || (!seen && !heard(sim, zone))) return;
   const on = sim.alarms.find(a => a.zone === zone);
   if (on) { on.t = EYES.sound; return; }
   const spot = F.nav.locate(sp.x, sp.y, sp.z);
@@ -154,7 +162,7 @@ export function updateEyes(sim: Sim): void {
   }
   for (const a of sim.alarms) {
     a.t -= STEP;
-    if ((a.next -= STEP) <= 0 && voiced(sim, a.zone)) {
+    if ((a.next -= STEP) <= 0 && heard(sim, a.zone)) {
       /* it goes round, and whatever hears it this time comes */
       a.next = EYES.every;
       const sp = sim.world.def.speakers!.find(s => s.zone === a.zone)!;

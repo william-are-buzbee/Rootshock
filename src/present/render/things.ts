@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { Colour } from '../../core/math';
 import { hex } from '../../core/math';
 import type { Sim } from '../../sim/sim';
-import { camLive, speakerY, voiced } from '../../sim/eyes';
+import { camLive, heard, speakerY, voiced } from '../../sim/eyes';
 import type { DoorDef } from '../../content/types';
 import type { World } from '../../world/world';
 import type { Lighting } from '../../world/light';
@@ -190,7 +190,7 @@ export class Things {
       }, at);
       this.add(parts([['box', [2.9, 1.6, 0.3], 0.16, 0.12, 0.16, 0, -0.4, 0]]), m => {
         m.position.set(S.x, y, S.z);
-        m.visible = !dead() && sim.alarms.some(a => a.zone === S.zone) && Math.floor(performance.now() / 300) % 2 === 0;
+        m.visible = heard(sim, S.zone) && sim.alarms.some(a => a.zone === S.zone) && Math.floor(performance.now() / 300) % 2 === 0;
       });
     }
     for (const s of w.def.signs) {

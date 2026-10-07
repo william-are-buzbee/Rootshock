@@ -254,7 +254,7 @@ describe('the overseer\'s bolts', () => {
 
 describe('the overseer\'s own door', () => {
   const keep = (s: Sim) => s.doors.find(d => d.def.keep)!;
-  const sw = (s: Sim) => s.usables.find(u => /Service connection, Operations room/.test(u.label() ?? ''))!;
+  const sw = (s: Sim) => s.usables.find(u => /Breaker, Operations room/.test(u.label() ?? ''))!;
 
   it('it holds its door bolted from inside for as long as it has power: no card, no code, no way through', () => {
     const s = fresh(), d = keep(s);
@@ -275,7 +275,7 @@ describe('the overseer\'s own door', () => {
     still(s);
     hold(s, 0.1);
     const u = sw(s);
-    expect(u.label()).toBe('Service connection, Operations room: closed');
+    expect(u.label()).toBe('Breaker, Operations room: closed');
     expect(Math.hypot(u.x - (d.def.x0 + d.def.x1) / 2, u.z - (d.def.z0 + d.def.z1) / 2)).toBeGreaterThan(50); // across the hall
     s.game.events.length = 0;
     u.act();
@@ -313,6 +313,53 @@ describe('the overseer\'s own door', () => {
   });
 });
 
+describe('the electrical room\'s board', () => {
+  const brk = (s: Sim, name: string) => s.usables.find(u => new RegExp('Breaker, ' + name).test(u.label() ?? ''))!;
+
+  it('breaks Ops out to the muster hall, the operations room and the PA, each on its own breaker, side by side', () => {
+    const s = fresh(), b = ['Muster hall', 'Operations room', 'Security PA'].map(n => brk(s, n));
+    for (const u of b) expect(u.label()).toMatch(/: closed$/);
+    expect(Math.max(...b.map(u => Math.hypot(u.x - b[0].x, u.z - b[0].z)))).toBeLessThan(4);
+  });
+
+  it('the hall\'s breaker darkens it and its own cameras, and its speaker with them; the overseer\'s keep its power', () => {
+    const s = fresh();
+    still(s);
+    brk(s, 'Muster hall').act();
+    const hall = s.cams.filter(c => c.def.zone === 'muster');
+    expect(hall.length).toBe(4);
+    for (const c of hall) expect(power(s.game, c.def.circuit)).toBe(0);
+    expect(s.cams.filter(c => c.def.circuit === 'CTL').every(c => power(s.game, c.def.circuit) === 1)).toBe(true);
+    soundZone(s, 'muster'); // sounded otherwise than by being seen: with no power at its speaker, not at all
+    expect(s.alarms).toEqual([]);
+  });
+
+  it('the PA\'s breaker takes every zone\'s voice: seen, the doors are still bolted, but no klaxon and nothing comes', () => {
+    const s = fresh(), h = s.cast.find(m => m.type === 'hand')!;
+    for (const q of s.cast) if (q !== h) q.stun = 1e9;
+    brk(s, 'Security PA').act();
+    inView(s);
+    s.game.events.length = 0;
+    hold(s, EYES.hold + 0.3);
+    expect(s.alarms.map(a => a.zone)).toEqual(['atrium']); // it saw you
+    hold(s, 2);
+    expect(sounded(s, 'klaxon')).toBe(false);
+    expect(h.state).not.toBe('go');
+  });
+
+  it('cut while a zone sounds, its klaxon stops at its next round', () => {
+    const s = fresh();
+    still(s);
+    place(s, 30, -4.5, -25);
+    soundZone(s, 'atrium');
+    hold(s, 2);
+    brk(s, 'Security PA').act();
+    s.game.events.length = 0;
+    hold(s, 3);
+    expect(sounded(s, 'klaxon')).toBe(false);
+  });
+});
+
 describe('a smashed speaker', () => {
   /** look at a thing from where you stand */
   const lookAt = (s: Sim, x: number, y: number, z: number) => {
@@ -324,10 +371,10 @@ describe('a smashed speaker', () => {
     return s.usables.find(u => u.x === S.x && u.z === S.z && u.y > S.y + 3)!;
   };
 
-  it('the muster hall\'s east one (the overseer\'s zone) is in reach from the floor; smashing it takes something in your hand, and is loud', () => {
+  it('the Operations corridor\'s (the overseer\'s zone) is in reach from the floor; smashing it takes something in your hand, and is loud', () => {
     const s = fresh(), u = speakerUse(s, 'ops');
     still(s);
-    place(s, 75, 0, 45.6);
+    place(s, 77, 0, 20.6);
     hold(s, 0.1);
     lookAt(s, u.x, u.y, u.z);
     expect(findUsable(s)?.text).toBe('Smash the speaker');
