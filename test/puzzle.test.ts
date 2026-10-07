@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { STATION } from '../src/content/station';
 import { buildUpper } from '../src/content/levels/upper';
-import { makeSim, step, type Sim } from '../src/sim/sim';
+import { makeSim, simLighting, step, type Sim } from '../src/sim/sim';
 import { noInput, type Input } from '../src/sim/input';
 import { power } from '../src/sim/game';
 import { eyeHeight } from '../src/sim/player';
@@ -75,12 +75,16 @@ describe('the upper station, played', () => {
     expect(power(s.game, 'SEC')).toBe(0);
   });
 
-  it('the guard post has the flashlight, and with it the dark has an answer', () => {
+  it('a flashlight lies at the stair\'s foot, still on; taken, its light goes with it, and the dark has an answer', () => {
     const s = fresh();
     hold(s, 0.1, { light: true });
     expect(s.game.lightOn).toBe(false); // nothing to switch on yet
-    use(s, find(s, /Take flashlight/), [0, 1]);
+    const F = find(s, /Take flashlight/), lum = () => Math.max(...simLighting(s).atPoint(F.x, F.y + 0.3, F.z));
+    expect(lum()).toBeGreaterThan(0.3);
+    use(s, F, [0, 1]);
     expect(s.game.tools).toContain('flash');
+    expect(s.game.events.some(e => e.type === 'relight')).toBe(true);
+    expect(lum()).toBe(0);
     hold(s, 0.1, { light: true });
     expect(s.game.lightOn).toBe(true);
     const before = s.game.batt;
@@ -171,7 +175,7 @@ describe('the upper station, played', () => {
 
   it('notes can be read and are kept; a long fall hurts', () => {
     const s = fresh();
-    use(s, find(s, /Read: intake slip/), [1, 0]);
+    use(s, find(s, /Read: isolation record, room 1/), [1, 0]);
     expect(s.game.read).toContain('intake');
     expect(s.game.events.some(e => e.type === 'note')).toBe(true);
     const b = s.player.body, [x, z] = tile(90, 11);

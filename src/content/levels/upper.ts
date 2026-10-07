@@ -1,10 +1,10 @@
 import { PI } from '../../core/math';
 import type { LevelDef, LadderDef } from '../types';
 import {
-  arch, beginLevel, bx, cave, door, elev, finishLevel, item, ladder, lamp, mkDeck, mul3, mut, note, P, roughen, room, stack, stairs, use, type Deck, type LevelInfo, type TRoomOpts,
+  arch, beginLevel, bx, cave, door, elev, finishLevel, item, ladder, mkDeck, mut, note, P, roughen, room, stack, stairs, use, type Deck, type LevelInfo, type TRoomOpts,
 } from '../build/tiles';
 import {
-  BAY, CELL, LOW, MED, OPS, SEC, UTIL, WALK, blood, bed, container, corpse, crates, desk, eggs, forklift, genset, gore, liftRoom, medbed, panel, shelf, tbl,
+  BAY, MED, OPS, SEC, UTIL, WALK, blood, container, corpse, crates, desk, droppedLight, eggs, exitSign, forklift, genset, gore, liftRoom, medbed, panel, shelf, tbl,
 } from '../build/fittings';
 
 /* Upper station, 40 m down. Off the main shaft, the Security wing (x 14 to 66) and Operations (x 64 to 110, south to
@@ -18,10 +18,11 @@ export const UPPER: LevelInfo = { id: 'upper', name: 'Upper station', c: 'OPS', 
 
 export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   beginLevel(UPPER, ladders);
-  const lv = UPPER, D = mkDeck(lv, 140, 44);
+  /* the ground floor, over a basement a storey down (the isolation suite) where it needs one */
+  const lv = UPPER, D = mkDeck(lv, 140, 44, { ground: true }), B = mkDeck(lv, 140, 44, { y0: -4.5 });
   /* the rungs over the ground floor at +5, +10 and +15: Tier 1 also carries the second floor over Ops */
   const tier = (y0: number, li: number) => mkDeck(lv, 140, 44, { y0, li }), T1 = tier(5, 1), T2 = tier(10, 2), T3 = tier(15, 3);
-  stack(D, T1); stack(T1, T2); stack(T2, T3);
+  stack(B, D); stack(D, T1); stack(T1, T2); stack(T2, T3);
   /* the main shaft: the hoist cage (runs on Gen-1) and the surface cage. No ladderway down it: the way down from
      Security is its own elevator, in the atrium (below) */
   liftRoom(D, 5, 14, 7, 14);
@@ -40,21 +41,42 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   corpse(D, 36.2, 13.9, 0x2c3440, false, { label: 'Search the guard', say: 'A guard, bolt cutters still in his hand. Behind him the feed to the wing is cut clean through.' });
   /* what was left of a barricade across the mouth of the wing */
   bx(D, 38.4, 13.7, 1.8, 0.75, 0.7, 0x5b5d5f, { ry: 0.5 }); crates(D, 38.3, 15.3, 2);
-  /* north: Holding, a short block with two cells a side (you wake in W2), the guard post, Security control */
-  room(D, 'Holding block', 24, 5, 2, 7, { ...CELL, c: 'SEC', lit: 'always', lc: LOW, safe: 1 }); door(D, 24, 12, { open: true, sg: [['Holding', 's']] });
-  for (const [k, y] of [[1, 5], [2, 8]]) {
-    room(D, 'Cell W' + k, 21, y, 2, 2, { ...CELL, c: 'SEC', lit: 'always', lc: mul3(LOW, 0.8), safe: 1, nolamp: 1 }); room(D, 'Cell E' + k, 27, y, 2, 2, { ...CELL, c: 'SEC', lit: 'always', lc: mul3(LOW, 0.8), safe: 1, nolamp: 1 });
-    bed(D, 21.3, y + 1, true, 0x6d7178); bx(D, 22.75, y + 1.75, 0.4, 0.42, 0.4, 0xb8bcc0); bed(D, 28.7, y + 1, true, 0x6d7178); bx(D, 27.25, y + 1.75, 0.4, 0.42, 0.4, 0xb8bcc0);
-    door(D, 23, y, { open: k === 2, seal: k !== 2 }); door(D, 26, y, { open: k === 2, seal: k !== 2 });
+  /* North, a storey down: the medical isolation suite (world.md §8). Rooms round a tall common hall, and over its south
+     end, at the wing's own level, the nurses' station that the stair climbs to. It is dark with the wing: the only light
+     is a flashlight dropped still on at the stair's foot, and the exit signs on their own batteries. You wake in room 1,
+     whose door looks straight across the hall at both. */
+  const ISO: TRoomOpts = { fl: 0x4c5250, wl: 0x6f7a77, st: 0x3f7f6b, c: 'SEC', em: 1, safe: 1 };
+  room(B, 'Isolation suite', 23, 1, 11, 10, { ...ISO, ht: 8 });
+  for (const [k, x, y, dx] of [[1, 19, 1, 22], [2, 19, 5, 22], [3, 35, 1, 34]] as const) {
+    const east = dx > x, bed = east ? x + 0.4 : x + 2.6;
+    room(B, 'Isolation room ' + k, x, y, 3, 3, { ...ISO, lc: [0.85, 0.85, 0.8] }); door(B, dx, y + 1, { open: true, sg: [['Isolation ' + k, east ? 'e' : 'w']] });
+    medbed(B, bed, y + 1.5); bx(B, bed + (east ? 0.6 : -0.6), y + 0.45, 0.45, 0.5, 0.4, 0xb8bcc0); bx(B, east ? x + 2.2 : x + 0.6, east ? y + 2.4 : y + 0.6, 0.45, 0.45, 0.45, 0x5f6266);
   }
-  note(D, 'intake', 22.5, 8.35, 0.02); blood(D, 28, 9, 1.4); bx(D, 27.2, 8.5, 1.6, 0.01, 0.3, 0x3a0b0b, { y: 0.02, c: 0 });
-  /* the guard post: dark with the wing, but for the survivors' battery lamp */
-  room(D, 'Guard post', 30, 8, 4, 4, { ...SEC, c: 'SEC', safe: 1 }); door(D, 31, 12, { open: true, sg: [['Guard post', 's']] }); lamp(D, 30.35, 11.6, 5);
-  desk(D, 31.2, 8.6, 1.8, 0.7); bx(D, 31.2, 9.2, 0.45, 0.45, 0.45, 0x2c2f33); for (let k = 0; k < 3; k++) bx(D, 33.7, 8.3 + k * 0.3, 0.5, 1.9, 0.5, 0x4d5863); bx(D, 33, 11.7, 1.6, 0.42, 0.4, 0x44484c);
-  item(D, 'flash', 30.75, 8.7, 0.78); item(D, 'batt', 31.65, 8.7, 0.78); note(D, 'duty', 31.5, 8.45, 0.78); item(D, 'baton', 32.8, 11.7, 0.44); item(D, 'ration', 33.3, 11.7, 0.44);
+  note(B, 'intake', 20, 1.45, 0.52);
+  corpse(B, 21.3, 6.4, 0x8a9a94, true, { label: 'Search the patient', say: 'A patient in a gown, curled on the floor by the door. No wound you can see. They stopped waiting.' });
+  room(B, 'Washroom', 35, 5, 3, 2, ISO); door(B, 36, 4, { open: true }); // room 3's own: the stair has the hall's east wall
+  for (const z of [5.3, 6.1]) bx(B, 37.7, z, 0.5, 0.85, 0.6, 0xc8ccd0); bx(B, 35.6, 6.5, 1, 2.1, 1, 0x8a9a94, { c: 0 });
+  /* the hall: a kitchenette on the north wall, a table, a sofa before the screen, plants nobody watered */
+  bx(B, 27.5, 1.16, 6, 0.88, 0.6, 0x5a5e60); bx(B, 27.5, 1.17, 6.1, 0.04, 0.66, 0x8a8e8c, { y: 0.88, c: 0 }); bx(B, 27.5, 1.09, 6, 0.7, 0.35, 0x5a5e60, { y: 1.6, c: 0 });
+  bx(B, 31, 1.18, 0.8, 1.9, 0.7, 0xb8bcc0);
+  tbl(B, 27, 5, 2.4, 1.2, 0x6b5a48); for (const [x, z] of [[26.6, 4.45], [27.4, 4.45], [26.6, 5.55], [27.4, 5.55]]) bx(B, x, z, 0.45, 0.45, 0.45, 0x3a3d40);
+  bx(B, 25.6, 7.5, 0.9, 0.45, 2, 0x39485a); bx(B, 25.95, 7.5, 0.2, 0.45, 2, 0x39485a, { y: 0.45 }); bx(B, 24.6, 7.5, 2.2, 0.01, 2.6, 0x3a4a48, { y: 0.012, c: 0 });
+  bx(B, 23.04, 7.5, 0.06, 0.7, 1.3, 0x15181b, { y: 1.3, c: 0 });
+  for (const [x, z] of [[23.5, 1.6], [24.4, 10.4], [32.6, 10.4]]) { P(B, 'cyl', x, z, 0.5, 0.5, 0.5, 0x8a6a4a); P(B, 'ico', x, z, 0.8, 0.5, 0.8, 0x5a4a34, { y: 0.5, c: 0 }); }
+  bx(B, 30.2, 2.1, 0.9, 1, 0.55, 0xa82a20);
+  /* the stair up to the station, wide, against the east wall; at its foot the guard who brought the light this far */
+  stairs(B, D, 32, 4, 5, 's'); stairs(B, D, 33, 4, 5, 's'); exitSign(B, 33.97, 3, 2.4, 'w');
+  corpse(B, 31, 3.3, 0x2c3440, false, { label: 'Search the guard', say: 'A guard at the foot of the stairs, face down. He got this far with the light and no further.' });
+  droppedLight(B, 31.9, 3.6); // clear of the ceiling's fittings, or its pool would light a dead tube up there
+  /* the nurses' station: a balcony over the hall, at the wing's level, and out to the corridor */
+  room(D, "Nurses' station", 23, 9, 11, 3, { ...WALK, c: 'SEC', ht: 3.5, safe: 1, fl: 0x4c5250, wl: 0x6f7a77 }); door(D, 28, 12, { open: true, sg: [['Isolation', 's']] });
+  exitSign(D, 28.5, 11.97, 2.5, 'n');
+  desk(D, 25.5, 11.6, 1.8, 0.7, { bare: 1 }); bx(D, 25.5, 11.7, 0.5, 0.34, 0.06, 0x22262a, { y: 0.76, c: 0 }); bx(D, 25.5, 11.68, 0.44, 0.28, 0.02, [0.06, 0.12, 0.1], { y: 0.79, c: 0, pw: [[0.04, 0.05, 0.05], [2.2, 2.75, 2.5]], pc: 'SEC' });
+  bx(D, 25.5, 11, 0.45, 0.45, 0.45, 0x2c2f33); bx(D, 30.5, 11.7, 1.6, 0.42, 0.4, 0x44484c);
+  item(D, 'batt', 25.9, 11.6, 0.78); note(D, 'duty', 25.1, 11.55, 0.78); item(D, 'baton', 30.2, 11.7, 0.44); item(D, 'ration', 30.8, 11.7, 0.44);
   room(D, 'Security control', 35, 7, 3, 5, { ...SEC, c: 'SEC' }); door(D, 36, 12, { card: 's', sg: [['Control', 's']] });
   tbl(D, 36.5, 7.5, 5, 0.8);
-  for (let k = 0; k < 4; k++) { bx(D, 35.6 + k * 0.6, 7.06, 1, 0.7, 0.06, 0x22262a, { y: 1.2, c: 0 }); bx(D, 35.6 + k * 0.6, 7.08, 0.9, 0.6, 0.02, [0.05, 0.07, 0.08], { y: 1.25, c: 0, pw: [[0.04, 0.05, 0.05], [2.3, 2.6, 2.75]] }); }
+  for (let k = 0; k < 4; k++) { bx(D, 35.6 + k * 0.6, 7.06, 1, 0.7, 0.06, 0x22262a, { y: 1.2, c: 0 }); bx(D, 35.6 + k * 0.6, 7.08, 0.9, 0.6, 0.02, [0.05, 0.07, 0.08], { y: 1.25, c: 0, pw: [[0.04, 0.05, 0.05], [2.3, 2.6, 2.75]], pc: 'SEC' }); }
   note(D, 'cams', 36.2, 7.5, 0.78); item(D, 'batt', 37.4, 7.5, 0.78, 2); item(D, 'ammo9', 35.5, 11.5, 0.02);
   /* south: the Armory, the range, the hazard store, the infirmary. The heavy doors and their keypads run off Ops' own
      bus, not the wing's: they wait on Gen-1 either way, cut or mended. */
@@ -108,7 +130,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   bx(T1, 58.98, 15, 0.04, 2.2, 9.6, 0x0b0d0f, { y: 0.9, c: 0 }); for (let k = 0; k < 5; k++) bx(T1, 58.96, 12.6 + k * 1.2, 0.06, 2.2, 0.08, 0x2a2c2e, { y: 0.9, c: 0 });
   use(T1, 'look', 58.4, 15, 1.5, { label: 'Look out over the bay', text: 'Thick glass over the bay, and the floor a long way down. Nothing out there gives back any light.' });
   buildCargo(D, T1, T2, T3);
-  return finishLevel([22.3, 8.7, -PI / 2]);
+  return finishLevel([20.3, 2.5, -PI / 2]); // in isolation room 1, facing its door
 }
 
 /* the Cargo cavern: a 20 m vault, x 110 to 240, with three tiers stepped up its north side at +5, +10 and +15 and a platform

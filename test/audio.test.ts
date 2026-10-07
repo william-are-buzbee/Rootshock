@@ -72,8 +72,8 @@ describe('the station heard', () => {
   const room = (s: Sim, name: string) => s.world.rooms.find(r => r.name === name)!;
   const most = (w: number[]) => w.indexOf(Math.max(...w));
 
-  it('echoes by the size of the room: a guard post small, the generator hall vast, the cave more than either', () => {
-    const post = spaceOf(room(sim('upper'), 'Guard post'), false), hall = spaceOf(room(sim('plant'), 'Generator hall'), false);
+  it('echoes by the size of the room: an isolation room small, the generator hall vast, the cave more than either', () => {
+    const post = spaceOf(room(sim('upper'), 'Isolation room 2'), false), hall = spaceOf(room(sim('plant'), 'Generator hall'), false);
     expect(most(post)).toBe(0);
     expect(most(hall)).toBe(2);
     const cave = sim('cave'), c = cave.player.body, R = cave.world.roomAt(c.x, c.y + 1, c.z)!;

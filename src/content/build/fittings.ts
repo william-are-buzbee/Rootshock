@@ -1,5 +1,5 @@
 import { PI, TAU } from '../../core/math';
-import { P, T, bx, colT, door, pick, rnd, room, stain, use, type Deck, type TRoom, type TRoomOpts } from './tiles';
+import { P, T, bx, colT, door, item, pick, rnd, room, stain, use, type Deck, type TRoom, type TRoomOpts } from './tiles';
 
 /* The first engine's furniture, clutter and fittings, on the tile adapter. Ported as they were, so the station looks as
    it did; their randomness now comes from the level's own seed. */
@@ -172,6 +172,18 @@ export function panel(D: Deck, c: string, x: number, z: number, face: 'n' | 's' 
   bx(D, x, z, ew ? 0.14 : 0.7, 0.9, ew ? 0.7 : 0.14, 0x4a4f55, { y: 0.9, c: 0 });
   bx(D, x + (ew ? o : 0), z + (ew ? 0 : o), 0.1, 0.1, 0.1, [0.2, 0.2, 0.2], { y: 1.55, c: 0, pw: [LIVE[0], LIVE[1]], pc: c });
   use(D, 'panel', x + (ew ? o * 3 : 0), z + (ew ? 0 : o * 3), 1.3, { c, ...opts });
+}
+/** an exit sign, read from `face`: green, and on its own battery as the code wants, so lit whatever the power; a little of
+ *  its light falls before it */
+export function exitSign(D: Deck, x: number, z: number, y: number, face: 'n' | 's' | 'e' | 'w'): void {
+  const ew = face === 'e' || face === 'w', o = 0.4;
+  bx(D, x, z, ew ? 0.05 : 0.7, 0.26, ew ? 0.7 : 0.05, [0.35, 2.8, 0.9], { y, c: 0 });
+  D.lamps.push({ x: (x + (face === 'e' ? o : face === 'w' ? -o : 0)) * T, z: (z + (face === 's' ? o : face === 'n' ? -o : 0)) * T, r: 2.6, c: [0.05, 0.24, 0.1] });
+}
+/** a flashlight dropped still on: it lights itself and a little round it, and goes out once it is taken */
+export function droppedLight(D: Deck, x: number, z: number, r = 3.2): void {
+  const it = item(D, 'flash', x, z, 0.02);
+  D.lamps.push({ x: x * T, z: z * T, r, c: [0.62, 0.6, 0.52], it });
 }
 export function genset(D: Deck, c: string, x: number, z: number, ix: number, iz: number): void {
   bx(D, x, z, 1.4, 1.1, 0.8, 0x44525a);

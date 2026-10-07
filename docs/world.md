@@ -138,7 +138,8 @@ and adds politics above it.
 trafficked in. The working picture: you are staff, held in Security's **medical isolation suite**, a well-appointed set of rooms
 rarely used, for staff who may have been exposed to something (or, less often, held for something they did). Why you were in
 it is open; the isolation framing would allow a choice at the start ("are you changing, this time?") if mutation becomes a
-player state. (The intake slip in Holding still tells the old story and needs rewriting with the room.)
+player state. (The papers in the suite tell this story now; others still tell the old one of accessions and transfers:
+the chief of security's, the keeper's, Holt's memorandum.)
 
 - **Start:** an unaligned pawn.
 - **End:** the physical, mechanical arbiter of the station, and its political actor: kingmaker, liaison, or neither.
@@ -391,6 +392,13 @@ cancerous growth, rather than a second level-sized area competing for attention.
 - **The light.** None of its own. The flashlight on the floor at the foot of the station's stair, on the guard who dropped it,
   lights itself and a little round it, and goes out when you take it. Exit signs over the stair glow green on their own
   batteries (as the code requires), a second, quieter light to follow. Nothing hunts you here.
+- **Built.** A storey down (-4.5 m), under the wing's north side: a double-height hall (22 by 20 m) with a kitchenette, a
+  table, a sofa before a dead screen and plants nobody watered; three isolation rooms off it, room 3 with its own washroom;
+  and over the hall's south end, at the wing's level, the nurses' station, a balcony with the station's desk, which a double
+  stair up the east wall climbs to, and which opens onto the Security corridor. You wake in room 1, whose door looks across
+  the hall at the stair's foot: a guard face down there, his flashlight still on beside him, and an exit sign. A patient lies
+  in room 2. The old cells and guard post are gone. The suite and the station are refuges, and dark with the wing; mended,
+  they light amber like the rest of it.
 
 **The layout (proposed)**
 

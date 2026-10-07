@@ -187,8 +187,8 @@ export class LevelBuilder {
     this.def.colliders.push({ x0: x - sx / 2, y0: b, z0: z - sz / 2, x1: x + sx / 2, y1: b + sy, z1: z + sz / 2 });
   }
 
-  lamp(x: number, y: number, z: number, r: number, c: Colour): void {
-    this.def.lamps.push({ x, y, z, r, colour: c });
+  lamp(x: number, y: number, z: number, r: number, c: Colour, item?: number): void {
+    this.def.lamps.push({ x, y, z, r, colour: c, ...(item !== undefined ? { item } : {}) });
   }
   sign(text: string, x: number, y: number, z: number, yaw: number, circuit = this.def.circuit): void {
     this.def.signs.push({ text, x, y, z, yaw, circuit });

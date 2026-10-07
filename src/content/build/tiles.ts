@@ -63,6 +63,8 @@ export interface LevelInfo { id: string; name: string; c: string; org?: [number,
 
 export interface Deck {
   lv: LevelInfo; name: string; c: string; W: number; H: number; org: [number, number]; y0: number; li: number;
+  /** a ground floor over a basement: its floor is the rock, and a slab is laid only where something lies below */
+  ground: boolean;
   /** wading water over every room (its depth), or every room flooded to the roof */
   wet: number; deep: number;
   g: Uint8Array; rm: Int16Array; nom: Uint8Array;
@@ -71,7 +73,7 @@ export interface Deck {
   hf: Float32Array | null; cf: Float32Array | null; hset: Uint8Array | null;
   props: TProp[];
   cols: [number, number, number, number, number, number][];
-  lamps: { x: number; z: number; r: number; c: Colour }[];
+  lamps: { x: number; z: number; r: number; c: Colour; it?: Deck['items'][number] }[];
   /** blood on the floor: middle and reach, in metres */
   stains: { x: number; z: number; r: number }[];
   elevs: { tx: number; tz: number; w: number; h: number; lo: Deck; hi: Deck; c: string; name: string }[];
@@ -103,9 +105,9 @@ export const pick = <X>(a: readonly X[]): X => C().rng.pick(a);
 export const mul3 = (c: Colour, k: number): Colour => scale3(c, k);
 const col = (c: Col): Colour => hex(c);
 
-export function mkDeck(lv: LevelInfo, W: number, H: number, o: { y0?: number; li?: number; wet?: number; deep?: number } = {}): Deck {
+export function mkDeck(lv: LevelInfo, W: number, H: number, o: { y0?: number; li?: number; wet?: number; deep?: number; ground?: boolean } = {}): Deck {
   const D: Deck = {
-    lv, name: lv.name, c: lv.c, W, H, org: lv.org ?? [0, 0], y0: o.y0 ?? 0, li: o.li ?? 0, wet: o.wet ?? 0, deep: o.deep ?? 0,
+    lv, name: lv.name, c: lv.c, W, H, org: lv.org ?? [0, 0], y0: o.y0 ?? 0, li: o.li ?? 0, wet: o.wet ?? 0, deep: o.deep ?? 0, ground: !!o.ground,
     g: new Uint8Array(W * H), rm: new Int16Array(W * H).fill(-1), nom: new Uint8Array(W * H),
     rooms: [], doors: new Map(), above: null, below: null, hf: null, cf: null, hset: null,
     props: [], cols: [], lamps: [], stains: [], elevs: [], stairs: [], items: [], notes: [], muts: [], uses: [], marks: {}, conn: new Set(), water: [],
@@ -165,7 +167,11 @@ export function lamp(D: Deck, x: number, z: number, r: number): void {
 }
 /** blood on the floor at (x, z) in tiles, reaching r metres: walked through, it comes away on your soles */
 export function stain(D: Deck, x: number, z: number, r: number): void { D.stains.push({ x: x * T, z: z * T, r }); }
-export function item(D: Deck, id: string, x: number, z: number, y = 0, n = 1): void { D.items.push({ id, x: x * T, z: z * T, y, n }); }
+export function item(D: Deck, id: string, x: number, z: number, y = 0, n = 1): Deck['items'][number] {
+  const it = { id, x: x * T, z: z * T, y, n };
+  D.items.push(it);
+  return it;
+}
 export function note(D: Deck, key: string, x: number, z: number, y = 0): void { D.notes.push({ key, x: x * T, z: z * T, y }); }
 export function mut(D: Deck, type: string, x: number, z: number, o: Record<string, unknown> = {}): void { D.muts.push({ type, x, z, o }); }
 export function use(D: Deck, kind: string, x: number, z: number, y: number, o: Record<string, unknown> = {}): void { D.uses.push({ kind, x, z, y, o }); }
@@ -411,7 +417,7 @@ export function finishLevel(start?: [number, number, number]) {
          A run stops where the colour does, or a walkway's would carry on under the room its door opens into. */
       const slabAt = (k: number): number | null => {
         const R = roomAtTile(D, k);
-        if (!D.g[k] || (R && (R.hole || (R.air && through(k))))) return null;
+        if (!D.g[k] || (R && (R.hole || (R.air && through(k)))) || (D.ground && !dnAt(D, k))) return null;
         return R?.open ? R.fl : -1;
       };
       for (let j = 0; j < D.H; j++)
@@ -487,10 +493,11 @@ export function finishLevel(start?: [number, number, number]) {
       const y = floorY(D, (x0 + x1) / 2, (z0 + z1) / 2);
       b.collider(px(D, (x0 + x1) / 2), pz(D, (z0 + z1) / 2), x1 - x0, hi - lo, z1 - z0, y + lo);
     }
-    for (const L of D.lamps) b.lamp(px(D, L.x), floorY(D, L.x, L.z), pz(D, L.z), L.r, L.c);
+    /* what the later steps need: things lying about first, so a lamp that one of them gives can name it */
+    const items = new Map<object, number>();
+    for (const it of D.items) { items.set(it, b.level.items.length); b.item(it.id, px(D, it.x), floorY(D, it.x, it.z) + it.y, pz(D, it.z), it.n); }
+    for (const L of D.lamps) b.lamp(px(D, L.x), floorY(D, L.x, L.z), pz(D, L.z), L.r, L.c, L.it && items.get(L.it));
     for (const S of D.stains) b.stain(px(D, S.x), floorY(D, S.x, S.z), pz(D, S.z), S.r);
-    /* what the later steps need */
-    for (const it of D.items) b.item(it.id, px(D, it.x), floorY(D, it.x, it.z) + it.y, pz(D, it.z), it.n);
     for (const nt of D.notes) b.note(nt.key, px(D, nt.x), floorY(D, nt.x, nt.z) + nt.y, pz(D, nt.z));
     for (const m of D.muts) b.mutant(m.type, X(D, m.x), floorY(D, m.x * T, m.z * T), Z(D, m.z), m.o);
     for (const u of D.uses) b.use(u.kind, X(D, u.x), floorY(D, u.x * T, u.z * T) + u.y, Z(D, u.z), u.o);

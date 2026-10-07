@@ -2,12 +2,11 @@ import { FixedLoop } from './core/loop';
 import { testbed } from './content/levels/testbed';
 import { STATION } from './content/station';
 import { Lighting } from './world/light';
-import { applyCommands, makeSim, type Sim } from './sim/sim';
+import { applyCommands, makeSim, simLighting, type Sim } from './sim/sim';
 import { levelDef, loadRun, makeRun, saveRun, soloRun, stepRun, type Run } from './sim/run';
 import { save } from './sim/save';
 import { checkProgress, describe, type CheckOpts } from './sim/progress';
 import { readStore, writeStore } from './present/store';
-import { power } from './sim/game';
 import { CameraRig, type Prev } from './present/camera';
 import { Controls } from './present/controls';
 import { Audio } from './present/audio';
@@ -73,7 +72,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) suspe
 window.addEventListener('pagehide', suspend);
 
 /* each level drawn once, and lit by the power as it is when you are there */
-const lightingNow = () => new Lighting(sim.world, c => power(sim.game, c));
+const lightingNow = () => simLighting(sim);
 let lighting = lightingNow();
 const levels = new Map<Sim, LevelView>();
 function levelView(): LevelView {
@@ -212,6 +211,11 @@ function events(): void {
         if (ev.loud) audio.play('power');
         break;
       }
+      case 'relight':
+        /* a light of its own went out: at once, no tubes striking (a power change under way is seen to at once too) */
+        cascade = null;
+        relightAll(lightingNow());
+        break;
       case 'hurt':
         hurtFx = ev.shake > 0 ? 1 : Math.max(hurtFx, 0.7); rig.shake = Math.max(rig.shake, ev.shake);
         if (ev.from) {

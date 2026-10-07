@@ -20,6 +20,8 @@ export type SimEvent =
   | { type: 'pad' }
   | { type: 'lift' }
   | { type: 'power'; loud: boolean }
+  /** a light of its own went out (a dropped flashlight picked up): the level is lit again, at once */
+  | { type: 'relight' }
   /** you were hurt (the screen flashes) and how hard the view shakes */
   | { type: 'hurt'; shake: number; from?: { x: number; z: number } }
   | { type: 'shake'; k: number }
