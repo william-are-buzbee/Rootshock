@@ -33,12 +33,14 @@ export interface TRoomOpts {
   /** what hangs in its air, if not dust */
   motes?: Motes;
   sky?: number;
+  /** its floor this far over the deck's (under it, if negative): a sunken court. Its ceiling rides on its floor */
+  dy?: number;
   nolamp?: number | boolean; noroam?: number | boolean; safe?: number | boolean;
 }
 
 export interface TRoom {
   id: number; name: string; x: number; y: number; w: number; h: number;
-  ht: number; fl: number; wl: number; st: number;
+  ht: number; dy: number; fl: number; wl: number; st: number;
   lit: LitRule; lc: Colour; em: boolean; c: string; flick: boolean;
   open: boolean; hole: string | null; cave: boolean; air: boolean; sky?: number; motes?: Motes;
   nolamp: boolean; noroam: boolean; safe: boolean;
@@ -47,7 +49,7 @@ export interface TRoom {
 }
 
 export interface TDoorOpts {
-  kind?: 'light' | 'heavy'; open?: boolean; card?: string; code?: number; stuck?: boolean; seal?: boolean; vent?: boolean; lift?: boolean; glass?: boolean;
+  kind?: 'light' | 'heavy'; open?: boolean; card?: string; code?: number; stuck?: boolean; seal?: boolean; vent?: boolean; lift?: boolean; glass?: boolean; keep?: boolean;
   c?: string; msg?: string;
   /** signs over it: [text, which side of the doorway it is read from] */
   sg?: [string, 'n' | 's' | 'e' | 'w'][];
@@ -81,6 +83,8 @@ export interface Deck {
   stains: { x: number; z: number; r: number }[];
   elevs: { tx: number; tz: number; w: number; h: number; lo: Deck; hi: Deck; c: string; name: string }[];
   stairs: { tx: number; tz: number; len: number; dir: 'n' | 's' | 'e' | 'w'; lo: Deck; hi: Deck }[];
+  /** steps within a deck: from a sunken floor up to the deck's own, or between any two heights over it */
+  flights: { tx: number; tz: number; w: number; h: number; y0: number; y1: number; n: number; dir: 'n' | 's' | 'e' | 'w'; c: number }[];
   items: { id: string; x: number; z: number; y: number; n: number }[];
   notes: { key: string; x: number; z: number; y: number }[];
   muts: { type: string; x: number; z: number; o: Record<string, unknown> }[];
@@ -113,7 +117,7 @@ export function mkDeck(lv: LevelInfo, W: number, H: number, o: { y0?: number; li
     lv, name: lv.name, c: lv.c, W, H, org: lv.org ?? [0, 0], y0: o.y0 ?? 0, li: o.li ?? 0, wet: o.wet ?? 0, deep: o.deep ?? 0, ground: !!o.ground,
     g: new Uint8Array(W * H), rm: new Int16Array(W * H).fill(-1), nom: new Uint8Array(W * H),
     rooms: [], doors: new Map(), above: null, below: null, hf: null, cf: null, hset: null,
-    props: [], cols: [], lamps: [], cams: [], speakers: [], stains: [], elevs: [], stairs: [], items: [], notes: [], muts: [], uses: [], marks: {}, conn: new Set(), water: [],
+    props: [], cols: [], lamps: [], cams: [], speakers: [], stains: [], elevs: [], stairs: [], flights: [], items: [], notes: [], muts: [], uses: [], marks: {}, conn: new Set(), water: [],
   };
   C().decks.push(D);
   return D;
@@ -132,7 +136,7 @@ export function dnAt(D: Deck, k: number): Deck | null {
 export const WHITE: Colour = [0.8, 0.85, 0.9];
 export function room(D: Deck, name: string, x: number, y: number, w: number, h: number, o: TRoomOpts = {}): TRoom {
   const r: TRoom = {
-    id: D.rooms.length, name, x, y, w, h, ht: o.ht ?? 3.2, fl: o.fl ?? 0x6b6e6a, wl: o.wl ?? 0x7c7f7a, st: o.st ?? 0x555555,
+    id: D.rooms.length, name, x, y, w, h, ht: o.ht ?? 3.2, dy: o.dy ?? 0, fl: o.fl ?? 0x6b6e6a, wl: o.wl ?? 0x7c7f7a, st: o.st ?? 0x555555,
     lit: o.lit ?? 'main', lc: o.lc ?? WHITE, em: !!o.em, c: o.c ?? D.c, flick: !!o.flick,
     open: !!o.open, hole: o.hole ? String(o.hole) : null, cave: !!o.cave, air: !!o.air, ...(o.sky !== undefined ? { sky: o.sky } : {}), ...(o.motes ? { motes: o.motes } : {}),
     nolamp: !!o.nolamp, noroam: !!o.noroam, safe: !!o.safe,
@@ -307,6 +311,11 @@ export function stairs(lo: Deck, hi: Deck, tx: number, tz: number, len: number, 
   const li = ti + (ax ? (rev ? -1 : 1) : 0), lj = tj + (!ax ? (rev ? -1 : 1) : 0);
   hi.conn.add(lj * hi.W + li + ':' + (tj * hi.W + ti));
 }
+/** steps over tiles (tx, tz) w by h, rising from y0 to y1 (metres over the deck's floor) toward dir, in n steps: down
+ *  into a sunken floor (room dy), say. They stand on the floor of the room they are in. */
+export function flight(D: Deck, tx: number, tz: number, w: number, h: number, y0: number, y1: number, dir: 'n' | 's' | 'e' | 'w', n: number, c = 0x5a5d60): void {
+  D.flights.push({ tx, tz, w, h, y0, y1, n, dir, c });
+}
 /** a platform that carries you, and cargo, between a hall floor and its rung. Needs power. */
 export function elev(lo: Deck, hi: Deck, tx: number, tz: number, w: number, h: number, c: string, nm = 'Cargo elevator'): void {
   room(hi, '', tx, tz, w, h, { hole: 'el', noroam: 1, nolamp: 1 });
@@ -355,8 +364,13 @@ export function finishLevel(start?: [number, number, number]) {
   const X = (D: Deck, tx: number) => D.org[0] + tx * T, Z = (D: Deck, tz: number) => D.org[1] + tz * T;
   /** plan position of deck-local metres */
   const px = (D: Deck, x: number) => D.org[0] + x, pz = (D: Deck, z: number) => D.org[1] + z;
-  const floorY = (D: Deck, lx: number, lz: number) => D.y0 + hfAt(D, lx, lz);
   const roomAtTile = (D: Deck, k: number) => (D.rm[k] >= 0 ? D.rooms[D.rm[k]] : null);
+  /** a sunken (or raised) room's floor, at deck-local metres */
+  const dyAt = (D: Deck, lx: number, lz: number) => {
+    const i = Math.floor(lx / T), j = Math.floor(lz / T);
+    return i >= 0 && j >= 0 && i < D.W && j < D.H ? roomAtTile(D, j * D.W + i)?.dy ?? 0 : 0;
+  };
+  const floorY = (D: Deck, lx: number, lz: number) => D.y0 + hfAt(D, lx, lz) + dyAt(D, lx, lz);
 
   decks.sort((a, c) => a.y0 - c.y0);
   for (const D of decks) {
@@ -375,7 +389,7 @@ export function finishLevel(start?: [number, number, number]) {
           /* a cave's roof rides on its floor, as before */
           ceil: (x, z) => fieldAt(D, D.hf, x - D.org[0], z - D.org[1]) + fieldAt(D, D.cf, x - D.org[0], z - D.org[1]),
         });
-      } else b.room(R.name, x0, z0, x1, z1, { ...opts, y0: D.y0, ht: R.ht });
+      } else b.room(R.name, x0, z0, x1, z1, { ...opts, y0: D.y0 + R.dy, ht: R.ht });
     }
     shapedCaves(b, D);
     /* water: wading depth over every room and doorway, or every room flooded over its roof; and pools */
@@ -397,7 +411,7 @@ export function finishLevel(start?: [number, number, number]) {
       const y0 = floorY(D, (d.x + 0.5) * T, (d.y + 0.5) * T);
       b.door(ns ? x0 : cx - th / 2, ns ? cz - th / 2 : z0, ns ? x0 + T : cx + th / 2, ns ? cz + th / 2 : z0 + T, 2.4, {
         kind: d.kind ?? 'light', alongX: ns, open: !!d.open, stuck: !!d.stuck, seal: !!d.seal, vent: !!d.vent, lift: !!d.lift,
-        card: d.card, code: d.code, circuit, msg: d.msg, ...(d.glass ? { glass: true } : {}),
+        card: d.card, code: d.code, circuit, msg: d.msg, ...(d.glass ? { glass: true } : {}), ...(d.keep ? { keep: true } : {}),
       });
       b.level.doors[b.level.doors.length - 1].y0 = y0;
       b.level.doors[b.level.doors.length - 1].y1 = y0 + 2.4;
@@ -455,8 +469,8 @@ export function finishLevel(start?: [number, number, number]) {
         for (let i = 0; i < R.w; i++) {
           if (i % 3 !== (R.w > 1 ? 1 : 0) || j % 3 !== (R.h > 1 ? 1 : 0)) continue;
           const dead = R.lit === 'none', tx = R.w === 2 ? R.x + 1 : R.x + i + 0.5, tz = R.h === 2 ? R.y + 1 : R.y + j + 0.5;
-          b.box(X(D, tx), Z(D, tz), 1.1, 0.06, 0.3, dead ? 0x2a2c2e : 0xe8eef2, { y: D.y0 + R.ht - 0.07, glow: dead ? 1 : 3, solid: false });
-          if (!dead) b.fixture(X(D, tx), D.y0 + R.ht - 0.08, Z(D, tz));
+          b.box(X(D, tx), Z(D, tz), 1.1, 0.06, 0.3, dead ? 0x2a2c2e : 0xe8eef2, { y: D.y0 + R.dy + R.ht - 0.07, glow: dead ? 1 : 3, solid: false });
+          if (!dead) b.fixture(X(D, tx), D.y0 + R.dy + R.ht - 0.08, Z(D, tz));
         }
       /* its air grilles: one at each end of a long room, at the far end of a short one, in the middle of its width and
          clear of the light fittings. They are what the room's air is drawn toward while its fans run. */
@@ -465,7 +479,7 @@ export function finishLevel(start?: [number, number, number]) {
       for (const k of n >= 6 ? [0, n - 1] : [n - 1]) {
         const i = long ? clear(k) : mid, j = long ? mid : clear(k);
         /* flush with the ceiling as built: on the 0.25 m grid, so a 3.2 m room's is at 3.25 */
-        const gx = X(D, R.x + i + 0.5), gz = Z(D, R.y + j + 0.5), gy = Math.ceil((D.y0 + R.ht) / 0.25 - 1e-6) * 0.25;
+        const gx = X(D, R.x + i + 0.5), gz = Z(D, R.y + j + 0.5), gy = Math.ceil((D.y0 + R.dy + R.ht) / 0.25 - 1e-6) * 0.25;
         b.box(gx, gz, 0.6, 0.03, 0.6, 0x2a2c2e, { y: gy - 0.04, solid: false });
         for (let s = 0; s < 4; s++) b.box(gx + (long ? 0 : -0.21 + s * 0.14), gz + (long ? -0.21 + s * 0.14 : 0), long ? 0.54 : 0.05, 0.02, long ? 0.05 : 0.54, 0x55585c, { y: gy - 0.06, solid: false });
         b.vent(gx, gy - 0.05, gz);
@@ -486,6 +500,8 @@ export function finishLevel(start?: [number, number, number]) {
         else b.box((x0 + x1) / 2, z0 + pos * L, T - 0.3, sh, L / N, q % 2 ? 0x5a5d60 : 0x54575a, { y: S.lo.y0, solid: false });
       }
     }
+    /* steps within the deck: solid blocks, one a step */
+    for (const F of D.flights) b.steps(X(D, F.tx), Z(D, F.tz), X(D, F.tx + F.w), Z(D, F.tz + F.h), D.y0 + F.y0, D.y0 + F.y1, F.n, F.dir, F.c);
     /* props, colliders, lamps */
     for (const p of D.props)
       b.prop(p.shape, px(D, p.x), pz(D, p.z), p.sx, p.sy, p.sz, p.c, {

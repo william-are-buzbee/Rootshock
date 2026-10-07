@@ -4,7 +4,7 @@ import { buildUpper } from '../src/content/levels/upper';
 import { makeSim, step, type Sim } from '../src/sim/sim';
 import { noInput } from '../src/sim/input';
 import { STEP } from '../src/core/loop';
-import { give } from '../src/sim/game';
+import { give, power } from '../src/sim/game';
 import { EYES, soundZone } from '../src/sim/eyes';
 import { hitMutant } from '../src/sim/cast';
 import { doorAct, doorLabel, findUsable } from '../src/sim/interact';
@@ -144,7 +144,7 @@ describe('the overseer and its hand', () => {
     expect(h.state).toBe('go'); // the hand hears it anyway
     const sp = level.speakers!.find(q => q.zone === 'atrium')!;
     let nearest = Infinity;
-    for (let t = 0; t < 14; t += STEP) { step(s, noInput()); nearest = Math.min(nearest, Math.hypot(h.x - sp.x, h.z - sp.z)); }
+    for (let t = 0; t < 24; t += STEP) { step(s, noInput()); nearest = Math.min(nearest, Math.hypot(h.x - sp.x, h.z - sp.z)); } // from the muster hall
     expect(nearest).toBeLessThan(3); // there, it keeps the place: wanders it, and charges about it
   });
 
@@ -205,43 +205,43 @@ describe('the overseer and its hand', () => {
 });
 
 describe('the overseer\'s bolts', () => {
-  /** in the Operations corridor, in view of its north camera, between the logistics office and maintenance */
+  /** in the Operations corridor, in view of its north camera, between the operations office and maintenance */
   const setUp = () => {
     const s = fresh();
     still(s);
     place(s, 77, 0, 20);
-    const near = (x: number) => s.doors.find(d => Math.abs((d.def.x0 + d.def.x1) / 2 - x) < 1 && Math.abs((d.def.z0 + d.def.z1) / 2 - 27) < 1)!;
-    return { s, logistics: near(73), maint: near(81) };
+    const near = (x: number, z: number) => s.doors.find(d => Math.abs((d.def.x0 + d.def.x1) / 2 - x) < 1 && Math.abs((d.def.z0 + d.def.z1) / 2 - z) < 1)!;
+    return { s, office: near(73, 17), maint: near(81, 27) };
   };
 
   it('seen, the doors about you that have power are bolted: heard being drawn first, then shut and held', () => {
-    const { s, logistics, maint } = setUp();
+    const { s, office, maint } = setUp();
     s.game.events.length = 0;
     hold(s, EYES.hold + 0.2);
     expect(s.alarms.map(a => a.zone)).toContain('ops');
-    expect(logistics.bolting).toBeGreaterThan(0); // the tell: you can still get through
+    expect(office.bolting).toBeGreaterThan(0); // the tell: you can still get through
     expect(maint.bolting).toBeGreaterThan(0);
     expect(sounded(s, 'bolt-draw')).toBe(true);
     hold(s, EYES.draw + 1);
-    for (const d of [logistics, maint]) {
+    for (const d of [office, maint]) {
       expect(d.bolt).toBeGreaterThan(0);
       expect(doorLabel(s, d)).toBe('Bolted');
     }
     hold(s, 1);
-    expect(logistics.t).toBeLessThan(0.05); // open at the start; bolted, it shut
+    expect(office.t).toBeLessThan(0.05); // open at the start; bolted, it shut
     s.game.events.length = 0;
     doorAct(s, maint);
     expect(s.game.events.some(e => e.type === 'say' && /Bolted/.test(e.text))).toBe(true);
   });
 
   it('a bolt holds only with power behind it, and lets go when the alarm ends', () => {
-    const { s, logistics, maint } = setUp();
+    const { s, office, maint } = setUp();
     hold(s, EYES.hold + EYES.draw + 0.5);
     expect(maint.bolt).toBeGreaterThan(0);
     s.game.station!.circuits.OPS.back = false; s.lighting = null; // cut the power: the bolts go
     hold(s, 0.1);
     expect(maint.bolt).toBe(0);
-    expect(logistics.bolt).toBe(0);
+    expect(office.bolt).toBe(0);
     const t = setUp();
     hold(t.s, EYES.hold + EYES.draw + 0.5);
     expect(t.maint.bolt).toBeGreaterThan(0);
@@ -249,6 +249,67 @@ describe('the overseer\'s bolts', () => {
     hold(t.s, EYES.sound + 1);
     expect(t.s.alarms).toEqual([]);
     expect(t.maint.bolt).toBe(0);
+  });
+});
+
+describe('the overseer\'s own door', () => {
+  const keep = (s: Sim) => s.doors.find(d => d.def.keep)!;
+  const sw = (s: Sim) => s.usables.find(u => /Service connection, Operations room/.test(u.label() ?? ''))!;
+
+  it('it holds its door bolted from inside for as long as it has power: no card, no code, no way through', () => {
+    const s = fresh(), d = keep(s);
+    still(s);
+    hold(s, 0.1);
+    expect(d.def.circuit).toBe('CTL');
+    expect(d.bolt).toBeGreaterThan(0);
+    expect(doorLabel(s, d)).toBe('Bolted');
+    hold(s, EYES.sound + 2); // no alarm, and it holds anyway
+    expect(d.bolt).toBeGreaterThan(0);
+    s.game.events.length = 0;
+    doorAct(s, d);
+    expect(s.game.events.some(e => e.type === 'say' && /Bolted from the inside/.test(e.text))).toBe(true);
+  });
+
+  it('its switch is at the hall\'s far end: opened, the bolt lets go, the east bays go dark, and the door slides', () => {
+    const s = fresh(), d = keep(s);
+    still(s);
+    hold(s, 0.1);
+    const u = sw(s);
+    expect(u.label()).toBe('Service connection, Operations room: closed');
+    expect(Math.hypot(u.x - (d.def.x0 + d.def.x1) / 2, u.z - (d.def.z0 + d.def.z1) / 2)).toBeGreaterThan(50); // across the hall
+    s.game.events.length = 0;
+    u.act();
+    hold(s, 0.1);
+    expect(d.bolt).toBe(0);
+    expect(sounded(s, 'bolt-free')).toBe(true);
+    expect(doorLabel(s, d)).toBe('Slide the door open');
+    const east = s.cams.filter(c => c.def.circuit === 'CTL');
+    expect(east.length).toBe(2);
+    for (const c of east) expect(power(s.game, c.def.circuit)).toBe(0); // its eyes on the east bays, dark with them
+    u.act(); // closed again: it takes the door back
+    hold(s, 0.1);
+    expect(d.bolt).toBeGreaterThan(0);
+  });
+
+  it('killed, it lets its door go', () => {
+    const s = fresh(), d = keep(s), o = s.cast.find(m => m.ai === 'overseer')!;
+    still(s);
+    hold(s, 0.1);
+    hitMutant(s, o, { dmg: 10000, stun: 0 }, 1);
+    hold(s, 0.2);
+    expect(d.bolt).toBe(0);
+  });
+
+  it('a save keeps it bolted, and opened', () => {
+    const s = fresh();
+    still(s);
+    hold(s, 0.1);
+    sw(s).act();
+    hold(s, 0.1);
+    const t = load(level, JSON.parse(JSON.stringify(save(s))), { seed: 7, station: STATION });
+    hold(t, 0.1);
+    expect(keep(t).bolt).toBe(0);
+    expect(keep(fresh()).bolt).toBe(0); // not yet stepped
   });
 });
 
@@ -263,10 +324,10 @@ describe('a smashed speaker', () => {
     return s.usables.find(u => u.x === S.x && u.z === S.z && u.y > S.y + 3)!;
   };
 
-  it('the Operations corridor\'s is in reach from the floor; smashing it takes something in your hand, and is loud', () => {
+  it('the muster hall\'s east one (the overseer\'s zone) is in reach from the floor; smashing it takes something in your hand, and is loud', () => {
     const s = fresh(), u = speakerUse(s, 'ops');
     still(s);
-    place(s, 77, 0, 25.6);
+    place(s, 75, 0, 45.6);
     hold(s, 0.1);
     lookAt(s, u.x, u.y, u.z);
     expect(findUsable(s)?.text).toBe('Smash the speaker');

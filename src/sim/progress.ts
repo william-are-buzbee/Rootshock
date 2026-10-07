@@ -21,7 +21,9 @@ import { airFor } from './player';
      several. Through a dive into such water, `through` says what the far side holds on the breath you would take.
    It does not model fights, light, or falls longer than a body can take (a drop over 2.5 m is not on the graph).
    Power only ever helps (a lock without it stays shut), so switching on is taken as done like a key picked up, and
-   switching off is never tried: it cannot open a way, and what can be switched back cannot lose one. */
+   switching off is tried only where it frees a door: the overseer's own (`keep`), bolted while it has power. The
+   checker does not fight, so the overseer is taken as alive and its door as held. What can be switched back cannot
+   lose a way. */
 
 /** what the puzzle turns on */
 interface St {
@@ -134,6 +136,7 @@ function passDoor(D: DoorDef, k: number, st: St): boolean {
   if (D.seal || D.lift) return false;
   if (D.stuck || D.vent) return true; // under it, crouching; a loose panel prised off
   const p = pw(st, D.circuit);
+  if (D.keep && p >= 1) return false; // the overseer holds it bolted while it has power
   /* fail-secure: locked until a card or code has opened it, which takes power at the time */
   const lockedNow = !!(D.card || D.code) && !st.have.has('d' + k);
   if (D.kind === 'heavy') return p === 2 && !lockedNow;
@@ -316,7 +319,12 @@ function actions(M: Model, st: St, R: Reach): Action[] {
         const c = o.c as string, C = s.circuits[c];
         if (!C) return;
         if (C.broken) { if (st.kit > 0) act('mend the ' + c + ' connection with a kit', n => { n.kit--; Object.assign(n.station.circuits[c], { broken: false, on: true }); }); }
-        else if (!C.on) act('close the ' + c + ' connection', n => { n.station.circuits[c].on = true; }, true);
+        else {
+          /* a door the overseer bolts while it has power: switching off opens a way, and switching on closes one */
+          const keep = L.doors.some(D => D.keep && D.circuit === c);
+          if (!C.on) act('close the ' + c + ' connection', n => { n.station.circuits[c].on = true; }, !keep);
+          else if (keep) act('open the ' + c + ' connection', n => { n.station.circuits[c].on = false; });
+        }
         break;
       }
       case 'fuse':

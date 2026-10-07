@@ -282,7 +282,9 @@ components, not code threaded through the frame loop:
 - **Doors**: one system runs the rules for light, heavy, stuck, sealed, vent and lift doors, card and keypad locks.
   Collision, pathing and sight learn a door's state from its mover, never from a special case. A window is a door too: sealed,
   and glass (`DoorDef.glass`), so it stops what moves while every sight check (the cast's, the cameras', your flashlight's)
-  looks through it; it is drawn as a tinted pane.
+  looks through it; it is drawn as a tinted pane. The overseer's own door (`DoorDef.keep`) is bolted for as long as it lives
+  and the door has power; the progression checker, which does not fight, takes it as held, and tries switching its circuit
+  off, the one place switching off can open a way.
 - **Interaction**: anything with `interactable` is found by one query (in reach, in view, unobstructed), as today's
   `findInt`.
 - **Cameras and zone alarms** (`sim/eyes.ts`, `world.md` §8): `LevelDef.cameras` (a lens, a yaw, a cone, a range, a circuit,
@@ -452,7 +454,9 @@ Each step ends with something you can open and play.
    - **The tile adapter** (`content/build/tiles.ts`, `fittings.ts`) keeps the first engine's way of laying out a
      level: decks of 2 m tiles, rooms, doors, caves and terrain fields, walkways, platforms, and its furniture kit.
      Levels port nearly line for line, then compile into v2 shapes: rooms, floor slabs under upper decks, rails on
-     walkway edges, doorways with doors, cave surfaces from the terrain, ceiling fittings, props.
+     walkway edges, doorways with doors, cave surfaces from the terrain, ceiling fittings, props. A room can sit above
+     or below its deck's floor (`dy`: the muster court, 1.25 m down; keep it to the grid's quarter metres), its ceiling
+     riding on its own floor, and `flight` lays steps within a deck between two heights.
    - **The upper station and the Cargo cavern** (`content/levels/upper.ts`), ported from `buildUpper` and
      `buildCargo2`, with the station's circuits and ladderways (`content/station.ts`). It is now what v2 starts in;
      `?level=testbed` for the test bed.

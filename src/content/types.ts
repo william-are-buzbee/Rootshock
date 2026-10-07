@@ -152,6 +152,8 @@ export interface DoorDef {
   lift: boolean;
   /** a pane of glass, sealed: bodies stop at it, sight and light go through (a window) */
   glass?: boolean;
+  /** the overseer's own door: bolted from inside while it lives and the door has power (sim/eyes.ts) */
+  keep?: boolean;
   card?: string;
   code?: number;
   circuit: string;

@@ -408,6 +408,26 @@ cancerous growth, rather than a second level-sized area competing for attention.
 - **The bend is the landmark, and the threshold.** A 90° turn into a two-storey atrium where the dark half meets the lit one. Its
   stair climbs to a gallery round the atrium, which branches off into the second floor rather than shadowing the highway. (A round
   room with a structure in the middle is the alternative; it waits on curved built walls.) A well-funded facility can afford it.
+- **The muster hall: the hand's ground (agreed; built).** The second leg leaves the atrium south and opens into the hall where
+  the response team drilled, the room the hand was made in and keeps. It has to be crossed, and crossed back: the overseer is
+  off its east end behind the door it bolts, and the door's switch is at its far, west end (below). Flat, long and lit, about
+  58 by 24 m: a promenade round a sunken court, mall-like rather than industrial. The court is 1.25 m down, with steps the
+  length of both long sides (the team sat on them for the muster) and glass balustrades at the ends; the ceiling over it lifts
+  from 4.5 m to 7, the drill clock hanging in the middle. The atrium stays the tallest space. Pillars, crowd barriers, benches
+  and shield racks break the sight lines without stopping the hand. Every room off it has a door, so every room off it is a
+  refuge, and how far apart the doors are is how hard the crossing is: the electrical room at the west end, the locker room and
+  the Armory on the north side, the range and the duty office (a window on the hall) on the south, Maintenance and the
+  operations room at the east end.
+- **The overseer's keep (agreed; built).** The operations room's door is the overseer's own: it holds it bolted from inside
+  for as long as it lives and the door has power. No card or code opens it. The door, the room and the hall's east bays are a
+  branch of their own off Ops (CTL), switched from the electrical room at the far end of the hall. Opening that switch lets the
+  bolt go, and darkens the east bays and their two cameras, so the way back is darker than the way out. The progression
+  checker proves it: Cargo (behind the deputy director's card, in that room) comes only after the switch.
+- **Rooms built to the new standard (agreed).** Wider, longer, taller, with a landmark or a flourish; no utilitarian boxes.
+  The range is 28 m of lanes, not a closet. The lobby is a checkpoint: everyone off the shaft came through it (the bag scanner,
+  the arch, turnstiles, a booth behind glass). The wing's row of doors is broken by the locker room, the survivors' back way into
+  the hall. Still to do: the infirmary, the hazard store and Security control are the old size; and the wing's corridor could
+  widen where its rooms branch off (a trunk, not a straight pipe).
 - **A second floor over Security**, at about +5, the height of Cargo's Tier 1, reaching east to the cavern.
 - **A window onto the bay.** A glass wall high on the cavern's west side: the nest seen in person, from above, before you go.
   The bay is black until its backup set runs, so the nest must give off its own sick glow, and it should sit nearer the window
@@ -442,21 +462,25 @@ cancerous growth, rather than a second level-sized area competing for attention.
   looks about a while, then goes back to its rounds; it finds you only if it sees or hears you on the way. A camera can be
   smashed with something in your hand: loud. So can a zone's speaker, and that zone has no voice: seen there, the doors
   about you are still bolted (they are the overseer's, not the alarm's), but no klaxon sounds, and nothing hears it or comes.
-  The wing's and the Operations corridor's hang in a ceiling you can reach; the atrium's hangs high in the well, in reach
-  only leaning out from the east gallery's rail. Cameras, five so far: two in the atrium (the threshold, and the stair and Cargo's door),
-  one at each end of the Operations corridor, and one down the wing's corridor, dead until the cut is mended. Mending it sounds
-  the wing (its circuit comes live on the board).
+  The wing's and the muster hall's hang in a ceiling you can reach; the atrium's hangs high in the well, in reach only leaning
+  out from the east gallery's rail. Four zones: the wing, the atrium, the muster hall's west end ('muster'), and the overseer's
+  own ('ops': the Operations corridor and the hall's east bays, its speaker by the overseer's door). Cameras, nine: one down
+  the wing's corridor, dead until the cut is mended; one on the atrium's threshold; one down the Operations corridor; and six
+  in the muster hall: its two west corners, the north wall over the court, one high in the court's ceiling out of reach, and
+  on the east bays' own switch (CTL), one in the north-east corner and one over the overseer's door. Mending the wing sounds
+  it (its circuit comes live on the board).
 - **The overseer and its hand: built.** The overseer is grown into the monitor wall of the operations room, cords of flesh
   into every screen. It sees you itself in its own room (and sounds the Operations zone, so the hand comes to its door), and
   lashes what comes near, with a grabber's tell. Killed, the camera lights go out up and down the level for good, the klaxon
   dies mid-note, and no alarm sounds again. The hand is a thresher made of Security's staff (220 to the rib freak's 150): it
-  keeps the second leg, hears every alarm wherever it is, and goes at a run by the halls; too big for any door frame, open or
+  keeps the muster hall, hears every alarm wherever it is, and goes at a run by the halls; too big for any door frame, open or
   shut, so every side room is a refuge from it. On its way it hunts you only if it meets you. Once there it keeps the place,
   wandering and charging about it. When the overseer dies the hand is summoned no more, but stays a thresher in the halls.
 - **The overseer's bolts: built.** Seen (by a camera, or by the overseer itself), every door within nine metres of you that
   has power is bolted: you hear each bolt being drawn for a second before it goes home, time to get through, and it holds
   while the alarm sounds. A dead door cannot be bolted, and cutting a bolted door's power lets its bolt go. Card and keypad
-  doors keep their own locks.
+  doors keep their own locks. Its own door it keeps bolted always, alarm or none, until it dies or the door loses power (the
+  keep, above).
 - **Patrols → their own senses.** Sight, light and sound, as everywhere else. They do not know where you are because the overseer
   does; they come to an alarm they can hear, not to the overseer.
 - **Patrols walk lit rooms only (agreed: every husk, everywhere).** Husks hunt by sight, so they keep their rounds where they
@@ -474,8 +498,9 @@ Every one of the overseer's moves should be seen or heard before it lands (a cam
 **The survivors are the tutorial (proposed).** Each body on an escape route was stopped by one particular thing: one at a card
 reader with no card, one at a heavy door with no power, one under a camera, one by the cut with the cutters still in hand, one
 who stayed in Holding and gave up. Each teaches an obstacle before you meet it, without a word; the body with the flashlight is
-the first. No survivor's body is only dressing. (The officer in the lobby already reads this way: "Whatever opened him did it
-from behind.")
+the first. No survivor's body is only dressing. (The officer at the checkpoint already reads this way: "Whatever opened him did
+it from behind." So does Reyes, a step short of the electrical room in the muster hall, whom the note in the locker room sent
+to cut the overseer's door loose.)
 
 **The way out (proposed).** The surface lift needs more than Gen-1: it was damaged, and needs mending (one unique part, not a
 kit; see Power, above), and its controls are in the operations centre. The exit and the climax share a room. The other ways
@@ -485,17 +510,17 @@ Security: the main shaft carries only the hoist (Gen-1) and the surface cage.
 **Built so far.** The wing is a branch circuit (SEC) off Ops, cut at the start, with its splice panel near the
 threshold and the guard who cut it; a kit in Maintenance, on Ops' side, mends it (the hazard store's stays behind Gen-1).
 Mended, the wing lights amber, Security control's reader wakes, and the Security elevator runs, down to the main level's
-shaft station and back (ladderway A is gone). The highway runs east from the Lobby
-through the dark wing and opens without a door into the atrium; the second leg runs south to the operations room past
-the offices and Maintenance (the Ops backup set). The gallery climbs the core's east side to +5 and branches east to
+shaft station and back (ladderway A is gone). The highway runs east from the checkpoint
+through the dark wing and opens without a door into the atrium; the second leg runs south past the offices into the muster
+hall, with Maintenance (the Ops backup set) off its east end and the operations room behind the overseer's door. The gallery climbs the core's east side to +5 and branches east to
 Cargo control, whose east wall is the window: three bays of glass over the bay. Cargo is behind Operations' card (the deputy director, at
 the far end), so it comes last. The Armory's and the hazard store's heavy doors run off Ops' bus, so they wait on Gen-1
 whether or not the wing is mended.
 
 **What the game needs for it**
 
-- **New:** nothing for now. (Cameras, the zone alarm and its speakers, the overseer, its hand, its bolts and the window's
-  glass are built: above.)
+- **New:** nothing for now. (Cameras, the zone alarm and its speakers, the overseer, its hand, its bolts and its keep, the
+  window's glass and the sunken court are built: above.)
 - **Content:** done. The window is three bays of glass in Cargo control's east wall (`DoorDef.glass`: a sealed pane that stops
   bodies and lets sight through). In the dark the bay is black but for the nest's own glow: pustules among the eggs on the
   rungs, and its edge, creeping west over the floor below the window toward the door, a sick red.

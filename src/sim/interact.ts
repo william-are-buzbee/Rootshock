@@ -278,7 +278,7 @@ export function doorAct(sim: Sim, d: Door): void {
     return;
   }
   if (D.seal) { say(g, D.msg ?? 'It does not move. Something on the other side shifts its weight.'); sfx(g, 'deny'); return; }
-  if (d.bolt > 0) { say(g, 'Bolted, from somewhere else. The lock hums with the power behind it.'); sfx(g, 'deny'); return; }
+  if (d.bolt > 0) { say(g, D.keep ? 'Bolted from the inside. The lock hums with the power behind it, and on the other side something wet shifts against the door.' : 'Bolted, from somewhere else. The lock hums with the power behind it.'); sfx(g, 'deny'); return; }
   if (D.stuck) { say(g, 'Jammed at waist height. You could get under it. Not everything could.'); return; }
   if (D.vent) { d.open = true; sfx(g, 'clang', at); makeNoise(g, 7); say(g, 'The panel comes away in your hands. There is a way through.'); return; }
   const L = power(g, D.circuit), heavy = D.kind === 'heavy';

@@ -30,7 +30,9 @@ stand). `?level=<id>` starts on another level (`upper`, `main`, `plant`, `sump`,
 | `npm run preview` | serve what `build` produced |
 
 Every push to `main` publishes the game with GitHub Pages (`.github/workflows/pages.yml`), with the first engine at
-`archive/first-engine.html`.
+`archive/first-engine.html`. Every pull request gets a playable preview at `pr-preview/pr-<number>/` on the same site,
+linked from a comment on it and removed when it closes (`.github/workflows/preview.yml`). Both are pushed to the
+`gh-pages` branch, which Pages serves (Settings → Pages → Deploy from a branch: `gh-pages`, `/ (root)`).
 
 ## Where things are
 
