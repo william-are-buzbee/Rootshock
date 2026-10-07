@@ -40,6 +40,13 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   bx(D, 17.6, 16.85, 3.4, 2.4, 0.06, [0.42, 0.52, 0.55]); bx(D, 16.05, 18.4, 0.06, 2.4, 3.1, [0.42, 0.52, 0.55]); // the booth's glass
   desk(D, 17.6, 18.6, 2.4, 0.7, { bare: 1 }); bx(D, 17.6, 18.8, 1.2, 0.36, 0.06, 0x22262a, { y: 0.76, c: 0 }); bx(D, 17.6, 19.4, 0.45, 0.45, 0.45, 0x2c2f33);
   bx(D, 18.6, 10.4, 1.8, 0.42, 0.45, 0x5f6266); bx(D, 12.4, 12, 0.45, 0.42, 1.4, 0x5f6266); bx(D, 12.15, 17.2, 0.5, 1.8, 3, 0x56636e);
+  /* off the checkpoint, where things came off the hoist: hazardous storage, its suits on the wall and its rebreathers.
+     Its heavy door runs off Ops' own bus, not the wing's: it waits on Gen-1 either way, cut or mended */
+  room(D, 'Hazardous storage', 12, 21, 6, 5, { ...UTIL, c: 'SEC' }); door(D, 13, 20, { kind: 'heavy', c: 'OPS', sg: [['Hazard store', 'n']] });
+  for (const [x, z] of [[12.6, 25.4], [13.3, 25.5], [12.6, 24.7], [17.4, 21.4], [16.8, 21.4]]) P(D, 'cyl', x, z, 0.6, 0.9, 0.6, 0xc9a227);
+  for (let k = 0; k < 3; k++) bx(D, 14.6 + k * 0.6, 21.08, 0.5, 1.5, 0.12, 0xc9a227, { y: 0.4, c: 0 }); // hazmat suits on their pegs
+  shelf(D, 17.7, 23.6, 0.5, 2.2, { cols: [0xc9a227, 0x3d4042] }); bx(D, 15.4, 25.4, 0.8, 0.6, 0.6, 0x3a4030);
+  item(D, 'rebreather', 15.4, 25.4, 0.6); item(D, 'kit', 17.65, 23.3, 1.06);
   corpse(D, 17.5, 12.5, 0x2c3440, true, { label: 'Search the officer', say: 'A security officer. Whatever opened him did it from behind.', keys: ['s'] }); mut(D, 'husk', 14, 18.4, { post: 1, yaw: PI / 2 });
   room(D, 'Security corridor', 21, 13, 18, 3, { ...SEC, c: 'SEC', ht: 4.5, em: 1, safe: 1 });
   /* the cut, near the wing's end: the cabinet left open, the cable through, and the one who did it */
@@ -83,23 +90,46 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   desk(D, 25.5, 11.6, 1.8, 0.7, { bare: 1 }); bx(D, 25.5, 11.7, 0.5, 0.34, 0.06, 0x22262a, { y: 0.76, c: 0 }); bx(D, 25.5, 11.68, 0.44, 0.28, 0.02, [0.06, 0.12, 0.1], { y: 0.79, c: 0, pw: [[0.04, 0.05, 0.05], [2.2, 2.75, 2.5]], pc: 'SEC' });
   bx(D, 25.5, 11, 0.45, 0.45, 0.45, 0x2c2f33); bx(D, 30.5, 11.7, 1.6, 0.42, 0.4, 0x44484c);
   item(D, 'batt', 25.9, 11.6, 0.78); note(D, 'duty', 25.1, 11.55, 0.78); item(D, 'baton', 30.2, 11.7, 0.44); item(D, 'ration', 30.8, 11.7, 0.44);
-  room(D, 'Security control', 35, 7, 3, 5, { ...SEC, c: 'SEC' }); door(D, 36, 12, { card: 's', sg: [['Control', 's']] });
-  tbl(D, 36.5, 7.5, 5, 0.8);
-  for (let k = 0; k < 4; k++) { bx(D, 35.6 + k * 0.6, 7.06, 1, 0.7, 0.06, 0x22262a, { y: 1.2, c: 0 }); bx(D, 35.6 + k * 0.6, 7.08, 0.9, 0.6, 0.02, [0.05, 0.07, 0.08], { y: 1.25, c: 0, pw: [[0.04, 0.05, 0.05], [2.3, 2.6, 2.75]], pc: 'SEC' }); }
-  note(D, 'cams', 36.2, 7.5, 0.78); item(D, 'batt', 37.4, 7.5, 0.78, 2); item(D, 'ammo9', 35.5, 11.5, 0.02);
+  /* Security control: the board a human officer ran, and the survivors' last room. A vestibule off the corridor, with the
+     plan table and a window onto the corridor they held, opens into the control room proper, which runs east behind the
+     atrium's north wall: the camera wall across its north side, two rows of consoles facing it. Behind the officer's
+     card, and dark with the wing. */
+  room(D, 'Security control', 35, 8, 3, 4, { ...SEC, c: 'SEC', ht: 4 }); door(D, 36, 12, { card: 's', sg: [['Control', 's']] });
+  room(D, 'Security control', 35, 3, 7, 5, { ...SEC, c: 'SEC', ht: 4 });
+  door(D, 35, 12, { seal: true, glass: true });
+  for (let i = 0; i < 11; i++) for (let j = 0; j < 3; j++) { // the wall: a few of its screens never came back
+    const x = 35.6 + i * 0.6, y = 0.95 + j * 0.82;
+    bx(D, x, 3.04, 1.16, 0.74, 0.06, 0x22262a, { y, c: 0 });
+    if ((i * 3 + j * 5) % 7 !== 3) bx(D, x, 3.08, 1.06, 0.64, 0.02, [0.05, 0.07, 0.08], { y: y + 0.05, c: 0, pw: [[0.04, 0.05, 0.05], [2.3, 2.6, 2.75]], pc: 'SEC' });
+    else bx(D, x, 3.08, 1.06, 0.64, 0.02, [0.12, 0.12, 0.12], { y: y + 0.05, c: 0 });
+  }
+  for (const z of [4.8, 6.3]) {
+    tbl(D, 37.8, z, 9.6, 0.9, 0x3a3d40);
+    for (let k = 0; k < 7; k++) {
+      bx(D, 35.9 + k * 0.65, z - 0.1, 0.6, 0.36, 0.05, 0x22262a, { y: 0.76, ry: 0.12 * (k - 3), c: 0 });
+      if (k % 2 === 0) bx(D, 35.9 + k * 0.65, z + 0.62, 0.45, 0.45, 0.45, 0x2c2f33, { ry: 0.3 * (k - 3) });
+    }
+  }
+  tbl(D, 36.5, 9.8, 2.6, 1.4, 0x4a3a2c); bx(D, 36.5, 9.8, 2.2, 0.01, 1.1, 0xd8d4c4, { y: 0.76, c: 0 }); // the plan of the floor, pinned out
+  shelf(D, 41.7, 5, 0.5, 2.4, { cols: [0x4d5a66, 0x7a4a34, 0x8a7a4a] });
+  note(D, 'cams', 36.2, 4.8, 0.78); item(D, 'batt', 37.4, 6.3, 0.78, 2); item(D, 'ammo9', 35.5, 11.5, 0.02);
   /* South off the wing: the locker room, the survivors' back way into the muster hall (a door at each end, so the hand
-     comes through neither), the hazard store and the infirmary. The hazard store's heavy door runs off Ops' own bus, not
-     the wing's: it waits on Gen-1 either way, cut or mended. */
+     comes through neither), and the infirmary. */
   room(D, 'Locker room', 21, 17, 8, 9, { ...SEC, c: 'SEC', safe: 1 }); door(D, 24, 16, { sg: [['Lockers', 'n']] });
   for (const z of [19.5, 22.5]) for (const x of [22.4, 26.6]) { bx(D, x, z, 5.6, 2, 1, 0x4d5a66); bx(D, x, z, 5.64, 0.05, 1.04, 0x3a444c, { y: 2, c: 0 }); }
   for (const x of [22.4, 26.6]) for (const z of [18.2, 21, 23.8]) bx(D, x, z, 4.4, 0.45, 0.4, 0x6b5a48);
   for (const [x, z, ry] of [[23.5, 20.1, 0.9], [25.6, 22.9, -1.1], [21.8, 22.9, 1.3]] as const) bx(D, x, z, 0.5, 1.8, 0.03, 0x56636e, { y: 0.15, ry, c: 0 }); // doors left open
   note(D, 'lockers', 26.2, 21, 0.47); item(D, 'bandage', 27.4, 23.8, 0.47); bx(D, 23.1, 25.4, 1.6, 0.45, 0.4, 0x6b5a48, { ry: 0.35 }); blood(D, 24.5, 25.2, 1.1);
-  room(D, 'Hazardous storage', 30, 17, 4, 4, { ...UTIL, c: 'SEC' }); door(D, 32, 16, { kind: 'heavy', c: 'OPS', sg: [['Hazard store', 'n']] });
-  for (const [x, z] of [[30.6, 20.5], [31.3, 20.6], [30.6, 19.8], [33.6, 17.4]]) P(D, 'cyl', x, z, 0.6, 0.9, 0.6, 0xc9a227); shelf(D, 33.7, 19.6, 0.5, 2.2, { cols: [0xc9a227, 0x3d4042] }); bx(D, 32.4, 20.5, 0.8, 0.6, 0.6, 0x3a4030);
-  item(D, 'rebreather', 32.4, 20.5, 0.6); item(D, 'kit', 33.65, 19.3, 1.06);
-  room(D, 'Infirmary', 35, 17, 3, 4, { ...MED, c: 'SEC', safe: 1 }); door(D, 36, 16, { sg: [['Infirmary', 'n']] });
-  medbed(D, 35.3, 19.6); shelf(D, 37, 20.7, 1.8, 0.5, { cols: [0xd4d8d4, 0xb9c4bd, 0x8c2f24] }); item(D, 'bandage', 36.7, 20.65, 1.06, 2); item(D, 'medkit', 37.3, 20.65, 1.06);
+  /* the infirmary: a ward of four beds behind curtains down the south wall, and at the east end a treatment bay behind
+     glass, with its table and crash cart. They kept the hurt here, in the dark, and someone sat with the last of them */
+  room(D, 'Infirmary', 30, 17, 8, 4, { ...MED, c: 'SEC', safe: 1, ht: 3.6 }); door(D, 33, 16, { sg: [['Infirmary', 'n']] });
+  for (const x of [30.6, 31.9, 33.2, 34.5]) medbed(D, x, 19.6);
+  for (const x of [31.25, 32.55, 33.85]) bx(D, x, 19.6, 0.04, 1.9, 1.7, 0xb9c4bd, { y: 0.15, c: 0 }); // the curtains
+  bx(D, 34.2, 18.7, 0.45, 0.45, 0.45, 0x5f6266); blood(D, 34.5, 19.6, 0.8); // the chair pulled up to the last bed
+  bx(D, 35.25, 17.8, 0.05, 2.1, 3.2, [0.42, 0.52, 0.55]); // the treatment bay's glass
+  bx(D, 36.6, 18, 0.8, 0.9, 2, 0xb9c4bd); bx(D, 37.5, 19.2, 0.6, 0.95, 0.5, 0x8c2f24); bx(D, 30.35, 17.3, 0.6, 0.9, 0.5, 0xc8ccd0); // table, crash cart, sink
+  shelf(D, 31.8, 17.3, 1.8, 0.5, { cols: [0xd4d8d4, 0xb9c4bd, 0x8c2f24] }); shelf(D, 37.6, 20.7, 1.8, 0.5, { cols: [0xd4d8d4, 0xb9c4bd, 0x8c2f24] });
+  item(D, 'bandage', 37.3, 20.65, 1.06, 2); item(D, 'medkit', 37.9, 20.65, 1.06);
 
   /* The atrium: the highway's bend, and the threshold. The wing's leg runs into it from the west, dark; it is lit,
      theirs, and the second leg leaves it south for Operations. Two storeys, a gallery round two sides at +5 with a

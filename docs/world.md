@@ -435,7 +435,10 @@ cancerous growth, rather than a second level-sized area competing for attention.
 - **Rooms built to the new standard (agreed).** Wider, longer, taller, with a landmark or a flourish; no utilitarian boxes.
   The range is 28 m of lanes, not a closet. The lobby is a checkpoint: everyone off the shaft came through it (the bag scanner,
   the arch, turnstiles, a booth behind glass). The wing's row of doors is broken by the locker room, the survivors' back way into
-  the hall. Still to do: the infirmary, the hazard store and Security control are the old size; and the wing's corridor could
+  the hall. Security control is a vestibule (the plan table, a window on the corridor) opening into a 14 by 10 m control room
+  behind the atrium's north wall: a camera wall of 33 screens, a few dead, and two rows of consoles facing it. The infirmary is
+  a 16 by 8 m ward of four curtained beds, with a treatment bay behind glass and a chair pulled up to the last bed. The hazard
+  store moves off the checkpoint, where things came off the hoist (same gate: Gen-1). Still to do: the wing's corridor could
   widen where its rooms branch off (a trunk, not a straight pipe).
 - **A second floor over Security**, at about +5, the height of Cargo's Tier 1, reaching east to the cavern.
 - **A window onto the bay.** A glass wall high on the cavern's west side: the nest seen in person, from above, before you go.
