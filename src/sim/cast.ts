@@ -9,13 +9,14 @@ import { hurtBy, power, sayOnce, sfx } from './game';
 import { sendPlatform, type Door } from './movers';
 import { eyeHeight } from './player';
 import { simLighting, type Sim } from './sim';
+import { soundZone } from './eyes';
 
 /* The cast (engine.md §7, §8): what lives in the station, ported from the first engine's behaviours. Each is a body that
    walks like yours, so it has weight, falls, rides platforms and is stopped by what stops you; they block each other
    and you. They find their way over the nav graph's fields, see along lines of sight scaled by the light you stand in,
    and hear what you do as far as the sound of it carries through the rooms between. */
 
-export type Ai = 'husk' | 'skitter' | 'bloat' | 'thresher' | 'worm' | 'swimmer' | 'grabber';
+export type Ai = 'husk' | 'skitter' | 'bloat' | 'thresher' | 'worm' | 'swimmer' | 'grabber' | 'overseer';
 
 interface Stats {
   ai?: Ai; model?: string; green?: boolean;
@@ -36,6 +37,10 @@ export const MT: Record<string, Stats> = {
   swimmer: { ai: 'swimmer', model: 'worm', hp: 40, r: 0.35, cr: 0.3, mass: 1, h: 0.6, swim: true },
   grabber: { hp: 30, r: 0.4, cr: 0, mass: 1, h: 0, fixed: true },
   vine: { ai: 'grabber', model: 'grabber', green: true, hp: 30, r: 0.4, cr: 0, mass: 1, h: 0, fixed: true },
+  /* Security's (world.md §8): the growth that was the operations centre, which sees through the cameras; and its hand, a
+     thresher made of Security's staff that goes wherever an alarm sounds. Too big for a door frame, it keeps to the halls. */
+  overseer: { ai: 'overseer', model: 'bloat', hp: 260, r: 1.1, cr: 0, mass: 8, h: 0, fixed: true },
+  hand: { ai: 'thresher', model: 'thresher', hp: 220, r: 0.65, cr: 0.52, mass: 3, h: 2.2, solid: true, noDoors: true },
 };
 
 export const DEATH: Record<Ai, string> = {
@@ -46,6 +51,7 @@ export const DEATH: Record<Ai, string> = {
   swimmer: 'The water closed over the last of the light.',
   grabber: 'The doorway closed its hands.',
   bloat: 'It sat on you. It did not seem to notice.',
+  overseer: 'It had watched you the whole way here.',
 };
 
 /** a ride on a platform: which, which way, and the spot to step off to */
@@ -76,6 +82,8 @@ export interface Mutant {
   opens: boolean; low: boolean; noDoors: boolean; fixed: boolean; swim: boolean; solid: boolean;
   /** a guard that keeps its post until it notices you; one sitting down; one grown over; a big one */
   post: boolean; sit: boolean; holt: boolean; big: boolean;
+  /** the overseer's: the zone it sounds when it sees you itself */
+  zone: string | null;
   /** where it started, which it keeps near */
   hx: number; hz: number;
   room: number;
@@ -135,7 +143,7 @@ export function makeCast(sim: Sim, defs: MutantDef[]): Mutant[] {
       hp: S.hp, max: S.hp, mass: S.mass, r: S.r,
       walker: S.noDoors ? 'big' : S.opens ? 'hands' : 'crawl',
       opens: !!S.opens, low: !!S.low, noDoors: !!S.noDoors, fixed: !!S.fixed, swim: !!S.swim, solid: !!S.solid,
-      post: !!o.post, sit: !!o.sit, holt: !!o.holt, big: !!o.big, hx: def.x, hz: def.z, room,
+      post: !!o.post, sit: !!o.sit, holt: !!o.holt, big: !!o.big, zone: (def.opts.zone as string | undefined) ?? null, hx: def.x, hz: def.z, room,
       wt: rnd(1, 5), wm: 0, wx: 0, wz: 0, tk: 0, lost: 0, bt: 0, burst: false, flee: 0, ct: rnd(6, 14), cdir: 0, tgt: false,
       grab: 0, tense: 0, blow: null, dest: -1, F: null, stk: 0, fled: false, side: 0, ride: null, spot: -1,
       mv: 0, d: 99, dp: 99, dy: 0, los: false, losAt: -99, hit: 0, kx: 0, kz: 0, ph: rnd(9), dead: false, gone: 0, still: 0,
@@ -559,6 +567,16 @@ export function answer(sim: Sim, m: Mutant, spot: number, route: Float32Array): 
   m.state = 'answer'; m.post = false; m.dest = spot; m.F = Float32Array.from(route); m.wt = 0; m.stk = 0;
 }
 
+/** an alarm, for the overseer's hand: it hears every one, wherever it is, and goes, at a run, by the way its size allows
+ *  (no doors). Not while it is already after you. */
+export function summon(sim: Sim, m: Mutant, spot: number, route: Float32Array): void {
+  if (m.dead || m.type !== 'hand' || !['idle', 'patrol', 'pursue', 'go'].includes(m.state) || m.spot < 0) return;
+  if (m.state === 'go' && m.dest === spot) return;
+  if (!(route[m.spot] > 2.5) || !Number.isFinite(route[m.spot])) return;
+  step_(sim, m, 'roar', true);
+  m.state = 'go'; m.dest = spot; m.F = Float32Array.from(route); m.stk = 0; m.st = Infinity;
+}
+
 const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
   husk(sim, m) {
     const F = sim.fields?.hands, d = m.d;
@@ -647,6 +665,17 @@ const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
         go(sim, m, m.wx, m.wz, 1.2);
         if (m.mv && (m.tk -= dt) < 0) { m.tk = 0.62; step_(sim, m, 'hstep', true); }
         break;
+      case 'go': {
+        /* the hand, to an alarm: it hunts you if it meets you on the way; there, it keeps the place a while */
+        if (seeP(sim, m, 16)) { m.state = 'wind'; m.st = 0.75; m.dest = -1; step_(sim, m, 'roar'); break; }
+        if (!m.F || m.dest < 0 || m.spot === m.dest || m.F[m.spot] < 2) { m.state = 'patrol'; m.dest = -1; m.wt = 0; m.ct = rnd(sim, 7, 15); break; }
+        /* it gives up where it gets no nearer for a while: somewhere it does not fit */
+        const near = m.F[m.spot];
+        if (near < m.st - 0.5) { m.st = near; m.stk = 0; }
+        if (follow(sim, m, m.F, 3.2, false) && m.mv && (m.tk -= dt) < 0) { m.tk = 0.4; step_(sim, m, 'hstep', true); }
+        if ((m.stk += dt) > 3) { m.stk = 0; m.state = 'patrol'; m.dest = -1; }
+        break;
+      }
       case 'wind':
         turnTo(sim, m, 6);
         m.st -= dt;
@@ -723,6 +752,17 @@ const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
   },
 
   /* the arms are bait. the thing is the head on the wall above them. */
+  /* the operations centre grown into one growth: it sees you itself in its own room and sounds its zone, and what comes near
+     its controls it lashes, with the tell of a grabber */
+  overseer(sim, m) {
+    if (m.zone && seeP(sim, m, 14)) soundZone(sim, m.zone);
+    if (m.dp < 2.2 && Math.abs(m.dy) < 2.5 && sight(sim, m)) {
+      if (m.tense === 0) step_(sim, m, 'growl');
+      m.tense += dt;
+      if (m.tense > 0.9 && m.cd <= 0) { m.cd = 2; m.tense = 0.01; strikes(sim, m, 22); }
+    } else m.tense = Math.max(0, m.tense - dt * 2);
+  },
+
   grabber(sim, m) {
     if (m.grab > 0) m.grab -= dt;
     if (m.dp < 1.5 && Math.abs(m.dy) < 2 && sight(sim, m)) {

@@ -6,6 +6,7 @@ import { noInput } from '../src/sim/input';
 import { STEP } from '../src/core/loop';
 import { give } from '../src/sim/game';
 import { EYES, soundZone } from '../src/sim/eyes';
+import { hitMutant } from '../src/sim/cast';
 import { load, save } from '../src/sim/save';
 
 /* The overseer's eyes and voice (sim/eyes.ts), on the upper station: cameras that hold you sound their zone, and the
@@ -120,5 +121,84 @@ describe('the zone alarm', () => {
     const a = load(level, JSON.parse(JSON.stringify(save(s))), { seed: 7, station: STATION });
     hold(s, 3); hold(a, 3);
     expect(JSON.stringify(save(a))).toBe(JSON.stringify(save(s)));
+  });
+});
+
+describe('the overseer and its hand', () => {
+  const hand = (s: Sim) => s.cast.find(m => m.type === 'hand')!;
+  const overseer = (s: Sim) => s.cast.find(m => m.ai === 'overseer')!;
+  const putM = (m: Sim['cast'][number], x: number, y: number, z: number) => { const b = m.body!; b.x = m.x = x; b.y = m.y = y; b.z = m.z = z; b.sync(); };
+
+  it('the hand hears every alarm, wherever it is, and goes to it by the halls, at a run', () => {
+    const s = fresh(), h = hand(s), m = s.cast[1], reach = EYES.reach;
+    for (const q of s.cast) if (q !== h && q !== m) q.stun = 1e9;
+    place(s, 30, -4.5, -25); // you, a storey down, out of it
+    hold(s, 0.3);
+    EYES.reach = 4; // the alarm barely carries: no husk hears it from the corridor
+    try {
+      soundZone(s, 'atrium');
+      hold(s, 0.1);
+    } finally { EYES.reach = reach; }
+    expect(m.state).not.toBe('answer');
+    expect(h.state).toBe('go'); // the hand hears it anyway
+    const sp = level.speakers!.find(q => q.zone === 'atrium')!;
+    let nearest = Infinity;
+    for (let t = 0; t < 14; t += STEP) { step(s, noInput()); nearest = Math.min(nearest, Math.hypot(h.x - sp.x, h.z - sp.z)); }
+    expect(nearest).toBeLessThan(3); // there, it keeps the place: wanders it, and charges about it
+  });
+
+  it('a save made with the hand on its way to an alarm plays on the same', () => {
+    const s = fresh();
+    for (const q of s.cast) if (q.type !== 'hand') q.stun = 1e9;
+    place(s, 30, -4.5, -25);
+    hold(s, 0.3);
+    soundZone(s, 'atrium');
+    hold(s, 1.5);
+    expect(hand(s).state).toBe('go');
+    const a = load(level, JSON.parse(JSON.stringify(save(s))), { seed: 7, station: STATION });
+    hold(s, 3); hold(a, 3);
+    expect(JSON.stringify(save(a))).toBe(JSON.stringify(save(s)));
+  });
+
+  it('it is too big for a door: an alarm it cannot reach by the halls leaves it where it is', () => {
+    const s = fresh(), h = hand(s);
+    for (const q of s.cast) if (q !== h) q.stun = 1e9;
+    place(s, 30, -4.5, -25);
+    putM(h, 24, 0, 2); // in the lobby, behind its door
+    hold(s, 0.3);
+    soundZone(s, 'atrium');
+    hold(s, 2);
+    expect(h.state).not.toBe('go');
+  });
+
+  it('the overseer sees you itself and sounds its zone, and lashes what comes near', () => {
+    const s = fresh(), o = overseer(s);
+    for (const q of s.cast) if (q !== o) q.stun = 1e9;
+    place(s, o.x, 0, o.z - 3.4);
+    hold(s, 0.5);
+    expect(s.alarms.map(a => a.zone)).toContain('ops');
+    const hp = s.game.hp;
+    place(s, o.x, 0, o.z - 1.9);
+    hold(s, 1.5);
+    expect(s.game.hp).toBeLessThan(hp);
+  });
+
+  it('killed, the cameras go dark for good, the alarm dies, and none sounds again', () => {
+    const s = fresh(), o = overseer(s), c = threshold(s);
+    still(s);
+    soundZone(s, 'atrium');
+    hold(s, 0.5);
+    hitMutant(s, o, { dmg: 10000, stun: 0 }, 1);
+    s.game.events.length = 0;
+    hold(s, 0.2);
+    expect(o.dead).toBe(true);
+    expect(s.alarms).toEqual([]);
+    expect(s.game.events.some(e => e.type === 'say' && /camera lights go out/.test(e.text))).toBe(true);
+    inView(s);
+    hold(s, 3);
+    expect(c.hold).toBe(0);
+    expect(s.alarms).toEqual([]);
+    soundZone(s, 'wing');
+    expect(s.alarms).toEqual([]);
   });
 });

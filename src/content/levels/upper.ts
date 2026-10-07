@@ -134,6 +134,16 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   bx(T1, 58.98, 15, 0.04, 2.2, 9.6, 0x0b0d0f, { y: 0.9, c: 0 }); for (let k = 0; k < 5; k++) bx(T1, 58.96, 12.6 + k * 1.2, 0.06, 2.2, 0.08, 0x2a2c2e, { y: 0.9, c: 0 });
   use(T1, 'look', 58.4, 15, 1.5, { label: 'Look out over the bay', text: 'Thick glass over the bay, and the floor a long way down. Nothing out there gives back any light.' });
   buildCargo(D, T1, T2, T3);
+  /* the overseer, grown into the monitor wall of the operations room; and its hand, keeping the second leg, too big for
+     any door (world.md §8). Last, so the cast made before keep their places. */
+  mut(D, 'overseer', 44.5, 40.3, { zone: 'ops', sit: 1, yaw: PI });
+  /* grown into the controls: a cord of flesh from it into the back of every screen, and lumps where they take hold */
+  for (let k = 0; k < 8; k++) {
+    const mx = 38.4 + k * 1.4, dx = (mx - 44.5) * 2, dz = (41.9 - 40.6) * 2, len = Math.hypot(dx, dz);
+    bx(D, (44.5 + mx) / 2, (40.6 + 41.9) / 2, len, 0.12, 0.14, 0x8c4a44, { y: 1.5 + (k % 3) * 0.12, ry: -Math.atan2(dz, dx), c: 0 });
+    P(D, 'ico', mx, 41.85, 0.4, 0.3, 0.2, 0x6e2b28, { y: 1.55, c: 0 });
+  }
+  mut(D, 'hand', 43.5, 31.5, { yaw: PI });
   return finishLevel([20.3, 2.5, -PI / 2]); // in isolation room 1, facing its door
 }
 

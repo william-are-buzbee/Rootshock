@@ -442,7 +442,15 @@ cancerous growth, rather than a second level-sized area competing for attention.
   looks about a while, then goes back to its rounds; it finds you only if it sees or hears you on the way. A camera can be
   smashed with something in your hand: loud. Five so far: two in the atrium (the threshold, and the stair and Cargo's door),
   one at each end of the Operations corridor, and one down the wing's corridor, dead until the cut is mended. Mending it sounds
-  the wing (its circuit comes live on the board). Until the overseer is built, the cameras sound their zones themselves.
+  the wing (its circuit comes live on the board).
+- **The overseer and its hand: built.** The overseer is grown into the monitor wall of the operations room, cords of flesh
+  into every screen. It sees you itself in its own room (and sounds the Operations zone, so the hand comes to its door), and
+  lashes what comes near, with a grabber's tell. Killed, the camera lights go out up and down the level for good, the klaxon
+  dies mid-note, and no alarm sounds again. The hand is a thresher made of Security's staff (220 to the rib freak's 150): it
+  keeps the second leg, hears every alarm wherever it is, and goes at a run by the halls; too big for any door frame, open or
+  shut, so every side room is a refuge from it. On its way it hunts you only if it meets you. Once there it keeps the place,
+  wandering and charging about it. Not yet: a door the overseer locks on you; the hand stopping its seeking when the
+  overseer dies (it stops being summoned, but stays a thresher in the halls).
 - **Patrols → their own senses.** Sight, light and sound, as everywhere else. They do not know where you are because the overseer
   does; they come to an alarm they can hear, not to the overseer.
 - **Patrols walk lit rooms only (agreed: every husk, everywhere).** Husks hunt by sight, so they keep their rounds where they
@@ -480,9 +488,8 @@ whether or not the wing is mended.
 
 **What the game needs for it**
 
-- **New:** glass: solid to bodies, clear to sight and light (the bay window). A door the overseer can lock. The overseer
-  itself, and the hand (and the cameras seeing only for the overseer). Breaking a speaker. (Cameras and the zone alarm are
-  built: above.)
+- **New:** glass: solid to bodies, clear to sight and light (the bay window). A door the overseer can lock. Breaking a
+  speaker. (Cameras, the zone alarm, the overseer and the hand are built: above.)
 - **Content:** done but for the window's glass.
 - **Already there:** patrols (the cast keep rounds), vents (loose panels; crawling under), grabbing and dragging (a start for the
   hand), caves of any outline (for the nest's organic shapes), backup sets and the power rules, the progression checker (to prove

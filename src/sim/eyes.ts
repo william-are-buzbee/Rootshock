@@ -2,9 +2,9 @@ import type { CameraDef } from '../content/types';
 import { STEP } from '../core/loop';
 import { field } from '../world/nav';
 import type { Dyn } from '../world/world';
-import { answer } from './cast';
-import { routeRules, soundRules } from './fields';
-import { power, sfx } from './game';
+import { answer, summon } from './cast';
+import { routeRules, rulesFor, soundRules } from './fields';
+import { power, say, sfx } from './game';
 import { eyeHeight } from './player';
 import type { Sim } from './sim';
 
@@ -12,9 +12,10 @@ import type { Sim } from './sim';
    it is Security's own equipment. A camera with power sees along its cone, as far as the light you are in lets it (as the
    cast see); held in view a moment, you sound its zone. Its light is the tell: green while it watches, red while it holds
    you, so there is time to step out. The alarm sounds from the zone's speaker for a while, and whatever hears it comes:
-   the changed answer it from drill, to the speaker, not to you (sim/cast.ts, 'answer'). The answers: keep out of its
-   cone, cut its power, or smash it (loud).
-   Until the overseer is built, the cameras sound their zones themselves; once it is, they will see only for it. */
+   the changed answer it from drill, to the speaker, not to you (sim/cast.ts, 'answer'), and the overseer's hand hears every
+   one, wherever it is (sim/cast.ts, summon). The answers: keep out of its cone, cut its power, or smash it (loud).
+   The cameras see for the overseer: on a level that has one, they go dark for good when it dies, and no alarm sounds
+   again. */
 
 export interface Cam {
   def: CameraDef;
@@ -31,6 +32,9 @@ export interface Alarm {
   spot: number;
   route: Float32Array;
   heard: Float32Array;
+  /** the way there for what is too big for any door, open or shut (the hand): by the halls alone, so where it is
+   *  infinite, the hand cannot come */
+  big: Float32Array;
   /** when it sounds next */
   next: number;
 }
@@ -45,8 +49,11 @@ export function makeCams(sim: Sim): Cam[] {
   return (sim.world.def.cameras ?? []).map(def => ({ def, broken: false, hold: 0 }));
 }
 
-/** it can see: whole, and with power to it */
-export const camLive = (sim: Sim, c: Cam): boolean => !c.broken && power(sim.game, c.def.circuit) >= 1;
+/** the overseer is dead: there is no one to see through the cameras or sound an alarm */
+export const blinded = (sim: Sim): boolean => sim.cast.some(m => m.ai === 'overseer' && m.dead);
+
+/** it can see: whole, with power to it, and someone to see for */
+export const camLive = (sim: Sim, c: Cam): boolean => !c.broken && power(sim.game, c.def.circuit) >= 1 && !blinded(sim);
 
 /** it sees you: within its cone and its range for the light you are in, and nothing in the way */
 export function camSees(sim: Sim, c: Cam): boolean {
@@ -60,7 +67,7 @@ export function camSees(sim: Sim, c: Cam): boolean {
 /** sound a zone: its speaker goes, and goes on going a while; whatever hears it comes */
 export function soundZone(sim: Sim, zone: string): void {
   const sp = sim.world.def.speakers?.find(s => s.zone === zone), F = sim.fields;
-  if (!sp || !F) return;
+  if (!sp || !F || blinded(sim)) return;
   const on = sim.alarms.find(a => a.zone === zone);
   if (on) { on.t = EYES.sound; return; }
   const spot = F.nav.locate(sp.x, sp.y, sp.z);
@@ -74,6 +81,7 @@ function makeAlarm(sim: Sim, zone: string, spot: number, t: number): Alarm {
     zone, t, spot, next: 0,
     route: field(F.nav, spot, routeRules(sim, F, 'hands')),
     heard: field(F.nav, spot, soundRules(sim, F), undefined, EYES.reach),
+    big: field(F.nav, spot, rulesFor(sim, F, 'big')),
   };
 }
 
@@ -85,6 +93,15 @@ export function restoreAlarms(sim: Sim, saved: { zone: string; t: number; spot: 
 /** a step of the eyes and the alarms */
 export function updateEyes(sim: Sim): void {
   const g = sim.game;
+  if (blinded(sim)) {
+    if (sim.cams.length && !g.once.includes('blind')) {
+      g.once.push('blind');
+      say(g, 'The growth stops moving. Somewhere up the hall a klaxon dies mid-note, and the camera lights go out one by one.');
+    }
+    sim.alarms = [];
+    for (const c of sim.cams) c.hold = 0;
+    return;
+  }
   for (const c of sim.cams) {
     if (!camLive(sim, c) || !camSees(sim, c)) { c.hold = 0; continue; }
     if (c.hold === 0) sfx(g, 'cam', c.def); // it has you: the servo turns, the light goes red
@@ -98,7 +115,10 @@ export function updateEyes(sim: Sim): void {
       a.next = EYES.every;
       const sp = sim.world.def.speakers!.find(s => s.zone === a.zone)!;
       sfx(g, 'klaxon', { x: sp.x, y: sp.y + 2.6, z: sp.z }, true);
-      for (const m of sim.cast) if (m.spot >= 0 && a.heard[m.spot] < EYES.reach) answer(sim, m, a.spot, a.route);
+      for (const m of sim.cast) {
+        if (m.type === 'hand') summon(sim, m, a.spot, a.big);
+        else if (m.spot >= 0 && a.heard[m.spot] < EYES.reach) answer(sim, m, a.spot, a.route);
+      }
     }
   }
   sim.alarms = sim.alarms.filter(a => a.t > 0);
