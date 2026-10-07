@@ -7,6 +7,8 @@ import { reach } from '../src/sim/reach';
 import { Lighting, stationPower, fullPower } from '../src/world/light';
 import { buildLevelMesh } from '../src/present/render/levelMesh';
 import { circle } from '../src/world/shapes';
+import { field } from '../src/world/nav';
+import { makeFields, rulesFor } from '../src/sim/fields';
 
 const level = buildUpper(STATION.ladders);
 const sim = makeSim(level);
@@ -79,7 +81,7 @@ describe('the upper station', () => {
   });
 
   it('looks out over the bay through glass: it stops you, and sight goes through it', () => {
-    const s = makeSim(level, { seed: 1, station: STATION }), panes = s.doors.filter(d => d.def.glass);
+    const s = makeSim(level, { seed: 1, station: STATION }), panes = s.doors.filter(d => d.def.glass && d.def.circuit === 'CARGO');
     expect(panes.length).toBe(3);
     const P = panes[1].def, x = P.x0 - 1.2, z = (P.z0 + P.z1) / 2, y = P.y0 + 1.6;
     /* a line from Cargo control out into the bay: glass is no wall to an eye, but it is to a ray that sees nothing through it */
@@ -98,6 +100,28 @@ describe('the upper station', () => {
     expect(room.size).toBe(1);
     expect(walk.size).toBe(1);
     expect([...room][0]).not.toBe([...walk][0]);
+  });
+
+  it('sinks the muster court 1.25 m under the hall, with steps down both long sides, and lifts its ceiling to 7 m', () => {
+    const court = level.rooms.find(r => r.name === 'Muster court')!, hall = level.rooms.filter(r => r.name === 'Muster hall');
+    expect(court.y0).toBeCloseTo(-1.25);
+    expect(court.y0 + court.ht).toBeCloseTo(7);
+    expect(hall.length).toBe(4);
+    for (const H of hall) expect(H.y0 + H.ht).toBeCloseTo(4.5);
+    const mx = (court.x0 + court.x1) / 2 + 6, mz = (court.z0 + court.z1) / 2, w = sim.world; // clear of the hand, which stands in the middle
+    expect(w.groundBelow(circle(mx, mz, 0.3), 1)).toBeCloseTo(-1.25); // the court's floor
+    expect(w.groundBelow(circle(mx, court.z0 + 2, 0.3), 1)).toBeGreaterThan(-1.25); // part way up its steps
+    /* the nav graph walks the steps both ways: from the court's floor to the promenade and back, no drop */
+    const nav = makeFields(sim).nav, a = nav.locate(mx, -1.25, mz), b = nav.locate(mx, 0, court.z0 - 1);
+    expect(a).toBeGreaterThanOrEqual(0);
+    expect(b).toBeGreaterThanOrEqual(0);
+    const F = field(nav, b, rulesFor(sim, makeFields(sim), 'big'));
+    expect(F[a]).toBeLessThan(20); // the hand comes down into it as easily as you do
+  });
+
+  it('starts the hand at home in the muster hall, out of every side room\'s door', () => {
+    const h = level.mutants.find(m => m.type === 'hand')!;
+    expect(sim.world.roomAt(h.x, h.y + 1, h.z)?.name).toBe('Muster court');
   });
 
   it('measures: chunks, memory, mesh', () => {

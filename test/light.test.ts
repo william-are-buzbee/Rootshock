@@ -43,7 +43,7 @@ describe('the power coming on', () => {
 });
 
 describe('light in pools', () => {
-  const corridor = named('Operations corridor'), R = w.rooms[corridor];
+  const corridor = named('Security corridor'), R = w.rooms[corridor];
   const fx = lit.fixtures.get(corridor)!;
 
   it('a fitted room has its fittings, and a cave or a walkway has none', () => {

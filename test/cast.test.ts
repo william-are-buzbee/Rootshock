@@ -101,10 +101,10 @@ describe('their rounds', () => {
     step(s, noInput());
     const names = () => new Set(rounds(s).map(id => s.world.rooms[id].name));
     const now = names();
-    expect([...now]).toEqual(expect.arrayContaining(['Atrium', 'Operations corridor', 'Gallery']));
-    for (const dark of ['Lobby', 'Operations room', 'Cargo cavern']) expect(now.has(dark)).toBe(false); // the wing, a room with no emergency lights, Cargo
+    expect([...now]).toEqual(expect.arrayContaining(['Atrium', 'Operations corridor', 'Gallery', 'Muster hall']));
+    for (const dark of ['Checkpoint', 'Operations room', 'Cargo cavern']) expect(now.has(dark)).toBe(false); // the wing, a room with no emergency lights, Cargo
     s.game.station!.circuits.SEC.broken = false; s.lighting = null; // the wing mended
-    expect(names().has('Lobby')).toBe(true);
+    expect(names().has('Checkpoint')).toBe(true);
     s.game.station!.circuits.OPS.back = false; s.lighting = null; // and Ops' set stopped: nothing it can see by but the nest's own glow
     expect([...names()].every(n => /^Tier/.test(n))).toBe(true);
   });
@@ -112,7 +112,7 @@ describe('their rounds', () => {
   it('one standing in the dark makes for the nearest light it can get to', () => {
     const s = fresh(), m = s.cast[1];
     only(s, [m]);
-    place(s, m, 70, 0, 50); // in the operations room: no emergency lights, dark on the backup set
+    place(s, m, 35, 0, 55); // in the firing range: no emergency lights, dark on the backup set
     const lum = () => Math.max(...simLighting(s).atPoint(m.x, m.y + 0.5, m.z));
     expect(lum()).toBe(0);
     hold(s, 20);

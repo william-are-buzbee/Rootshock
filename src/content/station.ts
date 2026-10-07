@@ -28,6 +28,9 @@ export const STATION: StationDef = {
     OPS: { on: true, back: true, tag: 'upper station' },
     /* the Security wing hangs off Ops; the survivors cut its feed to blind the cameras on their side (world.md §8) */
     SEC: { on: true, back: false, broken: true, feed: 'OPS', tag: 'Security wing' },
+    /* the operations room and the muster hall's east bays, off Ops through their own switch: the overseer holds its door
+       bolted while it has power (world.md §8) */
+    CTL: { on: true, back: false, feed: 'OPS', tag: 'Operations room' },
     RES: { on: true, back: false, tag: 'main level' },
     ENG: { on: true, back: false, tag: 'plant level' },
     HYD: { on: true, back: false, broken: true, tag: 'the sump' },

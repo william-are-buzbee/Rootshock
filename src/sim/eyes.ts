@@ -17,7 +17,7 @@ import type { Sim } from './sim';
    smash the zone's speaker (as loud), and the zone has no voice: seen there, the doors about you are still bolted, but
    nothing hears it and nothing comes.
    The cameras see for the overseer: on a level that has one, they go dark for good when it dies, and no alarm sounds
-   again. */
+   again. Its own door (`keep`) it holds bolted from inside for as long as it lives and the door has power. */
 
 export interface Cam {
   def: CameraDef;
@@ -95,7 +95,7 @@ function boltAbout(sim: Sim): void {
   const b = sim.player.body, g = sim.game;
   for (const d of sim.doors) {
     const D = d.def, cx = (D.x0 + D.x1) / 2, cz = (D.z0 + D.z1) / 2;
-    if (D.seal || D.vent || D.lift || D.stuck || D.card || D.code || d.bolt > 0 || d.bolting > 0) continue;
+    if (D.seal || D.vent || D.lift || D.stuck || D.card || D.code || D.keep || d.bolt > 0 || d.bolting > 0) continue;
     if (Math.hypot(cx - b.x, cz - b.z) > EYES.bolts || Math.abs(D.y0 - b.y) > 3 || power(g, D.circuit) < 1) continue;
     d.bolting = EYES.draw;
     sfx(g, 'bolt-draw', { x: cx, y: D.y0 + 2, z: cz });
@@ -103,9 +103,16 @@ function boltAbout(sim: Sim): void {
 }
 
 function updateBolts(sim: Sim): void {
-  const g = sim.game, sounding = sim.alarms.length > 0;
+  const g = sim.game, sounding = sim.alarms.length > 0, alive = !blinded(sim);
   for (const d of sim.doors) {
     const D = d.def, at = { x: (D.x0 + D.x1) / 2, y: D.y0 + 2, z: (D.z0 + D.z1) / 2 }, live = power(g, D.circuit) >= 1;
+    /* its own door it keeps bolted, for as long as it lives and the door has power: cut the door's feed and it lets go */
+    if (D.keep) {
+      const held = live && alive;
+      if (held && d.bolt <= 0) d.bolt = 1;
+      else if (!held && d.bolt > 0) { d.bolt = 0; sfx(g, 'bolt-free', at); }
+      continue;
+    }
     if (d.bolting > 0 && (d.bolting -= STEP) <= 0) { d.bolting = 0; if (live && sounding) { d.bolt = EYES.sound; sfx(g, 'bolt', at); } }
     if (d.bolt > 0 && (!live || !sounding || (d.bolt -= STEP) <= 0)) { d.bolt = 0; sfx(g, 'bolt-free', at); }
   }

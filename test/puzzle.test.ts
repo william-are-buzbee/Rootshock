@@ -113,12 +113,12 @@ describe('the upper station, played', () => {
 
   it('heavy doors will not move on the backup set; on Gen-1 the Armory keypad wants the run\'s code', () => {
     const s = fresh();
-    const [ax, az] = tile(23, 16);
+    const [ax, az] = tile(32, 26);
     expect(find(s, /Heavy door: no power/, [ax, az])).toBeTruthy();
-    use(s, find(s, /Heavy door/, [ax, az]), [0, -1]);
+    use(s, find(s, /Heavy door/, [ax, az]), [0, 1]);
     expect(said(s).join(' ')).toMatch(/The backup set cannot move a door this size/);
     s.game.station!.main = true; // as if Gen-1 had been brought back
-    use(s, find(s, /Keypad/, [ax, az]), [0, -1]);
+    use(s, find(s, /Keypad/, [ax, az]), [0, 1]);
     expect(s.game.pad).not.toBeNull();
     for (const k of '0000') s.game.commands.push({ type: 'pad', key: k });
     step(s, noInput());
@@ -126,7 +126,7 @@ describe('the upper station, played', () => {
     for (const k of s.game.code) s.game.commands.push({ type: 'pad', key: k });
     step(s, noInput());
     expect(s.game.pad).toBeNull();
-    use(s, find(s, /Door control: open/, [ax, az]), [0, -1]);
+    use(s, find(s, /Door control: open/, [ax, az]), [0, 1]);
     hold(s, 1.5);
     expect(doorAt(s, ax, az).t).toBeGreaterThan(0.9);
   });
