@@ -296,7 +296,8 @@ components, not code threaded through the frame loop:
   never changes), and gives up where it gets no nearer for three seconds. On a level with an overseer the cameras see for
   it: dead, they are dark and no alarm sounds. A smashed speaker mutes its zone (`Sim.mute`): an alarm there still runs, so
   the bolts hold, but its klaxon never goes round, so nothing answers it; one sounded otherwise than by being seen does not
-  start. A speaker is used from below only, and hangs in its room's ceiling. Saves keep each camera's state, the muted zones
+  start. A speaker is used from below only, and hangs in its room's ceiling. It sounds only with power on its room's circuit
+  and on its PA's (`SpeakerDef.circuit`, `.pa`), so cutting either is an answer too (`heard` in `sim/eyes.ts`). Saves keep each camera's state, the muted zones
   and the alarms; the routes are made again.
 
 **As built in step 4.** The game's state is plain data in the sim (`sim/game.ts`): circuits and Gen-1, keys, what you
@@ -354,7 +355,11 @@ sequence of inputs. The door rules, the labels and the answers are the first eng
 - **Light and air** (since): the flashlight is held, not glued to the eye: the beam trails the view by about 70 ms and
   sways with your stride (`present/camera.ts`); its cone is a reflector's (a hot centre, a faint ring at its rim, a
   wide dim spill); and a wall close in front of it throws a little light back around you (one ray a frame). The eye
-  adapts (`uExpo`): it opens slowly in the dark and narrows fast in light, so a room coming on glares. The dark is
+  adapts (`uExpo`): it opens slowly in the dark and narrows fast in light, so a room coming on glares; in a lit room it
+  stays a little open, so light reads as light. Every shader ends on one tone curve (`LIFT` in `render/shader.ts`: the
+  mid-tones lifted, black left black), the haze is thin in dry air so a long hall reads to its far end, and the player's
+  brightness setting (title and pause screens, kept between runs) scales the eye. All of it is the screen's alone: the
+  cast and the cameras see by the light as it is. The dark is
   grained in the shader, most where it is darkest. A fitted room's light falls in pools under its ceiling fittings (`LevelDef.fixtures`, `POOL` in `world/light.ts`):
   a point takes 0.55 of the room's light plus 1.3 times what its fittings throw at it, down and falling off, so the
   floor under a tube is lit above the room's level and the corners and the ceiling below it. The shader does it per

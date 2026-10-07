@@ -139,6 +139,20 @@ function openPanel(fn: () => void): void {
   fn();
 }
 
+/* brightness: the player's own setting, kept between runs. It is on the screen only: the cast and the cameras see by the
+   light as it is */
+const BRIGHT_KEY = 'rootshock-v2:bright', brightIn = [...document.querySelectorAll<HTMLInputElement>('input.brightness')];
+let gain = Number(readStore(BRIGHT_KEY)) || 1;
+for (const el of brightIn) {
+  el.value = String(gain);
+  el.closest('p')!.addEventListener('click', e => e.stopPropagation()); // not a click to go on
+  el.addEventListener('input', () => {
+    gain = Number(el.value);
+    writeStore(BRIGHT_KEY, String(gain));
+    for (const o of brightIn) o.value = el.value;
+  });
+}
+
 hud.onClick('title', () => { writeStore(SAVE_KEY, null); audio.start(); setMode('play'); controls.lock(); });
 hud.onClick('pause', () => { setMode('play'); controls.lock(); });
 document.getElementById('end')!.addEventListener('click', () => location.reload());
@@ -261,13 +275,14 @@ function frame(t: number): void {
   if (flick > 0 && g.lightOn) { U.uFlash.value *= 0.25; U.uBounce.value *= 0.25; }
   here.update(mode === 'play' ? loop.alpha : 1);
   /* the eye: it opens in the dark, slowly, and narrows against light quickly, so a room coming on glares a moment.
-     It adapts to what is around you and to your own light, close in front of you. */
+     It adapts to what is around you and to your own light, close in front of you; in a lit room it stays a little open,
+     so the light reads as light */
   {
     const b = sim.player.body, l = lighting.atPoint(b.x, b.y + 1, b.z);
     const seen = Math.max(l[0], l[1], l[2]) + U.uFlash.value * 0.12 + U.uBounce.value * 2 + U.uLamp.value * 0.3;
-    const k = Math.min(1, Math.max(0, (seen - 0.02) / 0.48)), want = devFlags.bright ? 1 : 1.4 - 0.5 * k * k * (3 - 2 * k);
+    const k = Math.min(1, Math.max(0, (seen - 0.02) / 0.48)), want = devFlags.bright ? 1 : 1.45 - 0.25 * k * k * (3 - 2 * k);
     expo += (want - expo) * Math.min(1, dt * (want > expo ? 0.6 : 4));
-    U.uExpo.value = expo;
+    U.uExpo.value = expo * gain;
   }
   if (cascade) {
     const flipped = cascade.update(dt);
@@ -291,7 +306,8 @@ function frame(t: number): void {
   /* water: tinted and close in wading water, more so under it (less with goggles), as before */
   const p = sim.player, under = p.under, wet = p.water !== 'dry';
   U.uWet.value = under ? 1 : wet ? 0.4 : 0;
-  const fog = (under ? (g.worn.includes('goggles') ? 0.075 : 0.21) : wet ? 0.045 : 0.032) * (devFlags.bright ? 0.25 : 1);
+  /* thin in dry air, so a long hall reads to its far end where it is lit */
+  const fog = (under ? (g.worn.includes('goggles') ? 0.075 : 0.21) : wet ? 0.045 : 0.02) * (devFlags.bright ? 0.25 : 1);
   U.uFog.value += (fog - U.uFog.value) * Math.min(1, dt * 4);
   panels.prompt(mode === 'play' ? sim.focus?.text ?? null : null);
   panels.status(g, p.air < p.airMax - 0.01 ? p.air / p.airMax : null, p.crouch, hurtFx);

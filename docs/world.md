@@ -423,6 +423,15 @@ cancerous growth, rather than a second level-sized area competing for attention.
   branch of their own off Ops (CTL), switched from the electrical room at the far end of the hall. Opening that switch lets the
   bolt go, and darkens the east bays and their two cameras, so the way back is darker than the way out. The progression
   checker proves it: Cargo (behind the deputy director's card, in that room) comes only after the switch.
+- **The electrical room's board (agreed; built).** Not a room for one switch: a panel board breaking Ops' feed out to three
+  branches, side by side, each a trade. *Muster hall* (HALL): the hall's lights west of the east bays, the court, its four
+  cameras and its speaker; cut, the hall goes black, its eyes with it, and its husks go looking for light. *Operations room*
+  (CTL): the overseer's door, above. *Security PA* (PA): every zone's speaker on the level; cut, no zone has a voice, so no
+  klaxon calls the husks or the hand, but a camera that takes you still bolts the doors about you, and you lose the warning
+  of the klaxon too. A lamp over the cabinet shows each one live. This is the pattern for power elsewhere (proposed): a board
+  per area, a few labelled breakers that each feed a handful of rooms, never a switch per room. A switch per room would be
+  a switch for the threat, and real buildings are wired by panel, not by room. Doors stay safe to cut: exits let go without
+  power, and readers keep their lock only against coming in.
 - **Rooms built to the new standard (agreed).** Wider, longer, taller, with a landmark or a flourish; no utilitarian boxes.
   The range is 28 m of lanes, not a closet. The lobby is a checkpoint: everyone off the shaft came through it (the bag scanner,
   the arch, turnstiles, a booth behind glass). The wing's row of doors is broken by the locker room, the survivors' back way into
@@ -462,12 +471,15 @@ cancerous growth, rather than a second level-sized area competing for attention.
   looks about a while, then goes back to its rounds; it finds you only if it sees or hears you on the way. A camera can be
   smashed with something in your hand: loud. So can a zone's speaker, and that zone has no voice: seen there, the doors
   about you are still bolted (they are the overseer's, not the alarm's), but no klaxon sounds, and nothing hears it or comes.
+  A speaker with no power is as quiet: it needs power on the circuit of the room it hangs in, and on the PA's; cut either
+  while it sounds and the klaxon stops at its next round.
   The wing's and the muster hall's hang in a ceiling you can reach; the atrium's hangs high in the well, in reach only leaning
   out from the east gallery's rail. Four zones: the wing, the atrium, the muster hall's west end ('muster'), and the overseer's
-  own ('ops': the Operations corridor and the hall's east bays, its speaker by the overseer's door). Cameras, nine: one down
+  own ('ops': the Operations corridor and the hall's east bays, its speaker in the corridor, on Ops' feed, so it still calls
+  the hand to the overseer's door once the door's own switch is open). Cameras, nine: one down
   the wing's corridor, dead until the cut is mended; one on the atrium's threshold; one down the Operations corridor; and six
-  in the muster hall: its two west corners, the north wall over the court, one high in the court's ceiling out of reach, and
-  on the east bays' own switch (CTL), one in the north-east corner and one over the overseer's door. Mending the wing sounds
+  in the muster hall: on the hall's breaker its two west corners, the north wall over the court and one high in the court's
+  ceiling out of reach, and on the east bays' own switch (CTL), one in the north-east corner and one over the overseer's door. Mending the wing sounds
   it (its circuit comes live on the board).
 - **The overseer and its hand: built.** The overseer is grown into the monitor wall of the operations room, cords of flesh
   into every screen. It sees you itself in its own room (and sounds the Operations zone, so the hand comes to its door), and

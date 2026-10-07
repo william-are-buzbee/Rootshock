@@ -31,6 +31,9 @@ export const STATION: StationDef = {
     /* the operations room and the muster hall's east bays, off Ops through their own switch: the overseer holds its door
        bolted while it has power (world.md §8) */
     CTL: { on: true, back: false, feed: 'OPS', tag: 'Operations room' },
+    /* the rest of the muster hall, and Security's PA (every zone's speaker), each on its own breaker on the same board */
+    HALL: { on: true, back: false, feed: 'OPS', tag: 'Muster hall' },
+    PA: { on: true, back: false, feed: 'OPS', tag: 'Security PA' },
     RES: { on: true, back: false, tag: 'main level' },
     ENG: { on: true, back: false, tag: 'plant level' },
     HYD: { on: true, back: false, broken: true, tag: 'the sump' },

@@ -88,10 +88,11 @@ export function buildUsables(sim: Sim): Usable[] {
       }
       case 'panel': {
         /* `cut`: cut through by hand, not burned out */
-        const c = o.c as string, cut = !!o.cut, name = STATION_NAMES[c] ?? c;
+        /* `brk`: a breaker on a board, not a level's service connection */
+        const c = o.c as string, cut = !!o.cut, name = STATION_NAMES[c] ?? c, what = o.brk ? 'Breaker, ' : 'Service connection, ';
         out.push({
           ...base,
-          label: () => { const C = g.station?.circuits[c]; return 'Service connection, ' + name + ': ' + (!C ? 'none' : C.broken ? (cut ? 'cut through' : 'burned through') : C.on ? 'closed' : 'open'); },
+          label: () => { const C = g.station?.circuits[c]; return what + name + ': ' + (!C ? 'none' : C.broken ? (cut ? 'cut through' : 'burned through') : C.on ? 'closed' : 'open'); },
           act: () => {
             const C = g.station?.circuits[c];
             if (!C) return;

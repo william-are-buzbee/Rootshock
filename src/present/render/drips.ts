@@ -3,7 +3,7 @@ import { Rng } from '../../core/rng';
 import type { Sim } from '../../sim/sim';
 import type { Lighting } from '../../world/light';
 import type { World } from '../../world/world';
-import { U } from './shader';
+import { LIFT, U } from './shader';
 
 /* Water coming through the rock. A level's drip points are found once, from its own id, so they are the same every
    time: in its caves and over its standing water, one to three a room, each where there is roof above and something
@@ -47,6 +47,7 @@ const RING_VS = /* glsl */ `
 attribute vec3 iPos; attribute float iSize; attribute vec3 iCol; attribute float iA; attribute vec3 iL;
 uniform vec3 uFlashDir; uniform float uFlash; uniform float uFog; uniform float uExpo;
 varying vec3 vC; varying float vA; varying vec2 vS;
+${LIFT}
 void main(){
   vec3 p = iPos + vec3(position.x * iSize, 0.0, position.z * iSize);
   vec3 tc = cameraPosition - p; float d = length(tc);
@@ -65,7 +66,7 @@ void main(){
   float a = abs(vA), edge = max(abs(vS.x), abs(vS.y));
   if (vA > 0.0 && edge < 0.62) discard;
   if (a < 0.01) discard;
-  gl_FragColor = vec4(vC, a);
+  gl_FragColor = vec4(lift(vC), a);
 }`;
 
 const DROP_VS = /* glsl */ `
@@ -84,7 +85,8 @@ void main(){
 }`;
 const DROP_FS = /* glsl */ `
 varying vec3 vC; varying float vA;
-void main(){ if (vA < 0.01) discard; gl_FragColor = vec4(vC, vA); }`;
+${LIFT}
+void main(){ if (vA < 0.01) discard; gl_FragColor = vec4(lift(vC), vA); }`;
 
 interface Ring { x: number; y: number; z: number; age: number; life: number; most: number; water: boolean }
 
