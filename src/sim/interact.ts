@@ -5,6 +5,7 @@ import { locked, occupied, sendPlatform, type Door, type Platform } from './move
 import { eyeHeight } from './player';
 import type { Sim } from './sim';
 import { riders } from './sim';
+import { soundZone } from './eyes';
 
 /* What you can use, and what using it does: E on whatever you are looking at. The labels and the answers are the first
    engine's (interaction, in archive/first-engine.html), so the station reads as it did. */
@@ -30,6 +31,19 @@ export function buildUsables(sim: Sim): Usable[] {
     out.push({ x: (D.x0 + D.x1) / 2, y: D.y0 + (D.vent ? 0.6 : 1.3), z: (D.z0 + D.z1) / 2, r: D.vent ? 1.7 : 2.6, label: () => doorLabel(sim, d), act: () => doorAct(sim, d) });
   }
   for (const p of sim.platforms) if (p.def.call) out.push(platformUse(sim, p, 0), platformUse(sim, p, 1));
+  /* a camera can be smashed, with something in your hand, and is heard well off */
+  for (const c of sim.cams) {
+    const C = c.def;
+    out.push({
+      x: C.x, y: C.y, z: C.z, r: 2.4, label: () => (c.broken ? null : 'Smash the camera'),
+      act: () => {
+        if (!g.weapon) { say(g, 'With what? You would want something heavy in your hand.'); sfx(g, 'deny'); return; }
+        c.broken = true; c.hold = 0;
+        sfx(g, 'smash', C, true);
+        makeNoise(g, 14);
+      },
+    });
+  }
   for (const it of sim.items) out.push(itemUse(sim, it));
   for (const n of L.notes) {
     const note = g.notes[n.key];
@@ -83,6 +97,8 @@ export function buildUsables(sim: Sim): Usable[] {
                 return;
               }
               consume(g, i); C.broken = false; C.on = true; sfx(g, 'clang'); say(g, 'You splice the feed and close the switch.');
+              /* the circuit comes live on Security's board, and the board sounds the zone it is in */
+              if (o.zone) soundZone(sim, o.zone as string);
             } else {
               C.on = !C.on;
               /* a branch takes what its feed has; anything else takes Gen-1 */

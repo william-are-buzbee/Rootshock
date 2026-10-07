@@ -173,6 +173,15 @@ export function panel(D: Deck, c: string, x: number, z: number, face: 'n' | 's' 
   bx(D, x + (ew ? o : 0), z + (ew ? 0 : o), 0.1, 0.1, 0.1, [0.2, 0.2, 0.2], { y: 1.55, c: 0, pw: [LIVE[0], LIVE[1]], pc: c });
   use(D, 'panel', x + (ew ? o * 3 : 0), z + (ew ? 0 : o * 3), 1.3, { c, ...opts });
 }
+/** a camera (sim/eyes.ts) at (x, z) in tiles, its lens h metres up, looking along yaw (0 south, a quarter turn east), on
+ *  circuit c, sounding zone `zone`; drawn by present/render/things.ts */
+export function camera(D: Deck, x: number, z: number, h: number, yaw: number, c: string, zone: string, o: { fov?: number; range?: number } = {}): void {
+  D.cams.push({ x, z, h, yaw, fov: o.fov ?? 1.6, range: o.range ?? 18, c, zone });
+}
+/** a zone's speaker, in the ceiling over (x, z): where its alarm sounds and whatever answers it comes */
+export function speaker(D: Deck, zone: string, x: number, z: number): void {
+  D.speakers.push({ zone, x, z });
+}
 /** an exit sign, read from `face`: green, and on its own battery as the code wants, so lit whatever the power; a little of
  *  its light falls before it */
 export function exitSign(D: Deck, x: number, z: number, y: number, face: 'n' | 's' | 'e' | 'w'): void {

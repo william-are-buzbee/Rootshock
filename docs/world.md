@@ -434,7 +434,15 @@ cancerous growth, rather than a second level-sized area competing for attention.
 
 - **Cameras → the zone alarm → the hand, and any patrol in earshot.** The klaxon starting is the tell, and you have a few
   seconds to answer it: leave the zone, break its speaker or the camera (loud: a cost, per §4), or cut the power. The hand does
-  not track you; it goes where the alarm is.
+  not track you; it goes where the alarm is. **Built** (`sim/eyes.ts`), but for the hand and the overseer: a live camera sees
+  along its cone as far as the light you are in lets it, as the cast do. Its light is green while it watches and turns red,
+  with a servo's whir, as it takes you; held about a second and a half, you sound its zone. The speaker's beacon turns and the
+  klaxon goes round for twelve seconds (again from the start if you are seen again), and each time it goes round, any husk
+  that hears it and is not already after you leaves its rounds or its post and hurries to the speaker. There it stands and
+  looks about a while, then goes back to its rounds; it finds you only if it sees or hears you on the way. A camera can be
+  smashed with something in your hand: loud. Five so far: two in the atrium (the threshold, and the stair and Cargo's door),
+  one at each end of the Operations corridor, and one down the wing's corridor, dead until the cut is mended. Mending it sounds
+  the wing (its circuit comes live on the board). Until the overseer is built, the cameras sound their zones themselves.
 - **Patrols → their own senses.** Sight, light and sound, as everywhere else. They do not know where you are because the overseer
   does; they come to an alarm they can hear, not to the overseer.
 - **Patrols walk lit rooms only (agreed: every husk, everywhere).** Husks hunt by sight, so they keep their rounds where they
@@ -472,10 +480,9 @@ whether or not the wing is mended.
 
 **What the game needs for it**
 
-- **New:** cameras as fixed eyes: a sight check from each camera, a visible light while it is live, and what it sees sounding
-  its zone. The zone alarm: a sound from a fixed place, not only from you (today the only source of noise is the player), and the
-  cast walking to it. Glass: solid to bodies, clear to sight and light (the bay window; camera domes share the work). A door the
-  overseer can lock. The overseer itself, and the hand.
+- **New:** glass: solid to bodies, clear to sight and light (the bay window). A door the overseer can lock. The overseer
+  itself, and the hand (and the cameras seeing only for the overseer). Breaking a speaker. (Cameras and the zone alarm are
+  built: above.)
 - **Content:** done but for the window's glass.
 - **Already there:** patrols (the cast keep rounds), vents (loose panels; crawling under), grabbing and dragging (a start for the
   hand), caves of any outline (for the nest's organic shapes), backup sets and the power rules, the progression checker (to prove

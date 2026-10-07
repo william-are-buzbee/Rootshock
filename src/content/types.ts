@@ -173,6 +173,18 @@ export interface PlatformDef {
   call?: { name: string; circuit: string };
 }
 
+/** a camera: fixed eyes on a circuit (world.md §8). Its lens at (x, y, z), looking along yaw (as the cast: 0 is south,
+ *  a quarter turn east), over a cone fov wide, as far as range in good light. Held in view, you sound its zone. */
+export interface CameraDef {
+  x: number; y: number; z: number;
+  yaw: number; fov: number; range: number;
+  circuit: string;
+  zone: string;
+}
+
+/** a zone's speaker, where its alarm sounds: (x, y, z) the floor under it, which is where whatever answers it comes to */
+export interface SpeakerDef { zone: string; x: number; y: number; z: number }
+
 export interface Start { x: number; y: number; z: number; yaw: number }
 
 export interface LevelDef {
@@ -194,6 +206,9 @@ export interface LevelDef {
   vents?: VentDef[];
   /** blood on the floor, wet enough to walk out of with it on your soles (present/render/prints.ts) */
   stains?: StainDef[];
+  /** the overseer's eyes, and the speakers its alarms sound from (sim/eyes.ts) */
+  cameras?: CameraDef[];
+  speakers?: SpeakerDef[];
   signs: SignDef[];
   items: ItemDef[];
   notes: NoteDef[];

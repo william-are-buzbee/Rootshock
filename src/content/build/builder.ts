@@ -187,6 +187,14 @@ export class LevelBuilder {
     this.def.colliders.push({ x0: x - sx / 2, y0: b, z0: z - sz / 2, x1: x + sx / 2, y1: b + sy, z1: z + sz / 2 });
   }
 
+  /** a camera (sim/eyes.ts): its lens at (x, y, z), looking along yaw */
+  camera(x: number, y: number, z: number, yaw: number, o: { fov: number; range: number; circuit: string; zone: string }): void {
+    (this.def.cameras ??= []).push({ x, y, z, yaw, ...o });
+  }
+  /** a zone's speaker: (x, y, z) the floor under it */
+  speaker(zone: string, x: number, y: number, z: number): void {
+    (this.def.speakers ??= []).push({ zone, x, y, z });
+  }
   lamp(x: number, y: number, z: number, r: number, c: Colour, item?: number): void {
     this.def.lamps.push({ x, y, z, r, colour: c, ...(item !== undefined ? { item } : {}) });
   }

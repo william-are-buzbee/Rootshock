@@ -5,6 +5,7 @@ import { World } from '../world/world';
 import { clamp } from '../core/math';
 import { Lighting } from '../world/light';
 import { castBodies, castMovers, makeCast, updateCast, type Mutant } from './cast';
+import { makeCams, updateEyes, type Alarm, type Cam } from './eyes';
 import { makeHands, updateHands, type Hands } from './combat';
 import { makeFields, refreshFields, updateFields, type Fields } from './fields';
 import { hurt, makeGame, makeNoise, power, runLight, toggleLight, unwear, useItem, type Command, type Game, type StationState, say, sfx } from './game';
@@ -38,6 +39,9 @@ export interface Sim {
   wormN: number;
   /** the light as it is now, for being seen; made again when the power changes */
   lighting: Lighting | null;
+  /** the overseer's eyes, and the zone alarms sounding (sim/eyes.ts) */
+  cams: Cam[];
+  alarms: Alarm[];
 }
 
 export interface SimOpts {
@@ -68,8 +72,9 @@ export function makeSim(level: LevelDef, o: SimOpts = {}): Sim {
     doors: level.doors.map(d => makeDoor(world, d)),
     platforms: level.platforms.map(p => makePlatform(world, p)),
     items: level.items.map(it => ({ ...it, taken: false })),
-    usables: [], focus: null, cast: [], fields: null, hands: makeHands(), wormN: 0, lighting: null,
+    usables: [], focus: null, cast: [], fields: null, hands: makeHands(), wormN: 0, lighting: null, cams: [], alarms: [],
   };
+  sim.cams = makeCams(sim);
   sim.usables = buildUsables(sim);
   sim.cast = makeCast(sim, level.mutants);
   if (sim.cast.length) { sim.fields = makeFields(sim); refreshFields(sim, sim.fields); }
@@ -183,6 +188,7 @@ export function step(sim: Sim, input: Input): void {
     g.vis = clamp(0.3 + lum * 0.8 + (g.lightOn ? 0.35 : 0), 0.3, 1.3) * (p.crouch ? 0.6 : 1);
   }
   if (sim.fields) updateFields(sim, sim.fields);
+  updateEyes(sim);
   updateCast(sim);
   sim.loose.update(STEP, sim.tick, rs);
 

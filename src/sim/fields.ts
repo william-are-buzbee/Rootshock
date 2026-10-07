@@ -118,7 +118,7 @@ export function routeRules(sim: Sim, F: Fields, who: Walker): Rules {
 }
 
 /** sound goes where air goes: through open doors freely, through shut ones muffled; not up a lift shaft's ride */
-function soundRules(sim: Sim, F: Fields): Rules {
+export function soundRules(sim: Sim, F: Fields): Rules {
   const R = F.rules.sound.R, e = R.enter!;
   sim.doors.forEach((d, k) => {
     const v = d.t > 0.5 ? 0 : d.def.kind === 'heavy' || d.def.seal ? 12 : 6;

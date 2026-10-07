@@ -4,7 +4,7 @@ import {
   arch, beginLevel, bx, cave, door, elev, finishLevel, item, ladder, mkDeck, mut, note, P, roughen, room, stack, stairs, use, type Deck, type LevelInfo, type TRoomOpts,
 } from '../build/tiles';
 import {
-  BAY, MED, OPS, SEC, UTIL, WALK, blood, container, corpse, crates, desk, droppedLight, eggs, exitSign, forklift, genset, gore, liftRoom, medbed, panel, shelf, tbl,
+  BAY, MED, OPS, SEC, UTIL, WALK, blood, camera, container, corpse, crates, desk, droppedLight, eggs, exitSign, forklift, genset, gore, liftRoom, medbed, panel, shelf, speaker, tbl,
 } from '../build/fittings';
 
 /* Upper station, 40 m down. Off the main shaft, the Security wing (x 14 to 66) and Operations (x 64 to 110, south to
@@ -35,9 +35,11 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   corpse(D, 17.5, 12.5, 0x2c3440, true, { label: 'Search the officer', say: 'A security officer. Whatever opened him did it from behind.', keys: ['s'] }); mut(D, 'husk', 14, 18.4, { post: 1, yaw: PI / 2 });
   room(D, 'Security corridor', 21, 13, 18, 3, { ...SEC, c: 'SEC', ht: 4.5, em: 1, safe: 1 });
   /* the cut, near the wing's end: the cabinet left open, the cable through, and the one who did it */
-  panel(D, 'SEC', 37.4, 13.06, 's', { cut: 1 }); bx(D, 37.4, 13.04, 0.12, 2.6, 0.08, 0x2a2c2e, { y: 1.8, c: 0 });
+  panel(D, 'SEC', 37.4, 13.06, 's', { cut: 1, zone: 'wing' }); // mended, it comes live on Security's board, and the wing sounds bx(D, 37.4, 13.04, 0.12, 2.6, 0.08, 0x2a2c2e, { y: 1.8, c: 0 });
   P(D, 'cyl', 37.15, 13.16, 0.07, 0.6, 0.07, 0x1d1f21, { y: 1.15, rz: 0.35, c: 0 }); P(D, 'cyl', 37.65, 13.16, 0.07, 0.45, 0.07, 0x1d1f21, { y: 1.3, rz: -0.3, c: 0 });
   corpse(D, 36.2, 13.9, 0x2c3440, false, { label: 'Search the guard', say: 'A guard, bolt cutters still in his hand. Behind him the feed to the wing is cut clean through.' });
+  /* the wing's eyes, dead with it until the cut is mended: one down the corridor from the lobby end */
+  speaker(D, 'wing', 30, 14.5); camera(D, 21.4, 13.3, 3.9, PI / 2, 'SEC', 'wing');
   /* what was left of a barricade across the mouth of the wing */
   bx(D, 38.4, 13.7, 1.8, 0.75, 0.7, 0x5b5d5f, { ry: 0.5 }); crates(D, 38.3, 15.3, 2);
   /* North, a storey down: the medical isolation suite (world.md §8). Rooms round a tall common hall, and over its south
@@ -102,10 +104,13 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   stairs(D, T1, 46, 11, 6, 'n');
   const GW: TRoomOpts = { ...WALK, ht: 4.5, c: 'OPS' };
   room(T1, 'Gallery', 39, 9, 10, 2, GW); room(T1, 'Gallery', 47, 11, 2, 10, GW);
+  /* the atrium's eyes: one on the threshold from the south-west corner, one under the gallery on the stair and Cargo's door */
+  speaker(D, 'atrium', 40.5, 17.5); camera(D, 39.3, 20.6, 3.8, PI, 'OPS', 'atrium'); camera(D, 48.6, 11.4, 4.2, -PI / 4, 'OPS', 'atrium');
   /* where the light changes, it starts: eggs at the threshold, on their side */
   eggs(D, 39.4, 13.4, 2); eggs(D, 39.3, 15.6, 3); blood(D, 40.5, 17.5, 1.4);
   /* the second leg: south to the operations room, offices either side, maintenance and the Ops backup set */
-  room(D, 'Operations corridor', 42, 21, 3, 13, { ...OPS, ht: 4.5, em: 1 }); mut(D, 'husk', 43.5, 25); mut(D, 'husk', 41, 18.5); blood(D, 43, 27.5, 1.2);
+  room(D, 'Operations corridor', 42, 21, 3, 13, { ...OPS, ht: 4.5, em: 1 });
+  speaker(D, 'ops', 43.5, 27.5); camera(D, 44.6, 21.3, 3.8, 0, 'OPS', 'ops'); camera(D, 42.4, 33.6, 3.8, PI, 'OPS', 'ops'); mut(D, 'husk', 43.5, 25); mut(D, 'husk', 41, 18.5); blood(D, 43, 27.5, 1.2);
   for (const [nm, x, y, dopt, east] of [['Office: operations', 37, 22, { card: 'o' }, false], ['Office: logistics', 37, 27, { open: true }, false], ['Office: chief of security', 46, 22, { card: 'o' }, true]] as const) {
     room(D, nm, x, y, 4, 4, { ...OPS, lc: [0.85, 0.78, 0.62] }); door(D, east ? x - 1 : x + 4, y + 1, dopt);
     desk(D, x + 2, y + 3.4, 1.8, 0.7, { c: 0x4a3a2c }); bx(D, x + 2, y + 2.7, 0.45, 0.45, 0.45, 0x2c2f33); shelf(D, east ? x + 3.7 : x + 0.3, y + 1.6, 0.5, 1.8, { cols: [0x7a4a34, 0x4d5a66, 0x8a7a4a] });
