@@ -60,11 +60,16 @@ describe('the upper station', () => {
 
   it('lights the suite by a flashlight dropped still on, which goes out when taken, and by its exit signs', () => {
     const hall = level.rooms.find(r => r.name === 'Isolation suite')!, k = level.items.findIndex(it => it.id === 'flash');
-    const F = level.items[k], lamp = level.lamps.find(l => l.item === k)!;
-    expect(lamp).toBeTruthy();
+    const F = level.items[k], mine = level.lamps.filter(l => l.item === k);
+    expect(mine.length).toBe(2); // a little round it, and its beam's pool
+    const beam = mine.reduce((a, l) => (Math.hypot(l.x - F.x, l.z - F.z) > Math.hypot(a.x - F.x, a.z - F.z) ? l : a));
     const power = stationPower(STATION.circuits, STATION.main), on = new Lighting(sim.world, power), off = new Lighting(sim.world, power, i => i === k);
-    expect(Math.max(...on.at(hall.id, F.x, F.z))).toBeGreaterThan(0.3);
-    expect(Math.max(...off.at(hall.id, F.x, F.z))).toBe(0);
+    const lum = (L: Lighting, x: number, z: number, y?: number) => Math.max(...L.at(hall.id, x, z, y));
+    expect(lum(on, beam.x, beam.z, hall.y0)).toBeGreaterThan(0.3); // thrown low, at the wall
+    expect(lum(on, F.x, F.z, hall.y0)).toBeGreaterThan(0);
+    expect(lum(on, F.x, F.z, hall.y0 + hall.ht)).toBe(0); // and not up: the ceiling over it stays dark
+    expect(lum(off, beam.x, beam.z, hall.y0)).toBe(0);
+    expect(lum(off, F.x, F.z, hall.y0)).toBe(0);
     expect(Math.max(...on.at(hall.id, hall.x0 + 2, hall.z1 - 2))).toBe(0); // the far corner: black
     /* the exit signs: green, a little light each, whatever the power */
     const signs = level.lamps.filter(l => l.colour[1] > l.colour[0] * 3);

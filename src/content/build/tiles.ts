@@ -73,7 +73,7 @@ export interface Deck {
   hf: Float32Array | null; cf: Float32Array | null; hset: Uint8Array | null;
   props: TProp[];
   cols: [number, number, number, number, number, number][];
-  lamps: { x: number; z: number; r: number; c: Colour; it?: Deck['items'][number] }[];
+  lamps: { x: number; z: number; r: number; c: Colour; it?: Deck['items'][number]; h?: number }[];
   /** blood on the floor: middle and reach, in metres */
   stains: { x: number; z: number; r: number }[];
   elevs: { tx: number; tz: number; w: number; h: number; lo: Deck; hi: Deck; c: string; name: string }[];
@@ -163,7 +163,7 @@ export function lamp(D: Deck, x: number, z: number, r: number): void {
   P(D, 'cyl', x, z, 0.06, 1.5, 0.06, 0x2a2c2e, { c: 0 });
   bx(D, x, z, 0.34, 0.22, 0.12, [2.95, 2.9, 2.65], { y: 1.5, c: 0 });
   bx(D, x, z, 0.5, 0.05, 0.5, 0x2a2c2e, { c: 0 });
-  D.lamps.push({ x: x * T, z: z * T, r, c: [0.78, 0.74, 0.6] });
+  D.lamps.push({ x: x * T, z: z * T, r, c: [0.78, 0.74, 0.6], h: 1.5 });
 }
 /** blood on the floor at (x, z) in tiles, reaching r metres: walked through, it comes away on your soles */
 export function stain(D: Deck, x: number, z: number, r: number): void { D.stains.push({ x: x * T, z: z * T, r }); }
@@ -496,7 +496,7 @@ export function finishLevel(start?: [number, number, number]) {
     /* what the later steps need: things lying about first, so a lamp that one of them gives can name it */
     const items = new Map<object, number>();
     for (const it of D.items) { items.set(it, b.level.items.length); b.item(it.id, px(D, it.x), floorY(D, it.x, it.z) + it.y, pz(D, it.z), it.n); }
-    for (const L of D.lamps) b.lamp(px(D, L.x), floorY(D, L.x, L.z), pz(D, L.z), L.r, L.c, L.it && items.get(L.it));
+    for (const L of D.lamps) b.lamp(px(D, L.x), floorY(D, L.x, L.z) + (L.h ?? 1), pz(D, L.z), L.r, L.c, L.it && items.get(L.it));
     for (const S of D.stains) b.stain(px(D, S.x), floorY(D, S.x, S.z), pz(D, S.z), S.r);
     for (const nt of D.notes) b.note(nt.key, px(D, nt.x), floorY(D, nt.x, nt.z) + nt.y, pz(D, nt.z));
     for (const m of D.muts) b.mutant(m.type, X(D, m.x), floorY(D, m.x * T, m.z * T), Z(D, m.z), m.o);

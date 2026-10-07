@@ -437,11 +437,13 @@ cancerous growth, rather than a second level-sized area competing for attention.
   not track you; it goes where the alarm is.
 - **Patrols → their own senses.** Sight, light and sound, as everywhere else. They do not know where you are because the overseer
   does; they come to an alarm they can hear, not to the overseer.
-- **Patrols walk lit rooms only.** They hunt by sight, so they keep their rounds where they can see. That is why the dead wing is
-  quiet, and why mending the cut brings them into it with no orders at all: lit, it is theirs to walk. One standing in the dark
-  keeps still until the light comes back, so cutting the power stills them too (Cargo's husks wait in the dark until its backup
-  set runs). A husk on a post in the dark is a deliberate exception, and the more frightening for it. **Built** for Security's
-  patrols (`lit` on the mutant); the main level's husks still roam the dark, for now.
+- **Patrols walk lit rooms only (agreed: every husk, everywhere).** Husks hunt by sight, so they keep their rounds where they
+  can see, and go to the light if they can. That is why the dead wing is quiet, and why mending the cut brings them into it
+  with no orders at all: lit, it is theirs to walk. One standing in the dark makes for the nearest light it can reach; with
+  none it can reach, it keeps still (Cargo's husks wait in the dark: the only light is behind Operations' card). Cutting the
+  power strands them. A husk on a post in the dark is a deliberate exception, and the more frightening for it. **Built.**
+  Note: on the main level before Gen-1 the only light is Horticulture's backup set, so the Commons' roaming husks drift
+  toward the green's territory (open: whether something should keep them out).
 - **The overseer's other tools (proposed):** it can lock a powered door on you, and you hear the bolt before it goes; a dead door
   cannot be locked, so cutting power defends as well as exposes.
 

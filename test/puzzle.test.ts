@@ -80,7 +80,7 @@ describe('the upper station, played', () => {
     hold(s, 0.1, { light: true });
     expect(s.game.lightOn).toBe(false); // nothing to switch on yet
     const F = find(s, /Take flashlight/), lum = () => Math.max(...simLighting(s).atPoint(F.x, F.y + 0.3, F.z));
-    expect(lum()).toBeGreaterThan(0.3);
+    expect(lum()).toBeGreaterThan(0.05);
     use(s, F, [0, 1]);
     expect(s.game.tools).toContain('flash');
     expect(s.game.events.some(e => e.type === 'relight')).toBe(true);

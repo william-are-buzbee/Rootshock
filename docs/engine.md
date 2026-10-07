@@ -239,9 +239,10 @@ As built in step 5 (`world/nav.ts`, `sim/fields.ts`):
   Headroom filters too: 1 m to crawl, 1.8 m for a husk, 2.2 m for the big ones.
 - **Flow fields to the player**, one for each kind of body and one for sound, by Dijkstra over the graph. One is
   refreshed each step in turn (about 2.5 ms each on the upper station's 7,600 spots), so each is at most four steps
-  old and no step pays for all of them. A roam (a husk keeping its rounds) gets a field of its own to a room picked
-  at random, one new route a step across the whole cast. One that keeps to the light (`lit`) picks only a room lit as
-  the power stands, and standing in the dark picks none (`rounds` in `sim/cast.ts`).
+  old and no step pays for all of them. A roam (a husk keeping its rounds) gets a field of its own to a room lit as
+  the power stands, picked at random, one new route a step across the whole cast (`rounds` in `sim/cast.ts`).
+  One standing in the dark makes for the nearest lit room it can get to as the doors stand now (a locked door bars it),
+  and with none keeps still until the light comes.
 - **Agreed: mutants use stairs and elevators.** Stairs, ramps, walkways and drops are walked like any floor.
   Platforms: anything rides one that goes by itself; a husk calls one that has power, walks to its middle, rides it,
   and steps off at the top (tested: Cargo on backup, a husk follows you up to Tier 1). **Ladders**: the cast needs
@@ -347,8 +348,10 @@ sequence of inputs. The door rules, the labels and the answers are the first eng
   is what the cast see you by, is what it was. Power that comes on is seen to (`present/cascade.ts`): room by room out
   from where you are, each tube striking (on, off a moment, on) as it catches, and heard to near you; only the rooms
   that flip are lit again (`LevelMesh.relightRooms`). Power going off is not staged, and the sim's light changes at
-  once. A lamp can be given by a thing lying about (`LampDef.item`: a flashlight dropped still on); once that is taken the
-  lamp is out, and the level is lit again at once (`relight`), with no tubes striking. Motes (`present/render/motes.ts`) hang in the air about you, square flecks lit as a surface is (by the room as much as by your beam, never brighter than the wall beside them): with a live circuit the air
+  once. A lamp's light reaches r metres from where the lamp is, up and down as well as across, so a light on the floor
+  does not light a ceiling far over it. A lamp can be given by a thing lying about (`LampDef.item`: a flashlight dropped
+  still on, which is drawn pointing at its beam's pool); once that is taken the lamp is out, and the level is lit again at
+  once (`relight`), with no tubes striking. Motes (`present/render/motes.ts`) hang in the air about you, square flecks lit as a surface is (by the room as much as by your beam, never brighter than the wall beside them): with a live circuit the air
   is drawn toward the room's ceiling grilles (`LevelDef.vents`: one at each end of a long fitted room, one in a short
   one) and turns up into them, on a backup set barely, and in a dead room it hangs and settles;
   caves drift on their own. Moving air carries dust off: a ventilated room shows a quarter of a stuffy one's, a room on

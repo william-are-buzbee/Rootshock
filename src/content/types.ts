@@ -75,7 +75,8 @@ export interface PropDef {
   pc?: string;
 }
 
-/** a light of its own (a battery work lamp, a glowing growth): a pool of light, in its room only, whatever the power */
+/** a light of its own (a battery work lamp, a glowing growth): a pool of light, in its room only, whatever the power. It
+ *  reaches r metres from where it is (x, y, z): a lamp on the floor does not light a ceiling far over it */
 export interface LampDef {
   x: number; y: number; z: number;
   r: number;

@@ -178,12 +178,14 @@ export function panel(D: Deck, c: string, x: number, z: number, face: 'n' | 's' 
 export function exitSign(D: Deck, x: number, z: number, y: number, face: 'n' | 's' | 'e' | 'w'): void {
   const ew = face === 'e' || face === 'w', o = 0.4;
   bx(D, x, z, ew ? 0.05 : 0.7, 0.26, ew ? 0.7 : 0.05, [0.35, 2.8, 0.9], { y, c: 0 });
-  D.lamps.push({ x: (x + (face === 'e' ? o : face === 'w' ? -o : 0)) * T, z: (z + (face === 's' ? o : face === 'n' ? -o : 0)) * T, r: 2.6, c: [0.05, 0.24, 0.1] });
+  D.lamps.push({ x: (x + (face === 'e' ? o : face === 'w' ? -o : 0)) * T, z: (z + (face === 's' ? o : face === 'n' ? -o : 0)) * T, r: 2.6, c: [0.05, 0.24, 0.1], h: y });
 }
-/** a flashlight dropped still on: it lights itself and a little round it, and goes out once it is taken */
-export function droppedLight(D: Deck, x: number, z: number, r = 3.2): void {
+/** a flashlight dropped still on, at (x, z), its beam thrown low at (ax, az): a pool there, and a little light round the
+ *  flashlight itself. Both go out once it is taken; it is drawn pointing at its pool. */
+export function droppedLight(D: Deck, x: number, z: number, ax: number, az: number): void {
   const it = item(D, 'flash', x, z, 0.02);
-  D.lamps.push({ x: x * T, z: z * T, r, c: [0.62, 0.6, 0.52], it });
+  D.lamps.push({ x: x * T, z: z * T, r: 2.2, c: [0.3, 0.29, 0.25], it, h: 0.15 });
+  D.lamps.push({ x: ax * T, z: az * T, r: 3, c: [0.62, 0.6, 0.52], it, h: 0.6 });
 }
 export function genset(D: Deck, c: string, x: number, z: number, ix: number, iz: number): void {
   bx(D, x, z, 1.4, 1.1, 0.8, 0x44525a);
