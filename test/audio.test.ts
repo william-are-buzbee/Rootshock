@@ -148,3 +148,30 @@ describe("the station's own noises", () => {
     expect(w(ambientFor(main, false, true), 'groan')).toBeGreaterThan(w(ambientFor(corridor, false, true), 'groan'));
   });
 });
+
+describe('how the station looks', () => {
+  it('names every material once, for the shader, and draws only patterns it knows', async () => {
+    const { MATS, MAT_ORDER } = await import('../src/content/materials');
+    const { matId } = await import('../src/present/render/shader');
+    const ids = MAT_ORDER.map(m => matId(m));
+    expect(new Set(ids).size).toBe(MAT_ORDER.length);
+    expect(Math.min(...ids)).toBe(1);
+    expect(matId(undefined)).toBe(0);
+    for (const m of MAT_ORDER) expect(MATS[m].look.gloss).toBeGreaterThanOrEqual(0);
+  });
+
+  it('dresses rooms by what they are: tiled infirmaries, block in Security, services under bare concrete only', () => {
+    const up = levelDef(STATION, 'upper');
+    const room = (n: string) => up.rooms.find(r => r.name === n)!;
+    expect(room('Infirmary').mat).toMatchObject({ wall: 'glazed', ceiling: 'tiles' });
+    expect(room('Security corridor').mat.wall).toBe('block');
+    /* a pipe is a steel cylinder lying on its side, just under a ceiling */
+    const pipesIn = (n: string) => {
+      const R = room(n);
+      return up.props.filter(p => p.shape === 'cyl' && p.mat === 'steel' && p.rz && p.x > R.x0 && p.x < R.x1 && p.z > R.z0 && p.z < R.z1).length;
+    };
+    expect(room('Electrical room').mat.ceiling).toBe('concrete');
+    expect(pipesIn('Electrical room')).toBe(2);
+    expect(pipesIn('Infirmary')).toBe(0);
+  });
+});

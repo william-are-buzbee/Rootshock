@@ -50,6 +50,7 @@ export interface RoomDef {
 export interface BlockDef {
   x0: number; y0: number; z0: number; x1: number; y1: number; z1: number;
   colour: Colour;
+  mat: Mat;
 }
 
 /** an invisible solid: one box around furniture that is drawn as many parts */

@@ -62,6 +62,7 @@ void main(){
 /* a ring is a square's edge; a wet patch (iCol's alpha flag in vA's sign) is a whole square */
 const RING_FS = /* glsl */ `
 varying vec3 vC; varying float vA; varying vec2 vS;
+${LIFT}
 void main(){
   float a = abs(vA), edge = max(abs(vS.x), abs(vS.y));
   if (vA > 0.0 && edge < 0.62) discard;

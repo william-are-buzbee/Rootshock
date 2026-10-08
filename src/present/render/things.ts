@@ -8,7 +8,7 @@ import type { World } from '../../world/world';
 import type { Lighting } from '../../world/light';
 import { apart, propVerts } from './levelMesh';
 import { TEMPLATES } from './templates';
-import { dynamicMaterial, glassMaterial } from './shader';
+import { dynamicMaterial, glassMaterial, matId } from './shader';
 
 /* What moves, drawn where the sim says it is: doors, platforms, loose crates. And the water, which does not move but
    is see-through, so it is drawn on its own. Each moving thing is lit by the room it is in. */
@@ -22,8 +22,14 @@ interface Moving {
 /** a part of a fitting: a box (or other shape) of a colour, sized, tipped about z, and placed in the fitting's own frame */
 export type Part = [shape: 'box' | 'cyl' | 'ico', c: number | Colour, sx: number, sy: number, sz: number, x: number, y: number, z: number, rz?: number];
 
-/** many parts as one geometry */
-export function parts(list: Part[]): THREE.BufferGeometry {
+/** what a geometry is made of, all of it (matId), for the shader */
+function madeOf(g: THREE.BufferGeometry, mat: number): THREE.BufferGeometry {
+  if (mat) g.setAttribute('aMat', new THREE.BufferAttribute(new Float32Array(g.getAttribute('position').count).fill(mat), 1));
+  return g;
+}
+
+/** many parts as one geometry, all of them made of `mat` if it says (matId) */
+export function parts(list: Part[], mat = 0): THREE.BufferGeometry {
   const P: number[] = [], C: number[] = [];
   list.forEach(([shape, c, sx, sy, sz, x, y, z, rz], k) => {
     const src = TEMPLATES[shape], col = hex(c), cz = Math.cos(rz ?? 0), szn = Math.sin(rz ?? 0), e = 2 * apart(k);
@@ -37,7 +43,7 @@ export function parts(list: Part[]): THREE.BufferGeometry {
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(P), 3));
   g.setAttribute('aCol', new THREE.BufferAttribute(new Float32Array(C), 3));
-  return g;
+  return madeOf(g, mat);
 }
 
 const LIVE: Colour = [2.3, 2.9, 2.4];
@@ -133,12 +139,12 @@ function signMesh(text: string): THREE.Mesh {
   return new THREE.Mesh(new THREE.PlaneGeometry(1.7, 0.37), new THREE.MeshBasicMaterial({ map: tex }));
 }
 
-function coloured(src: Float32Array, c: Colour): THREE.BufferGeometry {
+function coloured(src: Float32Array, c: Colour, mat = 0): THREE.BufferGeometry {
   const g = new THREE.BufferGeometry(), n = src.length / 3, col = new Float32Array(n * 3);
   for (let i = 0; i < n; i++) col.set(c, i * 3);
   g.setAttribute('position', new THREE.BufferAttribute(src, 3));
   g.setAttribute('aCol', new THREE.BufferAttribute(col, 3));
-  return g;
+  return madeOf(g, mat);
 }
 
 export class Things {
@@ -163,13 +169,13 @@ export class Things {
         if (D.vent) m.visible = d.t < 0.5;
       };
       const at: [number, number, number] = [(D.x0 + D.x1) / 2, D.y0, (D.z0 + D.z1) / 2];
-      this.add(parts(body), place, at);
+      this.add(parts(body, matId(D.mat)), place, at);
       /* its lights show only with power enough to work it */
       if (lights.length) this.add(parts(lights), m => { place(m); m.visible = this.L.power(D.circuit) >= need && !D.vent; }, at);
     }
     for (const p of sim.platforms) {
       const D = p.def;
-      this.add(parts(platformParts(D.x1 - D.x0, D.z1 - D.z0)), m => m.position.set((D.x0 + D.x1) / 2, p.y, (D.z0 + D.z1) / 2));
+      this.add(parts(platformParts(D.x1 - D.x0, D.z1 - D.z0), matId(D.mat)), m => m.position.set((D.x0 + D.x1) / 2, p.y, (D.z0 + D.z1) / 2));
     }
     /* the overseer's eyes: a light that is green while one watches, red while it holds you, and none when it is dead; a
        smashed one hangs askew. Its zones' speakers, with a beacon that turns while the zone sounds. */
@@ -205,7 +211,7 @@ export class Things {
       /* a hair larger than it is, so a crate on the floor or on another does not fight it (levelMesh's apart) */
       const pts: number[] = [], e = apart(k), P = o.prop;
       propVerts({ ...P, ry: 0, sx: P.sx + 2 * e, sy: P.sy + 2 * e, sz: P.sz + 2 * e }, (x, y, z) => pts.push(x, y, z), { x: 0, y: -e, z: 0 });
-      this.add(coloured(new Float32Array(pts), o.prop.colour), m => m.position.set(o.x, o.y, o.z));
+      this.add(coloured(new Float32Array(pts), o.prop.colour, matId(o.prop.mat)), m => m.position.set(o.x, o.y, o.z));
     });
     for (const n of w.def.notes) this.addFixed(parts(itemParts('note')), n.x, n.y, n.z, lie(n.x, n.z) * 0.3);
     this.water(w);
@@ -245,7 +251,7 @@ export class Things {
   /** a window's pane: faintly tinted glass in a dark frame, lit where it stands when the level is drawn */
   private pane(D: DoorDef): void {
     const cx = (D.x0 + D.x1) / 2, cz = (D.z0 + D.z1) / 2, l = this.L.atPoint(cx, D.y0 + 1.2, cz), rot = D.alongX ? 0 : Math.PI / 2;
-    const g = parts([['box', [0.55, 0.66, 0.7], 2, 2.4, 0.03, 0, 0, 0]]), n = g.getAttribute('position').count, L = new Float32Array(n * 4);
+    const g = parts([['box', [0.55, 0.66, 0.7], 2, 2.4, 0.03, 0, 0, 0]], matId(D.mat)), n = g.getAttribute('position').count, L = new Float32Array(n * 4);
     for (let i = 0; i < n; i++) L.set([0.02 + l[0], 0.025 + l[1], 0.03 + l[2], 0], i * 4); // in the dark it is all but gone
     g.setAttribute('aLight', new THREE.BufferAttribute(L, 4));
     const m = new THREE.Mesh(g, glassMaterial(0.18));

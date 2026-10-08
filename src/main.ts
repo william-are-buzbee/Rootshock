@@ -321,7 +321,7 @@ function frame(t: number): void {
 }
 /* ?dev: the run on the window, for poking at from the console or a test script */
 if (DEV) (window as unknown as { rs: unknown }).rs = {
-  run, get sim() { return sim; }, step: stepRun, save: () => save(sim), saveRun: () => saveRun(run),
+  run, view, get sim() { return sim; }, step: stepRun, save: () => save(sim), saveRun: () => saveRun(run),
   progress: (o?: CheckOpts) => describe(checkProgress(sim, o)),
 };
 

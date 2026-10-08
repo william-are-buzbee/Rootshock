@@ -1,6 +1,6 @@
 import { PI, clamp, hex, scale3, type Colour } from '../../core/math';
 import type { Rng } from '../../core/rng';
-import { CAVERN, FITTED, STREET, WALKWAY, type Mat, type RoomMats } from '../materials';
+import { CAVERN, DOORWAY, FITTED, STREET, WALKWAY, type Mat, type RoomMats } from '../materials';
 import type { LadderDef, LitRule, Motes, Shape } from '../types';
 import { LevelBuilder, type Palette } from './builder';
 
@@ -408,7 +408,7 @@ export function finishLevel(start?: [number, number, number]) {
     /* doorways, and the doors in them */
     for (const [k, d] of D.doors) {
       const x0 = X(D, d.x), z0 = Z(D, d.y), cx = x0 + T / 2, cz = z0 + T / 2;
-      b.room('', x0, z0, x0 + T, z0 + T, { pal: { fl: 0, wl: 0, st: 0 }, y0: D.y0, ht: 2.4, doorway: true, nolamp: true, lit: 'main', circuit: D.c });
+      b.room('', x0, z0, x0 + T, z0 + T, { pal: { fl: 0, wl: 0, st: 0 }, y0: D.y0, ht: 2.4, doorway: true, nolamp: true, lit: 'main', circuit: D.c, mat: DOORWAY });
       const R = b.level.rooms[b.level.rooms.length - 1];
       R.floor = DOORPAL.fl; R.wall = DOORPAL.wl; R.stripe = DOORPAL.st;
       const ns = !!(D.g[k - D.W] && D.g[k + D.W]), heavy = d.kind === 'heavy', th = heavy ? 0.36 : d.vent ? 0.12 : 0.14;
@@ -443,13 +443,14 @@ export function finishLevel(start?: [number, number, number]) {
         if (!D.g[k] || (R && (R.hole || (R.air && through(k)))) || (D.ground && !dnAt(D, k))) return null;
         return R?.open ? R.fl : -1;
       };
+      /* a walkway's is grating, as its floor is; a room's is concrete */
       for (let j = 0; j < D.H; j++)
         for (let i = 0; i < D.W; ) {
           const c = slabAt(j * D.W + i);
           if (c === null) { i++; continue; }
           let n = 1;
           while (i + n < D.W && slabAt(j * D.W + i + n) === c) n++;
-          b.block(X(D, i), D.y0 - SLAB, Z(D, j), X(D, i + n), D.y0, Z(D, j + 1), (c >= 0 ? hex(c) : DOORPAL.fl) as Colour);
+          b.block(X(D, i), D.y0 - SLAB, Z(D, j), X(D, i + n), D.y0, Z(D, j + 1), (c >= 0 ? hex(c) : DOORPAL.fl) as Colour, c >= 0 ? 'grating' : 'concrete');
           i += n;
         }
     }
@@ -489,6 +490,34 @@ export function finishLevel(start?: [number, number, number]) {
         b.box(gx, gz, 0.6, 0.03, 0.6, 0x2a2c2e, { y: gy - 0.04, solid: false });
         for (let s = 0; s < 4; s++) b.box(gx + (long ? 0 : -0.21 + s * 0.14), gz + (long ? -0.21 + s * 0.14 : 0), long ? 0.54 : 0.05, 0.02, long ? 0.05 : 0.54, 0x55585c, { y: gy - 0.06, solid: false });
         b.vent(gx, gy - 0.05, gz);
+      }
+    }
+    /* services under a bare ceiling (a suspended or plastered one hides them): along a room's length, by one of its
+       long walls, a cable tray and two pipes on hangers, a quarter metre down. Only in rooms tall enough that they
+       clear the doors with room to spare, and not in the halls, whose ceilings are too far up to show them. */
+    for (const R of D.rooms) {
+      if (R.open || R.hole || R.cave || R.shaped || R.air || R.sky !== undefined || R.mat.ceiling !== 'concrete' || R.ht < 3 || R.ht > 6 || Math.max(R.w, R.h) < 3) continue;
+      /* up among the light fittings they would take the full glare of them: they are lit as if a little shaded */
+      const long = R.w >= R.h, side = R.id % 2, top = D.y0 + R.dy + R.ht, DIM = 0.5;
+      /* a run's length, and where along and across the room it lies: `off` metres in from the wall on its side */
+      const L = (long ? R.w : R.h) * T, a0 = long ? X(D, R.x) : Z(D, R.y);
+      const across = (off: number) => (long ? Z(D, side ? R.y + R.h : R.y) + (side ? -off : off) : X(D, side ? R.x + R.w : R.x) + (side ? -off : off));
+      const at = (along: number, off: number): [number, number] => (long ? [a0 + along, across(off)] : [across(off), a0 + along]);
+      const run = (off: number, d: number, drop: number, c: number) => {
+        const [x, z] = at(L / 2, off);
+        /* a cylinder lying along the run: tipped onto its side, then turned to the room's length; its middle `drop` down */
+        b.prop('cyl', x, z, d, L - 0.04, d, c, { y: top - drop - (L - 0.04) / 2, rz: PI / 2, ry: long ? 0 : PI / 2, solid: false, mat: 'steel', glow: DIM });
+      };
+      const [tx, tz] = at(L / 2, 0.22);
+      b.box(tx, tz, long ? L - 0.04 : 0.26, 0.05, long ? 0.26 : L - 0.04, 0x6b6e70, { y: top - 0.3, solid: false, mat: 'steel', glow: DIM });
+      const pipes = [0x3d5a44, 0x7a3a2a, 0x8a8a84, 0x4a5a6a];
+      run(0.48, 0.11, 0.2, pipes[R.id % 4]);
+      run(0.64, 0.07, 0.24, pipes[(R.id + 1) % 4]);
+      for (let k = 1; k < L / 2; k++) {
+        const [hx, hz] = at(k * 2, 0.22), [px, pz] = at(k * 2, 0.56);
+        b.box(hx, hz, 0.02, 0.25, 0.02, 0x3a3d40, { y: top - 0.25, solid: false, glow: DIM });
+        b.box(px, pz, long ? 0.03 : 0.3, 0.03, long ? 0.3 : 0.03, 0x3a3d40, { y: top - 0.15, solid: false, glow: DIM });
+        b.box(px, pz, 0.02, 0.12, 0.02, 0x3a3d40, { y: top - 0.15, solid: false, glow: DIM });
       }
     }
     /* platforms between this deck and the one above */
