@@ -1,3 +1,4 @@
+import type { Aim } from '../content/types';
 import { ITEMS, keyName } from '../content/items';
 import { STATION_NAMES } from '../content/names';
 import { end, give, giveKey, consume, makeNoise, power, readNote, say, sayOnce, sfx, type Game } from './game';
@@ -22,8 +23,8 @@ export interface Usable {
   key?: string;
 }
 
-/** an item lying in the world */
-export interface WorldItem { id: string; n: number; x: number; y: number; z: number; taken: boolean; raw?: boolean }
+/** an item lying in the world; a light lying switched on says which way it points */
+export interface WorldItem { id: string; n: number; x: number; y: number; z: number; taken: boolean; raw?: boolean; on?: Aim }
 
 export function buildUsables(sim: Sim): Usable[] {
   const g = sim.game, out: Usable[] = [], L = sim.world.def;
@@ -242,8 +243,8 @@ export function itemUse(sim: Sim, it: WorldItem): Usable {
       const per = ITEMS[it.id].per;
       if (give(g, it.id, it.raw && per ? it.n / per : it.n)) {
         it.taken = true; use.off = true; sfx(g, 'take');
-        const k = sim.items.indexOf(it);
-        if (sim.world.def.lamps.some(L => L.item === k)) g.events.push({ type: 'relight' });
+        /* a light lying on is still on in your hand */
+        if (it.on && ITEMS[it.id].tool && g.batt > 0) { g.light = it.id; g.lightOn = true; }
       }
     },
   };

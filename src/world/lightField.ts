@@ -1,4 +1,4 @@
-import type { LevelDef, RoomDef } from '../content/types';
+import type { LevelDef, PropDef, RoomDef } from '../content/types';
 import { CELL, CHUNK } from './grid';
 import type { World } from './world';
 
@@ -18,6 +18,10 @@ import type { World } from './world';
      distance, and stopped by anything solid in the grid. It goes wherever it can see: through a doorway, over a rail.
    - each lamp: a battery light, round and stopped by the grid the same way.
 
+   Fixed props are stamped into the lattice: a point inside one is not open, and a join that passes through one is cut, so
+   a crate or a table throws a shadow from a fitting over it and the floor under a desk is dark. (Crates that move are not
+   in it, nor what is flat on a ceiling: the fittings themselves, grilles.)
+
    Doors are not in the grid (they move), so a join through a door is a gate: what a source throws through one is kept
    apart, by door, and counts as far as the door stands open. Light gets under a door as it lifts. */
 
@@ -33,6 +37,10 @@ const BR3 = BR * BR * BR;
 export const POOL = { r2: 9, base: 0.55, gain: 1.3 };
 /** a room's fill reaching out past it: falling off as e^(-d / fade) along the way through open space, to `reach` */
 export const FILL = { fade: 0.9, reach: 4 };
+/** how open a point is, for the fill: how far it sees along each axis, up to `steps`, the way up counting `up` times
+ *  (the fill comes mostly from above); open as a floor in a room is, it takes all of its fill (`full`), and less in a
+ *  corner, under a desk, close under a slab */
+export const SHADE = { steps: 4, up: 3, full: 0.85, pow: 1.2 };
 /** how far a fitting's light is followed (farther in a tall room, to its floor and a little past), and the least of it
  *  that counts */
 const THROW = { reach: 8, most: 14, faint: 0.004 };
@@ -103,7 +111,11 @@ export class LightField {
       for (let oz = -1; oz <= 1; oz++) for (let oy = -1; oy <= 1; oy++) for (let ox = -1; ox <= 1; ox++)
         this.nb[s * 27 + nbi(ox, oy, oz)] = this.slotOf.get(bkey(this.bpos[s * 3] + ox, this.bpos[s * 3 + 1] + oy, this.bpos[s * 3 + 2] + oz)) ?? -1;
 
-    /* which points are open, and whose; points under a cave's floor or over its ceiling are not */
+    /* what the props fill: points inside them, and joins through them (bit a for the join along axis a) */
+    const inProp = new Uint8Array(S * BR3), cut = new Uint8Array(S * BR3);
+    for (const P of w.def.props) this.stamp(P, inProp, cut);
+
+    /* which points are open, and whose; points under a cave's floor or over its ceiling, or inside a prop, are not */
     this.pid = new Int32Array(S * BR3).fill(-1);
     this.flags = new Uint8Array(S * BR3);
     this.room = new Int16Array(S * BR3).fill(-1);
@@ -115,7 +127,7 @@ export class LightField {
       const sf = w.surfaces.filter(f => f.def.x1 >= x0 && f.def.x0 <= x0 + span && f.def.z1 >= z0 && f.def.z0 <= z0 + span);
       for (let l = 0; l < BR3; l++) {
         const lx = l & 7, ly = (l >> 3) & 7, lz = l >> 6, c = cells[((2 * lz) * CHUNK + 2 * ly) * CHUNK + 2 * lx];
-        if (c < 0) continue;
+        if (c < 0 || inProp[s * BR3 + l]) continue;
         if (sf.length) {
           const x = x0 + lx * LCELL + LOFF, y = y0 + ly * LCELL + LOFF, z = z0 + lz * LCELL + LOFF;
           if (sf.some(f => {
@@ -144,7 +156,7 @@ export class LightField {
         const lx = l & 7, ly = (l >> 3) & 7, lz = l >> 6;
         for (let a = 0; a < 3; a++) {
           const M = this.step(L, a, 1);
-          if (M < 0 || !this.flags[M]) continue;
+          if (M < 0 || !this.flags[M] || cut[L] & (1 << a)) continue;
           const cx = 2 * lx + (a === 0 ? 1 : 0), cy = 2 * ly + (a === 1 ? 1 : 0), cz = 2 * lz + (a === 2 ? 1 : 0);
           if (cells[(cz * CHUNK + cy) * CHUNK + cx] >= 0) this.flags[L] |= JOIN << a;
         }
@@ -174,6 +186,46 @@ export class LightField {
     this.roomSource = new Int32Array(w.rooms.length).fill(-1);
     this.doors = w.def.doors.map(() => ({ src: new Int32Array(0), pts: new Int32Array(0), val: new Float32Array(0) }));
     this.build();
+  }
+
+  /** mark what a prop fills: the points inside it, and the joins from a point that pass through it. It is taken as its
+   *  oriented box (a cylinder or a ball as what fits in that), each side at least 14 cm through, so a join, tried every
+   *  12.5 cm along, cannot step over a shelf's board */
+  private stamp(P: PropDef, inProp: Uint8Array, cut: Uint8Array): void {
+    const w = this.w;
+    if (P.loose || P.glow > 1 || P.colour[0] > 1.5 || P.pw || Math.max(P.sx, P.sy, P.sz) < 0.12) return;
+    const top = w.roomAt(P.x, P.y + P.sy / 2, P.z);
+    if (P.sy < 0.15 && top && P.y + P.sy > top.y0 + top.ht - 0.12) return; // flat on the ceiling
+    const hx = Math.max(P.sx / 2, 0.07), hy = Math.max(P.sy / 2, 0.07), hz = Math.max(P.sz / 2, 0.07);
+    const cx = P.x, cy = P.y + P.sy / 2, cz = P.z, ca = Math.cos(P.ry), sa = Math.sin(P.ry), cb = Math.cos(P.rz), sb = Math.sin(P.rz);
+    /* world to the prop's own frame, as rows (turned back about y, then tipped back about z), each over its half size */
+    const U = [(cb * ca) / hx, sb / hx, (-cb * sa) / hx], V = [(-sb * ca) / hy, cb / hy, (sb * sa) / hy], T = [sa / hz, 0, ca / hz];
+    const inside = (u: number, v: number, t: number) =>
+      P.shape === 'box' ? Math.abs(u) <= 1 && Math.abs(v) <= 1 && Math.abs(t) <= 1
+        : P.shape === 'cyl' ? u * u + t * t <= 1 && Math.abs(v) <= 1 : u * u + v * v + t * t <= 1;
+    /* how far it reaches along each world axis: its box's corners, turned */
+    const R = [0, 1, 2].map(a => {
+      const ux = a === 0 ? cb * ca : a === 1 ? sb : -cb * sa, vx = a === 0 ? -sb * ca : a === 1 ? cb : sb * sa, tx = a === 0 ? sa : a === 1 ? 0 : ca;
+      return Math.abs(ux) * hx + Math.abs(vx) * hy + Math.abs(tx) * hz;
+    });
+    const lo = (v: number, r: number) => Math.floor((v - r - LOFF) / LCELL) - 1, hi = (v: number, r: number) => Math.ceil((v + r - LOFF) / LCELL);
+    for (let k = lo(cz, R[2]); k <= hi(cz, R[2]); k++)
+      for (let j = lo(cy, R[1]); j <= hi(cy, R[1]); j++) {
+        let s = -1, sbx = NaN;
+        for (let i = lo(cx, R[0]); i <= hi(cx, R[0]); i++) {
+          if (i >> 3 !== sbx) { sbx = i >> 3; s = this.slot(sbx, j >> 3, k >> 3); }
+          if (s < 0) continue;
+          const L = s * BR3 + ((k & 7) * BR + (j & 7)) * BR + (i & 7);
+          const dx = i * LCELL + LOFF - cx, dy = j * LCELL + LOFF - cy, dz = k * LCELL + LOFF - cz;
+          const u = U[0] * dx + U[1] * dy + U[2] * dz, v = V[0] * dx + V[1] * dy + V[2] * dz, t = T[0] * dx + T[1] * dy + T[2] * dz;
+          if (inside(u, v, t)) { inProp[L] = 1; continue; }
+          for (let a = 0; a < 3; a++)
+            for (let q = 1; q <= 3; q++) {
+              const d = (q / 4) * LCELL;
+              if (inside(u + U[a] * d, v + V[a] * d, t + T[a] * d)) { cut[L] |= 1 << a; break; }
+            }
+        }
+      }
   }
 
   private addSlot(bx: number, by: number, bz: number): void {
@@ -287,6 +339,43 @@ export class LightField {
               }
   }
 
+  /** how much of the fill each open point takes (SHADE): by how far it sees along each axis through joined points */
+  private shading(): Float32Array {
+    const S = SHADE, out = new Float32Array(this.n), run = new Uint8Array(this.flags.length * 6).fill(255);
+    /* how many steps from L along way w (a * 2 + (d < 0)) are joined, up to S.steps */
+    const free = (L: number, w: number): number => {
+      const k = L * 6 + w;
+      if (run[k] !== 255) return run[k];
+      let r = 0;
+      if (this.join(L, w >> 1, w & 1 ? -1 : 1) !== -2) r = Math.min(S.steps, 1 + free(this.step(L, w >> 1, w & 1 ? -1 : 1), w));
+      return (run[k] = r);
+    };
+    const total = 5 + S.up;
+    for (let L = 0; L < this.flags.length; L++) {
+      if (!this.flags[L]) continue;
+      let sum = 0;
+      for (let w = 0; w < 6; w++) sum += (free(L, w) / S.steps) * (w === 2 ? S.up : 1);
+      out[this.pid[L]] = Math.min(1, sum / total / S.full) ** S.pow;
+    }
+    return out;
+  }
+
+  /** what a light at (x, y, z) reaches, out to r, through open space and not through a door: each open point it
+   *  sees, and how much (`f` of the distance, times how much of it the light sees). For lights that come and go */
+  glow(x: number, y: number, z: number, r: number, f: (d: number) => number): { pts: Int32Array; val: Float32Array } {
+    const pts: number[] = [], val: number[] = [], at = this.openOf([x, y, z], [x, y + 0.1, z], [x, y + 0.3, z]);
+    if (at) {
+      const [ax, ay, az] = at;
+      this.shine(ax, ay, az, r, false, (L, px, py, pz, seen, door) => {
+        const d = Math.sqrt((px - ax) ** 2 + (py - ay) ** 2 + (pz - az) ** 2);
+        if (door >= 0 || d >= r) return;
+        const v = seen * f(d);
+        if (v > 1e-4) { pts.push(this.pid[L]); val.push(v); }
+      });
+    }
+    return { pts: Int32Array.from(pts), val: Float32Array.from(val) };
+  }
+
   /** the first open place of these, or null */
   private openOf(...at: [number, number, number][]): [number, number, number] | null {
     return at.find(([x, y, z]) => this.w.grid.at(x, y, z) >= 0) ?? null;
@@ -356,6 +445,9 @@ export class LightField {
       }
     }
 
+    /* how much of the fill each point takes, by how open it is round it (and over it) */
+    const shade = this.shading();
+
     /* each room's source: its share of the fill (as much of its light as its fittings leave to bounce), and what its
        fittings throw; then each lamp's */
     const acc = new Float32Array(n), mark = new Uint8Array(n), thrown = new Float32Array(n), tgate = new Float32Array(n);
@@ -397,11 +489,11 @@ export class LightField {
     for (const R of rooms) {
       if (!gives(R) || R.lit === 'none') continue;
       const id = R.id, fx = this.fixtures.get(id), base = fx ? POOL.base : 1, touched: number[] = [];
-      for (const L of own[id]) { const p = this.pid[L]; add(p, base / share[p], -1, touched); }
+      for (const L of own[id]) { const p = this.pid[L]; add(p, (base * shade[p]) / share[p], -1, touched); }
       const out = reach[id];
       for (let k = 0; k < out.pts.length; k++) {
         const p = this.pid[out.pts[k]];
-        add(p, (base * Math.exp(-out.d[k] / FILL.fade)) / share[p], out.door[k], touched);
+        add(p, (base * shade[p] * Math.exp(-out.d[k] / FILL.fade)) / share[p], out.door[k], touched);
       }
       if (fx) {
         const hit: number[] = [];

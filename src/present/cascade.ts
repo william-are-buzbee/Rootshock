@@ -15,7 +15,7 @@ const sum = (c: Colour) => c[0] + c[1] + c[2];
 /** a lighting part way from one power state to another: each room as it was, or as it will be */
 export class Staged extends Lighting {
   constructor(w: World, readonly from: Lighting, readonly to: Lighting, readonly on: Uint8Array) {
-    super(w, to.power, undefined, d => to.open[d]);
+    super(w, to.power, d => to.open[d], to.looseLights);
   }
   override colourOf(s: number): Colour {
     const r = this.field.sources[s].room;

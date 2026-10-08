@@ -6,6 +6,7 @@ import { noInput } from '../src/sim/input';
 import { reach } from '../src/sim/reach';
 import { Lighting, stationPower, fullPower } from '../src/world/light';
 import { buildLevelMesh } from '../src/present/render/levelMesh';
+import { looseLights } from '../src/sim/sim';
 import { circle } from '../src/world/shapes';
 import { field } from '../src/world/nav';
 import { makeFields, rulesFor } from '../src/sim/fields';
@@ -60,19 +61,17 @@ describe('the upper station', () => {
     expect(full.atPoint((R.x0 + R.x1) / 2, R.y0 + 1, (R.z0 + R.z1) / 2)[0]).toBeGreaterThan(0.5);
   });
 
-  it('lights the suite by a flashlight dropped still on, which goes out when taken, and by its exit signs', () => {
-    const hall = level.rooms.find(r => r.name === 'Isolation suite')!, k = level.items.findIndex(it => it.id === 'flash');
-    const F = level.items[k], mine = level.lamps.filter(l => l.item === k);
-    expect(mine.length).toBe(2); // a little round it, and its beam's pool
-    const beam = mine.reduce((a, l) => (Math.hypot(l.x - F.x, l.z - F.z) > Math.hypot(a.x - F.x, a.z - F.z) ? l : a));
-    const power = stationPower(STATION.circuits, STATION.main), on = new Lighting(sim.world, power), off = new Lighting(sim.world, power, i => i === k);
-    const lum = (L: Lighting, x: number, z: number, y = hall.y0 + 0.1) => Math.max(...L.atPoint(x, y, z));
-    expect(lum(on, beam.x, beam.z)).toBeGreaterThan(0.3); // thrown low, at the wall
-    expect(lum(on, F.x, F.z)).toBeGreaterThan(0);
-    expect(lum(on, F.x, F.z, hall.y0 + hall.ht - 0.1)).toBe(0); // and not up: the ceiling over it stays dark
-    expect(lum(off, beam.x, beam.z)).toBe(0);
-    expect(lum(off, F.x, F.z)).toBe(0);
-    expect(lum(on, hall.x0 + 2, hall.z1 - 2)).toBe(0); // the far corner: black
+  it('lights the suite by a flashlight dropped still on, the beam you will carry, and by its exit signs', () => {
+    const hall = level.rooms.find(r => r.name === 'Isolation suite')!, F = level.items.find(it => it.id === 'flash')!;
+    expect(F.on).toBeDefined(); // lying on, and aimed
+    const power = stationPower(STATION.circuits, STATION.main), on = new Lighting(sim.world, power, undefined, looseLights(sim)), off = new Lighting(sim.world, power);
+    const lum = (L: Lighting, x: number, z: number, y = hall.y0 + 0.3) => Math.max(...L.seen(x, y, z));
+    const ax = -Math.sin(F.on!.yaw), az = -Math.cos(F.on!.yaw), at = (d: number) => [F.x + ax * d, F.z + az * d] as const;
+    expect(lum(on, ...at(1.5))).toBeGreaterThan(0.3); // its beam, along the floor
+    expect(lum(on, ...at(-1.5))).toBeLessThan(lum(on, ...at(1.5)) * 0.1); // and not behind it
+    expect(lum(on, F.x, F.z, hall.y0 + hall.ht - 0.1)).toBeLessThan(0.05); // nor up: the ceiling over it stays dark
+    expect(lum(off, ...at(1.5))).toBe(0);
+    expect(lum(on, hall.x0 + 2, hall.z1 - 2)).toBeLessThan(0.02); // the far corner: black
     /* the exit signs: green, a little light each, whatever the power */
     const signs = level.lamps.filter(l => l.colour[1] > l.colour[0] * 3);
     expect(signs.length).toBe(2);

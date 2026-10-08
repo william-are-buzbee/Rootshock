@@ -123,7 +123,7 @@ describe('their rounds', () => {
     expect(lum()).toBe(0);
     hold(s, 20);
     expect(m.state).toBe('idle'); // not hunting you: going to the light
-    expect(lum()).toBeGreaterThan(0.1);
+    expect(lum()).toBeGreaterThan(0.05); // well in it (the cast count anything over 0.02 as lit)
   });
 
   it('one in the dark with no light it can get to keeps still; when the light comes, it walks', () => {

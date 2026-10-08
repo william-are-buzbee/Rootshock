@@ -6,7 +6,8 @@ import { LIGHT_RANGE, U } from './shader';
 /* The level's light field on the card, for the shader to read point by point (render/shader.ts). Each brick of the field
    is laid out as 9³ texels, its own 8³ points and the first of the bricks past its high faces, so the 2³ points around
    anywhere are always in one brick. Texels: the light (square-rooted, over LIGHT_RANGE, so the dark keeps its steps
-   fine) and the point's flags (open, joined along x, y, z). An index over the level's bricks says where each one is. */
+   fine), and in alpha the point's flags (open, joined along x, y, z) under how much of its light flickers (in 15ths).
+   An index over the level's bricks says where each one is. */
 
 const B9 = BR + 1, B93 = B9 * B9 * B9;
 
@@ -83,15 +84,16 @@ export class LightVolume {
   }
 
   private brick(s: number): void {
-    const L = this.L!, F = L.field, col = L.colours, d = this.data;
+    const L = this.L!, F = L.field, col = L.colours, fcol = L.flickers, d = this.data;
     let t = s * B93 * 4;
     for (let z = 0; z < B9; z++)
       for (let y = 0; y < B9; y++)
         for (let x = 0; x < B9; x++, t += 4) {
           const P = F.local(s, x, y, z), f = P >= 0 ? F.flags[P] : 0;
           if (!f) { d[t] = d[t + 1] = d[t + 2] = d[t + 3] = 0; continue; }
-          const p = F.pid[P] * 3;
-          d[t] = enc(col[p]); d[t + 1] = enc(col[p + 1]); d[t + 2] = enc(col[p + 2]); d[t + 3] = f;
+          const p = F.pid[P] * 3, top = Math.max(col[p], col[p + 1], col[p + 2]);
+          const fl = top > 1e-4 ? Math.min(15, Math.round((15 * Math.max(fcol[p], fcol[p + 1], fcol[p + 2])) / top)) : 0;
+          d[t] = enc(col[p]); d[t + 1] = enc(col[p + 1]); d[t + 2] = enc(col[p + 2]); d[t + 3] = (f & 15) | (fl << 4);
         }
   }
 

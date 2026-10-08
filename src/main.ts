@@ -2,7 +2,8 @@ import { FixedLoop } from './core/loop';
 import { testbed } from './content/levels/testbed';
 import { STATION } from './content/station';
 import { Lighting } from './world/light';
-import { applyCommands, makeSim, simLighting, type Sim } from './sim/sim';
+import { applyCommands, looseLights, makeSim, simLighting, type Sim } from './sim/sim';
+import { Beams } from './present/render/beams';
 import { levelDef, loadRun, makeRun, saveRun, soloRun, stepRun, type Run } from './sim/run';
 import { save } from './sim/save';
 import { checkProgress, describe, type CheckOpts } from './sim/progress';
@@ -89,6 +90,7 @@ let hurtFx = 0, hitFx = 0;
 const hitDir = document.getElementById('hitdir')!;
 
 const rig = new CameraRig();
+const beams = new Beams();
 const prints = new Prints(view.scene, lighting);
 const drips = new Drips(view.scene, lighting, (x, y, z, water) => scape.dripAt(sim, x, y, z, water));
 const motes = new Motes(view.scene, lighting, (x, y, z, k) => scape.gust(sim, x, y, z, k));
@@ -290,8 +292,10 @@ function frame(t: number): void {
     if (flipped.length) here.relightRooms(lighting, flipped);
     if (cascade.done) { relightAll(cascade.L.to); cascade = null; }
   }
-  /* light through the doors as they stand (the sim's own lighting follows them already; a cascade's does not) */
+  /* light through the doors as they stand, and from the lights lying about (the sim's own lighting follows both already;
+     a cascade's does not) */
   lighting.follow(k => sim.doors[k].t);
+  lighting.lights(looseLights(sim));
   here.syncLight(lighting);
   handsView.update(rig.bob, t / 1000);
   motes.resize(view.renderer.domElement.height, view.camera.fov);
@@ -320,6 +324,7 @@ function frame(t: number): void {
   if (dt > 0) fps += (1 / dt - fps) * 0.05;
   if (DEV) track(dt);
   hud.dev(DEV ? `${b.x.toFixed(2)} ${b.y.toFixed(2)} ${b.z.toFixed(2)}  ${room?.name ?? 'rock'}  ${b.ground ? 'ground' : 'air'}  ${Math.round(fps)} fps\n${sim.world.def.name}: ${sim.world.grid.chunkCount} chunks  mesh ${here.meshMs.toFixed(0)} ms  ${['fly', 'god', 'bright'].filter(k => k === 'fly' ? sim.player.fly : k === 'god' ? sim.game.god : devFlags.bright).join(' ')}\nV fly  G god  B bright  O colliders  P tracker` : null);
+  beams.render(view.renderer, view.scene, view.camera.position, lighting.looseLights);
   view.draw(t / 1000);
 }
 /* ?dev: the run on the window, for poking at from the console or a test script */

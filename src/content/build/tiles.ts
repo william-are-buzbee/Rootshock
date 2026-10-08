@@ -1,6 +1,6 @@
 import { PI, clamp, hex, scale3, type Colour } from '../../core/math';
 import type { Rng } from '../../core/rng';
-import type { LadderDef, LitRule, Motes, Shape } from '../types';
+import type { Aim, LadderDef, LitRule, Motes, Shape } from '../types';
 import { LevelBuilder, type Palette } from './builder';
 
 /* The first engine's way of laying out a level, kept so its levels port nearly line for line.
@@ -75,7 +75,7 @@ export interface Deck {
   hf: Float32Array | null; cf: Float32Array | null; hset: Uint8Array | null;
   props: TProp[];
   cols: [number, number, number, number, number, number][];
-  lamps: { x: number; z: number; r: number; c: Colour; it?: Deck['items'][number]; h?: number }[];
+  lamps: { x: number; z: number; r: number; c: Colour; h?: number }[];
   /** cameras (in tile units, their lens h metres up, yaw as the cast's) and the zones' speakers */
   cams: { x: number; z: number; h: number; yaw: number; fov: number; range: number; c: string; zone: string }[];
   speakers: { zone: string; x: number; z: number; pa?: string }[];
@@ -85,7 +85,7 @@ export interface Deck {
   stairs: { tx: number; tz: number; len: number; dir: 'n' | 's' | 'e' | 'w'; lo: Deck; hi: Deck }[];
   /** steps within a deck: from a sunken floor up to the deck's own, or between any two heights over it */
   flights: { tx: number; tz: number; w: number; h: number; y0: number; y1: number; n: number; dir: 'n' | 's' | 'e' | 'w'; c: number }[];
-  items: { id: string; x: number; z: number; y: number; n: number }[];
+  items: { id: string; x: number; z: number; y: number; n: number; on?: Aim }[];
   notes: { key: string; x: number; z: number; y: number }[];
   muts: { type: string; x: number; z: number; o: Record<string, unknown> }[];
   uses: { kind: string; x: number; z: number; y: number; o: Record<string, unknown> }[];
@@ -512,10 +512,9 @@ export function finishLevel(start?: [number, number, number]) {
       const y = floorY(D, (x0 + x1) / 2, (z0 + z1) / 2);
       b.collider(px(D, (x0 + x1) / 2), pz(D, (z0 + z1) / 2), x1 - x0, hi - lo, z1 - z0, y + lo);
     }
-    /* what the later steps need: things lying about first, so a lamp that one of them gives can name it */
-    const items = new Map<object, number>();
-    for (const it of D.items) { items.set(it, b.level.items.length); b.item(it.id, px(D, it.x), floorY(D, it.x, it.z) + it.y, pz(D, it.z), it.n); }
-    for (const L of D.lamps) b.lamp(px(D, L.x), floorY(D, L.x, L.z) + (L.h ?? 1), pz(D, L.z), L.r, L.c, L.it && items.get(L.it));
+    /* what the later steps need */
+    for (const it of D.items) b.item(it.id, px(D, it.x), floorY(D, it.x, it.z) + it.y, pz(D, it.z), it.n, it.on);
+    for (const L of D.lamps) b.lamp(px(D, L.x), floorY(D, L.x, L.z) + (L.h ?? 1), pz(D, L.z), L.r, L.c);
     for (const S of D.stains) b.stain(px(D, S.x), floorY(D, S.x, S.z), pz(D, S.z), S.r);
     for (const C of D.cams) b.camera(X(D, C.x), floorY(D, C.x * T, C.z * T) + C.h, Z(D, C.z), C.yaw, { fov: C.fov, range: C.range, circuit: C.c, zone: C.zone });
     for (const S of D.speakers) b.speaker(S.zone, X(D, S.x), floorY(D, S.x * T, S.z * T), Z(D, S.z), S.pa ? { pa: S.pa } : {});
