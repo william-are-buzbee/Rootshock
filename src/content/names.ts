@@ -2,8 +2,8 @@
 export const STATION_NAMES: Record<string, string> = {
   OPS: 'upper station',
   SEC: 'Security wing',
-  HALL: 'Muster hall',
-  EAST: 'Muster hall, east bays',
+  HALL: 'Muster hall west',
+  EAST: 'Muster hall east',
   CRIT: 'Operations, critical',
   RES: 'main level',
   ENG: 'plant level',

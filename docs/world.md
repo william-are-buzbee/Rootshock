@@ -427,8 +427,8 @@ cancerous growth, rather than a second level-sized area competing for attention.
   no way in on the first pass. A way in comes later, once there are other places worth going first; the level should become
   non-linear then, not now. Eggs and a floor dragged red thicken toward the stair.
 - **The electrical room's board (agreed; built).** Not a room for one switch: a panel board breaking Ops' feed out to
-  branches, side by side, each a trade. *Muster hall* (HALL): the hall's lights west of the east bays, the court and its four
-  cameras; cut, the hall goes black, its eyes with it, and its husks go looking for light. *Muster hall, east bays* (EAST):
+  branches, side by side, each a trade. *Muster hall west* (HALL): the hall's lights west of the east bays, the court and its four
+  cameras; cut, the hall goes black, its eyes with it, and its husks go looking for light. *Muster hall east* (EAST):
   their lights, the operations stair and their two cameras. A third way is spare. A lamp over the cabinet shows each live.
   Cutting a branch blinds the cameras on it, never the overseer: you can blind an area, not it.
 - **Critical operations power (agreed; built).** As in real buildings, the room that runs security is not on a general

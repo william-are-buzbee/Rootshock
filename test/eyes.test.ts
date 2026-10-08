@@ -270,7 +270,7 @@ describe('the overseer is flesh: an eye at each of its screens, a hand on its bo
   it('no breaker outside its walls reaches it: open the board and it still sees; only its critical feed would blind it', () => {
     const s = fresh();
     still(s);
-    brk(s, 'Muster hall:').act(); brk(s, 'Muster hall, east bays').act();
+    brk(s, 'Muster hall west').act(); brk(s, 'Muster hall east').act();
     expect(manned(s)).toBe(true);
     inView(s);
     hold(s, EYES.hold + 0.3);
@@ -313,7 +313,7 @@ describe('the power-failure drill', () => {
 
   it('those an opened breaker leaves in the dark are each given a time to go, within three minutes; posts and the lit are not', () => {
     const { s, m } = setUp();
-    brk(s, 'Muster hall, east bays').act();
+    brk(s, 'Muster hall east').act();
     expect(s.drills.length).toBe(1);
     const D = s.drills[0];
     expect(D.c).toBe('EAST');
@@ -330,7 +330,7 @@ describe('the power-failure drill', () => {
 
   it('one sent goes to the board and throws the breaker back on, and it is heard', () => {
     const { s, m } = setUp();
-    brk(s, 'Muster hall, east bays').act();
+    brk(s, 'Muster hall east').act();
     for (const e of s.drills[0].due) e.at = e.id === m.id ? 0.3 : 1e9;
     hold(s, 0.5);
     expect(m.state).toBe('fix');
@@ -345,7 +345,7 @@ describe('the power-failure drill', () => {
 
   it('one who reaches the light has stopped noticing: the breaker stays open', () => {
     const { s, m } = setUp();
-    brk(s, 'Muster hall, east bays').act();
+    brk(s, 'Muster hall east').act();
     const b = m.body!; b.x = m.x = 30; b.z = m.z = 36; b.sync(); // into the lit west end
     for (const e of s.drills[0].due) e.at = e.id === m.id ? 0.3 : 1e9;
     hold(s, 1);
@@ -355,7 +355,7 @@ describe('the power-failure drill', () => {
 
   it('a save made while one goes to the board plays on the same', () => {
     const { s, m } = setUp();
-    brk(s, 'Muster hall, east bays').act();
+    brk(s, 'Muster hall east').act();
     for (const e of s.drills[0].due) e.at = e.id === m.id ? 0.3 : 1e9;
     hold(s, 2);
     const a = load(level, JSON.parse(JSON.stringify(save(s))), { seed: 7, station: STATION });
@@ -368,7 +368,7 @@ describe('the electrical room\'s board', () => {
   const brk = (s: Sim, name: string) => s.usables.find(u => new RegExp('Breaker, ' + name).test(u.label() ?? ''))!;
 
   it('breaks Ops out to the hall and its east bays, side by side; its schedule says the operations room and the PA are not on it', () => {
-    const s = fresh(), b = ['Muster hall:', 'Muster hall, east bays'].map(n => brk(s, n));
+    const s = fresh(), b = ['Muster hall west', 'Muster hall east'].map(n => brk(s, n));
     for (const u of b) expect(u.label()).toMatch(/: closed$/);
     expect(Math.hypot(b[1].x - b[0].x, b[1].z - b[0].z)).toBeLessThan(4);
     expect(s.usables.filter(u => /^Breaker, /.test(u.label() ?? '')).length).toBe(2);
@@ -381,7 +381,7 @@ describe('the electrical room\'s board', () => {
   it('the hall\'s breaker darkens it and its own cameras; the east bays keep theirs, and its speaker still sounds', () => {
     const s = fresh();
     still(s);
-    brk(s, 'Muster hall:').act();
+    brk(s, 'Muster hall west').act();
     const hall = s.cams.filter(c => c.def.zone === 'muster');
     expect(hall.length).toBe(4);
     for (const c of hall) expect(power(s.game, c.def.circuit)).toBe(0);
