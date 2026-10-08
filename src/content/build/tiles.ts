@@ -518,10 +518,7 @@ export function finishLevel(start?: [number, number, number]) {
     for (const L of D.lamps) b.lamp(px(D, L.x), floorY(D, L.x, L.z) + (L.h ?? 1), pz(D, L.z), L.r, L.c, L.it && items.get(L.it));
     for (const S of D.stains) b.stain(px(D, S.x), floorY(D, S.x, S.z), pz(D, S.z), S.r);
     for (const C of D.cams) b.camera(X(D, C.x), floorY(D, C.x * T, C.z * T) + C.h, Z(D, C.z), C.yaw, { fov: C.fov, range: C.range, circuit: C.c, zone: C.zone });
-    for (const S of D.speakers) {
-      const R = roomAtTile(D, Math.floor(S.z) * D.W + Math.floor(S.x));
-      b.speaker(S.zone, X(D, S.x), floorY(D, S.x * T, S.z * T), Z(D, S.z), { circuit: R?.c ?? D.c, ...(S.pa ? { pa: S.pa } : {}) });
-    }
+    for (const S of D.speakers) b.speaker(S.zone, X(D, S.x), floorY(D, S.x * T, S.z * T), Z(D, S.z), S.pa ? { pa: S.pa } : {});
     for (const nt of D.notes) b.note(nt.key, px(D, nt.x), floorY(D, nt.x, nt.z) + nt.y, pz(D, nt.z));
     for (const m of D.muts) b.mutant(m.type, X(D, m.x), floorY(D, m.x * T, m.z * T), Z(D, m.z), m.o);
     for (const u of D.uses) b.use(u.kind, X(D, u.x), floorY(D, u.x * T, u.z * T) + u.y, Z(D, u.z), u.o);

@@ -28,12 +28,13 @@ export const STATION: StationDef = {
     OPS: { on: true, back: true, tag: 'upper station' },
     /* the Security wing hangs off Ops; the survivors cut its feed to blind the cameras on their side (world.md §8) */
     SEC: { on: true, back: false, broken: true, feed: 'OPS', tag: 'Security wing' },
-    /* the operations room and the muster hall's east bays, off Ops through their own switch: the overseer holds its door
-       bolted while it has power (world.md §8) */
-    CTL: { on: true, back: false, feed: 'OPS', tag: 'Operations room' },
-    /* the rest of the muster hall, and Security's PA (every zone's speaker), each on its own breaker on the same board */
+    /* the muster hall, in two branches off the electrical room's board: the hall, and its east bays with the stair up to
+       the operations room */
     HALL: { on: true, back: false, feed: 'OPS', tag: 'Muster hall' },
-    PA: { on: true, back: false, feed: 'OPS', tag: 'Security PA' },
+    EAST: { on: true, back: false, feed: 'OPS', tag: 'Muster hall, east bays' },
+    /* critical operations power: the operations room and Security's PA, straight off Ops' set, their panel inside the
+       operations room's own walls. Nothing outside them can switch it (world.md §8) */
+    CRIT: { on: true, back: false, feed: 'OPS', tag: 'Operations, critical' },
     RES: { on: true, back: false, tag: 'main level' },
     ENG: { on: true, back: false, tag: 'plant level' },
     HYD: { on: true, back: false, broken: true, tag: 'the sump' },
