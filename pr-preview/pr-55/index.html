@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rootshock</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400&display=swap" rel="stylesheet">
+  <script type="module" crossorigin src="./assets/index-BmBj1hOZ.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-BqyO9pr-.css">
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="vig"></div>
+<div id="hitdir"></div>
+<div id="fade"></div>
+<div id="hud" class="hide">
+  <div id="dot"></div>
+  <div id="prompt"></div>
+  <div id="roomn"></div>
+  <div id="msgs"></div>
+  <div id="devtag" class="hide"></div>
+  <div id="track" class="hide"></div>
+  <div id="stat">
+    <div class="bar"><i id="hp"></i></div>
+    <div class="bar sm hide" id="o2w"><i id="o2"></i></div>
+    <div class="bar sm hide" id="batw"><i id="bat"></i></div>
+    <div id="wpn"></div>
+  </div>
+</div>
+<div id="inv" class="panel hide"><div id="invb"></div></div>
+<div id="lift" class="panel hide"><div id="liftb"></div></div>
+<div id="note" class="panel hide"><article id="notet"></article></div>
+<div id="pad" class="panel hide"><div><div id="padd"></div><div id="padk"></div><p class="hint">Type or click four digits. Esc to step back.</p></div></div>
+<div id="pause" class="screen hide"><h1>Paused</h1><p class="aside bright"><label>Brightness <input type="range" class="brightness" min="0.7" max="1.6" step="0.05" value="1"></label></p><div class="go">Click to go back in</div></div>
+<div id="end" class="screen hide"><h1 id="endh"></h1><p id="endp"></p><div class="go" id="endg">Press R to start again</div></div>
+<div id="title" class="screen">
+  <h1>Rootshock</h1>
+  <p>Lowfield Station, six floors under a field. You work here, or you did: three days ago Security put you in its isolation suite on the director's order, and nobody would say why. This morning the lights went out, and the lock on your door let go with them.</p>
+  <p class="aside"><a href="?level=testbed">The test bed</a> · <a href="?power=full">With the lights on</a> · <a href="archive/first-engine.html">The first engine</a>, as it was</p>
+  <div class="keys">
+    <div><b>W A S D</b> move</div><div><b>Mouse</b> look</div><div><b>E</b> use, take, read</div>
+    <div><b>F</b> light</div><div><b>Tab</b> what you carry</div><div><b>Space</b> jump</div>
+    <div><b>Click / Q</b> hold to swing</div><div><b>Shift</b> run (loud)</div><div><b>C</b> crouch (quiet, low)</div><div><b>Space / C</b> swim up / down</div>
+  </div>
+  <p class="aside bright"><label>Brightness <input type="range" class="brightness" min="0.7" max="1.6" step="0.05" value="1"></label></p>
+  <div class="go" id="titleg">Click to open your eyes</div>
+</div>
+</body>
+</html>
