@@ -18,7 +18,6 @@ import { Motes } from './present/render/motes';
 import { Prints } from './present/render/prints';
 import { Drips } from './present/render/drips';
 import { Cascade } from './present/cascade';
-import { updatePools } from './present/render/pools';
 import { U } from './present/render/shader';
 import { Hud } from './present/ui/hud';
 import { Panels } from './present/ui/panels';
@@ -72,7 +71,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) suspe
 window.addEventListener('pagehide', suspend);
 
 /* each level drawn once, and lit by the power as it is when you are there */
-const lightingNow = () => simLighting(sim);
+const lightingNow = () => (sim.lighting ??= simLighting(sim));
 let lighting = lightingNow();
 const levels = new Map<Sim, LevelView>();
 function levelView(): LevelView {
@@ -83,6 +82,7 @@ function levelView(): LevelView {
 }
 let here = levelView();
 view.show(here.group);
+here.bind();
 view.scene.add(view.camera); // the hand rides on it
 const handsView = new HandsView(view.camera, sim, lighting);
 let hurtFx = 0, hitFx = 0;
@@ -191,6 +191,7 @@ function arrive(): void {
   lighting = lightingNow();
   here = levelView();
   view.show(here.group);
+  here.bind();
   handsView.sim = sim;
   handsView.setLighting(lighting);
   motes.setLighting(lighting);
@@ -289,10 +290,12 @@ function frame(t: number): void {
     if (flipped.length) here.relightRooms(lighting, flipped);
     if (cascade.done) { relightAll(cascade.L.to); cascade = null; }
   }
+  /* light through the doors as they stand (the sim's own lighting follows them already; a cascade's does not) */
+  lighting.follow(k => sim.doors[k].t);
+  here.syncLight(lighting);
   handsView.update(rig.bob, t / 1000);
   motes.resize(view.renderer.domElement.height, view.camera.fov);
   motes.update(sim, view.camera.position, mode === 'play' ? dt : 0);
-  updatePools(sim.world, lighting, view.camera.position, dt);
   prints.update(sim, mode === 'play' ? dt : 0);
   drips.resize(view.renderer.domElement.height, view.camera.fov);
   drips.update(sim, mode === 'play' ? dt : 0);

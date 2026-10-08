@@ -85,7 +85,7 @@ That is what makes save/load, a headless run, tests and the progression checker 
       grid.ts            sparse cell grid, chunks
       query.ts           solidAt, sweep, raycast, groundBelow, overlap
       nav.ts             nav graph and flow fields
-      light.ts           baked light per cell
+      light.ts           the light under the power, from lightField.ts (each source's light, per 0.5 m point)
     sim/
       ecs.ts             entity store
       components.ts
@@ -333,13 +333,23 @@ sequence of inputs. The door rules, the labels and the answers are the first eng
 
 ## 11. Presentation
 
-- **The shader carries over**: unlit is black; baked room light plus flashlight cone plus lantern; flat shading from
+- **The shader carries over**: unlit is black; the level's light plus flashlight cone plus lantern; flat shading from
   derivatives; fog; the wet tint; emissive colours.
-- **Light (agreed, built in step 3)** follows the first engine's rules, in `world/light.ts`: each room is lit by its
-  rule and its circuit's power (full, backup with emergency lights, or dark), doorways borrow from either side, lamps
-  make pools in their own room. The level's mesh is lit per vertex, and every vertex remembers which room lights it,
-  so a power change relights the level without rebuilding it (1.4 ms for the upper station). The sim will read the
-  same light for stealth. `?power=full` shows a level with everything on.
+- **Light (agreed, built in step 3; a light field since)**: each room is lit by its rule and its circuit's power (full,
+  backup with emergency lights, or dark), in `world/light.ts`. Where that light goes is `world/lightField.ts`: a lattice
+  of points every 0.5 m through the open space (each at the middle of a grid cell, so open or rock exactly as the grid
+  has it; joined to its neighbours where the cell between is open), and for each source (a room, a lamp) what it would
+  throw at each point if it shone white. A room's own light is its fill (even through it, reaching a metre or two out
+  through its openings and fading, each room taking its share where rooms meet, so light changes across a doorway, not
+  at a line) and what its fittings throw; fittings and lamps are seen point to point outward from the light, so they
+  shine through a doorway and over a rail but never through rock. Light is linear in its sources, so the light under any
+  power is a sum (a few ms), worked out once per level (about a second for the upper station, kept per level). Doors are
+  gates: light through a door is kept apart and counts as far as the door stands open, so it spills out as one lifts.
+  The renderer puts the field on the card (`render/lightVolume.ts`: a brick of 9³ texels per grid chunk and an index of
+  them) and the shader blends the 2³ points around each pixel, only those on its open side and joined to the nearest,
+  so no light comes through a wall or a slab; only the bricks whose light changed are sent again. What moves, and what
+  the cast see you by, ask `Lighting.atPoint`, which blends the same way. `?power=full` shows a level with everything
+  on.
 - **Audio**: the synthesised sounds carry over, positioned from sim events (`present/audio.ts`). Since: a sound from a
   place reaches you the way the cast hears you (§8), along the sound field, so a shut door or rock muffles it and puts
   it further off; feet sound like what they fall on (concrete, a walkway's grating, rock, a puddle, a crate, a
@@ -364,16 +374,15 @@ sequence of inputs. The door rules, the labels and the answers are the first eng
   mid-tones lifted, black left black), the haze is thin in dry air so a long hall reads to its far end, and the player's
   brightness setting (title and pause screens, kept between runs) scales the eye. All of it is the screen's alone: the
   cast and the cameras see by the light as it is. The dark is
-  grained in the shader, most where it is darkest. A fitted room's light falls in pools under its ceiling fittings (`LevelDef.fixtures`, `POOL` in `world/light.ts`):
+  grained in the shader, most where it is darkest. A fitted room's light falls in pools under its ceiling fittings (`LevelDef.fixtures`, `POOL` in `world/lightField.ts`):
   a point takes 0.55 of the room's light plus 1.3 times what its fittings throw at it, down and falling off, so the
-  floor under a tube is lit above the room's level and the corners and the ceiling below it. The shader does it per
-  pixel for the rooms near you (`render/pools.ts`); what moves, and what the cast see you by, ask `Lighting.lit`, so
-  between the lights you are a little harder to see. A room on its backup set is lit amber; its brightest channel, which
+  floor under a tube is lit above the room's level and the corners and the ceiling below it, and what they throw
+  through a doorway lights the floor past it. Between the lights you are a little harder to see. A room on its backup set is lit amber; its brightest channel, which
   is what the cast see you by, is what it was. Power that comes on is seen to (`present/cascade.ts`): room by room out
   from where you are, each tube striking (on, off a moment, on) as it catches, and heard to near you; only the rooms
-  that flip are lit again (`LevelMesh.relightRooms`). Power going off is not staged, and the sim's light changes at
+  that flip have their light added again (`Staged.flipped`). Power going off is not staged, and the sim's light changes at
   once. A lamp's light reaches r metres from where the lamp is, up and down as well as across, so a light on the floor
-  does not light a ceiling far over it. A lamp can be given by a thing lying about (`LampDef.item`: a flashlight dropped
+  does not light a ceiling far over it; like a fitting's, it is stopped by rock and a shut door. A lamp can be given by a thing lying about (`LampDef.item`: a flashlight dropped
   still on, which is drawn pointing at its beam's pool); once that is taken the lamp is out, and the level is lit again at
   once (`relight`), with no tubes striking. Motes (`present/render/motes.ts`) hang in the air about you, square flecks lit as a surface is (by the room as much as by your beam, never brighter than the wall beside them): with a live circuit the air
   is drawn toward the room's ceiling grilles (`LevelDef.vents`: one at each end of a long fitted room, one in a short
