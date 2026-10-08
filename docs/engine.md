@@ -345,10 +345,16 @@ sequence of inputs. The door rules, the labels and the answers are the first eng
   shine through a doorway and over a rail but never through rock. Light is linear in its sources, so the light under any
   power is a sum (a few ms), worked out once per level (about a second for the upper station, kept per level). Doors are
   gates: light through a door is kept apart and counts as far as the door stands open, so it spills out as one lifts.
+  Fixed props are stamped into the lattice (a point inside one is closed, a join through one is cut), so a crate or a
+  container throws a shadow from a fitting over it; and the fill a point takes is shaded by how open it is round it,
+  above most (`SHADE`), so the floor under a desk, a corner, the gap under a slab are darker, as they would be. A room
+  whose tubes stutter flickers wherever its light has reached: the field keeps the part of each point's light that
+  flickers, and the shader and everything that moves dim that part with the tube.
   The renderer puts the field on the card (`render/lightVolume.ts`: a brick of 9³ texels per grid chunk and an index of
   them) and the shader blends the 2³ points around each pixel, only those on its open side and joined to the nearest,
-  so no light comes through a wall or a slab; only the bricks whose light changed are sent again. What moves, and what
-  the cast see you by, ask `Lighting.atPoint`, which blends the same way. `?power=full` shows a level with everything
+  so no light comes through a wall or a slab; only the bricks whose light changed are sent again. What moves asks
+  `Lighting.atPoint` (and `flickAt`), which blends the same way; what the cast see you by asks `Lighting.seen`, the same
+  and any beam lying about that falls on you. `?power=full` shows a level with everything
   on.
 - **Audio**: the synthesised sounds carry over, positioned from sim events (`present/audio.ts`). Since: a sound from a
   place reaches you the way the cast hears you (§8), along the sound field, so a shut door or rock muffles it and puts
@@ -382,9 +388,15 @@ sequence of inputs. The door rules, the labels and the answers are the first eng
   from where you are, each tube striking (on, off a moment, on) as it catches, and heard to near you; only the rooms
   that flip have their light added again (`Staged.flipped`). Power going off is not staged, and the sim's light changes at
   once. A lamp's light reaches r metres from where the lamp is, up and down as well as across, so a light on the floor
-  does not light a ceiling far over it; like a fitting's, it is stopped by rock and a shut door. A lamp can be given by a thing lying about (`LampDef.item`: a flashlight dropped
-  still on, which is drawn pointing at its beam's pool); once that is taken the lamp is out, and the level is lit again at
-  once (`relight`), with no tubes striking. Motes (`present/render/motes.ts`) hang in the air about you, square flecks lit as a surface is (by the room as much as by your beam, never brighter than the wall beside them): with a live circuit the air
+  does not light a ceiling far over it; like a fitting's, it is stopped by rock and a shut door.
+  **Lights lying about** are the lights you carry, not stand-ins for them. A light can be put down (the inventory's
+  Lights), and one on stays on where it lies, pointing the way you faced, its battery running down there as in your
+  hand; taken again, it is on in your hand. The flashlight at the stair's foot is one (`ItemDef.on`: lying on, and its
+  aim). A flashlight lying on is drawn with the same beam as yours (`FLASH` and `spot` in `world/light.ts`), from its
+  lens, with a shadow map of its own (`render/beams.ts`, the two nearest you); what it throws back (`BOUNCE`, as yours
+  does) and a lantern lying on (`LANTERN`) go into the level's light field (`Lighting.lights`). Every shader draws every
+  light that is not the level's from one piece of GLSL (`LIGHTS` in `render/shader.ts`: yours, and those lying about),
+  so each light is added once and is the same light on a wall, a body, a footprint or a speck of dust. Motes (`present/render/motes.ts`) hang in the air about you, square flecks lit as a surface is (by the room as much as by your beam, never brighter than the wall beside them): with a live circuit the air
   is drawn toward the room's ceiling grilles (`LevelDef.vents`: one at each end of a long fitted room, one in a short
   one) and turns up into them, on a backup set barely, and in a dead room it hangs and settles;
   caves drift on their own. Moving air carries dust off: a ventilated room shows a quarter of a stuffy one's, a room on

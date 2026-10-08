@@ -1,6 +1,6 @@
 import { Rng } from '../../core/rng';
 import { hex, scale3, type Colour } from '../../core/math';
-import type { DoorDef, LevelDef, LitRule, Motes, PropDef, RoomDef, Shape, Start, SurfaceDef } from '../types';
+import type { Aim, DoorDef, LevelDef, LitRule, Motes, PropDef, RoomDef, Shape, Start, SurfaceDef } from '../types';
 
 /* The authoring kit. Levels are written as calls on a LevelBuilder; finish() returns plain data.
    Everything random comes from the level's own seed, so a level is dressed the same way every time. */
@@ -195,13 +195,13 @@ export class LevelBuilder {
   speaker(zone: string, x: number, y: number, z: number, o: { pa?: string } = {}): void {
     (this.def.speakers ??= []).push({ zone, x, y, z, ...o });
   }
-  lamp(x: number, y: number, z: number, r: number, c: Colour, item?: number): void {
-    this.def.lamps.push({ x, y, z, r, colour: c, ...(item !== undefined ? { item } : {}) });
+  lamp(x: number, y: number, z: number, r: number, c: Colour): void {
+    this.def.lamps.push({ x, y, z, r, colour: c });
   }
   sign(text: string, x: number, y: number, z: number, yaw: number, circuit = this.def.circuit): void {
     this.def.signs.push({ text, x, y, z, yaw, circuit });
   }
-  item(id: string, x: number, y: number, z: number, n = 1): void { this.def.items.push({ id, x, y, z, n }); }
+  item(id: string, x: number, y: number, z: number, n = 1, on?: Aim): void { this.def.items.push({ id, x, y, z, n, ...(on ? { on } : {}) }); }
   note(key: string, x: number, y: number, z: number): void { this.def.notes.push({ key, x, y, z }); }
   mutant(type: string, x: number, y: number, z: number, opts: Record<string, unknown> = {}): void { this.def.mutants.push({ type, x, y, z, opts }); }
   use(kind: string, x: number, y: number, z: number, opts: Record<string, unknown> = {}): void { this.def.uses.push({ kind, x, y, z, opts }); }

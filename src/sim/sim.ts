@@ -3,7 +3,7 @@ import { Rng } from '../core/rng';
 import { STEP } from '../core/loop';
 import { World } from '../world/world';
 import { clamp } from '../core/math';
-import { Lighting } from '../world/light';
+import { Lighting, type Loose } from '../world/light';
 import { castBodies, castMovers, makeCast, updateCast, type Drill, type Mutant } from './cast';
 import { makeCams, updateEyes, type Alarm, type Cam } from './eyes';
 import { makeHands, updateHands, type Hands } from './combat';
@@ -58,9 +58,33 @@ export interface SimOpts {
   rng?: Rng;
 }
 
-/** the level's light as things stand: the power, and lamps that went with whatever gave them */
+/** the level's light as things stand: the power, the doors, and the lights lying about */
 export function simLighting(sim: Sim): Lighting {
-  return new Lighting(sim.world, c => power(sim.game, c), i => !!sim.items[i]?.taken, d => sim.doors[d].t);
+  return new Lighting(sim.world, c => power(sim.game, c), d => sim.doors[d].t, looseLights(sim));
+}
+
+/** a light of yours lying on is weaker when its battery is low, as it is in your hand */
+export const lightStrength = (g: Game): number => (g.batt < 15 ? 0.6 : 1);
+
+/** the lights lying about, on: a flashlight on its side, its beam from its lens, along its aim; a lantern, all round */
+export function looseLights(sim: Sim): Loose[] {
+  const out: Loose[] = [];
+  sim.items.forEach((it, k) => {
+    if (it.taken || !it.on) return;
+    const { yaw, pitch } = it.on, c = Math.cos(pitch), dx = -Math.sin(yaw) * c, dy = Math.sin(pitch), dz = -Math.cos(yaw) * c;
+    const kk = it.raw ? lightStrength(sim.game) : 1, key = 'item' + k;
+    if (it.id === 'flash') out.push({ key, kind: 'flash', x: it.x + dx * 0.15, y: it.y + 0.04, z: it.z + dz * 0.15, dx, dy, dz, k: kk });
+    else if (it.id === 'lantern') out.push({ key, kind: 'lantern', x: it.x, y: it.y + 0.2, z: it.z, dx: 0, dy: 1, dz: 0, k: kk });
+  });
+  return out;
+}
+
+/** where a thing put down goes: a little in front of you, or at your feet against a wall */
+function putPlace(sim: Sim): { x: number; y: number; z: number } {
+  const b = sim.player.body;
+  let x = b.x - Math.sin(sim.player.yaw) * 0.7, z = b.z - Math.cos(sim.player.yaw) * 0.7;
+  if (sim.world.solidAt(x, b.y + 0.1, z)) { x = b.x; z = b.z; }
+  return { x, y: sim.world.groundBelow({ x, z, hx: 0.1, hz: 0.1, round: true }, b.y + 0.5), z };
 }
 
 export function makeSim(level: LevelDef, o: SimOpts = {}): Sim {
@@ -98,7 +122,7 @@ const underWater = (sim: Sim) => {
 
 /** what the menus asked for since the last step */
 function command(sim: Sim, c: Command): void {
-  const g = sim.game, b = sim.player.body;
+  const g = sim.game;
   switch (c.type) {
     case 'use': useItem(g, c.slot); break;
     case 'drop': {
@@ -106,12 +130,22 @@ function command(sim: Sim, c: Command): void {
       if (!s) return;
       g.inv.splice(c.slot, 1);
       if (g.weapon === s.id) g.weapon = null;
-      let x = b.x - Math.sin(sim.player.yaw) * 0.7, z = b.z - Math.cos(sim.player.yaw) * 0.7;
-      if (sim.world.solidAt(x, b.y + 0.1, z)) { x = b.x; z = b.z; }
-      const it: WorldItem = { id: s.id, n: s.n, x, y: sim.world.groundBelow({ x, z, hx: 0.1, hz: 0.1, round: true }, b.y + 0.5), z, taken: false, raw: true };
+      const it: WorldItem = { id: s.id, n: s.n, ...putPlace(sim), taken: false, raw: true };
       sim.items.push(it);
       sim.usables.push(itemUse(sim, it)); // only the new thing: rebuilding all would forget what was searched
 
+      sfx(g, 'step');
+      break;
+    }
+    case 'putDown': {
+      if (!g.tools.includes(c.tool)) return;
+      g.tools.splice(g.tools.indexOf(c.tool), 1);
+      /* on in your hand, it lies on where you put it, pointing the way you faced (a flashlight goes out under water) */
+      const on = g.light === c.tool && g.lightOn && !(c.tool === 'flash' && underWater(sim));
+      if (g.light === c.tool) { g.lightOn = false; g.light = g.tools[0] ?? null; }
+      const it: WorldItem = { id: c.tool, n: 1, ...putPlace(sim), taken: false, raw: true, ...(on ? { on: { yaw: sim.player.yaw, pitch: 0.04 } } : {}) };
+      sim.items.push(it);
+      sim.usables.push(itemUse(sim, it));
       sfx(g, 'step');
       break;
     }
@@ -187,10 +221,17 @@ export function step(sim: Sim, input: Input): void {
 
   if (input.light) toggleLight(g, null, underWater(sim));
   runLight(g, STEP, underWater(sim));
-  /* how easily you are seen: the light you stand in, your own, and crouching */
+  /* a light of yours put down on runs its battery down there as it would in your hand, and dies with it */
+  for (const it of sim.items) {
+    if (!it.on || it.taken || !it.raw) continue;
+    g.batt -= (STEP * 100) / (it.id === 'flash' ? 270 : 420);
+    if (g.batt <= 0) { g.batt = 0; delete it.on; }
+  }
+  sim.lighting?.lights(looseLights(sim));
+  /* how easily you are seen: the light you stand in (a beam lying about too), your own, and crouching */
   if (sim.cast.length) {
     sim.lighting ??= simLighting(sim);
-    const c = sim.lighting.atPoint(b.x, b.y + 0.5, b.z), lum = Math.max(c[0], c[1], c[2]);
+    const c = sim.lighting.seen(b.x, b.y + 0.5, b.z), lum = Math.max(c[0], c[1], c[2]);
     g.vis = clamp(0.3 + lum * 0.8 + (g.lightOn ? 0.35 : 0), 0.3, 1.3) * (p.crouch ? 0.6 : 1);
   }
   if (sim.fields) updateFields(sim, sim.fields);

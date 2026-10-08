@@ -4,7 +4,7 @@ import { power } from '../../sim/game';
 import { STEP } from '../../core/loop';
 import type { Sim } from '../../sim/sim';
 import type { Lighting } from '../../world/light';
-import { LIFT, U } from './shader';
+import { LIFT, LIGHTS, U, lightUniforms } from './shader';
 
 /* What hangs in the air near you: dust, the green's spores, the flesh's flecks (RoomDef.motes). Nine hundred specks in
    a box that travels with the eye; one that drifts out of the box comes back in at the far side. Each is a fleck of
@@ -42,15 +42,14 @@ const KIND: Record<Kind, { c: [number, number, number]; show: number; share: num
 
 const VS = /* glsl */ `
 attribute vec3 aCol; attribute vec3 aL; attribute float aA; attribute float aS;
-uniform vec3 uFlashDir; uniform float uFlash; uniform float uLamp; uniform float uFog; uniform float uPx; uniform float uExpo;
+uniform float uFog; uniform float uPx; uniform float uExpo;
 varying vec3 vC; varying float vA;
+${LIGHTS}
 void main(){
   vec4 mv = modelViewMatrix * vec4(position, 1.0);
   vec3 tc = cameraPosition - position; float d = length(tc);
-  float ca = dot(-tc / max(d, 0.001), uFlashDir);
-  float beam = uFlash * (0.65 * smoothstep(0.91, 0.975, ca) + 0.42 * smoothstep(0.76, 0.92, ca)) * 2.3 / (1.0 + 0.055 * d * d);
-  float lamp = uLamp * 1.2 / (1.0 + 0.2 * d * d);
-  vec3 light = aL + 0.45 * beam * vec3(1.0, 0.93, 0.78) + lamp * vec3(0.72, 0.92, 1.0);
+  /* a beam through dust shows it, softly: less than a wall would take */
+  vec3 light = aL + 0.45 * (held(position, 1.0) + lying(position, vec3(0.0))) + bounce(position) + 0.8 * lantern(position, 1.0);
   /* dust is never the brightest thing in view: bright light is given back softly */
   vec3 c = aCol * light * uExpo;
   vC = c / (1.0 + 0.35 * c);
@@ -116,7 +115,7 @@ export class Motes {
     this.geo.setAttribute('aA', attr(this.alpha, 1));
     this.geo.setAttribute('aS', attr(this.size, 1));
     this.mat = new THREE.ShaderMaterial({
-      uniforms: { uFlashDir: U.uFlashDir, uFlash: U.uFlash, uLamp: U.uLamp, uFog: U.uFog, uExpo: U.uExpo, uPx: { value: 4 } },
+      uniforms: { ...lightUniforms(), uFog: U.uFog, uExpo: U.uExpo, uPx: { value: 4 } },
       vertexShader: VS, fragmentShader: FS, transparent: true, depthWrite: false,
     });
     this.points = new THREE.Points(this.geo, this.mat);

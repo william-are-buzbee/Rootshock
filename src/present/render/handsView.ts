@@ -3,7 +3,7 @@ import { clamp } from '../../core/math';
 import { loadTime, wstats } from '../../sim/combat';
 import type { Sim } from '../../sim/sim';
 import type { Lighting } from '../../world/light';
-import { dynamicMaterial } from './shader';
+import { dynamicMaterial, lightMaterial } from './shader';
 import { parts, type Part } from './things';
 
 /* What is in your hand, in front of the camera: the first engine's weaponModel, and how it loads, swings and kicks. */
@@ -44,8 +44,7 @@ export class HandsView {
       this.mesh.frustumCulled = false;
       this.vm.add(this.mesh);
     }
-    const l = this.L.atPoint(b.x, b.y + 1, b.z);
-    (this.mat.uniforms.uLight.value as THREE.Vector3).set(l[0], l[1], l[2]);
+    lightMaterial(this.mat, this.L.atPoint(b.x, b.y + 1, b.z), this.L.flickAt(b.x, b.y + 1, b.z));
     const w = wstats(g.weapon), fist = !g.weapon, sw = h.swing;
     const ld = h.chg >= 0 ? clamp(h.chg / loadTime(sim, w), 0, 1) : 0;
     vm.rotation.y = fist ? 0.12 : 0;
