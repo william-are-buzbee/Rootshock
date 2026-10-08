@@ -426,14 +426,19 @@ cancerous growth, rather than a second level-sized area competing for attention.
   sick glow, which needs no power. Its stair climbs from the east bays to a landing where the door is grown shut with bodies:
   no way in on the first pass. A way in comes later, once there are other places worth going first; the level should become
   non-linear then, not now. Eggs and a floor dragged red thicken toward the stair.
-- **The electrical room's board (agreed; built).** Not a room for one switch: a panel board breaking Ops' feed out to three
-  branches, side by side, each a trade. *Muster hall* (HALL): the hall's lights west of the east bays, the court, its four
-  cameras and its speaker; cut, the hall goes black, its eyes with it, and its husks go looking for light. *Operations room*
-  (CTL): the operations room, its stair and the hall's east bays; cut, the overseer's screens are dark and its board dead
-  under its hands, so it sees through no camera and can sound and bolt nothing until someone throws it back on (the drill,
-  below). *Security PA* (PA): every zone's speaker on the level; cut, no zone has a voice, so no
-  klaxon calls the husks or the hand, but a camera that takes you still bolts the doors about you, and you lose the warning
-  of the klaxon too. A lamp over the cabinet shows each one live. This is the pattern for power elsewhere (proposed): a board
+- **The electrical room's board (agreed; built).** Not a room for one switch: a panel board breaking Ops' feed out to
+  branches, side by side, each a trade. *Muster hall* (HALL): the hall's lights west of the east bays, the court and its four
+  cameras; cut, the hall goes black, its eyes with it, and its husks go looking for light. *Muster hall, east bays* (EAST):
+  their lights, the operations stair and their two cameras. A third way is spare. A lamp over the cabinet shows each live.
+  Cutting a branch blinds the cameras on it, never the overseer: you can blind an area, not it.
+- **Critical operations power (agreed; built).** As in real buildings, the room that runs security is not on a general
+  board: its power is protected, its panel and battery backup in a locked room inside its own perimeter. The operations room
+  (its screens, its board, its lights) and Security's PA are on their own critical feed (CRIT) straight off Ops' set, panelled
+  in the UPS room behind the operations room. The electrical room's schedule says so, in red. So the overseer cannot be
+  blinded from outside its walls, and no zone can be silenced but by smashing its speaker. Blinding it means getting inside
+  its perimeter: the same problem as killing it, and postponed with it. A seed for later: control rooms sit on raised floors,
+  a cable void under the tiles; a crawl from a service hatch up into the UPS room would be a believable way in that is not
+  through the bodies at its door. This is the pattern for power elsewhere (proposed): a board
   per area, a few labelled breakers that each feed a handful of rooms, never a switch per room. A switch per room would be
   a switch for the threat, and real buildings are wired by panel, not by room. Doors stay safe to cut: exits let go without
   power, and readers keep their lock only against coming in.
@@ -460,7 +465,7 @@ cancerous growth, rather than a second level-sized area competing for attention.
   disfigured; its head, off to one side, is growing another, and its mouth is dragged sideways, pulling the features after
   it. A human turned into a tool, still attached to the other tools. It does everything physically: it sees the cameras with
   an eye on each lit screen, and sounds a zone or draws a bolt with a hand on its board. So all of it needs power at its own
-  room. The models are rough boxes and blobs for now; the rule holds from the start.
+  room, which is critical power (above). The models are rough boxes and blobs for now; the rule holds from the start.
 - **Eyes:** the cameras, across the level, through its screens; and its own, through its glass onto the hall. Its sill hides
   the floor right under the window: hug that wall and it cannot see you.
 - **Voice: the zone alarm.** The overseer gives no orders; the building does the work. A camera sees you, and the overseer sounds
@@ -491,15 +496,13 @@ cancerous growth, rather than a second level-sized area competing for attention.
   looks about a while, then goes back to its rounds; it finds you only if it sees or hears you on the way. A camera can be
   smashed with something in your hand: loud. So can a zone's speaker, and that zone has no voice: seen there, the doors
   about you are still bolted (they are the overseer's, not the alarm's), but no klaxon sounds, and nothing hears it or comes.
-  A speaker with no power is as quiet: it needs power on the circuit of the room it hangs in, and on the PA's; cut either
-  while it sounds and the klaxon stops at its next round.
+  Speakers are wired from the PA, not from the rooms they hang in, and the PA is critical power: no breaker quiets a zone.
   The wing's and the muster hall's hang in a ceiling you can reach; the atrium's hangs high in the well, in reach only leaning
   out from the east gallery's rail. Four zones: the wing, the atrium, the muster hall's west end ('muster'), and the overseer's
-  own ('ops': the Operations corridor and the hall's east bays, its speaker in the corridor, on Ops' feed, so it still calls
-  the hand to the overseer's door once the door's own switch is open). Cameras, nine: one down
+  own ('ops': the Operations corridor and the hall's east bays, its speaker in the corridor). Cameras, nine: one down
   the wing's corridor, dead until the cut is mended; one on the atrium's threshold; one down the Operations corridor; and six
   in the muster hall: on the hall's breaker its two west corners, the north wall over the court and one high in the court's
-  ceiling out of reach, and on the east bays' own switch (CTL), one in the north-east corner and one over the overseer's door. Mending the wing sounds
+  ceiling out of reach, and on the east bays' own breaker (EAST), one in the north-east corner and one by the operations stair. Mending the wing sounds
   it (its circuit comes live on the board).
 - **The overseer and its hand: built.** The overseer is grown into the operations room, a watcher at each of its screens
   and the body facing the glass. It sees you itself through the glass (and sounds the Operations zone, its speaker in the
@@ -525,8 +528,7 @@ cancerous growth, rather than a second level-sized area competing for attention.
   breaker, each of the staff it leaves in the dark has a fair chance (a quarter) to go at once to the board and throw it back
   on, so a crowd nearly always sends someone and one alone may not. Any other still in the dark later may go, the odds
   climbing until, three minutes on, it surely would (between 30 s and 180 s, most of them late). One who reaches the light
-  has stopped noticing; posts keep their posts. A breaker with no lights on it (the PA) leaves no one in the dark, so no one
-  comes for it. You hear it go back on. A cut cable is another thing: no one mends a cut cable by habit. That is why the
+  has stopped noticing; posts keep their posts. You hear it go back on. A cut cable is another thing: no one mends a cut cable by habit. That is why the
   survivors cut the wing's feed with bolt cutters instead of throwing its switch: the staff kept throwing it back.
 - **How much wit the staff have (agreed).** Habit and a hand. They keep rounds where they can see, answer an alarm by going
   to its speaker, go to the board when the lights go, slide a door, throw a switch. They do not reason: they do not hunt
@@ -540,7 +542,7 @@ reader with no card, one at a heavy door with no power, one under a camera, one 
 who stayed in Holding and gave up. Each teaches an obstacle before you meet it, without a word; the body with the flashlight is
 the first. No survivor's body is only dressing. (The officer at the checkpoint already reads this way: "Whatever opened him did
 it from behind." So does Reyes, a step short of the electrical room in the muster hall, whom the note in the locker room sent
-to blind the overseer at its breaker.)
+to blind the overseer at a breaker that, the board's schedule says, was never on it.)
 
 **The way out (proposed).** The surface lift needs more than Gen-1: it was damaged, and needs mending (one unique part, not a
 kit; see Power, above): that is why you are kept in. The other ways

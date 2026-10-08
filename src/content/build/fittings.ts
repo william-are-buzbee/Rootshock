@@ -178,8 +178,8 @@ export function panel(D: Deck, c: string, x: number, z: number, face: 'n' | 's' 
 export function camera(D: Deck, x: number, z: number, h: number, yaw: number, c: string, zone: string, o: { fov?: number; range?: number } = {}): void {
   D.cams.push({ x, z, h, yaw, fov: o.fov ?? 1.6, range: o.range ?? 18, c, zone });
 }
-/** a zone's speaker, in the ceiling over (x, z): where its alarm sounds and whatever answers it comes. It takes the power
- *  of the room it hangs in, and of its PA system (`pa`, a circuit) if it is on one */
+/** a zone's speaker, in the ceiling over (x, z): where its alarm sounds and whatever answers it comes. It is wired from
+ *  its PA system (`pa`, a circuit), not from the room it hangs in */
 export function speaker(D: Deck, zone: string, x: number, z: number, pa?: string): void {
   D.speakers.push({ zone, x, z, ...(pa ? { pa } : {}) });
 }

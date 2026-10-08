@@ -14,7 +14,7 @@ import type { Sim } from './sim';
    you, so there is time to step out. The alarm sounds from the zone's speaker for a while, and whatever hears it comes:
    the changed answer it from drill, to the speaker, not to you (sim/cast.ts, 'answer'), and the overseer's hand hears every
    one, wherever it is (sim/cast.ts, summon). The answers: keep out of its cone, cut its power, or smash it (loud); or
-   smash the zone's speaker (as loud), or cut its power or its PA's, and the zone has no voice: seen there, the doors
+   smash the zone's speaker (as loud), and the zone has no voice: seen there, the doors
    about you are still bolted, but nothing hears it and nothing comes.
    The cameras see for the overseer: on a level that has one, they go dark for good when it dies, and no alarm sounds
    again. It is flesh, not wiring (world.md §8): it watches the cameras with an eye at each of its screens and sounds the
@@ -65,12 +65,13 @@ export function speakerY(w: World, S: SpeakerDef): number {
 /** the zone's speaker is whole */
 export const voiced = (sim: Sim, zone: string): boolean => !sim.mute.includes(zone);
 
-/** the zone's speaker can sound: whole, with power where it hangs, and on its PA system if it has one. A dead one is
- *  as quiet as a smashed one: seen there, the doors are still bolted, but nothing hears it */
+/** the zone's speaker can sound: whole, and its PA system has power. A dead one is as quiet as a smashed one: seen there,
+ *  the doors are still bolted, but nothing hears it. (Security's PA is on critical power: in practice, only smashing it
+ *  quiets a zone.) */
 export function heard(sim: Sim, zone: string): boolean {
   if (!voiced(sim, zone)) return false;
-  const S = sim.world.def.speakers?.find(s => s.zone === zone), g = sim.game;
-  return !S || ((!S.circuit || power(g, S.circuit) >= 1) && (!S.pa || power(g, S.pa) >= 1));
+  const S = sim.world.def.speakers?.find(s => s.zone === zone);
+  return !S?.pa || power(sim.game, S.pa) >= 1;
 }
 
 /** the overseer's own room has power: its screens are lit for its eyes, and its board answers its hands. Without it, it

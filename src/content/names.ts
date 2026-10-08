@@ -2,9 +2,9 @@
 export const STATION_NAMES: Record<string, string> = {
   OPS: 'upper station',
   SEC: 'Security wing',
-  CTL: 'Operations room',
   HALL: 'Muster hall',
-  PA: 'Security PA',
+  EAST: 'Muster hall, east bays',
+  CRIT: 'Operations, critical',
   RES: 'main level',
   ENG: 'plant level',
   HYD: 'the sump',

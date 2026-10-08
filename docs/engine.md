@@ -299,8 +299,9 @@ components, not code threaded through the frame loop:
   never changes), and gives up where it gets no nearer for three seconds. On a level with an overseer the cameras see for
   it: dead, they are dark and no alarm sounds. A smashed speaker mutes its zone (`Sim.mute`): an alarm there still runs, so
   the bolts hold, but its klaxon never goes round, so nothing answers it; one sounded otherwise than by being seen does not
-  start. A speaker is used from below only, and hangs in its room's ceiling. It sounds only with power on its room's circuit
-  and on its PA's (`SpeakerDef.circuit`, `.pa`), so cutting either is an answer too (`heard` in `sim/eyes.ts`). Saves keep each camera's state, the muted zones
+  start. A speaker is used from below only, and hangs in its room's ceiling. It is wired from its PA (`SpeakerDef.pa`, a
+  circuit), not from its room, and sounds only while that has power (`heard` in `sim/eyes.ts`); Security's is critical
+  power, which nothing you can reach switches. Saves keep each camera's state, the muted zones
   and the alarms; the routes are made again.
 
 **As built in step 4.** The game's state is plain data in the sim (`sim/game.ts`): circuits and Gen-1, keys, what you

@@ -267,24 +267,25 @@ describe('the overseer is flesh: an eye at each of its screens, a hand on its bo
     expect(s.alarms.map(a => a.zone)).toContain('ops');
   });
 
-  it('its room\'s breaker darkens its screens and its board: no camera sees for it, and what it sees itself it cannot sound', () => {
-    const s = fresh(), c = threshold(s);
+  it('no breaker outside its walls reaches it: open the board and it still sees; only its critical feed would blind it', () => {
+    const s = fresh();
     still(s);
-    brk(s, 'Operations room').act();
-    expect(manned(s)).toBe(false);
-    expect(camLive(s, c)).toBe(false); // the camera has its own power: it is the eye at the screen that is in the dark
-    inView(s);
-    hold(s, 3);
-    expect(s.alarms).toEqual([]);
-    overseer(s).stun = 0; // awake, and looking
-    underGlass(s);
-    hold(s, 1);
-    expect(s.alarms).toEqual([]);
-    expect(overseer(s).dead).toBe(false); // alive; only blind and handless
-    brk(s, 'Operations room').act(); // on again: it sees again
+    brk(s, 'Muster hall:').act(); brk(s, 'Muster hall, east bays').act();
+    expect(manned(s)).toBe(true);
     inView(s);
     hold(s, EYES.hold + 0.3);
     expect(s.alarms.map(a => a.zone)).toContain('atrium');
+    /* its own panel, inside its walls (none of it built yet): cut there, its screens and board are dead */
+    const t = fresh(), o = overseer(t);
+    still(t);
+    t.game.station!.circuits.CRIT.on = false; t.lighting = null;
+    expect(manned(t)).toBe(false);
+    expect(camLive(t, threshold(t))).toBe(false); // the camera has its own power: it is the eye at the screen that is in the dark
+    o.stun = 0; // awake, and looking
+    underGlass(t);
+    hold(t, 1);
+    expect(t.alarms).toEqual([]);
+    expect(o.dead).toBe(false); // alive; only blind and handless
   });
 
   it('its door is grown shut: no way in on the first pass', () => {
@@ -300,7 +301,7 @@ describe('the overseer is flesh: an eye at each of its screens, a hand on its bo
 
 describe('the power-failure drill', () => {
   const brk = (s: Sim, name: string) => s.usables.find(u => new RegExp('Breaker, ' + name).test(u.label() ?? ''))!;
-  /** a husk on its rounds put in the hall's east bays, which hang off the operations room's breaker; everything else still */
+  /** a husk on its rounds put in the hall's east bays, which have their own breaker; everything else still */
   const setUp = () => {
     const s = fresh(), m = s.cast.find(q => q.ai === 'husk' && !q.post)!;
     for (const q of s.cast) if (q !== m) q.stun = 1e9;
@@ -312,10 +313,10 @@ describe('the power-failure drill', () => {
 
   it('those an opened breaker leaves in the dark are each given a time to go, within three minutes; posts and the lit are not', () => {
     const { s, m } = setUp();
-    brk(s, 'Operations room').act();
+    brk(s, 'Muster hall, east bays').act();
     expect(s.drills.length).toBe(1);
     const D = s.drills[0];
-    expect(D.c).toBe('CTL');
+    expect(D.c).toBe('EAST');
     const post = s.cast.find(q => q.post && q.y > 4)!; // the one kept at the grown door, in the dark with it
     expect(D.due.map(e => e.id)).toContain(m.id);
     expect(D.due.map(e => e.id)).not.toContain(post.id);
@@ -323,19 +324,19 @@ describe('the power-failure drill', () => {
       expect(e.at).toBeGreaterThan(0);
       expect(e.at).toBeLessThanOrEqual(180);
       const q = s.cast[e.id];
-      expect(s.world.roomAt(q.x, q.y + 0.5, q.z)?.circuit).toBe('CTL'); // every one of them caught by this breaker
+      expect(s.world.roomAt(q.x, q.y + 0.5, q.z)?.circuit).toBe('EAST'); // every one of them caught by this breaker
     }
   });
 
   it('one sent goes to the board and throws the breaker back on, and it is heard', () => {
     const { s, m } = setUp();
-    brk(s, 'Operations room').act();
+    brk(s, 'Muster hall, east bays').act();
     for (const e of s.drills[0].due) e.at = e.id === m.id ? 0.3 : 1e9;
     hold(s, 0.5);
     expect(m.state).toBe('fix');
     s.game.events.length = 0;
     let back = false;
-    for (let t = 0; t < 90 && !back; t += STEP) { step(s, noInput()); back = s.game.station!.circuits.CTL.on; }
+    for (let t = 0; t < 90 && !back; t += STEP) { step(s, noInput()); back = s.game.station!.circuits.EAST.on; }
     expect(back).toBe(true);
     expect(sounded(s, 'clang')).toBe(true);
     expect(s.drills).toEqual([]);
@@ -344,17 +345,17 @@ describe('the power-failure drill', () => {
 
   it('one who reaches the light has stopped noticing: the breaker stays open', () => {
     const { s, m } = setUp();
-    brk(s, 'Operations room').act();
+    brk(s, 'Muster hall, east bays').act();
     const b = m.body!; b.x = m.x = 30; b.z = m.z = 36; b.sync(); // into the lit west end
     for (const e of s.drills[0].due) e.at = e.id === m.id ? 0.3 : 1e9;
     hold(s, 1);
     expect(m.state).not.toBe('fix');
-    expect(s.game.station!.circuits.CTL.on).toBe(false);
+    expect(s.game.station!.circuits.EAST.on).toBe(false);
   });
 
   it('a save made while one goes to the board plays on the same', () => {
     const { s, m } = setUp();
-    brk(s, 'Operations room').act();
+    brk(s, 'Muster hall, east bays').act();
     for (const e of s.drills[0].due) e.at = e.id === m.id ? 0.3 : 1e9;
     hold(s, 2);
     const a = load(level, JSON.parse(JSON.stringify(save(s))), { seed: 7, station: STATION });
@@ -366,47 +367,33 @@ describe('the power-failure drill', () => {
 describe('the electrical room\'s board', () => {
   const brk = (s: Sim, name: string) => s.usables.find(u => new RegExp('Breaker, ' + name).test(u.label() ?? ''))!;
 
-  it('breaks Ops out to the muster hall, the operations room and the PA, each on its own breaker, side by side', () => {
-    const s = fresh(), b = ['Muster hall', 'Operations room', 'Security PA'].map(n => brk(s, n));
+  it('breaks Ops out to the hall and its east bays, side by side; its schedule says the operations room and the PA are not on it', () => {
+    const s = fresh(), b = ['Muster hall:', 'Muster hall, east bays'].map(n => brk(s, n));
     for (const u of b) expect(u.label()).toMatch(/: closed$/);
-    expect(Math.max(...b.map(u => Math.hypot(u.x - b[0].x, u.z - b[0].z)))).toBeLessThan(4);
+    expect(Math.hypot(b[1].x - b[0].x, b[1].z - b[0].z)).toBeLessThan(4);
+    expect(s.usables.filter(u => /^Breaker, /.test(u.label() ?? '')).length).toBe(2);
+    const sched = s.usables.find(u => u.label() === 'Read the panel schedule')!;
+    s.game.events.length = 0;
+    sched.act();
+    expect(s.game.events.some(e => e.type === 'say' && /CRITICAL LOADS.*NOT ON THIS BOARD/.test(e.text))).toBe(true);
   });
 
-  it('the hall\'s breaker darkens it and its own cameras, and its speaker with them; the east bays keep their power', () => {
+  it('the hall\'s breaker darkens it and its own cameras; the east bays keep theirs, and its speaker still sounds', () => {
     const s = fresh();
     still(s);
-    brk(s, 'Muster hall').act();
+    brk(s, 'Muster hall:').act();
     const hall = s.cams.filter(c => c.def.zone === 'muster');
     expect(hall.length).toBe(4);
     for (const c of hall) expect(power(s.game, c.def.circuit)).toBe(0);
-    expect(s.cams.filter(c => c.def.circuit === 'CTL').every(c => power(s.game, c.def.circuit) === 1)).toBe(true);
-    soundZone(s, 'muster'); // sounded otherwise than by being seen: with no power at its speaker, not at all
-    expect(s.alarms).toEqual([]);
+    expect(s.cams.filter(c => c.def.circuit === 'EAST').every(c => power(s.game, c.def.circuit) === 1)).toBe(true);
+    soundZone(s, 'muster'); // the PA is wired from critical power, not from the hall's lights
+    expect(s.alarms.map(a => a.zone)).toEqual(['muster']);
   });
 
-  it('the PA\'s breaker takes every zone\'s voice: seen, the doors are still bolted, but no klaxon and nothing comes', () => {
-    const s = fresh(), h = s.cast.find(m => m.type === 'hand')!;
-    for (const q of s.cast) if (q !== h) q.stun = 1e9;
-    brk(s, 'Security PA').act();
-    inView(s);
-    s.game.events.length = 0;
-    hold(s, EYES.hold + 0.3);
-    expect(s.alarms.map(a => a.zone)).toEqual(['atrium']); // it saw you
-    hold(s, 2);
-    expect(sounded(s, 'klaxon')).toBe(false);
-    expect(h.state).not.toBe('go');
-  });
-
-  it('cut while a zone sounds, its klaxon stops at its next round', () => {
+  it('the PA is critical power: every speaker is on it, and no breaker on the board touches it', () => {
     const s = fresh();
-    still(s);
-    place(s, 30, -4.5, -25);
-    soundZone(s, 'atrium');
-    hold(s, 2);
-    brk(s, 'Security PA').act();
-    s.game.events.length = 0;
-    hold(s, 3);
-    expect(sounded(s, 'klaxon')).toBe(false);
+    expect(level.speakers!.every(S => S.pa === 'CRIT')).toBe(true);
+    expect(s.usables.some(u => /Breaker, .*(PA|critical)/i.test(u.label() ?? ''))).toBe(false);
   });
 });
 

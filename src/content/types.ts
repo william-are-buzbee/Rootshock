@@ -185,9 +185,9 @@ export interface CameraDef {
 }
 
 /** a zone's speaker, where its alarm sounds: (x, y, z) the floor under it, which is where whatever answers it comes to */
-/** a zone's speaker: (x, y, z) the floor under it. It sounds only with power on its own circuit (the room it hangs in)
- *  and, if it is on one, on its PA system's */
-export interface SpeakerDef { zone: string; x: number; y: number; z: number; circuit?: string; pa?: string }
+/** a zone's speaker: (x, y, z) the floor under it. It is wired from its PA system (`pa`, a circuit), not from the room
+ *  it hangs in, and sounds only while that has power */
+export interface SpeakerDef { zone: string; x: number; y: number; z: number; pa?: string }
 
 export interface Start { x: number; y: number; z: number; yaw: number }
 
