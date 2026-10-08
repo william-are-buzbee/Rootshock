@@ -30,8 +30,8 @@ export const STATION: StationDef = {
     SEC: { on: true, back: false, broken: true, feed: 'OPS', tag: 'Security wing' },
     /* the muster hall, in two branches off the electrical room's board: the hall, and its east bays with the stair up to
        the operations room */
-    HALL: { on: true, back: false, feed: 'OPS', tag: 'Muster hall' },
-    EAST: { on: true, back: false, feed: 'OPS', tag: 'Muster hall, east bays' },
+    HALL: { on: true, back: false, feed: 'OPS', tag: 'Muster hall west' },
+    EAST: { on: true, back: false, feed: 'OPS', tag: 'Muster hall east' },
     /* critical operations power: the operations room and Security's PA, straight off Ops' set, their panel inside the
        operations room's own walls. Nothing outside them can switch it (world.md §8) */
     CRIT: { on: true, back: false, feed: 'OPS', tag: 'Operations, critical' },
