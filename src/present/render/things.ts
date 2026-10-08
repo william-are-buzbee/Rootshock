@@ -17,6 +17,8 @@ interface Moving {
   mesh: THREE.Object3D; mat: THREE.ShaderMaterial; place(): void;
   /** where its light is taken from, if not where it is now: a door is lit by its doorway, even slid up into the rock */
   litAt?: [number, number, number];
+  /** a door: lit from whichever side of it is brighter, this far either way (x, z) */
+  across?: [number, number];
 }
 
 /** a part of a fitting: a box (or other shape) of a colour, sized, tipped about z, and placed in the fitting's own frame */
@@ -162,10 +164,10 @@ export class Things {
         m.scale.set(long / 2, 1, 1);
         if (D.vent) m.visible = d.t < 0.5;
       };
-      const at: [number, number, number] = [(D.x0 + D.x1) / 2, D.y0, (D.z0 + D.z1) / 2];
-      this.add(parts(body), place, at);
+      const at: [number, number, number] = [(D.x0 + D.x1) / 2, D.y0, (D.z0 + D.z1) / 2], across: [number, number] = D.alongX ? [0, 0.6] : [0.6, 0];
+      this.add(parts(body), place, at, across);
       /* its lights show only with power enough to work it */
-      if (lights.length) this.add(parts(lights), m => { place(m); m.visible = this.L.power(D.circuit) >= need && !D.vent; }, at);
+      if (lights.length) this.add(parts(lights), m => { place(m); m.visible = this.L.power(D.circuit) >= need && !D.vent; }, at, across);
     }
     for (const p of sim.platforms) {
       const D = p.def;
@@ -235,11 +237,11 @@ export class Things {
     return mesh;
   }
 
-  private add(geo: THREE.BufferGeometry, place: (m: THREE.Mesh) => void, litAt?: [number, number, number]): void {
+  private add(geo: THREE.BufferGeometry, place: (m: THREE.Mesh) => void, litAt?: [number, number, number], across?: [number, number]): void {
     const mat = dynamicMaterial(), mesh = new THREE.Mesh(geo, mat);
     mesh.frustumCulled = false;
     this.scene.add(mesh);
-    this.list.push({ mesh, mat, place: () => place(mesh), litAt });
+    this.list.push({ mesh, mat, place: () => place(mesh), litAt, across });
   }
 
   /** a window's pane: faintly tinted glass in a dark frame, lit where it stands when the level is drawn */
@@ -281,7 +283,12 @@ export class Things {
       t.place();
       const p = t.litAt ? { x: t.litAt[0], y: t.litAt[1], z: t.litAt[2] } : t.mesh.position, w = this.sim.world;
       const R = w.roomAt(p.x, p.y + 0.3, p.z) ?? w.roomAt(p.x, p.y + 1.2, p.z);
-      const l = R ? this.L.lit(R.id, p.x, p.y + 0.3, p.z) : [0, 0, 0];
+      let l = R ? this.L.atPoint(p.x, p.y + 0.3, p.z) : [0, 0, 0];
+      if (R && t.across)
+        for (const k of [-1, 1]) {
+          const o = this.L.atPoint(p.x + k * t.across[0], p.y + 0.3, p.z + k * t.across[1]);
+          if (Math.max(...o) > Math.max(...l)) l = o;
+        }
       (t.mat.uniforms.uLight.value as THREE.Vector3).set(l[0], l[1], l[2]);
     }
   }

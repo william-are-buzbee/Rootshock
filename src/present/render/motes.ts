@@ -195,7 +195,7 @@ export class Motes {
     const gust = i >= N;
     if (!R) { this.room[i] = -1; if (!gust) this.alpha[i] = this.want[i] = 0; return; }
     this.room[i] = R.id;
-    const A = this.airOf(sim, R), s = this.seed[i], l = this.L.lit(R.id, x, y, z);
+    const A = this.airOf(sim, R), s = this.seed[i], l = this.L.atPoint(x, y, z);
     /* the room's own kind of speck, or ordinary dust among them */
     const own = KIND[A.kind], K = (s * 5.71) % 1 < own.share ? own : KIND.dust;
     /* pale flecks and dark grit: each its own shade of its kind's colour */

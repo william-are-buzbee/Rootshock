@@ -47,7 +47,6 @@ const RING_VS = /* glsl */ `
 attribute vec3 iPos; attribute float iSize; attribute vec3 iCol; attribute float iA; attribute vec3 iL;
 uniform vec3 uFlashDir; uniform float uFlash; uniform float uFog; uniform float uExpo;
 varying vec3 vC; varying float vA; varying vec2 vS;
-${LIFT}
 void main(){
   vec3 p = iPos + vec3(position.x * iSize, 0.0, position.z * iSize);
   vec3 tc = cameraPosition - p; float d = length(tc);
@@ -62,6 +61,7 @@ void main(){
 /* a ring is a square's edge; a wet patch (iCol's alpha flag in vA's sign) is a whole square */
 const RING_FS = /* glsl */ `
 varying vec3 vC; varying float vA; varying vec2 vS;
+${LIFT}
 void main(){
   float a = abs(vA), edge = max(abs(vS.x), abs(vS.y));
   if (vA > 0.0 && edge < 0.62) discard;

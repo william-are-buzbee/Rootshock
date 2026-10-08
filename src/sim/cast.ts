@@ -390,8 +390,7 @@ const lighting = (sim: Sim) => (sim.lighting ??= simLighting(sim));
 const LIT = 0.02;
 const lit = (sim: Sim, x: number, y: number, z: number) => Math.max(...lighting(sim).atPoint(x, y, z)) > LIT;
 function litRoom(sim: Sim, id: number): boolean {
-  const R = sim.world.rooms[id];
-  return Math.max(...lighting(sim).at(id, (R.x0 + R.x1) / 2, (R.z0 + R.z1) / 2)) > LIT;
+  return Math.max(...lighting(sim).room(id)) > LIT;
 }
 
 /** the rooms the cast's rounds can take them to, as the power stands: the lit ones */

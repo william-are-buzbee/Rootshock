@@ -60,7 +60,7 @@ export interface SimOpts {
 
 /** the level's light as things stand: the power, and lamps that went with whatever gave them */
 export function simLighting(sim: Sim): Lighting {
-  return new Lighting(sim.world, c => power(sim.game, c), i => !!sim.items[i]?.taken);
+  return new Lighting(sim.world, c => power(sim.game, c), i => !!sim.items[i]?.taken, d => sim.doors[d].t);
 }
 
 export function makeSim(level: LevelDef, o: SimOpts = {}): Sim {
@@ -145,6 +145,8 @@ export function step(sim: Sim, input: Input): void {
   for (const d of sim.doors) {
     if (updateDoor(d, rs, movers, power(g, d.def.circuit), STEP)) sfx(g, 'door', { x: (d.def.x0 + d.def.x1) / 2, y: d.def.y0, z: (d.def.z0 + d.def.z1) / 2 });
   }
+  /* light gets through a door as far as it stands open */
+  sim.lighting?.follow(k => sim.doors[k].t);
   for (const p of sim.platforms) {
     /* it lands with a thud and rattles on the way */
     const how = updatePlatform(p, rs, STEP), at = { x: (p.def.x0 + p.def.x1) / 2, y: p.y, z: (p.def.z0 + p.def.z1) / 2 };

@@ -7,7 +7,7 @@ import type { World } from '../world/world';
    light (what the cast see by) changes at once.
 
    A Staged lighting answers for each room as it was or as it will be; the cascade says which, frame by frame, and
-   which rooms changed, so only those are lit again. */
+   which rooms changed, so only their light is added again. */
 
 const rnd = (a: number, b: number) => a + Math.random() * (b - a);
 const sum = (c: Colour) => c[0] + c[1] + c[2];
@@ -15,13 +15,20 @@ const sum = (c: Colour) => c[0] + c[1] + c[2];
 /** a lighting part way from one power state to another: each room as it was, or as it will be */
 export class Staged extends Lighting {
   constructor(w: World, readonly from: Lighting, readonly to: Lighting, readonly on: Uint8Array) {
-    super(w, to.power);
+    super(w, to.power, undefined, d => to.open[d]);
   }
-  override at(room: number, x: number, z: number, y?: number): Colour {
-    return (this.on[room] ? this.to : this.from).at(room, x, z, y);
+  override colourOf(s: number): Colour {
+    const r = this.field.sources[s].room;
+    return (r >= 0 && !this.on[r] ? this.from : this.to).colourOf(s);
   }
-  override hasLamps(room: number): boolean {
-    return (this.on[room] ? this.to : this.from).hasLamps(room);
+  override room(id: number): Colour {
+    return (this.on[id] ? this.to : this.from).room(id);
+  }
+  /** these rooms have flipped */
+  flipped(rooms: Iterable<number>): void {
+    const src: number[] = [];
+    for (const r of rooms) if (this.field.roomSource[r] >= 0) src.push(this.field.roomSource[r]);
+    this.recolour(src);
   }
   override fittingIn(pw: [Colour, Colour], circuit: string, room: number): Colour {
     return room >= 0 && !this.on[room] ? this.from.fitting(pw, circuit) : this.to.fitting(pw, circuit);
@@ -48,7 +55,7 @@ export class Cascade {
     }
     const S = start >= 0 ? w.rooms[start] : null;
     for (const R of w.rooms) {
-      const a = from.at(R.id, (R.x0 + R.x1) / 2, (R.z0 + R.z1) / 2), b = to.at(R.id, (R.x0 + R.x1) / 2, (R.z0 + R.z1) / 2);
+      const a = from.room(R.id), b = to.room(R.id);
       if (sum(b) <= sum(a) + 0.01) continue;
       on[R.id] = 0;
       const far = S ? Math.hypot((R.x0 + R.x1 - S.x0 - S.x1) / 2, (R.z0 + R.z1 - S.z0 - S.z1) / 2) / 6 : 4;
@@ -80,6 +87,7 @@ export class Cascade {
       out.push(r);
       if (f[0] > t0 && f[0] <= t1) this.strike(r);
     });
+    if (out.length) this.L.flipped(out);
     return out;
   }
 }

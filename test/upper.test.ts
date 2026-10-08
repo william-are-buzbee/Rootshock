@@ -35,10 +35,7 @@ describe('the upper station', () => {
   });
 
   it('lights in two halves: the wing dead behind its cut, Ops on its backup set, Cargo dark', () => {
-    const at = (L: Lighting, name: string) => {
-      const R = level.rooms.find(r => r.name === name)!;
-      return L.at(R.id, (R.x0 + R.x1) / 2, (R.z0 + R.z1) / 2);
-    };
+    const at = (L: Lighting, name: string) => L.room(level.rooms.find(r => r.name === name)!.id);
     const L = new Lighting(sim.world, stationPower(STATION.circuits, STATION.main));
     expect(at(L, 'Isolation room 2')[0]).toBe(0); // the suite is the wing's, and dark with it
     expect(at(L, 'Security corridor')[0]).toBe(0); // the wing's feed is cut
@@ -59,7 +56,8 @@ describe('the upper station', () => {
     expect(wing[2]).toBeLessThan(wing[0] * 0.6);
     const full = new Lighting(sim.world, fullPower);
     const R = level.rooms.find(r => r.name === 'Cargo cavern')!;
-    expect(full.at(R.id, (R.x0 + R.x1) / 2, (R.z0 + R.z1) / 2)[0]).toBeGreaterThan(0.5);
+    expect(full.room(R.id)[0]).toBeGreaterThan(0.5);
+    expect(full.atPoint((R.x0 + R.x1) / 2, R.y0 + 1, (R.z0 + R.z1) / 2)[0]).toBeGreaterThan(0.5);
   });
 
   it('lights the suite by a flashlight dropped still on, which goes out when taken, and by its exit signs', () => {
@@ -68,13 +66,13 @@ describe('the upper station', () => {
     expect(mine.length).toBe(2); // a little round it, and its beam's pool
     const beam = mine.reduce((a, l) => (Math.hypot(l.x - F.x, l.z - F.z) > Math.hypot(a.x - F.x, a.z - F.z) ? l : a));
     const power = stationPower(STATION.circuits, STATION.main), on = new Lighting(sim.world, power), off = new Lighting(sim.world, power, i => i === k);
-    const lum = (L: Lighting, x: number, z: number, y?: number) => Math.max(...L.at(hall.id, x, z, y));
-    expect(lum(on, beam.x, beam.z, hall.y0)).toBeGreaterThan(0.3); // thrown low, at the wall
-    expect(lum(on, F.x, F.z, hall.y0)).toBeGreaterThan(0);
-    expect(lum(on, F.x, F.z, hall.y0 + hall.ht)).toBe(0); // and not up: the ceiling over it stays dark
-    expect(lum(off, beam.x, beam.z, hall.y0)).toBe(0);
-    expect(lum(off, F.x, F.z, hall.y0)).toBe(0);
-    expect(Math.max(...on.at(hall.id, hall.x0 + 2, hall.z1 - 2))).toBe(0); // the far corner: black
+    const lum = (L: Lighting, x: number, z: number, y = hall.y0 + 0.1) => Math.max(...L.atPoint(x, y, z));
+    expect(lum(on, beam.x, beam.z)).toBeGreaterThan(0.3); // thrown low, at the wall
+    expect(lum(on, F.x, F.z)).toBeGreaterThan(0);
+    expect(lum(on, F.x, F.z, hall.y0 + hall.ht - 0.1)).toBe(0); // and not up: the ceiling over it stays dark
+    expect(lum(off, beam.x, beam.z)).toBe(0);
+    expect(lum(off, F.x, F.z)).toBe(0);
+    expect(lum(on, hall.x0 + 2, hall.z1 - 2)).toBe(0); // the far corner: black
     /* the exit signs: green, a little light each, whatever the power */
     const signs = level.lamps.filter(l => l.colour[1] > l.colour[0] * 3);
     expect(signs.length).toBe(2);
@@ -133,8 +131,9 @@ describe('the upper station', () => {
     const lm = buildLevelMesh(sim.world, new Lighting(sim.world, fullPower)), geo = lm.geometry;
     const mesh = performance.now() - t1, verts = geo.getAttribute('position').count;
     const chunks = sim.world.grid.chunkCount;
-    const t2 = performance.now();
-    lm.relight(new Lighting(sim.world, stationPower(STATION.circuits, STATION.main)));
+    const t2 = performance.now(), L = new Lighting(sim.world, stationPower(STATION.circuits, STATION.main));
+    void L.colours;
+    lm.relight(L);
     const relight = performance.now() - t2;
     expect(relight).toBeLessThan(100);
     console.log(`relight on a power change: ${relight.toFixed(1)} ms`);
