@@ -143,7 +143,7 @@ const CC = [0x6a4a34, 0x3a5a6a, 0x5a5a3a, 0x6b5a3c, 0x4a4a52, 0x7a3a2a];
 export function container(D: Deck, x: number, z: number, ns: boolean, n = 1): void {
   for (let k = 0; k < n; k++) {
     const c = pick(CC);
-    bx(D, x, z, ns ? 2.4 : 5.4, 2.4, ns ? 5.4 : 2.4, c, { y: k * 2.4, c: k ? 0 : 1 });
+    bx(D, x, z, ns ? 2.4 : 5.4, 2.4, ns ? 5.4 : 2.4, c, { y: k * 2.4, c: k ? 0 : 1, mat: 'steel' });
     bx(D, x, z, ns ? 2.5 : 0.1, 2.2, ns ? 0.1 : 2.5, 0x2a2c2e, { y: k * 2.4 + 0.1, c: 0 });
   }
 }
@@ -156,7 +156,7 @@ export function crates(D: Deck, x: number, z: number, n: number): void {
   }
 }
 export function forklift(D: Deck, x: number, z: number, ns: boolean): void {
-  const a = (ox: number, oz: number, sx: number, sy: number, sz: number, c: number, y = 0, cl = false) => bx(D, x + (ns ? ox : oz) / T, z + (ns ? oz : ox) / T, ns ? sx : sz, sy, ns ? sz : sx, c, { y, c: cl ? 1 : 0 });
+  const a = (ox: number, oz: number, sx: number, sy: number, sz: number, c: number, y = 0, cl = false) => bx(D, x + (ns ? ox : oz) / T, z + (ns ? oz : ox) / T, ns ? sx : sz, sy, ns ? sz : sx, c, { y, c: cl ? 1 : 0, mat: 'steel' });
   a(0, 0, 1.2, 0.9, 2, 0xc9a227, 0.25, true); a(0, -0.3, 1.1, 0.08, 1.1, 0x2a2c2e, 2, false);
   for (const s of [-0.5, 0.5]) { a(s, -0.75, 0.07, 1.1, 0.07, 0x2a2c2e, 1.1); a(s, 0.2, 0.07, 1.1, 0.07, 0x2a2c2e, 1.1); a(s * 0.7, 1.15, 0.1, 2.4, 0.1, 0x2a2c2e, 0.1); a(s * 0.6, 1.7, 0.12, 0.06, 1.1, 0x8a8a84, 0.15); }
   for (const s of [-0.55, 0.55]) for (const q of [-0.65, 0.65]) P(D, 'cyl', x + (ns ? s : q) / T, z + (ns ? q : s) / T, 0.5, 0.3, 0.5, 0x15181b, { y: 0.1, c: 0, rz: ns ? PI / 2 : 0 });

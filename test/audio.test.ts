@@ -30,6 +30,32 @@ describe('feet', () => {
     expect(floorAt(up.world, b.x, b.y, b.z, up.platforms[0].dyn)).toBe('metal');
     expect(floorAt(up.world, b.x, b.y, b.z, up.loose.all[0].dyn)).toBe('wood');
   });
+
+  it('know what they stand on without being told: a container is steel, a crate wood, a cave rock round its boulders', () => {
+    const up = sim('upper'), w = up.world;
+    const box = w.def.props.find(p => p.mat === 'steel' && p.solid && p.sx > 5)!;
+    expect(floorAt(w, box.x, box.y + box.sy, box.z)).toBe('metal');
+    const c = up.loose.all[0].dyn;
+    expect(floorAt(w, (c.x0 + c.x1) / 2, c.y1, (c.z0 + c.z1) / 2)).toBe('wood');
+    /* the cargo cavern is rock; a step onto something in it that says nothing of itself is still rock, not grating */
+    const R = w.def.rooms.find(r => r.name === 'Cargo cavern')!;
+    expect(R.mat.floor).toBe('rock');
+  });
+});
+
+describe('what the station is made of', () => {
+  it('fitted rooms are concrete, walkways grating, caves rock, the Commons paved', () => {
+    const up = levelDef(STATION, 'upper'), main = levelDef(STATION, 'main'), cave = levelDef(STATION, 'cave');
+    expect(up.rooms.find(r => !r.plain && !r.doorway && r.sky === undefined)!.mat).toEqual({ floor: 'concrete', wall: 'concrete', ceiling: 'concrete' });
+    expect(main.rooms.find(r => r.name === 'Gallery')!.mat.floor).toBe('grating');
+    expect(main.rooms.find(r => r.name === 'The Commons')!.mat.floor).toBe('paving');
+    for (const s of cave.surfaces) expect(s.mat).toBe('rock');
+    for (const L of [up, main, cave]) {
+      for (const d of L.doors) expect(d.mat).toBe(d.glass ? 'glass' : 'steel');
+      for (const p of L.platforms) expect(p.mat).toBe('steel');
+      for (const p of L.props) if (p.loose) expect(p.mat).toBe('wood');
+    }
+  });
 });
 
 describe('a sound', () => {

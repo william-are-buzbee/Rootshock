@@ -1,3 +1,4 @@
+import type { Mat } from '../content/materials';
 import type { BlockDef, LevelDef, RoomDef, SurfaceDef, WaterDef } from '../content/types';
 import { CELL, Grid, blockCell } from './grid';
 import { meets, samples, segmentBox, type Box, type Footprint } from './shapes';
@@ -10,6 +11,8 @@ export interface Dyn extends Box {
   soft?: boolean;
   /** glass: it stops what moves, and what looks goes through it */
   glass?: boolean;
+  /** what it is made of, for what stands on it: a platform's deck, a crate's boards */
+  mat?: Mat;
 }
 
 /** what a query sees through: one moving thing, or a test for which */
@@ -68,8 +71,9 @@ export class World {
   /** the moving solids, kept up to date by the sim */
   readonly dyn: Dyn[] = [];
   private ids = 0;
-  /** fixed solids, bucketed by 2 m column so a query only looks at what is near */
-  private boxes = new Map<number, Box[]>();
+  /** fixed solids, bucketed by 2 m column so a query only looks at what is near; a prop's says what it is made of, if
+   *  its level does */
+  private boxes = new Map<number, (Box & { mat?: Mat })[]>();
   private static readonly B = 2;
 
   constructor(readonly def: LevelDef) {
@@ -91,13 +95,13 @@ export class World {
     for (const p of def.props) {
       if (!p.solid || p.loose) continue;
       const c = Math.abs(Math.cos(p.ry)), s = Math.abs(Math.sin(p.ry)), ex = (p.sx * c + p.sz * s) / 2, ez = (p.sx * s + p.sz * c) / 2;
-      this.addBox({ x0: p.x - ex, y0: p.y, z0: p.z - ez, x1: p.x + ex, y1: p.y + p.sy, z1: p.z + ez });
+      this.addBox({ x0: p.x - ex, y0: p.y, z0: p.z - ez, x1: p.x + ex, y1: p.y + p.sy, z1: p.z + ez, ...(p.mat ? { mat: p.mat } : {}) });
     }
     for (const c of def.colliders) this.addBox(c);
   }
 
   private bkey(i: number, k: number): number { return (k + 32768) * 65536 + (i + 32768); }
-  private addBox(b: Box): void {
+  private addBox(b: Box & { mat?: Mat }): void {
     const B = World.B;
     for (let k = Math.floor(b.z0 / B); k <= Math.floor(b.z1 / B); k++)
       for (let i = Math.floor(b.x0 / B); i <= Math.floor(b.x1 / B); i++) {
@@ -108,7 +112,7 @@ export class World {
       }
   }
   /** each fixed solid whose plan meets the footprint, once */
-  private boxesNear(f: Footprint, fn: (b: Box) => void): void {
+  private boxesNear(f: Footprint, fn: (b: Box & { mat?: Mat }) => void): void {
     const B = World.B, seen = new Set<Box>();
     for (let k = Math.floor((f.z - f.hz) / B); k <= Math.floor((f.z + f.hz) / B); k++)
       for (let i = Math.floor((f.x - f.hx) / B); i <= Math.floor((f.x + f.hx) / B); i++) {
@@ -332,5 +336,24 @@ export class World {
   roomAt(x: number, y: number, z: number): RoomDef | null {
     const c = this.grid.at(x, y, z);
     return c >= 0 ? this.rooms[c] : null;
+  }
+
+  /** what is underfoot at a point (feet at y): what `on` is made of, if that is what you stand on; else the top of
+   *  something there that says what it is (a crate's lid, a container's roof); else a sloped floor within a quarter
+   *  metre of your feet; else the floor of the room you are in */
+  floorMat(x: number, y: number, z: number, on: Dyn | null = null): Mat {
+    if (on) return on.mat ?? 'concrete';
+    const f: Footprint = { x, z, hx: 1e-4, hz: 1e-4, round: false };
+    let top: Mat | null = null;
+    const at = (b: Box & { mat?: Mat }) => { if (b.mat && Math.abs(b.y1 - y) < 0.05) top = b.mat; };
+    this.boxesNear(f, at);
+    this.dynNear(f, null, at);
+    if (top) return top;
+    for (const s of this.surfaces) {
+      const d = s.def;
+      if (d.kind !== 'floor' || d.hidden || x < d.x0 || x > d.x1 || z < d.z0 || z > d.z1 || !s.has(x, z)) continue;
+      if (Math.abs(s.heightAt(x, z) - y) < 0.25) return d.mat;
+    }
+    return this.roomAt(x, y + 0.3, z)?.mat.floor ?? 'concrete';
   }
 }

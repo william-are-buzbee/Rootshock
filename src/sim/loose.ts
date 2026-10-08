@@ -28,7 +28,7 @@ export interface Loose extends Rider {
 export function makeLoose(w: World, p: PropDef): Loose {
   const c = Math.abs(Math.cos(p.ry)), s = Math.abs(Math.sin(p.ry));
   const hx = (p.sx * c + p.sz * s) / 2, hz = (p.sx * s + p.sz * c) / 2;
-  const dyn: Dyn = { kind: 'loose', id: w.newId(), x0: 0, y0: 0, z0: 0, x1: 0, y1: 0, z1: 0 };
+  const dyn: Dyn = { kind: 'loose', id: w.newId(), x0: 0, y0: 0, z0: 0, x1: 0, y1: 0, z1: 0, mat: p.mat };
   const o: Loose = {
     prop: p, x: p.x, y: p.y, z: p.z, hx, hz, h: p.sy, vx: 0, vy: 0, vz: 0, awake: false, ground: true, still: 0, woke: 0, on: null, dyn,
     sync: () => syncLoose(o),

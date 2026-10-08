@@ -682,3 +682,42 @@ Each step ends with something you can open and play.
   and deployment → Source).
 - **`station-plan.md`**: dropped. It was an earlier idea; the station now lives in the level builders, which are the
   reference for its layout and coordinates.
+
+---
+
+## 15. Materials
+
+What things are made of, as one table (`content/materials.ts`) that the look, the sound and the sim all read, so
+"steel" means the same to each. Plain data: the rule that `sim/` and `world/` never touch three.js holds.
+
+- **Rule (proposed): a property goes in only when something reads it.** The table grows with what uses it, never
+  ahead of it. Anything that matters in play must also read at a glance under a flashlight.
+- **A thing is a body, a construction and a finish (proposed).** A crate is wood, hollow, stencilled; a light door
+  sheet steel over a hollow core, a heavy door solid steel. Only the body is built so far.
+
+**Step 1 (built): the table, and what stands on it.** Seven materials: concrete, paving, grating, steel, rock, wood,
+glass. Each says only its tread, the voice a foot comes down with (`present/audio.ts`). A room says what its floor, walls
+and ceiling are (`RoomDef.mat`); the authoring kit gives the usual ones (`tiles.room`: rock for a cave, grating for a
+walkway, paving under a sky, concrete for the rest), and a room can say otherwise (`mat:`). Sloped surfaces, doors
+and platforms say theirs; props may (a loose one is wood unless it says; containers and forklifts are steel). The
+world answers what is underfoot (`World.floorMat`): what you stand on if it moves, else the top of a thing that says
+what it is, else a sloped floor at your feet, else your room's floor. The footsteps ask it (`floorAt`), and sound as
+they did, but for three things the old guesses had wrong: a step onto something in a cave rang like grating, a
+container's roof and a forklift sounded like concrete, and the cast's feet on a crate or a platform were heard as
+the floor under it.
+
+**Next (proposed), in order:**
+
+1. **The look.** A material id per vertex; a highlight from the flashlight (tight and tinted on metal, broad on
+   paint and plastic, none on concrete and rock); detail from world position in the shader (block and mortar,
+   formwork, panel seams, ceiling tiles, grain), from one small noise texture made at startup and faded with
+   distance; bumps on rough surfaces; paint chipped to what is under it, grime toward the floor. Ceilings get their
+   services as geometry: pipe runs, cable trays, ducts. Measured on integrated graphics before going past the
+   highlight.
+2. **The sound.** One impact voice from material (its modes, how fast they die, how bright), construction (hollow,
+   sheet, grate, loose) and what strikes it (a boot, rubber, steel), scaled by size; it replaces the footstep switch
+   and the hand-made `crate`, `clang`, `thud` and blows on walls. Scraping is the same voice fed by noise.
+3. **The sim.** First, how loud a floor is underfoot feeds the noise you make (grating loud, rubber quiet), since the
+   cast already hunt by sound. Then materials against blunt, edge and prying force and weapon wear, which gives
+   world.md's brute force (§4) its content. Later: current (steel and water conduct), buoyancy, and the two tribes as
+   finishes that spread over surfaces and change what they do.
