@@ -748,18 +748,32 @@ their foot, in places brown streaks run down from the ceiling, blotches overhead
 bare concrete ceiling, 3 to 6 m high and at least 6 m long, get services along one long wall: a cable tray and two
 pipes on hangers, a quarter metre down. A suspended or plastered ceiling hides them.
 
-All of the look is surface detail, which the player can turn off (a checkbox by the brightness on the title and pause
-screens, kept between runs; `?detail=off` for one visit; M under `?dev`). Off, the shader skips the patterns, wear,
-bump and highlight, reckons the beam's facing from the eye, and the services (their own mesh) are hidden: the station
-as it looked before. The materials still say what footsteps sound like either way.
+All of the look (and, since step 3, the sound) is surface detail, which the player can turn off (a checkbox by the
+brightness on the title and pause screens, kept between runs; `?detail=off` for one visit; M under `?dev`). Off, the
+shader skips the patterns, wear, bump and highlight, reckons the beam's facing from the eye, and the services (their own
+mesh) are hidden: the station as it looked before.
+
+**Step 3 (built): the sound.** Each material says how it sounds struck (`ring`): a few modes over a base pitch, each
+with its loudness and how fast it dies; the click of the contact; grit that skitters off it; and how things of it are
+usually built (solid, hollow, a sheet over a frame, an open grate). One voice, `impact` in `present/audio.ts`, plays
+any strike from that and from what strikes it: how hard (a fist, rubber, steel) and how big (claws high, a heavy foot
+low). A hard strike brings out a ringing thing's bright partials, a soft one only its tone; a hollow thing booms, a
+grate rattles, rock and paving grit. Footsteps (yours and the cast's), claws, a crate landing (it and the floor) and
+being dragged, and a blow that meets a wall (`blow`, at the point it lands; `World.solidMat` says what is there) all
+go through it. Rendered offline and measured, the footsteps sit as loud as the old voices did; a steel or glass wall
+rings loudest, concrete and tile are dull. Puddles keep their own voice.
+
+Surface detail off brings back the old sound with the old look: the soundscape stops saying what things are made of
+(`Soundscape.materials`), the floor is guessed from the room as before (`legacyFloor`), and every sound plays its old
+voice.
 
 **Next (proposed), in order:**
 
 1. **The look, further.** Glossy floors catching the ceiling's tubes; paint chipped to what is under it; the
    tribes as finishes over a surface.
-2. **The sound.** One impact voice from material (its modes, how fast they die, how bright), construction (hollow,
-   sheet, grate, loose) and what strikes it (a boot, rubber, steel), scaled by size; it replaces the footstep switch
-   and the hand-made `crate`, `clang`, `thud` and blows on walls. Scraping is the same voice fed by noise.
+2. **The sound, further.** What a thing is built as, per thing rather than per material (a steel locker is hollow,
+   a steel plate solid); weapons and items with materials of their own, so the striker is data and not a guess from
+   the weapon; the thresher's charge into a wall; doors and the vent panel.
 3. **The sim.** First, how loud a floor is underfoot feeds the noise you make (grating loud, rubber quiet), since the
    cast already hunt by sound. Then materials against blunt, edge and prying force and weapon wear, which gives
    world.md's brute force (§4) its content. Later: current (steel and water conduct), buoyancy, and the two tribes as

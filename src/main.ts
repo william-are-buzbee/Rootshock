@@ -155,14 +155,15 @@ for (const el of brightIn) {
   });
 }
 
-/* surface detail: what walls, floors and ceilings are made of, drawn on them, and the services under bare ceilings; the
-   player's to turn off (title and pause screens, kept between runs; ?detail=off for one visit; ?dev, M), for the
+/* surface detail: what walls, floors and ceilings are made of, drawn on them and heard from them (footsteps, crates,
+   blows), and the services under bare ceilings; the player's to turn off (title and pause screens, kept between runs; ?detail=off for one visit; ?dev, M), for the
    station as it looked before. Looks only. */
 const DETAIL_KEY = 'rootshock-v2:detail', detailIn = [...document.querySelectorAll<HTMLInputElement>('input.detail')];
 let detail = params.get('detail') ? params.get('detail') !== 'off' : readStore(DETAIL_KEY) !== 'off';
 function showDetail(on: boolean, keep: boolean): void {
   detail = on;
   setDetail(on);
+  scape.materials = on;
   for (const lv of levels.values()) lv.showDetail(on);
   for (const o of detailIn) o.checked = on;
   if (keep) writeStore(DETAIL_KEY, on ? 'on' : 'off');

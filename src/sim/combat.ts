@@ -119,7 +119,8 @@ function strike(sim: Sim, w: WeaponStats, pow: number): void {
   }
   /* nothing there but the wall */
   const r = w.reach - 0.3, cy = A.ey - 0.3;
-  if (sim.world.raycast(A.ex, cy, A.ez, A.ex + pfx * r, cy, A.ez + pfz * r, seeThrough) < 1) { sfx(g, 'clang'); makeNoise(g, 8); landed(sim, 0.6); }
+  const hit = sim.world.raycast(A.ex, cy, A.ez, A.ex + pfx * r, cy, A.ez + pfz * r, seeThrough);
+  if (hit < 1) { sfx(g, 'blow', { x: A.ex + pfx * r * hit, y: cy, z: A.ez + pfz * r * hit }); makeNoise(g, 8); landed(sim, 0.6); }
 }
 
 /** a blow met something: the swing stops for a moment, and the view takes the jolt */
