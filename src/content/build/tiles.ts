@@ -506,18 +506,18 @@ export function finishLevel(start?: [number, number, number]) {
       const run = (off: number, d: number, drop: number, c: number) => {
         const [x, z] = at(L / 2, off);
         /* a cylinder lying along the run: tipped onto its side, then turned to the room's length; its middle `drop` down */
-        b.prop('cyl', x, z, d, L - 0.04, d, c, { y: top - drop - (L - 0.04) / 2, rz: PI / 2, ry: long ? 0 : PI / 2, solid: false, mat: 'steel', glow: DIM });
+        b.prop('cyl', x, z, d, L - 0.04, d, c, { y: top - drop - (L - 0.04) / 2, rz: PI / 2, ry: long ? 0 : PI / 2, solid: false, mat: 'steel', glow: DIM, services: true });
       };
       const [tx, tz] = at(L / 2, 0.22);
-      b.box(tx, tz, long ? L - 0.04 : 0.26, 0.05, long ? 0.26 : L - 0.04, 0x6b6e70, { y: top - 0.3, solid: false, mat: 'steel', glow: DIM });
+      b.box(tx, tz, long ? L - 0.04 : 0.26, 0.05, long ? 0.26 : L - 0.04, 0x6b6e70, { y: top - 0.3, solid: false, mat: 'steel', glow: DIM, services: true });
       const pipes = [0x3d5a44, 0x7a3a2a, 0x8a8a84, 0x4a5a6a];
       run(0.48, 0.11, 0.2, pipes[R.id % 4]);
       run(0.64, 0.07, 0.24, pipes[(R.id + 1) % 4]);
       for (let k = 1; k < L / 2; k++) {
         const [hx, hz] = at(k * 2, 0.22), [px, pz] = at(k * 2, 0.56);
-        b.box(hx, hz, 0.02, 0.25, 0.02, 0x3a3d40, { y: top - 0.25, solid: false, glow: DIM });
-        b.box(px, pz, long ? 0.03 : 0.3, 0.03, long ? 0.3 : 0.03, 0x3a3d40, { y: top - 0.15, solid: false, glow: DIM });
-        b.box(px, pz, 0.02, 0.12, 0.02, 0x3a3d40, { y: top - 0.15, solid: false, glow: DIM });
+        b.box(hx, hz, 0.02, 0.25, 0.02, 0x3a3d40, { y: top - 0.25, solid: false, glow: DIM, services: true });
+        b.box(px, pz, long ? 0.03 : 0.3, 0.03, long ? 0.3 : 0.03, 0x3a3d40, { y: top - 0.15, solid: false, glow: DIM, services: true });
+        b.box(px, pz, 0.02, 0.12, 0.02, 0x3a3d40, { y: top - 0.15, solid: false, glow: DIM, services: true });
       }
     }
     /* platforms between this deck and the one above */

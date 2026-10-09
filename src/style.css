@@ -25,6 +25,8 @@ canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
 .screen p.aside a { color: var(--hazard); }
 .screen p.bright { cursor: default; }
 .screen p.bright input { width: 12em; vertical-align: middle; margin-left: .6em; accent-color: var(--hazard); }
+.screen p.bright label.tick { margin-left: 1.6em; white-space: nowrap; }
+.screen p.bright label.tick input { width: auto; margin: 0 .35em 0 0; }
 
 /* the HUD and the panels, as the first engine had them */
 :root { --paper: #cfc7ae; --ink: #1d1a15; }

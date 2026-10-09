@@ -27,7 +27,9 @@ import { MATS, MAT_ORDER, type Mat, type Pattern } from '../../content/materials
    changes across the screen), and the gloss is the carried lights' highlight. The beam reaches what it reaches from
    your eye, but its facing and highlight are reckoned from your hand, a little below and to the right of the eye
    (uFlashPos), so the relief of what is close is raked by it. The fine detail fades with distance, where it would only
-   shimmer. The level's walls also show wear: grime at their foot, water run down from the ceiling in places. */
+   shimmer. The level's walls also show wear: grime at their foot, water run down from the ceiling in places.
+   All of it is surface detail, the player's to turn off (uDetail, setDetail): off, every surface is its flat colour
+   and the beam's facing is reckoned from the eye, as it was before materials were drawn. */
 
 const PATTERNS: Pattern[] = ['none', 'cast', 'block', 'plaster', 'tiles', 'glazed', 'flags', 'plate', 'mesh', 'rock', 'boards'];
 /** how many materials there are, with "none" at 0 */
@@ -294,7 +296,7 @@ vec3 field(vec3 p, vec3 n, out vec3 fl){
 #endif
 ${LIGHTS}
 uniform float uFog; uniform float uWet; uniform float uTime;
-uniform float uFlick; uniform float uHit; uniform float uBright; uniform float uExpo; uniform vec3 uFlashPos;
+uniform float uFlick; uniform float uHit; uniform float uBright; uniform float uExpo; uniform vec3 uFlashPos; uniform float uDetail;
 #if !defined(STATIC) && !defined(BAKED)
 uniform vec3 uLightF;
 #endif
@@ -310,8 +312,8 @@ void main(){
   /* what it is made of: the level's drawn where it is in the world, a moving thing's in its own frame */
   int pat = int(vLB.x + 0.5);
   float alb = 1.0, h = 0.0, gm = 1.0, det = 1.0 - smoothstep(9.0, 26.0, d);
-  bool walls = vRY.y > vRY.x;
-  if (pat > 0 && em == 0.0) {
+  bool walls = vRY.y > vRY.x, on = uDetail > 0.5;
+  if (on && pat > 0 && em == 0.0) {
 #ifdef STATIC
     surface(pat, vW, nf, walls ? vW.y - vRY.x : vW.y, det, alb, h, gm);
 #else
@@ -321,7 +323,7 @@ void main(){
   }
   /* wear, on the level's walls and ceilings: grime at the foot of a wall; in places, water run down from the
      ceiling, brown streaks fading as they go; blotches overhead */
-  if (vLB.y > 0.0 && walls && em == 0.0) {
+  if (on && vLB.y > 0.0 && walls && em == 0.0) {
     float k = vLB.y;
     if (abs(nf.y) < 0.5) {
       float g = (1.0 - smoothstep(0.0, 0.45, vW.y - vRY.x)) * (0.45 + 0.9 * n3(vW * 1.7));
@@ -333,11 +335,11 @@ void main(){
     } else if (nf.y < 0.0) alb *= 1.0 - 0.12 * k * smoothstep(0.6, 0.85, n3(vW * 0.5 + 2.0));
   }
   base *= alb;
-  vec3 nb = vLA.w > 0.0 && det > 0.0 ? bumped(nf, vW, h * vLA.w * det) : nf;
+  vec3 nb = on && vLA.w > 0.0 && det > 0.0 ? bumped(nf, vW, h * vLA.w * det) : nf;
   float sh = 0.55 + 0.45 * (abs(nb.y) * 0.95 + abs(nb.x) * 0.7 + abs(nb.z) * 0.5);
   /* the carried lights' facing, from your hand; the room's light comes from above, so a bump facing up takes more of it */
   vec3 Lf = normalize(uFlashPos - vW);
-  float facing = 0.35 + 0.65 * max(dot(nb, Lf), 0.0);
+  float facing = on ? 0.35 + 0.65 * max(dot(nb, Lf), 0.0) : 0.35 + 0.65 * abs(dot(n, Ld));
   float rel = clamp(1.0 + 1.1 * (nb.y - nf.y), 0.5, 1.5);
 #if defined(STATIC)
   vec3 fl, lv = field(vW, nf, fl);
@@ -350,7 +352,7 @@ void main(){
   light += vec3(0.014) / (1.0 + 3.0 * d * d) + carried(vW, facing) + lying(vW, nf) + vec3(uBright);
   vec3 c = mix(base * light, base, em);
   /* the highlight, of the flashlight and the lantern you carry: tight and tinted on metal, broad and white on paint */
-  if (vLA.x > 0.0 && em == 0.0) {
+  if (on && vLA.x > 0.0 && em == 0.0) {
     float tight = vLA.y, norm = (tight + 8.0) / 32.0;
     float sb = pow(max(dot(nb, normalize(Lf + Ld)), 0.0), tight), sl = pow(max(dot(nb, Ld), 0.0), tight);
     vec3 tint = mix(vec3(1.0), base * 2.2, vLA.z);
@@ -406,6 +408,8 @@ export const U = {
   uFlashDir: { value: new THREE.Vector3(0, 0, -1) },
   /** where the flashlight is held: a little below and right of the eye (camera.ts) */
   uFlashPos: { value: new THREE.Vector3() },
+  /** 1 to draw what surfaces are made of, 0 for their flat colours (setDetail) */
+  uDetail: { value: 1 },
   uFlash: { value: 0 },
   uLamp: { value: 0 },
   uFog: { value: 0.02 },
@@ -469,4 +473,10 @@ export function lightUniforms() {
 export function lightMaterial(mat: THREE.ShaderMaterial, l: readonly number[], f: readonly number[]): void {
   (mat.uniforms.uLight.value as THREE.Vector3).set(l[0], l[1], l[2]);
   (mat.uniforms.uLightF.value as THREE.Vector3).set(f[0], f[1], f[2]);
+}
+
+/** surface detail on or off: what surfaces are made of, their wear, the beam's highlight; the services under bare
+ *  ceilings are shown or hidden with it by each level's view (LevelView.showDetail) */
+export function setDetail(on: boolean): void {
+  U.uDetail.value = on ? 1 : 0;
 }

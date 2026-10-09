@@ -59,6 +59,8 @@ export interface PropOpts {
   pc?: string;
   /** what it is made of (a loose one: wood unless it says) */
   mat?: Mat;
+  /** part of a run of services under a bare ceiling */
+  services?: boolean;
 }
 
 /** heights relative to a floor or ceiling, as a function of plan position */
@@ -123,6 +125,7 @@ export class LevelBuilder {
     const p: PropDef = { shape, x, y, z, sx, sy, sz, ry: o.ry ?? 0, rz: o.rz ?? 0, colour: hex(c), glow: o.glow ?? 1, solid: solid || !!o.loose, loose: !!o.loose };
     const mat = o.mat ?? (o.loose ? 'wood' : undefined);
     if (mat) p.mat = mat;
+    if (o.services) p.services = true;
     if (o.pw) { p.pw = o.pw; p.pc = o.pc ?? this.def.circuit; }
     this.def.props.push(p);
     return p;

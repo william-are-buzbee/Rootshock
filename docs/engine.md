@@ -748,6 +748,11 @@ their foot, in places brown streaks run down from the ceiling, blotches overhead
 bare concrete ceiling, 3 to 6 m high and at least 6 m long, get services along one long wall: a cable tray and two
 pipes on hangers, a quarter metre down. A suspended or plastered ceiling hides them.
 
+All of the look is surface detail, which the player can turn off (a checkbox by the brightness on the title and pause
+screens, kept between runs; `?detail=off` for one visit; M under `?dev`). Off, the shader skips the patterns, wear,
+bump and highlight, reckons the beam's facing from the eye, and the services (their own mesh) are hidden: the station
+as it looked before. The materials still say what footsteps sound like either way.
+
 **Next (proposed), in order:**
 
 1. **The look, further.** Glossy floors catching the ceiling's tubes; paint chipped to what is under it; the

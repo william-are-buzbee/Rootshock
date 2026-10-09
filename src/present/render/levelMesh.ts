@@ -51,11 +51,14 @@ class Out {
   get count(): number { return this.P.length / 3; }
 }
 
-/** the level's mesh, and how to show the power in its fittings again */
+/** the level's mesh, and how to show the power in its fittings again. Its services (pipes and trays under bare
+ *  ceilings) are a geometry of their own, shown only with surface detail on */
 export class LevelMesh {
   readonly geometry = new THREE.BufferGeometry();
+  readonly services: THREE.BufferGeometry | null;
   private col: Float32Array;
-  constructor(private o: Out) {
+  constructor(private o: Out, extra: Out) {
+    this.services = extra.count ? plain(extra) : null;
     this.col = new Float32Array(o.C);
     const light = new Float32Array(o.m);
     this.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(o.P), 3));
@@ -89,6 +92,17 @@ export class LevelMesh {
   }
 }
 
+/** a geometry of fixed things whose colour never changes */
+function plain(o: Out): THREE.BufferGeometry {
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(o.P), 3));
+  g.setAttribute('aCol', new THREE.BufferAttribute(new Float32Array(o.C), 3));
+  g.setAttribute('aLight', new THREE.BufferAttribute(new Float32Array(o.m), 1));
+  g.setAttribute('aMat', new THREE.BufferAttribute(new Float32Array(o.M), 1));
+  g.setAttribute('aRoomY', new THREE.BufferAttribute(new Float32Array(o.RY), 2));
+  return g;
+}
+
 /** cut [lo, hi] at each of `at` that falls inside it */
 function cuts(lo: number, hi: number, at: number[]): [number, number][] {
   const xs = [lo, ...at.filter(x => x > lo + 1e-6 && x < hi - 1e-6).sort((p, q) => p - q), hi];
@@ -106,7 +120,7 @@ const odd = (a: number, b: number): boolean => ((Math.floor(a / 2) + Math.floor(
 
 /** build the level's mesh, its fittings showing the power as L has it */
 export function buildLevelMesh(w: World, L: Lighting): LevelMesh {
-  const g = w.grid, o = new Out(w.rooms);
+  const g = w.grid, o = new Out(w.rooms), extra = new Out(w.rooms);
 
   /* a rectangle in a room */
   const put = (a: number, s: number, u0: number, u1: number, v0: number, v1: number, room: number, c: Colour, m: number, mat: number) =>
@@ -230,12 +244,12 @@ export function buildLevelMesh(w: World, L: Lighting): LevelMesh {
   w.def.props.forEach((p, k) => {
     if (p.loose) return;
     const R = w.roomAt(p.x, p.y + 0.05, p.z) ?? w.roomAt(p.x, p.y + p.sy / 2, p.z), src: Src = { room: R ? R.id : -1, m: p.glow, mat: matId(p.mat) };
-    const first = o.count, e = apart(k);
-    propVerts({ ...p, sx: p.sx + 2 * e, sy: p.sy + 2 * e, sz: p.sz + 2 * e, y: p.y - e }, (x, y, z) => o.vert(x, y, z, p.colour, src));
-    if (p.pw) o.pw.push([first, o.count - first, p.pw, p.pc ?? w.def.circuit]);
+    const to = p.services ? extra : o, first = to.count, e = apart(k);
+    propVerts({ ...p, sx: p.sx + 2 * e, sy: p.sy + 2 * e, sz: p.sz + 2 * e, y: p.y - e }, (x, y, z) => to.vert(x, y, z, p.colour, src));
+    if (p.pw) to.pw.push([first, to.count - first, p.pw, p.pc ?? w.def.circuit]);
   });
 
-  const mesh = new LevelMesh(o);
+  const mesh = new LevelMesh(o, extra);
   mesh.relight(L);
   return mesh;
 }

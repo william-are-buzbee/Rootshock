@@ -75,6 +75,9 @@ export interface PropDef {
   loose: boolean;
   /** what it is made of, where something asks (a loose one is stood on: wood unless it says) */
   mat?: Mat;
+  /** part of a run of services under a bare ceiling (pipes, a tray, their hangers): dressing only, drawn with surface
+   *  detail on (render/shader.ts) */
+  services?: boolean;
   /** a fitting that shows power: colour when its circuit is dead, and when it is live */
   pw?: [Colour, Colour];
   /** the circuit for pw */
