@@ -1,5 +1,6 @@
 import { PI, clamp, hex, scale3, type Colour } from '../../core/math';
 import type { Rng } from '../../core/rng';
+import { CAVERN, DOORWAY, FITTED, STREET, WALKWAY, type Mat, type RoomMats } from '../materials';
 import type { Aim, LadderDef, LitRule, Motes, Shape } from '../types';
 import { LevelBuilder, type Palette } from './builder';
 
@@ -33,6 +34,9 @@ export interface TRoomOpts {
   /** what hangs in its air, if not dust */
   motes?: Motes;
   sky?: number;
+  /** what its floor, walls and ceiling are made of, where not the usual: rock for a cave, grating for a walkway, paving
+   *  under a sky, concrete for the rest */
+  mat?: Partial<RoomMats>;
   /** its floor this far over the deck's (under it, if negative): a sunken court. Its ceiling rides on its floor */
   dy?: number;
   nolamp?: number | boolean; noroam?: number | boolean; safe?: number | boolean;
@@ -42,7 +46,7 @@ export interface TRoom {
   id: number; name: string; x: number; y: number; w: number; h: number;
   ht: number; dy: number; fl: number; wl: number; st: number;
   lit: LitRule; lc: Colour; em: boolean; c: string; flick: boolean;
-  open: boolean; hole: string | null; cave: boolean; air: boolean; sky?: number; motes?: Motes;
+  open: boolean; hole: string | null; cave: boolean; air: boolean; sky?: number; motes?: Motes; mat: RoomMats;
   nolamp: boolean; noroam: boolean; safe: boolean;
   /** a cave of any outline (caveShape): its tiles are the deck's tiles marked with its id, and x, y, w, h bound them */
   shaped?: boolean;
@@ -57,7 +61,7 @@ export interface TDoorOpts {
 
 interface TProp {
   shape: Shape; x: number; z: number; y: number; sx: number; sy: number; sz: number; c: Colour;
-  ry: number; rz: number; glow: number; pw: [Colour, Colour] | null; pc: string | null; solid: boolean; loose: boolean;
+  ry: number; rz: number; glow: number; pw: [Colour, Colour] | null; pc: string | null; solid: boolean; loose: boolean; mat?: Mat;
 }
 
 /** a level as the first engine described it, before it is compiled */
@@ -139,6 +143,7 @@ export function room(D: Deck, name: string, x: number, y: number, w: number, h: 
     id: D.rooms.length, name, x, y, w, h, ht: o.ht ?? 3.2, dy: o.dy ?? 0, fl: o.fl ?? 0x6b6e6a, wl: o.wl ?? 0x7c7f7a, st: o.st ?? 0x555555,
     lit: o.lit ?? 'main', lc: o.lc ?? WHITE, em: !!o.em, c: o.c ?? D.c, flick: !!o.flick,
     open: !!o.open, hole: o.hole ? String(o.hole) : null, cave: !!o.cave, air: !!o.air, ...(o.sky !== undefined ? { sky: o.sky } : {}), ...(o.motes ? { motes: o.motes } : {}),
+    mat: { ...(o.cave ? CAVERN : o.open ? WALKWAY : o.sky !== undefined ? STREET : FITTED), ...o.mat },
     nolamp: !!o.nolamp, noroam: !!o.noroam, safe: !!o.safe,
   };
   D.rooms.push(r);
@@ -153,12 +158,12 @@ export function door(D: Deck, x: number, y: number, o: TDoorOpts = {}): void {
 }
 
 /* ---- props, in tile units with sizes in metres */
-export interface POpts { y?: number; ry?: number; rz?: number; glow?: number; pw?: [Col, Col]; pc?: string; c?: 0 | 1; loose?: boolean }
+export interface POpts { y?: number; ry?: number; rz?: number; glow?: number; pw?: [Col, Col]; pc?: string; c?: 0 | 1; loose?: boolean; mat?: Mat }
 export function P(D: Deck, shape: Shape, x: number, z: number, sx: number, sy: number, sz: number, c: Col, o: POpts = {}): void {
   const y = o.y ?? 0, solid = o.c === 1 || (o.c !== 0 && sy >= 0.3 && y < 1.6 && shape !== 'ico');
   D.props.push({
     shape, x: x * T, z: z * T, y, sx, sy, sz, c: col(c), ry: o.ry ?? 0, rz: o.rz ?? 0, glow: o.glow ?? 0,
-    pw: o.pw ? [col(o.pw[0]), col(o.pw[1])] : null, pc: o.pc ?? null, solid: solid || !!o.loose, loose: !!o.loose,
+    pw: o.pw ? [col(o.pw[0]), col(o.pw[1])] : null, pc: o.pc ?? null, solid: solid || !!o.loose, loose: !!o.loose, ...(o.mat ? { mat: o.mat } : {}),
   });
 }
 export const bx = (D: Deck, x: number, z: number, sx: number, sy: number, sz: number, c: Col, o?: POpts): void => P(D, 'box', x, z, sx, sy, sz, c, o);
@@ -380,6 +385,7 @@ export function finishLevel(start?: [number, number, number]) {
       const opts = {
         pal: { fl: R.fl, wl: R.wl, st: R.st } as Palette, lit: R.lit, lc: R.lc, em: R.em, circuit: R.c, flick: R.flick,
         nolamp: true, plain: R.open || R.cave, safe: R.safe, noroam: R.noroam, ...(R.sky !== undefined ? { sky: R.sky } : {}), motes: R.motes,
+        mat: R.mat,
       };
       const x0 = X(D, R.x), z0 = Z(D, R.y), x1 = X(D, R.x + R.w), z1 = Z(D, R.y + R.h);
       if (R.cave) {
@@ -402,7 +408,7 @@ export function finishLevel(start?: [number, number, number]) {
     /* doorways, and the doors in them */
     for (const [k, d] of D.doors) {
       const x0 = X(D, d.x), z0 = Z(D, d.y), cx = x0 + T / 2, cz = z0 + T / 2;
-      b.room('', x0, z0, x0 + T, z0 + T, { pal: { fl: 0, wl: 0, st: 0 }, y0: D.y0, ht: 2.4, doorway: true, nolamp: true, lit: 'main', circuit: D.c });
+      b.room('', x0, z0, x0 + T, z0 + T, { pal: { fl: 0, wl: 0, st: 0 }, y0: D.y0, ht: 2.4, doorway: true, nolamp: true, lit: 'main', circuit: D.c, mat: DOORWAY });
       const R = b.level.rooms[b.level.rooms.length - 1];
       R.floor = DOORPAL.fl; R.wall = DOORPAL.wl; R.stripe = DOORPAL.st;
       const ns = !!(D.g[k - D.W] && D.g[k + D.W]), heavy = d.kind === 'heavy', th = heavy ? 0.36 : d.vent ? 0.12 : 0.14;
@@ -437,13 +443,14 @@ export function finishLevel(start?: [number, number, number]) {
         if (!D.g[k] || (R && (R.hole || (R.air && through(k)))) || (D.ground && !dnAt(D, k))) return null;
         return R?.open ? R.fl : -1;
       };
+      /* a walkway's is grating, as its floor is; a room's is concrete */
       for (let j = 0; j < D.H; j++)
         for (let i = 0; i < D.W; ) {
           const c = slabAt(j * D.W + i);
           if (c === null) { i++; continue; }
           let n = 1;
           while (i + n < D.W && slabAt(j * D.W + i + n) === c) n++;
-          b.block(X(D, i), D.y0 - SLAB, Z(D, j), X(D, i + n), D.y0, Z(D, j + 1), (c >= 0 ? hex(c) : DOORPAL.fl) as Colour);
+          b.block(X(D, i), D.y0 - SLAB, Z(D, j), X(D, i + n), D.y0, Z(D, j + 1), (c >= 0 ? hex(c) : DOORPAL.fl) as Colour, c >= 0 ? 'grating' : 'concrete');
           i += n;
         }
     }
@@ -485,6 +492,34 @@ export function finishLevel(start?: [number, number, number]) {
         b.vent(gx, gy - 0.05, gz);
       }
     }
+    /* services under a bare ceiling (a suspended or plastered one hides them): along a room's length, by one of its
+       long walls, a cable tray and two pipes on hangers, a quarter metre down. Only in rooms tall enough that they
+       clear the doors with room to spare, and not in the halls, whose ceilings are too far up to show them. */
+    for (const R of D.rooms) {
+      if (R.open || R.hole || R.cave || R.shaped || R.air || R.sky !== undefined || R.mat.ceiling !== 'concrete' || R.ht < 3 || R.ht > 6 || Math.max(R.w, R.h) < 3) continue;
+      /* up among the light fittings they would take the full glare of them: they are lit as if a little shaded */
+      const long = R.w >= R.h, side = R.id % 2, top = D.y0 + R.dy + R.ht, DIM = 0.5;
+      /* a run's length, and where along and across the room it lies: `off` metres in from the wall on its side */
+      const L = (long ? R.w : R.h) * T, a0 = long ? X(D, R.x) : Z(D, R.y);
+      const across = (off: number) => (long ? Z(D, side ? R.y + R.h : R.y) + (side ? -off : off) : X(D, side ? R.x + R.w : R.x) + (side ? -off : off));
+      const at = (along: number, off: number): [number, number] => (long ? [a0 + along, across(off)] : [across(off), a0 + along]);
+      const run = (off: number, d: number, drop: number, c: number) => {
+        const [x, z] = at(L / 2, off);
+        /* a cylinder lying along the run: tipped onto its side, then turned to the room's length; its middle `drop` down */
+        b.prop('cyl', x, z, d, L - 0.04, d, c, { y: top - drop - (L - 0.04) / 2, rz: PI / 2, ry: long ? 0 : PI / 2, solid: false, mat: 'steel', glow: DIM, services: true });
+      };
+      const [tx, tz] = at(L / 2, 0.22);
+      b.box(tx, tz, long ? L - 0.04 : 0.26, 0.05, long ? 0.26 : L - 0.04, 0x6b6e70, { y: top - 0.3, solid: false, mat: 'steel', glow: DIM, services: true });
+      const pipes = [0x3d5a44, 0x7a3a2a, 0x8a8a84, 0x4a5a6a];
+      run(0.48, 0.11, 0.2, pipes[R.id % 4]);
+      run(0.64, 0.07, 0.24, pipes[(R.id + 1) % 4]);
+      for (let k = 1; k < L / 2; k++) {
+        const [hx, hz] = at(k * 2, 0.22), [px, pz] = at(k * 2, 0.56);
+        b.box(hx, hz, 0.02, 0.25, 0.02, 0x3a3d40, { y: top - 0.25, solid: false, glow: DIM, services: true });
+        b.box(px, pz, long ? 0.03 : 0.3, 0.03, long ? 0.3 : 0.03, 0x3a3d40, { y: top - 0.15, solid: false, glow: DIM, services: true });
+        b.box(px, pz, 0.02, 0.12, 0.02, 0x3a3d40, { y: top - 0.15, solid: false, glow: DIM, services: true });
+      }
+    }
     /* platforms between this deck and the one above */
     for (const E of D.elevs) b.platform(X(D, E.tx), Z(D, E.tz), X(D, E.tx + E.w), Z(D, E.tz + E.h), E.lo.y0, E.hi.y0, 0x4a4f55, { name: E.name, circuit: E.c });
     /* stairs: a hidden ramp under visible steps */
@@ -505,7 +540,7 @@ export function finishLevel(start?: [number, number, number]) {
     /* props, colliders, lamps */
     for (const p of D.props)
       b.prop(p.shape, px(D, p.x), pz(D, p.z), p.sx, p.sy, p.sz, p.c, {
-        y: floorY(D, p.x, p.z) + p.y, ry: p.ry, rz: p.rz, glow: p.glow ? 3 : 1, solid: p.solid, loose: p.loose,
+        y: floorY(D, p.x, p.z) + p.y, ry: p.ry, rz: p.rz, glow: p.glow ? 3 : 1, solid: p.solid, loose: p.loose, mat: p.mat,
         ...(p.pw ? { pw: p.pw, pc: p.pc ?? D.c } : {}),
       });
     for (const [x0, z0, x1, z1, lo, hi] of D.cols) {
@@ -533,7 +568,7 @@ export function finishLevel(start?: [number, number, number]) {
 /* A deck's caves of any outline: each a room carved tile by tile (from just under its floor to just over its roof there),
    all of them under one floor and one roof, masked to their tiles. One surface, so where two caves meet the floor and
    the roof run on without a seam; a roof's height over a corner is the floor there, plus the tallest headroom of the
-   caves that share the corner, plus the ceiling field. Their palette is the first cave's. */
+   caves that share the corner, plus the ceiling field. Their palette and materials are the first cave's. */
 function shapedCaves(b: LevelBuilder, D: Deck): void {
   const S = D.rooms.filter(R => R.shaped && R.w > 0);
   if (!S.length) return;
@@ -571,11 +606,11 @@ function shapedCaves(b: LevelBuilder, D: Deck): void {
     const x0 = D.org[0] + R.x * T, z0 = D.org[1] + R.y * T;
     const r = b.room(R.name, x0, z0, x0 + lw * T, z0 + lz * T, {
       pal: { fl: R.fl, wl: R.wl, st: R.st }, lit: R.lit, lc: R.lc, em: R.em, circuit: R.c, flick: R.flick,
-      nolamp: true, plain: true, safe: R.safe, noroam: R.noroam, y0: ylo, ht: yhi - ylo, motes: R.motes,
+      nolamp: true, plain: true, safe: R.safe, noroam: R.noroam, y0: ylo, ht: yhi - ylo, motes: R.motes, mat: R.mat,
     });
     r.cells = { res: T, nx: lw, nz: lz, lo: clo, hi: chi };
   }
   const x0 = D.org[0] + i0 * T, z0 = D.org[1] + j0 * T, x1 = D.org[0] + i1 * T, z1 = D.org[1] + j1 * T, P0 = S[0];
-  b.lattice('floor', x0, z0, x1, z1, T, nx, nz, fl, Math.floor(lo / q) * q - q, P0.fl, mask);
-  b.lattice('ceiling', x0, z0, x1, z1, T, nx, nz, cl, Math.ceil(hi / q) * q + q, scale3(hex(P0.wl), 0.6), mask);
+  b.lattice('floor', x0, z0, x1, z1, T, nx, nz, fl, Math.floor(lo / q) * q - q, P0.fl, P0.mat.floor, mask);
+  b.lattice('ceiling', x0, z0, x1, z1, T, nx, nz, cl, Math.ceil(hi / q) * q + q, scale3(hex(P0.wl), 0.6), P0.mat.ceiling, mask);
 }

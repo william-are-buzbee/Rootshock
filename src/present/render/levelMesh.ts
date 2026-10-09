@@ -3,7 +3,8 @@ import { scale3, type Colour } from '../../core/math';
 import { CELL, CHUNK } from '../../world/grid';
 import type { Surface, World } from '../../world/world';
 import type { Lighting } from '../../world/light';
-import type { PropDef } from '../../content/types';
+import type { PropDef, RoomDef } from '../../content/types';
+import { matId } from './shader';
 import { TEMPLATES } from './templates';
 
 /* The level's static mesh. Flat surfaces come from the grid: wherever open space meets solid, there is a face, coloured by
@@ -14,43 +15,57 @@ import { TEMPLATES } from './templates';
 
    The light itself is read by the shader from the level's light field, pixel by pixel (lightVolume.ts); a vertex says
    only how much of it its surface takes (a ceiling less, a lit fitting more). When the power changes, only the fittings'
-   colours here change (LevelMesh.relight). */
+   colours here change (LevelMesh.relight).
 
-/** a vertex's light: which room it is in (for its fitting's colour), and how much it takes */
-interface Src { room: number; m: number }
+   Each vertex also carries what it is made of (content/materials.ts, numbered by matId), and the floor and ceiling
+   heights of its room, for the shader to draw the material and its wear from. */
+
+/** a vertex's light: which room it is in (for its fitting's colour), and how much it takes; and what it is made of */
+interface Src { room: number; m: number; mat: number }
 
 class Out {
+  constructor(private rooms: RoomDef[]) {}
   P: number[] = [];
   C: number[] = [];
   room: number[] = [];
   m: number[] = [];
+  M: number[] = [];
+  RY: number[] = [];
   /** fittings whose colour shows power: [first vertex, count, which] */
   pw: [number, number, [Colour, Colour], string][] = [];
   vert(x: number, y: number, z: number, c: Colour, src: Src): void {
     this.P.push(x, y, z);
     this.C.push(c[0], c[1], c[2]);
     this.room.push(src.room); this.m.push(src.m);
+    const R = src.room >= 0 ? this.rooms[src.room] : null;
+    this.M.push(src.mat);
+    this.RY.push(R ? R.y0 : 0, R ? R.y0 + R.ht : 0);
   }
   /** a rectangle on plane `a` (0 x, 1 y, 2 z) at `s`, spanning [u0, u1] x [v0, v1] on the other two axes in order */
-  rect(a: number, s: number, u0: number, u1: number, v0: number, v1: number, c: Colour, room: number, m: number): void {
+  rect(a: number, s: number, u0: number, u1: number, v0: number, v1: number, c: Colour, room: number, m: number, mat = 0): void {
     const pt = (u: number, v: number): [number, number, number] =>
       a === 0 ? [s, u, v] : a === 1 ? [u, s, v] : [u, v, s];
     const q = [pt(u0, v0), pt(u1, v0), pt(u1, v1), pt(u0, v1)];
-    for (const k of [0, 1, 2, 0, 2, 3]) this.vert(q[k][0], q[k][1], q[k][2], c, { room, m });
+    for (const k of [0, 1, 2, 0, 2, 3]) this.vert(q[k][0], q[k][1], q[k][2], c, { room, m, mat });
   }
   get count(): number { return this.P.length / 3; }
 }
 
-/** the level's mesh, and how to show the power in its fittings again */
+/** the level's mesh, and how to show the power in its fittings again. Its services (pipes and trays under bare
+ *  ceilings) are a geometry of their own, shown only with surface detail on */
 export class LevelMesh {
   readonly geometry = new THREE.BufferGeometry();
+  readonly services: THREE.BufferGeometry | null;
   private col: Float32Array;
-  constructor(private o: Out) {
+  constructor(private o: Out, extra: Out) {
+    this.services = extra.count ? plain(extra) : null;
     this.col = new Float32Array(o.C);
     const light = new Float32Array(o.m);
     this.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(o.P), 3));
     this.geometry.setAttribute('aCol', new THREE.BufferAttribute(this.col, 3));
     this.geometry.setAttribute('aLight', new THREE.BufferAttribute(light, 1));
+    this.geometry.setAttribute('aMat', new THREE.BufferAttribute(new Float32Array(o.M), 1));
+    this.geometry.setAttribute('aRoomY', new THREE.BufferAttribute(new Float32Array(o.RY), 2));
   }
   /** every fitting's colour under this lighting */
   relight(L: Lighting): void {
@@ -77,6 +92,17 @@ export class LevelMesh {
   }
 }
 
+/** a geometry of fixed things whose colour never changes */
+function plain(o: Out): THREE.BufferGeometry {
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(o.P), 3));
+  g.setAttribute('aCol', new THREE.BufferAttribute(new Float32Array(o.C), 3));
+  g.setAttribute('aLight', new THREE.BufferAttribute(new Float32Array(o.m), 1));
+  g.setAttribute('aMat', new THREE.BufferAttribute(new Float32Array(o.M), 1));
+  g.setAttribute('aRoomY', new THREE.BufferAttribute(new Float32Array(o.RY), 2));
+  return g;
+}
+
 /** cut [lo, hi] at each of `at` that falls inside it */
 function cuts(lo: number, hi: number, at: number[]): [number, number][] {
   const xs = [lo, ...at.filter(x => x > lo + 1e-6 && x < hi - 1e-6).sort((p, q) => p - q), hi];
@@ -94,11 +120,11 @@ const odd = (a: number, b: number): boolean => ((Math.floor(a / 2) + Math.floor(
 
 /** build the level's mesh, its fittings showing the power as L has it */
 export function buildLevelMesh(w: World, L: Lighting): LevelMesh {
-  const g = w.grid, o = new Out();
+  const g = w.grid, o = new Out(w.rooms), extra = new Out(w.rooms);
 
   /* a rectangle in a room */
-  const put = (a: number, s: number, u0: number, u1: number, v0: number, v1: number, room: number, c: Colour, m: number) =>
-    o.rect(a, s, u0, u1, v0, v1, c, room, m);
+  const put = (a: number, s: number, u0: number, u1: number, v0: number, v1: number, room: number, c: Colour, m: number, mat: number) =>
+    o.rect(a, s, u0, u1, v0, v1, c, room, m, mat);
 
   /* is a floor (or ceiling) face at height s over x0..x1, z0..z1 lying wholly under (over) a sloped surface of its kind,
      at or above (below) it everywhere? Then the surface is what shows, and drawing both would have them fight where they
@@ -124,35 +150,36 @@ export function buildLevelMesh(w: World, L: Lighting): LevelMesh {
     const R = w.rooms[room];
     if (a === 1 && covered(openUp, s, u0, u1, v0, v1)) return;
     if (block >= 0) {
-      put(a, s, u0, u1, v0, v1, room, w.blocks[block].colour, 1);
+      put(a, s, u0, u1, v0, v1, room, w.blocks[block].colour, 1, matId(w.blocks[block].mat));
       return;
     }
     if (a === 1) {
       /* u is x, v is z */
+      const fm = matId(R.mat.floor);
       if (openUp && !R.plain) {
         for (const [x0, x1] of cuts(u0, u1, tiles(u0, u1)))
           for (const [z0, z1] of cuts(v0, v1, tiles(v0, v1)))
-            put(a, s, x0, x1, z0, z1, room, scale3(R.floor, odd(x0, z0) ? 1 : 0.92), 1);
-      } else if (openUp) put(a, s, u0, u1, v0, v1, room, R.floor, 1);
+            put(a, s, x0, x1, z0, z1, room, scale3(R.floor, odd(x0, z0) ? 1 : 0.92), 1, fm);
+      } else if (openUp) put(a, s, u0, u1, v0, v1, room, R.floor, 1, fm);
       else if (R.sky) {
-        /* the cavern's roof, painted sky, lit up more than a ceiling (as before) */
+        /* the cavern's roof, painted sky, lit up more than a ceiling (as before): paint, with nothing drawn on it */
         for (const [x0, x1] of cuts(u0, u1, tiles(u0, u1)))
           for (const [z0, z1] of cuts(v0, v1, tiles(v0, v1)))
-            put(a, s, x0, x1, z0, z1, room, scale3(R.sky, odd(x0, z0) ? 1 : 0.95), 1.5);
-      } else put(a, s, u0, u1, v0, v1, room, scale3(R.wall, 0.6), 0.8);
+            put(a, s, x0, x1, z0, z1, room, scale3(R.sky, odd(x0, z0) ? 1 : 0.95), 1.5, 0);
+      } else put(a, s, u0, u1, v0, v1, room, scale3(R.wall, 0.6), 0.8, matId(R.mat.ceiling));
       return;
     }
     /* a wall. On plane x the axes are (y, z); on plane z, (x, y). High up a tall room, walls are darker (as before). */
     const yAxisFirst = a === 0;
     const [y0, y1] = yAxisFirst ? [u0, u1] : [v0, v1], [h0, h1] = yAxisFirst ? [v0, v1] : [u0, u1];
-    const f = R.y0;
+    const f = R.y0, wm = matId(R.mat.wall);
     for (const [ya, yb] of cuts(y0, y1, R.plain ? [f + 3.2] : [f + 0.9, f + 1.05, f + 3.2])) {
       const high = ya >= f + 3.2 - 1e-6;
       const band = R.plain || high ? 2 : yb <= f + 0.9 + 1e-6 ? 0 : yb <= f + 1.05 + 1e-6 ? 1 : 2;
       for (const [ha, hb] of band === 2 && !R.plain ? cuts(h0, h1, tiles(h0, h1)) : [[h0, h1] as [number, number]]) {
         const c = band === 0 ? scale3(R.wall, 0.78) : band === 1 ? R.stripe : R.plain ? R.wall : scale3(R.wall, odd(ha, 0) ? 1 : 0.95);
-        if (yAxisFirst) put(a, s, ya, yb, ha, hb, room, c, high ? 0.6 : 1);
-        else put(a, s, ha, hb, ya, yb, room, c, high ? 0.6 : 1);
+        if (yAxisFirst) put(a, s, ya, yb, ha, hb, room, c, high ? 0.6 : 1, wm);
+        else put(a, s, ha, hb, ya, yb, room, c, high ? 0.6 : 1, wm);
       }
     }
   };
@@ -216,13 +243,13 @@ export function buildLevelMesh(w: World, L: Lighting): LevelMesh {
      floor or a shelf, the faces are not in one plane and do not fight. */
   w.def.props.forEach((p, k) => {
     if (p.loose) return;
-    const R = w.roomAt(p.x, p.y + 0.05, p.z) ?? w.roomAt(p.x, p.y + p.sy / 2, p.z), src: Src = { room: R ? R.id : -1, m: p.glow };
-    const first = o.count, e = apart(k);
-    propVerts({ ...p, sx: p.sx + 2 * e, sy: p.sy + 2 * e, sz: p.sz + 2 * e, y: p.y - e }, (x, y, z) => o.vert(x, y, z, p.colour, src));
-    if (p.pw) o.pw.push([first, o.count - first, p.pw, p.pc ?? w.def.circuit]);
+    const R = w.roomAt(p.x, p.y + 0.05, p.z) ?? w.roomAt(p.x, p.y + p.sy / 2, p.z), src: Src = { room: R ? R.id : -1, m: p.glow, mat: matId(p.mat) };
+    const to = p.services ? extra : o, first = to.count, e = apart(k);
+    propVerts({ ...p, sx: p.sx + 2 * e, sy: p.sy + 2 * e, sz: p.sz + 2 * e, y: p.y - e }, (x, y, z) => to.vert(x, y, z, p.colour, src));
+    if (p.pw) to.pw.push([first, to.count - first, p.pw, p.pc ?? w.def.circuit]);
   });
 
-  const mesh = new LevelMesh(o);
+  const mesh = new LevelMesh(o, extra);
   mesh.relight(L);
   return mesh;
 }
@@ -249,9 +276,10 @@ function surfaceMesh(o: Out, w: World, sf: Surface): void {
   const d = sf.def, floor = d.kind === 'floor', res = d.res;
   const X = (i: number) => d.x0 + i * res, Z = (j: number) => d.z0 + j * res, H = (i: number, j: number) => d.h[j * d.nx + i];
   /* each quad is in the room it faces */
+  const mat = matId(d.mat);
   const src = (x: number, y: number, z: number, m: number): Src => {
     const R = w.roomAt(x, y + (floor ? 0.3 : -0.3), z);
-    return { room: R ? R.id : -1, m };
+    return { room: R ? R.id : -1, m, mat };
   };
   const m = floor ? 1 : 0.8;
   for (let j = 0; j < d.nz - 1; j++)

@@ -1,4 +1,5 @@
 import type { Colour } from '../core/math';
+import type { Mat, RoomMats } from './materials';
 
 /* A level as data. Builders in content/build produce it; world/compile turns it into a World.
    All positions are plan metres in the station's frame: x east, z south, y up from the surface. */
@@ -19,6 +20,8 @@ export interface RoomDef {
   x0: number; z0: number; x1: number; z1: number;
   y0: number; ht: number;
   floor: Colour; wall: Colour; stripe: Colour;
+  /** what its floor, walls and ceiling are made of (content/materials.ts) */
+  mat: RoomMats;
   lit: LitRule;
   /** the colour of its lights when lit */
   lc: Colour;
@@ -47,6 +50,7 @@ export interface RoomDef {
 export interface BlockDef {
   x0: number; y0: number; z0: number; x1: number; y1: number; z1: number;
   colour: Colour;
+  mat: Mat;
 }
 
 /** an invisible solid: one box around furniture that is drawn as many parts */
@@ -69,6 +73,11 @@ export interface PropDef {
   solid: boolean;
   /** can be pushed and knocked about (a crate); otherwise it never moves */
   loose: boolean;
+  /** what it is made of, where something asks (a loose one is stood on: wood unless it says) */
+  mat?: Mat;
+  /** part of a run of services under a bare ceiling (pipes, a tray, their hangers): dressing only, drawn with surface
+   *  detail on (render/shader.ts) */
+  services?: boolean;
   /** a fitting that shows power: colour when its circuit is dead, and when it is live */
   pw?: [Colour, Colour];
   /** the circuit for pw */
@@ -116,6 +125,7 @@ export interface SurfaceDef {
   h: number[];
   base: number;
   colour: Colour;
+  mat: Mat;
   /** draw its edges down to the base (a ramp standing in a room); off where walls already hide them (a cave floor) */
   sides: boolean;
   /** solid but not drawn: the ramp under a flight of steps */
@@ -155,6 +165,8 @@ export interface DoorDef {
   circuit: string;
   /** what it says when it will not open */
   msg?: string;
+  /** what its slab is made of */
+  mat: Mat;
 }
 
 /** data the later steps use (engine.md §13): kept with the level now so the level is ported once */
@@ -174,6 +186,8 @@ export interface PlatformDef {
   x0: number; z0: number; x1: number; z1: number;
   y0: number; y1: number;
   colour: Colour;
+  /** what its deck is made of */
+  mat: Mat;
   /** worked by a button on a circuit (the station's cargo platforms); without it, it goes when stood on */
   call?: { name: string; circuit: string };
 }

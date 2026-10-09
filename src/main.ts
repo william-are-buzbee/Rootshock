@@ -19,7 +19,7 @@ import { Motes } from './present/render/motes';
 import { Prints } from './present/render/prints';
 import { Drips } from './present/render/drips';
 import { Cascade } from './present/cascade';
-import { U } from './present/render/shader';
+import { U, setDetail } from './present/render/shader';
 import { Hud } from './present/ui/hud';
 import { Panels } from './present/ui/panels';
 
@@ -154,6 +154,25 @@ for (const el of brightIn) {
     for (const o of brightIn) o.value = el.value;
   });
 }
+
+/* surface detail: what walls, floors and ceilings are made of, drawn on them, and the services under bare ceilings; the
+   player's to turn off (title and pause screens, kept between runs; ?detail=off for one visit; ?dev, M), for the
+   station as it looked before. Looks only. */
+const DETAIL_KEY = 'rootshock-v2:detail', detailIn = [...document.querySelectorAll<HTMLInputElement>('input.detail')];
+let detail = params.get('detail') ? params.get('detail') !== 'off' : readStore(DETAIL_KEY) !== 'off';
+function showDetail(on: boolean, keep: boolean): void {
+  detail = on;
+  setDetail(on);
+  for (const lv of levels.values()) lv.showDetail(on);
+  for (const o of detailIn) o.checked = on;
+  if (keep) writeStore(DETAIL_KEY, on ? 'on' : 'off');
+}
+for (const el of detailIn) {
+  el.closest('p')!.addEventListener('click', e => e.stopPropagation()); // not a click to go on
+  el.addEventListener('change', () => showDetail(el.checked, true));
+}
+showDetail(detail, false);
+if (DEV) controls.onKey.set('KeyM', () => showDetail(!detail, false));
 
 hud.onClick('title', () => { writeStore(SAVE_KEY, null); audio.start(); setMode('play'); controls.lock(); });
 hud.onClick('pause', () => { setMode('play'); controls.lock(); });
@@ -323,13 +342,13 @@ function frame(t: number): void {
   hud.setRoom(room?.name ?? '', sim.world.def.name, mode === 'title' ? 0 : dt); // the label waits for you to open your eyes
   if (dt > 0) fps += (1 / dt - fps) * 0.05;
   if (DEV) track(dt);
-  hud.dev(DEV ? `${b.x.toFixed(2)} ${b.y.toFixed(2)} ${b.z.toFixed(2)}  ${room?.name ?? 'rock'}  ${b.ground ? 'ground' : 'air'}  ${Math.round(fps)} fps\n${sim.world.def.name}: ${sim.world.grid.chunkCount} chunks  mesh ${here.meshMs.toFixed(0)} ms  ${['fly', 'god', 'bright'].filter(k => k === 'fly' ? sim.player.fly : k === 'god' ? sim.game.god : devFlags.bright).join(' ')}\nV fly  G god  B bright  O colliders  P tracker` : null);
+  hud.dev(DEV ? `${b.x.toFixed(2)} ${b.y.toFixed(2)} ${b.z.toFixed(2)}  ${room?.name ?? 'rock'}  ${b.ground ? 'ground' : 'air'}  ${Math.round(fps)} fps\n${sim.world.def.name}: ${sim.world.grid.chunkCount} chunks  mesh ${here.meshMs.toFixed(0)} ms  ${['fly', 'god', 'bright'].filter(k => k === 'fly' ? sim.player.fly : k === 'god' ? sim.game.god : devFlags.bright).join(' ')}\nV fly  G god  B bright  O colliders  P tracker  M surface detail` : null);
   beams.render(view.renderer, view.scene, view.camera.position, lighting.looseLights);
   view.draw(t / 1000);
 }
 /* ?dev: the run on the window, for poking at from the console or a test script */
 if (DEV) (window as unknown as { rs: unknown }).rs = {
-  run, get sim() { return sim; }, step: stepRun, save: () => save(sim), saveRun: () => saveRun(run),
+  run, view, get sim() { return sim; }, step: stepRun, save: () => save(sim), saveRun: () => saveRun(run),
   progress: (o?: CheckOpts) => describe(checkProgress(sim, o)),
 };
 

@@ -1,6 +1,7 @@
 import { PI } from '../../core/math';
 import { CELL, DARK, LevelBuilder, OPS, SEC, UTIL } from '../build/builder';
 import { column, crates, shelf, table } from '../build/kit';
+import { CAVERN } from '../materials';
 import type { LevelDef } from '../types';
 
 /* A place for proving the engine, not part of the station. The hall: steps, a mezzanine, a ledge you can jump onto, a wall
@@ -51,7 +52,7 @@ export function testbed(): LevelDef {
   crates(b, 3.5, 31, 2);
 
   /* the cave, east through a short tunnel: rock, a rising uneven floor, a vaulted ceiling */
-  b.room('Tunnel', 16, 20, 18, 22, { ht: 2.6, pal: { fl: 0x4a443c, wl: 0x5a5248, st: 0x5a5248 }, light: [0.12, 0.14, 0.12], nolamp: true, plain: true });
+  b.room('Tunnel', 16, 20, 18, 22, { ht: 2.6, pal: { fl: 0x4a443c, wl: 0x5a5248, st: 0x5a5248 }, light: [0.12, 0.14, 0.12], nolamp: true, plain: true, mat: CAVERN });
   const rise = (x: number) => Math.max(0, (x - 18) / 14);
   b.cave('Cave', 18, 14, 32, 30, {
     ht: 3, light: [0.1, 0.17, 0.12],

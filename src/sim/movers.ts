@@ -52,7 +52,7 @@ const DOOR_NEAR = 2.5;
 const LIFT_SPEED = 1.5;
 const THICK = 0.2;
 export function makeDoor(w: World, def: DoorDef): Door {
-  const dyn: Dyn = { kind: 'mover', id: w.newId(), x0: def.x0, y0: def.y0, z0: def.z0, x1: def.x1, y1: def.y1, z1: def.z1, ...(def.glass ? { glass: true } : {}) };
+  const dyn: Dyn = { kind: 'mover', id: w.newId(), x0: def.x0, y0: def.y0, z0: def.z0, x1: def.x1, y1: def.y1, z1: def.z1, mat: def.mat, ...(def.glass ? { glass: true } : {}) };
   w.dyn.push(dyn);
   const d: Door = { def, dyn, t: def.stuck ? STUCK : def.open ? 1 : 0, open: def.open, unlocked: false, hold: 0, bolt: 0, bolting: 0 };
   Object.assign(d.dyn, doorBox(d, d.t));
@@ -68,7 +68,7 @@ export function placePlatform(p: Platform): void {
 }
 
 export function makePlatform(w: World, def: PlatformDef): Platform {
-  const dyn: Dyn = { kind: 'mover', id: w.newId(), x0: def.x0, z0: def.z0, x1: def.x1, z1: def.z1, y0: def.y0 - THICK, y1: def.y0 };
+  const dyn: Dyn = { kind: 'mover', id: w.newId(), x0: def.x0, z0: def.z0, x1: def.x1, z1: def.z1, y0: def.y0 - THICK, y1: def.y0, mat: def.mat };
   w.dyn.push(dyn);
   return { def, dyn, y: def.y0, target: 0, wait: 0, moving: false, armed: true };
 }

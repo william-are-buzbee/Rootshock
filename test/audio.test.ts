@@ -30,6 +30,32 @@ describe('feet', () => {
     expect(floorAt(up.world, b.x, b.y, b.z, up.platforms[0].dyn)).toBe('metal');
     expect(floorAt(up.world, b.x, b.y, b.z, up.loose.all[0].dyn)).toBe('wood');
   });
+
+  it('know what they stand on without being told: a container is steel, a crate wood, a cave rock round its boulders', () => {
+    const up = sim('upper'), w = up.world;
+    const box = w.def.props.find(p => p.mat === 'steel' && p.solid && p.sx > 5)!;
+    expect(floorAt(w, box.x, box.y + box.sy, box.z)).toBe('metal');
+    const c = up.loose.all[0].dyn;
+    expect(floorAt(w, (c.x0 + c.x1) / 2, c.y1, (c.z0 + c.z1) / 2)).toBe('wood');
+    /* the cargo cavern is rock; a step onto something in it that says nothing of itself is still rock, not grating */
+    const R = w.def.rooms.find(r => r.name === 'Cargo cavern')!;
+    expect(R.mat.floor).toBe('rock');
+  });
+});
+
+describe('what the station is made of', () => {
+  it('fitted rooms are concrete, walkways grating, caves rock, the Commons paved', () => {
+    const up = levelDef(STATION, 'upper'), main = levelDef(STATION, 'main'), cave = levelDef(STATION, 'cave');
+    expect(up.rooms.find(r => !r.plain && !r.doorway && r.sky === undefined)!.mat).toEqual({ floor: 'concrete', wall: 'concrete', ceiling: 'concrete' });
+    expect(main.rooms.find(r => r.name === 'Gallery')!.mat.floor).toBe('grating');
+    expect(main.rooms.find(r => r.name === 'The Commons')!.mat.floor).toBe('paving');
+    for (const s of cave.surfaces) expect(s.mat).toBe('rock');
+    for (const L of [up, main, cave]) {
+      for (const d of L.doors) expect(d.mat).toBe(d.glass ? 'glass' : 'steel');
+      for (const p of L.platforms) expect(p.mat).toBe('steel');
+      for (const p of L.props) if (p.loose) expect(p.mat).toBe('wood');
+    }
+  });
 });
 
 describe('a sound', () => {
@@ -120,5 +146,32 @@ describe("the station's own noises", () => {
     expect(w(ambientFor(corridor, false, true), 'knock')).toBeGreaterThan(w(ambientFor(corridor, false, false), 'knock'));
     const main = sim('main').world.rooms.reduce((a, R) => ((R.x1 - R.x0) * (R.z1 - R.z0) * R.ht > (a.x1 - a.x0) * (a.z1 - a.z0) * a.ht && !R.cells ? R : a));
     expect(w(ambientFor(main, false, true), 'groan')).toBeGreaterThan(w(ambientFor(corridor, false, true), 'groan'));
+  });
+});
+
+describe('how the station looks', () => {
+  it('names every material once, for the shader, and draws only patterns it knows', async () => {
+    const { MATS, MAT_ORDER } = await import('../src/content/materials');
+    const { matId } = await import('../src/present/render/shader');
+    const ids = MAT_ORDER.map(m => matId(m));
+    expect(new Set(ids).size).toBe(MAT_ORDER.length);
+    expect(Math.min(...ids)).toBe(1);
+    expect(matId(undefined)).toBe(0);
+    for (const m of MAT_ORDER) expect(MATS[m].look.gloss).toBeGreaterThanOrEqual(0);
+  });
+
+  it('dresses rooms by what they are: tiled infirmaries, block in Security, services under bare concrete only', () => {
+    const up = levelDef(STATION, 'upper');
+    const room = (n: string) => up.rooms.find(r => r.name === n)!;
+    expect(room('Infirmary').mat).toMatchObject({ wall: 'glazed', ceiling: 'tiles' });
+    expect(room('Security corridor').mat.wall).toBe('block');
+    /* a pipe is a steel cylinder lying on its side, just under a ceiling */
+    const pipesIn = (n: string) => {
+      const R = room(n);
+      return up.props.filter(p => p.shape === 'cyl' && p.mat === 'steel' && p.rz && p.x > R.x0 && p.x < R.x1 && p.z > R.z0 && p.z < R.z1).length;
+    };
+    expect(room('Electrical room').mat.ceiling).toBe('concrete');
+    expect(pipesIn('Electrical room')).toBe(2);
+    expect(pipesIn('Infirmary')).toBe(0);
   });
 });

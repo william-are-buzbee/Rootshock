@@ -703,3 +703,64 @@ Each step ends with something you can open and play.
   and deployment → Source).
 - **`station-plan.md`**: dropped. It was an earlier idea; the station now lives in the level builders, which are the
   reference for its layout and coordinates.
+
+---
+
+## 15. Materials
+
+What things are made of, as one table (`content/materials.ts`) that the look, the sound and the sim all read, so
+"steel" means the same to each. Plain data: the rule that `sim/` and `world/` never touch three.js holds.
+
+- **Rule (proposed): a property goes in only when something reads it.** The table grows with what uses it, never
+  ahead of it. Anything that matters in play must also read at a glance under a flashlight.
+- **A thing is a body, a construction and a finish (proposed).** A crate is wood, hollow, stencilled; a light door
+  sheet steel over a hollow core, a heavy door solid steel. Only the body is built so far.
+
+**Step 1 (built): the table, and what stands on it.** Seven materials: concrete, paving, grating, steel, rock, wood,
+glass. Each says only its tread, the voice a foot comes down with (`present/audio.ts`). A room says what its floor, walls
+and ceiling are (`RoomDef.mat`); the authoring kit gives the usual ones (`tiles.room`: rock for a cave, grating for a
+walkway, paving under a sky, concrete for the rest), and a room can say otherwise (`mat:`). Sloped surfaces, doors
+and platforms say theirs; props may (a loose one is wood unless it says; containers and forklifts are steel). The
+world answers what is underfoot (`World.floorMat`): what you stand on if it moves, else the top of a thing that says
+what it is, else a sloped floor at your feet, else your room's floor. The footsteps ask it (`floorAt`), and sound as
+they did, but for three things the old guesses had wrong: a step onto something in a cave rang like grating, a
+container's roof and a forklift sounded like concrete, and the cast's feet on a crate or a platform were heard as
+the floor under it.
+
+**Step 2 (built): the look.** Four more materials, for walls and ceilings: painted block, painted plaster, a
+suspended ceiling's tiles, glazed tile. Each material says how it takes the light (`look`): a pattern, how bright and
+how tight the flashlight's highlight on it is, how much the highlight takes its own colour (metal does, paint does
+not), how rough it is, and whether it shows wear. The palettes say what rooms are made of: cells, utility rooms and
+bays bare concrete; Security painted block; offices painted block under a suspended ceiling; homes plaster; medical
+rooms and Horticulture glazed tile; a doorway its steel frame. Blocks say what they are (a walkway's slab is grating).
+
+The level's mesh carries each vertex's material and its room's floor and ceiling heights; the shader draws the
+pattern from where the pixel is in the world (a moving thing's in its own frame, so a pushed crate's boards go with
+it), from one 256 x 256 texture of noise made at startup: formwork seams and tie holes on poured concrete, block
+coursed up from the floor, ceiling tiles on their T-bar grid, glazed tiles each laid a little out of true, paving
+flags, riveted plate, a grating's bars with the dark between, rock in strata. Each pattern gives a shade, a height
+and a gloss; the height tips the surface's facing (bump mapping from screen derivatives), and lines are filtered
+over the pixel and fade to their average once finer than one. Fine detail fades out between 9 and 26 m. The
+flashlight still reaches what it reaches from your eye, but its facing and highlight are reckoned from your hand, a
+little below and right of the eye, so it rakes across the relief of what is close and raises a highlight; the level's
+light favours a bump that faces up. Walls show wear: grime at
+their foot, in places brown streaks run down from the ceiling, blotches overhead; none on raw rock. Rooms under a
+bare concrete ceiling, 3 to 6 m high and at least 6 m long, get services along one long wall: a cable tray and two
+pipes on hangers, a quarter metre down. A suspended or plastered ceiling hides them.
+
+All of the look is surface detail, which the player can turn off (a checkbox by the brightness on the title and pause
+screens, kept between runs; `?detail=off` for one visit; M under `?dev`). Off, the shader skips the patterns, wear,
+bump and highlight, reckons the beam's facing from the eye, and the services (their own mesh) are hidden: the station
+as it looked before. The materials still say what footsteps sound like either way.
+
+**Next (proposed), in order:**
+
+1. **The look, further.** Glossy floors catching the ceiling's tubes; paint chipped to what is under it; the
+   tribes as finishes over a surface.
+2. **The sound.** One impact voice from material (its modes, how fast they die, how bright), construction (hollow,
+   sheet, grate, loose) and what strikes it (a boot, rubber, steel), scaled by size; it replaces the footstep switch
+   and the hand-made `crate`, `clang`, `thud` and blows on walls. Scraping is the same voice fed by noise.
+3. **The sim.** First, how loud a floor is underfoot feeds the noise you make (grating loud, rubber quiet), since the
+   cast already hunt by sound. Then materials against blunt, edge and prying force and weapon wear, which gives
+   world.md's brute force (§4) its content. Later: current (steel and water conduct), buoyancy, and the two tribes as
+   finishes that spread over surfaces and change what they do.

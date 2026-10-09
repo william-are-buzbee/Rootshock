@@ -1,3 +1,4 @@
+import { MATS } from '../content/materials';
 import type { RoomDef } from '../content/types';
 import { clamp } from '../core/math';
 import type { Mutant } from '../sim/cast';
@@ -18,18 +19,10 @@ import { flickerAt } from './flicker';
 
 const rnd = (a: number, b: number) => a + Math.random() * (b - a);
 
-/** what the floor is at a place: a puddle, a cave's rock, a walkway's grating, a crate's lid or a platform; else concrete */
+/** what a foot comes down on at a place: a puddle, or the voice of what the floor is made of (content/materials.ts) */
 export function floorAt(w: World, x: number, y: number, z: number, on: Dyn | null = null): Surf {
-  if (on) return on.kind === 'loose' ? 'wood' : on.kind === 'mover' ? 'metal' : 'concrete';
-  if (w.waterAt(x, z) > y + 0.03) return 'wet';
-  for (const s of w.surfaces) {
-    const d = s.def;
-    if (d.kind !== 'floor' || d.sides || d.hidden || x < d.x0 || x > d.x1 || z < d.z0 || z > d.z1 || !s.has(x, z)) continue;
-    if (Math.abs(s.heightAt(x, z) - y) < 0.25) return 'rock';
-  }
-  const R = w.roomAt(x, y + 0.3, z);
-  if (R?.cells || R?.sky !== undefined) return 'rock';
-  return R?.plain ? 'metal' : 'concrete';
+  if (!on && w.waterAt(x, z) > y + 0.03) return 'wet';
+  return MATS[w.floorMat(x, y, z, on)].tread;
 }
 
 /** how much of each echo a room has, a small room's, a hall's and a vast space's, by how much air is in it: a cell or an

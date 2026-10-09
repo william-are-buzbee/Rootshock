@@ -63,6 +63,8 @@ export class CameraRig {
     const J = this.jolt, ease = Math.exp(-dt * 9);
     J.y *= ease; J.p *= ease; J.r *= ease;
     cam.rotation.set(pitch + J.p, yaw + J.y, J.r);
+    /* the flashlight is in your hand: a little below the eye and to the right, so its light rakes across what is close */
+    U.uFlashPos.value.set(cam.position.x + Math.cos(yaw) * 0.22, cam.position.y - 0.3, cam.position.z - Math.sin(yaw) * 0.22);
     /* the hand follows the eye a beat late (about 70 ms), wanders with the stride and, standing, with your breath */
     this.t += dt;
     const sway = Math.min(1, p.moved / STEP / 3), by = yaw + Math.sin(this.bob * 0.5) * 0.022 * sway + Math.sin(this.t * 0.7) * 0.004;

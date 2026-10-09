@@ -1,5 +1,6 @@
 import { Rng } from '../../core/rng';
 import { hex, scale3, type Colour } from '../../core/math';
+import { CAVERN, FITTED, type Mat, type RoomMats } from '../materials';
 import type { Aim, DoorDef, LevelDef, LitRule, Motes, PropDef, RoomDef, Shape, Start, SurfaceDef } from '../types';
 
 /* The authoring kit. Levels are written as calls on a LevelBuilder; finish() returns plain data.
@@ -32,6 +33,8 @@ export interface RoomOpts {
   motes?: Motes;
   /** rock or walkway, not a fitted room: plain walls */
   plain?: boolean;
+  /** what its floor, walls and ceiling are made of; concrete unless it says (a cave: rock) */
+  mat?: Partial<RoomMats>;
   /** the roof painted as sky */
   sky?: number | Colour;
   doorway?: boolean;
@@ -54,6 +57,10 @@ export interface PropOpts {
   loose?: boolean;
   pw?: [Colour, Colour];
   pc?: string;
+  /** what it is made of (a loose one: wood unless it says) */
+  mat?: Mat;
+  /** part of a run of services under a bare ceiling */
+  services?: boolean;
 }
 
 /** heights relative to a floor or ceiling, as a function of plan position */
@@ -82,7 +89,7 @@ export class LevelBuilder {
       id: this.def.rooms.length, name, plain: !!o.plain,
       x0: Math.min(x0, x1), z0: Math.min(z0, z1), x1: Math.max(x0, x1), z1: Math.max(z0, z1),
       y0: o.y0 ?? 0, ht: o.ht ?? 3.2,
-      floor: hex(p.fl), wall: hex(p.wl), stripe: hex(p.st),
+      floor: hex(p.fl), wall: hex(p.wl), stripe: hex(p.st), mat: { ...FITTED, ...o.mat },
       lit: o.lit ?? (fixed ? (dark ? 'none' : 'always') : 'always'),
       lc: o.lc ?? (fixed ? o.light! : WHITE),
       em: !!o.em, circuit: o.circuit ?? this.def.circuit, flick: !!o.flick, doorway: !!o.doorway, safe: !!o.safe, noroam: !!o.noroam,
@@ -94,10 +101,10 @@ export class LevelBuilder {
   }
 
   /** solid from (x0, y0, z0) to (x1, y1, z1): a platform, a step */
-  block(x0: number, y0: number, z0: number, x1: number, y1: number, z1: number, c: number | Colour): void {
+  block(x0: number, y0: number, z0: number, x1: number, y1: number, z1: number, c: number | Colour, mat: Mat = 'concrete'): void {
     this.def.blocks.push({
       x0: Math.min(x0, x1), y0: Math.min(y0, y1), z0: Math.min(z0, z1),
-      x1: Math.max(x0, x1), y1: Math.max(y0, y1), z1: Math.max(z0, z1), colour: hex(c),
+      x1: Math.max(x0, x1), y1: Math.max(y0, y1), z1: Math.max(z0, z1), colour: hex(c), mat,
     });
   }
 
@@ -116,6 +123,9 @@ export class LevelBuilder {
     const floor = this.floorAt(x, z), y = o.y ?? floor;
     const solid = o.solid ?? (shape !== 'ico' && sy >= 0.3 && y - floor < 1.6);
     const p: PropDef = { shape, x, y, z, sx, sy, sz, ry: o.ry ?? 0, rz: o.rz ?? 0, colour: hex(c), glow: o.glow ?? 1, solid: solid || !!o.loose, loose: !!o.loose };
+    const mat = o.mat ?? (o.loose ? 'wood' : undefined);
+    if (mat) p.mat = mat;
+    if (o.services) p.services = true;
     if (o.pw) { p.pw = o.pw; p.pc = o.pc ?? this.def.circuit; }
     this.def.props.push(p);
     return p;
@@ -130,7 +140,7 @@ export class LevelBuilder {
     this.surface('floor', x0, z0, x1, z1, (x, z) => {
       const t = ax ? (x - x0) / (x1 - x0) : (z - z0) / (z1 - z0);
       return y0 + (y1 - y0) * (rev ? 1 - t : t);
-    }, Math.min(y0, y1), c, true, 0.5);
+    }, Math.min(y0, y1), c, true, 0.5, 'concrete');
   }
 
   /** a cave: a room in rock whose floor and ceiling follow `floor` and `ceil` (metres above y0, and above y0 + ht).
@@ -141,23 +151,23 @@ export class LevelBuilder {
     for (let z = z0; z <= z1 + 1e-9; z += res) for (let x = x0; x <= x1 + 1e-9; x += res) { lo = Math.min(lo, fl(x, z)); hi = Math.max(hi, cl(x, z)); }
     const snap = (v: number, up: boolean) => (up ? Math.ceil(v / 0.25) : Math.floor(v / 0.25)) * 0.25;
     const bottom = snap(y0 + lo, false), top = snap(y0 + ht + hi, true), p = o.pal ?? ROCK;
-    const r = this.room(name, x0, z0, x1, z1, { ...o, pal: p, y0: bottom, ht: top - bottom, plain: true, nolamp: o.nolamp ?? true });
-    this.surface('floor', x0, z0, x1, z1, (x, z) => y0 + fl(x, z), bottom - 0.25, p.fl, false, res);
-    this.surface('ceiling', x0, z0, x1, z1, (x, z) => y0 + ht + cl(x, z), top + 0.25, scale3(hex(p.wl), 0.6), false, res);
+    const r = this.room(name, x0, z0, x1, z1, { ...o, pal: p, y0: bottom, ht: top - bottom, plain: true, nolamp: o.nolamp ?? true, mat: { ...CAVERN, ...o.mat } });
+    this.surface('floor', x0, z0, x1, z1, (x, z) => y0 + fl(x, z), bottom - 0.25, p.fl, false, res, r.mat.floor);
+    this.surface('ceiling', x0, z0, x1, z1, (x, z) => y0 + ht + cl(x, z), top + 0.25, scale3(hex(p.wl), 0.6), false, res, r.mat.ceiling);
     return r;
   }
 
-  surface(kind: 'floor' | 'ceiling', x0: number, z0: number, x1: number, z1: number, f: Relief, base: number, c: number | Colour, sides: boolean, res: number): void {
+  surface(kind: 'floor' | 'ceiling', x0: number, z0: number, x1: number, z1: number, f: Relief, base: number, c: number | Colour, sides: boolean, res: number, mat: Mat): void {
     const nx = Math.max(2, Math.round((x1 - x0) / res) + 1), nz = Math.max(2, Math.round((z1 - z0) / res) + 1), h: number[] = [];
     res = Math.max((x1 - x0) / (nx - 1), (z1 - z0) / (nz - 1));
     for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) h.push(f(x0 + i * res, z0 + j * res));
-    const s: SurfaceDef = { kind, x0, z0, x1, z1, res, nx, nz, h, base, colour: hex(c), sides };
+    const s: SurfaceDef = { kind, x0, z0, x1, z1, res, nx, nz, h, base, colour: hex(c), mat, sides };
     this.def.surfaces.push(s);
   }
 
   /** a surface given as its lattice of heights, nx by nz corners `res` apart from (x0, z0); masked to some squares if `mask` */
-  lattice(kind: 'floor' | 'ceiling', x0: number, z0: number, x1: number, z1: number, res: number, nx: number, nz: number, h: number[], base: number, c: number | Colour, mask?: number[]): void {
-    this.def.surfaces.push({ kind, x0, z0, x1, z1, res, nx, nz, h, base, colour: hex(c), sides: false, ...(mask ? { mask } : {}) });
+  lattice(kind: 'floor' | 'ceiling', x0: number, z0: number, x1: number, z1: number, res: number, nx: number, nz: number, h: number[], base: number, c: number | Colour, mat: Mat, mask?: number[]): void {
+    this.def.surfaces.push({ kind, x0, z0, x1, z1, res, nx, nz, h, base, colour: hex(c), mat, sides: false, ...(mask ? { mask } : {}) });
   }
 
   /** standing water over a rectangle, its surface at `level` */
@@ -170,15 +180,15 @@ export class LevelBuilder {
     const y0 = this.floorAt((x0 + x1) / 2, (z0 + z1) / 2);
     const d: DoorDef = {
       x0, y0, z0, x1, y1: y0 + h, z1, kind: 'light', alongX: x1 - x0 > z1 - z0, open: false, stuck: false, seal: false, vent: false, lift: false,
-      circuit: this.def.circuit, ...o,
+      circuit: this.def.circuit, mat: o.glass ? 'glass' : 'steel', ...o,
     };
     this.def.doors.push(d);
     return d;
   }
 
   /** a platform over (x0, z0)-(x1, z1) that carries what stands on it between heights y0 and y1 */
-  platform(x0: number, z0: number, x1: number, z1: number, y0: number, y1: number, c = 0xb89b2e, call?: { name: string; circuit: string }): void {
-    this.def.platforms.push({ x0, z0, x1, z1, y0, y1, colour: hex(c), ...(call ? { call } : {}) });
+  platform(x0: number, z0: number, x1: number, z1: number, y0: number, y1: number, c = 0xb89b2e, call?: { name: string; circuit: string }, mat: Mat = 'steel'): void {
+    this.def.platforms.push({ x0, z0, x1, z1, y0, y1, colour: hex(c), mat, ...(call ? { call } : {}) });
   }
 
   /** an invisible box that bodies cannot enter, base at y (default: the floor) */
