@@ -8,7 +8,7 @@ import type { World } from '../../world/world';
 import type { Lighting } from '../../world/light';
 import { apart, propVerts } from './levelMesh';
 import { TEMPLATES } from './templates';
-import { dynamicMaterial, glassMaterial, matId } from './shader';
+import { dynamicMaterial, glassMaterial, lightMaterial, matId } from './shader';
 
 /* What moves, drawn where the sim says it is: doors, platforms, loose crates. And the water, which does not move but
    is see-through, so it is drawn on its own. Each moving thing is lit by the room it is in. */
@@ -17,6 +17,8 @@ interface Moving {
   mesh: THREE.Object3D; mat: THREE.ShaderMaterial; place(): void;
   /** where its light is taken from, if not where it is now: a door is lit by its doorway, even slid up into the rock */
   litAt?: [number, number, number];
+  /** a door: lit from whichever side of it is brighter, this far either way (x, z) */
+  across?: [number, number];
 }
 
 /** a part of a fitting: a box (or other shape) of a colour, sized, tipped about z, and placed in the fitting's own frame */
@@ -47,11 +49,13 @@ export function parts(list: Part[], mat = 0): THREE.BufferGeometry {
 }
 
 const LIVE: Colour = [2.3, 2.9, 2.4];
+/** a flashlight's lens, lit: in front of its head (itemParts) */
+const LENS: Part[] = [['cyl', [2.9, 2.85, 2.6], 0.065, 0.01, 0.065, 0.137, 0.04, 0, Math.PI / 2]];
 const R90 = Math.PI / 2;
 
-/** something lying on the floor, as the first engine drew it (itemMesh); anything else is a sheet of paper. `on`: it gives a
- *  light of its own where it lies (a flashlight dropped still on), so its lens glows */
-function itemParts(id: string, on = false): Part[] {
+/** something lying on the floor, as the first engine drew it (itemMesh); anything else is a sheet of paper. A flashlight's
+ *  lens is its own part (LENS), shown while it lies on */
+function itemParts(id: string): Part[] {
   switch (id) {
     case 'baton': return [['cyl', 0x1c1e20, 0.05, 0.55, 0.05, 0, 0.03, 0, R90], ['cyl', 0x3a3d40, 0.06, 0.14, 0.06, -0.2, 0.03, 0, R90]];
     case 'adjwrench': return [['box', 0xb8bcc0, 0.36, 0.03, 0.05, 0, 0.02, 0], ['box', 0xb8bcc0, 0.08, 0.03, 0.12, 0.2, 0.02, 0]];
@@ -67,7 +71,7 @@ function itemParts(id: string, on = false): Part[] {
     case 'wrench': return [['box', 0x8a3a2a, 0.45, 0.035, 0.06, 0, 0.02, 0], ['box', 0x9a9ea4, 0.1, 0.035, 0.13, 0.24, 0.02, 0]];
     case 'knife': return [['box', 0x22262a, 0.12, 0.025, 0.03, -0.1, 0.015, 0], ['box', 0xc8ccd0, 0.22, 0.01, 0.045, 0.07, 0.01, 0]];
     case 'axe': return [['box', 0x7a5a34, 0.9, 0.04, 0.045, 0, 0.03, 0], ['box', 0xa82a20, 0.14, 0.035, 0.24, 0.38, 0.03, 0.06]];
-    case 'flash': return [['cyl', 0x2a2c2e, 0.06, 0.2, 0.06, 0, 0.035, 0, R90], ['cyl', 0xc9a227, 0.075, 0.05, 0.075, 0.11, 0.04, 0, R90], ...(on ? [['cyl', [2.9, 2.85, 2.6], 0.065, 0.01, 0.065, 0.137, 0.04, 0, R90] as Part] : [])];
+    case 'flash': return [['cyl', 0x2a2c2e, 0.06, 0.2, 0.06, 0, 0.035, 0, R90], ['cyl', 0xc9a227, 0.075, 0.05, 0.075, 0.11, 0.04, 0, R90]];
     case 'lantern': return [['cyl', 0xc9a227, 0.14, 0.06, 0.14, 0, 0.03, 0], ['cyl', [2.4, 2.6, 2.7], 0.11, 0.14, 0.11, 0, 0.13, 0], ['cyl', 0xc9a227, 0.14, 0.05, 0.14, 0, 0.225, 0], ['box', 0x2a2c2e, 0.16, 0.02, 0.02, 0, 0.3, 0]];
     case 'batt': return [['cyl', 0xb87333, 0.045, 0.1, 0.045, 0, 0.05, 0], ['cyl', 0x22262a, 0.047, 0.04, 0.047, 0, 0.03, 0]];
     case 'medkit': return [['box', 0xd4d8d4, 0.32, 0.14, 0.22, 0, 0.07, 0], ['box', 0xa82a20, 0.12, 0.01, 0.04, 0, 0.145, 0], ['box', 0xa82a20, 0.04, 0.01, 0.12, 0, 0.145, 0]];
@@ -168,10 +172,10 @@ export class Things {
         m.scale.set(long / 2, 1, 1);
         if (D.vent) m.visible = d.t < 0.5;
       };
-      const at: [number, number, number] = [(D.x0 + D.x1) / 2, D.y0, (D.z0 + D.z1) / 2];
-      this.add(parts(body, matId(D.mat)), place, at);
+      const at: [number, number, number] = [(D.x0 + D.x1) / 2, D.y0, (D.z0 + D.z1) / 2], across: [number, number] = D.alongX ? [0, 0.6] : [0.6, 0];
+      this.add(parts(body, matId(D.mat)), place, at, across);
       /* its lights show only with power enough to work it */
-      if (lights.length) this.add(parts(lights), m => { place(m); m.visible = this.L.power(D.circuit) >= need && !D.vent; }, at);
+      if (lights.length) this.add(parts(lights), m => { place(m); m.visible = this.L.power(D.circuit) >= need && !D.vent; }, at, across);
     }
     for (const p of sim.platforms) {
       const D = p.def;
@@ -219,17 +223,20 @@ export class Things {
 
   /** things you can pick up: drawn until taken; anything put down later appears */
   private items = 0;
-  private itemMeshes: { mesh: THREE.Object3D; taken: () => boolean }[] = [];
+  private itemMeshes: { mesh: THREE.Object3D; shown: () => boolean }[] = [];
   private syncItems(): void {
     for (; this.items < this.sim.items.length; this.items++) {
-      const it = this.sim.items[this.items], k = this.items, lamps = this.sim.world.def.lamps.filter(L => L.item === k);
-      /* one that gives a light points at the farthest of its pools: its beam */
-      const far = lamps.reduce<(typeof lamps)[number] | null>((a, L) => (!a || Math.hypot(L.x - it.x, L.z - it.z) > Math.hypot(a.x - it.x, a.z - it.z) ? L : a), null);
-      const yaw = far && Math.hypot(far.x - it.x, far.z - it.z) > 0.1 ? Math.atan2(-(far.z - it.z), far.x - it.x) : lie(it.x, it.z);
-      const m = this.addFixed(parts(itemParts(it.id, lamps.length > 0)), it.x, it.y, it.z, yaw);
-      this.itemMeshes.push({ mesh: m, taken: () => it.taken });
+      const it = this.sim.items[this.items];
+      /* a light lying switched on points its lens the way it shines (the player's yaw, turned to the part's +x) */
+      const aim = it.on ?? (it.id === 'flash' ? { yaw: 0, pitch: 0 } : null), yaw = aim ? aim.yaw + R90 : lie(it.x, it.z);
+      const m = this.addFixed(parts(itemParts(it.id)), it.x, it.y, it.z, yaw);
+      this.itemMeshes.push({ mesh: m, shown: () => !it.taken });
+      if (it.id === 'flash') {
+        const lens = this.addFixed(parts(LENS), it.x, it.y, it.z, yaw);
+        this.itemMeshes.push({ mesh: lens, shown: () => !it.taken && !!it.on });
+      }
     }
-    for (const im of this.itemMeshes) im.mesh.visible = !im.taken();
+    for (const im of this.itemMeshes) im.mesh.visible = im.shown();
   }
   private addFixed(geo: THREE.BufferGeometry, x: number, y: number, z: number, yaw: number): THREE.Mesh {
     const mat = dynamicMaterial(), mesh = new THREE.Mesh(geo, mat);
@@ -241,11 +248,11 @@ export class Things {
     return mesh;
   }
 
-  private add(geo: THREE.BufferGeometry, place: (m: THREE.Mesh) => void, litAt?: [number, number, number]): void {
+  private add(geo: THREE.BufferGeometry, place: (m: THREE.Mesh) => void, litAt?: [number, number, number], across?: [number, number]): void {
     const mat = dynamicMaterial(), mesh = new THREE.Mesh(geo, mat);
     mesh.frustumCulled = false;
     this.scene.add(mesh);
-    this.list.push({ mesh, mat, place: () => place(mesh), litAt });
+    this.list.push({ mesh, mat, place: () => place(mesh), litAt, across });
   }
 
   /** a window's pane: faintly tinted glass in a dark frame, lit where it stands when the level is drawn */
@@ -287,8 +294,13 @@ export class Things {
       t.place();
       const p = t.litAt ? { x: t.litAt[0], y: t.litAt[1], z: t.litAt[2] } : t.mesh.position, w = this.sim.world;
       const R = w.roomAt(p.x, p.y + 0.3, p.z) ?? w.roomAt(p.x, p.y + 1.2, p.z);
-      const l = R ? this.L.lit(R.id, p.x, p.y + 0.3, p.z) : [0, 0, 0];
-      (t.mat.uniforms.uLight.value as THREE.Vector3).set(l[0], l[1], l[2]);
+      let at = [p.x, p.y + 0.3, p.z] as const, l = R ? this.L.atPoint(...at) : [0, 0, 0];
+      if (R && t.across)
+        for (const k of [-1, 1]) {
+          const q = [p.x + k * t.across[0], p.y + 0.3, p.z + k * t.across[1]] as const, o = this.L.atPoint(...q);
+          if (Math.max(...o) > Math.max(...l)) { l = o; at = q; }
+        }
+      lightMaterial(t.mat, l, R ? this.L.flickAt(...at) : [0, 0, 0]);
     }
   }
 }

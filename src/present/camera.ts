@@ -4,6 +4,7 @@ import { STEP } from '../core/loop';
 import type { Sim } from '../sim/sim';
 import type { Dyn } from '../world/world';
 import { U } from './render/shader';
+import { BOUNCE } from '../world/light';
 
 /** what the beam's bounce passes through: the cast, not the walls */
 /** what sight goes through: bodies, and glass */
@@ -78,9 +79,9 @@ export class CameraRig {
     const g = sim.game, low = g.batt < 15 ? 0.6 : 1;
     U.uFlash.value = g.lightOn && g.light === 'flash' ? low : 0;
     /* bounce: a wall close in front of the beam lights the space around you a little; far off, it gives nothing back */
-    const R = 8, ex = x, ey = this.cy + this.eye, ez = z;
+    const R = BOUNCE.reach, ex = x, ey = this.cy + this.eye, ez = z;
     const hit = U.uFlash.value > 0 ? sim.world.raycast(ex, ey, ez, ex + B.x * R, ey + B.y * R, ez + B.z * R, seeThrough) : 1;
-    const bounce = hit < 1 ? (U.uFlash.value * 0.16) / (1 + 0.3 * (hit * R) ** 2) : 0;
+    const bounce = hit < 1 ? (U.uFlash.value * BOUNCE.gain) / (1 + BOUNCE.hit * (hit * R) ** 2) : 0;
     this.bounce += (bounce - this.bounce) * Math.min(1, dt * 10);
     U.uBounce.value = this.bounce;
     U.uLamp.value = sim.hands.muzzle > 0 ? 2.5 : g.lightOn && g.light === 'lantern' ? low : 0;

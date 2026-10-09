@@ -75,21 +75,22 @@ describe('the upper station, played', () => {
     expect(power(s.game, 'SEC')).toBe(0);
   });
 
-  it('a flashlight lies at the stair\'s foot, still on; taken, its light goes with it, and the dark has an answer', () => {
+  it('a flashlight lies at the stair\'s foot, still on; taken, it is still on in your hand, and the dark has an answer', () => {
     const s = fresh();
     hold(s, 0.1, { light: true });
     expect(s.game.lightOn).toBe(false); // nothing to switch on yet
-    const F = find(s, /Take flashlight/), lum = () => Math.max(...simLighting(s).atPoint(F.x, F.y + 0.3, F.z));
-    expect(lum()).toBeGreaterThan(0.05);
+    const F = find(s, /Take flashlight/), it = s.items.find(i => i.id === 'flash')!, a = it.on!;
+    const lum = () => Math.max(...simLighting(s).seen(it.x - Math.sin(a.yaw) * 2, it.y + 0.3, it.z - Math.cos(a.yaw) * 2));
+    expect(lum()).toBeGreaterThan(0.2); // its beam
     use(s, F, [0, 1]);
     expect(s.game.tools).toContain('flash');
-    expect(s.game.events.some(e => e.type === 'relight')).toBe(true);
-    expect(lum()).toBe(0);
-    hold(s, 0.1, { light: true });
-    expect(s.game.lightOn).toBe(true);
+    expect(s.game.lightOn).toBe(true); // in your hand now, and on
+    expect(lum()).toBe(0); // not lying there any more
     const before = s.game.batt;
     hold(s, 3);
     expect(s.game.batt).toBeLessThan(before);
+    hold(s, 0.1, { light: true });
+    expect(s.game.lightOn).toBe(false);
   });
 
   it('Security control\'s reader is dark while the wing is; mended, it wants the officer\'s card, and takes it', () => {

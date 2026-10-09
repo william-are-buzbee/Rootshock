@@ -35,6 +35,8 @@ export type Command =
   | { type: 'use'; slot: number }
   | { type: 'drop'; slot: number }
   | { type: 'light'; tool: string }
+  /** put a light down (if it is on, it stays on where it lies) */
+  | { type: 'putDown'; tool: string }
   /** take off something worn, into a free hand */
   | { type: 'unwear'; id: string }
   | { type: 'pad'; key: string }

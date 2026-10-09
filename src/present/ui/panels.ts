@@ -19,9 +19,10 @@ export class Panels {
   constructor(private send: (c: Command) => void, private game: () => Game, private onClose: () => void) {
     $('invb').addEventListener('click', e => {
       const t = e.target as HTMLElement;
-      const dr = t.closest<HTMLElement>('[data-d]'), tl = t.closest<HTMLElement>('[data-t]'), us = t.closest<HTMLElement>('[data-i]'), nt = t.closest<HTMLElement>('[data-n]');
+      const dr = t.closest<HTMLElement>('[data-d]'), pd = t.closest<HTMLElement>('[data-pt]'), tl = t.closest<HTMLElement>('[data-t]'), us = t.closest<HTMLElement>('[data-i]'), nt = t.closest<HTMLElement>('[data-n]');
       const wn = t.closest<HTMLElement>('[data-w]');
       if (dr) this.send({ type: 'drop', slot: +dr.dataset.d! });
+      else if (pd) this.send({ type: 'putDown', tool: pd.dataset.pt! });
       else if (wn) this.send({ type: 'unwear', id: wn.dataset.w! });
       else if (tl) this.send({ type: 'light', tool: tl.dataset.t! });
       else if (us) this.send({ type: 'use', slot: +us.dataset.i! });
@@ -106,7 +107,8 @@ export class Panels {
     }
     const worn = "<p>Prisoner's garb</p>" + g.worn.map(k => '<button data-w="' + k + '">' + esc(ITEMS[k].n) + '</button>').join(''), keys = g.keys.map(keyName);
     h += '</div><div class="cols"><section><h3>Lights</h3>' +
-      (g.tools.length ? g.tools.map(k => '<button data-t="' + k + '">' + esc(ITEMS[k].n) + (g.light === k ? (g.lightOn ? ' (on)' : ' (ready)') : '') + '</button>').join('') : '<p>None</p>') +
+      (g.tools.length ? g.tools.map(k => '<div class="tool"><button data-t="' + k + '">' + esc(ITEMS[k].n) + (g.light === k ? (g.lightOn ? ' (on)' : ' (ready)') : '') +
+        '</button><button class="drop" data-pt="' + k + '">Put down</button></div>').join('') : '<p>None</p>') +
       '</section><section><h3>Worn</h3>' + worn + '</section><section><h3>Keys</h3><p>' + (keys.length ? keys.map(esc).join('<br>') : 'None') +
       '</p></section><section><h3>Papers</h3>' + (g.read.length ? g.read.map(k => '<button data-n="' + k + '">' + esc(g.notes[k].t) + '</button>').join('') : '<p>None</p>') +
       '</section></div><p class="hint">Click an item to use it, put it on or take it in hand; click something worn to take it off. Tab closes.</p>';

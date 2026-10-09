@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { Mutant } from '../../sim/cast';
 import type { Sim } from '../../sim/sim';
 import type { Lighting } from '../../world/light';
-import { LIFT, U } from './shader';
+import { LIFT, LIGHTS, U, lightUniforms } from './shader';
 
 /* What is left on the floor: flat blocks, the one shape blood has in this station (content's blood(), a dark red box).
 
@@ -44,17 +44,15 @@ const GAIT: Partial<Record<string, Gait>> = {
 
 const VS = /* glsl */ `
 attribute vec3 iPos; attribute float iYaw; attribute vec2 iSize; attribute vec3 iCol; attribute float iA; attribute vec3 iL;
-uniform vec3 uFlashDir; uniform float uFlash; uniform float uLamp; uniform float uFog; uniform float uExpo;
+uniform float uFog; uniform float uExpo;
 varying vec3 vC; varying float vA;
+${LIGHTS}
 void main(){
   float c = cos(iYaw), s = sin(iYaw);
   vec2 q = position.xz * iSize;
   vec3 p = iPos + vec3(q.x * c + q.y * s, 0.0, -q.x * s + q.y * c);
   vec3 tc = cameraPosition - p; float d = length(tc);
-  float ca = dot(-tc / max(d, 0.001), uFlashDir);
-  float beam = uFlash * (0.65 * smoothstep(0.91, 0.975, ca) + 0.42 * smoothstep(0.76, 0.92, ca)) * 2.3 / (1.0 + 0.055 * d * d);
-  float lamp = uLamp * 1.5 / (1.0 + 0.2 * d * d);
-  vC = iCol * (iL + beam * vec3(1.0, 0.93, 0.78) + lamp * vec3(0.72, 0.92, 1.0)) * uExpo;
+  vC = iCol * (iL + carried(p, 1.0) + lying(p, vec3(0.0, 1.0, 0.0))) * uExpo;
   vA = iA * exp(-d * uFog);
   gl_Position = projectionMatrix * viewMatrix * vec4(p, 1.0);
 }`;
@@ -100,7 +98,7 @@ export class Prints {
     this.geo.setAttribute('iL', attr(this.iL, 3));
     this.geo.instanceCount = 0;
     const mat = new THREE.ShaderMaterial({
-      uniforms: { uFlashDir: U.uFlashDir, uFlash: U.uFlash, uLamp: U.uLamp, uFog: U.uFog, uExpo: U.uExpo },
+      uniforms: { ...lightUniforms(), uFog: U.uFog, uExpo: U.uExpo },
       vertexShader: VS, fragmentShader: FS, transparent: true, depthWrite: false,
       polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
     });

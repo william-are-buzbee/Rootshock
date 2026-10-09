@@ -87,8 +87,6 @@ export interface LampDef {
   x: number; y: number; z: number;
   r: number;
   colour: Colour;
-  /** the thing lying about that gives it (a flashlight dropped still on): it goes out once that is taken. Its index in items. */
-  item?: number;
 }
 
 /** a ceiling fitting: a point its room's light shines down from */
@@ -169,7 +167,12 @@ export interface DoorDef {
 }
 
 /** data the later steps use (engine.md §13): kept with the level now so the level is ported once */
-export interface ItemDef { id: string; x: number; y: number; z: number; n: number }
+export interface ItemDef {
+  id: string; x: number; y: number; z: number; n: number;
+  /** a light lying switched on (a flashlight dropped still on), and which way it points: yaw as the player's, pitch up */
+  on?: Aim;
+}
+export interface Aim { yaw: number; pitch: number }
 export interface NoteDef { key: string; x: number; y: number; z: number }
 export interface MutantDef { type: string; x: number; y: number; z: number; opts: Record<string, unknown> }
 /** something to use: a corpse to search, a panel, a backup set, a ladder, the lift */

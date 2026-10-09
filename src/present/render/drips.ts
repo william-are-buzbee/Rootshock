@@ -3,7 +3,7 @@ import { Rng } from '../../core/rng';
 import type { Sim } from '../../sim/sim';
 import type { Lighting } from '../../world/light';
 import type { World } from '../../world/world';
-import { LIFT, U } from './shader';
+import { LIFT, LIGHTS, U, lightUniforms } from './shader';
 
 /* Water coming through the rock. A level's drip points are found once, from its own id, so they are the same every
    time: in its caves and over its standing water, one to three a room, each where there is roof above and something
@@ -45,16 +45,14 @@ export function dripPoints(w: World): Drip[] {
 
 const RING_VS = /* glsl */ `
 attribute vec3 iPos; attribute float iSize; attribute vec3 iCol; attribute float iA; attribute vec3 iL;
-uniform vec3 uFlashDir; uniform float uFlash; uniform float uFog; uniform float uExpo;
+uniform float uFog; uniform float uExpo;
 varying vec3 vC; varying float vA; varying vec2 vS;
-${LIFT}
+${LIGHTS}
 void main(){
   vec3 p = iPos + vec3(position.x * iSize, 0.0, position.z * iSize);
   vec3 tc = cameraPosition - p; float d = length(tc);
-  float ca = dot(-tc / max(d, 0.001), uFlashDir);
-  float beam = uFlash * (0.65 * smoothstep(0.91, 0.975, ca) + 0.42 * smoothstep(0.76, 0.92, ca)) * 2.3 / (1.0 + 0.055 * d * d);
   /* a ring on water is mostly what it catches: a little light of its own (iA > 0); a wet patch has none */
-  vC = iCol * (iL + beam * vec3(1.0, 0.93, 0.78) + (iA > 0.0 ? 0.12 : 0.0)) * uExpo;
+  vC = iCol * (iL + carried(p, 1.0) + lying(p, vec3(0.0, 1.0, 0.0)) + (iA > 0.0 ? 0.12 : 0.0)) * uExpo;
   vA = iA * exp(-d * uFog);
   vS = position.xz * 2.0;
   gl_Position = projectionMatrix * viewMatrix * vec4(p, 1.0);
@@ -72,14 +70,13 @@ void main(){
 
 const DROP_VS = /* glsl */ `
 attribute vec3 aL; attribute float aA;
-uniform vec3 uFlashDir; uniform float uFlash; uniform float uFog; uniform float uExpo; uniform float uPx;
+uniform float uFog; uniform float uExpo; uniform float uPx;
 varying vec3 vC; varying float vA;
+${LIGHTS}
 void main(){
   vec4 mv = modelViewMatrix * vec4(position, 1.0);
   vec3 tc = cameraPosition - position; float d = length(tc);
-  float ca = dot(-tc / max(d, 0.001), uFlashDir);
-  float beam = uFlash * (0.65 * smoothstep(0.91, 0.975, ca) + 0.42 * smoothstep(0.76, 0.92, ca)) * 2.3 / (1.0 + 0.055 * d * d);
-  vC = vec3(0.7, 0.8, 0.85) * (aL + 0.6 * beam + 0.1) * uExpo;
+  vC = vec3(0.7, 0.8, 0.85) * (aL + 0.6 * (held(position, 1.0) + lying(position, vec3(0.0))) + bounce(position) + 0.1) * uExpo;
   vA = aA * exp(-d * uFog);
   gl_PointSize = floor(clamp(uPx / max(-mv.z, 0.1), 2.0, 6.0));
   gl_Position = projectionMatrix * mv;
@@ -117,7 +114,7 @@ export class Drips {
     this.dropGeo.setAttribute('aL', dyn(new THREE.BufferAttribute(this.dL, 3)));
     this.dropGeo.setAttribute('aA', dyn(new THREE.BufferAttribute(this.dA, 1)));
     this.dropMat = new THREE.ShaderMaterial({
-      uniforms: { uFlashDir: U.uFlashDir, uFlash: U.uFlash, uFog: U.uFog, uExpo: U.uExpo, uPx: { value: 30 } },
+      uniforms: { ...lightUniforms(), uFog: U.uFog, uExpo: U.uExpo, uPx: { value: 30 } },
       vertexShader: DROP_VS, fragmentShader: DROP_FS, transparent: true, depthWrite: false,
     });
     const drops = new THREE.Points(this.dropGeo, this.dropMat);
@@ -135,7 +132,7 @@ export class Drips {
     this.ringGeo.setAttribute('iL', inst(this.rL, 3));
     this.ringGeo.instanceCount = 0;
     const ringMat = new THREE.ShaderMaterial({
-      uniforms: { uFlashDir: U.uFlashDir, uFlash: U.uFlash, uFog: U.uFog, uExpo: U.uExpo },
+      uniforms: { ...lightUniforms(), uFog: U.uFog, uExpo: U.uExpo },
       vertexShader: RING_VS, fragmentShader: RING_FS, transparent: true, depthWrite: false,
       polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
     });

@@ -3,7 +3,7 @@ import type { Colour } from '../../core/math';
 import { blowAt, type Mutant } from '../../sim/cast';
 import type { Sim } from '../../sim/sim';
 import type { Lighting } from '../../world/light';
-import { dynamicMaterial } from './shader';
+import { dynamicMaterial, lightMaterial } from './shader';
 import { parts } from './things';
 
 /* The cast, drawn: the first engine's models (BUILD) and their animation (ANIM), ported nearly line for line. Each is a
@@ -300,8 +300,8 @@ export class CastView {
   }
   private bloods: THREE.Mesh[] = [];
   private light(mesh: THREE.Mesh): void {
-    const p = mesh.position, R = this.sim.world.roomAt(p.x, p.y + 0.3, p.z), l = R ? this.L.lit(R.id, p.x, p.y, p.z) : [0, 0, 0];
-    ((mesh.material as THREE.ShaderMaterial).uniforms.uLight.value as THREE.Vector3).set(l[0], l[1], l[2]);
+    const p = mesh.position, R = this.sim.world.roomAt(p.x, p.y + 0.3, p.z), none = [0, 0, 0];
+    lightMaterial(mesh.material as THREE.ShaderMaterial, R ? this.L.atPoint(p.x, p.y, p.z) : none, R ? this.L.flickAt(p.x, p.y, p.z) : none);
   }
 
   /** draw everything where it is, `alpha` of the way through the step */
@@ -319,8 +319,8 @@ export class CastView {
       g.rotation.y = m.yaw;
       g.rotation.x = m.dead || m.fixed ? 0 : -0.32 * m.hit * m.hit / Math.max(1, m.mass);
       mat.uniforms.uHit.value = m.hit;
-      const R = w.roomAt(x, y + 0.5, z) ?? w.roomAt(x, y + 1.2, z), l = R ? this.L.lit(R.id, x, y + 0.8, z) : [0, 0, 0];
-      (mat.uniforms.uLight.value as THREE.Vector3).set(l[0], l[1], l[2]);
+      const R = w.roomAt(x, y + 0.5, z) ?? w.roomAt(x, y + 1.2, z), none = [0, 0, 0];
+      lightMaterial(mat, R ? this.L.atPoint(x, y + 0.8, z) : none, R ? this.L.flickAt(x, y + 0.8, z) : none);
       if (m.dead) {
         /* it folds down where it fell, and leaves itself on the floor */
         g.scale.y = 1 - 0.62 * m.gone;

@@ -66,6 +66,8 @@ canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
 .cols p { margin: 0; font-size: 18px; line-height: 1.4; }
 .cols button { font: inherit; font-size: 18px; color: var(--bone); background: none; border: 0; border-bottom: 1px solid var(--ash); padding: 0; margin: 0 0 4px; cursor: pointer; display: block; text-align: left; }
 .cols button:hover, .cols button:focus-visible { color: var(--hazard); outline: none; }
+.cols .tool { display: flex; gap: 14px; align-items: baseline; }
+.cols .tool .drop { font-size: 14px; color: var(--ash); border-bottom: 0; }
 .hint { font-size: 16px; color: var(--ash); margin-top: 18px; }
 #liftb { width: min(420px, 100%); }
 #liftb button { display: block; width: 100%; font: inherit; font-size: 22px; font-weight: 500; text-align: left; color: var(--bone); background: rgba(217, 211, 193, .05); border: 1px solid rgba(217, 211, 193, .25); padding: 10px 14px; margin: 0 0 6px; cursor: pointer; }
