@@ -338,6 +338,21 @@ export class World {
     return c >= 0 ? this.rooms[c] : null;
   }
 
+  /** what a solid is made of where a line from (fx, fy, fz) meets it at (x, y, z): something there that says (a crate,
+   *  a container, a door), a block, or else the wall of the room the line came through */
+  solidMat(x: number, y: number, z: number, fx: number, fy: number, fz: number): Mat {
+    const f: Footprint = { x, z, hx: 0.06, hz: 0.06, round: false };
+    let m: Mat | null = null;
+    const at = (b: Box & { mat?: Mat }) => { if (b.mat && y > b.y0 - 0.06 && y < b.y1 + 0.06) m = b.mat; };
+    this.boxesNear(f, at);
+    this.dynNear(f, null, at);
+    if (m) return m;
+    const dx = x - fx, dy = y - fy, dz = z - fz, l = Math.hypot(dx, dy, dz) || 1;
+    const c = this.grid.at(x + (dx / l) * 0.05, y + (dy / l) * 0.05, z + (dz / l) * 0.05);
+    if (c <= -2) return this.blocks[-2 - c].mat;
+    return this.roomAt(x - (dx / l) * 0.15, y - (dy / l) * 0.15, z - (dz / l) * 0.15)?.mat.wall ?? 'rock';
+  }
+
   /** what is underfoot at a point (feet at y): what `on` is made of, if that is what you stand on; else the top of
    *  something there that says what it is (a crate's lid, a container's roof); else a sloped floor within a quarter
    *  metre of your feet; else the floor of the room you are in */

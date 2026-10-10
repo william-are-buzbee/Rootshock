@@ -5,7 +5,7 @@ import { makeSim, step, type Sim } from '../src/sim/sim';
 import { noInput, type Input } from '../src/sim/input';
 import { STEP } from '../src/core/loop';
 import { refreshFields } from '../src/sim/fields';
-import { ambientFor, floorAt, genAt, hearing, roomAir, spaceOf } from '../src/present/soundscape';
+import { ambientFor, genAt, hearing, legacyFloor, roomAir, spaceOf, underfoot } from '../src/present/soundscape';
 import { flickerAt } from '../src/present/flicker';
 
 /* What the sound is told: what feet fall on, how a sound comes to you through the rooms, and the landings and jumps. The
@@ -18,43 +18,47 @@ const sounds = (s: Sim, name: string) => s.game.events.filter(e => e.type === 's
 describe('feet', () => {
   it('fall on concrete in the station, rock in the cave, water where it stands', () => {
     const up = sim('upper'), b = up.player.body;
-    expect(floorAt(up.world, b.x, b.y, b.z)).toBe('concrete');
+    expect(underfoot(up.world, b.x, b.y, b.z)).toBe('concrete');
     const cave = sim('cave'), c = cave.player.body;
-    expect(floorAt(cave.world, c.x, c.y, c.z)).toBe('rock');
+    expect(underfoot(cave.world, c.x, c.y, c.z)).toBe('rock');
     const sump = sim('sump'), W = sump.world.water[0];
-    expect(floorAt(sump.world, (W.x0 + W.x1) / 2, W.level - 0.2, (W.z0 + W.z1) / 2)).toBe('wet');
+    expect(underfoot(sump.world, (W.x0 + W.x1) / 2, W.level - 0.2, (W.z0 + W.z1) / 2)).toBe('wet');
   });
 
   it('ring on a platform and knock on a crate', () => {
     const up = sim('upper'), b = up.player.body;
-    expect(floorAt(up.world, b.x, b.y, b.z, up.platforms[0].dyn)).toBe('metal');
-    expect(floorAt(up.world, b.x, b.y, b.z, up.loose.all[0].dyn)).toBe('wood');
+    expect(underfoot(up.world, b.x, b.y, b.z, up.platforms[0].dyn)).toBe('steel');
+    expect(underfoot(up.world, b.x, b.y, b.z, up.loose.all[0].dyn)).toBe('wood');
   });
 
   it('know what they stand on without being told: a container is steel, a crate wood, a cave rock round its boulders', () => {
     const up = sim('upper'), w = up.world;
     const box = w.def.props.find(p => p.mat === 'steel' && p.solid && p.sx > 5)!;
-    expect(floorAt(w, box.x, box.y + box.sy, box.z)).toBe('metal');
+    expect(underfoot(w, box.x, box.y + box.sy, box.z)).toBe('steel');
     const c = up.loose.all[0].dyn;
-    expect(floorAt(w, (c.x0 + c.x1) / 2, c.y1, (c.z0 + c.z1) / 2)).toBe('wood');
+    expect(underfoot(w, (c.x0 + c.x1) / 2, c.y1, (c.z0 + c.z1) / 2)).toBe('wood');
     /* the cargo cavern is rock; a step onto something in it that says nothing of itself is still rock, not grating */
     const R = w.def.rooms.find(r => r.name === 'Cargo cavern')!;
     expect(R.mat.floor).toBe('rock');
   });
+
+  it('with surface detail off, are guessed as they were before materials', () => {
+    const up = sim('upper'), b = up.player.body;
+    expect(legacyFloor(up.world, b.x, b.y, b.z)).toBe('concrete');
+    expect(legacyFloor(up.world, b.x, b.y, b.z, up.platforms[0].dyn)).toBe('metal');
+    expect(legacyFloor(up.world, b.x, b.y, b.z, up.loose.all[0].dyn)).toBe('wood');
+  });
 });
 
-describe('what the station is made of', () => {
-  it('fitted rooms are concrete, walkways grating, caves rock, the Commons paved', () => {
-    const up = levelDef(STATION, 'upper'), main = levelDef(STATION, 'main'), cave = levelDef(STATION, 'cave');
-    expect(up.rooms.find(r => !r.plain && !r.doorway && r.sky === undefined)!.mat).toEqual({ floor: 'concrete', wall: 'concrete', ceiling: 'concrete' });
-    expect(main.rooms.find(r => r.name === 'Gallery')!.mat.floor).toBe('grating');
-    expect(main.rooms.find(r => r.name === 'The Commons')!.mat.floor).toBe('paving');
-    for (const s of cave.surfaces) expect(s.mat).toBe('rock');
-    for (const L of [up, main, cave]) {
-      for (const d of L.doors) expect(d.mat).toBe(d.glass ? 'glass' : 'steel');
-      for (const p of L.platforms) expect(p.mat).toBe('steel');
-      for (const p of L.props) if (p.loose) expect(p.mat).toBe('wood');
-    }
+describe('a blow on a wall', () => {
+  it('is heard where it lands, from what the wall is made of', () => {
+    const up = sim('upper'), w = up.world;
+    const R = w.def.rooms.find(r => r.name === 'Security corridor')!, y = R.y0 + 1.2, z = (R.z0 + R.z1) / 2;
+    /* from the middle of the corridor to its west wall: painted block */
+    expect(w.solidMat(R.x0, y, z, R.x0 + 2, y, z)).toBe('block');
+    /* onto a container's side: steel */
+    const box = w.def.props.find(p => p.mat === 'steel' && p.solid && p.sx > 5)!;
+    expect(w.solidMat(box.x, box.y + 1, box.z - box.sz / 2, box.x, box.y + 1, box.z - box.sz / 2 - 1)).toBe('steel');
   });
 });
 

@@ -1,4 +1,5 @@
-import { MATS } from '../content/materials';
+import type { Mat } from '../content/materials';
+import { ITEMS } from '../content/items';
 import type { RoomDef } from '../content/types';
 import { clamp } from '../core/math';
 import type { Mutant } from '../sim/cast';
@@ -19,10 +20,32 @@ import { flickerAt } from './flicker';
 
 const rnd = (a: number, b: number) => a + Math.random() * (b - a);
 
-/** what a foot comes down on at a place: a puddle, or the voice of what the floor is made of (content/materials.ts) */
-export function floorAt(w: World, x: number, y: number, z: number, on: Dyn | null = null): Surf {
+/** what a foot comes down on at a place: a puddle, or what the floor is made of (content/materials.ts) */
+export function underfoot(w: World, x: number, y: number, z: number, on: Dyn | null = null): Mat | 'wet' {
   if (!on && w.waterAt(x, z) > y + 0.03) return 'wet';
-  return MATS[w.floorMat(x, y, z, on)].tread;
+  return w.floorMat(x, y, z, on);
+}
+
+/** what a foot comes down on, as the station sounded before it knew what it was made of (surface detail off): a puddle,
+ *  a crate's wood, a platform's metal, a cave's rock, a plain room's (a walkway's) metal; else concrete */
+export function legacyFloor(w: World, x: number, y: number, z: number, on: Dyn | null = null): Surf {
+  if (on) return on.kind === 'loose' ? 'wood' : on.kind === 'mover' ? 'metal' : 'concrete';
+  if (w.waterAt(x, z) > y + 0.03) return 'wet';
+  for (const s of w.surfaces) {
+    const d = s.def;
+    if (d.kind !== 'floor' || d.sides || d.hidden || x < d.x0 || x > d.x1 || z < d.z0 || z > d.z1 || !s.has(x, z)) continue;
+    if (Math.abs(s.heightAt(x, z) - y) < 0.25) return 'rock';
+  }
+  const R = w.roomAt(x, y + 0.3, z);
+  if (R?.cells || R?.sky !== undefined) return 'rock';
+  return R?.plain ? 'metal' : 'concrete';
+}
+
+/** how hard what you swing is where it meets something (0 soft, 1 steel): fists are soft, the baton is rubber over its
+ *  core, the rest is steel or an edge */
+function hardness(weapon: string | null): number {
+  const w = weapon ? ITEMS[weapon]?.w : undefined;
+  return !w || w.type === 'fist' ? 0.1 : weapon === 'baton' ? 0.35 : 0.9;
 }
 
 /** how much of each echo a room has, a small room's, a hall's and a vast space's, by how much air is in it: a cell or an
@@ -110,6 +133,19 @@ export class Soundscape {
 
   constructor(private audio: Audio) {}
 
+  /** what things are made of is heard (with surface detail on): footsteps, crates and blows ring as their materials
+   *  do (audio.ts, impact). Off, they sound as they did before: a foot's five voices, guessed from the room */
+  materials = true;
+
+  /** what a foot or a thing comes down on, as the voice wants it: the material, or (materials off) the old guess */
+  private floor(v: Voice, sim: Sim, x: number, y: number, z: number, on: Dyn | null = null): Voice {
+    if (!this.materials) { v.surf = legacyFloor(sim.world, x, y, z, on); return v; }
+    const u = underfoot(sim.world, x, y, z, on);
+    if (u === 'wet') v.surf = 'wet';
+    else v.mat = u;
+    return v;
+  }
+
   /** a sound the sim made */
   event(sim: Sim, ev: Extract<SimEvent, { type: 'sfx' }>): void {
     const p = sim.player, b = p.body;
@@ -117,11 +153,16 @@ export class Soundscape {
     const v: Voice = { big: ev.big, k: ev.k };
     if (ev.x === undefined) {
       v.d = ev.d ?? 0;
-      if (n === 'step' || n === 'land') v.surf = floorAt(sim.world, b.x, b.y, b.z, b.on);
+      if (n === 'step' || n === 'land') this.floor(v, sim, b.x, b.y, b.z, b.on);
       if (n === 'slosh' && p.water === 'swimming') n = 'stroke';
     } else {
       Object.assign(v, hearing(sim, ev.x, ev.y, ev.z!));
-      if (FEET.has(n) && ev.y !== undefined) v.surf = floorAt(sim.world, ev.x, ev.y, ev.z!);
+      if (FEET.has(n) && ev.y !== undefined) this.floor(v, sim, ev.x, ev.y, ev.z!);
+      /* a blow that met the wall: what the wall is, and what it was struck with */
+      if (n === 'blow' && this.materials) {
+        v.mat = sim.world.solidMat(ev.x, ev.y!, ev.z!, b.x, ev.y!, b.z);
+        v.hard = hardness(sim.game.weapon);
+      }
     }
     this.audio.play(n, v);
   }
@@ -226,15 +267,15 @@ export class Soundscape {
       if (!c) this.crates.set(o, (c = { ground: o.ground, vmin: 0, x: o.x, z: o.z, slid: 0 }));
       if (!o.awake) { c.ground = o.ground; c.x = o.x; c.z = o.z; continue; }
       if (!o.ground) c.vmin = Math.min(c.vmin, o.vy);
-      else if (!c.ground && c.vmin < -3) this.at(sim, 'crate', o.x, o.y, o.z, { k: clamp(-c.vmin / 10, 0, 1) });
+      else if (!c.ground && c.vmin < -3) this.at(sim, 'crate', o.x, o.y, o.z, this.floor({ k: clamp(-c.vmin / 10, 0, 1), by: o.prop.mat }, sim, o.x, o.y, o.z));
       if (o.ground) c.vmin = 0;
       const slid = Math.hypot(o.x - c.x, o.z - c.z);
-      if (o.ground && slid > 0.3 * dt) { c.slid += slid; if (c.slid > 0.5) { c.slid = 0; this.at(sim, 'scrape', o.x, o.y, o.z); } }
+      if (o.ground && slid > 0.3 * dt) { c.slid += slid; if (c.slid > 0.5) { c.slid = 0; this.at(sim, 'scrape', o.x, o.y, o.z, this.floor({ by: o.prop.mat }, sim, o.x, o.y, o.z)); } }
       c.ground = o.ground; c.x = o.x; c.z = o.z;
     }
 
     /* caves breathe and drip; so does anywhere near standing water */
-    const cave = floorAt(w, b.x, b.y, b.z) === 'rock';
+    const cave = legacyFloor(w, b.x, b.y, b.z) === 'rock';
     A.setBed(cave ? 1 : 0);
 
     /* the room's echo: kept through a doorway, so passing between two halls does not shrink them */

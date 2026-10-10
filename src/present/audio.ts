@@ -1,18 +1,26 @@
+import { MATS, type Mat } from '../content/materials';
+
 /* Every sound is synthesised, as before: noise and tones shaped on the spot, panned by where the thing is. Ported from the
    first engine's audio section, and grown since: footsteps that know what they fall on, and voices for the cast.
-   Sounds are played from the sim's events and from the soundscape (soundscape.ts), which says where each one is. */
+   Sounds are played from the sim's events and from the soundscape (soundscape.ts), which says where each one is.
 
-/** what a foot comes down on */
+   Where something strikes a material (a foot, a crate landing, a blow on a wall), the soundscape says which, and it is
+   heard as that material sounds (content/materials.ts, its ring), through one voice: impact. Where it does not say
+   (surface detail off), the old voices play: a foot's five, guessed from the room. */
+
+/** what a foot comes down on, in the old voices: a puddle is always this */
 export type Surf = 'concrete' | 'metal' | 'rock' | 'wood' | 'wet';
 
 /** how a sound reaches you: how far it travelled, which side it comes from (-1 left to 1 right), how muffled by what is
- *  between (0 open air, 1 through rock); big for the heavy kind; what it stands on; how hard (0..1) */
-export interface Voice { d?: number; pan?: number; muffle?: number; big?: boolean; surf?: Surf; k?: number }
+ *  between (0 open air, 1 through rock); big for the heavy kind; what it stands on (in the old voices); how hard (0..1).
+ *  What it strikes, if the soundscape knows (mat); the thing that strikes it (by: a crate's own material), and how hard
+ *  that is (hard: 0 a fist, 1 steel) */
+export interface Voice { d?: number; pan?: number; muffle?: number; big?: boolean; surf?: Surf; k?: number; mat?: Mat; by?: Mat; hard?: number }
 
 const RANGE: Record<string, number> = {
   door: 46, roar: 55, thud: 40, hstep: 18, moan: 28, tap: 24, skit: 24, slosh: 20, swing: 10, whiff: 14, heave: 20, rasp: 12, gust: 24, strike: 30, knock: 32, groan: 55, tick: 12, settle: 45, step: 30, rattle: 30,
   breath: 10, mutter: 20, click: 14, gurgle: 22, growl: 30, slither: 10, bubble: 12, creak: 12, drip: 30, scrape: 20, crate: 30,
-  klaxon: 70, cam: 16, smash: 34, 'bolt-draw': 24, bolt: 26, 'bolt-free': 18,
+  klaxon: 70, cam: 16, smash: 34, blow: 30, 'bolt-draw': 24, bolt: 26, 'bolt-free': 18,
   'die-husk': 40, 'die-skitter': 36, 'die-bloat': 46, 'die-thresher': 50, 'die-worm': 20, 'die-swimmer': 20, 'die-grabber': 24,
 };
 
@@ -227,13 +235,50 @@ export class Audio {
         this.nz(0.04, 0.3 * vol, 1500 * p, 'bandpass', t + 0.045, 1);
     }
   }
-  /** something heavy putting its weight down */
-  private heavy(s: Surf, vol: number): void {
+  /** something heavy putting its weight down: on a material if it is known, else in the old voices */
+  private heavy(s: Surf, vol: number, m?: Mat): void {
     const p = rnd(0.85, 1.15);
     this.tn(58 * p, 32, 0.22, 'sine', 0.55 * vol);
     this.nz(0.16, 0.5 * vol, 160 * p);
+    if (m) { this.tread(m, 0.3 * vol, 0, 1.5); return; }
     if (s === 'wet') { this.nz(0.35, 0.4 * vol, 900, 'bandpass', 0.02, 0.8, 300); return; }
     this.step(s, 0.3 * vol);
+  }
+
+  /** something striking a material (its ring): the click of the contact, brighter the harder what strikes it; the ring
+   *  of its body, the high modes only for a hard strike, dying at once and dropping on what is solid, ringing on in a
+   *  sheet; and as things of it are built, a hollow one booms, a grate rattles, grit skitters. `size` over 1 is a
+   *  smaller, higher strike (claws), under 1 a bigger, lower one (a heavy foot) */
+  private impact(m: Mat, vol: number, hard: number, size = 1, t = 0): void {
+    const R = MATS[m].ring, p = rnd(0.92, 1.08) / size;
+    this.nz(R.clickT * (1.3 - 0.5 * hard), vol * (0.35 + 0.4 * hard), R.click * p * (0.7 + 0.6 * hard), 'bandpass', t, 0.9);
+    const rings = R.build === 'sheet' || R.build === 'grate', long = R.build === 'sheet' ? 1.5 : R.build === 'hollow' ? 1.2 : 1;
+    for (const [r, g, dec] of R.modes) {
+      const f = R.base * r * p, w = g * (r <= 1 ? 1 : hard + (1 - hard) / r);
+      /* a hard strike brings out the bright partials of a ringing thing; a soft one (rubber, a fist) only its tone */
+      this.tn(f, rings ? f * 0.985 : f * 0.75, dec * long * (0.6 + 0.4 * hard), rings && hard > 0.5 ? 'triangle' : 'sine', vol * w * 0.45, t);
+    }
+    if (R.build === 'hollow') { this.tn(130 * p, 75 * p, 0.13, 'sine', vol * 0.5, t); this.nz(0.07, vol * 0.3, 480, 'lowpass', t); }
+    if (R.build === 'grate') for (let i = 0, at = t + 0.03; i < 3; i++, at += rnd(0.015, 0.03)) this.nz(0.02, vol * rnd(0.12, 0.25), rnd(2000, 3200), 'bandpass', at, 3);
+    for (let i = 0, at = t; i < R.grit; i++, at += rnd(0.01, 0.025)) this.nz(0.025, rnd(0.25, 0.5) * vol, rnd(1800, 3600), 'bandpass', at, 2);
+  }
+  /** a foot coming down on a material: the weight of it, the heel striking, and on what is smooth and solid the toe
+   *  after it */
+  private tread(m: Mat, vol: number, t = 0, size = 1): void {
+    const p = rnd(0.88, 1.12) * ((this.foot = !this.foot) ? 1 : 0.94), R = MATS[m].ring;
+    vol *= 0.62; // as loud as the old voices, on the whole
+    this.tn((100 * p) / size, 50, 0.07, 'sine', 0.45 * vol, t);
+    this.impact(m, vol, 0.35, size, t);
+    if (R.build === 'solid' && !R.grit) this.impact(m, 0.45 * vol, 0.45, size * 1.3, t + 0.045);
+  }
+  /** a thing dragged over a material: friction heard through the floor's click and the thing's own ring; a grate
+   *  rattles under it */
+  private scrape(floor: Mat, by: Mat, vol: number): void {
+    const F = MATS[floor].ring, B = MATS[by].ring;
+    this.nz(0.25, 0.12 * vol, F.click * 0.45, 'bandpass', 0, 2, F.click * 0.75, 0.03);
+    this.nz(0.2, 0.08 * vol, 150, 'lowpass');
+    for (const [r, g] of B.modes.slice(0, 2)) this.nz(0.22, 0.06 * vol * g, B.base * r, 'bandpass', 0.02, 10);
+    if (F.build === 'grate') for (let i = 0, at = 0.02; i < 4; i++, at += rnd(0.03, 0.06)) this.nz(0.02, vol * rnd(0.06, 0.12), rnd(2000, 3200), 'bandpass', at, 3);
   }
 
   play(n: string, o: Voice = {}): void {
@@ -246,9 +291,9 @@ export class Audio {
     try {
       switch (n) {
         /* you */
-        case 'step': this.step(surf, 0.16 * v); break;
+        case 'step': if (o.mat) this.tread(o.mat, 0.16 * v); else this.step(surf, 0.16 * v); break;
         case 'land':
-          this.step(surf, (0.16 + 0.25 * k));
+          if (o.mat) this.tread(o.mat, 0.16 + 0.25 * k); else this.step(surf, 0.16 + 0.25 * k);
           this.tn(80, 40, 0.12 + 0.1 * k, 'sine', 0.25 + 0.5 * k);
           this.nz(0.15 + 0.15 * k, 0.15 + 0.5 * k, 200);
           if (k > 0.5) this.nz(0.08, 0.15 * k, 3200, 'highpass', 0.05); // what you carry rattles
@@ -268,11 +313,13 @@ export class Audio {
 
         /* the cast */
         case 'hstep':
-          if (big) { this.heavy(surf, v); break; }
-          this.step(surf, 0.3 * v);
+          if (big) { this.heavy(surf, v, o.mat); break; }
+          if (o.mat) this.tread(o.mat, 0.3 * v); else this.step(surf, 0.3 * v);
           if (Math.random() < 0.6) this.nz(0.18, 0.1 * v, 400, 'bandpass', 0.06, 1.5, 900, 0.05); // a foot dragged
           break;
         case 'tap': {
+          /* claws: three quick small strikes on what they run over */
+          if (o.mat) { for (let i = 0, at = 0; i < 3; i++, at += rnd(0.02, 0.035)) this.impact(o.mat, (i ? 0.07 : 0.12) * v, 1, big ? 1.4 : 2.6, at); break; }
           const f = big ? rnd(450, 650) : rnd(1200, 1700);
           for (let i = 0, at = 0; i < 3; i++, at += rnd(0.02, 0.035)) this.tn(f * rnd(0.9, 1.1), f * 0.65, 0.025, 'square', (i ? 0.06 : 0.1) * v, at);
           if (surf === 'wet') this.nz(0.1, 0.12 * v, 1600, 'bandpass', 0, 1);
@@ -325,8 +372,15 @@ export class Audio {
           this.nz(0.12, 0.25 * v, 1500, 'bandpass', 0, 1.5);
           this.tn(60, 40, 0.1, 'sine', 0.2 * v);
           break;
-        case 'crate': this.tn(170, 110, 0.15, 'sine', (0.25 + 0.4 * k) * v); this.nz(0.2, (0.3 + 0.4 * k) * v, 300); this.nz(0.06, 0.15 * k * v, 2000, 'bandpass', 0.01); break;
-        case 'scrape': this.nz(0.25, 0.14 * v, 300, 'bandpass', 0, 2, 520, 0.03); this.nz(0.2, 0.1 * v, 150, 'lowpass'); break;
+        case 'crate': // a crate landing: it, and what it lands on
+          if (o.mat) { this.impact(o.by ?? 'wood', (0.3 + 0.38 * k) * v, 0.5); this.impact(o.mat, (0.17 + 0.25 * k) * v, 0.5, 0.8); break; }
+          this.tn(170, 110, 0.15, 'sine', (0.25 + 0.4 * k) * v); this.nz(0.2, (0.3 + 0.4 * k) * v, 300); this.nz(0.06, 0.15 * k * v, 2000, 'bandpass', 0.01); break;
+        case 'scrape':
+          if (o.mat) { this.scrape(o.mat, o.by ?? 'wood', v); break; }
+          this.nz(0.25, 0.14 * v, 300, 'bandpass', 0, 2, 520, 0.03); this.nz(0.2, 0.1 * v, 150, 'lowpass'); break;
+        case 'blow': // your blow met the wall: as the wall is made of, and as hard as what you swung; else the old clang
+          if (o.mat) { this.tn(80, 45, 0.08, 'sine', 0.2 * v); this.impact(o.mat, 0.35 * v, o.hard ?? 0.9); break; }
+          this.tn(900, 700, 0.18, 'triangle', 0.15 * v); this.nz(0.05, 0.2 * v, 2000, 'bandpass'); break;
         case 'zap': this.nz(0.06, 0.14 * k, 4200, 'highpass'); this.tn(120, 118, 0.05, 'square', 0.03 * k); break;
         case 'tink': this.tn(2600, 2100, 0.012, 'square', 0.025 * k); break;
         /* the station's own noises (soundscape.ts) */
