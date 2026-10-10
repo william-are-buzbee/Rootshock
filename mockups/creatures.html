@@ -1,0 +1,800 @@
+<title>Overseer and Hand</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400&display=swap" rel="stylesheet">
+<style>
+/* Layout: the model fills the screen; a header to switch creature, and one panel of states and what each means. */
+:root {
+  --pitch: #060708; --panel: rgba(7, 8, 9, .84); --bone: #d9d3c1; --ash: #8a897f; --hazard: #c9a227; --blood: #a8352a;
+  --line: rgba(217, 211, 193, .16);
+  --sign: "Barlow Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --hand: "Newsreader", Georgia, "Times New Roman", serif;
+  color-scheme: dark;
+}
+html, body { height: 100%; margin: 0; background: var(--pitch); color: var(--bone); font-family: var(--sign); overflow: hidden; }
+canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+canvas:active { cursor: grabbing; }
+.top { position: fixed; left: 0; right: 0; top: 0; padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 0; display: flex; flex-wrap: wrap; gap: 10px 24px; align-items: baseline; pointer-events: none; }
+.name { font-size: 15px; letter-spacing: .2em; text-transform: uppercase; color: var(--ash); }
+.name b { color: var(--bone); font-weight: 600; }
+nav { display: flex; gap: 4px; pointer-events: auto; }
+nav button, .btns button { font: inherit; color: var(--bone); background: none; border: 1px solid var(--line); cursor: pointer; }
+nav button { font-size: 22px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; padding: 2px 14px 1px; }
+nav button[aria-selected="true"] { border-color: var(--hazard); color: var(--hazard); }
+.panel { position: fixed; left: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); width: min(440px, calc(100% - 32px)); background: var(--panel); border-top: 3px solid var(--hazard); padding: 12px 14px 12px; display: flex; flex-direction: column; gap: 8px; }
+.state { flex-wrap: wrap; font-size: 26px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; line-height: 1; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.knocks { font-size: 16px; font-weight: 500; letter-spacing: .12em; color: var(--ash); white-space: nowrap; }
+.knocks i { font-style: normal; display: inline-block; width: 9px; height: 9px; margin-left: 5px; border-radius: 50%; border: 1px solid var(--ash); vertical-align: 0; }
+.knocks i.on { background: var(--blood); border-color: var(--blood); }
+.knocks i.gap { border: 0; width: 6px; }
+#cap { font-family: var(--hand); font-size: 16px; line-height: 1.42; margin: 0; max-width: 38em; min-height: 4.2em; }
+.btns { display: flex; flex-wrap: wrap; gap: 6px; }
+.btns button { font-size: 17px; font-weight: 500; padding: 3px 10px 2px; }
+.btns button.on { background: var(--bone); color: var(--pitch); border-color: var(--bone); }
+.btns button:hover, nav button:hover { border-color: var(--bone); }
+button:focus-visible { outline: 2px solid var(--hazard); outline-offset: 2px; }
+.row { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 15px; color: var(--ash); }
+.row label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.row input { accent-color: var(--hazard); margin: 0; }
+.hint { position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); font-size: 14px; letter-spacing: .1em; text-transform: uppercase; color: var(--ash); pointer-events: none; text-align: right; }
+@media (max-width: 720px) { .hint { top: calc(56px + env(safe-area-inset-top, 0px)); bottom: auto; } #cap { font-size: 15px; min-height: 0; } .state { font-size: 22px; } }
+</style>
+
+<canvas id="c" aria-label="3D view of the creature; drag to orbit"></canvas>
+<header class="top">
+  <div class="name"><b>Rootshock</b> · creature mockups</div>
+  <nav role="tablist" aria-label="Creature">
+    <button role="tab" id="tab-overseer" data-scene="overseer" aria-selected="true">Overseer</button>
+    <button role="tab" id="tab-hand" data-scene="hand" aria-selected="false">Hand</button>
+  </nav>
+</header>
+<section class="panel" aria-live="polite">
+  <div class="state"><span id="state">Idle</span><span class="knocks" id="knocks"></span></div>
+  <p id="cap"></p>
+  <div class="btns" id="btns"></div>
+  <div class="row">
+    <label><input type="checkbox" id="flash" checked> Flashlight (F)</label>
+    <label><input type="checkbox" id="sound" checked> Sound</label>
+    <label><input type="checkbox" id="figure" checked> 1.8 m figure</label>
+  </div>
+</section>
+<div class="hint">Drag to orbit · scroll or pinch to zoom</div>
+
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js" } }</script>
+<script type="module">
+import * as THREE from 'three';
+
+const PI = Math.PI, TAU = PI * 2;
+/* castView's palette, and a few for Security's kit */
+const FLESH = 0xb08572, RAW = 0x8c4a44, GOREC = 0x4e1616, PALE = 0xcdbfae, BONE = 0xddd6c0, DARK = 0x140c0d;
+const TROUS = 0x2b2e34, VEST = 0x23272c, SHIRT = [0x39485a, 0x4a5560, 0x2f3a48, 0x4f5862, 0x3d4652], SHIELD = 0x6c7a84, RIM = 0x1c1e20;
+const MEAT = [0x7a3a34, 0x5e2420, 0x8a5448, 0x6a302a], SKIN = [0xbaa08e, 0xa88a7a, 0xc4ad9a, 0xae9282];
+const SCL = 0xd8d0c0, IRIS = 0x5e5a36, PUP = 0x15100e, GLOW = [2.75, 2.36, 2.2];
+
+/* the game's unit shapes (templates.ts), flat triangle lists in a 1 m cube */
+const TPL = (() => {
+  const box = () => {
+    const c = [[-.5, -.5, -.5], [.5, -.5, -.5], [.5, .5, -.5], [-.5, .5, -.5], [-.5, -.5, .5], [.5, -.5, .5], [.5, .5, .5], [-.5, .5, .5]];
+    const f = [[0, 1, 2, 3], [5, 4, 7, 6], [4, 0, 3, 7], [1, 5, 6, 2], [3, 2, 6, 7], [4, 5, 1, 0]], p = [];
+    for (const q of f) for (const k of [0, 1, 2, 0, 2, 3]) p.push(...c[q[k]]);
+    return p;
+  };
+  const ico = () => {
+    const t = (1 + Math.sqrt(5)) / 2, n = 0.5 / Math.hypot(1, t);
+    const v = [[-1, t, 0], [1, t, 0], [-1, -t, 0], [1, -t, 0], [0, -1, t], [0, 1, t], [0, -1, -t], [0, 1, -t], [t, 0, -1], [t, 0, 1], [-t, 0, -1], [-t, 0, 1]].map(a => a.map(x => x * n));
+    const fi = [0, 11, 5, 0, 5, 1, 0, 1, 7, 0, 7, 10, 0, 10, 11, 1, 5, 9, 5, 11, 4, 11, 10, 2, 10, 7, 6, 7, 1, 8, 3, 9, 4, 3, 4, 2, 3, 2, 6, 3, 6, 8, 3, 8, 9, 4, 9, 5, 2, 4, 11, 6, 2, 10, 8, 6, 7, 9, 8, 1], p = [];
+    for (const i of fi) p.push(...v[i]);
+    return p;
+  };
+  const cyl = (N = 6) => {
+    const p = [];
+    for (let k = 0; k < N; k++) {
+      const a = (k / N) * TAU, b = ((k + 1) / N) * TAU, x0 = Math.cos(a) * .5, z0 = Math.sin(a) * .5, x1 = Math.cos(b) * .5, z1 = Math.sin(b) * .5;
+      p.push(x0, -.5, z0, x1, -.5, z1, x1, .5, z1, x0, -.5, z0, x1, .5, z1, x0, .5, z0, 0, .5, 0, x0, .5, z0, x1, .5, z1, 0, -.5, 0, x1, -.5, z1, x0, -.5, z0);
+    }
+    return p;
+  };
+  return { box: box(), ico: ico(), cyl: cyl() };
+})();
+const hex = c => Array.isArray(c) ? c : [((c >> 16) & 255) / 255, ((c >> 8) & 255) / 255, (c & 255) / 255];
+const geos = new Map();
+function geo(shape, c, sx, sy, sz) {
+  const k = `${shape}|${c}|${sx}|${sy}|${sz}`;
+  let g = geos.get(k);
+  if (g) return g;
+  const src = TPL[shape], col = hex(c), P = [], C = [];
+  for (let v = 0; v < src.length; v += 3) { P.push(src[v] * sx, src[v + 1] * sy, src[v + 2] * sz); C.push(col[0], col[1], col[2]); }
+  g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3));
+  g.setAttribute('aCol', new THREE.Float32BufferAttribute(C, 3));
+  geos.set(k, g);
+  return g;
+}
+
+/* a cut-down copy of the game's look (shader.ts): faceted, shaded by facing, a room light, the flashlight from the eye,
+   a colour over 2 drawn as its own light, fog and grain */
+const VS = `attribute vec3 aCol; varying vec3 vW; varying vec3 vC;
+void main(){ vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; vC = aCol; gl_Position = projectionMatrix * viewMatrix * w; }`;
+const FS = `uniform vec3 uRoom; uniform vec3 uFlashPos; uniform vec3 uFlashDir; uniform float uFlash;
+uniform vec3 uGlowPos; uniform vec3 uGlowC; uniform float uGlowR; uniform vec4 uTint; uniform float uTime; uniform float uFog;
+varying vec3 vW; varying vec3 vC;
+void main(){
+  vec3 n = normalize(cross(dFdx(vW), dFdy(vW)));
+  vec3 tc = cameraPosition - vW; float d = length(tc); vec3 Ld = tc / max(d, 0.001);
+  vec3 nf = dot(n, Ld) < 0.0 ? -n : n;
+  vec3 base = vC; float em = 0.0;
+  if (base.r > 1.5) { base -= 2.0; em = 1.0; }
+  base = mix(base, uTint.rgb, uTint.a);
+  float sh = 0.55 + 0.45 * (abs(nf.y) * 0.95 + abs(nf.x) * 0.7 + abs(nf.z) * 0.5);
+  vec3 light = uRoom * sh * (0.75 + 0.25 * max(nf.y, 0.0));
+  vec3 tp = vW - uFlashPos; float fd = length(tp); vec3 fdir = tp / max(fd, 0.001);
+  float cone = smoothstep(0.88, 0.975, dot(fdir, uFlashDir));
+  float facing = 0.35 + 0.65 * max(dot(nf, -fdir), 0.0);
+  light += uFlash * vec3(1.0, 0.94, 0.82) * (cone * 2.5 + 0.05) * facing / (1.0 + 0.09 * fd * fd);
+  vec3 tg = uGlowPos - vW; float gd = length(tg);
+  light += uGlowC * max(0.0, 1.0 - gd / uGlowR) * (0.35 + 0.65 * max(dot(nf, tg / max(gd, 0.001)), 0.0));
+  light += vec3(0.014) / (1.0 + 3.0 * d * d);
+  vec3 c = mix(base * light, base, em);
+  c *= exp(-d * uFog);
+  vec3 h3 = fract(vec3(gl_FragCoord.xyx + floor(fract(uTime * 7.13) * 977.0)) * 0.1031);
+  h3 += dot(h3, h3.yzx + 33.33);
+  c += (fract((h3.x + h3.y) * h3.z) - 0.5) * 0.024 * (1.0 - smoothstep(0.0, 0.35, dot(c, vec3(0.3, 0.59, 0.11))));
+  gl_FragColor = vec4(c, 1.0);
+}`;
+const U = {
+  uRoom: { value: new THREE.Vector3() }, uFlashPos: { value: new THREE.Vector3() }, uFlashDir: { value: new THREE.Vector3(0, 0, -1) }, uFlash: { value: 1 },
+  uGlowPos: { value: new THREE.Vector3() }, uGlowC: { value: new THREE.Vector3() }, uGlowR: { value: 1 }, uTime: { value: 0 }, uFog: { value: 0.03 },
+};
+const material = () => new THREE.ShaderMaterial({ uniforms: { ...U, uTint: { value: new THREE.Vector4(0, 0, 0, 0) } }, vertexShader: VS, fragmentShader: FS, side: THREE.DoubleSide });
+const MAT = material();
+
+function mk(parent, shape, c, sx, sy, sz, x, y, z, mat = MAT) {
+  const m = new THREE.Mesh(geo(shape, c, sx, sy, sz), mat);
+  m.position.set(x, y, z); m.frustumCulled = false; parent.add(m);
+  return m;
+}
+function grp(parent, x, y, z) {
+  const g = new THREE.Group(); g.position.set(x, y, z); g.rotation.order = 'YXZ'; parent.add(g);
+  return g;
+}
+/** a box from a to b (world or parent frame), w by h across */
+function beam(parent, c, w, h, a, b) {
+  const len = a.distanceTo(b), m = mk(parent, 'box', c, w, h, len, (a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2);
+  m.lookAt(parent.localToWorld(b.clone()));
+  return m;
+}
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const damp = (k, dt) => 1 - Math.exp(-k * dt);
+const ease = t => t * t * (3 - 2 * t);
+let seed = 7;
+const rnd = (a = 0, b = 1) => a + (((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296) * (b - a));
+
+/* ---------------------------------------------------------------------------------------------------------------- */
+/* eyes: a ball that turns in its socket to look, and a lid that does not (it comes down over the ball, or draws back) */
+const EYES = [];
+function eye(parent, r, x, y, z, o = {}) {
+  const g = grp(parent, x, y, z), ball = grp(g, 0, 0, 0), scm = material();
+  const sc = new THREE.Mesh(geo('ico', SCL, r * 2, r * 2, r * 2), scm); sc.frustumCulled = false; ball.add(sc);
+  mk(ball, 'ico', o.iris ?? IRIS, r * 1.05, r * 1.05, r * 0.3, 0, 0, r * 0.8);
+  const pup = mk(ball, 'ico', PUP, r * 0.52, r * 0.52, r * 0.2, 0, 0, r * 0.92);
+  const lid = mk(g, 'ico', o.skin ?? FLESH, r * 2.3, 1, r * 2.55, 0, 0, 0);
+  const E = { g, ball, scm, pup, lid, r, rest: o.cover ?? rnd(0.0, 0.2), cover: 0.3, blink: rnd(1, 6), shut: 0, dil: 1, flush: 0, yaw: 0, pitch: 0, wild: o.wild ?? 0 };
+  EYES.push(E);
+  return E;
+}
+/** a sealed eye, the smallest heads': a puffed lid with a slit, never open */
+function sealed(parent, r, x, y, z, skin) {
+  mk(parent, 'ico', skin, r * 2.2, r * 1.6, r * 1.4, x, y, z);
+  mk(parent, 'box', 0x2a0e0c, r * 1.5, r * 0.12, r * 0.3, x, y, z + r * 0.62);
+}
+const _v = new THREE.Vector3(), _w = new THREE.Vector3(), _e = new THREE.Vector3();
+/** the yaw and pitch, in o's parent's frame, that turn o's +z at t */
+function aim(o, t) {
+  _v.copy(t); o.parent.worldToLocal(_v); _v.sub(o.position);
+  return [Math.atan2(_v.x, _v.z), -Math.atan2(_v.y, Math.hypot(_v.x, _v.z))];
+}
+/** each frame: turn toward t, open or shut by the mood, pupils by the light */
+function lookEye(E, t, dt, mood) {
+  const [y, p] = aim(E.ball, t), k = damp(14, dt);
+  E.yaw += (clamp(y, -0.75, 0.75) - E.yaw) * k; E.pitch += (clamp(p, -0.6, 0.6) - E.pitch) * k;
+  const jit = E.wild && mood.stare < 0.5 && Math.random() < 0.02 ? rnd(-0.3, 0.3) : 0;
+  E.ball.rotation.set(E.pitch, E.yaw + jit, 0);
+  /* the lid: heavy at rest, blinking out of step; staring, drawn right back and never blinking */
+  if ((E.blink -= dt) < 0 && mood.stare < 0.5) { E.blink = rnd(2, 7); E.shut = 0.16; }
+  const blinking = E.shut > 0 ? Math.sin((1 - (E.shut -= dt) / 0.16) * PI) : 0;
+  const want = mood.stare > 0.5 ? -0.3 : lerp(E.rest, 0.85, mood.drowse ?? 0);
+  E.cover += (want - E.cover) * damp(mood.stare > 0.5 ? 10 : 4, dt);
+  const c = clamp(Math.max(E.cover, blinking * 1.05), -0.3, 1), q = (c + 0.3) / 1.3, r = E.r;
+  E.lid.position.y = lerp(1.28 * r, 0, q); E.lid.scale.y = lerp(0.8 * r, 2.3 * r, q);
+  /* pupils open wide on what it wants, and pin in a beam */
+  E.g.getWorldPosition(_e);
+  const toE = _e.sub(U.uFlashPos.value), dist = toE.length(), lit = U.uFlash.value > 0 && dist < 9 && toE.normalize().dot(U.uFlashDir.value) > 0.955;
+  const dil = lit ? 0.42 : mood.stare > 0.5 ? 1.4 : 1;
+  E.dil += (dil - E.dil) * damp(lit ? 9 : 3, dt);
+  E.pup.scale.set(E.dil, E.dil, 1);
+  E.flush += ((mood.flush ?? 0) - E.flush) * damp(2, dt);
+  E.scm.uniforms.uTint.value.set(0.66, 0.24, 0.22, E.flush * 0.5);
+}
+
+/* ---------------------------------------------------------------------------------------------------------------- */
+/* sound: a knock is a thud through concrete; the building rings a little after it */
+let ac = null, master = null, noise = null;
+function audio() {
+  if (ac) return ac;
+  try {
+    ac = new AudioContext();
+    master = ac.createGain(); master.gain.value = 0.8;
+    const dl = ac.createDelay(), fb = ac.createGain(), lp = ac.createBiquadFilter();
+    dl.delayTime.value = 0.13; fb.gain.value = 0.32; lp.type = 'lowpass'; lp.frequency.value = 260;
+    master.connect(ac.destination); master.connect(dl); dl.connect(lp); lp.connect(fb); fb.connect(dl); lp.connect(ac.destination);
+    noise = ac.createBuffer(1, ac.sampleRate * 0.3, ac.sampleRate);
+    const d = noise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  } catch { ac = null; }
+  return ac;
+}
+function thud(gain = 1, far = false) {
+  if (!document.getElementById('sound').checked || !audio()) return;
+  if (ac.state === 'suspended') ac.resume();
+  const t = ac.currentTime + 0.01, o = ac.createOscillator(), g = ac.createGain();
+  o.type = 'sine'; o.frequency.setValueAtTime(far ? 70 : 95, t); o.frequency.exponentialRampToValueAtTime(34, t + 0.2);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.95 * gain, t + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.7);
+  o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.75);
+  const n = ac.createBufferSource(), f = ac.createBiquadFilter(), ng = ac.createGain();
+  n.buffer = noise; f.type = 'lowpass'; f.frequency.value = far ? 180 : 420;
+  ng.gain.setValueAtTime(0.7 * gain, t); ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.14);
+  n.connect(f); f.connect(ng); ng.connect(master); n.start(t); n.stop(t + 0.16);
+}
+
+/* the knock code: a zone's count, a pause, the count again */
+const ZONES = { wing: ['The wing', 1], atrium: ['The atrium', 2], muster: ['The muster hall', 3], ops: ['Operations', 4] };
+function codeTimes(n) {
+  const out = []; let t = 0;
+  for (let rep = 0; rep < 2; rep++) { for (let k = 0; k < n; k++) { out.push(t); t += 0.62; } t += 1.15; }
+  return out;
+}
+const knocksEl = document.getElementById('knocks');
+function showKnocks(n, landed, name) {
+  if (!n) { knocksEl.innerHTML = ''; return; }
+  let h = name ? `${name} ` : '';
+  for (let k = 0; k < 2 * n; k++) h += (k === n ? '<i class="gap"></i>' : '') + `<i class="${k < landed ? 'on' : ''}"></i>`;
+  knocksEl.innerHTML = h;
+}
+
+/* ---------------------------------------------------------------------------------------------------------------- */
+/* a person for scale: 1.8 m */
+function figure(parent, x, z, yaw) {
+  const g = grp(parent, x, 0, z), c = 0x5c5f62;
+  g.rotation.y = yaw;
+  for (const s of [-1, 1]) mk(g, 'box', c, 0.16, 0.86, 0.18, s * 0.11, 0.43, 0);
+  mk(g, 'box', c, 0.44, 0.62, 0.24, 0, 1.17, 0);
+  for (const s of [-1, 1]) mk(g, 'box', c, 0.1, 0.66, 0.11, s * 0.28, 1.15, 0);
+  mk(g, 'ico', c, 0.24, 0.28, 0.25, 0, 1.64, 0);
+  return g;
+}
+function floor(parent, w, d, c, line, step) {
+  mk(parent, 'box', c, w, 0.1, d, 0, -0.05, 0);
+  for (let x = -w / 2 + step; x < w / 2; x += step) mk(parent, 'box', line, 0.02, 0.004, d, x, 0.001, 0);
+  for (let z = -d / 2 + step; z < d / 2; z += step) mk(parent, 'box', line, w, 0.004, 0.02, 0, 0.001, z);
+}
+
+/* ================================================================================================================ */
+/* THE OVERSEER: the operations staff grown into one body at their posts. A mound of them fused, a head that has
+   budded heads like a tumour buds, each with eyes but the smallest, and every face turns together to whatever it
+   attends to. A watcher at each screen behind it, joined to it by a cord of meat; two clubbed arms to knock with. */
+function buildOverseer() {
+  const S = new THREE.Scene(), body = grp(S, 0, 0, 0);
+  /* the room: floor, the back wall and its desk of screens, the glass onto the hall in front */
+  floor(S, 12, 11, 0x303336, 0x232629, 1.2);
+  mk(S, 'box', 0x262a2e, 12, 4.2, 0.2, 0, 2.1, -4.75);
+  mk(S, 'box', 0x3a3d40, 9.2, 0.06, 0.72, 0, 0.75, -4.12);
+  mk(S, 'box', 0x24272a, 9.2, 0.7, 0.05, 0, 0.37, -3.78);
+  mk(S, 'box', 0x2a2d30, 12, 0.92, 0.3, 0, 0.46, 3.3);
+  for (let x = -4.8; x <= 4.81; x += 1.6) mk(S, 'box', RIM, 0.09, 3.1, 0.12, x, 2.47, 3.3);
+  mk(S, 'box', RIM, 12, 0.12, 0.14, 0, 4.0, 3.3);
+  /* the floor in front, where its fists come down: stained, and cracked from the blows */
+  for (const s of [-1, 1]) {
+    mk(S, 'box', 0x3a1612, 0.95, 0.006, 0.8, s * 1.38, 0.004, 1.42);
+    for (let k = 0; k < 5; k++) { const m = mk(S, 'box', 0x141516, 0.6 + k * 0.08, 0.008, 0.025, s * 1.38, 0.006, 1.42); m.rotation.y = k * 1.26 + s; m.position.x += Math.cos(k * 1.26 + s) * 0.35 * s; m.position.z -= Math.sin(k * 1.26 + s) * 0.35; }
+  }
+
+  /* the mound: several of them, fused; what is left of their shirts stretched over it, a lanyard, limbs where they came through */
+  for (const [x, y, z, sx, sy, sz, c] of [[0, 0.55, -0.1, 2.1, 1.3, 1.8, MEAT[0]], [0.6, 0.85, -0.4, 1.5, 1.25, 1.3, MEAT[2]], [-0.65, 0.8, -0.25, 1.35, 1.15, 1.25, MEAT[1]],
+    [-0.15, 1.25, -0.55, 1.15, 0.95, 1.05, MEAT[3]], [0.75, 0.42, 0.45, 0.95, 0.8, 0.85, FLESH], [-0.8, 0.45, 0.5, 0.8, 0.7, 0.7, MEAT[2]], [0.05, 0.3, 0.75, 1.2, 0.55, 0.6, MEAT[3]]])
+    mk(body, 'ico', c, sx, sy, sz, x, y, z);
+  for (const [x, y, z, w, h, rx, ry, rz, c] of [[-0.86, 0.98, 0.2, 0.4, 0.34, -0.3, -0.9, 0.5, SHIRT[2]], [0.86, 1.02, 0.02, 0.36, 0.4, -0.2, 1.0, -0.4, SHIRT[0]], [-0.1, 0.5, 0.98, 0.42, 0.2, 0.5, 0, 0.1, SHIRT[2]], [-0.3, 1.62, -0.36, 0.4, 0.26, -0.9, 0.2, 0.3, SHIRT[4]]]) {
+    const m = mk(body, 'box', c, w, h, 0.05, x, y, z); m.rotation.set(rx, ry, rz);
+    mk(body, 'box', BONE, 0.025, 0.025, 0.02, x + 0.05, y + 0.04, z + 0.04);
+  }
+  for (const [x, y, z] of [[0.32, 0.8, 0.93], [-0.55, 0.7, 0.78], [0.95, 0.62, 0.68]]) {
+    mk(body, 'box', 0x2a3a5a, 0.025, 0.28, 0.02, x, y + 0.1, z); mk(body, 'box', 0xd4d8d4, 0.075, 0.1, 0.012, x, y - 0.06, z + 0.01); mk(body, 'box', 0x2a3a5a, 0.06, 0.02, 0.014, x, y - 0.035, z + 0.016);
+  }
+  for (const [x, y, z, ry, rz] of [[-1.05, 1.05, -0.4, 0.4, 0.9], [1.15, 1.0, -0.6, -0.5, -0.8], [0.3, 1.7, -0.8, 1.4, 0.6], [-0.4, 0.25, 0.95, 0.3, 0.1]])
+    { const L = grp(body, x, y, z); L.rotation.set(0, ry, rz); mk(L, 'box', SKIN[1], 0.62, 0.11, 0.12, 0.31, 0, 0); mk(L, 'box', SKIN[0], 0.16, 0.05, 0.12, 0.66, 0, 0); for (let k = 0; k < 3; k++) mk(L, 'box', SKIN[2], 0.12, 0.025, 0.025, 0.76, 0, -0.04 + k * 0.04); }
+  /* its own light, which needs no power: pustules over the body, the colour of a healing burn */
+  for (const [x, y, z, s] of [[-0.5, 1.2, 0.35, 0.2], [-0.35, 1.05, 0.45, 0.14], [0.85, 1.25, -0.05, 0.22], [0.7, 0.85, 0.55, 0.15], [-1.0, 0.7, 0.3, 0.17], [0.1, 1.55, -0.2, 0.18], [0.45, 0.45, 0.8, 0.12], [-0.25, 0.42, 0.95, 0.13]])
+    mk(body, 'ico', GLOW, s, s * 0.8, s, x, y, z);
+
+  /* two clubbed arms, each several of theirs fused, fists on the floor in front: what it knocks with */
+  const arms = [];
+  for (const s of [-1, 1]) {
+    const A = grp(body, s * 1.0, 1.02, 0.42);
+    A.rotation.y = s * 0.28;
+    mk(A, 'box', FLESH, 0.24, 0.24, 0.85, -0.07, 0, 0.42); mk(A, 'box', 0xb08a78, 0.2, 0.2, 0.82, 0.1, 0.06, 0.4); mk(A, 'box', RAW, 0.08, 0.2, 0.7, 0.01, 0.02, 0.42);
+    mk(A, 'box', SHIRT[s > 0 ? 0 : 1], 0.36, 0.32, 0.26, 0, 0, 0.1);
+    const E = grp(A, 0, 0, 0.85);
+    mk(E, 'ico', BONE, 0.16, 0.14, 0.14, 0.04, 0.06, -0.02);
+    mk(E, 'box', PALE, 0.2, 0.2, 0.7, -0.06, 0, 0.35); mk(E, 'box', FLESH, 0.17, 0.17, 0.68, 0.09, 0.03, 0.34);
+    const F = grp(E, 0, 0, 0.74);
+    mk(F, 'ico', FLESH, 0.44, 0.36, 0.42, 0, -0.02, 0.08); mk(F, 'ico', RAW, 0.3, 0.26, 0.3, s * 0.14, 0.05, 0.02); mk(F, 'ico', PALE, 0.26, 0.24, 0.26, -s * 0.13, -0.06, 0.14);
+    for (let k = 0; k < 4; k++) mk(F, 'box', BONE, 0.07, 0.06, 0.07, -0.15 + k * 0.1, 0.12, 0.24);
+    arms.push({ A, E, F, s, t: 9 });
+  }
+
+  /* the heads: the first one, which still has its dragged mouth, and what it has budded. Each turns on its neck */
+  const heads = [];
+  function head(parent, at, s, neck, skin, eyes, rest, o = {}) {
+    const h = grp(parent, at[0], at[1], at[2]);
+    h.rotation.set(rest[1], rest[0], 0);
+    mk(h, 'box', skin, s * 0.38, s * 0.38, neck + 0.05, 0, 0, neck / 2);
+    const fz = neck + s * 0.4;
+    mk(h, 'ico', skin, s, s * 1.06, s * 0.94, 0, 0, fz);
+    const front = fz + s * 0.36, list = [];
+    if (eyes === 0) sealed(h, s * 0.13, 0, s * 0.06, front - s * 0.02, skin);
+    else if (eyes === 1) list.push(eye(h, s * (o.big ?? 0.3), 0, s * 0.06, front, { skin }));
+    else for (const x of [-1, 1]) list.push(eye(h, s * (o.big ?? 0.17), x * s * 0.21, s * 0.08, front, { skin }));
+    if (eyes) mk(h, 'box', 0x2a0e0c, s * 0.3, s * 0.05, s * 0.06, s * 0.03, -s * 0.24, front - s * 0.02);
+    const H = { h, s, rest, eyes: list, tgt: V(0, 1.5, 6), lag: 1.2 / (0.25 + s), range: o.range ?? 2.3, wander: [rnd(0.08, 0.2), rnd(0, TAU), rnd(0.1, 0.25), rnd(0, TAU)], glance: rnd(3, 12), gl: null, yaw: rest[0], pitch: rest[1] };
+    heads.push(H);
+    return H;
+  }
+  /* the first: big, off centre, the mouth dragged sideways pulling the face after it, one eye swollen */
+  const H0 = grp(body, 0.25, 1.4, 0.15);
+  const main = { h: H0, s: 1.2, rest: [0, -0.05], eyes: [], tgt: V(0, 1.5, 6), lag: 0.9, range: 0.95, wander: [0.07, 0.4, 0.11, 1.3], glance: 99, gl: null, yaw: 0, pitch: -0.05 };
+  mk(H0, 'box', MEAT[2], 0.6, 0.5, 0.5, 0, 0.1, 0.1);
+  mk(H0, 'ico', SKIN[0], 1.15, 1.25, 1.05, 0, 0.42, 0.32);
+  mk(H0, 'ico', SKIN[2], 0.5, 0.4, 0.4, 0.38, 0.12, 0.62);
+  main.eyes.push(eye(H0, 0.15, -0.25, 0.58, 0.8, { skin: SKIN[0] }), eye(H0, 0.22, 0.2, 0.5, 0.78, { skin: SKIN[0], cover: 0.25 }));
+  const mouth = mk(H0, 'ico', 0x1e0807, 0.56, 0.11, 0.12, 0.1, 0.14, 0.8); mouth.rotation.z = 0.42;
+  const lip = mk(H0, 'ico', RAW, 0.5, 0.08, 0.12, 0.12, 0.08, 0.79); lip.rotation.z = 0.42;
+  for (const [k, h] of [[0, 0.045], [2, 0.035]]) { const m = mk(H0, 'box', 0xcfc6a8, 0.03, h, 0.03, -0.06 + k * 0.1, 0.12 + k * 0.042, 0.85); m.rotation.z = 0.42; }
+  mk(H0, 'ico', MEAT[0], 0.32, 0.26, 0.2, 0.46, 0.0, 0.66);
+  mk(H0, 'ico', SKIN[2], 0.12, 0.14, 0.1, -0.03, 0.36, 0.86);
+  heads.push(main);
+  const H1 = head(H0, [0.42, 0.95, 0.15], 0.6, 0.16, SKIN[1], 2, [0.55, -0.35]);
+  head(H0, [-0.5, 0.75, 0.32], 0.38, 0.14, SKIN[3], 1, [-0.9, -0.2]);
+  head(H1.h, [0.18, 0.18, 0.28], 0.28, 0.1, SKIN[2], 1, [0.7, -0.5]);
+  const H2 = head(body, [-0.85, 1.12, 0.32], 0.55, 0.3, SKIN[3], 1, [-0.6, -0.1], { big: 0.34 });
+  head(H2.h, [-0.2, 0.2, 0.42], 0.22, 0.1, SKIN[1], 1, [-1.1, -0.4]);
+  const H5 = head(body, [0.88, 1.25, -0.25], 0.42, 0.36, SKIN[0], 2, [1.0, -0.25]);
+  head(H5.h, [0.15, 0.12, 0.45], 0.13, 0.08, SKIN[2], 0, [1.2, 0.2]);
+  head(body, [-0.3, 1.62, -0.45], 0.2, 0.26, SKIN[1], 0, [0.2, -0.8]);
+  head(body, [0.98, 0.72, 0.58], 0.16, 0.12, SKIN[2], 0, [0.9, 0.3]);
+  head(body, [-1.05, 0.62, 0.52], 0.32, 0.2, SKIN[0], 1, [-1.2, 0.15]);
+  /* and eyes that came up through the skin of the mound, with no head about them */
+  const lone = [eye(body, 0.085, -0.28, 0.86, 0.72, { skin: MEAT[0] }), eye(body, 0.07, 0.62, 0.7, 0.62, { skin: FLESH }), eye(body, 0.06, 0.1, 0.48, 1.02, { skin: MEAT[3] })];
+
+  /* the watchers: at each screen what is left of one of them, hunched to it, one swollen eye at the glass and a hand on
+     the desk; grown into their neighbours, and a cord of meat back to the body. One screen is dead. */
+  const screens = [], watchers = [];
+  const XS = [-3.2, -1.6, 0, 1.6, 3.2];
+  XS.forEach((x, k) => {
+    mk(S, 'box', 0x22262a, 1.28, 0.98, 0.08, x, 1.38, -4.5);
+    const sm = material(), face = new THREE.Mesh(geo('box', k === 4 ? 0x0b0d0e : [2.12, 2.2, 2.22], 1.16, 0.86, 0.02), sm);
+    face.position.set(x, 1.38, -4.455); S.add(face);
+    screens.push({ x, sm, pos: V(x, 1.38, -4.45), dead: k === 4, hot: 0 });
+    const w = grp(S, x, 0, -3.48);
+    w.rotation.y = PI;
+    const lean = grp(w, 0, 0.35, 0), c = MEAT[k % 4];
+    mk(lean, 'box', c, 0.56, 0.86, 0.46, 0, 0.42, 0);
+    mk(lean, 'ico', MEAT[(k + 1) % 4], 0.44, 0.4, 0.44, 0, 0.86, 0.06);
+    const we = eye(lean, 0.17, ((k % 3) - 1) * 0.04, 0.9, 0.24, { skin: MEAT[(k + 1) % 4], cover: 0.35 });
+    mk(lean, 'box', FLESH, 0.12, 0.12, 0.5, 0.2, 0.38, 0.32); mk(lean, 'ico', MEAT[(k + 2) % 4], 0.28, 0.12, 0.22, 0.2, 0.42, 0.64);
+    if (k < 4) mk(S, 'box', c, 0.95, 0.16, 0.14, x + 0.8, 0.78 + (k % 2) * 0.12, -3.5);
+    /* the cord, and a lump that runs along it to the body when this one sees something */
+    const a = V(x, 0.62 + (k % 3) * 0.08, -3.22), b = V(x * 0.18, 0.55, -0.9);
+    beam(S, MEAT[k % 4], 0.17, 0.19, a, b);
+    const lump = mk(S, 'ico', MEAT[(k + 2) % 4], 0.34, 0.32, 0.34, a.x, a.y, a.z); lump.visible = false;
+    watchers.push({ w, lean, eye: we, a, b, lump, tense: 0 });
+  });
+
+  return {
+    S, body, heads, main, lone, arms, screens, watchers,
+    room: [0.2, 0.22, 0.25], glow: { pos: V(0, 1.2, 0.6), c: [0.5, 0.17, 0.1], r: 4.5 },
+    cam: { yaw: 0.32, pitch: 0.1, dist: 6.4, tgt: V(0, 1.3, -0.3) },
+    fig: figure(S, 2.7, 1.5, -0.4),
+  };
+}
+
+/* ================================================================================================================ */
+/* THE HAND: what is left of the response team, made one thing. Four of them lie prone side by side, fused into a palm,
+   backs up, spines standing like tendons; their arms, fused in pairs, are the fingers, walking on their own hands,
+   riot shields grown in for nails; their heads at the knuckles, and only the front two still see. A fifth is the thumb.
+   Their legs braid back into a wrist, and where the legs end, in a ruff of boots, a head has grown that is all of
+   theirs. Low, it lies on its fingertips and feels the floor. Raised, the wrist comes up and that head looks. */
+function buildHand() {
+  const S = new THREE.Scene();
+  floor(S, 16, 16, 0x4a4c4a, 0x3a3c3b, 1.2);
+  /* the muster hall's furniture, for scale: a crowd barrier, a bench, a shield rack */
+  for (let k = 0; k < 3; k++) { mk(S, 'box', 0x8a8c8e, 2.2, 0.05, 0.05, -1.5 + k * 2.3, 1.05, -3.2); mk(S, 'box', 0x8a8c8e, 2.2, 0.04, 0.04, -1.5 + k * 2.3, 0.6, -3.2); for (const e of [-1, 1]) mk(S, 'box', 0x6a6c6e, 0.05, 1.05, 0.45, -1.5 + k * 2.3 + e * 1.05, 0.52, -3.2); }
+  mk(S, 'box', 0x5a4a3a, 2.4, 0.08, 0.45, 3.4, 0.46, 0.8); for (const e of [-1, 1]) mk(S, 'box', 0x2c2f33, 0.08, 0.44, 0.4, 3.4 + e * 1.05, 0.22, 0.8);
+  mk(S, 'box', 0x2c2f33, 0.08, 1.6, 1.6, -4.2, 0.8, 0.6); for (let k = 0; k < 4; k++) mk(S, 'box', SHIELD, 0.05, 1.1, 0.5, -4.1, 0.75, 0.05 + k * 0.38);
+
+  const g = grp(S, 0, 0, 0), root = grp(g, 0, 0.8, 0), palm = grp(root, 0, 0, 0);
+  /* the palm: their torsos. Knuckles (their shoulders) at z = 0, the heel of the hand at z = -0.95 */
+  const FX = [-0.39, -0.13, 0.13, 0.38], SH = [SHIRT[0], SHIRT[1], SHIRT[2], SHIRT[4]];
+  mk(palm, 'ico', FLESH, 1.22, 0.62, 1.0, 0, 0.0, -0.42);
+  mk(palm, 'ico', RAW, 1.02, 0.3, 0.84, 0, -0.18, -0.42);
+  mk(palm, 'ico', GOREC, 0.5, 0.12, 0.4, 0.1, -0.27, -0.42);
+  FX.forEach((x, k) => {
+    const back = mk(palm, 'box', SH[k], 0.25, 0.1, 0.74, x, 0.24 - Math.abs(k - 1.5) * 0.05, -0.44); back.rotation.z = (k - 1.5) * 0.18;
+    if (k < 3) mk(palm, 'box', RAW, 0.05, 0.08, 0.66, (x + FX[k + 1]) / 2, 0.25 - Math.abs(k - 1) * 0.04, -0.44);
+    for (let s = 0; s < 5; s++) mk(palm, 'box', 0xb8ae98, 0.05, 0.04, 0.06, x + (k - 1.5) * 0.015 * s, 0.295 - Math.abs(k - 1.5) * 0.05, -0.74 + s * 0.15);
+    mk(palm, 'ico', FLESH, 0.3, 0.26, 0.28, x, 0.05, -0.04);
+  });
+  mk(palm, 'box', VEST, 0.52, 0.06, 0.34, -0.25, 0.3, -0.56); mk(palm, 'box', 0x8a7a2a, 0.13, 0.02, 0.07, -0.2, 0.335, -0.55);
+  mk(palm, 'box', 0xd8d4c8, 0.16, 0.02, 0.05, 0.25, 0.32, -0.3);
+
+  /* the heads at the knuckles: the index and the middle look; the ring is in its helmet, the little one hangs */
+  const kHeads = [];
+  FX.forEach((x, k) => {
+    const h = grp(palm, x, 0.24, 0.02);
+    if (k === 3) { h.rotation.x = 0.95; mk(h, 'ico', PALE, 0.22, 0.25, 0.24, 0, 0.0, 0.08); mk(h, 'ico', DARK, 0.2, 0.12, 0.2, 0, 0.08, 0.04); return; }
+    mk(h, 'ico', PALE, 0.29, 0.33, 0.3, 0, 0.08, 0.08);
+    if (k === 2) {
+      mk(h, 'ico', RIM, 0.35, 0.23, 0.36, 0, 0.17, 0.06);
+      const vz = mk(h, 'box', 0x5a6670, 0.28, 0.13, 0.03, 0, 0.08, 0.23); vz.rotation.x = 0.25;
+      kHeads.push({ h, eyes: [], yaw: 0, pitch: 0 });
+      return;
+    }
+    const eyes = [eye(h, 0.06, -0.065, 0.11, 0.2, { skin: PALE, wild: 1 }), eye(h, k === 0 ? 0.085 : 0.062, 0.065, 0.11, 0.2, { skin: PALE, wild: 1 })];
+    mk(h, 'box', DARK, 0.11, 0.03, 0.02, 0, -0.01, 0.215);
+    if (k === 0) mk(h, 'ico', RAW, 0.12, 0.12, 0.09, 0.08, 0.13, 0.13);
+    kHeads.push({ h, eyes, yaw: 0, pitch: 0 });
+  });
+
+  /* the fingers: arms, fused two by two. Upper arms in their sleeves, forearms bare, hands fused at the tip with a
+     riot shield for a nail and their own fingers splayed under it */
+  const fingers = [];
+  const LEN = [[0.6, 0.52, 0.4], [0.64, 0.55, 0.42], [0.6, 0.52, 0.4], [0.48, 0.42, 0.34]];
+  function finger(at, yaw, L, sleeve, w = 1) {
+    const kn = grp(palm, at[0], at[1], at[2]);
+    kn.rotation.y = yaw;
+    for (const s of [-1, 1]) mk(kn, 'box', sleeve, 0.12 * w, 0.14 * w, L[0], s * 0.058 * w, 0, L[0] / 2);
+    mk(kn, 'box', RAW, 0.04, 0.12 * w, L[0] * 0.8, 0, 0.02, L[0] / 2);
+    const j2 = grp(kn, 0, 0, L[0]);
+    mk(j2, 'ico', BONE, 0.15 * w, 0.13 * w, 0.13, 0, 0.04, 0);
+    mk(j2, 'box', PALE, 0.095 * w, 0.1 * w, L[1], -0.05 * w, 0, L[1] / 2); mk(j2, 'box', FLESH, 0.09 * w, 0.095 * w, L[1], 0.05 * w, 0.005, L[1] / 2);
+    const j3 = grp(j2, 0, 0, L[1]);
+    mk(j3, 'box', FLESH, 0.2 * w, 0.085, L[2], 0, -0.01, L[2] / 2);
+    mk(j3, 'box', 0x56646e, 0.18 * w, 0.02, L[2] * 0.5, 0, 0.052, L[2] * 0.66); mk(j3, 'box', RIM, 0.19 * w, 0.028, 0.022, 0, 0.056, L[2] * 0.9);
+    for (let k = 0; k < 4; k++) { const f = mk(j3, 'box', PALE, 0.028, 0.028, 0.13, (-0.075 + k * 0.05) * w, -0.035, L[2] + 0.04); f.rotation.y = (k - 1.5) * 0.25; f.rotation.x = 0.5; }
+    const tip = grp(j3, 0, -0.06, L[2] + 0.06);
+    return { kn, j2, j3, tip, lift: 0 };
+  }
+  FX.forEach((x, k) => fingers.push(finger([x, -0.02, 0.1], (k - 1.5) * 0.07, LEN[k], SH[k])));
+  /* the thumb: the fifth of them, lying across the palm's edge, in its helmet; its arm is the thumb */
+  mk(palm, 'box', SHIRT[3], 0.24, 0.1, 0.62, -0.6, 0.06, -0.42).rotation.y = -0.5;
+  const th = grp(palm, -0.7, 0.16, -0.18); th.rotation.y = -0.5;
+  mk(th, 'ico', PALE, 0.22, 0.25, 0.24, 0, 0.04, 0.06); mk(th, 'ico', RIM, 0.27, 0.18, 0.28, 0, 0.11, 0.04);
+  const thumb = finger([-0.66, -0.06, -0.3], -0.95, [0.46, 0.4, 0.32], SHIRT[3], 0.9);
+  fingers.push(thumb);
+
+  /* the wrist: their legs, braided, running back from the heel of the hand; at the end a ruff of boots, and the head */
+  const wr = grp(palm, 0, 0.02, -0.82), wr2 = grp(wr, 0, 0, -0.62);
+  for (let i = 0; i < 5; i++) {
+    const a = i * TAU / 5;
+    mk(wr, 'box', i % 2 ? TROUS : 0x39485a, 0.14, 0.14, 0.66, Math.cos(a) * 0.13, Math.sin(a) * 0.13, -0.31).rotation.z = a;
+    mk(wr2, 'box', i % 2 ? 0x39485a : TROUS, 0.13, 0.13, 0.62, Math.cos(a + 0.7) * 0.12, Math.sin(a + 0.7) * 0.12, -0.3).rotation.z = a + 0.7;
+    mk(wr2, 'ico', i % 2 ? TROUS : 0x39485a, 0.18, 0.18, 0.18, Math.cos(a + 0.35) * 0.15, Math.sin(a + 0.35) * 0.15, 0.0);
+  }
+  mk(wr, 'ico', RAW, 0.24, 0.24, 0.62, 0, 0, -0.31); mk(wr2, 'ico', RAW, 0.22, 0.22, 0.6, 0, 0, -0.3);
+  for (let i = 0; i < 5; i++) {
+    const a = i * TAU / 5 + 0.3, b = grp(wr2, Math.cos(a) * 0.16, Math.sin(a) * 0.16, -0.56);
+    b.rotation.z = a;
+    const ank = grp(b, 0, 0, 0); ank.rotation.y = -0.9;
+    mk(ank, 'box', i % 2 ? TROUS : 0x39485a, 0.2, 0.13, 0.13, 0.08, 0, 0);
+    mk(ank, 'box', DARK, 0.36, 0.13, 0.14, 0.28, 0, 0.06); mk(ank, 'box', 0x0a0607, 0.38, 0.03, 0.15, 0.29, 0, 0.0);
+  }
+  /* the head at the end of the wrist faces back along it (+z), toward the palm, so raised it looks out over the fingers */
+  const hd = grp(wr2, 0, 0, -0.72);
+  mk(hd, 'ico', PALE, 0.66, 0.72, 0.62, 0, 0, 0.0);
+  mk(hd, 'ico', RAW, 0.3, 0.32, 0.26, 0.22, 0.16, 0.08); mk(hd, 'ico', FLESH, 0.4, 0.36, 0.34, -0.2, -0.16, -0.06); mk(hd, 'ico', 0x9a8a7a, 0.3, 0.3, 0.3, -0.18, 0.2, -0.12);
+  const hEyes = [eye(hd, 0.1, -0.13, 0.08, 0.25, { skin: PALE, cover: 0.05 }), eye(hd, 0.105, 0.13, 0.06, 0.25, { skin: PALE, cover: 0.05 }), eye(hd, 0.06, 0.27, 0.22, 0.17, { skin: RAW, wild: 1 })];
+  mk(hd, 'box', 0x1e0807, 0.26, 0.06, 0.05, 0, -0.16, 0.29);
+  for (let k = 0; k < 4; k++) mk(hd, 'box', BONE, 0.04, 0.045, 0.03, -0.09 + k * 0.06, -0.135, 0.305);
+  const heel = grp(palm, 0, -0.3, -0.75);
+
+  return {
+    S, g, root, palm, fingers, kHeads, wr, wr2, hd, hEyes, heel,
+    room: [0.36, 0.37, 0.38], glow: { pos: V(0, -10, 0), c: [0, 0, 0], r: 1 },
+    cam: { yaw: 0.65, pitch: 0.16, dist: 6.2, tgt: V(0, 0.95, 0) },
+    fig: figure(S, -2.1, 0.4, 0.5),
+    yawH: 0, pitchH: 0,
+  };
+}
+
+/* ================================================================================================================ */
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
+const camera = new THREE.PerspectiveCamera(50, 1, 0.05, 80);
+const OV = buildOverseer(), HA = buildHand();
+let cur = OV;
+
+/* ---- the overseer's moods ---- */
+const ov = { mode: 'idle', t: 0, screen: -1, att: 0, stare: 0, code: null, flush: 0, shared: V(0, 1.5, 6) };
+function ovKnock(zone, at) {
+  const [name, n] = ZONES[zone];
+  ov.code = { name, n, times: codeTimes(n).map(x => x + at), landed: 0 };
+  showKnocks(n, 0, name);
+}
+const OV_STATES = {
+  idle: ['Idle', 'Every face looks somewhere of its own and drifts. They blink out of step and the lids sit heavy. Now and then a small head glances back at a screen.'],
+  wing: ['Seen: the wing', 'A watcher sees you on its screen and leans in. A lump runs down its cord to the body, and every face turns to that screen. Then the arms knock the wing\'s code into the floor, once, a pause, once more.'],
+  atrium: ['Seen: the atrium', 'The same from the atrium\'s camera: the watcher, the lump down the cord, every face to the screen, then two knocks, a pause, two more.'],
+  muster: ['Seen: the muster hall', 'Three knocks, a pause, three. The hand, wherever it is, feels it through the slab and goes.'],
+  ops: ['Seen: Operations', 'Four, a pause, four: its own corridor.'],
+  glass: ['Through the glass', 'It sees you itself. Every face turns from the screens to you and follows you as you move. The lids draw back, the pupils open, the whites flush. Shine the flashlight into an eye up close and its pupil pins.'],
+};
+const CAMS = { wing: 0, atrium: 1, muster: 2, ops: 3 };
+function setOv(mode) {
+  ov.mode = mode; ov.t = 0; ov.code = null; showKnocks(0);
+  ov.screen = CAMS[mode] ?? -1;
+  for (const s of OV.screens) s.hot = 0;
+  if (mode === 'glass') ovKnock('ops', 1.0);
+}
+function stepOverseer(dt, now) {
+  ov.t += dt;
+  const M = OV, t = ov.t, cam = camera.position;
+  /* the plan for this mode: who is tense, what all the faces look at, whether they stare */
+  let attTo = 0, stare = 0, flush = 0;
+  if (ov.screen >= 0) {
+    const W = M.watchers[ov.screen], sc = M.screens[ov.screen];
+    sc.hot = t < 12 ? 1 : 0;
+    W.tense = t < 11 ? 1 : 0;
+    const q = clamp((t - 0.35) / 0.9, 0, 1);
+    W.lump.visible = q > 0 && q < 1;
+    W.lump.position.lerpVectors(W.a, W.b, ease(q)); W.lump.position.y += Math.sin(q * PI) * 0.05;
+    if (t > 1.1 && t < 11) { attTo = 1; stare = 1; flush = 0.6; ov.shared.copy(sc.pos); }
+    if (t > 1.9 && !ov.code && t < 3) ovKnock(Object.keys(CAMS)[ov.screen], t + 0.05);
+    if (t > 11.5) setOv('idle');
+  } else if (ov.mode === 'glass') { attTo = 1; stare = 1; flush = 1; ov.shared.copy(cam); }
+  ov.att += (attTo - ov.att) * damp(2.5, dt);
+  ov.stare = stare;
+  for (const [k, W] of M.watchers.entries()) {
+    const tn = ov.screen === k && ov.t < 11 ? 1 : 0;
+    W.lean.rotation.x += (tn * 0.32 + Math.sin(now * 0.7 + k) * 0.02 - W.lean.rotation.x) * damp(5, dt);
+    W.lean.updateMatrixWorld(true);
+    _w.copy(M.screens[k].pos); _w.y -= 0.05;
+    lookEye(W.eye, _w, dt, { stare: tn, flush: tn, drowse: tn ? 0 : 0.15 });
+  }
+  for (const [k, s] of M.screens.entries()) {
+    if (s.dead) continue;
+    const f = s.hot ? (0.5 + 0.5 * (Math.floor(now * 3) % 2)) : 0;
+    s.sm.uniforms.uTint.value.set(0.85, 0.12, 0.1, f * 0.85);
+  }
+  /* the knocks: each arm lifts and comes down on its beat, one then the other */
+  if (ov.code) {
+    const C = ov.code;
+    while (C.landed < C.times.length && t >= C.times[C.landed]) { const a = M.arms[C.landed % 2]; a.t = 0; C.landed++; thud(1); showKnocks(C.n, C.landed, C.name); }
+    if (C.landed >= C.times.length && t > C.times[C.times.length - 1] + 2.4) { ov.code = null; showKnocks(0); if (ov.mode === 'glass') { /* it keeps watching */ } }
+  }
+  for (const a of M.arms) {
+    /* lift over the 0.32 s before the beat, slam in 0.07 s, a little bounce. a.t runs from the beat */
+    const C = ov.code, idx = M.arms.indexOf(a);
+    let up = 0;
+    if (C) { const nxt = C.times.find((x, i) => i >= C.landed && i % 2 === idx); if (nxt !== undefined && nxt - t < 0.34) up = ease(1 - (nxt - t) / 0.34); }
+    a.t += dt;
+    const after = a.t < 0.25 ? Math.sin(a.t / 0.25 * PI) * 0.06 * (1 - a.t / 0.25) : 0;
+    const want = 0.62 - up * 0.62 - after;
+    a.A.rotation.x = up > 0 ? want : a.A.rotation.x + (want - a.A.rotation.x) * damp(a.t < 0.08 ? 60 : 6, dt);
+    a.E.rotation.x = 0.55 - up * 0.35 + Math.sin(now * 0.8 + a.s) * 0.02;
+  }
+  /* breathing */
+  const br = 1 + Math.sin(now * 0.9) * 0.018;
+  M.body.scale.set(br, 1 / br, br);
+  M.body.updateMatrixWorld(true);
+  /* every face: a target of its own, drifting, or the one they all attend to; big heads come round slowly */
+  for (const H of M.heads) {
+    let want;
+    if (ov.att > 0.05 && attTo) want = ov.shared;
+    else {
+      if ((H.glance -= dt) < 0) { H.gl = H.gl ? null : M.screens[Math.floor(rnd(0, 4))].pos; H.glance = H.gl ? rnd(1.2, 2.4) : rnd(5, 14); }
+      const w = H.wander;
+      want = H.gl ?? _w.set(Math.sin(now * w[0] + w[1]) * 4.5, 1.6 + Math.sin(now * w[2] + w[3]) * 1.4, 6 + Math.cos(now * w[0] * 0.7 + w[3]) * 2);
+    }
+    H.tgt.lerp(want, damp(H.lag * (attTo ? 2.2 : 1), dt));
+    const [y, p] = aim(H.h, H.tgt);
+    const cy = clamp(y - H.rest[0], -H.range, H.range) + H.rest[0], cp = clamp(p, -0.9, 0.9);
+    H.yaw += (cy - H.yaw) * damp(H.lag * 2, dt); H.pitch += (cp - H.pitch) * damp(H.lag * 2, dt);
+    H.h.rotation.set(H.pitch, H.yaw + (H.s < 0.3 && Math.random() < 0.01 ? rnd(-0.2, 0.2) : 0), 0);
+    H.h.updateMatrixWorld(true);
+    for (const E of H.eyes) lookEye(E, H.tgt, dt, { stare, flush });
+  }
+  for (const E of M.lone) lookEye(E, ov.att > 0.3 ? ov.shared : cam, dt, { stare, flush });
+}
+
+/* ---- the hand's moods ---- */
+const hs = { mode: 'listen', t: 0, raise: 0, walk: 0, walkPh: 0, press: 0, code: null, strike: -1, droop: 0, shake: 0 };
+const HA_STATES = {
+  listen: ['Listening', 'Low, on its fingertips, with the heels of its hands on the floor. Its fingers twitch: it is feeling the slab. The two front heads look about at floor height. It stands 1.1 m at the knuckles; a bench hides it.'],
+  knock: ['Knocked for', 'Three knocks, a pause, three: the muster hall. On each one its fingers press flat and the palm shudders. When the code is done it rises, turns, and goes.'],
+  alert: ['Raised', 'The wrist comes up, the fingers curl into a claw under it, and the head at the end of the braided legs comes up over the hand and looks. It follows you round.'],
+  go: ['Going', 'Raised, on its way to a zone. It walks on two sets of fingers at a time, index, ring and thumb, then middle and little.'],
+  strike: ['Striking', 'Its blow: it rocks back onto the heel of its hand with the fingers lifted, then slaps the whole hand down flat in front of it.'],
+  unlinked: ['Unlinked', 'The overseer is dead. Nothing knocks any more, so it roams at half height with its head down and the lids heavy. It would turn on whatever struck it.'],
+};
+function setHand(mode) {
+  hs.mode = mode; hs.t = 0; hs.code = null; showKnocks(0);
+  if (mode === 'knock') { const [name, n] = ZONES.muster; hs.code = { name, n, times: codeTimes(n).map(x => x + 0.6), landed: 0 }; showKnocks(n, 0, name); }
+  if (mode === 'strike') hs.strike = 0;
+}
+function stepHand(dt, now) {
+  hs.t += dt;
+  const M = HA, cam = camera.position;
+  let raise = 0, walk = 0, droop = 0, look = cam, stare = 0;
+  switch (hs.mode) {
+    case 'listen': look = _w.set(Math.sin(now * 0.4) * 3, 0.2, 3); break;
+    case 'knock': {
+      const C = hs.code;
+      if (C) {
+        while (C.landed < C.times.length && hs.t >= C.times[C.landed]) { C.landed++; hs.press = 1; thud(0.75, true); showKnocks(C.n, C.landed, C.name); }
+        const end = C.times[C.times.length - 1];
+        if (hs.t > end + 0.7) { raise = 1; stare = 1; look = _w.set(-3, 1.8, 4); }
+        if (hs.t > end + 2.4) { walk = 1; }
+        if (hs.t > end + 7) { showKnocks(0); setHand('go'); }
+      }
+      if (!(hs.t > (C?.times.at(-1) ?? 0) + 0.7)) look = _w.set(0, 0.0, 2);
+      break;
+    }
+    case 'alert': raise = 1; stare = 1; break;
+    case 'go': raise = 1; walk = 1; stare = 1; look = _w.set(Math.sin(now * 0.3) * 2, 1.6, 6); break;
+    case 'strike': {
+      raise = 1; stare = 1;
+      if (hs.strike >= 0) { hs.strike += dt; if (hs.strike > 1.6) { hs.strike = -1; setHand('alert'); } }
+      break;
+    }
+    case 'unlinked': raise = 0.35; walk = 0.45; droop = 1; look = _w.set(Math.sin(now * 0.23) * 3, 0.0, 2.5); break;
+  }
+  hs.raise += (raise - hs.raise) * damp(raise > hs.raise ? 2.6 : 1.8, dt);
+  hs.walk += (walk - hs.walk) * damp(3, dt);
+  hs.droop += (droop - hs.droop) * damp(1.5, dt);
+  hs.press = Math.max(0, hs.press - dt * 3.5);
+  const R = hs.raise, w = hs.walk, P = hs.press;
+  hs.walkPh += dt * (droop ? 3.2 : 6.5) * w;
+
+  /* the strike: e runs 0..1 up the wind-up (rock back on the heel, fingers up), then the slap (flat), then back */
+  let wind = 0, flat = 0;
+  if (hs.strike >= 0) {
+    const s = hs.strike;
+    if (s < 0.7) wind = ease(s / 0.7);
+    else if (s < 0.8) { wind = 1 - (s - 0.7) / 0.1; flat = (s - 0.7) / 0.1; }
+    else { flat = 1 - ease(clamp((s - 0.95) / 0.65, 0, 1)); if (s - dt < 0.8) { thud(1.1); hs.shake = 0.35; } }
+  }
+
+  /* the palm: knuckles stay put, the wrist rises; under the slap it lies flat */
+  M.palm.rotation.x = lerp(lerp(-0.06, 0.92, R), -0.55, wind) * (1 - flat) + (-0.04) * flat - P * 0.06 + Math.sin(now * 23) * P * 0.03;
+  M.palm.rotation.z = Math.sin(hs.walkPh) * 0.05 * w + Math.sin(now * 0.6) * 0.015;
+  M.wr.rotation.x = lerp(lerp(-0.18, 0.82, R), 0.4, wind) - hs.droop * 0.25;
+  M.wr2.rotation.x = lerp(-0.22, 0.28, R) + Math.sin(now * 1.1) * 0.04;
+  M.fingers.forEach((F, k) => {
+    const grpA = k === 0 || k === 2 || k === 4, ph = hs.walkPh + (grpA ? 0 : PI) + k * 0.15;
+    F.lift = Math.pow(Math.max(0, Math.sin(ph)), 1.5) * w;
+    const sw = Math.cos(ph) * w;
+    const twitch = (1 - R) * (1 - w) * Math.sin(now * (7 + k * 1.7) + k * 2) * 0.05;
+    let a1 = lerp(-0.95, -1.55, R), a2 = lerp(1.95, 1.85, R), a3 = lerp(0.75, 0.62, R);
+    a1 += -F.lift * 0.55 + sw * 0.12 + P * 0.18; a2 += -F.lift * 0.45 - P * 0.12; a3 += twitch - P * 0.15;
+    if (k === 4) { a1 = lerp(-0.1, -0.6, R) - F.lift * 0.4; a2 = 0.9 + twitch; a3 = 0.5; }
+    a1 = lerp(a1, -0.85, wind); a2 = lerp(a2, 0.35, wind); a3 = lerp(a3, 0.2, wind);
+    a1 = lerp(a1, 0.05, flat); a2 = lerp(a2, 0.12, flat); a3 = lerp(a3, 0.06, flat);
+    F.kn.rotation.x = a1; F.j2.rotation.x = a2; F.j3.rotation.x = a3;
+  });
+  /* stand it on the floor: the lowest of the planted tips (and the heel, while it rocks or slaps) touches the ground */
+  M.root.position.y = 0; M.root.position.z = Math.sin(hs.walkPh * 2) * 0.02 * w;
+  M.g.updateMatrixWorld(true);
+  let lo = Infinity;
+  for (const F of M.fingers) if (F.lift < 0.08 || flat > 0) { F.tip.getWorldPosition(_v); lo = Math.min(lo, _v.y); }
+  if (wind > 0 || flat > 0 || lo === Infinity) { M.heel.getWorldPosition(_v); lo = Math.min(lo, _v.y); }
+  M.root.position.y = -lo + 0.02;
+  M.g.position.x = hs.shake > 0 ? Math.sin(now * 90) * hs.shake * 0.05 : 0;
+  hs.shake = Math.max(0, hs.shake - dt);
+  M.g.updateMatrixWorld(true);
+  /* the head at the wrist looks; the two front heads look too */
+  const [y, p] = aim(M.hd, look);
+  M.yawH += (clamp(y, -1.5, 1.5) - M.yawH) * damp(5, dt); M.pitchH += (clamp(p + hs.droop * 0.5, -1.2, 1.2) - M.pitchH) * damp(5, dt);
+  M.hd.rotation.set(M.pitchH, M.yawH, Math.sin(now * 0.9) * 0.08);
+  M.hd.updateMatrixWorld(true);
+  const mood = { stare, flush: stare * 0.4, drowse: hs.droop * 0.7 };
+  for (const E of M.hEyes) lookEye(E, look, dt, mood);
+  for (const K of M.kHeads) {
+    const [ky, kp] = aim(K.h, look);
+    K.yaw += (clamp(ky, -0.6, 0.6) - K.yaw) * damp(6, dt); K.pitch += (clamp(kp, -0.5, 0.7) - K.pitch) * damp(6, dt);
+    K.h.rotation.set(K.pitch, K.yaw, 0);
+    K.h.updateMatrixWorld(true);
+    for (const E of K.eyes) lookEye(E, look, dt, { ...mood, flush: 0 });
+  }
+}
+
+/* ---- the panel ---- */
+const btns = document.getElementById('btns'), stateEl = document.getElementById('state'), capEl = document.getElementById('cap');
+function panel() {
+  const ovr = cur === OV, S = ovr ? OV_STATES : HA_STATES, mode = ovr ? ov.mode : hs.mode;
+  btns.innerHTML = '';
+  for (const [k, [label]] of Object.entries(S)) {
+    const b = document.createElement('button');
+    b.textContent = ovr ? { idle: 'Idle', wing: 'Camera: wing', atrium: 'Camera: atrium', muster: 'Camera: muster hall', ops: 'Camera: Operations', glass: 'Through the glass' }[k] : { listen: 'Listen', knock: 'Knock: muster hall', alert: 'Raise', go: 'Go', strike: 'Strike', unlinked: 'Overseer dead' }[k];
+    b.id = `b-${k}`;
+    b.className = k === mode ? 'on' : '';
+    b.onclick = () => { audio(); if (ovr) setOv(k); else setHand(k); panel(); };
+    btns.appendChild(b);
+  }
+  stateEl.textContent = S[mode][0];
+  capEl.textContent = S[mode][1];
+}
+let lastMode = '';
+function sync() {
+  const mode = cur === OV ? ov.mode : hs.mode;
+  if (mode !== lastMode) { lastMode = mode; panel(); }
+}
+for (const b of document.querySelectorAll('nav button')) b.onclick = () => {
+  cur = b.dataset.scene === 'hand' ? HA : OV;
+  for (const x of document.querySelectorAll('nav button')) x.setAttribute('aria-selected', String(x === b));
+  showKnocks(0); if (cur === OV) setOv('idle'); else setHand('listen');
+  lastMode = ''; sync();
+};
+const flashEl = document.getElementById('flash'), figEl = document.getElementById('figure');
+addEventListener('keydown', e => { if (e.key === 'f' || e.key === 'F') flashEl.checked = !flashEl.checked; });
+
+/* ---- orbit ---- */
+const ptrs = new Map(); let pinch = 0;
+canvas.addEventListener('pointerdown', e => { canvas.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, [e.clientX, e.clientY]); audio(); });
+canvas.addEventListener('pointerup', e => { ptrs.delete(e.pointerId); pinch = 0; });
+canvas.addEventListener('pointercancel', e => { ptrs.delete(e.pointerId); pinch = 0; });
+canvas.addEventListener('pointermove', e => {
+  const p = ptrs.get(e.pointerId); if (!p) return;
+  const C = cur.cam;
+  if (ptrs.size === 1) { C.yaw -= (e.clientX - p[0]) * 0.006; C.pitch = clamp(C.pitch + (e.clientY - p[1]) * 0.005, -0.25, 1.35); }
+  ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+  if (ptrs.size === 2) {
+    const [a, b] = [...ptrs.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]);
+    if (pinch) C.dist = clamp(C.dist * pinch / d, 1.5, 16);
+    pinch = d;
+  }
+});
+canvas.addEventListener('wheel', e => { e.preventDefault(); cur.cam.dist = clamp(cur.cam.dist * Math.exp(e.deltaY * 0.001), 1.5, 16); }, { passive: false });
+
+function resize() {
+  const w = innerWidth, h = innerHeight;
+  renderer.setSize(w, h, false); camera.aspect = w / h;
+  camera.fov = w < h ? 64 : 50;
+  camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize); resize();
+
+let prev = performance.now();
+function frame(nowMs) {
+  const dt = Math.min(0.05, (nowMs - prev) / 1000), now = nowMs / 1000;
+  prev = nowMs;
+  const M = cur, C = M.cam;
+  camera.position.set(C.tgt.x + Math.sin(C.yaw) * Math.cos(C.pitch) * C.dist, C.tgt.y + Math.sin(C.pitch) * C.dist, C.tgt.z + Math.cos(C.yaw) * Math.cos(C.pitch) * C.dist);
+  camera.lookAt(C.tgt);
+  /* the flashlight is held a little below and right of the eye */
+  _v.set(0.18, -0.2, 0).applyQuaternion(camera.quaternion);
+  U.uFlashPos.value.copy(camera.position).add(_v);
+  U.uFlashDir.value.copy(C.tgt).sub(U.uFlashPos.value).normalize();
+  U.uFlash.value = flashEl.checked ? 1 : 0;
+  U.uRoom.value.set(...M.room);
+  U.uGlowPos.value.copy(M.glow.pos); U.uGlowC.value.set(...M.glow.c); U.uGlowR.value = M.glow.r;
+  U.uTime.value = now;
+  M.fig.visible = figEl.checked;
+  M.S.updateMatrixWorld(true);
+  if (M === OV) stepOverseer(dt, now); else stepHand(dt, now);
+  sync();
+  renderer.render(M.S, camera);
+  requestAnimationFrame(frame);
+}
+setOv('idle'); setHand('listen'); panel();
+requestAnimationFrame(frame);
+window.__rs = { OV, HA, ov, hs, setOv, setHand, camera, show: s => document.getElementById('tab-' + s).click() };
+</script>
