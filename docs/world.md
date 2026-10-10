@@ -193,7 +193,7 @@ Two independent questions per door.
 - **Backup sets (agreed in principle):** emergency circuits only. Dim halls, dark rooms, critical loads. That is believable: real
   emergency lighting runs at a small fraction of normal output. Reasons to run one: card readers and keypads, door buttons and
   automatic doors, platforms, terminals and cameras; set against noise that wakes things and the light that makes you visible.
-  **Open:** limited fuel; backup sets as repairables.
+  **Open:** limited fuel (brainstormed as a possible McGuffin: §9, Fuel); backup sets as repairables.
 - **Gen-1:** the global answer that changes a whole level, or the whole station, at once.
 - **Gen-1 capacity (proposed):** Gen-1 cannot carry every service connection at once, so the distribution panel becomes a choice:
   which levels get power, which doors and lifts work, and where things wake. With the tribes, it becomes a political lever: grow
@@ -569,3 +569,80 @@ whether or not the wing is mended.
 - **Already there:** patrols (the cast keep rounds), vents (loose panels; crawling under), grabbing and dragging (a start for the
   hand), caves of any outline (for the nest's organic shapes), backup sets and the power rules, the progression checker (to prove
   the level, and every way of spending power in it, can still be finished).
+
+---
+
+## 9. Immersion (brainstorm; for reference)
+
+**Not decided.** A brainstorming session, kept so later passes can come back to it. Nothing here is agreed or even proposed in
+the sense above; the notes on each idea record how it was received ("liked", "questionable"), not a commitment. Promote an
+idea to §4 or §8, with a status, when it is taken up.
+
+The question was what a sense of place is built from that is easy to overlook: the floor you stand on, not the furniture. Already
+in hand before it, and not repeated here: real air currents with visible particles, a flashlight that moves like a held one,
+physics objects, mass and physics as the ground of combat and damage, the owning family and its princelings, water and the
+sumps, generators and service connections. Already built (`engine.md` §11): rooms that echo by their size, the station settling
+and ticking, doors breathing out dust, footprints, footsteps by material, and an eye that adapts to the dark.
+
+### The body (liked; the most important)
+
+- **Render your whole body in first person**, so a light throws your shadow. You cannot see yourself yet.
+- **Your own beam barely shows it.** The flashlight is at your hand, so your shadow falls behind you. You see it by other
+  lights: fittings, a flashlight lying about, a lantern. That is the better half: your shadow tells you where the other lights
+  are.
+- **Engine cost.** A light lying about already has a shadow map (`render/beams.ts`, the two nearest), so the body can join
+  those cheaply. The light field is worked out once per level from fixed geometry, so nothing that moves throws a shadow from
+  a fitting today: that wants something new (shadow maps for the nearest few fittings, or capsule shadows). Whichever it is,
+  the cast should throw them too: a husk's shadow round a corner before the husk is the payoff.
+- **Shadow as a tell (open).** Your shadow in a doorway gives you away. Shown to the player first; whether the cast see it is
+  a later call, and hard to make fair.
+- **Practicalities.** The head is hidden from the camera but kept in the shadow pass; feet land in step with the footstep
+  sounds; poses for crouching, ladders and swimming. Rough blocks are fine: the cast are boxes and blobs for now.
+
+### Senses of place
+
+- **Heat (liked).** Rock warms with depth, machines throw heat, a dead room drifts to the rock's temperature. Seen as breath
+  in the beam, condensation on cold pipes, shimmer over the generator hall. The flesh want heat (§2), so a temperature field
+  maps their want. Mostly presentation, with a hook or two (where the flesh gather).
+- **Vibration (liked).** Gen-1 felt as a faint tremor in the view, puddles that ripple, the thresher's footfalls arriving
+  before its sound. Sound says what is near; vibration says what is heavy.
+- **Depth markers (liked).** Painted on the shafts ("−412 m"). With them, photoluminescent egress strips that keep glowing after
+  the power dies and fade over hours (real ones do; a quiet clock), and cold air down the intake shaft, sometimes with snow in
+  it: the only sign of a season, and of a surface at all.
+- **Pressure.** Ventilation doors heavy to open against the fans and slamming shut on their own, gaps that whistle, ears
+  popping in the lifts, one door changing the draught somewhere else. The air currents' other half; a door that is not a lock.
+- **Your own body's noise.** Breath that comes harder after running, and is a noise the cast hear; holding it to hide, for a
+  while; a gunshot in a small concrete room leaving you half-deaf for a few seconds.
+- **Dark adaptation (questionable; may still go in).** The eye already adapts (`uExpo`), on the screen only. The rest is
+  tuning: slow enough to matter, so a bright tube costs you your night eyes, and perhaps a short glare from looking into a
+  light. Smaller than it sounds.
+
+### Making the existing systems pay
+
+- **The station's clock (liked; will be used).** The facility keeps time: messages, chimes and routine announcements from the
+  speakers on a schedule, timers, sump pumps cycling on their float switches, Horticulture's irrigation. The building's routine
+  going on without its people. It suits the overseer's staff, who answer alarms from habit (§8).
+- **Scent on the air.** The cast smell you downwind, so the ventilation is played, not only seen.
+- **Brownouts.** A big motor starting (a pump) dips every light on its network: power reads as one system, and something
+  else switching on is heard and seen.
+- **Mass in the hands.** What you carry slows you and makes you heavier and louder underfoot; valves, cranks, hoists and
+  levers worked by hand.
+- **Bad air (questionable).** Dead ends without ventilation gather CO₂ or methane; a flame shows the draught (it leans), goes
+  blue, or goes out. A reason to want the fans on and a tool that shows the invisible. If it goes in at all: once, in one
+  place, with a clear tell.
+
+### Fuel (open; possibly the thing we need)
+
+Limited fuel for the backup sets (the open question in §4, Power, and §6, question 6) may be the McGuffin: a resource that
+ties the generators together and answers questions not yet faced.
+
+- **It is mass.** A jerrycan is carried, sloshes, slows you and makes you louder.
+- **It links every generator** to one choice: which set runs, for how long.
+- **It is political.** The flesh want energy (§2); fuel is something to bargain with.
+- **The catch.** Fuel beside repair kits is two spendable currencies doing similar work. Either their jobs differ plainly (kits
+  mend once; fuel keeps things running) or one replaces the other. Count it in cans, not litres, so the progression checker can
+  still search every state.
+
+### Left out
+
+Hunger and thirst, sanity meters, anything that is upkeep rather than sensation.
