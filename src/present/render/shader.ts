@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { BR, LCELL, LOFF } from '../../world/lightField';
-import { BOUNCE, FLASH, LANTERN } from '../../world/light';
+import { BOUNCE, FLASH, LANTERN, POOL } from '../../world/light';
 import { MATS, MAT_ORDER, type Mat, type Pattern } from '../../content/materials';
 
 /* One shader for everything, carried over from the first engine.
@@ -17,6 +17,9 @@ import { MATS, MAT_ORDER, type Mat, type Pattern } from '../../content/materials
    pixel, a little off the surface into the open, taking only those on its open side that open space joins to the
    nearest: so light falls off smoothly across a room and through a doorway, and none comes through a wall or a slab.
    The part of it from tubes that stutter dims with them (uFlick), wherever it has reached.
+   Your body stands in the way of the fittings over you (selfShade): a few capsules (selfView.ts) against the nearest
+   fittings of the room you are in, each taking back its share of the light where it falls, soft-edged, wider and
+   fainter the further it falls from you.
    Then the eye: everything is scaled by how open it is (uExpo: wide in the dark, narrowed in light; main.ts), and the
    dark is never quite flat, but grained, most where it is darkest.
 
@@ -76,6 +79,11 @@ const v3 = (c: readonly number[]) => `vec3(${c.map(f3).join(', ')})`;
 export const BEAMS = 2, SHADOW = 512;
 /** the shadow map's camera: wide enough for the whole spill, from just past the lens */
 export const SHADOW_CAM = { fov: 100, near: 0.05, far: 30 };
+
+/** your body's shadow from the fittings over you: how many capsules make you, how many fittings throw it, how much
+ *  darker than the field's own reckoning it is drawn (the field's fill, light from everywhere, is mostly the fittings'
+ *  too: by the field's numbers alone a shadow between two fittings was barely there), and the darkest it gets */
+export const SELF = { caps: 5, fix: 2, dark: 1.6, most: 0.8 };
 
 /** the lights that are not the level's, for any shader. Yours: `held(p, facing)` (the flashlight, from your eye),
  *  `bounce(p)` (what it throws back around you), `lantern(p, facing)`, and `carried(p, facing)` for all three. Lying
@@ -293,6 +301,37 @@ vec3 field(vec3 p, vec3 n, out vec3 fl){
   fl = accF / max(sw, 1e-5) * ${f3(LIGHT_RANGE)};
   return acc / max(sw, 1e-5) * ${f3(LIGHT_RANGE)};
 }
+uniform vec4 uSelfA[${SELF.caps}]; uniform vec4 uSelfB[${SELF.caps}]; uniform vec4 uFix[${SELF.fix}]; uniform vec3 uSelfLo; uniform vec3 uSelfHi;
+/* how much of a capsule (a to b, radius r) stands between p and a light dl away along l: soft, its edge wider and its
+   middle fainter the further p is behind it, and gone past 7 m */
+float capsule(vec3 p, vec3 l, float dl, vec3 a, vec3 b, float r){
+  vec3 ba = b - a, pa = p - a;
+  float bb = max(dot(ba, ba), 1e-6), lb = dot(l, ba), lp = dot(l, pa), bp = dot(ba, pa);
+  float s = clamp((bp - lp * lb) / max(bb - lb * lb, 1e-6), 0.0, 1.0);
+  float t = clamp(s * lb - lp, 0.0, dl);
+  if (t < 0.02 || t > dl - 0.05) return 0.0;
+  s = clamp(dot(pa + t * l, ba) / bb, 0.0, 1.0);
+  float d = length(pa + t * l - s * ba), w = 0.03 + 0.45 * t / max(dl - t, 0.25);
+  return (1.0 - smoothstep(r - 0.5 * w, r + 0.5 * w, d)) * min(1.0, 2.0 * r / w) * (1.0 - smoothstep(4.0, 7.0, t));
+}
+/* how much of the level's light at p (facing n) your body leaves: each fitting's share of it, as the field reckons a
+   fitting's pool (POOL in world/lightField.ts), less what the body hides of that fitting; drawn SELF.dark darker */
+float selfShade(vec3 p, vec3 n){
+  if (uFix[0].w <= 0.0 || any(lessThan(p, uSelfLo)) || any(greaterThan(p, uSelfHi))) return 1.0;
+  vec3 q = p + n * 0.02;
+  float sum = 0.0, cut = 0.0;
+  for (int j = 0; j < ${SELF.fix}; j++) {
+    vec4 F = uFix[j];
+    vec3 L = F.xyz - q; float dl = length(L);
+    if (F.w <= 0.0 || L.y <= 0.0) continue;
+    float c = L.y / dl, v = F.w * c * c * c * ${f3(POOL.r2)} / (${f3(POOL.r2)} + dl * dl), occ = 0.0;
+    for (int k = 0; k < ${SELF.caps}; k++) occ = max(occ, capsule(q, L / dl, dl, uSelfA[k].xyz, uSelfB[k].xyz, uSelfA[k].w));
+    sum += v; cut += v * occ;
+  }
+  if (sum <= 0.0) return 1.0;
+  float pool = ${f3(POOL.gain)} * min(sum, 1.0);
+  return 1.0 - min(${f3(SELF.most)}, ${f3(SELF.dark)} * pool / (${f3(POOL.base)} + pool) * cut / sum);
+}
 #endif
 ${LIGHTS}
 uniform float uFog; uniform float uWet; uniform float uTime;
@@ -343,7 +382,7 @@ void main(){
   float rel = clamp(1.0 + 1.1 * (nb.y - nf.y), 0.5, 1.5);
 #if defined(STATIC)
   vec3 fl, lv = field(vW, nf, fl);
-  vec3 light = (lv - fl * 0.55 * uFlick) * vL.x * sh * rel;
+  vec3 light = (lv - fl * 0.55 * uFlick) * vL.x * sh * rel * selfShade(vW, nf);
 #elif defined(BAKED)
   vec3 light = vL * sh;
 #else
@@ -428,6 +467,13 @@ export const U = {
   uBeamM: { value: Array.from({ length: BEAMS }, () => new THREE.Matrix4()) },
   uSh0: { value: null as THREE.Texture | null },
   uSh1: { value: null as THREE.Texture | null },
+  /** your body, as capsules (a and its radius, b), the fittings that throw its shadow (where, and 1 if lit, 0 for
+   *  none), and the room it falls in (selfView.ts) */
+  uSelfA: { value: Array.from({ length: SELF.caps }, () => new THREE.Vector4()) },
+  uSelfB: { value: Array.from({ length: SELF.caps }, () => new THREE.Vector4()) },
+  uFix: { value: Array.from({ length: SELF.fix }, () => new THREE.Vector4()) },
+  uSelfLo: { value: new THREE.Vector3() },
+  uSelfHi: { value: new THREE.Vector3() },
   /** the level's light field: its bricks' texels, the index of its bricks, where the index starts and how big it is (in
    *  bricks), the texels' width (lightVolume.ts) */
   uLA: { value: null as THREE.Texture | null },

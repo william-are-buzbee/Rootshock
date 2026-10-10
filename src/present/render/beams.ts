@@ -1,11 +1,13 @@
 import * as THREE from 'three';
 import type { Loose } from '../../world/light';
 import { BEAMS, SHADOW, SHADOW_CAM, U } from './shader';
+import { SHADOW_ONLY } from './selfView';
 
 /* Flashlights lying on (world/light.ts, Loose): the nearest few to the eye are drawn with their beams, each from its lens
    with a shadow map of its own, rendered every frame from there (what it lights moves: the cast, doors, crates). The map
    holds depth only; LIGHTS in shader.ts reads it. What is drawn into it is what stands in the light's way: not dust, drips
-   or prints, nothing see-through, and not what you hold. */
+   or prints, nothing see-through, and not what you hold; but the parts of you the eye is not shown (SHADOW_ONLY in
+   selfView.ts: your head, your arms) are, so your shadow is whole. */
 
 const FAR = 40; // a beam farther than this from the eye is not drawn
 
@@ -21,7 +23,11 @@ export class Beams {
       t.depthTexture.minFilter = t.depthTexture.magFilter = THREE.NearestFilter;
       return t;
     });
-    this.cams = Array.from({ length: BEAMS }, () => new THREE.PerspectiveCamera(SHADOW_CAM.fov, 1, SHADOW_CAM.near, SHADOW_CAM.far));
+    this.cams = Array.from({ length: BEAMS }, () => {
+      const c = new THREE.PerspectiveCamera(SHADOW_CAM.fov, 1, SHADOW_CAM.near, SHADOW_CAM.far);
+      c.layers.enable(SHADOW_ONLY);
+      return c;
+    });
     U.uSh0.value = this.targets[0].depthTexture;
     U.uSh1.value = this.targets[1].depthTexture;
   }

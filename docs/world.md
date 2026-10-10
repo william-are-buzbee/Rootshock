@@ -586,6 +586,9 @@ and ticking, doors breathing out dust, footprints, footsteps by material, and an
 
 ### The body (liked; the most important)
 
+**Built, a first pass** (`engine.md` §11, *Your body*): the body under the eye, its shadow from a flashlight lying on and
+from the fittings over you. Not yet: the cast's shadows from fittings, a swimming pose, the shadow as a tell.
+
 - **Render your whole body in first person**, so a light throws your shadow. You cannot see yourself yet.
 - **Your own beam barely shows it.** The flashlight is at your hand, so your shadow falls behind you. You see it by other
   lights: fittings, a flashlight lying about, a lantern. That is the better half: your shadow tells you where the other lights

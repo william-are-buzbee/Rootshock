@@ -16,7 +16,11 @@ export interface Prev { x: number; y: number; z: number }
 /** The eye: follows the body between sim steps, eases over steps, bobs as you walk. All of it is looks only. */
 export class CameraRig {
   private cy = NaN;
-  private eye = 1.62;
+  /** how high the eye is over the feet, easing as you crouch and stand */
+  eye = 1.62;
+  /** where the eye stands this frame, before any shake (feet height, eased over steps; and across), and which way it
+   *  looks: for your body, drawn under it (selfView.ts) */
+  at = { x: 0, y: 0, z: 0, yaw: 0, pitch: 0 };
   /** the walk's sway, for the hand as well */
   bob = 0;
   /** how hard the view shakes, dying away */
@@ -57,6 +61,7 @@ export class CameraRig {
     this.eye += ((p.crouch ? 0.95 : 1.62) - this.eye) * Math.min(1, dt * 10);
     this.bob += (p.moved / STEP) * dt * 3.3;
     const yaw = p.yaw + look.yaw, pitch = clamp(p.pitch + look.pitch, -1.45, 1.45);
+    this.at.x = x; this.at.y = this.cy; this.at.z = z; this.at.yaw = yaw; this.at.pitch = pitch;
     this.shake = Math.max(0, this.shake - dt * 1.6);
     const k = this.shake * 0.08, j = () => (Math.random() * 2 - 1) * k;
     cam.position.set(x + j(), this.cy + this.eye + Math.sin(this.bob) * 0.035 + j(), z + j());

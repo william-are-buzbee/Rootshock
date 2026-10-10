@@ -15,6 +15,7 @@ import { Soundscape } from './present/soundscape';
 import { View } from './present/render/view';
 import { LevelView } from './present/render/levelView';
 import { HandsView } from './present/render/handsView';
+import { SelfView } from './present/render/selfView';
 import { Motes } from './present/render/motes';
 import { Prints } from './present/render/prints';
 import { Drips } from './present/render/drips';
@@ -86,6 +87,7 @@ view.show(here.group);
 here.bind();
 view.scene.add(view.camera); // the hand rides on it
 const handsView = new HandsView(view.camera, sim, lighting);
+const selfView = new SelfView(view.scene, sim, lighting);
 let hurtFx = 0, hitFx = 0;
 const hitDir = document.getElementById('hitdir')!;
 
@@ -201,6 +203,7 @@ function relightAll(L: Lighting): void {
   lighting = L;
   here.relight(L);
   handsView.setLighting(L);
+  selfView.setLighting(L);
   motes.setLighting(L);
   prints.setLighting(L);
   drips.setLighting(L);
@@ -216,6 +219,8 @@ function arrive(): void {
   here.bind();
   handsView.sim = sim;
   handsView.setLighting(lighting);
+  selfView.sim = sim;
+  selfView.setLighting(lighting);
   motes.setLighting(lighting);
   prints.setLighting(lighting);
   drips.setLighting(lighting);
@@ -318,6 +323,7 @@ function frame(t: number): void {
   lighting.lights(looseLights(sim));
   here.syncLight(lighting);
   handsView.update(rig.bob, t / 1000);
+  selfView.update(rig.at, rig.eye, dt);
   motes.resize(view.renderer.domElement.height, view.camera.fov);
   motes.update(sim, view.camera.position, mode === 'play' ? dt : 0);
   prints.update(sim, mode === 'play' ? dt : 0);
