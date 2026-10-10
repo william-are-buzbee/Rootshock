@@ -47,7 +47,7 @@ function seeded(id: number) {
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Model = { g: THREE.Group; [k: string]: any };
 
-const BUILD: Record<string, (mat: THREE.Material, m: Mutant) => Model> = {
+export const BUILD: Record<string, (mat: THREE.Material, m: Mutant) => Model> = {
   /* staff, early in the Regimen: still a person's outline, one arm already something else */
   husk(mat, m) {
     const R = seeded(m.id), g = new THREE.Group(), cl = R.pick([0xbfc3c0, 0x4a5560, 0x39485a, 0x6b6f5a, 0x7a5a50]), tr = 0x2b2e34;
@@ -90,6 +90,93 @@ const BUILD: Record<string, (mat: THREE.Material, m: Mutant) => Model> = {
     if (sit && !m.holt) { mk(b, mat, 'box', DARK, 0.5, 0.02, 0.02, 0, 0.62, 0.8); mk(b, mat, 'box', [2.9, 2.85, 2.6], 0.12, 0.18, 0.02, 0, 0.48, 0.84); }
     if (m.holt) for (let k = 0; k < 9; k++) mk(b, mat, 'ico', R.pick(GR), R.rnd(0.3, 0.7), R.rnd(0.2, 0.5), R.rnd(0.3, 0.7), R.rnd(-0.9, 0.9), R.rnd(-0.8, 1.6), R.rnd(-0.6, 0.7));
     return { g, b, hd, arms };
+  },
+  /* Security's operations staff, grown into one body at its post (world.md §8): a heap of skinned meat facing the glass,
+     a ridge of knuckles up its back, and what it has taken in still showing. Its own head is growing another out of
+     one temple. Off the other shoulder, a cluster of pale swellings, each less of a face than the one before: a slack
+     mouth and one dark eye, then one open eye, then nothing. Two of the staff are half in it, one taken backwards up
+     to the chest with an arm still out toward the glass, one face down with only a back and shoulders left. Four arms
+     lie out in front of it until it tenses. The watchers at the screens, and the cords to them, are the level's
+     (levels/upper.ts). */
+  overseer(mat, m) {
+    const R = seeded(m.id), g = new THREE.Group();
+    const M1 = 0x8c4a44, M2 = 0x6e2b28, M3 = 0x9a6a5a, M4 = 0x7a3a34, WAX = 0xc8b9a6, WAX2 = 0xb9a898, WAX3 = 0xd2c3b0, UNI = 0x39485a, UNI2 = 0x4a5560, EYE = 0xd8d0c0, GUM = 0x1a0806, WET = 0x4e1616;
+    const b = grp(g, 0, 0, 0);
+    /* the mass: broadest at the floor, highest toward the glass, where the head is */
+    type Blob = [number, number, number, number, number, number, number];
+    const heap: Blob[] = [
+      [0.1, 0.55, -0.5, 3.3, 1.2, 2.6, M1], [-0.6, 0.9, -0.2, 2.2, 1.5, 2.0, M3], [0.9, 0.95, -0.7, 2.0, 1.5, 1.8, M4],
+      [0.2, 1.3, -0.9, 1.7, 1.3, 1.5, M2], [-0.3, 1.25, 0.3, 1.6, 1.2, 1.3, M1], [1.1, 0.5, 0.6, 1.4, 0.8, 1.2, M3],
+      [-1.3, 0.45, 0.4, 1.3, 0.8, 1.2, M4], [0.4, 0.35, -1.7, 1.8, 0.7, 1.2, M2], [-0.2, 0.3, -2.3, 1.2, 0.5, 0.9, M1],
+    ];
+    for (const [x, y, z, sx, sy, sz, c] of heap) mk(b, mat, 'ico', c, sx, sy, sz, x, y, z);
+    /** a point on blob k's surface, out along (dx, dy, dz) from its middle */
+    const on = (k: number, dx: number, dy: number, dz: number, inset = 0.9): [number, number, number] => {
+      const [x, y, z, sx, sy, sz] = heap[k], l = Math.hypot(dx, dy, dz);
+      return [x + (dx / l) * (sx / 2) * inset, y + (dy / l) * (sy / 2) * inset, z + (dz / l) * (sz / 2) * inset];
+    };
+    /* the spine, showing through along the top of the back; and where the skin has gone, wet */
+    for (const [k, dx, dy, dz] of [[8, 0, 1, -0.2], [7, 0, 1, -0.5], [7, 0, 1, 0.3], [3, 0, 1, -0.5], [3, 0, 1, 0.1], [3, -0.1, 1, 0.6]] as const) { const [x, y, z] = on(k, dx, dy, dz); mk(b, mat, 'ico', BONE, 0.24, 0.16, 0.22, x, y, z); }
+    for (const [k, dx, dy, dz, w, h] of [[2, 0.8, 0.5, -0.3, 0.9, 0.5], [1, -0.9, 0.3, -0.5, 0.7, 0.6], [0, 0.3, -0.1, 1, 0.8, 0.4], [7, 0.9, 0.2, 0, 0.6, 0.3], [5, 0.2, 0.9, 0.3, 0.5, 0.4]] as const) { const [x, y, z] = on(k, dx, dy, dz, 0.97); mk(b, mat, 'ico', WET, w, h, w, x, y, z); }
+    /* its head, sunk into the front of the mass: the brow heavy, the eyes at two heights, the mouth dragged down to one
+       side and torn open on a few teeth; and the second head, out of its right temple, the skin not yet grown over it */
+    const hd = grp(b, -0.3, 2.0, 0.45);
+    mk(hd, mat, 'ico', M3, 1.3, 1.35, 1.2, 0, 0, 0);
+    mk(hd, mat, 'ico', M1, 0.9, 0.3, 0.4, 0.05, 0.42, 0.42);
+    mk(hd, mat, 'ico', EYE, 0.34, 0.3, 0.12, -0.3, 0.2, 0.58); mk(hd, mat, 'ico', DARK, 0.12, 0.12, 0.05, -0.3, 0.2, 0.64);
+    mk(hd, mat, 'ico', EYE, 0.42, 0.24, 0.12, 0.22, -0.02, 0.58); mk(hd, mat, 'ico', DARK, 0.12, 0.12, 0.05, 0.22, -0.02, 0.64);
+    const mo = grp(hd, 0.15, -0.35, 0.52); mo.rotation.z = 0.4;
+    mk(mo, mat, 'box', GUM, 0.95, 0.14, 0.1, 0, 0, 0); mk(mo, mat, 'box', WET, 1.0, 0.06, 0.1, 0, -0.1, 0);
+    for (const [x, y, h] of [[-0.36, 0.05, 0.07], [-0.2, 0.04, 0.05], [0.0, 0.06, 0.08], [0.22, 0.04, 0.06], [0.38, 0.05, 0.05], [-0.1, -0.05, 0.05], [0.3, -0.05, 0.06]] as const) mk(mo, mat, 'box', BONE, 0.045, h, 0.04, x, y, 0.04);
+    mk(hd, mat, 'ico', RAW, 0.5, 0.4, 0.5, 0.45, 0.25, 0.05);
+    const hd2 = grp(hd, 0.66, 0.48, 0.1);
+    mk(hd2, mat, 'ico', M1, 0.78, 0.72, 0.72, 0, 0, 0); mk(hd2, mat, 'ico', M3, 0.5, 0.42, 0.4, 0.1, 0.1, 0.25);
+    mk(hd2, mat, 'ico', EYE, 0.2, 0.16, 0.08, 0.12, 0.05, 0.37); mk(hd2, mat, 'ico', DARK, 0.08, 0.08, 0.04, 0.12, 0.05, 0.41);
+    mk(hd2, mat, 'box', GUM, 0.3, 0.05, 0.05, 0.05, -0.2, 0.34);
+    /* the swellings, off the left shoulder, on a raw collar: pale and waxed, and each less of a face than the last */
+    mk(b, mat, 'ico', RAW, 1.4, 0.9, 1.2, 1.3, 1.15, 0.2);
+    const cl = grp(b, 1.35, 1.6, 0.2);
+    mk(cl, mat, 'ico', WAX, 1.0, 0.95, 0.95, 0, 0, 0);
+    mk(cl, mat, 'ico', DARK, 0.1, 0.1, 0.05, -0.2, 0.14, 0.46); mk(cl, mat, 'ico', GUM, 0.24, 0.16, 0.1, 0.12, -0.2, 0.45);
+    mk(cl, mat, 'ico', WAX2, 0.62, 0.6, 0.6, 0.45, 0.5, -0.15);
+    mk(cl, mat, 'ico', 0xe8e0d0, 0.2, 0.18, 0.08, 0.5, 0.5, 0.15); mk(cl, mat, 'ico', DARK, 0.09, 0.09, 0.04, 0.5, 0.5, 0.19);
+    mk(cl, mat, 'ico', WAX3, 0.42, 0.4, 0.4, -0.25, 0.62, 0.25);
+    mk(cl, mat, 'ico', WAX2, 0.26, 0.24, 0.26, 0.2, 0.85, 0.05);
+    mk(cl, mat, 'ico', WAX3, 0.2, 0.2, 0.2, 0.7, 0.2, 0.3);
+    mk(cl, mat, 'ico', WAX, 0.3, 0.26, 0.3, -0.5, 0.1, -0.2);
+    /* the staff: one taken in backwards, chest up, head back and mouth open, an arm still out toward the glass */
+    const s1 = grp(b, -1.45, 1.05, 0.35); s1.rotation.z = 0.6; s1.rotation.x = -0.35;
+    mk(s1, mat, 'box', UNI, 0.44, 0.62, 0.26, 0, 0.3, 0); mk(s1, mat, 'ico', RAW, 0.72, 0.5, 0.62, 0, -0.05, 0);
+    const s1h = grp(s1, 0, 0.78, 0.02); s1h.rotation.x = -0.7;
+    mk(s1h, mat, 'ico', PALE, 0.25, 0.29, 0.26, 0, 0, 0); mk(s1h, mat, 'ico', DARK, 0.11, 0.13, 0.06, 0, -0.07, 0.12);
+    mk(s1h, mat, 'ico', DARK, 0.04, 0.04, 0.04, -0.06, 0.04, 0.12); mk(s1h, mat, 'ico', DARK, 0.04, 0.04, 0.04, 0.06, 0.04, 0.12);
+    const s1a = grp(s1, -0.26, 0.55, 0.05); s1a.rotation.x = -1.9; s1a.rotation.z = 0.4;
+    mk(s1a, mat, 'box', UNI, 0.11, 0.36, 0.12, 0, -0.18, 0); mk(s1a, mat, 'box', PALE, 0.08, 0.34, 0.08, 0, -0.52, 0);
+    for (let k = 0; k < 4; k++) mk(s1a, mat, 'box', PALE, 0.02, 0.12, 0.02, -0.04 + k * 0.027, -0.74, 0.02);
+    /* and one face down into it, at the back: a back, shoulders, and the back of a head */
+    const s2 = grp(b, 0.75, 1.35, -1.35); s2.rotation.x = 0.9; s2.rotation.y = 0.5;
+    mk(s2, mat, 'box', UNI2, 0.46, 0.5, 0.24, 0, 0.1, 0); mk(s2, mat, 'ico', RAW, 0.75, 0.45, 0.6, 0, -0.15, 0);
+    mk(s2, mat, 'ico', PALE, 0.25, 0.28, 0.26, 0, 0.5, 0); mk(s2, mat, 'ico', 0x3a2a24, 0.26, 0.14, 0.24, 0, 0.58, -0.04);
+    for (const s of [-1, 1]) mk(s2, mat, 'box', UNI2, 0.11, 0.4, 0.12, s * 0.28, 0.1, 0.05).rotation.z = s * 0.3;
+    /* the arms, four: raw at the shoulder, a pale hand flat on the floor, lying out toward the glass until it tenses */
+    const arms: O3[] = [];
+    for (const [x, y, z, k] of [[-1.2, 1.25, 0.55, 1], [1.15, 1.2, 0.6, 1], [-1.8, 0.7, 0.3, 0.7], [1.75, 0.65, 0.35, 0.7]] as const) {
+      const a = grp(b, x, y, z);
+      mk(a, mat, 'ico', RAW, 0.5 * k, 0.4 * k, 0.5 * k, 0, 0, 0);
+      mk(a, mat, 'box', M1, 0.26 * k, 1.0 * k, 0.26 * k, 0, -0.5 * k, 0);
+      const f = grp(a, 0, -1.0 * k, 0); f.rotation.x = k < 1 ? -1.62 : -1.4;
+      mk(f, mat, 'box', M3, 0.2 * k, 0.9 * k, 0.2 * k, 0, -0.45 * k, 0);
+      mk(f, mat, 'box', PALE, 0.24 * k, 0.3 * k, 0.08 * k, 0, -1.03 * k, 0);
+      for (let j = 0; j < 4; j++) mk(f, mat, 'box', PALE, 0.035 * k, 0.24 * k, 0.05 * k, (-0.09 + j * 0.06) * k, -1.28 * k, 0);
+      arms.push(a);
+    }
+    /* its own sick light: pustules over the back and flanks, lit from within (the level's lamps sit among them) */
+    const PUS: Colour = [2.6, 0.9, 0.55];
+    for (const [k, dx, dy, dz] of [[2, 0.5, 0.8, -0.4], [2, 0.9, 0.4, 0.2], [1, -0.8, 0.6, -0.3], [1, -1, 0.2, 0.2], [7, 0.4, 0.8, -0.3], [7, -0.6, 0.7, 0.2], [8, -0.3, 0.9, -0.3], [3, 0.6, 0.8, -0.2], [0, 1, 0.3, -0.6], [0, -1, 0.4, -0.4], [5, 0.7, 0.7, 0.4], [6, -0.7, 0.8, 0.3]] as const) {
+      const [x, y, z] = on(k, dx, dy, dz, 0.96);
+      for (let q = 0; q < 3; q++) mk(b, mat, 'ico', PUS, R.rnd(0.16, 0.3), R.rnd(0.12, 0.22), R.rnd(0.16, 0.3), x + R.rnd(-0.18, 0.18), y + R.rnd(-0.1, 0.1), z + R.rnd(-0.18, 0.18));
+    }
+    return { g, b, hd, hd2, cl, s1h, s1a, arms };
   },
   /* a man whose ribcage has parted down the sternum and learned to open like a pair of doors */
   thresher(mat) {
@@ -213,11 +300,20 @@ const ANIM: Record<string, (m: Mutant, M: Model) => void> = {
     M.hd.rotation.y = Math.sin(m.ph * 0.23) * 0.2;
     for (const a of M.arms) a.rotation.x = Math.sin(m.ph * 0.9) * 0.06;
   },
-  /* the overseer breathes as a bloat does, and as it tenses to lash its arms come up, shaking */
+  /* the overseer breathes, slowly; the swellings pulse, quicker; the heads turn a little, the second with a jerk now and
+     then; the taken one's arm feels about. As it tenses to lash, all four arms come up, shaking */
   overseer(m, M) {
-    ANIM.bloat(m, M);
+    const s = 1 + Math.sin(m.ph * 0.9) * 0.015;
+    M.b.scale.set(s, 1 / s, s);
+    M.hd.rotation.z = Math.sin(m.ph * 0.4) * 0.06;
+    M.hd.rotation.y = Math.sin(m.ph * 0.23) * 0.18;
+    M.hd2.rotation.y = Math.sin(m.ph * 0.7) * 0.25 + (Math.random() < 0.01 ? r(-0.4, 0.4) : 0);
+    const p = 1 + Math.sin(m.ph * 1.7) * 0.035;
+    M.cl.scale.set(p, p, p);
+    M.s1h.rotation.x = -0.7 + Math.sin(m.ph * 0.5) * 0.1;
+    M.s1a.rotation.x = -1.9 + Math.sin(m.ph * 0.9) * 0.08;
     const t = Math.min(1, m.tense / 0.9);
-    if (t > 0) for (const a of M.arms) a.rotation.x = -2.2 * t + Math.sin(m.ph * 30) * 0.1 * t;
+    M.arms.forEach((a: O3, k: number) => { a.rotation.x = t > 0 ? -2.2 * t + Math.sin(m.ph * 30 + k) * 0.1 * t : Math.sin(m.ph * 0.9 + k) * 0.05; });
   },
   thresher(m, M) {
     const wild = m.state === 'charge' || m.state === 'wind', op = wild ? 1.2 + Math.sin(m.ph * 24) * 0.14 : m.state === 'recover' ? 0.75 : 0.2 + Math.sin(m.ph * 1.4) * 0.1;

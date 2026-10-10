@@ -265,10 +265,11 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   buildCargo(D, T1, T2, T3);
   /* the overseer: the operations staff, grown into one body (world.md §8). Flesh, not wiring: at each screen what is left
      of one of them, pared down to a hunched trunk, a hand on the desk and one swollen eye at the glass of it, joined to its
-     neighbours and by a cord of meat to the body in the middle of the room. The body is several of them; its head, off to
-     one side, is growing another, and its mouth is dragged sideways, pulling the face after it. It faces the glass, and
-     the hall. Last, so the cast made before keep their places; its screens and its board are on critical power. */
-  mut(T1, 'overseer', 30.6, 39, { zone: 'ops', sit: 1, yaw: PI, screens: 'CRIT' }); // its eyes: the head, close to the glass
+     neighbours and by a cord of meat to the body at the glass. The body is the cast's own model (castView.ts): several of
+     them fused, its head growing another, a cluster of pale swellings off one shoulder, two of the staff half taken in,
+     four arms out in front. It faces the glass, and the hall. Last, so the cast made before keep their places; its screens
+     and its board are on critical power. */
+  mut(T1, 'overseer', 30.6, 39, { zone: 'ops', yaw: PI, screens: 'CRIT' }); // its eyes: the head, close to the glass
   const MEAT = [0x8c4a44, 0x6e2b28, 0x9a6a5a, 0x7a3a34];
   for (let k = 0; k < 9; k++) {
     const x = 24.7 + k * 1.15, z = 45.75;
@@ -278,25 +279,12 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
     P(T1, 'ico', x + ((k % 3) - 1) * 0.04, z + 0.33, 0.14, 0.14, 0.06, 0x15100e, { y: 1.26, c: 0 });
     P(T1, 'ico', x + 0.18, 46.35, 0.26, 0.12, 0.2, MEAT[(k + 2) % 4], { y: 0.76, c: 0 }); // its hand on the desk
     if (k < 8) bx(T1, x + 0.575, z - 0.05, 0.7, 0.16, 0.14, MEAT[k % 4], { y: 0.75 + (k % 2) * 0.12, c: 0 }); // grown into the next
-    const dx = (30 - x) * 2, dz = (40.6 - z) * 2, len = Math.hypot(dx, dz); // and into the body
-    bx(T1, (x + 30) / 2, (z + 40.6) / 2, len, 0.16, 0.18, MEAT[k % 4], { y: 0.5 + (k % 3) * 0.1, ry: -Math.atan2(dz, dx), c: 0 });
+    const dx = (30.4 - x) * 2, dz = (39.95 - z) * 2, len = Math.hypot(dx, dz); // and into the body (the cast's model, castView.ts)
+    bx(T1, (x + 30.4) / 2, (z + 39.95) / 2, len, 0.16, 0.18, MEAT[k % 4], { y: 0.5 + (k % 3) * 0.1, ry: -Math.atan2(dz, dx), c: 0 });
   }
-  /* the body: several of them, fused, limbs left where they came through */
-  for (const [x, z, s, y] of [[29.5, 40.5, 1.6, 0.2], [30.5, 40.8, 1.4, 0.3], [29.9, 41.2, 1.2, 0.9], [30.9, 40.2, 1, 0.8], [29.2, 40, 0.9, 0.9]] as const) P(T1, 'ico', x, z, s, s * 0.8, s, MEAT[Math.round(x * 3) % 4], { y, c: 0 });
-  for (const [x, z, ry, rz] of [[28.8, 40.8, 0.4, 0.9], [31.2, 41, -0.5, -0.8], [30.2, 41.6, 1.4, 0.6]] as const) bx(T1, x, z, 0.9, 0.12, 0.14, 0xb08a78, { y: 1.1, ry, rz, c: 0 });
-  /* the head, off centre, facing the glass, with another coming out of it; the mouth dragged to one side */
-  P(T1, 'ico', 30.7, 39.7, 1.3, 1.4, 1.2, 0x9a6a5a, { y: 1.55, c: 0 });
-  P(T1, 'ico', 31.15, 39.55, 0.75, 0.7, 0.7, 0x8c5a50, { y: 2.45, c: 0 });
-  P(T1, 'ico', 30.45, 39.38, 0.34, 0.3, 0.12, 0xd8d0c0, { y: 2.3, c: 0 }); P(T1, 'ico', 30.95, 39.42, 0.42, 0.24, 0.12, 0xd8d0c0, { y: 2.08, c: 0 });
-  P(T1, 'ico', 30.45, 39.34, 0.12, 0.12, 0.05, 0x15100e, { y: 2.31, c: 0 }); P(T1, 'ico', 30.98, 39.38, 0.12, 0.12, 0.05, 0x15100e, { y: 2.09, c: 0 });
-  bx(T1, 30.95, 39.42, 0.95, 0.16, 0.06, 0x2a0e0c, { y: 1.75, rz: 0.4, c: 0 }); // the mouth, dragged
-  P(T1, 'ico', 31.25, 39.46, 0.2, 0.14, 0.06, 0xd8d0c0, { y: 2.65, c: 0 }); // the second face's one eye
-  /* and its own sick light, which needs no power: pustules over the body like the nest's, so from the hall it is always
-     there behind the glass, lit from within */
-  for (const [x, z, y] of [[29.6, 40.2, 1.3], [30.4, 41.1, 1.5], [31.1, 40.4, 1.2], [29.3, 41, 1.6]] as const) {
-    for (let k = 0; k < 4; k++) P(T1, 'ico', x + (k - 1.5) * 0.18, z + ((k * 5) % 3 - 1) * 0.15, 0.3, 0.24, 0.3, [2.6, 0.9, 0.55], { y: y + (k % 2) * 0.15, c: 0 });
-    T1.lamps.push({ x: x * 2, z: z * 2, r: 4.5, c: [0.5, 0.17, 0.1], h: y });
-  }
+  /* and its own sick light, which needs no power: the pustules are the model's; their lamps sit among them, so from the
+     hall it is always there behind the glass, lit from within */
+  for (const [x, z, y] of [[30, 39.6, 1.6], [31.2, 39.4, 1.9], [30.45, 40, 1.2], [29.65, 38.75, 1.0]] as const) T1.lamps.push({ x: x * 2, z: z * 2, r: 4.5, c: [0.5, 0.17, 0.1], h: y });
   mut(D, 'hand', 30, 33, { yaw: PI });
   /* and two of the staff on their rounds of the hall */
   mut(D, 'husk', 20.5, 29); mut(D, 'husk', 38.5, 37);

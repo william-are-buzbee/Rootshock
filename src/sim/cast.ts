@@ -39,7 +39,7 @@ export const MT: Record<string, Stats> = {
   vine: { ai: 'grabber', model: 'grabber', green: true, hp: 30, r: 0.4, cr: 0, mass: 1, h: 0, fixed: true },
   /* Security's (world.md §8): the growth that was the operations centre, which sees through the cameras; and its hand, a
      thresher made of Security's staff that goes wherever an alarm sounds. Too big for a door frame, it keeps to the halls. */
-  overseer: { ai: 'overseer', model: 'bloat', hp: 260, r: 1.1, cr: 0, mass: 8, h: 0, fixed: true },
+  overseer: { ai: 'overseer', model: 'overseer', hp: 260, r: 1.1, cr: 0, mass: 8, h: 0, fixed: true },
   hand: { ai: 'thresher', model: 'thresher', hp: 220, r: 0.65, cr: 0.52, mass: 3, h: 2.2, solid: true, noDoors: true },
 };
 

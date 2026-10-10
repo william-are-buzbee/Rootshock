@@ -462,10 +462,18 @@ cancerous growth, rather than a second level-sized area competing for attention.
   or a lock. The overseer is the operations staff, grown into one body at their posts: at each screen what is left of one of
   them, pared down to a stationary watcher, a hunched trunk with one swollen eye at the glass and a hand on the desk, each
   half blended into its neighbours and joined by a cord of meat to the body. The body is several of them fused, the most
-  disfigured; its head, off to one side, is growing another, and its mouth is dragged sideways, pulling the features after
-  it. A human turned into a tool, still attached to the other tools. It does everything physically: it sees the cameras with
-  an eye on each lit screen, and sounds a zone or draws a bolt with a hand on its board. So all of it needs power at its own
-  room, which is critical power (above). The models are rough boxes and blobs for now; the rule holds from the start.
+  disfigured: a heap of skinned meat at the glass, a ridge of knuckles up its back, and what it has taken in still showing.
+  Its head, off to one side, is growing another out of one temple, and its mouth is dragged sideways, pulling the features
+  after it. Off the other shoulder a cluster of pale swellings, each less of a face than the one before: a slack mouth and
+  one dark eye, then one open eye, then nothing. Two of the staff are half in it, one taken backwards up to the chest with
+  an arm still out toward the glass, one face down with only a back and shoulders left. Four arms lie out in front of it,
+  and come up, shaking, as it tenses to lash. Not the sitting one seen elsewhere, not eyes everywhere: one organism of many
+  heads, the same two stuffs throughout (skinned red, and waxed pale), so that from the hall it is lumps behind glass and
+  only up the stair does it resolve into people. A human turned into a tool, still attached to the other tools. It does
+  everything physically: it sees the cameras with an eye on each lit screen, and sounds a zone or draws a bolt with a hand
+  on its board. So all of it needs power at its own room, which is critical power (above). The body is one model of the
+  cast (`present/render/castView.ts`), so it breathes, flashes when struck and falls as one thing; the watchers and their
+  cords are the level's. Boxes and blobs, as everything is; the rule holds from the start.
 - **Eyes:** the cameras, across the level, through its screens; and its own, through its glass onto the hall. Its sill hides
   the floor right under the window: hug that wall and it cannot see you.
 - **Voice: the zone alarm.** The overseer gives no orders; the building does the work. A camera sees you, and the overseer sounds
@@ -505,7 +513,7 @@ cancerous growth, rather than a second level-sized area competing for attention.
   ceiling out of reach, and on the east bays' own breaker (EAST), one in the north-east corner and one by the operations stair. Mending the wing sounds
   it (its circuit comes live on the board).
 - **The overseer and its hand: built.** The overseer is grown into the operations room, a watcher at each of its screens
-  and the body facing the glass. It sees you itself through the glass (and sounds the Operations zone, its speaker in the
+  and the body facing the glass, lit from within by its own pustules, so it is there behind the glass with the power off. It sees you itself through the glass (and sounds the Operations zone, its speaker in the
   Operations corridor, so the hand comes), and lashes what comes near, with a grabber's tell. Killed, the camera lights go out up and down the level for good, the klaxon
   dies mid-note, and no alarm sounds again. The hand is a thresher made of Security's staff (220 to the rib freak's 150): it
   keeps the muster hall, hears every alarm wherever it is, and goes at a run by the halls; too big for any door frame, open or
