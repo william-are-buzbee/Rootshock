@@ -413,6 +413,19 @@ sequence of inputs. The door rules, the labels and the answers are the first eng
   `LevelDef.stains`, or under one of the cast that fell) red for about ten, and those stay; through what a green one
   bled, green. A print that comes down on one already there grows it (to 1.6 times its first size) instead of lying on top. None in
   water, on a crate or on a platform. The newest 256 are kept; they are looks only, not saved. Bleeding is for later.
+- **Your body** (since; `present/render/selfView.ts`): rough blocks in the coverall the sleeve already shows, stood
+  under the eye with the spine 0.16 m behind it (further as you look down, so you see your legs and feet, not the top of
+  your chest). The eye is shown the hips, the torso and the legs; the head and the arms are only drawn into shadow maps
+  (`SHADOW_ONLY`), since the hand in front of the camera is `handsView`'s. Each leg is worked back from its foot (thigh
+  and shin), so the feet keep to the floor; a whole stride is the distance between two footsteps heard (`sim.ts`), and
+  the right foot comes down on the sound. Crouched, it sits right down on its heels, knees forward. A flashlight lying
+  on throws your whole shadow (`beams.ts`). The fittings over you throw one too, though the level's light is worked out
+  once: the body goes to the level's shader as five capsules (torso and head, legs, arms; `SELF` in `shader.ts`) with
+  the nearest two lit fittings of the room you stand in, and each takes back its share of the light where it falls,
+  as the field reckons a fitting's pool (`POOL`), drawn 1.6 times darker than that (`SELF.dark`: the field's fill is
+  mostly the fittings' light too, and by its numbers alone a shadow between two fittings was barely there), soft-edged,
+  wider and fainter with distance, gone past 7 m. Only the
+  room you are in, and only you: the cast throw no shadow from a fitting yet. Looks only.
 - **Drips** (since; `present/render/drips.ts`): a level's caves and rooms over standing water drip from fixed points
   (one to three a room, found from the level's id, so the same each load), each with roof above and a fall of a metre
   or more under it. A drop falls now and then; on water it spreads a square ring, on stone a small splash over a
