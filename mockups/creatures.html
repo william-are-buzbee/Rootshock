@@ -64,11 +64,11 @@ button:focus-visible { outline: 2px solid var(--hazard); outline-offset: 2px; }
 import * as THREE from 'three';
 
 const PI = Math.PI, TAU = PI * 2;
-/* castView's palette, and a few for Security's kit */
+/* castView's palette */
 const FLESH = 0xb08572, RAW = 0x8c4a44, GOREC = 0x4e1616, PALE = 0xcdbfae, BONE = 0xddd6c0, DARK = 0x140c0d;
-const TROUS = 0x2b2e34, VEST = 0x23272c, SHIRT = [0x39485a, 0x4a5560, 0x2f3a48, 0x4f5862, 0x3d4652], SHIELD = 0x6c7a84, RIM = 0x1c1e20;
-const MEAT = [0x7a3a34, 0x5e2420, 0x8a5448, 0x6a302a], SKIN = [0xbaa08e, 0xa88a7a, 0xc4ad9a, 0xae9282];
-const SCL = 0xd8d0c0, IRIS = 0x5e5a36, PUP = 0x15100e, GLOW = [2.75, 2.36, 2.2];
+const RIM = 0x1c1e20;
+const MEAT = [0x8c4a44, 0x6e2b28, 0x9a6a5a, 0x7a3a34], SKIN = [0x9a6a5a, 0x8c5a50, 0xa47a68, 0x94645a];
+const SCL = 0xd8d0c0, PUP = 0x15100e, GLOW = [2.75, 2.36, 2.2];
 
 /* the game's unit shapes (templates.ts), flat triangle lists in a 1 m cube */
 const TPL = (() => {
@@ -176,8 +176,7 @@ const EYES = [];
 function eye(parent, r, x, y, z, o = {}) {
   const g = grp(parent, x, y, z), ball = grp(g, 0, 0, 0), scm = material();
   const sc = new THREE.Mesh(geo('ico', SCL, r * 2, r * 2, r * 2), scm); sc.frustumCulled = false; ball.add(sc);
-  mk(ball, 'ico', o.iris ?? IRIS, r * 1.05, r * 1.05, r * 0.3, 0, 0, r * 0.8);
-  const pup = mk(ball, 'ico', PUP, r * 0.52, r * 0.52, r * 0.2, 0, 0, r * 0.92);
+  const pup = mk(ball, 'ico', PUP, r * 0.5, r * 0.5, r * 0.22, 0, 0, r * 0.86);
   const lid = mk(g, 'ico', o.skin ?? FLESH, r * 2.3, 1, r * 2.55, 0, 0, 0);
   const E = { g, ball, scm, pup, lid, r, rest: o.cover ?? rnd(0.0, 0.2), cover: 0.3, blink: rnd(1, 6), shut: 0, dil: 1, flush: 0, yaw: 0, pitch: 0, wild: o.wild ?? 0 };
   EYES.push(E);
@@ -201,9 +200,9 @@ function lookEye(E, t, dt, mood) {
   const jit = E.wild && mood.stare < 0.5 && Math.random() < 0.02 ? rnd(-0.3, 0.3) : 0;
   E.ball.rotation.set(E.pitch, E.yaw + jit, 0);
   /* the lid: heavy at rest, blinking out of step; staring, drawn right back and never blinking */
-  if ((E.blink -= dt) < 0 && mood.stare < 0.5) { E.blink = rnd(2, 7); E.shut = 0.16; }
+  if ((E.blink -= dt) < 0 && mood.stare < 0.5 && !mood.shut) { E.blink = rnd(2, 7); E.shut = 0.16; }
   const blinking = E.shut > 0 ? Math.sin((1 - (E.shut -= dt) / 0.16) * PI) : 0;
-  const want = mood.stare > 0.5 ? -0.3 : lerp(E.rest, 0.85, mood.drowse ?? 0);
+  const want = mood.shut ? 1 : mood.stare > 0.5 ? -0.3 : lerp(E.rest, 0.85, mood.drowse ?? 0);
   E.cover += (want - E.cover) * damp(mood.stare > 0.5 ? 10 : 4, dt);
   const c = clamp(Math.max(E.cover, blinking * 1.05), -0.3, 1), q = (c + 0.3) / 1.3, r = E.r;
   E.lid.position.y = lerp(1.28 * r, 0, q); E.lid.scale.y = lerp(0.8 * r, 2.3 * r, q);
@@ -280,7 +279,7 @@ function floor(parent, w, d, c, line, step) {
 
 /* ================================================================================================================ */
 /* THE OVERSEER: the operations staff grown into one body at their posts. A mound of them fused, a head that has
-   budded heads like a tumour buds, each with eyes but the smallest, and every face turns together to whatever it
+   budded three more like a tumour buds, and every face turns together to whatever it
    attends to. A watcher at each screen behind it, joined to it by a cord of meat; two clubbed arms to knock with. */
 function buildOverseer() {
   const S = new THREE.Scene(), body = grp(S, 0, 0, 0);
@@ -298,19 +297,12 @@ function buildOverseer() {
     for (let k = 0; k < 5; k++) { const m = mk(S, 'box', 0x141516, 0.6 + k * 0.08, 0.008, 0.025, s * 1.38, 0.006, 1.42); m.rotation.y = k * 1.26 + s; m.position.x += Math.cos(k * 1.26 + s) * 0.35 * s; m.position.z -= Math.sin(k * 1.26 + s) * 0.35; }
   }
 
-  /* the mound: several of them, fused; what is left of their shirts stretched over it, a lanyard, limbs where they came through */
+  /* the mound: several of them, fused, limbs left where they came through */
   for (const [x, y, z, sx, sy, sz, c] of [[0, 0.55, -0.1, 2.1, 1.3, 1.8, MEAT[0]], [0.6, 0.85, -0.4, 1.5, 1.25, 1.3, MEAT[2]], [-0.65, 0.8, -0.25, 1.35, 1.15, 1.25, MEAT[1]],
     [-0.15, 1.25, -0.55, 1.15, 0.95, 1.05, MEAT[3]], [0.75, 0.42, 0.45, 0.95, 0.8, 0.85, FLESH], [-0.8, 0.45, 0.5, 0.8, 0.7, 0.7, MEAT[2]], [0.05, 0.3, 0.75, 1.2, 0.55, 0.6, MEAT[3]]])
     mk(body, 'ico', c, sx, sy, sz, x, y, z);
-  for (const [x, y, z, w, h, rx, ry, rz, c] of [[-0.86, 0.98, 0.2, 0.4, 0.34, -0.3, -0.9, 0.5, SHIRT[2]], [0.86, 1.02, 0.02, 0.36, 0.4, -0.2, 1.0, -0.4, SHIRT[0]], [-0.1, 0.5, 0.98, 0.42, 0.2, 0.5, 0, 0.1, SHIRT[2]], [-0.3, 1.62, -0.36, 0.4, 0.26, -0.9, 0.2, 0.3, SHIRT[4]]]) {
-    const m = mk(body, 'box', c, w, h, 0.05, x, y, z); m.rotation.set(rx, ry, rz);
-    mk(body, 'box', BONE, 0.025, 0.025, 0.02, x + 0.05, y + 0.04, z + 0.04);
-  }
-  for (const [x, y, z] of [[0.32, 0.8, 0.93], [-0.55, 0.7, 0.78], [0.95, 0.62, 0.68]]) {
-    mk(body, 'box', 0x2a3a5a, 0.025, 0.28, 0.02, x, y + 0.1, z); mk(body, 'box', 0xd4d8d4, 0.075, 0.1, 0.012, x, y - 0.06, z + 0.01); mk(body, 'box', 0x2a3a5a, 0.06, 0.02, 0.014, x, y - 0.035, z + 0.016);
-  }
   for (const [x, y, z, ry, rz] of [[-1.05, 1.05, -0.4, 0.4, 0.9], [1.15, 1.0, -0.6, -0.5, -0.8], [0.3, 1.7, -0.8, 1.4, 0.6], [-0.4, 0.25, 0.95, 0.3, 0.1]])
-    { const L = grp(body, x, y, z); L.rotation.set(0, ry, rz); mk(L, 'box', SKIN[1], 0.62, 0.11, 0.12, 0.31, 0, 0); mk(L, 'box', SKIN[0], 0.16, 0.05, 0.12, 0.66, 0, 0); for (let k = 0; k < 3; k++) mk(L, 'box', SKIN[2], 0.12, 0.025, 0.025, 0.76, 0, -0.04 + k * 0.04); }
+    { const L = grp(body, x, y, z); L.rotation.set(0, ry, rz); mk(L, 'box', 0xb08a78, 0.62, 0.11, 0.12, 0.31, 0, 0); mk(L, 'box', 0xb08a78, 0.16, 0.05, 0.12, 0.66, 0, 0); }
   /* its own light, which needs no power: pustules over the body, the colour of a healing burn */
   for (const [x, y, z, s] of [[-0.5, 1.2, 0.35, 0.2], [-0.35, 1.05, 0.45, 0.14], [0.85, 1.25, -0.05, 0.22], [0.7, 0.85, 0.55, 0.15], [-1.0, 0.7, 0.3, 0.17], [0.1, 1.55, -0.2, 0.18], [0.45, 0.45, 0.8, 0.12], [-0.25, 0.42, 0.95, 0.13]])
     mk(body, 'ico', GLOW, s, s * 0.8, s, x, y, z);
@@ -321,7 +313,7 @@ function buildOverseer() {
     const A = grp(body, s * 1.0, 1.02, 0.42);
     A.rotation.y = s * 0.28;
     mk(A, 'box', FLESH, 0.24, 0.24, 0.85, -0.07, 0, 0.42); mk(A, 'box', 0xb08a78, 0.2, 0.2, 0.82, 0.1, 0.06, 0.4); mk(A, 'box', RAW, 0.08, 0.2, 0.7, 0.01, 0.02, 0.42);
-    mk(A, 'box', SHIRT[s > 0 ? 0 : 1], 0.36, 0.32, 0.26, 0, 0, 0.1);
+    mk(A, 'ico', MEAT[s > 0 ? 0 : 3], 0.4, 0.36, 0.34, 0, 0, 0.08);
     const E = grp(A, 0, 0, 0.85);
     mk(E, 'ico', BONE, 0.16, 0.14, 0.14, 0.04, 0.06, -0.02);
     mk(E, 'box', PALE, 0.2, 0.2, 0.7, -0.06, 0, 0.35); mk(E, 'box', FLESH, 0.17, 0.17, 0.68, 0.09, 0.03, 0.34);
@@ -361,18 +353,9 @@ function buildOverseer() {
   mk(H0, 'ico', MEAT[0], 0.32, 0.26, 0.2, 0.46, 0.0, 0.66);
   mk(H0, 'ico', SKIN[2], 0.12, 0.14, 0.1, -0.03, 0.36, 0.86);
   heads.push(main);
-  const H1 = head(H0, [0.42, 0.95, 0.15], 0.6, 0.16, SKIN[1], 2, [0.55, -0.35]);
-  head(H0, [-0.5, 0.75, 0.32], 0.38, 0.14, SKIN[3], 1, [-0.9, -0.2]);
-  head(H1.h, [0.18, 0.18, 0.28], 0.28, 0.1, SKIN[2], 1, [0.7, -0.5]);
-  const H2 = head(body, [-0.85, 1.12, 0.32], 0.55, 0.3, SKIN[3], 1, [-0.6, -0.1], { big: 0.34 });
-  head(H2.h, [-0.2, 0.2, 0.42], 0.22, 0.1, SKIN[1], 1, [-1.1, -0.4]);
-  const H5 = head(body, [0.88, 1.25, -0.25], 0.42, 0.36, SKIN[0], 2, [1.0, -0.25]);
-  head(H5.h, [0.15, 0.12, 0.45], 0.13, 0.08, SKIN[2], 0, [1.2, 0.2]);
-  head(body, [-0.3, 1.62, -0.45], 0.2, 0.26, SKIN[1], 0, [0.2, -0.8]);
-  head(body, [0.98, 0.72, 0.58], 0.16, 0.12, SKIN[2], 0, [0.9, 0.3]);
-  head(body, [-1.05, 0.62, 0.52], 0.32, 0.2, SKIN[0], 1, [-1.2, 0.15]);
-  /* and eyes that came up through the skin of the mound, with no head about them */
-  const lone = [eye(body, 0.085, -0.28, 0.86, 0.72, { skin: MEAT[0] }), eye(body, 0.07, 0.62, 0.7, 0.62, { skin: FLESH }), eye(body, 0.06, 0.1, 0.48, 1.02, { skin: MEAT[3] })];
+  head(H0, [0.42, 0.95, 0.15], 0.6, 0.16, SKIN[1], 2, [0.55, -0.35]);
+  head(body, [-0.85, 1.12, 0.32], 0.55, 0.3, SKIN[3], 1, [-0.6, -0.1], { big: 0.34 });
+  head(body, [0.88, 1.25, -0.25], 0.42, 0.36, SKIN[0], 2, [1.0, -0.25]);
 
   /* the watchers: at each screen what is left of one of them, hunched to it, one swollen eye at the glass and a hand on
      the desk; grown into their neighbours, and a cord of meat back to the body. One screen is dead. */
@@ -399,7 +382,7 @@ function buildOverseer() {
   });
 
   return {
-    S, body, heads, main, lone, arms, screens, watchers,
+    S, body, heads, main, arms, screens, watchers,
     room: [0.2, 0.22, 0.25], glow: { pos: V(0, 1.2, 0.6), c: [0.5, 0.17, 0.1], r: 4.5 },
     cam: { yaw: 0.32, pitch: 0.1, dist: 6.4, tgt: V(0, 1.3, -0.3) },
     fig: figure(S, 2.7, 1.5, -0.4),
@@ -407,110 +390,111 @@ function buildOverseer() {
 }
 
 /* ================================================================================================================ */
-/* THE HAND: what is left of the response team, made one thing. Four of them lie prone side by side, fused into a palm,
-   backs up, spines standing like tendons; their arms, fused in pairs, are the fingers, walking on their own hands,
-   riot shields grown in for nails; their heads at the knuckles, and only the front two still see. A fifth is the thumb.
-   Their legs braid back into a wrist, and where the legs end, in a ruff of boots, a head has grown that is all of
-   theirs. Low, it lies on its fingertips and feels the floor. Raised, the wrist comes up and that head looks. */
+/* THE HAND: what is left of the response team, made one thing; a hand only in name now. Three of them. One lies on all
+   fours and is the body: its arms and legs are the four it walks on, elbows and knees up. One is fused face first into
+   the front of it: its face is the creature's face, low between its arms, and its arms are the mouthparts, two long
+   ones that reach and feel and strike, two short ones that never stop working at the mouth. The third grows feet first
+   out of the back, lying on its back, and is the tail: shins, thighs, hips, chest, its arms hanging, and at the end its
+   head. Low, the tail lies along the floor with that head's eyes shut, and it reads as a tail. Raised, it curls up over
+   the body and the eyes open. */
+/** two bones and an end, along +z: a root that turns to face what it reaches for, and a joint that bends */
+function limb(parent, at, L1, L2, c1, c2, w, end) {
+  const h = grp(parent, at[0], at[1], at[2]);
+  mk(h, 'box', c1, w, w, L1, 0, 0, L1 / 2);
+  const k = grp(h, 0, 0, L1);
+  mk(k, 'ico', BONE, w * 1.3, w * 1.15, w * 1.15, 0, w * 0.15, 0);
+  mk(k, 'box', c2, w * 0.82, w * 0.82, L2, 0, 0, L2 / 2);
+  const t = grp(k, 0, 0, L2);
+  return { h, k, t, L1, L2, end: end(t) };
+}
+/** a hand on the end of a limb, palm down, with fingers that curl */
+function handEnd(s) {
+  return t => {
+    mk(t, 'box', FLESH, 0.13 * s, 0.05 * s, 0.15 * s, 0, -0.01 * s, 0.07 * s);
+    const f = [];
+    for (let k = 0; k < 4; k++) { const fg = grp(t, (-0.045 + k * 0.03) * s, -0.01 * s, 0.14 * s); fg.rotation.y = (k - 1.5) * 0.12; mk(fg, 'box', PALE, 0.026 * s, 0.026 * s, 0.12 * s, 0, 0, 0.06 * s); f.push(fg); }
+    const th = mk(t, 'box', PALE, 0.03 * s, 0.03 * s, 0.09 * s, 0.075 * s, -0.01 * s, 0.07 * s); th.rotation.y = 0.7;
+    return f;
+  };
+}
+const footEnd = t => { mk(t, 'box', PALE, 0.1, 0.07, 0.25, 0, -0.01, 0.09); mk(t, 'box', FLESH, 0.11, 0.06, 0.07, 0, 0, -0.02); return []; };
+/** bend a limb so its end reaches t (world): the root turns to face t, the joint bends up. The end's pitch, to undo */
+function reach(L, t, up = 1) {
+  _v.copy(t); L.h.parent.worldToLocal(_v); _v.sub(L.h.position);
+  const yaw = Math.atan2(_v.x, _v.z), hz = Math.hypot(_v.x, _v.z), th = Math.atan2(-_v.y, hz);
+  const d = clamp(Math.hypot(hz, _v.y), Math.abs(L.L1 - L.L2) + 0.02, L.L1 + L.L2 - 0.002);
+  const B = Math.acos(clamp((L.L1 * L.L1 + d * d - L.L2 * L.L2) / (2 * L.L1 * d), -1, 1));
+  const C = Math.acos(clamp((L.L1 * L.L1 + L.L2 * L.L2 - d * d) / (2 * L.L1 * L.L2), -1, 1));
+  const a1 = th - up * B, a2 = up * (PI - C);
+  L.h.rotation.set(a1, yaw, 0); L.k.rotation.set(a2, 0, 0);
+  return a1 + a2;
+}
 function buildHand() {
   const S = new THREE.Scene();
   floor(S, 16, 16, 0x4a4c4a, 0x3a3c3b, 1.2);
-  /* the muster hall's furniture, for scale: a crowd barrier, a bench, a shield rack */
-  for (let k = 0; k < 3; k++) { mk(S, 'box', 0x8a8c8e, 2.2, 0.05, 0.05, -1.5 + k * 2.3, 1.05, -3.2); mk(S, 'box', 0x8a8c8e, 2.2, 0.04, 0.04, -1.5 + k * 2.3, 0.6, -3.2); for (const e of [-1, 1]) mk(S, 'box', 0x6a6c6e, 0.05, 1.05, 0.45, -1.5 + k * 2.3 + e * 1.05, 0.52, -3.2); }
+  /* the muster hall's furniture, for scale: a crowd barrier, a bench */
+  for (let k = 0; k < 3; k++) { mk(S, 'box', 0x8a8c8e, 2.2, 0.05, 0.05, -1.5 + k * 2.3, 1.05, -3.4); mk(S, 'box', 0x8a8c8e, 2.2, 0.04, 0.04, -1.5 + k * 2.3, 0.6, -3.4); for (const e of [-1, 1]) mk(S, 'box', 0x6a6c6e, 0.05, 1.05, 0.45, -1.5 + k * 2.3 + e * 1.05, 0.52, -3.4); }
   mk(S, 'box', 0x5a4a3a, 2.4, 0.08, 0.45, 3.4, 0.46, 0.8); for (const e of [-1, 1]) mk(S, 'box', 0x2c2f33, 0.08, 0.44, 0.4, 3.4 + e * 1.05, 0.22, 0.8);
-  mk(S, 'box', 0x2c2f33, 0.08, 1.6, 1.6, -4.2, 0.8, 0.6); for (let k = 0; k < 4; k++) mk(S, 'box', SHIELD, 0.05, 1.1, 0.5, -4.1, 0.75, 0.05 + k * 0.38);
 
-  const g = grp(S, 0, 0, 0), root = grp(g, 0, 0.8, 0), palm = grp(root, 0, 0, 0);
-  /* the palm: their torsos. Knuckles (their shoulders) at z = 0, the heel of the hand at z = -0.95 */
-  const FX = [-0.39, -0.13, 0.13, 0.38], SH = [SHIRT[0], SHIRT[1], SHIRT[2], SHIRT[4]];
-  mk(palm, 'ico', FLESH, 1.22, 0.62, 1.0, 0, 0.0, -0.42);
-  mk(palm, 'ico', RAW, 1.02, 0.3, 0.84, 0, -0.18, -0.42);
-  mk(palm, 'ico', GOREC, 0.5, 0.12, 0.4, 0.1, -0.27, -0.42);
-  FX.forEach((x, k) => {
-    const back = mk(palm, 'box', SH[k], 0.25, 0.1, 0.74, x, 0.24 - Math.abs(k - 1.5) * 0.05, -0.44); back.rotation.z = (k - 1.5) * 0.18;
-    if (k < 3) mk(palm, 'box', RAW, 0.05, 0.08, 0.66, (x + FX[k + 1]) / 2, 0.25 - Math.abs(k - 1) * 0.04, -0.44);
-    for (let s = 0; s < 5; s++) mk(palm, 'box', 0xb8ae98, 0.05, 0.04, 0.06, x + (k - 1.5) * 0.015 * s, 0.295 - Math.abs(k - 1.5) * 0.05, -0.74 + s * 0.15);
-    mk(palm, 'ico', FLESH, 0.3, 0.26, 0.28, x, 0.05, -0.04);
-  });
-  mk(palm, 'box', VEST, 0.52, 0.06, 0.34, -0.25, 0.3, -0.56); mk(palm, 'box', 0x8a7a2a, 0.13, 0.02, 0.07, -0.2, 0.335, -0.55);
-  mk(palm, 'box', 0xd8d4c8, 0.16, 0.02, 0.05, 0.25, 0.32, -0.3);
-
-  /* the heads at the knuckles: the index and the middle look; the ring is in its helmet, the little one hangs */
-  const kHeads = [];
-  FX.forEach((x, k) => {
-    const h = grp(palm, x, 0.24, 0.02);
-    if (k === 3) { h.rotation.x = 0.95; mk(h, 'ico', PALE, 0.22, 0.25, 0.24, 0, 0.0, 0.08); mk(h, 'ico', DARK, 0.2, 0.12, 0.2, 0, 0.08, 0.04); return; }
-    mk(h, 'ico', PALE, 0.29, 0.33, 0.3, 0, 0.08, 0.08);
-    if (k === 2) {
-      mk(h, 'ico', RIM, 0.35, 0.23, 0.36, 0, 0.17, 0.06);
-      const vz = mk(h, 'box', 0x5a6670, 0.28, 0.13, 0.03, 0, 0.08, 0.23); vz.rotation.x = 0.25;
-      kHeads.push({ h, eyes: [], yaw: 0, pitch: 0 });
-      return;
-    }
-    const eyes = [eye(h, 0.06, -0.065, 0.11, 0.2, { skin: PALE, wild: 1 }), eye(h, k === 0 ? 0.085 : 0.062, 0.065, 0.11, 0.2, { skin: PALE, wild: 1 })];
-    mk(h, 'box', DARK, 0.11, 0.03, 0.02, 0, -0.01, 0.215);
-    if (k === 0) mk(h, 'ico', RAW, 0.12, 0.12, 0.09, 0.08, 0.13, 0.13);
-    kHeads.push({ h, eyes, yaw: 0, pitch: 0 });
-  });
-
-  /* the fingers: arms, fused two by two. Upper arms in their sleeves, forearms bare, hands fused at the tip with a
-     riot shield for a nail and their own fingers splayed under it */
-  const fingers = [];
-  const LEN = [[0.6, 0.52, 0.4], [0.64, 0.55, 0.42], [0.6, 0.52, 0.4], [0.48, 0.42, 0.34]];
-  function finger(at, yaw, L, sleeve, w = 1) {
-    const kn = grp(palm, at[0], at[1], at[2]);
-    kn.rotation.y = yaw;
-    for (const s of [-1, 1]) mk(kn, 'box', sleeve, 0.12 * w, 0.14 * w, L[0], s * 0.058 * w, 0, L[0] / 2);
-    mk(kn, 'box', RAW, 0.04, 0.12 * w, L[0] * 0.8, 0, 0.02, L[0] / 2);
-    const j2 = grp(kn, 0, 0, L[0]);
-    mk(j2, 'ico', BONE, 0.15 * w, 0.13 * w, 0.13, 0, 0.04, 0);
-    mk(j2, 'box', PALE, 0.095 * w, 0.1 * w, L[1], -0.05 * w, 0, L[1] / 2); mk(j2, 'box', FLESH, 0.09 * w, 0.095 * w, L[1], 0.05 * w, 0.005, L[1] / 2);
-    const j3 = grp(j2, 0, 0, L[1]);
-    mk(j3, 'box', FLESH, 0.2 * w, 0.085, L[2], 0, -0.01, L[2] / 2);
-    mk(j3, 'box', 0x56646e, 0.18 * w, 0.02, L[2] * 0.5, 0, 0.052, L[2] * 0.66); mk(j3, 'box', RIM, 0.19 * w, 0.028, 0.022, 0, 0.056, L[2] * 0.9);
-    for (let k = 0; k < 4; k++) { const f = mk(j3, 'box', PALE, 0.028, 0.028, 0.13, (-0.075 + k * 0.05) * w, -0.035, L[2] + 0.04); f.rotation.y = (k - 1.5) * 0.25; f.rotation.x = 0.5; }
-    const tip = grp(j3, 0, -0.06, L[2] + 0.06);
-    return { kn, j2, j3, tip, lift: 0 };
+  const g = grp(S, 0, 0, 0), body = grp(g, 0, 0.5, 0);
+  /* the body: one of them on all fours, back up, its spine and shoulder blades showing */
+  mk(body, 'ico', FLESH, 0.8, 0.48, 1.25, 0, 0, -0.05);
+  mk(body, 'ico', RAW, 0.62, 0.28, 0.95, 0, -0.13, -0.05);
+  for (const s of [-1, 1]) mk(body, 'ico', PALE, 0.32, 0.18, 0.3, s * 0.2, 0.17, 0.22);
+  for (let k = 0; k < 6; k++) mk(body, 'box', BONE, 0.07, 0.05, 0.08, 0, 0.235 - Math.abs(k - 2.5) * 0.012, -0.52 + k * 0.17);
+  mk(body, 'ico', GOREC, 0.3, 0.18, 0.4, 0.3, 0.05, -0.28); mk(body, 'ico', RAW, 0.2, 0.16, 0.22, -0.32, 0.08, -0.38);
+  /* its four: the arms in front, the legs behind */
+  const legs = [];
+  for (const s of [-1, 1]) {
+    legs.push({ ...limb(body, [s * 0.3, 0, 0.3], 0.55, 0.62, FLESH, PALE, 0.12, handEnd(1.1)), rest: V(s * 0.95, 0, 0.66), ph: s > 0 ? PI : 0, s });
+    legs.push({ ...limb(body, [s * 0.28, -0.02, -0.42], 0.6, 0.68, FLESH, PALE, 0.135, footEnd), rest: V(s * 0.92, 0, -0.78), ph: s > 0 ? 0 : PI, s });
   }
-  FX.forEach((x, k) => fingers.push(finger([x, -0.02, 0.1], (k - 1.5) * 0.07, LEN[k], SH[k])));
-  /* the thumb: the fifth of them, lying across the palm's edge, in its helmet; its arm is the thumb */
-  mk(palm, 'box', SHIRT[3], 0.24, 0.1, 0.62, -0.6, 0.06, -0.42).rotation.y = -0.5;
-  const th = grp(palm, -0.7, 0.16, -0.18); th.rotation.y = -0.5;
-  mk(th, 'ico', PALE, 0.22, 0.25, 0.24, 0, 0.04, 0.06); mk(th, 'ico', RIM, 0.27, 0.18, 0.28, 0, 0.11, 0.04);
-  const thumb = finger([-0.66, -0.06, -0.3], -0.95, [0.46, 0.4, 0.32], SHIRT[3], 0.9);
-  fingers.push(thumb);
-
-  /* the wrist: their legs, braided, running back from the heel of the hand; at the end a ruff of boots, and the head */
-  const wr = grp(palm, 0, 0.02, -0.82), wr2 = grp(wr, 0, 0, -0.62);
-  for (let i = 0; i < 5; i++) {
-    const a = i * TAU / 5;
-    mk(wr, 'box', i % 2 ? TROUS : 0x39485a, 0.14, 0.14, 0.66, Math.cos(a) * 0.13, Math.sin(a) * 0.13, -0.31).rotation.z = a;
-    mk(wr2, 'box', i % 2 ? 0x39485a : TROUS, 0.13, 0.13, 0.62, Math.cos(a + 0.7) * 0.12, Math.sin(a + 0.7) * 0.12, -0.3).rotation.z = a + 0.7;
-    mk(wr2, 'ico', i % 2 ? TROUS : 0x39485a, 0.18, 0.18, 0.18, Math.cos(a + 0.35) * 0.15, Math.sin(a + 0.35) * 0.15, 0.0);
+  /* the front one: its chest fused into the front of the body, its face low between its arms */
+  mk(body, 'ico', PALE, 0.5, 0.4, 0.42, 0, -0.02, 0.6);
+  const face = grp(body, 0, 0.0, 0.76);
+  mk(face, 'ico', PALE, 0.36, 0.34, 0.34, 0, 0, 0.06);
+  mk(face, 'ico', RAW, 0.13, 0.11, 0.09, -0.12, 0.1, 0.12);
+  const fEyes = [eye(face, 0.068, -0.075, 0.06, 0.19, { skin: PALE, wild: 1 }), eye(face, 0.076, 0.075, 0.05, 0.19, { skin: PALE, wild: 1 }), eye(face, 0.042, 0.15, 0.13, 0.13, { skin: PALE, wild: 1 })];
+  const mouth = mk(face, 'box', 0x1e0807, 0.08, 0.1, 0.05, 0, -0.09, 0.2);
+  /* its arms: the long pair, which reach and feel and strike, and the short pair at the mouth */
+  const arms = [], mands = [];
+  for (const s of [-1, 1]) {
+    arms.push({ ...limb(body, [s * 0.27, 0.06, 0.66], 0.55, 0.6, FLESH, PALE, 0.11, handEnd(1.2)), s });
+    mands.push({ ...limb(body, [s * 0.1, -0.15, 0.82], 0.2, 0.17, RAW, PALE, 0.06, handEnd(0.6)), s });
   }
-  mk(wr, 'ico', RAW, 0.24, 0.24, 0.62, 0, 0, -0.31); mk(wr2, 'ico', RAW, 0.22, 0.22, 0.6, 0, 0, -0.3);
-  for (let i = 0; i < 5; i++) {
-    const a = i * TAU / 5 + 0.3, b = grp(wr2, Math.cos(a) * 0.16, Math.sin(a) * 0.16, -0.56);
-    b.rotation.z = a;
-    const ank = grp(b, 0, 0, 0); ank.rotation.y = -0.9;
-    mk(ank, 'box', i % 2 ? TROUS : 0x39485a, 0.2, 0.13, 0.13, 0.08, 0, 0);
-    mk(ank, 'box', DARK, 0.36, 0.13, 0.14, 0.28, 0, 0.06); mk(ank, 'box', 0x0a0607, 0.38, 0.03, 0.15, 0.29, 0, 0.0);
+  /* the tail: the third one, feet first out of the back, lying on its back. Each joint bends it up */
+  const t0 = grp(body, 0, 0.1, -0.6), t1 = grp(t0, 0, 0, -0.42), t2 = grp(t1, 0, 0, -0.45), t3 = grp(t2, 0, 0, -0.36), t4 = grp(t3, 0, 0, -0.36);
+  mk(t0, 'ico', FLESH, 0.3, 0.22, 0.2, 0, 0, 0.02);
+  for (const s of [-1, 1]) {
+    mk(t0, 'box', PALE, 0.14, 0.14, 0.42, s * 0.08, 0, -0.21);
+    mk(t1, 'ico', BONE, 0.16, 0.16, 0.16, s * 0.08, 0.03, 0); mk(t1, 'box', FLESH, 0.17, 0.17, 0.45, s * 0.085, 0, -0.225);
   }
-  /* the head at the end of the wrist faces back along it (+z), toward the palm, so raised it looks out over the fingers */
-  const hd = grp(wr2, 0, 0, -0.72);
-  mk(hd, 'ico', PALE, 0.66, 0.72, 0.62, 0, 0, 0.0);
-  mk(hd, 'ico', RAW, 0.3, 0.32, 0.26, 0.22, 0.16, 0.08); mk(hd, 'ico', FLESH, 0.4, 0.36, 0.34, -0.2, -0.16, -0.06); mk(hd, 'ico', 0x9a8a7a, 0.3, 0.3, 0.3, -0.18, 0.2, -0.12);
-  const hEyes = [eye(hd, 0.1, -0.13, 0.08, 0.25, { skin: PALE, cover: 0.05 }), eye(hd, 0.105, 0.13, 0.06, 0.25, { skin: PALE, cover: 0.05 }), eye(hd, 0.06, 0.27, 0.22, 0.17, { skin: RAW, wild: 1 })];
-  mk(hd, 'box', 0x1e0807, 0.26, 0.06, 0.05, 0, -0.16, 0.29);
-  for (let k = 0; k < 4; k++) mk(hd, 'box', BONE, 0.04, 0.045, 0.03, -0.09 + k * 0.06, -0.135, 0.305);
-  const heel = grp(palm, 0, -0.3, -0.75);
+  mk(t1, 'box', RAW, 0.04, 0.12, 0.38, 0, 0.02, -0.22);
+  mk(t2, 'ico', PALE, 0.44, 0.34, 0.46, 0, 0, -0.18); mk(t2, 'ico', RAW, 0.1, 0.08, 0.1, 0, 0.13, -0.2);
+  mk(t3, 'ico', FLESH, 0.52, 0.34, 0.46, 0, 0, -0.17);
+  for (let k = 0; k < 3; k++) mk(t3, 'box', BONE, 0.34 - k * 0.04, 0.03, 0.035, 0, 0.14, -0.08 - k * 0.08);
+  mk(t4, 'box', FLESH, 0.18, 0.18, 0.2, 0, 0, -0.08);
+  const dangle = [];
+  for (const s of [-1, 1]) {
+    const a = grp(t3, s * 0.25, 0, -0.27);
+    mk(a, 'box', PALE, 0.1, 0.1, 0.32, 0, 0, 0.16); mk(a, 'box', FLESH, 0.09, 0.09, 0.3, 0, 0, 0.46); mk(a, 'box', PALE, 0.09, 0.03, 0.12, 0, 0, 0.66);
+    dangle.push({ a, s });
+  }
+  /* its head, on the end: turned so its face is on the side the chest is */
+  const hb = grp(t4, 0, 0, -0.18); hb.rotation.x = -PI / 2;
+  const hd = grp(hb, 0, 0, 0);
+  mk(hd, 'ico', PALE, 0.62, 0.66, 0.56, 0, 0.3, 0.02);
+  mk(hd, 'ico', RAW, 0.26, 0.28, 0.22, 0.2, 0.42, 0.06); mk(hd, 'ico', FLESH, 0.34, 0.3, 0.3, -0.18, 0.16, -0.06);
+  const hEyes = [eye(hd, 0.095, -0.12, 0.36, 0.25, { skin: PALE }), eye(hd, 0.1, 0.12, 0.33, 0.25, { skin: PALE }), eye(hd, 0.055, 0.25, 0.5, 0.16, { skin: RAW })];
+  mk(hd, 'box', 0x1e0807, 0.24, 0.05, 0.05, 0, 0.14, 0.28);
+  for (let k = 0; k < 3; k++) mk(hd, 'box', BONE, 0.04, 0.045, 0.03, -0.06 + k * 0.06, 0.16, 0.295);
 
   return {
-    S, g, root, palm, fingers, kHeads, wr, wr2, hd, hEyes, heel,
+    S, g, body, legs, face, fEyes, mouth, arms, mands, tail: [t0, t1, t2, t3, t4], dangle, hd, hEyes,
     room: [0.36, 0.37, 0.38], glow: { pos: V(0, -10, 0), c: [0, 0, 0], r: 1 },
-    cam: { yaw: 0.65, pitch: 0.16, dist: 6.2, tgt: V(0, 0.95, 0) },
+    cam: { yaw: 0.75, pitch: 0.2, dist: 5.6, tgt: V(0, 0.8, 0) },
     fig: figure(S, -2.1, 0.4, 0.5),
-    yawH: 0, pitchH: 0,
+    fy: 0, fp: 0, hy: 0, hp: 0,
   };
 }
 
@@ -530,7 +514,7 @@ function ovKnock(zone, at) {
   showKnocks(n, 0, name);
 }
 const OV_STATES = {
-  idle: ['Idle', 'Every face looks somewhere of its own and drifts. They blink out of step and the lids sit heavy. Now and then a small head glances back at a screen.'],
+  idle: ['Idle', 'Every face looks somewhere of its own and drifts. They blink out of step and the lids sit heavy. Now and then a head glances back at a screen.'],
   wing: ['Seen: the wing', 'A watcher sees you on its screen and leans in. A lump runs down its cord to the body, and every face turns to that screen. Then the arms knock the wing\'s code into the floor, once, a pause, once more.'],
   atrium: ['Seen: the atrium', 'The same from the atrium\'s camera: the watcher, the lump down the cord, every face to the screen, then two knocks, a pause, two more.'],
   muster: ['Seen: the muster hall', 'Three knocks, a pause, three. The hand, wherever it is, feels it through the slab and goes.'],
@@ -612,108 +596,122 @@ function stepOverseer(dt, now) {
     H.h.updateMatrixWorld(true);
     for (const E of H.eyes) lookEye(E, H.tgt, dt, { stare, flush });
   }
-  for (const E of M.lone) lookEye(E, ov.att > 0.3 ? ov.shared : cam, dt, { stare, flush });
 }
 
 /* ---- the hand's moods ---- */
-const hs = { mode: 'listen', t: 0, raise: 0, walk: 0, walkPh: 0, press: 0, code: null, strike: -1, droop: 0, shake: 0 };
+const hs = { mode: 'listen', t: 0, raise: 0, walk: 0, ph: 0, press: 0, code: null, strike: -1, droop: 0, shake: 0 };
 const HA_STATES = {
-  listen: ['Listening', 'Low, on its fingertips, with the heels of its hands on the floor. Its fingers twitch: it is feeling the slab. The two front heads look about at floor height. It stands 1.1 m at the knuckles; a bench hides it.'],
-  knock: ['Knocked for', 'Three knocks, a pause, three: the muster hall. On each one its fingers press flat and the palm shudders. When the code is done it rises, turns, and goes.'],
-  alert: ['Raised', 'The wrist comes up, the fingers curl into a claw under it, and the head at the end of the braided legs comes up over the hand and looks. It follows you round.'],
-  go: ['Going', 'Raised, on its way to a zone. It walks on two sets of fingers at a time, index, ring and thumb, then middle and little.'],
-  strike: ['Striking', 'Its blow: it rocks back onto the heel of its hand with the fingers lifted, then slaps the whole hand down flat in front of it.'],
-  unlinked: ['Unlinked', 'The overseer is dead. Nothing knocks any more, so it roams at half height with its head down and the lids heavy. It would turn on whatever struck it.'],
+  listen: ['Listening', 'Low, its belly near the floor and its two long arms laid flat on the slab in front of it: it is feeling for the knock. The short arms at its mouth never stop working. The tail lies along the floor behind, the eyes on its end shut; from most angles it is only a tail.'],
+  knock: ['Knocked for', 'Three knocks, a pause, three: the muster hall. On each one its hands press flat. When the code is done the tail comes up, the head on its end opens its eyes, and it goes.'],
+  alert: ['Raised', 'The body lifts on its four, the long arms come up in front of it, and the tail curls up over its back: the thing on the end was a head all along, and it is looking at you.'],
+  go: ['Going', 'Raised, on its way. It walks on the body\'s four, diagonal pairs together, the long arms up and feeling ahead.'],
+  strike: ['Striking', 'Its blow: the long arms go up and wide, then come down and in together in front of it, and the body lunges after them.'],
+  unlinked: ['Unlinked', 'The overseer is dead and nothing knocks. It roams slowly with the tail half up and the head on it hanging, the eyes heavy. It would turn on whatever struck it.'],
 };
 function setHand(mode) {
   hs.mode = mode; hs.t = 0; hs.code = null; showKnocks(0);
   if (mode === 'knock') { const [name, n] = ZONES.muster; hs.code = { name, n, times: codeTimes(n).map(x => x + 0.6), landed: 0 }; showKnocks(n, 0, name); }
   if (mode === 'strike') hs.strike = 0;
 }
+const TAIL = [[-0.62, 0.5, 0.12, 0.06, 0.0], [0.95, 0.55, 0.4, 0.25, 0.15]];
 function stepHand(dt, now) {
   hs.t += dt;
   const M = HA, cam = camera.position;
   let raise = 0, walk = 0, droop = 0, look = cam, stare = 0;
   switch (hs.mode) {
-    case 'listen': look = _w.set(Math.sin(now * 0.4) * 3, 0.2, 3); break;
+    case 'listen': look = _w.set(Math.sin(now * 0.4) * 2.5, 0.0, 3); break;
     case 'knock': {
-      const C = hs.code;
+      const C = hs.code, end = C ? C.times[C.times.length - 1] : 0;
+      look = _w.set(0, 0.0, 2.5);
       if (C) {
         while (C.landed < C.times.length && hs.t >= C.times[C.landed]) { C.landed++; hs.press = 1; thud(0.75, true); showKnocks(C.n, C.landed, C.name); }
-        const end = C.times[C.times.length - 1];
-        if (hs.t > end + 0.7) { raise = 1; stare = 1; look = _w.set(-3, 1.8, 4); }
-        if (hs.t > end + 2.4) { walk = 1; }
+        if (hs.t > end + 0.7) { raise = 1; stare = 1; look = _w.set(-3, 1.6, 4); }
+        if (hs.t > end + 2.6) walk = 1;
         if (hs.t > end + 7) { showKnocks(0); setHand('go'); }
       }
-      if (!(hs.t > (C?.times.at(-1) ?? 0) + 0.7)) look = _w.set(0, 0.0, 2);
       break;
     }
     case 'alert': raise = 1; stare = 1; break;
-    case 'go': raise = 1; walk = 1; stare = 1; look = _w.set(Math.sin(now * 0.3) * 2, 1.6, 6); break;
-    case 'strike': {
+    case 'go': raise = 1; walk = 1; stare = 1; look = _w.set(Math.sin(now * 0.3) * 2, 1.4, 6); break;
+    case 'strike':
       raise = 1; stare = 1;
-      if (hs.strike >= 0) { hs.strike += dt; if (hs.strike > 1.6) { hs.strike = -1; setHand('alert'); } }
+      if (hs.strike >= 0 && (hs.strike += dt) > 1.6) { hs.strike = -1; setHand('alert'); }
       break;
-    }
-    case 'unlinked': raise = 0.35; walk = 0.45; droop = 1; look = _w.set(Math.sin(now * 0.23) * 3, 0.0, 2.5); break;
+    case 'unlinked': raise = 0.45; walk = 0.5; droop = 1; look = _w.set(Math.sin(now * 0.23) * 3, 0.0, 2.5); break;
   }
-  hs.raise += (raise - hs.raise) * damp(raise > hs.raise ? 2.6 : 1.8, dt);
+  hs.raise += (raise - hs.raise) * damp(raise > hs.raise ? 2.4 : 1.6, dt);
   hs.walk += (walk - hs.walk) * damp(3, dt);
   hs.droop += (droop - hs.droop) * damp(1.5, dt);
   hs.press = Math.max(0, hs.press - dt * 3.5);
-  const R = hs.raise, w = hs.walk, P = hs.press;
-  hs.walkPh += dt * (droop ? 3.2 : 6.5) * w;
-
-  /* the strike: e runs 0..1 up the wind-up (rock back on the heel, fingers up), then the slap (flat), then back */
-  let wind = 0, flat = 0;
+  const R = hs.raise, w = hs.walk, P = hs.press, D = hs.droop;
+  hs.ph += dt * (D > 0.5 ? 3 : 5.5) * w;
+  /* the strike: wind (arms up and wide), slam (down and in, the body after them), then back */
+  let wind = 0, slam = 0;
   if (hs.strike >= 0) {
     const s = hs.strike;
-    if (s < 0.7) wind = ease(s / 0.7);
-    else if (s < 0.8) { wind = 1 - (s - 0.7) / 0.1; flat = (s - 0.7) / 0.1; }
-    else { flat = 1 - ease(clamp((s - 0.95) / 0.65, 0, 1)); if (s - dt < 0.8) { thud(1.1); hs.shake = 0.35; } }
+    if (s < 0.65) wind = ease(s / 0.65);
+    else if (s < 0.78) { const q = (s - 0.65) / 0.13; wind = 1 - q; slam = q; }
+    else { slam = 1 - ease(clamp((s - 0.95) / 0.65, 0, 1)); if (s - dt < 0.78) { thud(1.1); hs.shake = 0.35; } }
   }
-
-  /* the palm: knuckles stay put, the wrist rises; under the slap it lies flat */
-  M.palm.rotation.x = lerp(lerp(-0.06, 0.92, R), -0.55, wind) * (1 - flat) + (-0.04) * flat - P * 0.06 + Math.sin(now * 23) * P * 0.03;
-  M.palm.rotation.z = Math.sin(hs.walkPh) * 0.05 * w + Math.sin(now * 0.6) * 0.015;
-  M.wr.rotation.x = lerp(lerp(-0.18, 0.82, R), 0.4, wind) - hs.droop * 0.25;
-  M.wr2.rotation.x = lerp(-0.22, 0.28, R) + Math.sin(now * 1.1) * 0.04;
-  M.fingers.forEach((F, k) => {
-    const grpA = k === 0 || k === 2 || k === 4, ph = hs.walkPh + (grpA ? 0 : PI) + k * 0.15;
-    F.lift = Math.pow(Math.max(0, Math.sin(ph)), 1.5) * w;
-    const sw = Math.cos(ph) * w;
-    const twitch = (1 - R) * (1 - w) * Math.sin(now * (7 + k * 1.7) + k * 2) * 0.05;
-    let a1 = lerp(-0.95, -1.55, R), a2 = lerp(1.95, 1.85, R), a3 = lerp(0.75, 0.62, R);
-    a1 += -F.lift * 0.55 + sw * 0.12 + P * 0.18; a2 += -F.lift * 0.45 - P * 0.12; a3 += twitch - P * 0.15;
-    if (k === 4) { a1 = lerp(-0.1, -0.6, R) - F.lift * 0.4; a2 = 0.9 + twitch; a3 = 0.5; }
-    a1 = lerp(a1, -0.85, wind); a2 = lerp(a2, 0.35, wind); a3 = lerp(a3, 0.2, wind);
-    a1 = lerp(a1, 0.05, flat); a2 = lerp(a2, 0.12, flat); a3 = lerp(a3, 0.06, flat);
-    F.kn.rotation.x = a1; F.j2.rotation.x = a2; F.j3.rotation.x = a3;
-  });
-  /* stand it on the floor: the lowest of the planted tips (and the heel, while it rocks or slaps) touches the ground */
-  M.root.position.y = 0; M.root.position.z = Math.sin(hs.walkPh * 2) * 0.02 * w;
-  M.g.updateMatrixWorld(true);
-  let lo = Infinity;
-  for (const F of M.fingers) if (F.lift < 0.08 || flat > 0) { F.tip.getWorldPosition(_v); lo = Math.min(lo, _v.y); }
-  if (wind > 0 || flat > 0 || lo === Infinity) { M.heel.getWorldPosition(_v); lo = Math.min(lo, _v.y); }
-  M.root.position.y = -lo + 0.02;
-  M.g.position.x = hs.shake > 0 ? Math.sin(now * 90) * hs.shake * 0.05 : 0;
+  /* the body: low and nose down, listening; up on its four, raised */
+  const h = lerp(0.36, 0.74, R) - P * 0.06 + Math.sin(hs.ph * 2) * 0.025 * w - slam * 0.12;
+  M.body.position.set(hs.shake > 0 ? Math.sin(now * 90) * hs.shake * 0.04 : 0, h, slam * 0.25 + Math.sin(hs.ph * 2) * 0.02 * w);
+  M.body.rotation.set(lerp(0.08, -0.1, R) - wind * 0.12 + slam * 0.22, Math.sin(now * 0.5) * 0.04, Math.sin(hs.ph) * 0.04 * w);
   hs.shake = Math.max(0, hs.shake - dt);
+  /* the tail: along the floor, or up over the back; it hangs when nothing calls it */
+  M.tail.forEach((T, i) => { T.rotation.x = lerp(TAIL[0][i], TAIL[1][i], R) - D * [0, 0.25, 0.25, 0.25, 0.2][i] + Math.sin(now * 1.1 - i * 0.6) * 0.035 * (0.3 + R) + slam * [0, 0.1, 0.15, 0.2, 0.2][i]; });
   M.g.updateMatrixWorld(true);
-  /* the head at the wrist looks; the two front heads look too */
-  const [y, p] = aim(M.hd, look);
-  M.yawH += (clamp(y, -1.5, 1.5) - M.yawH) * damp(5, dt); M.pitchH += (clamp(p + hs.droop * 0.5, -1.2, 1.2) - M.pitchH) * damp(5, dt);
-  M.hd.rotation.set(M.pitchH, M.yawH, Math.sin(now * 0.9) * 0.08);
-  M.hd.updateMatrixWorld(true);
-  const mood = { stare, flush: stare * 0.4, drowse: hs.droop * 0.7 };
-  for (const E of M.hEyes) lookEye(E, look, dt, mood);
-  for (const K of M.kHeads) {
-    const [ky, kp] = aim(K.h, look);
-    K.yaw += (clamp(ky, -0.6, 0.6) - K.yaw) * damp(6, dt); K.pitch += (clamp(kp, -0.5, 0.7) - K.pitch) * damp(6, dt);
-    K.h.rotation.set(K.pitch, K.yaw, 0);
-    K.h.updateMatrixWorld(true);
-    for (const E of K.eyes) lookEye(E, look, dt, { ...mood, flush: 0 });
+  /* its four walk: each foot on the floor pushes back, then lifts and swings forward; diagonal pairs together */
+  for (const L of M.legs) {
+    const u = (((hs.ph + L.ph) / TAU) % 1 + 1) % 1, st = 0.2 * w;
+    let z = 0, y = 0;
+    if (u < 0.62) z = lerp(st, -st, u / 0.62);
+    else { const q = (u - 0.62) / 0.38; z = lerp(-st, st, q); y = Math.sin(q * PI) * 0.16 * w; }
+    _w.set(L.rest.x * lerp(1, 0.86, R), y, L.rest.z + z);
+    M.g.localToWorld(_w);
+    L.t.rotation.x = -reach(L, _w);
   }
+  /* the long arms: flat on the floor in front, feeling; up in front of it, raised; up and wide, then down and in */
+  for (const A of M.arms) {
+    const sw = Math.sin(hs.ph + (A.s > 0 ? PI : 0)) * 0.12 * w;
+    let x = lerp(A.s * 0.38, A.s * 0.42, R), y = lerp(0.0, h + 0.32, R) + sw, z = lerp(1.32, 1.02, R) + sw;
+    y -= P * 0.02;
+    x = lerp(x, A.s * 0.85, wind); y = lerp(y, h + 0.95, wind); z = lerp(z, 0.82, wind);
+    x = lerp(x, A.s * 0.16, slam); y = lerp(y, 0.03, slam); z = lerp(z, 1.72, slam);
+    _w.set(x, y, z); M.g.localToWorld(_w);
+    const a = reach(A, _w);
+    A.t.rotation.x = lerp(0, 1.15, R * (1 - slam)) - a;
+    A.end.forEach((f, k) => { f.rotation.x = lerp(0.05, 0.9, R * (1 - slam)) + (1 - R) * Math.sin(now * (6 + k * 1.3) + k + A.s) * 0.12 - P * 0.1; });
+  }
+  /* the short arms: they never stop, working at the mouth */
+  for (const Q of M.mands) {
+    const o = now * 4.2 + (Q.s > 0 ? 1.7 : 0);
+    Q.h.rotation.set(0.75 + Math.sin(o) * 0.35 - slam * 0.6, Q.s * (0.35 + Math.sin(o * 0.7) * 0.15), 0);
+    Q.k.rotation.set(-1.9 + Math.sin(o + 1.2) * 0.45, 0, 0);
+    Q.end.forEach((f, k) => { f.rotation.x = 0.6 + Math.sin(o * 1.6 + k) * 0.5; });
+  }
+  M.mouth.scale.y = 1 + Math.max(0, Math.sin(now * 4.2)) * 0.5 + slam * 1.4 + wind * 0.6;
+  /* the tail's arms hang: along the floor when it lies down, straight down when it is up */
+  M.g.updateMatrixWorld(true);
+  for (const Dg of M.dangle) {
+    Dg.a.getWorldPosition(_v);
+    const sway = Math.sin(now * 1.3 + Dg.s) * 0.15;
+    _e.set(lerp(_v.x + Dg.s * 0.6, _v.x + Dg.s * 0.1 + sway, R), lerp(0.02, _v.y - 1, R), lerp(_v.z - 0.3, _v.z + sway, R));
+    Dg.a.lookAt(_e);
+  }
+  /* the face at the front always looks; the head on the tail only once it is up */
+  let [fy, fp] = aim(M.face, look);
+  M.fy += (clamp(fy, -0.5, 0.5) - M.fy) * damp(6, dt); M.fp += (clamp(fp, -0.4, 0.45) - M.fp) * damp(6, dt);
+  M.face.rotation.set(M.fp, M.fy, 0);
+  M.face.updateMatrixWorld(true);
+  const mood = { stare, flush: stare * 0.4, drowse: D * 0.7 };
+  for (const E of M.fEyes) lookEye(E, look, dt, mood);
+  const up = R > 0.55;
+  const [hy, hp] = aim(M.hd, look);
+  M.hy += ((up ? clamp(hy, -1.3, 1.3) : 0) - M.hy) * damp(4, dt); M.hp += ((up ? clamp(hp, -1.0, 1.0) : 0.3) + D * 0.6 - M.hp) * damp(4, dt);
+  M.hd.rotation.set(M.hp, M.hy, Math.sin(now * 0.9) * 0.06);
+  M.hd.updateMatrixWorld(true);
+  for (const E of M.hEyes) lookEye(E, look, dt, { ...mood, shut: !up });
 }
 
 /* ---- the panel ---- */
