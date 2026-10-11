@@ -67,7 +67,7 @@ const PI = Math.PI, TAU = PI * 2;
 /* castView's palette */
 const FLESH = 0xb08572, RAW = 0x8c4a44, GOREC = 0x4e1616, PALE = 0xcdbfae, BONE = 0xddd6c0, DARK = 0x140c0d;
 const RIM = 0x1c1e20;
-const MEAT = [0x8c4a44, 0x6e2b28, 0x9a6a5a, 0x7a3a34], SKIN = [0x9a6a5a, 0x8c5a50, 0xa47a68, 0x94645a];
+const MEAT = [0xa8705e, 0x9a6252, 0xb07a66, 0xa06854], SKIN = [0xb4826e, 0xac7864, 0xba8a76, 0xb07e6a];
 const SCL = 0xd8d0c0, PUP = 0x15100e, GLOW = [2.75, 2.36, 2.2];
 
 /* the game's unit shapes (templates.ts), flat triangle lists in a 1 m cube */
@@ -297,39 +297,40 @@ function buildOverseer() {
   /* and who they were, still there under it. The first sits up out of the middle, its head on its shoulders */
   mk(body, 'ico', MEAT[3], 0.85, 0.6, 0.5, 0.25, 1.08, 0.42);
   for (const x of [-0.27, 0.77]) mk(body, 'ico', MEAT[2], 0.5, 0.38, 0.46, x, 1.3, 0.18);
-  /* another lies face down under it, its cheek pressed to the front, its eyes shut, its arms folded under its face */
-  const cheek = mk(body, 'ico', MEAT[2], 0.54, 0.5, 0.38, 0.06, 0.62, 0.98); cheek.rotation.z = 0.3;
-  for (const [x, y] of [[-0.06, 0.7], [0.16, 0.64]]) mk(body, 'box', 0x2a0e0c, 0.1, 0.016, 0.02, x, y, 1.165).rotation.z = 0.3;
-  for (const [x, ry] of [[-0.2, 0.35], [0.32, -0.4]]) { const a = mk(body, 'ico', 0xb08a78, 0.62, 0.16, 0.2, x, 0.27, 1.04); a.rotation.y = ry; mk(body, 'ico', 0xb08a78, 0.17, 0.09, 0.15, x + (ry > 0 ? 0.3 : -0.3), 0.25, 1.15 + ry * 0.2); }
+  /* and under all of them, one face down on the floor, flat and wide: the foundation. Its cheek is pressed to the
+     floor at the front, eyes shut; its arms come out of the sides and its legs out behind */
+  mk(body, 'ico', MEAT[1], 2.9, 0.42, 2.3, 0, 0.17, 0.05);
+  mk(body, 'ico', MEAT[3], 1.5, 0.3, 0.9, 0, 0.26, 0.6);
+  const cheek = mk(body, 'ico', MEAT[2], 0.56, 0.36, 0.42, 0.06, 0.2, 1.22); cheek.rotation.z = 0.2;
+  for (const [x, y] of [[-0.06, 0.25], [0.16, 0.22]]) mk(body, 'box', 0x5a2a22, 0.1, 0.014, 0.02, x, y, 1.42).rotation.z = 0.2;
   /* the other two heads come up out of shoulders of their own; the last of them is only a back, its spine showing */
   mk(body, 'ico', MEAT[1], 0.58, 0.42, 0.52, -0.85, 1.0, 0.22); mk(body, 'ico', MEAT[3], 0.5, 0.38, 0.46, 0.9, 1.12, -0.3);
   for (let k = 0; k < 5; k++) mk(body, 'ico', MEAT[2], 0.17, 0.12, 0.15, -0.15, 1.63 - k * 0.12, -0.42 - k * 0.15);
-  /* its hind legs, out of the sides of the mound: haunches, knees up, the feet flat on the floor */
+  /* the foundation's arms, long, out of the sides, elbows up and hands flat on the floor */
   const legs = [];
   for (const s of [-1, 1]) {
-    const L = limb(body, [s * 0.95, 0.5, -0.55], 0.85, 0.8, MEAT[1], 0xb08a78, 0.26, t => { mk(t, 'box', 0xb08a78, 0.24, 0.1, 0.45, 0, -0.03, 0.17); mk(t, 'box', PALE, 0.22, 0.06, 0.1, 0, -0.04, 0.41); return []; }, { joint: MEAT[2] });
+    const L = limb(body, [s * 1.15, 0.24, -0.1], 0.95, 0.9, MEAT[1], 0xbe9280, 0.26, t => { mk(t, 'ico', 0xbe9280, 0.3, 0.1, 0.34, 0, -0.03, 0.14); for (let k = 0; k < 4; k++) mk(t, 'box', 0xbe9280, 0.045, 0.04, 0.2, -0.09 + k * 0.06, -0.04, 0.36); return []; }, { joint: MEAT[2] });
     mk(L.h, 'box', MEAT[3], 0.2, 0.22, 0.75, s * 0.1, 0.06, 0.4);
-    legs.push({ ...L, foot: V(s * 1.85, 0, -0.15) });
-    /* and two more behind, under the cords, knelt back along the floor */
-    const K = limb(body, [s * 0.42, 0.34, -0.85], 0.7, 0.72, MEAT[3], 0xb08a78, 0.22, t => { mk(t, 'box', 0xb08a78, 0.2, 0.09, 0.4, 0, -0.03, 0.15); return []; }, { joint: MEAT[2] });
-    legs.push({ ...K, foot: V(s * 0.8, 0, -2.05) });
+    legs.push({ ...L, foot: V(s * 2.4, 0, 0.15) });
+    /* and its legs, out behind under the cords */
+    const K = limb(body, [s * 0.45, 0.2, -0.95], 0.85, 0.85, MEAT[3], 0xbe9280, 0.22, t => { mk(t, 'box', 0xbe9280, 0.2, 0.09, 0.4, 0, -0.03, 0.15); return []; }, { joint: MEAT[2] });
+    legs.push({ ...K, foot: V(s * 0.85, 0, -2.4) });
   }
-  /* its own light, which needs no power: pustules over the body, the colour of a healing burn */
-  for (const [x, y, z, s] of [[-0.5, 1.2, 0.35, 0.2], [-0.35, 1.05, 0.45, 0.14], [0.85, 1.25, -0.05, 0.22], [0.7, 0.85, 0.55, 0.15], [-1.0, 0.7, 0.3, 0.17], [0.1, 1.55, -0.2, 0.18], [0.45, 0.45, 0.8, 0.12], [-0.25, 0.42, 0.95, 0.13]])
-    mk(body, 'ico', GLOW, s, s * 0.8, s, x, y, z);
-
+  /* its own light, which needs no power: pustules come up through the floor around it, the colour of a healing burn */
+  for (const [x, z, n] of [[-2.0, 1.2, 4], [2.2, 0.6, 3], [-1.6, -1.6, 3], [1.4, -2.2, 4], [0.4, 2.3, 2], [-2.6, -0.4, 2]])
+    for (let k = 0; k < n; k++) { const sz = 0.12 + ((k * 7) % 5) * 0.03; mk(S, 'ico', GLOW, sz, sz * 0.7, sz, x + Math.cos(k * 2.3) * 0.22, sz * 0.25, z + Math.sin(k * 2.3) * 0.2); }
   /* two clubbed arms, each several of theirs fused, fists on the floor in front: what it knocks with */
   const arms = [];
   for (const s of [-1, 1]) {
     const A = grp(body, s * 1.0, 1.02, 0.42);
     A.rotation.y = s * 0.28;
-    mk(A, 'box', FLESH, 0.24, 0.24, 0.85, -0.07, 0, 0.42); mk(A, 'box', 0xb08a78, 0.2, 0.2, 0.82, 0.1, 0.06, 0.4); mk(A, 'box', RAW, 0.08, 0.2, 0.7, 0.01, 0.02, 0.42);
+    mk(A, 'box', FLESH, 0.24, 0.24, 0.85, -0.07, 0, 0.42); mk(A, 'box', 0xbe9280, 0.2, 0.2, 0.82, 0.1, 0.06, 0.4); mk(A, 'box', 0xa47664, 0.08, 0.2, 0.7, 0.01, 0.02, 0.42);
     mk(A, 'ico', MEAT[s > 0 ? 0 : 3], 0.4, 0.36, 0.34, 0, 0, 0.08);
     const E = grp(A, 0, 0, 0.85);
     mk(E, 'ico', BONE, 0.16, 0.14, 0.14, 0.04, 0.06, -0.02);
-    mk(E, 'box', PALE, 0.2, 0.2, 0.7, -0.06, 0, 0.35); mk(E, 'box', FLESH, 0.17, 0.17, 0.68, 0.09, 0.03, 0.34);
+    mk(E, 'box', 0xbe9280, 0.2, 0.2, 0.7, -0.06, 0, 0.35); mk(E, 'box', FLESH, 0.17, 0.17, 0.68, 0.09, 0.03, 0.34);
     const F = grp(E, 0, 0, 0.74);
-    mk(F, 'ico', FLESH, 0.44, 0.36, 0.42, 0, -0.02, 0.08); mk(F, 'ico', RAW, 0.3, 0.26, 0.3, s * 0.14, 0.05, 0.02); mk(F, 'ico', PALE, 0.26, 0.24, 0.26, -s * 0.13, -0.06, 0.14);
+    mk(F, 'ico', FLESH, 0.44, 0.36, 0.42, 0, -0.02, 0.08); mk(F, 'ico', 0xa47664, 0.3, 0.26, 0.3, s * 0.14, 0.05, 0.02); mk(F, 'ico', 0xbe9280, 0.26, 0.24, 0.26, -s * 0.13, -0.06, 0.14);
     for (let k = 0; k < 4; k++) mk(F, 'box', BONE, 0.07, 0.06, 0.07, -0.15 + k * 0.1, 0.12, 0.24);
     arms.push({ A, E, F, s, t: 9 });
   }
@@ -354,11 +355,11 @@ function buildOverseer() {
   mk(H0, 'box', MEAT[2], 0.6, 0.5, 0.5, 0, 0.1, 0.1);
   mk(H0, 'ico', SKIN[0], 1.15, 1.25, 1.05, 0, 0.42, 0.32);
   const main = { h: H0, s: 1.2, rest: [0, -0.05], tgt: V(0, 1.5, 6), lag: 0.9, range: 0.6, off: V(0, 0, 0), yaw: 0, pitch: -0.05,
-    eyes: eyesOn(H0, [0, 0.42, 0.32], 0.5, 0.55, 0.46, [[0.19, -0.4, 0.14], [0.25, 0.4, 0.08]]) };
+    eyes: eyesOn(H0, [0, 0.42, 0.32], 0.5, 0.55, 0.46, [[0.12, -0.66, 0.14], [0.155, 0.62, 0.08]]) };
   heads.push(main);
-  head(H0, [0.42, 0.95, 0.15], 0.6, 0.16, SKIN[1], [[0.1, -0.42, 0.1], [0.065, 0.44, 0.14]], [0.35, -0.25]);
-  head(body, [-0.85, 1.12, 0.32], 0.55, 0.3, SKIN[3], [[0.075, -0.42, 0.1], [0.13, 0.4, 0.04]], [-0.35, -0.05]);
-  head(body, [0.88, 1.25, -0.25], 0.42, 0.36, SKIN[0], [[0.085, -0.42, 0.08], [0.055, 0.44, 0.12]], [0.5, -0.15]);
+  head(H0, [0.42, 0.95, 0.15], 0.6, 0.16, SKIN[1], [[0.065, -0.62, 0.1], [0.065, 0.62, 0.1]], [0.35, -0.25]);
+  head(body, [-0.85, 1.12, 0.32], 0.55, 0.3, SKIN[3], [[0.1, -0.36, 0.08], [0.11, 0.38, 0.06]], [-0.35, -0.05]);
+  head(body, [0.88, 1.25, -0.25], 0.42, 0.36, SKIN[0], [[0.055, -0.64, 0.1], [0.055, 0.64, 0.1]], [0.5, -0.15]);
 
   /* the watchers: at each screen what is left of one of them, hunched to it, one swollen eye at the glass and a hand on
      the desk; grown into their neighbours, and a cord of meat back to the body. One screen is dead. */
@@ -401,7 +402,7 @@ function buildOverseer() {
 /* ================================================================================================================ */
 /* THE HAND: what is left of the response team, made one thing; a hand only in name now. One of them lies on all fours
    and is the body, walking on its arms and legs, elbows and knees up. Out of its front grow four flat fingers, the hand
-   it was named for, curled up and working like mouthparts, and over them, on stalks, the eyes it hunts by. Out of its
+   it was named for, curled down over the floor and working like mouthparts; it has no face. Out of its
    back grows another, feet first, as a tail; at the end of it a head with long arms of its own. Low, that tail lies
    along the floor, its hands flat on the slab feeling for the knock and its eyes rolled back, and it reads as a tail.
    Raised, it curls up over the back with its arms hanging in front of it. All of it flesh; only the joints show white. */
@@ -459,30 +460,20 @@ function buildHand() {
   }
   /* the front: a lobe, and the four flat fingers out of it, side by side */
   mk(body, 'ico', FLESH, 0.74, 0.44, 0.5, 0, 0.02, 0.56);
-  const fingers = [], LEN = [[0.4, 0.36, 0.26], [0.44, 0.4, 0.28], [0.44, 0.4, 0.28], [0.38, 0.34, 0.24]];
-  [-0.24, -0.08, 0.08, 0.24].forEach((x, i) => {
+  const fingers = [], LEN = [[0.32, 0.29, 0.21], [0.35, 0.32, 0.22], [0.35, 0.32, 0.22], [0.3, 0.27, 0.19]];
+  [-0.2, -0.067, 0.067, 0.2].forEach((x, i) => {
     const L = LEN[i], c = i % 2 ? FLESH : FL3, kn = grp(body, x, 0.07, 0.72);
-    mk(kn, 'ico', FLESH, 0.17, 0.14, 0.16, 0, 0, 0);
-    mk(kn, 'box', c, 0.15, 0.1, L[0], 0, 0, L[0] / 2);
-    const j2 = grp(kn, 0, 0, L[0]); mk(j2, 'ico', BONE, 0.13, 0.1, 0.1, 0, 0.02, 0);
-    mk(j2, 'box', c, 0.135, 0.09, L[1], 0, 0, L[1] / 2);
-    const j3 = grp(j2, 0, 0, L[1]); mk(j3, 'ico', BONE, 0.11, 0.09, 0.09, 0, 0.02, 0);
-    mk(j3, 'box', c, 0.12, 0.08, L[2], 0, 0, L[2] / 2); mk(j3, 'ico', FL2, 0.12, 0.08, 0.1, 0, -0.005, L[2]);
+    mk(kn, 'ico', FLESH, 0.14, 0.12, 0.13, 0, 0, 0);
+    mk(kn, 'box', c, 0.125, 0.085, L[0], 0, 0, L[0] / 2);
+    const j2 = grp(kn, 0, 0, L[0]); mk(j2, 'ico', BONE, 0.11, 0.085, 0.085, 0, 0.017, 0);
+    mk(j2, 'box', c, 0.112, 0.077, L[1], 0, 0, L[1] / 2);
+    const j3 = grp(j2, 0, 0, L[1]); mk(j3, 'ico', BONE, 0.092, 0.077, 0.077, 0, 0.017, 0);
+    mk(j3, 'box', c, 0.1, 0.068, L[2], 0, 0, L[2] / 2); mk(j3, 'ico', FL2, 0.1, 0.068, 0.085, 0, -0.004, L[2]);
     fingers.push({ h: kn, k: j2, t: j3, L1: L[0], L2: L[1], L3: L[2], i, x });
   });
-  /* over them, two eyes, each on a stalk standing straight up */
-  const stalks = [];
-  for (const [x, len, r] of [[-0.15, 0.62, 0.062], [0.15, 0.7, 0.058]]) {
-    const st = grp(body, x, 0.2, 0.48), s2 = grp(st, 0, 0, len * 0.55), tip = grp(s2, 0, 0, len * 0.45);
-    mk(st, 'ico', FLESH, 0.09, 0.09, len * 0.55 * 1.35, 0, 0, len * 0.275);
-    mk(s2, 'ico', FL3, 0.075, 0.075, len * 0.45 * 1.35, 0, 0, len * 0.225);
-    mk(tip, 'ico', FLESH, r * 2.5, r * 2.5, r * 2.5, 0, 0, 0);
-    const E = eye(tip, r, 0, -r * 0.85, 0);
-    E.g.rotation.x = PI / 2;
-    stalks.push({ st, s2, tip, E, ph: rnd(0, TAU), s: Math.sign(x) });
-  }
   /* the tail: the other one, feet first out of the back; smooth, tapering */
-  const tail = [], TL = [0.42, 0.45, 0.38, 0.34, 0.22], TW = [0.36, 0.33, 0.3, 0.27, 0.24];
+  const tail = [], TL = [0.42, 0.45, 0.38, 0.34, 0.22], TW = [0.62, 0.5, 0.38, 0.3, 0.26];
+  mk(body, 'ico', FLESH, 0.72, 0.5, 0.7, 0, 0.06, -0.62); mk(body, 'ico', FL2, 0.5, 0.36, 0.5, 0, 0.14, -0.78);
   let par = body, at = [0, 0.1, -0.6];
   TL.forEach((L, i) => {
     const t = grp(par, at[0], at[1], at[2]);
@@ -501,7 +492,7 @@ function buildHand() {
   for (const s of [-1, 1]) arms.push({ ...limb(t4, [s * 0.24, 0.02, -0.12], 0.55, 0.6, FLESH, FL3, 0.11, handEnd(1.2), { shape: 'ico' }), s });
 
   return {
-    S, g, body, legs, fingers, stalks, tail, hd, hEyes, arms,
+    S, g, body, legs, fingers, tail, hd, hEyes, arms,
     room: [0.36, 0.37, 0.38], glow: { pos: V(0, -10, 0), c: [0, 0, 0], r: 1 },
     cam: { yaw: 0.75, pitch: 0.2, dist: 5.6, tgt: V(0, 0.8, 0) },
     fig: figure(S, -2.1, 0.4, 0.5),
@@ -611,9 +602,9 @@ function stepOverseer(dt, now) {
 /* ---- the hand's moods ---- */
 const hs = { mode: 'listen', t: 0, raise: 0, walk: 0, ph: 0, press: 0, code: null, strike: -1, droop: 0, shake: 0 };
 const HA_STATES = {
-  listen: ['Listening', 'Low, its fingers curled down with their tips on the slab in front and the hands of its tail laid flat behind it: it is feeling for the knock. The tail\'s eyes are rolled back; from most angles it is only a tail. The two eyes on their stalks peer along the floor.'],
-  knock: ['Knocked for', 'Three knocks, a pause, three: the muster hall. On each one its fingers and hands press flat. When the code is done the stalks rise, the tail comes up over its back, the head on the end rolls its eyes down, and it goes.'],
-  alert: ['Raised', 'The body lifts on its four. The fingers at the front stay curled down, tips just off the floor, working back and forth two and two; the stalked eyes stand over them. The tail comes up over its back, its arms hanging in front of its head.'],
+  listen: ['Listening', 'Low, its fingers curled down with their tips on the slab in front and the hands of its tail laid flat behind it: it is feeling for the knock. The tail\'s eyes are rolled back; from most angles it is only a tail, and the thing has no face at all.'],
+  knock: ['Knocked for', 'Three knocks, a pause, three: the muster hall. On each one its fingers and hands press flat. When the code is done the tail comes up over its back, the head on the end rolls its eyes down, and it goes.'],
+  alert: ['Raised', 'The body lifts on its four. The fingers at the front stay curled down, tips just off the floor, working back and forth two and two. The tail comes up over its back, its arms hanging in front of its head.'],
   go: ['Going', 'Raised, on its way. It walks on the body\'s four, diagonal pairs together; the tail\'s arms reach ahead of it.'],
   strike: ['Striking', 'Its blow: the tail\'s arms go up and wide and the fingers rear up and out; then the tail plunges, the hands come down in front of it, and the fingers slam down on the floor after them.'],
   unlinked: ['Unlinked', 'The overseer is dead and nothing knocks. It roams slowly, the tail half up and its head hanging, the arms dragging. It would turn on whatever struck it.'],
@@ -686,18 +677,12 @@ function stepHand(dt, now) {
      from above, and the last joint hangs straight down to it */
   for (const F of M.fingers) {
     const o = now * lerp(2.2, 3.4, R) + (F.i % 2 ? PI : 0) + F.i * 0.3, amp = lerp(0.035, 0.12, R);
-    let x = F.x * 1.2, y = lerp(0, 0.3, R) + Math.max(0, Math.cos(o)) * lerp(0.015, 0.09, R), z = lerp(1.24, 1.3, R) + Math.sin(o) * amp;
+    let x = F.x * 1.2, y = lerp(0, 0.26, R) + Math.max(0, Math.cos(o)) * lerp(0.015, 0.09, R), z = lerp(1.12, 1.17, R) + Math.sin(o) * amp;
     y -= P * 0.03;
-    x = lerp(x, F.x * 1.9, wind); y = lerp(y, h + 0.5, wind); z = lerp(z, 0.95, wind);
-    x = lerp(x, F.x * 0.8, slam); y = lerp(y, 0, slam); z = lerp(z, 1.6, slam);
+    x = lerp(x, F.x * 1.9, wind); y = lerp(y, h + 0.4, wind); z = lerp(z, 0.92, wind);
+    x = lerp(x, F.x * 0.8, slam); y = lerp(y, 0, slam); z = lerp(z, 1.45, slam);
     _w.set(x, Math.max(0, y) + F.L3, z); M.g.localToWorld(_w);
     F.t.rotation.x = PI / 2 - reach(F, _w);
-  }
-  /* the stalks stand straight up, swaying; they lean a little toward what they watch, and sag when nothing calls */
-  for (const T of M.stalks) {
-    const b = Math.sin(now * 1.3 + T.ph) * 0.06;
-    T.st.rotation.set(-PI / 2 + b + D * 0.45, Math.sin(now * 0.6 + T.ph) * 0.12, 0);
-    T.s2.rotation.set(-b * 1.5 + D * 0.3, 0, 0);
   }
   /* the tail's arms: flat on the floor by its head, listening; hanging in front of it, raised; up and wide, then down */
   M.g.updateMatrixWorld(true);
@@ -716,7 +701,6 @@ function stepHand(dt, now) {
   /* the stalked eyes always look; the head on the tail only once it is up, its eyes rolled back till then */
   const mood = { stare, flush: stare * 0.4, drowse: D * 0.7 };
   M.g.updateMatrixWorld(true);
-  for (const T of M.stalks) lookEye(T.E, look, dt, mood);
   const up = R > 0.55;
   const [hy, hp] = aim(M.hd, look);
   M.hy += ((up ? clamp(hy, -1.3, 1.3) : 0) - M.hy) * damp(4, dt); M.hp += ((up ? clamp(hp, -1.0, 1.0) : 0.3) + D * 0.6 - M.hp) * damp(4, dt);
