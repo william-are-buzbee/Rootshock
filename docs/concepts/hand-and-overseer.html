@@ -1,0 +1,1080 @@
+<title>The Hand and the Overseer</title>
+<meta name="description" content="Rootshock concept models: four hands and four overseers, built in the cast's parts kit.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;700&family=Literata:opsz,wght@7..72,400;7..72,500&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a specimen bench. One lit viewport, a strip of tags to pick a specimen, and its file card beside it. */
+:root {
+  color-scheme: dark;
+  --bg: #0d0e0f;        /* the station after the lights */
+  --panel: #15171a;
+  --line: #2a2e33;
+  --fg: #d9d4c9;        /* emergency-lit paper */
+  --muted: #8d8a83;
+  --accent: #c8875e;    /* the overseer's sick glow, toned down */
+  --signal: #7fb38a;    /* a camera's green, watching */
+  --display: "Saira Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --body: "Literata", Georgia, "Times New Roman", serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+html, body { background: var(--bg); color: var(--fg); }
+[hidden] { display: none !important; }
+body { font-family: var(--body); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 1240px; margin: 0 auto; padding-inline: 16px; padding-block: 20px 40px; display: grid; gap: 18px; }
+header { display: grid; gap: 4px; }
+.eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--display); font-weight: 700; font-size: clamp(30px, 5vw, 46px); line-height: 1; margin: 0; letter-spacing: 0.01em; text-wrap: balance; }
+.lede { color: var(--muted); max-width: 70ch; margin: 4px 0 0; }
+
+.who { display: flex; gap: 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.who button { font-family: var(--display); font-size: 20px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; background: none; border: 0; color: var(--muted); padding: 6px 14px 8px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.who button[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); }
+.who button:focus-visible, .chips button:focus-visible, .ctl button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.bench { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 18px; align-items: start; }
+@media (max-width: 900px) { .bench { grid-template-columns: minmax(0, 1fr); } }
+
+.stage { display: grid; gap: 10px; min-width: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips button, .ctl button { font-family: var(--mono); font-size: 12px; background: var(--panel); color: var(--muted); border: 1px solid var(--line); border-radius: 3px; padding: 6px 10px; cursor: pointer; }
+.chips button[aria-pressed="true"], .ctl button[aria-pressed="true"] { color: var(--fg); border-color: var(--accent); background: #1e1a17; }
+.chips .tag { color: var(--accent); margin-right: 6px; }
+.view { position: relative; aspect-ratio: 16 / 10; max-width: 100%; background: #050506; border: 1px solid var(--line); border-radius: 3px; overflow: hidden; touch-action: none; }
+.view canvas { display: block; width: 100%; height: 100%; }
+.labels { position: absolute; inset: 0; pointer-events: none; }
+.labels span { position: absolute; transform: translate(-50%, 0); font-family: var(--mono); font-size: 11px; color: var(--fg); background: rgba(5, 5, 6, 0.7); padding: 1px 5px; white-space: nowrap; border-radius: 2px; }
+.labels span.ref { color: var(--muted); }
+.hint { position: absolute; left: 10px; bottom: 8px; font-family: var(--mono); font-size: 11px; color: var(--muted); pointer-events: none; }
+.ctl { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+.ctl .grp { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+.ctl .lab { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-right: 4px; }
+
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 3px; padding: 16px 18px 18px; display: grid; gap: 12px; min-width: 0; }
+.card h2 { font-family: var(--display); font-weight: 700; font-size: 30px; line-height: 1; margin: 0; letter-spacing: 0.02em; text-wrap: balance; }
+.card .tagline { font-style: italic; color: var(--muted); margin: -4px 0 0; }
+.card p { margin: 0; }
+.card h3 { font-family: var(--mono); font-weight: 500; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin: 4px 0 -6px; }
+.dims { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); }
+.dims div { background: var(--bg); padding: 6px 8px; display: grid; }
+.dims b { font-family: var(--mono); font-weight: 500; font-size: 16px; font-variant-numeric: tabular-nums; }
+.dims small { font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.fit { font-family: var(--mono); font-size: 12px; }
+.fit.no { color: var(--accent); }
+.fit.yes { color: var(--signal); }
+.death { border-left: 2px solid var(--accent); padding-left: 10px; font-style: italic; }
+.death small { display: block; font-style: normal; font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 18px; border-top: 1px solid var(--line); padding-top: 18px; }
+.notes section { display: grid; gap: 8px; align-content: start; min-width: 0; }
+.notes h2 { font-family: var(--display); font-weight: 700; font-size: 22px; margin: 0; letter-spacing: 0.03em; text-transform: uppercase; }
+.notes p { margin: 0; max-width: 65ch; }
+.notes ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+code { font-family: var(--mono); font-size: 0.86em; }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Rootshock · Security · concept models</div>
+    <h1>The Hand and the Overseer</h1>
+    <p class="lede">Four of each, built from the same boxes, icosahedra and six-sided cylinders as the rest of the cast, in its colours and lit the way it is lit. The husk and the thresher (today's hand) stand by for scale, with a doorway: 2&nbsp;m wide, 2.4&nbsp;m high.</p>
+  </header>
+
+  <div class="who" role="tablist">
+    <button role="tab" id="tab-hand" aria-selected="true" data-who="hand">The hand</button>
+    <button role="tab" id="tab-over" aria-selected="false" data-who="over">The overseer</button>
+  </div>
+
+  <div class="bench">
+    <div class="stage">
+      <div class="chips" id="chips"></div>
+      <div class="view" id="view">
+        <div class="labels" id="labels"></div>
+        <div class="hint" id="hint">Drag to turn · scroll to zoom · click it to hit it</div>
+      </div>
+      <div class="ctl">
+        <div class="grp"><span class="lab">State</span>
+          <button id="m-idle" data-mode="idle" aria-pressed="true">Idle</button>
+          <button id="m-move" data-mode="move" aria-pressed="false">On the move</button>
+          <button id="m-blow" data-mode="blow" aria-pressed="false">Tell &amp; blow</button>
+        </div>
+        <div class="grp"><span class="lab">Light</span>
+          <button id="l-lamp" data-light="lamp" aria-pressed="true">Room lamp</button>
+          <button id="l-flash" data-light="flash" aria-pressed="false">Flashlight</button>
+        </div>
+        <div class="grp" id="viewgrp"><span class="lab">View</span>
+          <button id="v-near" data-cam="near" aria-pressed="true">Close</button>
+          <button id="v-hall" data-cam="hall" aria-pressed="false">From the hall</button>
+        </div>
+      </div>
+    </div>
+    <article class="card" id="card"></article>
+  </div>
+
+  <div class="notes">
+    <section>
+      <h2>Where I'd go</h2>
+      <p><b>Hand: the Stack.</b> It is the only one that could only be the response team: a breaching stack is how they moved through doors, and now it is how they move. Long and low, it turns badly, so the hall's pillars and benches do something, and the shields at its front are wider than any doorway, which explains the door rule on sight. The Line is the runner-up; its marching in step is the best sound cue of the four.</p>
+      <p><b>Overseer: the Operator.</b> "Not a boss, a seat", taken at its word. The chair turning is a tell you can hear, and from the hall its head over the sill shows you which way it faces. The Periscope does the same job with a better silhouette from below; the two could be combined.</p>
+    </section>
+    <section>
+      <h2>What they would cost</h2>
+      <ul>
+        <li>All eight use only <code>mk</code>/<code>grp</code> and the cast's palette, so each ports to <code>castView.ts</code> as one <code>BUILD</code> and one <code>ANIM</code> entry. The tell and blow here are driven by a phase cycle shaped like <code>blowAt</code>.</li>
+        <li>The Stack and the Line want a different body than the thresher's 0.65&nbsp;m circle: a capsule or a short chain of circles for the Stack, a wide box for the Line. The Engorged and the Cordon fit a bigger circle.</li>
+        <li>The overseers keep today's split: the watchers and cords stay level geometry (drawn here for context), the body is the cast model.</li>
+        <li>None of these is a hand.</li>
+      </ul>
+    </section>
+  </div>
+</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const PI = Math.PI;
+
+/* ---------- the kit: the game's own unit shapes (templates.ts) and parts (castView.ts mk/grp) ---------- */
+function boxT() {
+  const c = [[-.5, -.5, -.5], [.5, -.5, -.5], [.5, .5, -.5], [-.5, .5, -.5], [-.5, -.5, .5], [.5, -.5, .5], [.5, .5, .5], [-.5, .5, .5]];
+  const f = [[0, 1, 2, 3], [5, 4, 7, 6], [4, 0, 3, 7], [1, 5, 6, 2], [3, 2, 6, 7], [4, 5, 1, 0]];
+  const p = []; for (const q of f) for (const k of [0, 1, 2, 0, 2, 3]) p.push(...c[q[k]]); return p;
+}
+function icoT() {
+  const t = (1 + Math.sqrt(5)) / 2, n = 0.5 / Math.hypot(1, t);
+  const v = [[-1, t, 0], [1, t, 0], [-1, -t, 0], [1, -t, 0], [0, -1, t], [0, 1, t], [0, -1, -t], [0, 1, -t], [t, 0, -1], [t, 0, 1], [-t, 0, -1], [-t, 0, 1]].map(a => a.map(x => x * n));
+  const fi = [0, 11, 5, 0, 5, 1, 0, 1, 7, 0, 7, 10, 0, 10, 11, 1, 5, 9, 5, 11, 4, 11, 10, 2, 10, 7, 6, 7, 1, 8, 3, 9, 4, 3, 4, 2, 3, 2, 6, 3, 6, 8, 3, 8, 9, 4, 9, 5, 2, 4, 11, 6, 2, 10, 8, 6, 7, 9, 8, 1];
+  const p = []; for (const i of fi) p.push(...v[i]); return p;
+}
+function cylT(N = 6) {
+  const p = [], TAU = PI * 2;
+  for (let k = 0; k < N; k++) {
+    const a = (k / N) * TAU, b = ((k + 1) / N) * TAU;
+    const x0 = Math.cos(a) * .5, z0 = Math.sin(a) * .5, x1 = Math.cos(b) * .5, z1 = Math.sin(b) * .5;
+    p.push(x0, -.5, z0, x1, -.5, z1, x1, .5, z1, x0, -.5, z0, x1, .5, z1, x0, .5, z0, 0, .5, 0, x0, .5, z0, x1, .5, z1, 0, -.5, 0, x1, -.5, z1, x0, -.5, z0);
+  }
+  return p;
+}
+const TEMPLATES = { box: boxT(), ico: icoT(), cyl: cylT() };
+const hex = c => Array.isArray(c) ? c : [((c >> 16) & 255) / 255, ((c >> 8) & 255) / 255, (c & 255) / 255];
+const geos = new Map();
+function geo(shape, c, sx, sy, sz) {
+  const k = `${shape}|${c}|${sx}|${sy}|${sz}`;
+  let g = geos.get(k);
+  if (!g) {
+    const src = TEMPLATES[shape], col = hex(c), P = [], C = [];
+    for (let v = 0; v < src.length; v += 3) { P.push(src[v] * sx, src[v + 1] * sy, src[v + 2] * sz); C.push(...col); }
+    g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3));
+    g.setAttribute('aCol', new THREE.Float32BufferAttribute(C, 3));
+    geos.set(k, g);
+  }
+  return g;
+}
+let MAT = null; // the material of the model being built
+function mk(parent, shape, c, sx, sy, sz, x, y, z) {
+  const m = new THREE.Mesh(geo(shape, c, sx, sy, sz), MAT);
+  m.position.set(x, y, z); m.frustumCulled = false; parent.add(m); return m;
+}
+function grp(parent, x, y, z) { const g = new THREE.Group(); g.position.set(x, y, z); parent.add(g); return g; }
+/** a bar of flesh from a to b, in parent's frame */
+function bar(parent, shape, c, w, h, a, b) {
+  const A = new THREE.Vector3(...a), B = new THREE.Vector3(...b), len = A.distanceTo(B);
+  const m = mk(parent, shape, c, w, h, len, (A.x + B.x) / 2, (A.y + B.y) / 2, (A.z + B.z) / 2);
+  parent.updateWorldMatrix(true, false);
+  m.lookAt(parent.localToWorld(B.clone()));
+  return m;
+}
+function seeded(id) {
+  let s = (id * 2654435761) >>> 0 || 1;
+  const next = () => ((s = (Math.imul(s, 1664525) + 1013904223) >>> 0) / 4294967296);
+  return { rnd: (a, b) => a + next() * (b - a), pick: a => a[Math.floor(next() * a.length)] };
+}
+const ease = t => t * t * (3 - 2 * t);
+const rr = (a, b) => a + Math.random() * (b - a);
+
+/* the cast's palette (castView.ts), and Security's: uniforms, armour, shields */
+const FLESH = 0xb08572, RAW = 0x8c4a44, GOREC = 0x4e1616, PALE = 0xcdbfae, BONE = 0xddd6c0, DARK = 0x140c0d;
+const MEAT = [0x8c4a44, 0x6e2b28, 0x9a6a5a, 0x7a3a34];
+const NAVY = 0x39485a, SLATE = 0x4a5560, TR = 0x2b2e34, VEST = 0x23272c, HELM = 0x22262a, VISOR = 0x48585e, BLACK = 0x1c1e20;
+const SHIELD = 0x6f7e86, EYEW = 0xd8d0c0, PUPIL = 0x15100e, GLOW = [2.6, 0.9, 0.55], SCREEN = [2.2, 2.5, 2.75];
+
+/* ---------- the look: the game's flat-shaded lighting, simplified ---------- */
+const U = {
+  uLampPos: { value: new THREE.Vector3(0, 4.2, 1.5) }, uLampCol: { value: new THREE.Vector3(1.05, 0.98, 0.8) }, uLampR: { value: 14 },
+  uAmb: { value: new THREE.Vector3(0.075, 0.075, 0.08) },
+  uFlash: { value: 0 }, uFlashDir: { value: new THREE.Vector3(0, 0, -1) },
+  uGlowPos: { value: new THREE.Vector3(0, 1.2, 0) }, uGlowCol: { value: new THREE.Vector3(0, 0, 0) }, uGlowR: { value: 5 },
+  uTime: { value: 0 }, uFog: { value: 0.028 },
+};
+const VERT = `attribute vec3 aCol; varying vec3 vW; varying vec3 vC;
+void main(){ vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; vC = aCol; gl_Position = projectionMatrix * viewMatrix * w; }`;
+const FRAG = `uniform vec3 uLampPos; uniform vec3 uLampCol; uniform float uLampR; uniform vec3 uAmb;
+uniform float uFlash; uniform vec3 uFlashDir; uniform vec3 uGlowPos; uniform vec3 uGlowCol; uniform float uGlowR;
+uniform float uHit; uniform float uTime; uniform float uFog;
+varying vec3 vW; varying vec3 vC;
+void main(){
+  vec3 n = normalize(cross(dFdx(vW), dFdy(vW)));
+  vec3 tc = cameraPosition - vW; float d = length(tc); vec3 Ld = tc / max(d, 0.001);
+  if (dot(n, Ld) < 0.0) n = -n;
+  vec3 base = vC; float em = 0.0;
+  if (base.r > 1.5) { base -= 2.0; em = 1.0; }
+  float sh = 0.55 + 0.45 * (abs(n.y) * 0.95 + abs(n.x) * 0.7 + abs(n.z) * 0.5);
+  vec3 tl = uLampPos - vW; float dl = length(tl);
+  float f = clamp(1.0 - dl / uLampR, 0.0, 1.0); f *= f;
+  vec3 light = uAmb + uLampCol * f * sh * (0.55 + 0.45 * max(dot(n, tl / dl), 0.0));
+  float cone = smoothstep(0.88, 0.975, dot(-Ld, uFlashDir));
+  float facing = 0.35 + 0.65 * max(dot(n, Ld), 0.0);
+  light += uFlash * vec3(1.0, 0.95, 0.82) * (cone * 0.9 + 0.04) * facing * 14.0 / (1.0 + d * d * 0.32);
+  vec3 tg = uGlowPos - vW; float dg = length(tg); float gf = clamp(1.0 - dg / uGlowR, 0.0, 1.0);
+  light += uGlowCol * gf * gf * (0.35 + 0.65 * max(dot(n, tg / max(dg, 0.001)), 0.0));
+  vec3 c = mix(base * light, base, em);
+  c += uHit * vec3(0.45, 0.08, 0.06);
+  c *= exp(-d * uFog);
+  c = c / (1.0 + c * 0.55) * 1.2;
+  vec3 h3 = fract(vec3(gl_FragCoord.xyx + floor(fract(uTime * 7.13) * 977.0)) * 0.1031);
+  h3 += dot(h3, h3.yzx + 33.33);
+  float gr = fract((h3.x + h3.y) * h3.z) - 0.5;
+  c += gr * 0.03 * (1.0 - smoothstep(0.0, 0.35, dot(c, vec3(0.3, 0.59, 0.11))));
+  gl_FragColor = vec4(c, 1.0);
+}`;
+function material() {
+  return new THREE.ShaderMaterial({ uniforms: { ...U, uHit: { value: 0 } }, vertexShader: VERT, fragmentShader: FRAG });
+}
+
+/* ---------- the blow, shaped as the sim's blowAt: wind, strike, recover, then a rest ---------- */
+const CYCLE = { wind: 1.1, strike: 0.32, recover: 0.95, rest: 1.0 };
+function blowAt(t) {
+  let u = t % (CYCLE.wind + CYCLE.strike + CYCLE.recover + CYCLE.rest);
+  if (u < CYCLE.wind) return { ph: 'wind', q: u / CYCLE.wind };
+  u -= CYCLE.wind; if (u < CYCLE.strike) return { ph: 'strike', q: u / CYCLE.strike };
+  u -= CYCLE.strike; if (u < CYCLE.recover) return { ph: 'recover', q: u / CYCLE.recover };
+  return null;
+}
+/** 0 to 1 up the wind-up, through 0 to -1 in the strike, back to 0 recovering (as castView's thresher) */
+const eOf = B => !B ? 0 : B.ph === 'wind' ? ease(B.q) : B.ph === 'strike' ? 1 - 2 * B.q * B.q : -(1 - ease(Math.max(0, (B.q - 0.3) / 0.7)));
+
+/* a head in a helmet, visor down, looking along +z */
+function helmeted(p, x, y, z, o = {}) {
+  const hd = grp(p, x, y, z);
+  mk(hd, 'ico', o.skin ?? PALE, 0.28, 0.32, 0.3, 0, 0, 0);
+  if (!o.bare) { mk(hd, 'ico', HELM, 0.38, 0.27, 0.4, 0, 0.09, -0.02); mk(hd, 'box', VISOR, 0.3, 0.11, 0.04, 0, 0.03, 0.17); }
+  else { mk(hd, 'ico', DARK, 0.05, 0.05, 0.05, -0.06, 0.03, 0.13); mk(hd, 'ico', DARK, 0.05, 0.05, 0.05, 0.06, 0.02, 0.13); }
+  mk(hd, 'box', DARK, 0.11, 0.03, 0.03, 0.01, -0.09, 0.13);
+  return hd;
+}
+/* a face pushed out of flesh: no helmet, the eyes open */
+function face(p, x, y, z, s = 1, skin = PALE) {
+  const f = grp(p, x, y, z);
+  mk(f, 'ico', skin, 0.3 * s, 0.34 * s, 0.18 * s, 0, 0, 0);
+  mk(f, 'ico', DARK, 0.05 * s, 0.05 * s, 0.04 * s, -0.06 * s, 0.04 * s, 0.08 * s); mk(f, 'ico', DARK, 0.05 * s, 0.05 * s, 0.04 * s, 0.06 * s, 0.04 * s, 0.08 * s);
+  mk(f, 'box', DARK, 0.1 * s, 0.04 * s, 0.03 * s, 0, -0.08 * s, 0.08 * s);
+  return f;
+}
+
+/* ---------- the references: the husk and the thresher, ported from castView.ts ---------- */
+const REF = {
+  husk: {
+    name: 'husk', build() {
+      const g = new THREE.Group(), cl = NAVY, tr = 0x2b2e34;
+      const legs = [];
+      for (const s of [-1, 1]) { const l = grp(g, s * 0.11, 0.9, 0); mk(l, 'box', tr, 0.16, 0.9, 0.17, 0, -0.45, 0); mk(l, 'box', DARK, 0.16, 0.07, 0.26, 0, -0.87, 0.04); legs.push(l); }
+      const b = grp(g, 0, 0.9, 0);
+      mk(b, 'box', cl, 0.42, 0.6, 0.24, 0, 0.3, 0); mk(b, 'box', tr, 0.4, 0.12, 0.23, 0, 0.03, 0); mk(b, 'ico', RAW, 0.26, 0.3, 0.22, 0.17, 0.52, -0.04);
+      const hd = grp(b, -0.02, 0.76, 0);
+      mk(hd, 'ico', PALE, 0.24, 0.28, 0.25, 0, 0, 0); mk(hd, 'box', DARK, 0.1, 0.03, 0.03, 0, -0.07, 0.11); mk(hd, 'ico', DARK, 0.04, 0.04, 0.04, -0.05, 0.03, 0.11); mk(hd, 'ico', RAW, 0.1, 0.11, 0.07, 0.07, 0.04, 0.09);
+      hd.rotation.z = 0.25;
+      const arms = [];
+      let a = grp(b, -0.27, 0.56, 0); mk(a, 'box', cl, 0.11, 0.36, 0.12, 0, -0.18, 0); mk(a, 'box', PALE, 0.08, 0.34, 0.08, 0, -0.52, 0); arms.push(a);
+      a = grp(b, 0.3, 0.58, 0); mk(a, 'box', RAW, 0.14, 0.4, 0.14, 0, -0.2, 0); mk(a, 'box', FLESH, 0.1, 0.52, 0.1, 0, -0.64, 0); mk(a, 'box', BONE, 0.05, 0.16, 0.05, 0, -0.97, 0.02); arms.push(a);
+      return { g, b, hd, legs, arms };
+    },
+    anim(M, t) {
+      M.arms[1].rotation.x = Math.sin(t * 0.9) * 0.06; M.b.rotation.x = 0.06; M.b.rotation.z = Math.sin(t * 0.8) * 0.04;
+      M.hd.rotation.z = 0.25 + Math.sin(t * 0.7) * 0.1; M.hd.rotation.y = Math.sin(t * 0.5) * 0.25;
+    },
+  },
+  thresher: {
+    name: 'thresher (the hand today)', build() {
+      const g = new THREE.Group(), tr = 0x2b2e34, sh = 0xa9a595;
+      for (const s of [-1, 1]) { const l = grp(g, s * 0.17, 1, 0); mk(l, 'box', tr, 0.2, 0.52, 0.22, 0, -0.26, 0); mk(l, 'box', tr, 0.17, 0.46, 0.19, 0, -0.74, 0.02); mk(l, 'box', DARK, 0.17, 0.08, 0.3, 0, -0.96, 0.06); }
+      mk(g, 'box', tr, 0.5, 0.2, 0.3, 0, 1.06, 0); mk(g, 'box', 0x8a887c, 0.4, 0.38, 0.03, 0, 0.9, 0.17);
+      const b = grp(g, 0, 1.14, 0);
+      mk(b, 'box', sh, 0.6, 0.8, 0.1, 0, 0.42, -0.19); mk(b, 'box', GOREC, 0.52, 0.7, 0.14, 0, 0.42, -0.09); mk(b, 'box', BONE, 0.07, 0.74, 0.07, 0, 0.42, -0.03);
+      mk(b, 'ico', RAW, 0.26, 0.3, 0.14, -0.1, 0.5, -0.02); mk(b, 'ico', 0x6e2b28, 0.2, 0.24, 0.12, 0.12, 0.3, -0.02);
+      mk(b, 'box', FLESH, 0.8, 0.15, 0.3, 0, 0.86, -0.08);
+      const doors = [];
+      for (const s of [-1, 1]) {
+        const d = grp(b, s * 0.31, 0.42, -0.06);
+        mk(d, 'box', sh, 0.31, 0.74, 0.08, -s * 0.155, 0, 0.05); mk(d, 'box', RAW, 0.29, 0.7, 0.03, -s * 0.155, 0, 0);
+        for (let k = 0; k < 4; k++) mk(d, 'box', BONE, 0.27, 0.035, 0.05, -s * 0.15, -0.27 + k * 0.18, -0.02);
+        for (let k = 0; k < 6; k++) mk(d, 'box', BONE, 0.1, 0.04, 0.04, -s * 0.34, -0.3 + k * 0.12, -0.01);
+        doors.push({ d, s });
+      }
+      const hd = grp(b, 0, 0.98, -0.14);
+      mk(hd, 'box', FLESH, 0.1, 0.14, 0.1, 0, -0.06, 0.02); mk(hd, 'ico', PALE, 0.23, 0.27, 0.25, 0, 0.1, 0); mk(hd, 'box', DARK, 0.1, 0.06, 0.03, 0, 0.03, 0.11);
+      hd.rotation.x = -0.7;
+      const arms = [];
+      for (const s of [-1, 1]) {
+        const a = grp(b, s * 0.47, 0.84, -0.06); mk(a, 'box', sh, 0.12, 0.44, 0.12, 0, -0.22, 0);
+        const f = grp(a, 0, -0.44, 0); mk(f, 'box', PALE, 0.09, 0.48, 0.09, 0, -0.24, 0); mk(f, 'box', FLESH, 0.1, 0.15, 0.05, 0, -0.55, 0);
+        arms.push({ a, f, s });
+      }
+      return { g, b, hd, doors, arms };
+    },
+    anim(M, t) {
+      for (const o of M.doors) o.d.rotation.y = o.s * (0.2 + Math.sin(t * 1.4) * 0.1);
+      for (const o of M.arms) { o.a.rotation.x = Math.sin(t * 1.6 + o.s) * 0.2; o.a.rotation.z = o.s * 0.1; o.f.rotation.x = -0.15; }
+      M.hd.rotation.x = -0.7 + Math.sin(t * 2.3) * 0.1; M.hd.rotation.z = Math.sin(t * 1.1) * 0.2;
+    },
+  },
+};
+
+/* =====================================================================================================
+   THE HAND
+   ===================================================================================================== */
+
+/* the Stack: four of the response team in the order they went through doors, each bent at the waist with its head in
+   the back of the one ahead and its arms grown into his shoulders. The breacher at the front holds two riot shields,
+   fused edge to edge: wider than a doorway. */
+function stackBuild() {
+  const g = new THREE.Group(), R = seeded(7), N = 4, segs = [];
+  for (let k = 0; k < N; k++) {
+    const s = grp(g, 0, 0, 0), legs = [];
+    for (const sx of [-1, 1]) {
+      const l = grp(s, sx * 0.3, 1.02, 0);
+      mk(l, 'box', TR, 0.26, 0.56, 0.28, 0, -0.27, 0);
+      const sh = grp(l, 0, -0.52, 0);
+      mk(sh, 'box', TR, 0.22, 0.46, 0.24, 0, -0.22, 0); mk(sh, 'box', DARK, 0.24, 0.1, 0.38, 0, -0.45, 0.06);
+      legs.push({ l, sh, s: sx });
+    }
+    mk(s, 'box', TR, 0.78, 0.32, 0.5, 0, 1.08, 0);
+    const up = k === N - 1, t = grp(s, 0, 1.12, 0);
+    t.rotation.x = up ? 0.5 : 1.08;
+    mk(t, 'box', k % 2 ? NAVY : SLATE, 0.98, 0.95, 0.62, 0, 0.46, 0);
+    mk(t, 'box', VEST, 0.86, 0.72, 0.14, 0, 0.5, -0.31);
+    for (let v = 0; v < 4; v++) mk(t, 'box', BONE, 0.08, 0.1, 0.1, 0, 0.18 + v * 0.2, -0.4);
+    for (const sx of [-1, 1]) mk(t, 'ico', R.pick(MEAT), 0.62, 0.55, 0.62, sx * 0.56, 0.84, 0.02);
+    mk(t, 'ico', RAW, 0.5, 0.4, 0.5, R.rnd(-0.2, 0.2), 0.3, 0.3);
+    /* its arms, grown forward into the shoulders of the one in front */
+    if (k > 0) for (const sx of [-1, 1]) {
+      const a = grp(t, sx * 0.6, 0.85, 0.1);
+      a.rotation.x = PI / 2 - t.rotation.x + 0.2;
+      mk(a, 'box', sx > 0 ? NAVY : FLESH, 0.17, 0.9, 0.17, 0, 0.45, 0);
+      mk(a, 'ico', RAW, 0.28, 0.24, 0.28, 0, 0.92, 0);
+    }
+    /* its head: the breacher's ahead, low behind the shields; the last man's up, looking over the others; the rest pressed
+       face-sideways into the back in front, so the flanks are lined with faces */
+    let hd;
+    if (k === 0) { hd = helmeted(t, 0, 1.05, 0.08); hd.rotation.x = -0.95; }
+    else if (up) { hd = helmeted(t, 0.04, 1.08, 0.04); hd.rotation.x = -0.45; face(t, -0.36, 0.98, 0.1, 0.8).rotation.set(-0.4, -0.9, 0.3); }
+    else { hd = helmeted(t, R.pick([-1, 1]) * 0.22, 1.02, 0.18, { bare: R.rnd(0, 1) < 0.5 }); hd.rotation.set(-1.0, 0, R.pick([-1, 1]) * 1.1); }
+    /* fused to the one in front along the spine */
+    if (k > 0) mk(s, 'ico', R.pick(MEAT), 0.95, 0.55, 0.85, 0, 1.55, 0.5);
+    segs.push({ s, t, legs, hd, k, up, lean: t.rotation.x });
+  }
+  /* the shields, in the breacher's arms and grown round at the edges */
+  const S = segs[0], sh = grp(S.s, 0, 1.18, 1.12);
+  for (const sx of [-1, 1]) { const p = mk(sh, 'box', SHIELD, 1.12, 1.5, 0.06, sx * 0.53, 0, 0); p.rotation.y = sx * 0.13; mk(sh, 'box', 0x3c474d, 0.8, 0.22, 0.02, sx * 0.53, 0.42, 0.04).rotation.y = sx * 0.13; mk(sh, 'box', BLACK, 1.1, 0.08, 0.08, sx * 0.53, 0.72, -0.02).rotation.y = sx * 0.13; }
+  mk(sh, 'box', RAW, 0.16, 1.45, 0.16, 0, 0, -0.02);
+  for (let k = 0; k < 7; k++) mk(sh, 'ico', MEAT[k % 4], 0.22, 0.2, 0.2, -0.95 + k * 0.32, 0.72 + ((k * 3) % 2) * 0.05, -0.08);
+  for (const sx of [-1, 1]) { mk(sh, 'ico', RAW, 0.3, 0.5, 0.25, sx * 1.02, -0.2, -0.12); bar(sh, 'box', FLESH, 0.16, 0.16, [sx * 0.45, -0.1, -0.12], [sx * 0.5, 0.3, -0.75]); }
+  return { g, segs, sh };
+}
+function stackAnim(M, t, mode) {
+  const B = mode === 'blow' ? blowAt(t) : null, e = eOf(B), go = mode === 'move' || (mode === 'blow' && !B);
+  const sp = e >= 0 ? 1 - 0.3 * e : 1 + 0.28 * -e, lunge = e >= 0 ? -0.2 * e : 1.1 * -e;
+  const f = mode === 'move' ? 9 : 6;
+  for (const S of M.segs) {
+    S.s.position.z = 1.4 - S.k * sp + lunge;
+    S.s.position.y = go ? Math.abs(Math.sin(t * f + S.k * 0.9)) * 0.05 : 0;
+    for (const L of S.legs) {
+      const p = t * f - S.k * 1.1 + (L.s > 0 ? PI : 0);
+      L.l.rotation.x = go ? Math.sin(p) * 0.55 : B?.ph === 'strike' ? -0.4 : 0;
+      L.sh.rotation.x = go ? Math.max(0, Math.sin(p + 0.9)) * 0.7 : 0;
+    }
+    const br = 1 + Math.sin(t * 1.3 + S.k) * 0.02;
+    S.t.scale.set(br, 1, br);
+    S.t.rotation.x = S.lean + (S.up ? -0.25 * Math.max(0, e) : 0.12 * Math.max(0, e));
+    if (!S.up && S.k > 0) S.hd.rotation.y = Math.random() < 0.02 ? rr(-0.4, 0.4) : S.hd.rotation.y * 0.95;
+    else S.hd.rotation.y = Math.sin(t * 0.6 + S.k) * (mode === 'idle' ? 0.5 : 0.15);
+  }
+  M.sh.rotation.x = e >= 0 ? -0.35 * e + (B?.ph === 'wind' && B.q > 0.7 ? Math.sin(t * 40) * 0.03 : 0) : 0.3 * -e;
+  M.sh.position.y = 1.18 + 0.12 * Math.max(0, e);
+}
+
+/* the Line: five abreast behind their shields, as drilled. Their legs keep step. */
+function lineBuild() {
+  const g = new THREE.Group(), b = grp(g, 0, 0, 0), R = seeded(11), xs = [-1.16, -0.58, 0, 0.58, 1.16];
+  const legs = [], arms = [], heads = [];
+  xs.forEach((x, i) => {
+    for (const s of [-1, 1]) {
+      const l = grp(g, x + s * 0.15, 1.0, -0.08);
+      mk(l, 'box', TR, 0.2, 0.52, 0.22, 0, -0.26, 0);
+      const sh = grp(l, 0, -0.5, 0); mk(sh, 'box', TR, 0.18, 0.46, 0.2, 0, -0.23, 0); mk(sh, 'box', DARK, 0.2, 0.09, 0.32, 0, -0.46, 0.05);
+      legs.push({ l, sh, s, i });
+    }
+    mk(b, 'box', TR, 0.56, 0.28, 0.42, x, 1.06, -0.08);
+    mk(b, 'box', i % 2 ? NAVY : SLATE, 0.68, 0.95, 0.5, x, 1.6, -0.08);
+    mk(b, 'box', VEST, 0.6, 0.72, 0.12, x, 1.62, -0.36);
+    if (i < 4) mk(b, 'ico', R.pick(MEAT), 0.5, 0.75, 0.45, x + 0.29, 1.55, -0.12);
+    const sunk = [0, -0.2, 0, -0.06, 0.02][i];
+    const hd = helmeted(b, x + R.rnd(-0.05, 0.05), 2.24 + sunk, 0.0, { bare: i === 3 });
+    hd.rotation.z = R.rnd(-0.25, 0.25);
+    heads.push({ hd, i, z0: hd.rotation.z });
+    const side = i % 2 ? 1 : -1, a = grp(b, x + side * 0.24, 2.0, 0.0);
+    mk(a, 'box', i % 2 ? NAVY : SLATE, 0.14, 0.46, 0.14, 0, -0.23, 0);
+    const f = grp(a, 0, -0.46, 0);
+    mk(f, 'box', PALE, 0.11, 0.44, 0.11, 0, -0.22, 0); mk(f, 'cyl', BLACK, 0.07, 0.66, 0.07, 0, -0.62, 0.0); mk(f, 'box', BONE, 0.05, 0.2, 0.05, 0.05, -0.5, 0.04);
+    mk(f, 'ico', RAW, 0.16, 0.16, 0.16, 0, -0.44, 0);
+    arms.push({ a, f, i });
+  });
+  /* a head with no body of its own, coming up between two shoulders */
+  face(b, -0.3, 2.06, 0.05, 0.75, FLESH).rotation.set(-0.2, 0.3, 0.7);
+  /* the shields: a shallow arc, the seams grown shut, a lip of flesh along the bottom */
+  const front = grp(b, 0, 0, 0);
+  xs.forEach((x, i) => { const p = mk(front, 'box', SHIELD, 0.64, 1.32, 0.05, x, 1.28, 0.34 - Math.abs(i - 2) * 0.07); p.rotation.y = (i - 2) * 0.14; mk(front, 'box', BLACK, 0.62, 0.07, 0.07, x, 1.92, 0.32 - Math.abs(i - 2) * 0.07).rotation.y = (i - 2) * 0.14; });
+  for (let i = 0; i < 4; i++) mk(front, 'box', MEAT[i % 4], 0.1, 1.2, 0.14, (xs[i] + xs[i + 1]) / 2, 1.28, 0.31 - (i === 0 || i === 3 ? 0.1 : 0.03));
+  for (let k = 0; k < 9; k++) mk(front, 'ico', MEAT[k % 4], 0.38, 0.22, 0.3, -1.3 + k * 0.325, 0.66, 0.22 - Math.abs(k - 4) * 0.025);
+  return { g, b, legs, arms, heads, front };
+}
+function lineAnim(M, t, mode) {
+  const B = mode === 'blow' ? blowAt(t) : null, e = eOf(B), go = mode === 'move' || (mode === 'blow' && !B), f = 6.5;
+  for (const L of M.legs) {
+    /* in step: every left together, every right together */
+    let x = go ? Math.sin(t * f + (L.s > 0 ? PI : 0)) * 0.42 : 0;
+    if (B?.ph === 'wind') x = -0.35 * Math.max(0, Math.sin(B.q * PI * 3 + (L.s > 0 ? PI : 0)));
+    L.l.rotation.x = x; L.sh.rotation.x = go ? Math.max(0, Math.sin(t * f + (L.s > 0 ? PI : 0) + 0.8)) * 0.5 : 0;
+  }
+  M.b.position.y = go ? Math.abs(Math.sin(t * f)) * 0.04 : 0;
+  for (const A of M.arms) {
+    let x = mode === 'idle' ? -1.75 + Math.sin(t * 0.9 + A.i) * 0.06 : -1.85, fx = -0.95;
+    if (B) { x = e >= 0 ? -1.85 - 1.2 * e + (B.ph === 'wind' && B.q > 0.6 ? Math.sin(t * 30 + A.i) * 0.06 : 0) : -1.85 + 0.9 * -e; fx = e >= 0 ? -0.95 + 0.3 * e : -0.95 + 0.85 * -e; }
+    A.a.rotation.x = x; A.f.rotation.x = fx;
+  }
+  for (const H of M.heads) { H.hd.rotation.y = mode === 'idle' ? Math.sin(t * 0.55 + H.i * 1.7) * 0.6 : 0; H.hd.rotation.x = 0.1 * Math.max(0, -e); }
+  M.b.rotation.x = e >= 0 ? -0.1 * e : 0.22 * -e;
+  M.g.position.z = e >= 0 ? -0.15 * e : 1.0 * -e;
+  M.front.position.z = e >= 0 ? -0.08 * e : 0;
+}
+
+/* the Engorged: the whole team, packed into one body that had room for it. Knuckle-walks on forelimbs braided from three
+   arms each, which end in a club with a baton grown through. Armour on its back like scutes; faces in its shoulders. */
+function bruteBuild() {
+  const g = new THREE.Group(), b = grp(g, 0, 1.3, 0);
+  b.rotation.x = 0.38;
+  mk(b, 'ico', FLESH, 2.25, 1.75, 1.85, 0, 0.45, 0);
+  mk(b, 'ico', RAW, 1.45, 1.05, 1.2, 0.1, 1.0, -0.3);
+  mk(b, 'ico', PALE, 1.6, 1.05, 1.35, 0, -0.2, 0.15);
+  mk(b, 'box', NAVY, 1.2, 0.55, 0.1, 0, 0.3, 0.72);
+  mk(b, 'box', SLATE, 0.5, 0.5, 0.1, -0.55, 0.62, 0.62).rotation.y = -0.5;
+  /* body armour on its back, overlapping like scutes */
+  for (let k = 0; k < 4; k++) { const p = mk(b, 'box', VEST, 1.05 - k * 0.12, 0.1, 0.62, 0, 1.5 - k * 0.14, 0.2 - k * 0.42); p.rotation.x = 0.25 + k * 0.3; }
+  for (const s of [-1, 1]) { const p = mk(b, 'box', VEST, 0.6, 0.1, 0.55, s * 0.82, 1.2, 0.15); p.rotation.z = -s * 0.6; }
+  /* their faces, pushed out of the shoulders and the back */
+  face(b, -1.02, 0.7, -0.05, 1.15).rotation.set(0, -1.3, 0.2);
+  face(b, 0.98, 0.9, -0.2, 1.05, FLESH).rotation.set(-0.3, 1.2, -0.3);
+  const hf = face(b, 0.4, 1.38, -0.6, 1.0); hf.rotation.set(-1.4, 0.3, 0.2); mk(hf, 'ico', HELM, 0.36, 0.2, 0.36, 0, 0.1, -0.04);
+  /* its own head, small, sunk low in the chest, a helmet split down one side */
+  const hd = grp(b, 0, 0.38, 1.02);
+  mk(hd, 'ico', PALE, 0.44, 0.48, 0.42, 0, 0, 0); mk(hd, 'ico', DARK, 0.06, 0.06, 0.05, -0.1, 0.06, 0.2); mk(hd, 'ico', DARK, 0.06, 0.06, 0.05, 0.1, 0.03, 0.2);
+  mk(hd, 'box', DARK, 0.22, 0.05, 0.04, 0.03, -0.12, 0.2).rotation.z = 0.35;
+  mk(hd, 'ico', HELM, 0.42, 0.24, 0.46, -0.06, 0.16, -0.02).rotation.z = 0.35;
+  hd.rotation.x = -0.4;
+  /* forelimbs, each three arms braided */
+  const arms = [];
+  for (const s of [-1, 1]) {
+    const a = grp(b, s * 1.08, 0.6, 0.35);
+    const braid = (p, cols, len, w) => [[0.1, 0], [-0.08, 0.1], [-0.03, -0.11]].forEach(([dx, dz], j) => { const m = mk(p, 'box', cols[j], w, len, w, dx, -len / 2, dz); m.rotation.z = (j - 1) * 0.08; m.rotation.y = j * 0.4; });
+    braid(a, [NAVY, FLESH, PALE], 0.8, 0.24);
+    mk(a, 'ico', RAW, 0.62, 0.55, 0.62, 0, -0.05, 0);
+    const f = grp(a, 0, -0.8, 0);
+    mk(f, 'ico', RAW, 0.44, 0.4, 0.44, 0, 0, 0);
+    braid(f, [PALE, FLESH, SLATE], 0.68, 0.22);
+    const c = grp(f, 0, -0.72, 0);
+    mk(c, 'ico', RAW, 0.74, 0.5, 0.74, 0, 0, 0); mk(c, 'ico', FLESH, 0.52, 0.36, 0.55, 0.05, 0.14, -0.05);
+    for (let k = 0; k < 5; k++) { const sp = mk(c, 'box', BONE, 0.09, 0.28, 0.09, Math.cos(k * 1.25) * 0.27, -0.18, Math.sin(k * 1.25) * 0.27); sp.rotation.set(Math.sin(k * 1.25) * 0.5, 0, -Math.cos(k * 1.25) * 0.5); }
+    mk(c, 'cyl', BLACK, 0.08, 0.8, 0.08, 0, 0.05, 0.36).rotation.x = 1.25;
+    a.rotation.z = s * 0.2;
+    arms.push({ a, f, c, s });
+  }
+  /* hind legs, short and thick, and the hips they hang from */
+  mk(g, 'ico', FLESH, 1.25, 0.75, 0.95, 0, 1.12, -0.6); mk(g, 'box', TR, 1.0, 0.3, 0.6, 0, 1.0, -0.65);
+  const legs = [];
+  for (const s of [-1, 1]) {
+    const l = grp(g, s * 0.46, 1.02, -0.62);
+    mk(l, 'box', TR, 0.42, 0.6, 0.46, 0, -0.26, 0);
+    const sh = grp(l, 0, -0.55, 0); mk(sh, 'box', TR, 0.34, 0.42, 0.36, 0, -0.18, 0); mk(sh, 'box', DARK, 0.36, 0.12, 0.52, 0, -0.42, 0.08);
+    legs.push({ l, sh, s });
+  }
+  return { g, b, hd, arms, legs };
+}
+function bruteAnim(M, t, mode) {
+  const B = mode === 'blow' ? blowAt(t) : null, e = eOf(B), go = mode === 'move' || (mode === 'blow' && !B), f = 5.5;
+  const br = 1 + Math.sin(t * 1.1) * 0.025;
+  M.b.scale.set(br, 1 / br, br);
+  M.b.rotation.x = 0.38 + (e >= 0 ? -1.0 * e : 0.45 * -e);
+  M.b.position.y = 1.3 + (e >= 0 ? 0.35 * e : -0.25 * -e) + (go ? Math.abs(Math.sin(t * f)) * 0.06 : 0);
+  M.b.rotation.z = go ? Math.sin(t * f) * 0.07 : 0;
+  for (const A of M.arms) {
+    let x = -0.62, fx = 0;
+    if (go) { x += Math.sin(t * f + (A.s > 0 ? PI : 0)) * 0.42; fx = Math.max(0, Math.sin(t * f + (A.s > 0 ? PI : 0) + 0.6)) * -0.4; }
+    if (B) { x = e >= 0 ? -0.62 - 2.3 * e + (B.ph === 'wind' && B.q > 0.65 ? Math.sin(t * 34 + A.s) * 0.08 : 0) : -0.62 - 0.55 * -e; fx = e >= 0 ? -0.5 * e : 0; }
+    A.a.rotation.x = x; A.f.rotation.x = fx; A.a.rotation.z = A.s * (0.2 + 0.25 * Math.max(0, e));
+  }
+  for (const L of M.legs) { L.l.rotation.x = go ? Math.sin(t * f + (L.s > 0 ? 0 : PI)) * 0.45 : 0.25 * Math.max(0, e); L.sh.rotation.x = go ? Math.max(0, Math.sin(t * f + 0.8)) * 0.4 : 0; }
+  M.hd.rotation.y = mode === 'idle' ? Math.sin(t * 0.4) * 0.5 : 0;
+  M.g.position.z = e < 0 ? 0.5 * -e : 0;
+}
+
+/* the Cordon: six, arms linked, facing out. Containment, as trained. No front and no back: it never turns to see you.
+   It opens, and closes over where you stand. */
+function cordonBuild() {
+  const g = new THREE.Group(), ring = grp(g, 0, 0, 0), N = 6, R = 1.3, rs = seeded(5), bodies = [], links = [];
+  for (let i = 0; i < N; i++) {
+    const a = (i / N) * PI * 2, p = grp(ring, Math.sin(a) * R, 0, Math.cos(a) * R);
+    p.rotation.y = a;
+    const legs = [];
+    for (const s of [-1, 1]) {
+      const l = grp(p, s * 0.15, 1.0, 0.04);
+      mk(l, 'box', TR, 0.2, 0.52, 0.22, 0, -0.26, 0);
+      const sh = grp(l, 0, -0.5, 0); mk(sh, 'box', TR, 0.18, 0.48, 0.2, 0, -0.23, 0); mk(sh, 'box', DARK, 0.2, 0.09, 0.32, 0, -0.47, 0.05);
+      legs.push({ l, sh, s });
+    }
+    const t = grp(p, 0, 1.04, 0);
+    mk(t, 'box', TR, 0.5, 0.26, 0.38, 0, 0.02, 0);
+    mk(t, 'box', i % 2 ? NAVY : SLATE, 0.62, 0.82, 0.42, 0, 0.5, 0);
+    mk(t, 'box', VEST, 0.56, 0.6, 0.1, 0, 0.52, 0.22);
+    const hd = helmeted(t, 0, 1.12, 0.02, { bare: i === 2 || i === 5 });
+    mk(t, 'box', FLESH, 0.12, 0.14, 0.12, 0, 0.94, 0);
+    /* one arm free, hanging outward with its baton; the others are the links */
+    const fa = grp(t, (i % 2 ? 1 : -1) * 0.2, 0.78, 0.18);
+    mk(fa, 'box', i % 2 ? NAVY : SLATE, 0.13, 0.42, 0.13, 0, -0.21, 0);
+    const ff = grp(fa, 0, -0.42, 0); mk(ff, 'box', PALE, 0.1, 0.4, 0.1, 0, -0.2, 0); mk(ff, 'cyl', BLACK, 0.065, 0.6, 0.065, 0, -0.5, 0.02);
+    bodies.push({ p, t, legs, hd, fa, ff, a, i });
+  }
+  /* linked arms between neighbours, two rows; a knot of gut hung in the middle, and the cords to it */
+  for (let i = 0; i < N; i++) for (const [y, c] of [[1.72, 0], [1.3, 1], [1.0, 2]]) {
+    const m = c === 2 ? mk(ring, 'ico', MEAT[i % 4], 1.1, 0.42, 0.5, 0, y, 0) : mk(ring, 'box', c ? FLESH : (i % 2 ? NAVY : SLATE), 1, 0.17, 0.17, 0, y, 0);
+    const elbow = mk(ring, 'ico', rs.pick(MEAT), 0.34, 0.3, 0.34, 0, y, 0);
+    links.push({ m, elbow, i, y });
+  }
+  const knot = mk(g, 'ico', RAW, 0.55, 0.5, 0.55, 0, 1.45, 0);
+  mk(g, 'ico', MEAT[1], 0.35, 0.3, 0.3, 0.12, 1.3, 0.1);
+  const cords = bodies.map(B => mk(ring, 'box', MEAT[B.i % 4], 0.09, 0.09, 1, 0, 1.5, 0));
+  return { g, ring, bodies, links, cords, knot, N, R };
+}
+function cordonAnim(M, t, mode) {
+  const B = mode === 'blow' ? blowAt(t) : null, e = eOf(B), go = mode === 'move' || (mode === 'blow' && !B), f = 8;
+  const R = M.R * (e >= 0 ? 1 + 0.38 * e : 1 - 0.32 * -e);
+  M.ring.rotation.y = t * (mode === 'move' ? 0.35 : 0.08);
+  for (const P of M.bodies) {
+    P.p.position.set(Math.sin(P.a) * R, go ? Math.abs(Math.sin(t * f + P.i)) * 0.04 : 0, Math.cos(P.a) * R);
+    P.t.rotation.x = e >= 0 ? -0.12 + 0.35 * e : -0.12 - 0.5 * -e;
+    for (const L of P.legs) { const ph = t * f + P.i * 1.05 + (L.s > 0 ? PI : 0); L.l.rotation.x = -0.22 + (go ? Math.sin(ph) * 0.45 : 0); L.l.rotation.z = L.s * 0.08; L.sh.rotation.x = go ? Math.max(0, Math.sin(ph + 0.8)) * 0.5 : 0.1; }
+    P.fa.rotation.x = e >= 0 ? -0.3 - 2.2 * e + (B?.ph === 'wind' && B.q > 0.6 ? Math.sin(t * 30 + P.i) * 0.07 : 0) : -0.3 - 1.0 * -e;
+    P.ff.rotation.x = -0.25;
+    P.hd.rotation.y = mode === 'idle' ? Math.sin(t * 0.7 + P.i * 2.1) * 0.5 : 0;
+  }
+  /* the links follow the bodies: from one torso to the next, an elbow in the middle */
+  const lean = e >= 0 ? -0.12 + 0.35 * e : -0.12 - 0.5 * -e;
+  for (const L of M.links) {
+    const A = M.bodies[L.i], Bb = M.bodies[(L.i + 1) % M.N], off = (L.y - 1.04) * Math.sin(lean);
+    const ax = Math.sin(A.a) * (R + off), az = Math.cos(A.a) * (R + off), bx = Math.sin(Bb.a) * (R + off), bz = Math.cos(Bb.a) * (R + off);
+    const mx = (ax + bx) / 2, mz = (az + bz) / 2, len = Math.hypot(bx - ax, bz - az);
+    L.m.position.set(mx, L.y + A.p.position.y, mz); L.m.scale.x = len; L.m.rotation.y = Math.atan2(bx - ax, bz - az) - PI / 2;
+    L.elbow.position.set(mx * 0.96, L.y - 0.04, mz * 0.96);
+  }
+  for (const [k, c] of M.cords.entries()) {
+    const P = M.bodies[k], x = Math.sin(P.a) * R * 0.5, z = Math.cos(P.a) * R * 0.5;
+    c.position.set(x, 1.5, z); c.scale.z = R; c.rotation.y = P.a;
+  }
+  M.knot.scale.setScalar(1 + Math.sin(t * 2.4) * 0.06);
+  M.g.position.z = e < 0 ? 0.6 * -e : 0;
+}
+
+/* =====================================================================================================
+   THE OVERSEER
+   Each stands in the same corner of the operations room: screens and their watchers behind it (level geometry in the
+   game, drawn here for context), the zone board in front of it, the glass beyond, the hall below.
+   ===================================================================================================== */
+
+/** the room around an overseer: watchers at three screens with their cords to `to`, the zone board, the glass */
+function opsRoom(target, boardZ = 1.3, front = true) {
+  const g = new THREE.Group(), lamps = [];
+  mk(g, 'box', 0x2c2e31, 7.5, 0.1, 6.2, 0, -0.05, -0.1);
+  for (let k = -1; k <= 1; k += 2) mk(g, 'box', 0x24262a, 7.5, 0.012, 0.03, 0, 0.005, k * 1.0);
+  /* the desk along the back wall, its screens, a watcher at each */
+  mk(g, 'box', 0x3a3d40, 5.2, 0.06, 0.75, 0, 0.76, -2.55);
+  for (const x of [-2.4, 2.4]) mk(g, 'box', 0x2a2c2e, 0.06, 0.74, 0.7, x, 0.37, -2.55);
+  mk(g, 'box', 0x24262a, 7.5, 3.2, 0.2, 0, 1.6, -3.15);
+  const cordsTo = [];
+  [-1.6, 0, 1.6].forEach((x, k) => {
+    mk(g, 'box', 0x22262a, 1.15, 0.8, 0.06, x, 1.32, -2.9);
+    mk(g, 'box', k === 1 ? [0.05, 0.07, 0.08] : SCREEN, 1.04, 0.68, 0.02, x, 1.33, -2.86);
+    const W = grp(g, x, 0, -2.1);
+    mk(W, 'box', MEAT[k % 4], 0.55, 0.85, 0.45, 0, 0.78, 0).rotation.z = ((k * 7) % 5 - 2) * 0.06;
+    mk(W, 'ico', MEAT[(k + 1) % 4], 0.42, 0.4, 0.42, 0, 1.15, -0.16);
+    mk(W, 'ico', EYEW, 0.36, 0.34, 0.24, 0.03, 1.22, -0.3); mk(W, 'ico', PUPIL, 0.14, 0.14, 0.06, 0.03, 1.26, -0.41);
+    mk(W, 'ico', MEAT[(k + 2) % 4], 0.26, 0.12, 0.2, 0.18, 0.8, -0.42);
+    cordsTo.push([x, 0.62 + k * 0.08, -1.9]);
+  });
+  for (const a of cordsTo) bar(g, 'box', MEAT[1], 0.16, 0.16, a, target);
+  bar(g, 'box', MEAT[0], 0.18, 0.16, [-0.8, 0.82, -2.0], [-1.6, 0.72, -2.0]); bar(g, 'box', MEAT[3], 0.18, 0.16, [0.8, 0.95, -2.0], [1.6, 0.8, -2.0]);
+  /* the zone board: four zones, a lamp and a lever for each */
+  const bd = grp(g, 0, 0, boardZ);
+  mk(bd, 'box', 0x2f3236, 2.2, 0.9, 0.5, 0, 0.45, 0);
+  const top = mk(bd, 'box', 0x26292c, 2.2, 0.06, 0.62, 0, 0.95, -0.02); top.rotation.x = -0.35;
+  [[2.6, 0.9, 0.55], [2.3, 2.9, 2.4], [2.3, 2.9, 2.4], [2.9, 2.4, 1.2]].forEach((c, k) => { mk(bd, 'box', c, 0.08, 0.05, 0.08, -0.75 + k * 0.5, 1.02, -0.18); mk(bd, 'box', 0x8a8e92, 0.04, 0.16, 0.04, -0.75 + k * 0.5, 1.02, 0.08); });
+  /* the glass onto the hall, the wall under it down to the hall floor, and the hall's light */
+  if (!front) return g;
+  mk(g, 'box', 0x2c2f33, 7.5, 0.9, 0.3, 0, 0.45, 2.45);
+  mk(g, 'box', 0x27292c, 7.5, 6.2, 0.3, 0, -3.15, 2.45);
+  mk(g, 'box', 0x27292c, 7.5, 0.5, 0.3, 0, 3.75, 2.45);
+  for (const x of [-3.0, -1.0, 1.0, 3.0]) mk(g, 'box', 0x1c1e20, 0.1, 2.6, 0.18, x, 2.2, 2.45);
+  const glass = new THREE.Mesh(new THREE.PlaneGeometry(7.5, 2.6), new THREE.MeshBasicMaterial({ color: 0x9fb2bb, transparent: true, opacity: 0.1, depthWrite: false, side: THREE.DoubleSide }));
+  glass.position.set(0, 2.2, 2.45); g.add(glass);
+  mk(g, 'box', 0x3b3c3e, 14, 0.1, 9, 0, -6.25, 7.2);
+  return g;
+}
+/* pustules: the sick glow, which needs no power */
+function pustules(p, at) { for (const [x, y, z, n] of at) for (let k = 0; k < n; k++) mk(p, 'ico', GLOW, 0.2 + (k % 2) * 0.08, 0.17, 0.2, x + (k - n / 2) * 0.15, y + (k % 2) * 0.12, z + ((k * 5) % 3 - 1) * 0.1); }
+/* a long lashing arm, in segments like a grabber's: grows from p at (x, y, z) */
+function lasher(p, x, y, z, n, len, cols) {
+  let par = grp(p, x, y, z); const root = par, ch = [];
+  for (let s = 0; s < n; s++) { mk(par, 'box', cols[s % cols.length], 0.13 - 0.01 * s, len, 0.13 - 0.01 * s, 0, len / 2, 0); ch.push(par); par = grp(par, 0, len, 0); }
+  mk(par, 'ico', RAW, 0.2, 0.16, 0.16, 0, 0.04, 0); mk(par, 'box', BONE, 0.05, 0.22, 0.05, 0, 0.14, 0.03);
+  return { root, ch };
+}
+/** the lash's tell, as the overseer's today: up, shaking, then down at you */
+function lashAnim(L, t, e, B, side, rest) {
+  L.ch.forEach((c, s) => {
+    const sway = Math.sin(t * 1.4 + s * 0.7 + side) * 0.08;
+    c.rotation.x = e >= 0 ? rest[s] * (1 - e) + (s === 0 ? -0.2 : 0.18) * e + sway + (B?.ph === 'wind' && B.q > 0.6 ? Math.sin(t * 32 + s) * 0.06 : 0) : 0.18 + 0.25 * -e;
+    c.rotation.z = side * (s === 0 ? 0.3 : 0.05);
+  });
+}
+
+/* the Desk: the brief as written, made solid. Several fused at the shift supervisor's seat; the head off to one side,
+   growing another; the mouth dragged; a row of hands on the board; two long arms folded on its back for the lash. */
+function deskBuild() {
+  const g = new THREE.Group(), body = grp(g, 0, 0, 0), R = seeded(3);
+  for (const [x, z, s, y] of [[-0.35, -0.2, 1.5, 0.45], [0.45, -0.1, 1.3, 0.5], [0.05, 0.35, 1.2, 0.75], [0.5, 0.45, 0.9, 1.1], [-0.55, 0.3, 0.95, 1.0]]) mk(body, 'ico', R.pick(MEAT), s, s * 0.8, s, x, y, z);
+  for (const [x, z, ry, rz] of [[-0.9, 0.1, 0.4, 0.9], [0.95, 0.3, -0.5, -0.8], [0.1, -0.7, 1.4, 0.6]]) { const m = mk(body, 'box', 0xb08a78, 0.9, 0.12, 0.14, x, 1.1, z); m.rotation.set(0, ry, rz); }
+  const trunk = grp(body, 0, 1.2, 0.3);
+  mk(trunk, 'ico', 0x9a6a5a, 1.15, 1.3, 0.95, 0, 0.45, 0); mk(trunk, 'box', NAVY, 0.9, 0.6, 0.1, -0.05, 0.4, 0.45); mk(trunk, 'ico', RAW, 0.6, 0.5, 0.5, -0.35, 0.8, 0.1);
+  const hd = grp(trunk, 0.32, 1.25, 0.15);
+  mk(hd, 'ico', 0x9a6a5a, 0.95, 1.05, 0.88, 0, 0, 0);
+  const bud = grp(hd, 0.32, 0.55, -0.05); mk(bud, 'ico', 0x8c5a50, 0.6, 0.55, 0.55, 0, 0, 0); mk(bud, 'ico', EYEW, 0.16, 0.11, 0.06, 0.06, 0.04, 0.26); mk(bud, 'ico', PUPIL, 0.07, 0.07, 0.03, 0.07, 0.04, 0.29);
+  mk(hd, 'ico', EYEW, 0.26, 0.22, 0.1, -0.2, 0.18, 0.41); mk(hd, 'ico', PUPIL, 0.1, 0.1, 0.04, -0.2, 0.18, 0.46);
+  mk(hd, 'ico', EYEW, 0.34, 0.2, 0.1, 0.16, 0.02, 0.41); mk(hd, 'ico', PUPIL, 0.1, 0.1, 0.04, 0.18, 0.02, 0.46);
+  mk(hd, 'box', 0x2a0e0c, 0.72, 0.13, 0.06, 0.12, -0.25, 0.42).rotation.z = 0.42;
+  /* a row of hands on the board, from shoulders all over the front of it */
+  const hands = [];
+  [-0.75, -0.25, 0.25, 0.75].forEach((bx, k) => {
+    const from = [bx * 0.55, 1.45 + (k % 2) * 0.2, 0.55], to = [bx, 1.02, 1.12];
+    bar(body, 'box', k % 2 ? FLESH : NAVY, 0.13, 0.13, from, to);
+    const h = mk(body, 'ico', 0xb08a78, 0.2, 0.09, 0.24, to[0], to[1] + 0.03, to[2] + 0.06); hands.push({ h, k, y: to[1] + 0.03 });
+  });
+  const L1 = lasher(trunk, -0.45, 0.8, -0.3, 6, 0.42, [FLESH, PALE]), L2 = lasher(trunk, 0.5, 0.75, -0.35, 6, 0.42, [PALE, FLESH]);
+  pustules(body, [[-0.4, 1.2, -0.3, 4], [0.4, 1.4, 0.1, 3], [0.6, 0.9, 0.6, 4], [-0.7, 0.8, 0.5, 3]]);
+  return { g, hd, bud, trunk, hands, lash: [L1, L2], rest: [-2.2, 0.5, 0.5, 0.45, 0.45, 0.4], glow: [0, 1.2, 0], cord: [0, 0.7, -0.5] };
+}
+function deskAnim(M, t, mode) {
+  const B = mode === 'blow' ? blowAt(t) : null, e = eOf(B);
+  const s = 1 + Math.sin(t * 0.9) * 0.02;
+  M.trunk.scale.set(s, 1 / s, s);
+  M.hd.rotation.z = Math.sin(t * 0.4) * 0.08; M.hd.rotation.y = mode === 'move' ? Math.sin(t * 0.8) * 0.35 : Math.sin(t * 0.23) * 0.2;
+  M.bud.rotation.z = Math.sin(t * 0.7 + 1) * 0.15;
+  for (const H of M.hands) H.h.position.y = H.y + Math.max(0, Math.sin(t * (mode === 'move' ? 6 : 1.5) + H.k * 1.7)) * 0.05;
+  M.lash.forEach((L, i) => lashAnim(L, t, e, B, i ? -1 : 1, M.rest));
+}
+
+/* the Periscope: one of them grew up to see over the others. A heap on the floor and a neck of spines wound together,
+   lifting one swollen eye to the top of the glass. It turns between the screens and the hall, so from below you can
+   see which it is watching. */
+function periBuild() {
+  const g = new THREE.Group(), R = seeded(9), heap = grp(g, 0, 0, 0);
+  for (const [x, z, s, y] of [[-0.4, -0.3, 1.5, 0.45], [0.5, -0.2, 1.3, 0.45], [0.0, 0.3, 1.2, 0.5], [-0.7, 0.4, 0.9, 0.35], [0.7, 0.5, 0.8, 0.3]]) mk(heap, 'ico', R.pick(MEAT), s, s * 0.7, s, x, y, z);
+  face(heap, -0.85, 0.6, 0.55, 1.0).rotation.set(-0.3, -0.6, 0.2);
+  face(heap, 0.75, 0.55, 0.75, 0.9, FLESH).rotation.set(-0.4, 0.5, -0.3);
+  face(heap, 0.1, 0.85, 0.85, 1.1).rotation.set(-0.7, 0.1, 0.5);
+  for (const [x, z, ry, rz] of [[-1.0, -0.4, 0.4, 0.5], [1.0, 0.1, -0.5, -0.5]]) { const m = mk(heap, 'box', 0xb08a78, 0.8, 0.12, 0.14, x, 0.7, z); m.rotation.set(0, ry, rz); }
+  /* the neck: spines wound together, rising and bending over */
+  const neck = []; let par = grp(heap, 0.05, 0.85, -0.15); const base = par;
+  for (let s = 0; s < 9; s++) {
+    mk(par, 'box', MEAT[s % 4], 0.3 - s * 0.012, 0.42, 0.3 - s * 0.012, 0, 0.21, 0);
+    mk(par, 'box', BONE, 0.09, 0.1, 0.14, 0, 0.3, -0.15); mk(par, 'box', BONE, 0.06, 0.38, 0.06, 0.1, 0.2, 0.08).rotation.z = 0.25;
+    neck.push(par); par = grp(par, 0, 0.4, 0);
+  }
+  const hd = grp(par, 0, 0.2, 0);
+  mk(hd, 'ico', 0x9a6a5a, 0.85, 0.75, 0.9, 0, 0, 0);
+  mk(hd, 'ico', EYEW, 0.6, 0.55, 0.32, 0, -0.02, 0.32); const pupil = mk(hd, 'ico', PUPIL, 0.22, 0.22, 0.08, 0, -0.02, 0.47);
+  face(hd, -0.36, 0.2, 0.12, 0.6, FLESH).rotation.set(0, -1.0, 0);
+  mk(hd, 'box', 0x2a0e0c, 0.4, 0.08, 0.06, 0.12, -0.3, 0.3).rotation.z = 0.5;
+  /* hands reaching from the heap to the board */
+  const hands = [];
+  [-0.6, 0.0, 0.6].forEach((bx, k) => { const to = [bx, 1.02, 1.12]; bar(heap, 'box', k % 2 ? FLESH : NAVY, 0.12, 0.12, [bx * 0.6, 0.7, 0.45], to); hands.push({ h: mk(heap, 'ico', 0xb08a78, 0.2, 0.09, 0.24, to[0], to[1] + 0.03, to[2] + 0.06), k, y: to[1] + 0.03 }); });
+  pustules(heap, [[-0.4, 0.95, -0.3, 4], [0.5, 0.85, -0.1, 4], [0.1, 0.9, 0.5, 3]]);
+  pustules(neck[2], [[0.12, 0.2, 0.1, 2]]);
+  return { g, neck, base, hd, pupil, hands, glow: [0, 0.9, 0], cord: [0, 0.6, -0.5] };
+}
+function periAnim(M, t, mode) {
+  const B = mode === 'blow' ? blowAt(t) : null, e = eOf(B);
+  /* it looks at its screens, then at the hall, and back: slow, holding at each */
+  const cyc = (t * 0.12) % 1, look = cyc < 0.35 ? 0 : cyc < 0.5 ? ease((cyc - 0.35) / 0.15) : cyc < 0.85 ? 1 : 1 - ease((cyc - 0.85) / 0.15);
+  const yaw = mode === 'move' ? Math.sin(t * 0.9) * 0.9 : look * PI; // 0: the hall; PI: the screens
+  const bendF = [0.0, 0.06, 0.1, 0.16, 0.24, 0.3, 0.32, 0.3, 0.26];
+  M.base.rotation.y = mode === 'blow' ? 0 : yaw;
+  M.neck.forEach((n, s) => {
+    let x = bendF[s];
+    if (B) x = e >= 0 ? bendF[s] * (1 - e) + (s < 4 ? -0.16 : 0.05) * e : bendF[s] + 0.12 * -e;
+    n.rotation.x = x + Math.sin(t * 0.8 + s * 0.5) * 0.015;
+    n.rotation.z = Math.sin(t * 0.5 + s * 0.4) * 0.02 + (B?.ph === 'wind' && B.q > 0.65 ? Math.sin(t * 30 + s) * 0.015 : 0);
+  });
+  M.hd.rotation.x = 0.35 + (B ? (e >= 0 ? 0.2 * e : 0.35 * -e) : 0);
+  M.pupil.position.x = Math.sin(t * 0.9) * 0.06;
+  for (const H of M.hands) H.h.position.y = H.y + Math.max(0, Math.sin(t * 1.4 + H.k * 2)) * 0.04;
+}
+
+/* the Shift: everyone on shift, pressed to the window. A broad mass on the sill, nine faces at the glass, their eyes
+   swollen against it, tracking you together. Hug the wall under the sill and none of them can see you. */
+function shiftBuild() {
+  const g = new THREE.Group(), R = seeded(13), mass = grp(g, 0, 0, 0), sheet = grp(mass, 0, 0, 2.05);
+  for (let k = 0; k < 8; k++) mk(sheet, 'ico', R.pick(MEAT), R.rnd(0.9, 1.3), R.rnd(0.8, 1.1), 0.7, -2.45 + k * 0.7, R.rnd(1.6, 2.4), -0.25);
+  for (let k = 0; k < 6; k++) mk(mass, 'ico', R.pick(MEAT), R.rnd(0.9, 1.3), R.rnd(1.0, 1.5), R.rnd(0.9, 1.3), -1.8 + k * 0.72, R.rnd(0.5, 0.9), R.rnd(1.0, 1.5));
+  const eyes = [];
+  for (let k = 0; k < 9; k++) {
+    const x = -2.4 + k * 0.6, y = (k % 2 ? 2.35 : 1.75) + R.rnd(-0.1, 0.1), f = grp(sheet, x, y, 0.12);
+    mk(f, 'ico', k % 3 ? PALE : FLESH, 0.48, 0.5, 0.22, 0, 0, 0);
+    const ew = mk(f, 'ico', EYEW, 0.3, 0.26, 0.14, R.rnd(-0.06, 0.06), 0.06, 0.08), pu = mk(f, 'ico', PUPIL, 0.11, 0.11, 0.04, 0, 0.06, 0.15);
+    mk(f, 'box', DARK, 0.16, 0.04, 0.03, 0.02, -0.15, 0.1).rotation.z = R.rnd(-0.4, 0.4);
+    f.rotation.z = R.rnd(-0.3, 0.3);
+    eyes.push({ f, ew, pu, k, px: pu.position.x });
+  }
+  /* its hands: along the board under the window */
+  const hands = [];
+  for (let k = 0; k < 6; k++) { const x = -1.6 + k * 0.64; bar(mass, 'box', k % 2 ? FLESH : NAVY, 0.12, 0.12, [x * 0.9, 1.2, 1.6], [x * 0.5, 1.02, 1.12]); hands.push({ h: mk(mass, 'ico', 0xb08a78, 0.2, 0.09, 0.24, x * 0.5, 1.05, 1.1), k, y: 1.05 }); }
+  const L1 = lasher(sheet, -2.6, 2.6, -0.4, 6, 0.4, [FLESH, PALE]), L2 = lasher(sheet, 2.6, 2.55, -0.4, 6, 0.4, [PALE, FLESH]);
+  pustules(mass, [[-1.2, 1.25, 1.4, 4], [0.9, 1.3, 1.5, 4], [0.0, 1.1, 1.0, 3]]);
+  return { g, sheet, eyes, hands, lash: [L1, L2], rest: [-0.35, -0.3, -0.25, -0.2, 0.1, 0.15], glow: [0, 1.3, 1.3], cord: [0, 0.8, 0.9], boardZ: 1.25, wide: true };
+}
+function shiftAnim(M, t, mode) {
+  const B = mode === 'blow' ? blowAt(t) : null, e = eOf(B);
+  const gx = mode === 'move' ? Math.sin(t * 1.3) * 0.07 : Math.sin(t * 0.35) * 0.06;
+  for (const E of M.eyes) {
+    E.pu.position.x = E.px + gx; E.pu.position.y = 0.06 - 0.03 * Math.max(0, -e);
+    /* they blink one after another along the row */
+    const bl = (t * 0.9 - E.k * 0.08) % 3.5;
+    E.ew.scale.y = bl < 0.12 ? 0.15 : 1; E.pu.visible = bl >= 0.12;
+  }
+  M.sheet.position.z = 2.05 + (e >= 0 ? -0.4 * e : -0.4 + 0.5 * -e);
+  M.sheet.scale.y = 1 + Math.sin(t * 0.9) * 0.015;
+  for (const H of M.hands) H.h.position.y = H.y + Math.max(0, Math.sin(t * (mode === 'move' ? 5 : 1.2) + H.k * 1.3)) * 0.05;
+  M.lash.forEach((L, i) => lashAnim(L, t, e, B, i ? -1 : 1, M.rest));
+}
+
+/* the Operator: not a boss, a seat. One of them, still in the duty chair, grown into it and through it into the floor.
+   Long arms reach the board in front and the desk behind. It turns between them, slowly, and you hear the chair. */
+function operatorBuild() {
+  const g = new THREE.Group(), R = seeded(17);
+  /* the chair's foot, and the roots it has put down */
+  for (let k = 0; k < 5; k++) { const a = (k / 5) * PI * 2, m = mk(g, 'box', DARK, 0.06, 0.06, 0.38, Math.sin(a) * 0.19, 0.08, Math.cos(a) * 0.19); m.rotation.y = a; mk(g, 'cyl', BLACK, 0.06, 0.06, 0.06, Math.sin(a) * 0.36, 0.04, Math.cos(a) * 0.36); }
+  mk(g, 'cyl', 0x3a3d40, 0.08, 0.36, 0.08, 0, 0.28, 0);
+  for (let k = 0; k < 7; k++) { const a = k * 0.9 + 0.3, len = R.rnd(0.7, 1.4); bar(g, 'box', MEAT[k % 4], 0.12, 0.08, [Math.sin(a) * 0.1, 0.35, Math.cos(a) * 0.1], [Math.sin(a) * len, 0.03, Math.cos(a) * len]); }
+  mk(g, 'ico', RAW, 0.36, 0.3, 0.36, 0, 0.32, 0);
+  /* what turns: the seat, and him in it */
+  const sw = grp(g, 0, 0.48, 0);
+  mk(sw, 'box', 0x2a2c2e, 0.62, 0.1, 0.6, 0, 0, 0);
+  mk(sw, 'box', 0x2a2c2e, 0.58, 0.7, 0.08, 0, 0.42, -0.3).rotation.x = -0.12;
+  for (const s of [-1, 1]) mk(sw, 'box', BLACK, 0.06, 0.06, 0.4, s * 0.32, 0.25, 0.0);
+  mk(sw, 'ico', 0x9a6a5a, 0.75, 0.4, 0.7, 0, 0.12, 0.02); // grown over the seat
+  mk(sw, 'box', 0x7a3a34, 0.5, 0.5, 0.1, 0, 0.42, -0.26); // and up the back
+  for (const s of [-1, 1]) { const th = mk(sw, 'box', TR, 0.2, 0.18, 0.5, s * 0.15, 0.16, 0.28); const sh = mk(sw, 'box', TR, 0.18, 0.5, 0.18, s * 0.15, -0.12, 0.52); sh.rotation.x = 0.15; mk(sw, 'box', DARK, 0.18, 0.08, 0.28, s * 0.15, -0.39, 0.6); }
+  /* the spine, drawn out long and hunched forward over the board */
+  const sp = grp(sw, 0, 0.2, -0.05); sp.rotation.x = 0.45;
+  mk(sp, 'box', NAVY, 0.55, 0.8, 0.36, 0, 0.4, 0);
+  mk(sp, 'box', FLESH, 0.4, 0.6, 0.3, 0, 1.05, 0.0);
+  for (let v = 0; v < 7; v++) mk(sp, 'box', BONE, 0.08, 0.08, 0.1, 0, 0.15 + v * 0.18, -0.2);
+  mk(sp, 'ico', RAW, 0.4, 0.35, 0.35, 0.22, 0.85, 0.05);
+  const neck = grp(sp, 0, 1.32, 0.02); neck.rotation.x = 0.4;
+  mk(neck, 'box', FLESH, 0.16, 0.42, 0.16, 0, 0.18, 0);
+  const hd = grp(neck, 0, 0.5, 0.12);
+  mk(hd, 'ico', PALE, 0.78, 0.82, 0.72, 0, 0, 0);
+  mk(hd, 'ico', 0x9a6a5a, 0.5, 0.45, 0.45, -0.2, 0.32, -0.25); // another, coming out of the back of it
+  mk(hd, 'ico', EYEW, 0.24, 0.18, 0.08, -0.16, 0.1, 0.33); mk(hd, 'ico', PUPIL, 0.08, 0.08, 0.03, -0.16, 0.1, 0.37);
+  mk(hd, 'ico', EYEW, 0.3, 0.24, 0.08, 0.15, 0.04, 0.33); mk(hd, 'ico', PUPIL, 0.1, 0.1, 0.03, 0.16, 0.04, 0.37);
+  mk(hd, 'ico', EYEW, 0.14, 0.1, 0.06, 0.24, 0.26, 0.28); mk(hd, 'ico', PUPIL, 0.05, 0.05, 0.03, 0.25, 0.26, 0.31);
+  mk(hd, 'box', 0x2a0e0c, 0.42, 0.08, 0.06, 0.05, -0.2, 0.33).rotation.z = 0.45;
+  hd.rotation.x = -0.6;
+  /* four arms: two very long, jointed three times, out to the board; two on the armrests */
+  const long = [];
+  for (const s of [-1, 1]) {
+    const a = grp(sp, s * 0.3, 1.0, 0.05), ch = []; let par = a;
+    for (let k = 0; k < 3; k++) { mk(par, 'box', k ? PALE : NAVY, 0.11 - k * 0.01, 0.75, 0.11 - k * 0.01, 0, -0.37, 0); mk(par, 'ico', RAW, 0.16, 0.16, 0.16, 0, 0, 0); ch.push(par); par = grp(par, 0, -0.75, 0); }
+    mk(par, 'ico', 0xb08a78, 0.18, 0.09, 0.24, 0, -0.04, 0.04);
+    long.push({ ch, s });
+  }
+  for (const s of [-1, 1]) { mk(sw, 'box', NAVY, 0.1, 0.1, 0.4, s * 0.3, 0.35, 0.05); mk(sw, 'ico', 0xb08a78, 0.15, 0.08, 0.18, s * 0.32, 0.3, 0.25); }
+  pustules(sw, [[0.0, 0.25, -0.35, 3], [0.25, 0.15, 0.25, 2]]);
+  pustules(sp, [[-0.2, 0.6, -0.15, 3]]);
+  return { g, sw, sp, neck, hd, long, glow: [0, 1.0, 0], cord: [0, 0.2, -0.3] };
+}
+function operatorAnim(M, t, mode) {
+  const B = mode === 'blow' ? blowAt(t) : null, e = eOf(B);
+  /* it turns between the board and the screens and holds at each; on the tell it snaps round to you */
+  const cyc = (t * 0.1) % 1, look = cyc < 0.4 ? 0 : cyc < 0.52 ? ease((cyc - 0.4) / 0.12) : cyc < 0.88 ? 1 : 1 - ease((cyc - 0.88) / 0.12);
+  M.sw.rotation.y = mode === 'blow' ? (B?.ph === 'wind' ? (1 - Math.min(1, B.q * 5)) * 0.6 : 0) : mode === 'move' ? Math.sin(t * 1.2) * 0.5 : look * PI;
+  const b = 1 + Math.sin(t * 0.9) * 0.02; M.sp.scale.set(b, 1, b);
+  M.sp.rotation.x = 0.45 + (e >= 0 ? -0.35 * e : 0.3 * -e);
+  M.hd.rotation.z = Math.sin(t * 0.37) * 0.12 + (B?.ph === 'wind' && B.q > 0.65 ? Math.sin(t * 30) * 0.05 : 0);
+  M.hd.rotation.y = mode === 'idle' ? Math.sin(t * 0.3) * 0.25 : 0;
+  for (const L of M.long) {
+    const reach = [-1.2, 0.35, 0.5];
+    const up = [-2.9, -0.4, -0.3], down = [-1.0, 0.1, 0.2];
+    L.ch.forEach((c, k) => {
+      const tw = Math.sin(t * (mode === 'move' ? 5 : 1.2) + L.s + k) * 0.05;
+      c.rotation.x = e >= 0 ? reach[k] * (1 - e) + up[k] * e + tw + (B?.ph === 'wind' && B.q > 0.6 ? Math.sin(t * 34 + k) * 0.05 : 0) : up[k] + (down[k] - up[k]) * Math.min(1, -e * 1.5);
+      c.rotation.z = L.s * (k === 0 ? 0.35 : -0.05);
+    });
+  }
+}
+
+/* ---------- the catalogue ---------- */
+const HANDS = [
+  { id: 'stack', tag: 'H1', name: 'The Stack', build: stackBuild, anim: stackAnim,
+    tagline: 'Four of the response team, still in the order they went through doors.',
+    what: 'A breaching stack. Each one is bent at the waist with its head in the back of the one ahead, and its arms have grown into the shoulders in front. The breacher at the front holds two riot shields fused edge to edge. The last man stands taller and does the looking. The rest have their faces turned sideways against the back in front, so its flanks are lined with them.',
+    play: 'Long and low, so it turns badly: the hall’s pillars and benches cost it time. The tell is the stack closing up, as a team does at a door, before it goes. Its shields are wider than any doorway, which explains the door rule on sight.',
+    death: 'They went through you the way they went through doors.' },
+  { id: 'line', tag: 'H2', name: 'The Line', build: lineBuild, anim: lineAnim,
+    tagline: 'Five abreast behind their shields, as drilled.',
+    what: 'A shield wall three metres wide. Five torsos fused at the shoulder, the seams between their shields grown shut. Batons are grown through the forearms that rest on the rim. One of them has sunk until only its helmet shows, and a sixth head with no body is coming up between two shoulders.',
+    play: 'Its legs keep step, every left together, so you hear it before you see it. It fills the court’s walks: you go round it, not past it. The tell is every arm coming up over the rim at once, two stamps, and then the line surges.',
+    death: 'The line held.' },
+  { id: 'brute', tag: 'H3', name: 'The Engorged', build: bruteBuild, anim: bruteAnim,
+    tagline: 'The whole team, packed into one body that had room for it.',
+    what: 'The brief’s word, taken literally. It knuckle-walks on forelimbs braided from three arms each, which end in a club of fused knuckle-bone with a baton grown through it. Body armour lies on its back like scutes, and its own head sits small and low in its chest. The rest of the team are faces in its shoulders.',
+    play: 'The nearest to the thresher in role, and the easiest to read at a distance. The tell is the big one: it rears onto its hind legs, arms over its head, and comes down. Wider at the shoulders than a doorway.',
+    death: 'It came down on you with everyone it had.' },
+  { id: 'cordon', tag: 'H4', name: 'The Cordon', build: cordonBuild, anim: cordonAnim,
+    tagline: 'Six, arms linked, facing out. Containment, as trained.',
+    what: 'A ring of six with their arms linked in two rows, all facing outward, and a knot of shared gut hung in the middle. Each has one arm free, with its baton. It has no front and no back.',
+    play: 'It never turns to see you, because it is always facing you, and it scuttles any way it likes. The tell is the ring opening, bodies leaning out and batons up; then it closes over where you stand. A kettle. The strangest of the four, and the hardest to fight in the open.',
+    death: 'They kept you there until it was over.' },
+];
+const OVERS = [
+  { id: 'desk', tag: 'O1', name: 'The Desk', build: deskBuild, anim: deskAnim,
+    tagline: 'The brief as written, made solid.',
+    what: 'Several of them fused at the shift supervisor’s seat. The head is off to one side and growing another, with its mouth dragged sideways. A row of hands lies on the zone board, and two long arms are folded on its back for the lash. The heap glows where the pustules are.',
+    play: 'From the hall it reads as a heap with a head. The tell is the overseer’s current one: the two arms come up, shaking, then whip down at what came near. It is the safe choice, and the least to look at from below.',
+    death: 'It had watched you the whole way here.' },
+  { id: 'peri', tag: 'O2', name: 'The Periscope', build: periBuild, anim: periAnim,
+    tagline: 'One of them grew up to see over the others.',
+    what: 'A heap on the floor with faces in it, and out of it a neck of spines wound together, three metres of it, bending over at the top. At the end is one swollen eye at the height of the glass. Hands reach from the heap to the board.',
+    play: 'It turns between the screens behind it and the hall in front and holds at each, so from below you can see which it is watching. Its screens are cameras too, so that tells you where it looks, not that you are safe. The tell: the neck draws back, then strikes down.',
+    death: 'It had watched you the whole way here.' },
+  { id: 'shift', tag: 'O3', name: 'The Shift', build: shiftBuild, anim: shiftAnim,
+    tagline: 'Everyone on shift, pressed to the window.',
+    what: 'A broad mass on the sill with nine faces at the glass, their eyes swollen against it, tracking together and blinking one after another down the row. Hands work the board under the window. The rest of it hangs down behind to the floor.',
+    play: 'From the hall it is a window full of eyes. It makes the existing rule visible: hug the wall under the sill and not one of them can see you. The tell: it peels back off the glass and two arms come over the top.',
+    death: 'Every one of them saw you.' },
+  { id: 'op', tag: 'O4', name: 'The Operator', build: operatorBuild, anim: operatorAnim,
+    tagline: 'Not a boss, a seat.',
+    what: 'One of them, still in the duty chair, grown into it and through it into the floor, with roots spread from the chair’s foot. The spine is drawn out long and hunched. A heavy head has three eyes and another head coming out of the back of it. Two arms reach the board on three joints each; two more rest on the armrests.',
+    play: 'It turns between the board and the screens behind it, slowly, and you hear the chair. Like the Periscope, you can see which way it faces from the hall. The tell is the chair snapping round to you and the long arms going up.',
+    death: 'It turned round in its chair, and that was all it had to do.' },
+];
+
+/* ---------- the stage ---------- */
+const view = document.getElementById('view'), labelsEl = document.getElementById('labels');
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
+renderer.setClearColor(0x050506);
+view.prepend(renderer.domElement);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(42, 16 / 10, 0.05, 200);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.maxPolarAngle = PI * 0.62; controls.minDistance = 1.5; controls.maxDistance = 40;
+
+const state = { who: 'hand', pick: 0, mode: 'idle', light: 'lamp', cam: 'near' };
+let shown = [], extras = null, t0 = performance.now();
+
+function hallFloor() {
+  const g = new THREE.Group(); MAT = material();
+  for (let i = -6; i <= 6; i++) for (let j = -4; j <= 4; j++) mk(g, 'box', (i + j) & 1 ? 0x2e3033 : 0x2a2c2f, 1.98, 0.1, 1.98, i * 2, -0.05, j * 2);
+  /* a doorway, as the levels build them: 2 m wide, 2.4 m high, in a wall */
+  const d = grp(g, 0.6, 0, -2.9);
+  mk(d, 'box', 0x3a3c40, 2.2, 4.2, 0.3, -2.1, 2.1, 0); mk(d, 'box', 0x3a3c40, 2.2, 4.2, 0.3, 2.1, 2.1, 0); mk(d, 'box', 0x3a3c40, 2.0, 1.8, 0.3, 0, 3.3, 0);
+  mk(d, 'box', 0x1c1e20, 0.08, 2.4, 0.34, -1.0, 1.2, 0); mk(d, 'box', 0x1c1e20, 0.08, 2.4, 0.34, 1.0, 1.2, 0); mk(d, 'box', 0x1c1e20, 2.08, 0.08, 0.34, 0, 2.4, 0);
+  mk(d, 'box', [2.3, 2.9, 2.4], 0.5, 0.16, 0.04, 0, 2.74, 0.17);
+  return { g, mat: MAT };
+}
+
+function place(entry, x, z, ry = 0) {
+  const mat = material(); MAT = mat;
+  const M = entry.build(mat); M.g.position.set(x, 0, z); M.g.rotation.y = ry; scene.add(M.g);
+  const s = { entry, M, mat, hit: 0, x, z, ry };
+  M.g.traverse(o => { if (o.isMesh) o.userData.shown = s; });
+  shown.push(s); return s;
+}
+function clear() {
+  for (const s of shown) scene.remove(s.M.g);
+  if (extras) scene.remove(extras.g);
+  shown = []; extras = null; labelsEl.innerHTML = '';
+}
+const labels = [];
+function label(s, text, ref) { const el = document.createElement('span'); el.textContent = text; if (ref) el.className = 'ref'; labelsEl.appendChild(el); labels.push({ el, s }); }
+
+function measure(M, anim) {
+  anim(M, 0, 'idle');
+  M.g.updateMatrixWorld(true);
+  const b = new THREE.Box3();
+  M.g.traverse(o => { if (o.isMesh && o.material !== undefined && !(o.material.transparent)) b.expandByObject(o); });
+  return b;
+}
+
+function stage() {
+  clear(); labels.length = 0;
+  const list = state.who === 'hand' ? HANDS : OVERS, lineup = state.pick === list.length;
+  document.getElementById('viewgrp').hidden = state.who !== 'over' || lineup;
+  if (state.who === 'hand') {
+    extras = hallFloor(); scene.add(extras.g);
+    U.uLampPos.value.set(0.5, 4.3, 2.5); U.uLampR.value = 19; U.uGlowCol.value.set(0, 0, 0);
+    if (lineup) {
+      let x = -9.2;
+      const refs = [REF.husk, REF.thresher];
+      for (const r of refs) { const s = place({ build: r.build, anim: r.anim, ref: true }, x, 1.4); label(s, r.name, true); x += 1.5; }
+      x += 0.8;
+      for (const h of list) { const s = place(h, x, 1.0); label(s, `${h.tag} ${h.name}`); x += h.id === 'line' ? 3.6 : h.id === 'stack' ? 2.8 : 3.2; }
+      frame(new THREE.Vector3(-1.4, 1.2, 1.0), new THREE.Vector3(-1.4, 4.2, 15.5));
+    } else {
+      const h = list[state.pick], s = place(h, 0, 0, h.id === 'stack' ? -0.5 : -0.35);
+      label(s, `${h.tag} ${h.name}`);
+      const r1 = place({ build: REF.husk.build, anim: REF.husk.anim, ref: true }, -2.6, 0.9, 0.3); label(r1, 'husk', true);
+      const r2 = place({ build: REF.thresher.build, anim: REF.thresher.anim, ref: true }, -3.7, 0.2, 0.3); label(r2, 'thresher', true);
+      frame(new THREE.Vector3(-0.6, 1.2, 0), new THREE.Vector3(3.2, 3.0, 7.6));
+    }
+  } else {
+    U.uLampPos.value.set(0.6, 3.8, 0.6); U.uLampR.value = 9.5; U.uGlowCol.value.set(0.55, 0.19, 0.11); U.uGlowR.value = 4.5;
+    if (lineup) {
+      extras = hallFloor(); scene.add(extras.g); extras.g.position.y = 0;
+      U.uLampPos.value.set(0, 4.3, 2.5); U.uLampR.value = 16; U.uGlowCol.value.set(0.45, 0.15, 0.09); U.uGlowPos.value.set(0, 1.2, 0); U.uGlowR.value = 14;
+      let x = -7.5;
+      const r = place({ build: REF.husk.build, anim: REF.husk.anim, ref: true }, x, 1.0); label(r, 'husk', true); x += 2.4;
+      for (const o of list) { const s = place(o, x + (o.id === 'shift' ? 0.6 : 0), o.id === 'shift' ? -2.0 : 0); label(s, `${o.tag} ${o.name}`); x += o.id === 'shift' ? 6.0 : 3.1; }
+      frame(new THREE.Vector3(-0.8, 1.3, 0.3), new THREE.Vector3(-0.8, 4.6, 14.5));
+    } else {
+      const o = list[state.pick], s = place(o, 0, 0);
+      label(s, `${o.tag} ${o.name}`);
+      MAT = material(); extras = { g: opsRoom(o.build === shiftBuild ? [0, 1.0, 1.3] : [0, 0.65, -0.35], 1.3, state.cam === 'hall'), mat: MAT };
+      scene.add(extras.g);
+      U.uGlowPos.value.set(...s.M.glow);
+      if (state.cam !== 'hall') { const husk = place({ build: REF.husk.build, anim: REF.husk.anim, ref: true }, -2.4, -1.1, 0.7); label(husk, 'husk', true); }
+      if (state.cam === 'hall') frame(new THREE.Vector3(0, 1.8, 0), new THREE.Vector3(0.9, -3.0, 8.0));
+      else frame(new THREE.Vector3(-0.2, 1.3, 0), new THREE.Vector3(4.0, 3.2, 6.4));
+    }
+  }
+  renderCard();
+}
+function frame(target, pos) { controls.target.copy(target); camera.position.copy(pos); controls.minPolarAngle = 0; controls.update(); }
+
+function renderCard() {
+  const list = state.who === 'hand' ? HANDS : OVERS, card = document.getElementById('card');
+  if (state.pick === list.length) {
+    card.innerHTML = `<h2>All four</h2><p class="tagline">Side by side, with ${state.who === 'hand' ? 'the husk and today’s hand' : 'a husk'} for scale.</p>` +
+      list.map(h => `<p><b>${h.tag} ${h.name}.</b> ${h.tagline}</p>`).join('') +
+      `<p class="fit">Pick one above to see it alone${state.who === 'over' ? ', in its room' : ', beside a doorway'}.</p>`;
+    return;
+  }
+  const h = list[state.pick];
+  MAT = material(); const M = h.build(MAT), b = measure(M, h.anim), sz = b.getSize(new THREE.Vector3());
+  const W = Math.max(sz.x, 0), L = sz.z, H = sz.y;
+  const fit = Math.min(W, L) <= 1.9 && H <= 2.35;
+  card.innerHTML = `<h2>${h.name}</h2><p class="tagline">${h.tagline}</p>
+    <div class="dims"><div><small>Height</small><b>${H.toFixed(1)} m</b></div><div><small>Width</small><b>${W.toFixed(1)} m</b></div><div><small>Length</small><b>${L.toFixed(1)} m</b></div></div>
+    ${state.who === 'hand' ? `<div class="fit ${fit ? 'yes' : 'no'}">${fit ? 'Would fit a 2.0 × 2.4 m doorway' : 'Does not fit a 2.0 × 2.4 m doorway'}</div>` : ''}
+    <h3>What it is</h3><p>${h.what}</p>
+    <h3>In play</h3><p>${h.play}</p>
+    <p class="death"><small>Killed by it (proposed)</small>${h.death}</p>`;
+}
+
+/* ---------- controls ---------- */
+function chips() {
+  const list = state.who === 'hand' ? HANDS : OVERS, el = document.getElementById('chips');
+  el.innerHTML = '';
+  [...list, { tag: 'All', name: 'side by side' }].forEach((h, i) => {
+    const b = document.createElement('button'); b.id = `pick-${state.who}-${i}`;
+    b.innerHTML = `<span class="tag">${h.tag}</span>${h.name}`;
+    b.setAttribute('aria-pressed', String(i === state.pick));
+    b.onclick = () => { state.pick = i; chips(); stage(); };
+    el.appendChild(b);
+  });
+}
+document.querySelectorAll('.who button').forEach(b => b.onclick = () => {
+  state.who = b.dataset.who; state.pick = 0; state.cam = 'near';
+  document.querySelectorAll('.who button').forEach(x => x.setAttribute('aria-selected', String(x === b)));
+  press('[data-cam]', 'cam'); chips(); stage();
+});
+function press(sel, key) { document.querySelectorAll(sel).forEach(x => x.setAttribute('aria-pressed', String(x.dataset[key] === state[key]))); }
+document.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => { state.mode = b.dataset.mode; t0 = performance.now(); press('[data-mode]', 'mode'); });
+document.querySelectorAll('[data-light]').forEach(b => b.onclick = () => { state.light = b.dataset.light; press('[data-light]', 'light'); });
+document.querySelectorAll('[data-cam]').forEach(b => b.onclick = () => { state.cam = b.dataset.cam; press('[data-cam]', 'cam'); stage(); });
+
+/* click it to hit it */
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+let downAt = null;
+renderer.domElement.addEventListener('pointerdown', e => { downAt = [e.clientX, e.clientY]; });
+renderer.domElement.addEventListener('pointerup', e => {
+  if (!downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 4) return;
+  const r = renderer.domElement.getBoundingClientRect();
+  ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+  const hit = ray.intersectObjects(shown.map(s => s.M.g), true)[0];
+  if (hit?.object.userData.shown) hit.object.userData.shown.hit = 1;
+});
+
+function resize() {
+  const w = view.clientWidth, h = view.clientHeight;
+  renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(view);
+
+const v = new THREE.Vector3(), reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  const t = reduce && state.mode === 'idle' ? 0 : (now - t0) / 1000;
+  U.uTime.value = now / 1000;
+  U.uFlash.value = state.light === 'flash' ? 1 : 0;
+  U.uLampCol.value.set(...(state.light === 'flash' ? [0.08, 0.08, 0.07] : state.who === 'over' && state.pick < 4 ? [1.2, 1.26, 1.42] : [1.6, 1.5, 1.22]));
+  camera.getWorldDirection(U.uFlashDir.value);
+  for (const s of shown) {
+    s.entry.anim(s.M, t + s.x * 0.37, s.entry.ref ? 'idle' : state.mode);
+    s.hit = Math.max(0, s.hit - dt * 4); s.mat.uniforms.uHit.value = s.hit;
+    s.M.g.rotation.x = -0.32 * s.hit * s.hit / (s.entry.ref ? 1 : 3);
+  }
+  controls.update();
+  renderer.render(scene, camera);
+  const r = renderer.domElement.getBoundingClientRect();
+  for (const L of labels) {
+    const b = new THREE.Box3().setFromObject(L.s.M.g);
+    v.set((b.min.x + b.max.x) / 2, b.max.y + 0.15, (b.min.z + b.max.z) / 2).project(camera);
+    const vis = v.z < 1 && Math.abs(v.x) < 1.1 && Math.abs(v.y) < 1.1;
+    L.el.hidden = !vis;
+    if (vis) { L.el.style.left = `${(v.x * 0.5 + 0.5) * r.width}px`; L.el.style.top = `${(-v.y * 0.5 + 0.5) * r.height - 20}px`; }
+  }
+  requestAnimationFrame(loop);
+}
+chips(); resize(); stage(); requestAnimationFrame(loop);
+window.__rs = { state, stage, chips, press, camera, controls, setT: x => { t0 = performance.now() - x * 1000; } };
+</script>
