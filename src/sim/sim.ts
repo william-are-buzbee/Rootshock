@@ -5,7 +5,7 @@ import { World } from '../world/world';
 import { clamp } from '../core/math';
 import { Lighting, type Loose } from '../world/light';
 import { castBodies, castMovers, makeCast, updateCast, type Drill, type Mutant } from './cast';
-import { makeCams, updateEyes, type Alarm, type Cam } from './eyes';
+import { makeCams, updateEyes, type Alarm, type Cam, type Knock } from './eyes';
 import { makeHands, updateHands, type Hands } from './combat';
 import { makeFields, refreshFields, updateFields, type Fields } from './fields';
 import { hurt, makeGame, makeNoise, power, runLight, toggleLight, unwear, useItem, type Command, type Game, type StationState, say, sfx } from './game';
@@ -42,6 +42,8 @@ export interface Sim {
   /** the overseer's eyes, and the zone alarms sounding (sim/eyes.ts) */
   cams: Cam[];
   alarms: Alarm[];
+  /** the overseer's knock codes: the one under way, and the one after it */
+  knocks: Knock[];
   /** the zones whose speaker is smashed: their alarms sound no more */
   mute: string[];
   /** breakers opened by hand, and the staff caught in the dark who may go to throw them back (sim/cast.ts) */
@@ -100,7 +102,7 @@ export function makeSim(level: LevelDef, o: SimOpts = {}): Sim {
     doors: level.doors.map(d => makeDoor(world, d)),
     platforms: level.platforms.map(p => makePlatform(world, p)),
     items: level.items.map(it => ({ ...it, taken: false })),
-    usables: [], focus: null, cast: [], fields: null, hands: makeHands(), wormN: 0, lighting: null, cams: [], alarms: [], mute: [], drills: [],
+    usables: [], focus: null, cast: [], fields: null, hands: makeHands(), wormN: 0, lighting: null, cams: [], alarms: [], knocks: [], mute: [], drills: [],
   };
   sim.cams = makeCams(sim);
   sim.usables = buildUsables(sim);

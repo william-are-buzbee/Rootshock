@@ -1,49 +1,17 @@
 import * as THREE from 'three';
-import type { Colour } from '../../core/math';
 import { blowAt, type Mutant } from '../../sim/cast';
 import type { Sim } from '../../sim/sim';
 import type { Lighting } from '../../world/light';
 import { dynamicMaterial, lightMaterial } from './shader';
 import { parts } from './things';
+import { BONE, DARK, FLESH, GOREC, GR, ORANGE, PALE, RAW, grp, mk, seeded, type O3 } from './castKit';
+import { animHand, animOverseer, buildHand, buildOverseer, type Ctx } from './security';
 
 /* The cast, drawn: the first engine's models (BUILD) and their animation (ANIM), ported nearly line for line. Each is a
    tree of parts on one material, so it flashes when hit and is lit by the room it stands in. Looks only: the sim
    decides where each is and what it is doing; this only shows it. */
 
 const PI = Math.PI;
-const FLESH = 0xb08572, RAW = 0x8c4a44, GOREC = 0x4e1616, PALE = 0xcdbfae, BONE = 0xddd6c0, DARK = 0x140c0d, ORANGE = 0xb5541c;
-const GR = [0x3f6a3a, 0x4f7a40, 0x2f5a34, 0x5a7a3a, 0x6a8a44, 0x2a4a2c];
-
-type C = number | Colour;
-const geos = new Map<string, THREE.BufferGeometry>();
-function geo(shape: 'box' | 'cyl' | 'ico', c: C, sx: number, sy: number, sz: number): THREE.BufferGeometry {
-  const k = `${shape}|${c}|${sx}|${sy}|${sz}`;
-  let g = geos.get(k);
-  if (!g) geos.set(k, (g = parts([[shape, c, sx, sy, sz, 0, 0, 0]])));
-  return g;
-}
-type O3 = THREE.Object3D;
-function mk(parent: O3, mat: THREE.Material, shape: 'box' | 'cyl' | 'ico', c: C, sx: number, sy: number, sz: number, x: number, y: number, z: number): THREE.Mesh {
-  const m = new THREE.Mesh(geo(shape, c, sx, sy, sz), mat);
-  m.position.set(x, y, z);
-  m.frustumCulled = false;
-  parent.add(m);
-  return m;
-}
-function grp(parent: O3, x: number, y: number, z: number): THREE.Group {
-  const g = new THREE.Group();
-  g.position.set(x, y, z);
-  parent.add(g);
-  return g;
-}
-
-/** the same pseudo-random numbers for the same mutant every time */
-function seeded(id: number) {
-  let s = (id * 2654435761) >>> 0 || 1;
-  const next = () => ((s = (Math.imul(s, 1664525) + 1013904223) >>> 0) / 4294967296);
-  return { rnd: (a: number, b: number) => a + next() * (b - a), pick: <T>(a: T[]) => a[Math.floor(next() * a.length)] };
-}
-
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Model = { g: THREE.Group; [k: string]: any };
 
@@ -154,7 +122,7 @@ const r = (a: number, b: number) => a + Math.random() * (b - a);
 /** smoothstep, 0..1 */
 const ease = (t: number) => t * t * (3 - 2 * t);
 
-const ANIM: Record<string, (m: Mutant, M: Model) => void> = {
+const ANIM: Record<string, (m: Mutant, M: Model, c: Ctx) => void> = {
   husk(m, M) {
     const mv = m.mv > 0, hunt = m.state === 'hunt', f = hunt ? 11 : 5;
     for (let k = 0; k < 2; k++) M.legs[k].rotation.x = mv ? Math.sin(m.ph * f + k * PI) * (hunt ? 0.7 : 0.35) : 0;
@@ -212,12 +180,6 @@ const ANIM: Record<string, (m: Mutant, M: Model) => void> = {
     M.hd.rotation.z = Math.sin(m.ph * 0.4) * 0.08;
     M.hd.rotation.y = Math.sin(m.ph * 0.23) * 0.2;
     for (const a of M.arms) a.rotation.x = Math.sin(m.ph * 0.9) * 0.06;
-  },
-  /* the overseer breathes as a bloat does, and as it tenses to lash its arms come up, shaking */
-  overseer(m, M) {
-    ANIM.bloat(m, M);
-    const t = Math.min(1, m.tense / 0.9);
-    if (t > 0) for (const a of M.arms) a.rotation.x = -2.2 * t + Math.sin(m.ph * 30) * 0.1 * t;
   },
   thresher(m, M) {
     const wild = m.state === 'charge' || m.state === 'wind', op = wild ? 1.2 + Math.sin(m.ph * 24) * 0.14 : m.state === 'recover' ? 0.75 : 0.2 + Math.sin(m.ph * 1.4) * 0.1;
@@ -280,6 +242,11 @@ const ANIM: Record<string, (m: Mutant, M: Model) => void> = {
   },
 };
 ANIM.swimmer = ANIM.worm;
+/* Security's (security.ts): drawn with working limbs and eyes */
+BUILD.hand = mat => buildHand(mat);
+BUILD.overseer = mat => buildOverseer(mat);
+ANIM.hand = (m, M, c) => animHand(m, M as ReturnType<typeof buildHand>, c);
+ANIM.overseer = (m, M, c) => animOverseer(m, M as ReturnType<typeof buildOverseer>, c);
 
 interface Shown { m: Mutant; M: Model; mat: THREE.ShaderMaterial; blood: boolean }
 
@@ -304,9 +271,11 @@ export class CastView {
     lightMaterial(mesh.material as THREE.ShaderMaterial, R ? this.L.atPoint(p.x, p.y, p.z) : none, R ? this.L.flickAt(p.x, p.y, p.z) : none);
   }
 
+  private last = 0;
   /** draw everything where it is, `alpha` of the way through the step */
   update(alpha: number): void {
-    const w = this.sim.world;
+    const w = this.sim.world, t = performance.now() / 1000, c: Ctx = { sim: this.sim, dt: this.last ? Math.min(0.1, t - this.last) : 0, L: this.L };
+    this.last = t;
     for (const s of this.shown) {
       const { m, M, mat } = s, g = M.g;
       const x = m.px + (m.x - m.px) * alpha, z = m.pz + (m.z - m.pz) * alpha;
@@ -329,7 +298,8 @@ export class CastView {
         if (!s.blood && !m.fixed && !m.swim && w.waterAt(m.x, m.z) < m.y) { s.blood = true; this.blood(m); }
         continue;
       }
-      ANIM[m.ai]?.(m, M);
+      /* by its model first: the hand fights as a thresher, and is drawn as itself */
+      (ANIM[m.model] ?? ANIM[m.ai])?.(m, M, c);
     }
   }
 

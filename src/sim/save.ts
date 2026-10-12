@@ -3,7 +3,7 @@ import { NOTES } from '../content/notes';
 import { Rng } from '../core/rng';
 import { syncBody } from './body';
 import { restoreRoute } from './cast';
-import { restoreAlarms } from './eyes';
+import { bigWay, restoreAlarms } from './eyes';
 import type { Game } from './game';
 import { makeHands } from './combat';
 import { buildUsables, type WorldItem } from './interact';
@@ -37,7 +37,7 @@ const PLATFORM = ['y', 'target', 'wait', 'moving', 'armed'] as const;
 const LOOSE = ['x', 'y', 'z', 'vx', 'vy', 'vz', 'awake', 'ground', 'still', 'woke'] as const;
 const MUTANT = ['x', 'y', 'z', 'px', 'py', 'pz', 'yaw', 'state', 'st', 'cd', 'stun', 'hp', 'post', 'wt', 'wm', 'wx', 'wz', 'tk',
   'lost', 'bt', 'burst', 'flee', 'ct', 'cdir', 'tgt', 'grab', 'tense', 'stk', 'fled', 'side', 'spot', 'mv',
-  'hit', 'kx', 'kz', 'ph', 'dead', 'gone', 'dest', 'los', 'losAt', 'still'] as const;
+  'hit', 'kx', 'kz', 'ph', 'dead', 'gone', 'dest', 'los', 'losAt', 'still', 'riled'] as const;
 
 /** what a rider stands on, by the moving thing's id */
 const onId = (r: { on: { id: number } | null }) => r.on?.id ?? 0;
@@ -65,6 +65,8 @@ export interface Save {
   alarms?: { zone: string; t: number; spot: number; next: number }[];
   /** the zones whose speaker is smashed */
   mute?: string[];
+  /** the overseer's knock codes under way (none in a save from before them) */
+  knocks?: Sim['knocks'];
   /** breakers opened by hand, and who may go to throw them back */
   drills?: Sim['drills'];
   /** the fields over the nav graph as they stood (they are made in turn, so cannot be made again exactly) */
@@ -106,6 +108,7 @@ export function save(sim: Sim): Save {
     alarms: sim.alarms.map(a => ({ zone: a.zone, t: a.t, spot: a.spot, next: a.next })),
     drills: structuredClone(sim.drills),
     mute: [...sim.mute],
+    knocks: structuredClone(sim.knocks),
     fields: sim.fields && {
       from: sim.fields.from, turn: sim.fields.turn, made: { ...sim.fields.made },
       crawl: pack(sim.fields.crawl), hands: pack(sim.fields.hands), big: pack(sim.fields.big), sound: pack(sim.fields.sound),
@@ -165,8 +168,9 @@ export function load(level: LevelDef, data: Save, o: SimOpts = {}): Sim {
   sim.mute = [...(data.mute ?? [])];
   sim.drills = structuredClone(data.drills ?? []);
   restoreAlarms(sim, data.alarms ?? []);
-  /* the hand on its way to an alarm goes by the alarm's own way, the halls alone */
-  for (const m of sim.cast) if (m.state === 'go') { const a = sim.alarms.find(q => q.spot === m.dest); if (a) m.F = Float32Array.from(a.big); }
+  sim.knocks = structuredClone(data.knocks ?? []);
+  /* the hand on its way to where it was knocked for goes by the halls alone, as it was sent */
+  for (const m of sim.cast) if (m.type === 'hand' && m.state === 'go' && m.dest >= 0 && sim.fields) m.F = bigWay(sim, m.dest);
   const byId = new Map(sim.world.dyn.map(d => [d.id, d]));
   [sim.player.body, ...sim.loose.all, ...sim.cast.map(m => m.body)].forEach((r, i) => { if (r) r.on = byId.get(data.on[i]) ?? null; });
   return sim;
