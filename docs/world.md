@@ -461,11 +461,19 @@ cancerous growth, rather than a second level-sized area competing for attention.
 - **Flesh, not machine (agreed).** The mutagen warps living things, never technology: nothing grows into a cable, a screen
   or a lock. The overseer is the operations staff, grown into one body at their posts: at each screen what is left of one of
   them, pared down to a stationary watcher, a hunched trunk with one swollen eye at the glass and a hand on the desk, each
-  half blended into its neighbours and joined by a cord of meat to the body. The body is several of them fused, the most
-  disfigured; its head, off to one side, is growing another, and its mouth is dragged sideways, pulling the features after
-  it. A human turned into a tool, still attached to the other tools. It does everything physically: it sees the cameras with
-  an eye on each lit screen, and sounds a zone or draws a bolt with a hand on its board. So all of it needs power at its own
-  room, which is critical power (above). The models are rough boxes and blobs for now; the rule holds from the start.
+  half blended into its neighbours and joined by a cord of meat to the body. The body is several of them fused, and each is
+  still there to see: one lies face down and flat under the rest, its cheek to the floor and its eyes shut, its long arms out
+  of the sides and its legs out behind under the cords; a back with its spine showing, shoulders; and the first sits up out
+  of the middle, its head on its shoulders with one great eye in it, and works the two clubbed arms in front, fists on the
+  floor. A smaller pair braces it behind, fists dug in. A human turned into a tool, still attached to the other tools. It
+  does everything physically: it sees the cameras with an eye on each lit screen, and sounds a zone or draws a bolt with a
+  hand on its board. So all of it needs power at its own room, which is critical power (above). Its own light needs none:
+  pustules come up through the floor around it, the colour of a healing burn.
+- **The great eye (agreed; built).** The overseer's head and the hand's are each one eye, nearly the whole face, with a
+  pupil like a yolk that works as a real one: the light falling on it sets it (the room's, and your flashlight's, by how near
+  and how squarely), fear opens it, looking at something close narrows it, and it closes quickly and opens slowly. The two
+  read as one stock. The overseer's watches the hall through the glass, following whatever moves there, and stares at you
+  once it has you.
 - **Eyes:** the cameras, across the level, through its screens; and its own, through its glass onto the hall. Its sill hides
   the floor right under the window: hug that wall and it cannot see you.
 - **Voice: the zone alarm.** The overseer gives no orders; the building does the work. A camera sees you, and the overseer sounds
@@ -477,25 +485,35 @@ cancerous growth, rather than a second level-sized area competing for attention.
   staff answer a drill whoever sounds it.
 - **Why they come: drills, not instructions.** The changed were Security's staff. For years a zone alarm meant "respond there",
   and what is left of them still does. It is conditioning, not command.
-- **Hand:** an engorged mutant made of Security's staff, the level's thresher: what is left of the response team, made one thing.
-  It hears the alarm from anywhere and goes to it, and follows the alarm from zone to zone for as long as the overseer lives; when
-  the overseer dies, the alarms stop and the hand stops seeking you.
+- **Hand (agreed; built):** what is left of the response team, made one thing, the level's thresher. Three of them: one on
+  all fours is the body, walking on its arms and legs; four legs hang from its front, knees up and feet curled down, its
+  mouthparts and what it strikes with; and one grows feet first out of its back as a tail, with a great-eyed head and long
+  arms of its own. It has no face at the front. Low, roaming, the tail lies along the floor with its hands walking beside the
+  head and its eye rolled back, and it reads as a tail; raised, it curls up over the back, the eye open, the arms held as a
+  person's, and it takes no part in the strike.
+- **Voice to the hand: the knock (agreed; built).** The hand does not answer the klaxon; the overseer tells it. When you are
+  seen, it knocks that zone's code into the floor of its room with its fists: the zone's count, a pause, the count again (the
+  wing one, the atrium two, Operations three, the muster hall four). It carries through the slab: the hand, wherever it is,
+  stops and listens, then goes. You hear it too. One code at a time. Smashing a speaker silences the husks' drill, not the
+  knock. When the overseer dies nothing knocks: the hand roams its hall with its head hanging and leaves you be until you
+  strike it. (Later, perhaps: knock the code yourself.)
 - **Power is the trade.** Security needs power for things you want (card readers, the Cargo platforms, the fan door on ladderway
   B), but power wakes the cameras. Switching on is what makes you visible: the same bargain as Gen-1 and the rib freak, in another
   shape.
 
 **Three layers of being found (agreed)**
 
-- **Cameras → the zone alarm → the hand, and any patrol in earshot.** The klaxon starting is the tell, and you have a few
-  seconds to answer it: leave the zone, break its speaker or the camera (loud: a cost, per §4), or cut the power. The hand does
-  not track you; it goes where the alarm is. **Built** (`sim/eyes.ts`), but for the hand and the overseer: a live camera sees
+- **Cameras → the zone alarm and the knock → any patrol in earshot, and the hand.** The klaxon starting is the tell, and you
+  have a few seconds to answer it: leave the zone, break its speaker or the camera (loud: a cost, per §4), or cut the power.
+  The hand does not track you; it goes where the overseer knocks for, once the code is done. **Built** (`sim/eyes.ts`), but for the hand and the overseer: a live camera sees
   along its cone as far as the light you are in lets it, as the cast do. Its light is green while it watches and turns red,
   with a servo's whir, as it takes you; held about a second and a half, you sound its zone. The speaker's beacon turns and the
   klaxon goes round for twelve seconds (again from the start if you are seen again), and each time it goes round, any husk
   that hears it and is not already after you leaves its rounds or its post and hurries to the speaker. There it stands and
   looks about a while, then goes back to its rounds; it finds you only if it sees or hears you on the way. A camera can be
   smashed with something in your hand: loud. So can a zone's speaker, and that zone has no voice: seen there, the doors
-  about you are still bolted (they are the overseer's, not the alarm's), but no klaxon sounds, and nothing hears it or comes.
+  about you are still bolted (they are the overseer's, not the alarm's), but no klaxon sounds and no husk hears it or comes
+  (the overseer still knocks for the hand).
   Speakers are wired from the PA, not from the rooms they hang in, and the PA is critical power: no breaker quiets a zone.
   The wing's and the muster hall's hang in a ceiling you can reach; the atrium's hangs high in the well, in reach only leaning
   out from the east gallery's rail. Four zones: the wing, the atrium, the muster hall's west end ('muster'), and the overseer's
@@ -506,11 +524,11 @@ cancerous growth, rather than a second level-sized area competing for attention.
   it (its circuit comes live on the board).
 - **The overseer and its hand: built.** The overseer is grown into the operations room, a watcher at each of its screens
   and the body facing the glass. It sees you itself through the glass (and sounds the Operations zone, its speaker in the
-  Operations corridor, so the hand comes), and lashes what comes near, with a grabber's tell. Killed, the camera lights go out up and down the level for good, the klaxon
+  Operations corridor, and knocks for the hand), and lashes what comes near, with a grabber's tell. Killed, the camera lights go out up and down the level for good, the klaxon
   dies mid-note, and no alarm sounds again. The hand is a thresher made of Security's staff (220 to the rib freak's 150): it
-  keeps the muster hall, hears every alarm wherever it is, and goes at a run by the halls; too big for any door frame, open or
-  shut, so every side room is a refuge from it. On its way it hunts you only if it meets you. Once there it keeps the place,
-  wandering and charging about it. When the overseer dies the hand is summoned no more, but stays a thresher in the halls.
+  keeps the muster hall, roaming it low; feels every knock wherever it is, and when the code is done goes at a run by the
+  halls; too big for any door frame, open or shut, so every side room is a refuge from it. On its way it hunts you only if it
+  meets you. Once there it keeps the place. When the overseer dies the hand is sent no more, and fights only if struck.
 - **The overseer's bolts: built.** Seen (by a camera, or by the overseer itself), every door within nine metres of you that
   has power is bolted: you hear each bolt being drawn for a second before it goes home, time to get through, and it holds
   while the alarm sounds. A dead door cannot be bolted, and cutting a bolted door's power lets its bolt go. Card and keypad

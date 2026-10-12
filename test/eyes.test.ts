@@ -5,7 +5,7 @@ import { makeSim, step, type Sim } from '../src/sim/sim';
 import { noInput } from '../src/sim/input';
 import { STEP } from '../src/core/loop';
 import { give, power } from '../src/sim/game';
-import { EYES, camLive, manned, soundZone } from '../src/sim/eyes';
+import { EYES, KNOCK, camLive, codeTimes, knocksFor, manned, soundZone } from '../src/sim/eyes';
 import { hitMutant } from '../src/sim/cast';
 import { doorAct, doorLabel, findUsable } from '../src/sim/interact';
 import { load, save } from '../src/sim/save';
@@ -130,47 +130,77 @@ describe('the overseer and its hand', () => {
   const overseer = (s: Sim) => s.cast.find(m => m.ai === 'overseer')!;
   const putM = (m: Sim['cast'][number], x: number, y: number, z: number) => { const b = m.body!; b.x = m.x = x; b.y = m.y = y; b.z = m.z = z; b.sync(); };
 
-  it('the hand hears every alarm, wherever it is, and goes to it by the halls, at a run', () => {
-    const s = fresh(), h = hand(s), m = s.cast[1], reach = EYES.reach;
-    for (const q of s.cast) if (q !== h && q !== m) q.stun = 1e9;
+  /** how long the overseer takes to knock out a zone's code, and for the hand to go */
+  const code = (s: Sim, zone: string) => codeTimes(knocksFor(s, zone)).at(-1)! + KNOCK.settle;
+
+  it('seen, the overseer knocks the zone\'s code into the floor: the hand stops to listen, then goes by the halls, at a run', () => {
+    const s = fresh(), h = hand(s);
+    for (const q of s.cast) if (q !== h) q.stun = 1e9;
     place(s, 30, -4.5, -25); // you, a storey down, out of it
     hold(s, 0.3);
-    EYES.reach = 4; // the alarm barely carries: no husk hears it from the corridor
-    try {
-      soundZone(s, 'atrium');
-      hold(s, 0.1);
-    } finally { EYES.reach = reach; }
-    expect(m.state).not.toBe('answer');
-    expect(h.state).toBe('go'); // the hand hears it anyway
-    m.stun = 1e9; // and the husk keeps out of its way: a body in its path is not what this is about
+    s.game.events.length = 0;
+    soundZone(s, 'atrium', true); // as a camera does when it has held you
+    hold(s, 0.1);
+    expect(sounded(s, 'slab')).toBe(true); // the first knock
+    expect(h.state).toBe('listen'); // it stops where it is
+    const knocks = () => s.game.events.filter(e => e.type === 'sfx' && e.name === 'slab').length;
+    hold(s, code(s, 'atrium'));
+    expect(knocks()).toBe(2 * knocksFor(s, 'atrium')); // the atrium's count, and the count again
+    expect(h.state).toBe('go');
     const sp = level.speakers!.find(q => q.zone === 'atrium')!;
     let nearest = Infinity;
     for (let t = 0; t < 24; t += STEP) { step(s, noInput()); nearest = Math.min(nearest, Math.hypot(h.x - sp.x, h.z - sp.z)); } // from the muster hall
-    expect(nearest).toBeLessThan(3); // there, it keeps the place: wanders it, and charges about it
+    expect(nearest).toBeLessThan(3); // there, it keeps the place
   });
 
-  it('a save made with the hand on its way to an alarm plays on the same', () => {
-    const s = fresh();
-    for (const q of s.cast) if (q.type !== 'hand') q.stun = 1e9;
+  it('the klaxon alone does not send it: only the overseer does', () => {
+    const s = fresh(), h = hand(s);
+    for (const q of s.cast) if (q !== h) q.stun = 1e9;
     place(s, 30, -4.5, -25);
     hold(s, 0.3);
-    soundZone(s, 'atrium');
-    hold(s, 1.5);
-    expect(hand(s).state).toBe('go');
-    const a = load(level, JSON.parse(JSON.stringify(save(s))), { seed: 7, station: STATION });
-    hold(s, 3); hold(a, 3);
-    expect(JSON.stringify(save(a))).toBe(JSON.stringify(save(s)));
+    s.game.events.length = 0;
+    soundZone(s, 'atrium'); // sounded, but nobody was seen
+    hold(s, code(s, 'atrium') + 1);
+    expect(sounded(s, 'slab')).toBe(false);
+    expect(h.state).not.toBe('go');
   });
 
-  it('it is too big for a door: an alarm it cannot reach by the halls leaves it where it is', () => {
+  it('a save made with the hand listening, or on its way, plays on the same', () => {
+    for (const wait of [1, code(fresh(), 'atrium') + 1.5]) {
+      const s = fresh();
+      for (const q of s.cast) if (q.type !== 'hand') q.stun = 1e9;
+      place(s, 30, -4.5, -25);
+      hold(s, 0.3);
+      soundZone(s, 'atrium', true);
+      hold(s, wait);
+      expect(hand(s).state).toBe(wait < 2 ? 'listen' : 'go');
+      const a = load(level, JSON.parse(JSON.stringify(save(s))), { seed: 7, station: STATION });
+      hold(s, 3); hold(a, 3);
+      expect(JSON.stringify(save(a))).toBe(JSON.stringify(save(s)));
+    }
+  });
+
+  it('it is too big for a door: a zone it cannot reach by the halls leaves it where it is', () => {
     const s = fresh(), h = hand(s);
     for (const q of s.cast) if (q !== h) q.stun = 1e9;
     place(s, 30, -4.5, -25);
     putM(h, 24, 0, 2); // in the lobby, behind its door
     hold(s, 0.3);
-    soundZone(s, 'atrium');
-    hold(s, 2);
+    soundZone(s, 'atrium', true);
+    hold(s, code(s, 'atrium') + 1);
     expect(h.state).not.toBe('go');
+  });
+
+  it('with the overseer dead, nothing sends it, and it leaves you be until you strike it', () => {
+    const s = fresh(), h = hand(s), o = overseer(s);
+    for (const q of s.cast) if (q !== h) q.stun = 1e9;
+    hitMutant(s, o, { dmg: 10000, stun: 0 }, 1);
+    hold(s, 0.2);
+    place(s, h.x, h.y, h.z - 6); // in plain sight in its lit hall
+    hold(s, 2);
+    expect(['idle', 'patrol']).toContain(h.state);
+    hitMutant(s, h, { dmg: 1, stun: 0 }, 1);
+    expect(h.state).toBe('wind'); // now it fights
   });
 
   it('the overseer sees you itself and sounds its zone, and lashes what comes near', () => {
@@ -445,7 +475,7 @@ describe('a smashed speaker', () => {
     expect(u.label()).toBeNull();
   });
 
-  it('the zone has no voice: seen there, the doors are still bolted, but no klaxon, and nothing comes', () => {
+  it('the zone has no voice: seen there, the doors are still bolted, no klaxon sounds and no husk comes; the overseer still knocks', () => {
     const s = fresh(), h = s.cast.find(m => m.type === 'hand')!, m = s.cast[1];
     for (const q of s.cast) if (q !== h && q !== m) q.stun = 1e9;
     s.mute.push('ops');
@@ -457,7 +487,9 @@ describe('a smashed speaker', () => {
     hold(s, 2);
     expect(sounded(s, 'klaxon')).toBe(false);
     expect(m.state).not.toBe('answer');
-    expect(h.state).not.toBe('go');
+    expect(sounded(s, 'slab')).toBe(true); // its fists are not on the PA
+    hold(s, 4);
+    expect(h.state).toBe('go'); // so the hand comes all the same
     /* sounded any other way, it does not sound at all */
     const t = fresh();
     t.mute.push('wing');
