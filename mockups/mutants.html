@@ -1,0 +1,643 @@
+<title>Rootshock New Mutants</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400&display=swap" rel="stylesheet">
+<style>
+/* Layout: the lineup fills the screen; a header to pick one, and one panel saying what it was and what it is now. */
+:root {
+  --pitch: #060708; --panel: rgba(7, 8, 9, .84); --bone: #d9d3c1; --ash: #8a897f; --hazard: #c9a227;
+  --line: rgba(217, 211, 193, .16);
+  --sign: "Barlow Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --hand: "Newsreader", Georgia, "Times New Roman", serif;
+  color-scheme: dark;
+}
+html, body { height: 100%; margin: 0; background: var(--pitch); color: var(--bone); font-family: var(--sign); overflow: hidden; }
+canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+canvas:active { cursor: grabbing; }
+.top { position: fixed; left: 0; right: 0; top: 0; padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 0; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+.name { font-size: 15px; letter-spacing: .2em; text-transform: uppercase; color: var(--ash); }
+.name b { color: var(--bone); font-weight: 600; }
+nav { display: flex; flex-wrap: wrap; gap: 4px; pointer-events: auto; max-width: 100%; }
+nav button, .btns button { font: inherit; color: var(--bone); background: none; border: 1px solid var(--line); cursor: pointer; }
+nav button { font-size: 19px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; padding: 2px 11px 1px; }
+nav button[aria-selected="true"] { border-color: var(--hazard); color: var(--hazard); }
+.panel { position: fixed; left: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); width: min(460px, calc(100% - 32px)); background: var(--panel); border-top: 3px solid var(--hazard); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; }
+.state { font-size: 26px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; line-height: 1; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.was { font-size: 15px; font-weight: 500; letter-spacing: .12em; color: var(--ash); }
+#cap { font-family: var(--hand); font-size: 16px; line-height: 1.42; margin: 0; max-width: 38em; }
+.btns { display: flex; flex-wrap: wrap; gap: 6px; }
+.btns button { font-size: 17px; font-weight: 500; padding: 3px 10px 2px; }
+.btns button.on { background: var(--bone); color: var(--pitch); border-color: var(--bone); }
+.btns button:hover, nav button:hover { border-color: var(--bone); }
+button:focus-visible { outline: 2px solid var(--hazard); outline-offset: 2px; }
+.row { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 15px; color: var(--ash); }
+.row label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.row input { accent-color: var(--hazard); margin: 0; }
+.hint { position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); font-size: 14px; letter-spacing: .1em; text-transform: uppercase; color: var(--ash); pointer-events: none; text-align: right; }
+@media (max-width: 720px) { .hint { display: none; } #cap { font-size: 15px; } .state { font-size: 22px; } nav button { font-size: 16px; padding: 2px 8px 1px; } }
+</style>
+
+<canvas id="c" aria-label="3D view of the new mutants; drag to orbit"></canvas>
+<header class="top">
+  <div class="name"><b>Rootshock</b> · new mutants, first pass</div>
+  <nav role="tablist" aria-label="Mutant" id="nav"></nav>
+</header>
+<section class="panel" aria-live="polite">
+  <div class="state"><span id="state"></span><span class="was" id="was"></span></div>
+  <p id="cap"></p>
+  <div class="btns" id="btns"></div>
+  <div class="row">
+    <label><input type="checkbox" id="flash" checked> Flashlight (F)</label>
+    <label><input type="checkbox" id="figure" checked> 1.8 m figure</label>
+  </div>
+</section>
+<div class="hint">Drag to orbit · scroll or pinch to zoom</div>
+
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js" } }</script>
+<script type="module">
+import * as THREE from 'three';
+
+const PI = Math.PI, TAU = PI * 2;
+/* castKit's palette, and castView's clothes */
+const FLESH = 0xb08572, RAW = 0x8c4a44, GOREC = 0x4e1616, PALE = 0xcdbfae, BONE = 0xddd6c0, DARK = 0x140c0d;
+const TR = 0x2b2e34, SHIRTS = [0xbfc3c0, 0x4a5560, 0x39485a, 0x6b6f5a, 0x7a5a50], COAT = 0xbfc3c0;
+
+/* the game's unit shapes (templates.ts) and look (shader.ts), as in creatures.html */
+const TPL = (() => {
+  const box = () => {
+    const c = [[-.5, -.5, -.5], [.5, -.5, -.5], [.5, .5, -.5], [-.5, .5, -.5], [-.5, -.5, .5], [.5, -.5, .5], [.5, .5, .5], [-.5, .5, .5]];
+    const f = [[0, 1, 2, 3], [5, 4, 7, 6], [4, 0, 3, 7], [1, 5, 6, 2], [3, 2, 6, 7], [4, 5, 1, 0]], p = [];
+    for (const q of f) for (const k of [0, 1, 2, 0, 2, 3]) p.push(...c[q[k]]);
+    return p;
+  };
+  const ico = () => {
+    const t = (1 + Math.sqrt(5)) / 2, n = 0.5 / Math.hypot(1, t);
+    const v = [[-1, t, 0], [1, t, 0], [-1, -t, 0], [1, -t, 0], [0, -1, t], [0, 1, t], [0, -1, -t], [0, 1, -t], [t, 0, -1], [t, 0, 1], [-t, 0, -1], [-t, 0, 1]].map(a => a.map(x => x * n));
+    const fi = [0, 11, 5, 0, 5, 1, 0, 1, 7, 0, 7, 10, 0, 10, 11, 1, 5, 9, 5, 11, 4, 11, 10, 2, 10, 7, 6, 7, 1, 8, 3, 9, 4, 3, 4, 2, 3, 2, 6, 3, 6, 8, 3, 8, 9, 4, 9, 5, 2, 4, 11, 6, 2, 10, 8, 6, 7, 9, 8, 1], p = [];
+    for (const i of fi) p.push(...v[i]);
+    return p;
+  };
+  const cyl = (N = 6) => {
+    const p = [];
+    for (let k = 0; k < N; k++) {
+      const a = (k / N) * TAU, b = ((k + 1) / N) * TAU, x0 = Math.cos(a) * .5, z0 = Math.sin(a) * .5, x1 = Math.cos(b) * .5, z1 = Math.sin(b) * .5;
+      p.push(x0, -.5, z0, x1, -.5, z1, x1, .5, z1, x0, -.5, z0, x1, .5, z1, x0, .5, z0, 0, .5, 0, x0, .5, z0, x1, .5, z1, 0, -.5, 0, x1, -.5, z1, x0, -.5, z0);
+    }
+    return p;
+  };
+  return { box: box(), ico: ico(), cyl: cyl() };
+})();
+const hex = c => Array.isArray(c) ? c : [((c >> 16) & 255) / 255, ((c >> 8) & 255) / 255, (c & 255) / 255];
+const geos = new Map();
+function geo(shape, c, sx, sy, sz) {
+  const k = `${shape}|${c}|${sx}|${sy}|${sz}`;
+  let g = geos.get(k);
+  if (g) return g;
+  const src = TPL[shape], col = hex(c), P = [], C = [];
+  for (let v = 0; v < src.length; v += 3) { P.push(src[v] * sx, src[v + 1] * sy, src[v + 2] * sz); C.push(col[0], col[1], col[2]); }
+  g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3));
+  g.setAttribute('aCol', new THREE.Float32BufferAttribute(C, 3));
+  geos.set(k, g);
+  return g;
+}
+
+/* a cut-down copy of the game's look (shader.ts): faceted, shaded by facing, a room light, the flashlight from the eye,
+   a colour over 2 drawn as its own light, fog and grain */
+const VS = `attribute vec3 aCol; varying vec3 vW; varying vec3 vC;
+void main(){ vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; vC = aCol; gl_Position = projectionMatrix * viewMatrix * w; }`;
+const FS = `uniform vec3 uRoom; uniform vec3 uFlashPos; uniform vec3 uFlashDir; uniform float uFlash;
+uniform vec3 uGlowPos; uniform vec3 uGlowC; uniform float uGlowR; uniform vec4 uTint; uniform float uTime; uniform float uFog;
+varying vec3 vW; varying vec3 vC;
+void main(){
+  vec3 n = normalize(cross(dFdx(vW), dFdy(vW)));
+  vec3 tc = cameraPosition - vW; float d = length(tc); vec3 Ld = tc / max(d, 0.001);
+  vec3 nf = dot(n, Ld) < 0.0 ? -n : n;
+  vec3 base = vC; float em = 0.0;
+  if (base.r > 1.5) { base -= 2.0; em = 1.0; }
+  base = mix(base, uTint.rgb, uTint.a);
+  float sh = 0.55 + 0.45 * (abs(nf.y) * 0.95 + abs(nf.x) * 0.7 + abs(nf.z) * 0.5);
+  vec3 light = uRoom * sh * (0.75 + 0.25 * max(nf.y, 0.0));
+  vec3 tp = vW - uFlashPos; float fd = length(tp); vec3 fdir = tp / max(fd, 0.001);
+  float cone = smoothstep(0.88, 0.975, dot(fdir, uFlashDir));
+  float facing = 0.35 + 0.65 * max(dot(nf, -fdir), 0.0);
+  light += uFlash * vec3(1.0, 0.94, 0.82) * (cone * 2.5 + 0.05) * facing / (1.0 + 0.09 * fd * fd);
+  vec3 tg = uGlowPos - vW; float gd = length(tg);
+  light += uGlowC * max(0.0, 1.0 - gd / uGlowR) * (0.35 + 0.65 * max(dot(nf, tg / max(gd, 0.001)), 0.0));
+  light += vec3(0.014) / (1.0 + 3.0 * d * d);
+  vec3 c = mix(base * light, base, em);
+  c *= exp(-d * uFog);
+  vec3 h3 = fract(vec3(gl_FragCoord.xyx + floor(fract(uTime * 7.13) * 977.0)) * 0.1031);
+  h3 += dot(h3, h3.yzx + 33.33);
+  c += (fract((h3.x + h3.y) * h3.z) - 0.5) * 0.024 * (1.0 - smoothstep(0.0, 0.35, dot(c, vec3(0.3, 0.59, 0.11))));
+  gl_FragColor = vec4(c, 1.0);
+}`;
+const U = {
+  uRoom: { value: new THREE.Vector3(0.34, 0.35, 0.37) }, uFlashPos: { value: new THREE.Vector3() }, uFlashDir: { value: new THREE.Vector3(0, 0, -1) }, uFlash: { value: 1 },
+  uGlowPos: { value: new THREE.Vector3(0, -10, 0) }, uGlowC: { value: new THREE.Vector3() }, uGlowR: { value: 1 }, uTime: { value: 0 }, uFog: { value: 0.03 },
+};
+const MAT = new THREE.ShaderMaterial({ uniforms: { ...U, uTint: { value: new THREE.Vector4(0, 0, 0, 0) } }, vertexShader: VS, fragmentShader: FS, side: THREE.DoubleSide });
+
+/* castKit, as it is: mk and grp take the material, so each BUILD below drops into castView.ts as written */
+function mk(parent, mat, shape, c, sx, sy, sz, x, y, z) {
+  const m = new THREE.Mesh(geo(shape, c, sx, sy, sz), mat);
+  m.position.set(x, y, z); m.frustumCulled = false; parent.add(m);
+  return m;
+}
+function grp(parent, x, y, z) {
+  const g = new THREE.Group(); g.position.set(x, y, z); parent.add(g);
+  return g;
+}
+function seeded(id) {
+  let s = (id * 2654435761) >>> 0 || 1;
+  const next = () => ((s = (Math.imul(s, 1664525) + 1013904223) >>> 0) / 4294967296);
+  return { rnd: (a, b) => a + next() * (b - a), pick: a => a[Math.floor(next() * a.length)] };
+}
+/** the husk's head, at any size: two dots and a slot */
+function head(parent, mat, x, y, z, s = 1, skin = PALE) {
+  const h = grp(parent, x, y, z);
+  mk(h, mat, 'ico', skin, 0.24 * s, 0.28 * s, 0.25 * s, 0, 0, 0);
+  mk(h, mat, 'ico', DARK, 0.04 * s, 0.04 * s, 0.04 * s, -0.05 * s, 0.03 * s, 0.11 * s); mk(h, mat, 'ico', DARK, 0.04 * s, 0.04 * s, 0.04 * s, 0.05 * s, 0.03 * s, 0.11 * s);
+  mk(h, mat, 'box', DARK, 0.1 * s, 0.03 * s, 0.03 * s, 0, -0.07 * s, 0.11 * s);
+  return h;
+}
+/** a husk's leg from the hip down: trousers and a shoe */
+function leg(parent, mat, x, y, z, len = 0.9, w = 0.16) {
+  const l = grp(parent, x, y, z);
+  mk(l, mat, 'box', TR, w, len, 0.17, 0, -len / 2, 0); mk(l, mat, 'box', DARK, w, 0.07, 0.26, 0, -len + 0.03, 0.04);
+  return l;
+}
+/** a sleeve, a forearm, a hand, hanging from the shoulder */
+function arm(parent, mat, x, y, z, cl, fore = PALE, len = 1) {
+  const a = grp(parent, x, y, z);
+  mk(a, mat, 'box', cl, 0.11, 0.36 * len, 0.12, 0, -0.18 * len, 0); mk(a, mat, 'box', fore, 0.08, 0.34 * len, 0.08, 0, -0.53 * len, 0); mk(a, mat, 'box', FLESH, 0.09, 0.11, 0.05, 0, -0.75 * len, 0);
+  return a;
+}
+
+const BUILD = {
+  /* the shins never got the message to stop. Trousers gave up at the knee; the shoes are still the shoes he came in */
+  stilt(mat, m) {
+    const R = seeded(m.id), g = new THREE.Group(), cl = R.pick(SHIRTS), H = 2.55;
+    const legs = [];
+    for (const s of [-1, 1]) {
+      const l = grp(g, s * 0.11, H, 0);
+      mk(l, mat, 'box', TR, 0.17, 0.5, 0.18, 0, -0.25, 0); mk(l, mat, 'box', RAW, 0.15, 0.06, 0.16, 0, -0.52, 0);
+      const k = grp(l, 0, -0.52, 0);
+      mk(k, mat, 'box', BONE, 0.1, 0.1, 0.1, 0, -0.02, 0); mk(k, mat, 'box', PALE, 0.07, 1.94, 0.07, 0, -0.98, 0); mk(k, mat, 'box', DARK, 0.16, 0.07, 0.26, 0, -1.96, 0.05);
+      legs.push({ l, k });
+    }
+    const b = grp(g, 0, H, 0);
+    mk(b, mat, 'box', cl, 0.42, 0.6, 0.24, 0, 0.3, 0); mk(b, mat, 'box', TR, 0.4, 0.12, 0.23, 0, 0.03, 0);
+    const hd = head(b, mat, 0, 0.76, 0.04);
+    const arms = [-1, 1].map(s => arm(b, mat, s * 0.27, 0.56, 0, cl));
+    b.rotation.x = 0.45;
+    return { g, b, hd, legs, arms };
+  },
+  /* two of the night shift, who sat too close. Three legs between them, one arm where their shoulders met, and two
+     heads that would each rather be somewhere else */
+  couple(mat, m) {
+    const R = seeded(m.id), g = new THREE.Group(), c1 = R.pick(SHIRTS), c2 = R.pick(SHIRTS);
+    const legs = [leg(g, mat, -0.32, 0.9, 0), grp(g, 0, 0.9, 0), leg(g, mat, 0.32, 0.9, 0)];
+    mk(legs[1], mat, 'box', RAW, 0.26, 0.9, 0.2, 0, -0.45, 0); mk(legs[1], mat, 'box', DARK, 0.3, 0.07, 0.28, 0, -0.87, 0.04);
+    const b = grp(g, 0, 0.9, 0);
+    mk(b, mat, 'box', c1, 0.4, 0.6, 0.24, -0.22, 0.3, 0); mk(b, mat, 'box', c2, 0.4, 0.6, 0.24, 0.22, 0.3, 0);
+    mk(b, mat, 'box', RAW, 0.14, 0.64, 0.26, 0, 0.3, 0); mk(b, mat, 'box', TR, 0.84, 0.12, 0.23, 0, 0.03, 0);
+    const hds = [head(b, mat, -0.24, 0.76, 0), head(b, mat, 0.24, 0.76, 0)];
+    const mid = grp(b, 0, 0.58, 0.14);
+    mk(mid, mat, 'box', FLESH, 0.22, 0.5, 0.18, 0, -0.25, 0); mk(mid, mat, 'box', RAW, 0.18, 0.42, 0.15, 0, -0.7, 0); mk(mid, mat, 'box', PALE, 0.2, 0.14, 0.08, 0, -0.96, 0);
+    const arms = [arm(b, mat, -0.47, 0.56, 0, c1), arm(b, mat, 0.47, 0.56, 0, c2), mid];
+    return { g, b, hds, legs, arms };
+  },
+  /* bent over backwards until the hands met the floor, and then it found that it liked it. Belly to the ceiling, the
+     face hanging under the front end the wrong way up, still looking where it's going */
+  bridge(mat, m) {
+    const R = seeded(m.id), g = new THREE.Group(), cl = R.pick(SHIRTS), b = grp(g, 0, 0.85, 0);
+    mk(b, mat, 'box', cl, 0.42, 0.22, 0.62, 0, 0, 0.02); mk(b, mat, 'box', FLESH, 0.36, 0.04, 0.24, 0, 0.12, -0.16); mk(b, mat, 'box', TR, 0.4, 0.21, 0.16, 0, 0, -0.3);
+    mk(b, mat, 'box', RAW, 0.1, 0.1, 0.2, 0, -0.06, 0.38);
+    const hd = grp(b, 0, -0.14, 0.44), face = head(hd, mat, 0, -0.18, 0.04, 1.05);
+    face.rotation.z = PI;
+    mk(face, mat, 'box', DARK, 0.1, 0.07, 0.03, 0, -0.07, 0.115);
+    const arms = [], legs = [];
+    for (const s of [-1, 1]) {
+      const a = grp(b, s * 0.25, 0, 0.3);
+      mk(a, mat, 'box', cl, 0.11, 0.4, 0.12, 0, -0.2, 0); mk(a, mat, 'box', PALE, 0.08, 0.42, 0.08, 0, -0.6, 0); mk(a, mat, 'box', FLESH, 0.1, 0.04, 0.18, 0, -0.83, -0.05);
+      arms.push(a);
+      const l = grp(b, s * 0.12, 0, -0.32);
+      mk(l, mat, 'box', TR, 0.16, 0.78, 0.18, 0, -0.39, 0); mk(l, mat, 'box', DARK, 0.16, 0.22, 0.1, 0, -0.74, -0.06);
+      legs.push(l);
+    }
+    return { g, b, hd, arms, legs };
+  },
+  /* all jaw. The lower one kept going until it reached the floor, and now he walks behind it on his knuckles like a
+     man pushing a barrow. The rest of the head sits on top, a lid */
+  gape(mat, m) {
+    const R = seeded(m.id), g = new THREE.Group(), cl = R.pick(SHIRTS);
+    const legs = [-1, 1].map(s => leg(g, mat, s * 0.11, 0.78, -0.5, 0.78));
+    const b = grp(g, 0, 0.78, -0.5);
+    mk(b, mat, 'box', cl, 0.42, 0.6, 0.26, 0, 0.3, 0); mk(b, mat, 'box', TR, 0.4, 0.12, 0.25, 0, 0.03, 0);
+    b.rotation.x = 1.1;
+    const arms = [-1, 1].map(s => { const a = arm(b, mat, s * 0.27, 0.56, 0, cl, PALE, 1.3); a.rotation.x = -1.1; return a; });
+    const neck = mk(g, mat, 'box', FLESH, 0.2, 0.55, 0.2, 0, 0.7, 0.18); neck.rotation.x = -0.4;
+    const jaw = grp(g, 0, 0, 0.3);
+    mk(jaw, mat, 'box', BONE, 0.62, 0.08, 1.0, 0, 0.04, 0.5); mk(jaw, mat, 'box', GOREC, 0.52, 0.1, 0.9, 0, 0.12, 0.48);
+    for (const s of [-1, 1]) mk(jaw, mat, 'box', PALE, 0.06, 0.26, 1.0, s * 0.3, 0.17, 0.5);
+    mk(jaw, mat, 'box', PALE, 0.62, 0.26, 0.06, 0, 0.17, 1.0);
+    const tongue = mk(jaw, mat, 'box', RAW, 0.26, 0.07, 0.62, 0, 0.18, 0.45);
+    for (let k = 0; k < 6; k++) mk(jaw, mat, 'box', BONE, 0.05, 0.09, 0.05, -0.24 + k * 0.096, 0.34, 0.96);
+    for (const s of [-1, 1]) for (let k = 0; k < 4; k++) mk(jaw, mat, 'box', BONE, 0.05, 0.08, 0.05, s * 0.28, 0.33, 0.25 + k * 0.2);
+    const lid = grp(g, 0, 0.3, 0.32);
+    mk(lid, mat, 'box', PALE, 0.62, 0.07, 1.0, 0, 0.0, 0.5); mk(lid, mat, 'ico', PALE, 0.5, 0.42, 0.5, 0, 0.18, 0.18);
+    mk(lid, mat, 'ico', DARK, 0.05, 0.05, 0.05, -0.1, 0.24, 0.42); mk(lid, mat, 'ico', DARK, 0.05, 0.05, 0.05, 0.1, 0.24, 0.42);
+    for (let k = 0; k < 6; k++) mk(lid, mat, 'box', BONE, 0.05, 0.08, 0.05, -0.24 + k * 0.096, -0.07, 0.96);
+    return { g, b, legs, arms, lid, tongue };
+  },
+  /* where the overseer's heads budded, this one's went up. Five of them, each from the crown of the last, none facing
+     the same way; the arms have gone up to hold the column steady */
+  stack(mat, m) {
+    const R = seeded(m.id), g = new THREE.Group(), cl = R.pick(SHIRTS);
+    const legs = [-1, 1].map(s => leg(g, mat, s * 0.11, 0.9, 0));
+    const b = grp(g, 0, 0.9, 0);
+    mk(b, mat, 'box', cl, 0.42, 0.6, 0.24, 0, 0.3, 0); mk(b, mat, 'box', TR, 0.4, 0.12, 0.23, 0, 0.03, 0);
+    const links = [], hds = [];
+    let par = grp(b, 0, 0.6, 0);
+    for (let k = 0; k < 5; k++) {
+      const s = [1, 0.85, 1.1, 0.8, 0.95][k];
+      mk(par, mat, 'box', k ? RAW : FLESH, 0.1, 0.1, 0.1, 0, 0.05, 0);
+      const h = head(par, mat, 0, 0.1 + 0.14 * s, 0, s);
+      h.rotation.y = k ? R.rnd(-2.6, 2.6) : 0;
+      links.push(par); hds.push({ h, y: h.rotation.y });
+      par = grp(par, 0, 0.1 + 0.28 * s, 0);
+    }
+    const arms = [-1, 1].map(s => { const a = arm(b, mat, s * 0.27, 0.56, 0, cl, PALE, 1.1); a.rotation.set(PI - 0.05, 0, -s * 0.28); return a; });
+    return { g, b, legs, links, hds, arms };
+  },
+  /* the lab coat is still standing. Whatever was wearing it has split it down the back and is halfway out, new and wet
+     and longer in the arm; the old face hangs on the chest, empty */
+  moult(mat, m) {
+    const g = new THREE.Group(), old = 0xa59a88;
+    const legs = [-1, 1].map(s => leg(g, mat, s * 0.11, 0.9, 0));
+    const b = grp(g, 0, 0.9, 0);
+    mk(b, mat, 'box', TR, 0.4, 0.12, 0.23, 0, 0.03, 0);
+    const doors = [];
+    for (const s of [-1, 1]) {
+      const d = grp(b, s * 0.21, 0.36, 0.12);
+      mk(d, mat, 'box', COAT, 0.21, 0.66, 0.24, -s * 0.105, 0, -0.12); mk(d, mat, 'box', RAW, 0.19, 0.62, 0.02, -s * 0.105, 0, -0.245);
+      doors.push({ d, s });
+    }
+    const hd = head(b, mat, 0, 0.72, 0.1, 1, old);
+    mk(hd, mat, 'ico', GOREC, 0.07, 0.07, 0.04, -0.05, 0.03, 0.11); mk(hd, mat, 'ico', GOREC, 0.07, 0.07, 0.04, 0.05, 0.03, 0.11);
+    hd.rotation.x = 1.1;
+    const dead = [-1, 1].map(s => arm(b, mat, s * 0.27, 0.6, 0.02, COAT, old));
+    const n = grp(b, 0, 0.1, -0.06);
+    mk(n, mat, 'box', RAW, 0.28, 0.56, 0.16, 0, 0.3, 0);
+    for (let k = 0; k < 4; k++) mk(n, mat, 'box', BONE, 0.3, 0.03, 0.04, 0, 0.18 + k * 0.1, -0.08);
+    const nh = head(n, mat, 0, 0.74, 0, 0.92, 0xe0c4b4);
+    const reach = [];
+    for (const s of [-1, 1]) {
+      const a = grp(n, s * 0.17, 0.54, 0);
+      mk(a, mat, 'box', RAW, 0.07, 0.46, 0.07, 0, -0.23, 0); mk(a, mat, 'box', 0xe0c4b4, 0.06, 0.62, 0.06, 0, -0.77, 0); mk(a, mat, 'box', BONE, 0.04, 0.16, 0.04, 0, -1.14, 0.02);
+      reach.push({ a, s });
+    }
+    return { g, b, hd, legs, doors, dead, n, nh, reach };
+  },
+  /* curled up until its heels found its mouth, and then it simply kept rolling. The arms stick out from the hub and paddle */
+  wheel(mat, m) {
+    const R = seeded(m.id), g = new THREE.Group(), cl = R.pick(SHIRTS), r = 0.52, N = 9, ch = 2 * r * Math.sin(PI / N) * 1.12;
+    const w = grp(g, 0, r + 0.13, 0);
+    const col = [null, cl, cl, cl, TR, TR, TR, TR, DARK];
+    for (let k = 1; k < N; k++) {
+      const a = (k / N) * TAU, seg = mk(w, mat, 'box', col[k], k < 4 ? 0.42 : k < 8 ? 0.34 : 0.3, 0.24, ch, 0, Math.sin(a) * r, Math.cos(a) * r);
+      seg.rotation.x = -a - PI / 2;
+    }
+    const hd = head(w, mat, 0, 0, r, 1.25);
+    mk(hd, mat, 'box', DARK, 0.14, 0.07, 0.05, 0, -0.08, 0.15);
+    const a1 = TAU / N * 1.3, arms = [];
+    for (const s of [-1, 1]) {
+      const a = grp(w, s * 0.22, Math.sin(a1) * r, Math.cos(a1) * r);
+      mk(a, mat, 'box', cl, 0.36, 0.11, 0.12, s * 0.18, 0, 0); mk(a, mat, 'box', PALE, 0.4, 0.08, 0.08, s * 0.56, 0, 0); mk(a, mat, 'box', FLESH, 0.12, 0.05, 0.12, s * 0.8, 0, 0);
+      arms.push({ a, s });
+    }
+    return { g, w, arms };
+  },
+  /* face down on the floor where it fell, years ago, and it never got up. It just raised its head, and kept raising it */
+  periscope(mat, m) {
+    const R = seeded(m.id), g = new THREE.Group(), cl = R.pick(SHIRTS), b = grp(g, 0, 0.13, 0);
+    mk(b, mat, 'box', cl, 0.42, 0.24, 0.6, 0, 0, 0); mk(b, mat, 'box', TR, 0.4, 0.23, 0.14, 0, 0, -0.36);
+    for (const s of [-1, 1]) { mk(b, mat, 'box', TR, 0.16, 0.17, 0.86, s * 0.11, -0.03, -0.86); mk(b, mat, 'box', DARK, 0.16, 0.26, 0.07, s * 0.11, 0.03, -1.3); }
+    const arms = [];
+    for (const s of [-1, 1]) {
+      const a = grp(b, s * 0.27, 0.02, 0.22), f = grp(a, 0, 0, 0.34);
+      mk(a, mat, 'box', cl, 0.11, 0.11, 0.34, 0, 0, 0.17); mk(f, mat, 'box', PALE, 0.08, 0.08, 0.36, 0, -0.04, 0.18); mk(f, mat, 'box', FLESH, 0.11, 0.04, 0.14, 0, -0.09, 0.4);
+      a.rotation.y = s * 0.7; f.rotation.y = -s * 1.2;
+      arms.push({ a, f, s });
+    }
+    const segs = [];
+    let par = grp(b, 0, 0.1, 0.3);
+    for (let k = 0; k < 8; k++) {
+      mk(par, mat, 'box', k === 0 ? RAW : k % 2 ? FLESH : 0xa47664, 0.11 - 0.004 * k, 0.27, 0.11 - 0.004 * k, 0, 0.13, 0);
+      segs.push(par); par = grp(par, 0, 0.26, 0);
+    }
+    const hd = head(par, mat, 0, 0.12, 0.03, 1.1);
+    return { g, b, arms, segs, hd };
+  },
+  /* it went up into the ceiling by the hands and stayed. The arms are a metre and more now and the feet don't reach. The
+     head has turned all the way round, so it watches you over its own back */
+  hanger(mat, m) {
+    const R = seeded(m.id), g = new THREE.Group(), cl = R.pick(SHIRTS), C = 3.2;
+    mk(g, mat, 'box', 0x3a3c3e, 1.8, 0.12, 1.8, 0, C + 0.06, 0);
+    for (let k = 0; k < 7; k++) { const v = mk(g, mat, 'box', RAW, R.rnd(0.3, 0.7), 0.03, 0.07, R.rnd(-0.3, 0.3), C - 0.01, R.rnd(-0.25, 0.25)); v.rotation.y = R.rnd(0, PI); }
+    const p = grp(g, 0, C, 0);
+    for (const s of [-1, 1]) { mk(p, mat, 'box', PALE, 0.07, 1.25, 0.07, s * 0.19, -0.62, 0); mk(p, mat, 'box', cl, 0.12, 0.3, 0.13, s * 0.21, -1.32, 0); mk(p, mat, 'box', RAW, 0.12, 0.06, 0.18, s * 0.18, -0.02, 0); }
+    const b = grp(p, 0, -1.45, 0);
+    b.rotation.y = PI;
+    mk(b, mat, 'box', cl, 0.42, 0.6, 0.24, 0, -0.3, 0); mk(b, mat, 'box', TR, 0.4, 0.12, 0.23, 0, -0.6, 0);
+    const hd = head(b, mat, 0, 0.12, 0);
+    hd.rotation.y = PI;
+    const legs = [];
+    for (const s of [-1, 1]) {
+      const l = grp(b, s * 0.11, -0.64, 0);
+      mk(l, mat, 'box', TR, 0.16, 0.9, 0.17, 0, -0.45, 0);
+      const f = mk(l, mat, 'box', DARK, 0.16, 0.07, 0.26, 0, -0.93, 0.03); f.rotation.x = 1.1;
+      legs.push(l);
+    }
+    return { g, p, b, hd, legs };
+  },
+  /* one carries the other, and has done so long that the rider's legs have gone into its sides. The rider's hands are
+     over the carrier's eyes; the carrier walks blind with its arms out, and the rider looks for both of them */
+  piggyback(mat, m) {
+    const R = seeded(m.id), g = new THREE.Group(), c1 = R.pick(SHIRTS), c2 = R.pick(SHIRTS);
+    const legs = [-1, 1].map(s => leg(g, mat, s * 0.12, 0.9, 0, 0.9, 0.17));
+    const b = grp(g, 0, 0.9, 0);
+    mk(b, mat, 'box', c1, 0.44, 0.62, 0.26, 0, 0.3, 0); mk(b, mat, 'box', TR, 0.42, 0.12, 0.25, 0, 0.03, 0);
+    for (const s of [-1, 1]) mk(b, mat, 'box', RAW, 0.06, 0.2, 0.34, s * 0.23, 0.42, -0.04);
+    const hd = head(b, mat, 0, 0.77, 0.06);
+    for (const s of [-1, 1]) mk(hd, mat, 'box', FLESH, 0.13, 0.08, 0.05, s * 0.06, 0.03, 0.14);
+    const arms = [-1, 1].map(s => arm(b, mat, s * 0.28, 0.58, 0, c1));
+    const r = grp(b, 0, 0.5, -0.26);
+    mk(r, mat, 'ico', RAW, 0.44, 0.24, 0.3, 0, 0, 0.04); mk(r, mat, 'box', c2, 0.38, 0.5, 0.22, 0, 0.27, -0.04);
+    const rh = head(r, mat, 0, 0.66, 0, 0.95);
+    for (const s of [-1, 1]) {
+      const sl = mk(b, mat, 'box', c2, 0.1, 0.1, 0.34, s * 0.2, 0.94, -0.1); sl.rotation.x = 0.35;
+      const fa = mk(b, mat, 'box', PALE, 0.07, 0.07, 0.28, s * 0.13, 0.86, 0.12); fa.rotation.set(0.3, -s * 0.5, 0);
+    }
+    b.rotation.x = 0.3;
+    return { g, b, hd, legs, arms, r, rh };
+  },
+};
+
+const ease = t => t * t * (3 - 2 * t);
+const rr = (a, b) => a + Math.random() * (b - a);
+
+/* m as the sim has it: ph runs with time, mv > 0 when it walks, state idle or hunt */
+const ANIM = {
+  stilt(m, M) {
+    const mv = m.mv > 0, hunt = m.state === 'hunt', f = hunt ? 3.4 : 1.9;
+    M.legs.forEach((o, k) => {
+      const q = Math.sin(m.ph * f + k * PI);
+      o.l.rotation.x = mv ? q * 0.26 : Math.sin(m.ph * 0.4 + k) * 0.03;
+      o.k.rotation.x = mv ? Math.max(0, Math.sin(m.ph * f + k * PI + 1.2)) * 0.32 : 0.04;
+    });
+    M.b.rotation.x = hunt ? 0.62 : 0.45;
+    M.b.rotation.z = Math.sin(m.ph * (mv ? f : 0.5)) * 0.06;
+    M.hd.rotation.x = 0.25 + Math.sin(m.ph * 0.7) * 0.05;
+    M.hd.rotation.y = hunt ? 0 : Math.sin(m.ph * 0.3) * 0.6;
+    M.arms.forEach((a, k) => { a.rotation.x = Math.sin(m.ph * (mv ? f : 0.8) + k * PI) * (hunt ? 0.35 : 0.15) - (hunt ? 0.4 : 0); });
+  },
+  couple(m, M) {
+    const mv = m.mv > 0, hunt = m.state === 'hunt', f = hunt ? 7 : 3.5;
+    M.legs.forEach((l, k) => { l.rotation.x = mv ? Math.sin(m.ph * f + k * TAU / 3) * 0.45 : 0; });
+    M.b.rotation.z = mv ? Math.sin(m.ph * f) * 0.1 : Math.sin(m.ph * 0.5) * 0.03;
+    /* they lean apart, then back together, out of step with each other */
+    M.hds[0].rotation.z = 0.32 + Math.sin(m.ph * 0.6) * 0.12;
+    M.hds[1].rotation.z = -0.36 + Math.sin(m.ph * 0.6 + PI) * 0.12;
+    M.hds[0].rotation.y = hunt ? 0.1 : Math.sin(m.ph * 0.37) * 0.7;
+    M.hds[1].rotation.y = hunt ? -0.1 : -0.5 + (Math.random() < 0.02 ? rr(-0.6, 0.6) : 0);
+    M.arms[0].rotation.x = hunt ? -1.2 : Math.sin(m.ph * f + PI) * 0.25;
+    M.arms[1].rotation.x = hunt ? Math.sin(m.ph * 2) * 0.2 : Math.sin(m.ph * f) * 0.25;
+    M.arms[2].rotation.x = hunt ? -0.9 + Math.sin(m.ph * 5) * 0.3 : Math.sin(m.ph * 0.9) * 0.12;
+  },
+  bridge(m, M) {
+    const mv = m.mv > 0, hunt = m.state === 'hunt', f = hunt ? 15 : 9;
+    for (let k = 0; k < 2; k++) {
+      M.arms[k].rotation.x = mv ? Math.sin(m.ph * f + k * PI) * 0.45 : 0;
+      M.legs[k].rotation.x = mv ? Math.sin(m.ph * f + (1 - k) * PI) * 0.45 : 0;
+    }
+    M.b.position.y = 0.85 + (mv ? Math.abs(Math.sin(m.ph * f)) * 0.04 : Math.sin(m.ph * 0.8) * 0.01);
+    M.b.rotation.x = hunt ? -0.12 : 0;
+    M.b.rotation.z = Math.random() < 0.03 ? rr(-0.1, 0.1) : M.b.rotation.z * 0.9;
+    M.hd.rotation.x = Math.sin(m.ph * (mv ? f / 2 : 1.1)) * 0.25;
+    M.hd.rotation.z = Math.sin(m.ph * 0.7) * 0.2 + (Math.random() < 0.02 ? rr(-0.5, 0.5) : 0);
+  },
+  gape(m, M) {
+    const mv = m.mv > 0, hunt = m.state === 'hunt', f = hunt ? 6 : 3;
+    M.arms.forEach((a, k) => { a.rotation.x = -1.1 + (mv ? Math.sin(m.ph * f + k * PI) * 0.35 : 0); });
+    M.legs.forEach((l, k) => { l.rotation.x = mv ? Math.sin(m.ph * f + (1 - k) * PI) * 0.3 : 0; });
+    /* breathing through it, the lid lifting a little; hunting, it snaps, slow open and a fast shut */
+    const snap = (m.ph * 0.9) % 1;
+    M.lid.rotation.x = hunt ? -0.85 * (snap < 0.8 ? ease(snap / 0.8) : 1 - (snap - 0.8) / 0.2) : -0.08 - Math.max(0, Math.sin(m.ph * 0.8)) * 0.12;
+    M.tongue.position.z = 0.45 + Math.sin(m.ph * 1.3) * 0.08;
+    M.tongue.rotation.y = Math.sin(m.ph * 0.9) * 0.15;
+  },
+  stack(m, M) {
+    const mv = m.mv > 0, hunt = m.state === 'hunt', f = hunt ? 6 : 3;
+    M.legs.forEach((l, k) => { l.rotation.x = mv ? Math.sin(m.ph * f + k * PI) * 0.35 : 0; });
+    /* the column sways, more the higher you go, and every head turns on its own */
+    M.links.forEach((l, k) => {
+      l.rotation.z = Math.sin(m.ph * 0.9 - k * 0.6) * 0.04 * (1 + k * 0.5) * (mv ? 2 : 1);
+      l.rotation.x = Math.cos(m.ph * 0.7 - k * 0.5) * 0.03 * (1 + k * 0.5) + (mv ? 0.04 : 0);
+    });
+    M.hds.forEach((o, k) => { o.h.rotation.y = hunt ? o.y * 0.15 : o.y + Math.sin(m.ph * (0.3 + k * 0.17) + k) * 0.5; });
+    M.arms.forEach((a, k) => { a.rotation.x = PI - 0.05 + Math.sin(m.ph * 0.9 + k) * 0.06; });
+  },
+  moult(m, M) {
+    const mv = m.mv > 0, hunt = m.state === 'hunt', f = hunt ? 5 : 2.5;
+    M.legs.forEach((l, k) => { l.rotation.x = mv ? Math.sin(m.ph * f + k * PI) * 0.2 : 0; });
+    /* it heaves its way out and sinks back, a little further each time it would seem */
+    const h = 0.5 + 0.5 * Math.sin(m.ph * (hunt ? 2.2 : 0.7));
+    M.n.rotation.x = -0.35 - 0.35 * h;
+    M.n.position.y = 0.1 + 0.12 * h;
+    for (const o of M.doors) o.d.rotation.y = -o.s * (0.35 + 0.35 * h);
+    M.reach.forEach((o, k) => {
+      o.a.rotation.x = PI - 0.4 + Math.sin(m.ph * (hunt ? 4 : 1.3) + k * PI) * 0.35;
+      o.a.rotation.z = o.s * (0.25 + 0.15 * h);
+    });
+    M.nh.rotation.x = -0.3 * h; M.nh.rotation.y = Math.sin(m.ph * 0.5) * 0.4;
+    M.hd.rotation.x = 1.1 + Math.sin(m.ph * (mv ? f : 0.6)) * 0.12; M.hd.rotation.z = Math.sin(m.ph * 0.45) * 0.25;
+    M.dead.forEach((a, k) => { a.rotation.x = Math.sin(m.ph * (mv ? f : 0.6) + k) * 0.1; });
+  },
+  wheel(m, M) {
+    const mv = m.mv > 0, hunt = m.state === 'hunt', f = hunt ? 7 : 3.2;
+    M.w.rotation.x = mv ? m.ph * f : Math.sin(m.ph * 0.7) * 0.35;
+    M.w.position.y = 0.65 + (mv ? Math.abs(Math.sin(m.ph * f * 4.5)) * 0.03 : 0);
+    for (const o of M.arms) { o.a.rotation.y = o.s * Math.sin(m.ph * (mv ? f * 2 : 1.4)) * 0.6; o.a.rotation.z = o.s * Math.sin(m.ph * 1.9 + o.s) * 0.4; }
+  },
+  periscope(m, M) {
+    const mv = m.mv > 0, hunt = m.state === 'hunt';
+    /* up straight and swaying, the head going round like a lamp; hunting, the neck arcs over toward you */
+    M.segs.forEach((s, k) => {
+      s.rotation.x = (k === 0 ? 0.1 : 0) + (hunt ? 0.14 : 0) + Math.sin(m.ph * 0.8 - k * 0.4) * 0.04;
+      s.rotation.z = Math.sin(m.ph * 0.6 - k * 0.5) * (hunt ? 0.015 : 0.05);
+    });
+    M.hd.rotation.y = hunt ? 0 : Math.sin(m.ph * 0.4) * 1.3;
+    M.hd.rotation.x = hunt ? 0.2 : 0.35;
+    for (const o of M.arms) {
+      const q = mv ? Math.sin(m.ph * 3 + (o.s > 0 ? PI : 0)) : 0;
+      o.a.rotation.y = o.s * (0.7 + q * 0.3); o.f.rotation.y = -o.s * (1.2 - q * 0.4);
+    }
+    M.b.position.z = mv ? Math.max(0, Math.sin(m.ph * 6)) * 0.02 : 0;
+  },
+  hanger(m, M) {
+    const hunt = m.state === 'hunt';
+    M.p.rotation.x = Math.sin(m.ph * 0.9) * 0.06 + (hunt ? Math.sin(m.ph * 2.6) * 0.16 : 0);
+    M.p.rotation.z = Math.sin(m.ph * 0.6) * 0.04;
+    M.legs.forEach((l, k) => { l.rotation.x = Math.sin(m.ph * (hunt ? 4 : 1.2) + k * PI) * (hunt ? 0.4 : 0.08); });
+    M.hd.rotation.y = PI + Math.sin(m.ph * 0.5) * 0.3;
+    M.hd.rotation.z = Math.sin(m.ph * 0.33) * 0.25 + (Math.random() < 0.015 ? rr(-0.4, 0.4) : 0);
+  },
+  piggyback(m, M) {
+    const mv = m.mv > 0, hunt = m.state === 'hunt', f = hunt ? 8 : 3;
+    M.legs.forEach((l, k) => { l.rotation.x = mv ? Math.sin(m.ph * f + k * PI) * (hunt ? 0.6 : 0.25) : 0; });
+    /* the carrier feels the air in front of it; the rider does the looking */
+    M.arms.forEach((a, k) => {
+      const s = k ? 1 : -1;
+      a.rotation.x = -1.35 + Math.sin(m.ph * 1.7 + k * 2) * 0.2;
+      a.rotation.z = s * Math.sin(m.ph * 1.1 + k) * 0.18;
+    });
+    M.hd.rotation.z = Math.sin(m.ph * 0.5) * 0.2; M.hd.rotation.x = -0.1;
+    M.rh.rotation.y = hunt ? 0 : Math.sin(m.ph * 0.6) * 0.9;
+    M.r.rotation.x = hunt ? 0.35 : 0.05; M.r.rotation.z = Math.sin(m.ph * (mv ? f : 0.7)) * 0.08;
+    M.b.rotation.x = hunt ? 0.45 : 0.3;
+  },
+};
+
+/* name, what it was, and the idea */
+const CAST = [
+  ['stilt', 'Stilt', 'a man of average height', 'The shins kept growing after the rest of him had stopped. Trousers end at the knee; below them, two metres of bare bone-white shin and the same shoes he came to work in. He stands hunched under the ceiling and looks down at you from a long way up.'],
+  ['couple', 'Couple', 'two of the night shift', 'They sat too close for too long. Three legs between them, the middle one shared, and one thick arm where their shoulders met. Each head leans away from the other. They walk with a limp that belongs to neither.'],
+  ['bridge', 'Bridge', 'a technician', 'Bent over backwards until the hands met the floor, then found it liked it there. Belly to the ceiling, walking on hands and heels. The face hangs under the front end the wrong way up, mouth on top, still watching where it is going.'],
+  ['gape', 'Gape', 'a man who talked a lot', 'The lower jaw kept going until it reached the floor. He walks behind it on his knuckles like a man pushing a barrow, and the rest of his head sits on top of it like a lid.'],
+  ['stack', 'Stack', 'a supervisor', 'The overseer\'s heads budded sideways; this one\'s went up. Five heads, each grown from the crown of the one below, none facing the same way. The arms have gone up to steady the column, and it sways.'],
+  ['moult', 'Moult', 'a researcher', 'The lab coat is still standing. Whatever was wearing it has split it down the back and is halfway out: new, wet and longer in the arm. The old face hangs empty on its chest.'],
+  ['wheel', 'Wheel', 'someone curled up to hide', 'Curled up until the heels reached the mouth, and then it kept rolling. The face comes round on every turn. The arms stick out from the hub and paddle.'],
+  ['periscope', 'Periscope', 'someone who fell in a corridor', 'Face down on the floor where it fell, and it never got up. It raised its head instead, and kept raising it. Two metres of neck, and the head goes round like a lamp.'],
+  ['hanger', 'Hanger', 'a maintenance worker', 'It went up into the ceiling by the hands and stayed there. The arms are over a metre long now and the feet do not reach the floor. The head has turned all the way round, so it watches you over its own back.'],
+  ['piggyback', 'Piggyback', 'two of the response team', 'One carries the other, long enough that the rider\'s legs have grown into its sides. The rider\'s hands cover the carrier\'s eyes. The carrier walks blind with its arms out, and the rider does the looking.'],
+];
+
+/* ---- the scene: a floor, the lineup, a person for scale ---- */
+const S = new THREE.Scene(), SP = 3.2;
+const FLOOR_W = CAST.length * SP + 4;
+mk(S, MAT, 'box', 0x3b3d3f, FLOOR_W, 0.1, 8, 0, -0.05, 0);
+for (let x = -FLOOR_W / 2 + 1; x < FLOOR_W / 2; x += 1) mk(S, MAT, 'box', 0x2c2e30, 0.02, 0.004, 8, x, 0.001, 0);
+for (let z = -3; z < 4; z += 1) mk(S, MAT, 'box', 0x2c2e30, FLOOR_W, 0.004, 0.02, 0, 0.001, z);
+const SHOWN = CAST.map(([key], i) => {
+  const m = { id: 11 + i * 7, ph: i * 1.7, mv: 0, state: 'idle' }, M = BUILD[key](MAT, m);
+  M.g.position.set((i - (CAST.length - 1) / 2) * SP, 0, 0);
+  S.add(M.g);
+  return { key, m, M };
+});
+const fig = grp(S, 0, 0, 0);
+{ const c = 0x5c5f62;
+  for (const s of [-1, 1]) mk(fig, MAT, 'box', c, 0.16, 0.86, 0.18, s * 0.11, 0.43, 0);
+  mk(fig, MAT, 'box', c, 0.44, 0.62, 0.24, 0, 1.17, 0);
+  for (const s of [-1, 1]) mk(fig, MAT, 'box', c, 0.1, 0.66, 0.11, s * 0.28, 1.15, 0);
+  mk(fig, MAT, 'ico', c, 0.24, 0.28, 0.25, 0, 1.64, 0); }
+
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
+const camera = new THREE.PerspectiveCamera(50, 1, 0.05, 120);
+const cam = { yaw: 0.5, pitch: 0.12, dist: 6.5, tgt: new THREE.Vector3(), want: new THREE.Vector3() };
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const damp = (k, dt) => 1 - Math.exp(-k * dt);
+
+/* ---- the panel ---- */
+let cur = 0, mode = 'idle', figX = 0;
+const MODES = { idle: ['Idle', 0, 'idle'], walk: ['Walk', 1, 'idle'], hunt: ['Hunt', 1, 'hunt'] };
+const nav = document.getElementById('nav'), btns = document.getElementById('btns');
+CAST.forEach(([key, name], i) => {
+  const b = document.createElement('button');
+  b.setAttribute('role', 'tab'); b.id = `tab-${key}`; b.textContent = name; b.onclick = () => pick(i);
+  nav.appendChild(b);
+});
+for (const [k, [label]] of Object.entries(MODES)) {
+  const b = document.createElement('button');
+  b.id = `b-${k}`; b.textContent = label; b.onclick = () => { mode = k; panel(); };
+  btns.appendChild(b);
+}
+function panel() {
+  const [key, name, was, cap] = CAST[cur];
+  document.getElementById('state').textContent = name;
+  document.getElementById('was').textContent = `was ${was}`;
+  document.getElementById('cap').textContent = cap;
+  for (const b of nav.children) b.setAttribute('aria-selected', String(b.id === `tab-${key}`));
+  for (const b of btns.children) b.className = b.id === `b-${mode}` ? 'on' : '';
+}
+function pick(i) {
+  cur = i; panel();
+  const x = SHOWN[i].M.g.position.x, tall = ['stilt', 'stack', 'hanger', 'periscope'].includes(SHOWN[i].key);
+  /* on a wide screen the panel takes the lower left, so look a little left of it and it stands clear */
+  cam.want.set(x - (innerWidth > 900 ? 0.9 : 0), tall ? 1.6 : 1.0, 0);
+  figX = x + 1.4;
+  cam.dist = tall ? 7.2 : 5.6;
+}
+const flashEl = document.getElementById('flash'), figEl = document.getElementById('figure');
+addEventListener('keydown', e => {
+  if (e.key === 'f' || e.key === 'F') flashEl.checked = !flashEl.checked;
+  if (e.key === 'ArrowRight') pick((cur + 1) % CAST.length);
+  if (e.key === 'ArrowLeft') pick((cur + CAST.length - 1) % CAST.length);
+});
+
+/* ---- orbit ---- */
+const ptrs = new Map(); let pinch = 0;
+canvas.addEventListener('pointerdown', e => { canvas.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, [e.clientX, e.clientY]); });
+canvas.addEventListener('pointerup', e => { ptrs.delete(e.pointerId); pinch = 0; });
+canvas.addEventListener('pointercancel', e => { ptrs.delete(e.pointerId); pinch = 0; });
+canvas.addEventListener('pointermove', e => {
+  const p = ptrs.get(e.pointerId); if (!p) return;
+  if (ptrs.size === 1) { cam.yaw -= (e.clientX - p[0]) * 0.006; cam.pitch = clamp(cam.pitch + (e.clientY - p[1]) * 0.005, -0.2, 1.35); }
+  ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+  if (ptrs.size === 2) {
+    const [a, b] = [...ptrs.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]);
+    if (pinch) cam.dist = clamp(cam.dist * pinch / d, 1.5, 30);
+    pinch = d;
+  }
+});
+canvas.addEventListener('wheel', e => { e.preventDefault(); cam.dist = clamp(cam.dist * Math.exp(e.deltaY * 0.001), 1.5, 30); }, { passive: false });
+
+function resize() {
+  const w = innerWidth, h = innerHeight;
+  renderer.setSize(w, h, false); camera.aspect = w / h;
+  camera.fov = w < h ? 66 : 50;
+  camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize); resize();
+
+const _v = new THREE.Vector3();
+let prev = performance.now();
+function frame(nowMs) {
+  const dt = Math.min(0.05, (nowMs - prev) / 1000);
+  prev = nowMs;
+  cam.tgt.lerp(cam.want, damp(4, dt));
+  camera.position.set(cam.tgt.x + Math.sin(cam.yaw) * Math.cos(cam.pitch) * cam.dist, cam.tgt.y + Math.sin(cam.pitch) * cam.dist, cam.tgt.z + Math.cos(cam.yaw) * Math.cos(cam.pitch) * cam.dist);
+  camera.lookAt(cam.tgt);
+  _v.set(0.18, -0.2, 0).applyQuaternion(camera.quaternion);
+  U.uFlashPos.value.copy(camera.position).add(_v);
+  U.uFlashDir.value.copy(cam.tgt).sub(U.uFlashPos.value).normalize();
+  U.uFlash.value = flashEl.checked ? 1 : 0;
+  U.uTime.value = nowMs / 1000;
+  fig.visible = figEl.checked;
+  fig.position.set(figX, 0, -1.1);
+  const [, mv, state] = MODES[mode];
+  SHOWN.forEach((s, i) => {
+    /* only the one you are looking at walks or hunts; the rest of the lineup idles */
+    s.m.mv = i === cur ? mv : 0; s.m.state = i === cur ? state : 'idle';
+    s.m.ph += dt;
+    ANIM[s.key](s.m, s.M);
+  });
+  renderer.render(S, camera);
+  requestAnimationFrame(frame);
+}
+pick(0); cam.tgt.copy(cam.want);
+requestAnimationFrame(frame);
+window.__rs = { SHOWN, pick, camera, cam };
+</script>
