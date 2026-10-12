@@ -412,7 +412,7 @@ function buildOverseer() {
 /* ================================================================================================================ */
 /* THE HAND: what is left of the response team, made one thing; a hand only in name now. One of them lies on all fours
    and is the body, walking on its arms and legs, elbows and knees up. Out of its front hang four legs, as a husk's are,
-   one piece each, working like mouthparts and striking; it has no face. Out of its
+   knees up and feet curled down, working like mouthparts and striking; it has no face. Out of its
    back grows another, feet first, as a tail; at the end of it a head with long arms of its own. Low, that tail lies
    along the floor, its hands flat on the slab feeling for the knock and its eyes rolled back, and it reads as a tail.
    Raised, it curls up over the back with its arms held as a person's, and stays out of the strike. All of it flesh; only the joints show white. */
@@ -470,17 +470,15 @@ function buildHand() {
   }
   /* the front: a lobe, and the four legs out of it, side by side */
   mk(body, 'ico', FLESH, 0.74, 0.44, 0.5, 0, 0.02, 0.56);
-  /* out of the front, four legs, as a husk's are: one straight piece each from the hip to a bare foot, hung side by
-     side. They are its mouthparts, and what it strikes with */
+  /* out of the front, four legs, as a husk's are: thigh, knee, shin and a bare foot, side by side. The knees ride up
+     over the body and the feet come down in front, curled like nails on a table. They are its mouthparts, and what it
+     strikes with */
   const fingers = [];
   [-0.2, -0.067, 0.067, 0.2].forEach((x, i) => {
-    const L = i === 1 || i === 2 ? 0.6 : 0.54, c = i % 2 ? FLESH : FL3, h = grp(body, x, 0.0, 0.72);
-    mk(h, 'ico', BONE, 0.1, 0.09, 0.09, 0, 0, 0);
-    mk(h, 'ico', c, 0.12, L * 1.3, 0.13, 0, -L / 2, 0);
-    mk(h, 'ico', FL2, 0.1, 0.12, 0.11, 0, -L * 0.52, 0.02);
-    const foot = grp(h, 0, -L, 0);
-    mk(foot, 'ico', FL3, 0.1, 0.07, 0.22, 0, -0.01, 0.06);
-    fingers.push({ h, foot, L, i, x });
+    const long = i === 1 || i === 2, c = i % 2 ? FLESH : FL3;
+    mk(body, 'ico', BONE, 0.1, 0.09, 0.09, x, 0.0, 0.72);
+    const F = limb(body, [x, 0.0, 0.72], long ? 0.42 : 0.38, long ? 0.44 : 0.4, c, c, 0.12, footEnd, { shape: 'ico' });
+    fingers.push({ ...F, i, x });
   });
   /* the tail: the other one, feet first out of the back; smooth, tapering */
   const tail = [], TL = [0.42, 0.45, 0.38, 0.34, 0.22], TW = [0.62, 0.5, 0.38, 0.3, 0.26];
@@ -617,9 +615,9 @@ const HA_STATES = {
   idle: ['Idle', 'Low on its four, it wanders the hall, the tail dragging behind with its eye rolled back, the tail\'s hands walking either side of its head, and its front legs scuffing the floor ahead. It has no face at the front: it goes by touch until it is called.'],
   listen: ['Listening', 'Low, its front legs reaching ahead with their feet on the slab and the hands of its tail laid flat behind it: it is feeling for the knock. The tail\'s eyes are rolled back; from most angles it is only a tail, and the thing has no face at all.'],
   knock: ['Knocked for', 'Three knocks, a pause, three: the muster hall. On each one its feet and hands press down. When the code is done the tail comes up over its back, the head on the end rolls its eyes down, and it goes.'],
-  alert: ['Raised', 'The body lifts on its four. The four legs at the front swing back and forth two and two, feet just off the floor. The tail comes up over its back, its arms held as a person holds them: hanging at its sides, elbows back, forearms bent forward and the hands drooping.'],
+  alert: ['Raised', 'The body lifts on its four. The four legs at the front work back and forth two and two, knees up and feet just off the floor. The tail comes up over its back, its arms held as a person holds them: hanging at its sides, elbows back, forearms bent forward and the hands drooping.'],
   go: ['Going', 'Raised, on its way. It walks on the body\'s four, diagonal pairs together, the tail up and its eye on what is ahead.'],
-  strike: ['Striking', 'Its blow is the front legs\' alone: all four swing up together in front of it, then stamp down as the body lunges after them. The tail stays up and still, a presence over it.'],
+  strike: ['Striking', 'Its blow is the front legs\' alone: all four rear up together, knees high, then stamp down as the body lunges after them. The tail stays up and still, a presence over it.'],
   unlinked: ['Unlinked', 'The overseer is dead and nothing knocks. It roams slowly, the tail half up and its head hanging, the arms dragging. It would turn on whatever struck it.'],
 };
 function setHand(mode) {
@@ -697,15 +695,17 @@ function stepHand(dt, now) {
     M.g.localToWorld(_w);
     L.t.rotation.x = -reach(L, _w);
   }
-  /* the front legs swing from the hip, two and two, the feet scuffing the floor ahead; raised, a little off it. The
-     strike is theirs alone: all four swing up together in front of it, then stamp down as the body lunges after them */
+  /* the front legs: each foot is set down in front, the knee riding up over the body. They work back and forth two
+     and two, feet scuffing the floor; raised, the feet lift a little off it. The strike is theirs alone: all four
+     rear up together, knees high, then stamp down ahead as the body lunges after them */
   for (const F of M.fingers) {
-    const o = now * lerp(2.2, 3.4, R) + (F.i % 2 ? PI : 0) + F.i * 0.3;
-    let a = lerp(-1.0, -0.4, R) + Math.sin(o) * lerp(0.08, 0.2, R) - P * 0.12, yaw = (F.i - 1.5) * 0.06;
-    a = lerp(a, -2.25, wind); yaw = lerp(yaw, (F.i - 1.5) * 0.22, wind);
-    a = lerp(a, -0.85, slam);
-    F.h.rotation.set(a, yaw, 0);
-    F.foot.rotation.x = -a * 0.85 + (wind ? 0.4 * wind : 0);
+    const o = now * lerp(2.2, 3.4, R) + (F.i % 2 ? PI : 0) + F.i * 0.3, amp = lerp(0.04, 0.12, R);
+    let x = F.x * 1.25, y = lerp(0, 0.24, R) + Math.max(0, Math.cos(o)) * lerp(0.02, 0.09, R), z = lerp(1.02, 1.08, R) + Math.sin(o) * amp;
+    y -= P * 0.03;
+    x = lerp(x, F.x * 1.9, wind); y = lerp(y, h + 0.35, wind); z = lerp(z, 0.98, wind);
+    x = lerp(x, F.x * 0.9, slam); y = lerp(y, 0, slam); z = lerp(z, 1.4, slam);
+    _w.set(x, Math.max(0, y) + 0.04, z); M.g.localToWorld(_w);
+    F.t.rotation.x = -reach(F, _w) + wind * 0.5;
   }
   /* the tail's arms. Low, they walk: each hand is reached for, planted on the floor beside the head on that arm's side
      (reckoned in the hand's own frame, so they never cross), stepping as the four do. Raised, they are held as a
