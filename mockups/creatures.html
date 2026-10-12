@@ -167,6 +167,7 @@ const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const lerp = (a, b, t) => a + (b - a) * t;
 const damp = (k, dt) => 1 - Math.exp(-k * dt);
 const ease = t => t * t * (3 - 2 * t);
+const smooth = (a, b, x) => ease(clamp((x - a) / (b - a), 0, 1));
 let seed = 7;
 const rnd = (a = 0, b = 1) => a + (((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296) * (b - a));
 
@@ -177,8 +178,8 @@ const EYES = [];
 function eye(parent, r, x, y, z, o = {}) {
   const g = grp(parent, x, y, z), ball = grp(g, 0, 0, 0), scm = material();
   const sc = new THREE.Mesh(geo('ico', SCL, r * 2, r * 2, r * 2), scm); sc.frustumCulled = false; ball.add(sc);
-  const pup = mk(ball, 'ico', PUP, r * 0.5, r * 0.5, r * 0.22, 0, 0, r * 0.86);
-  const E = { g, ball, scm, pup, r, blink: rnd(1, 6), shut: 0, roll: 0, sq: 1, dil: 1, flush: 0, yaw: 0, pitch: 0, wild: o.wild ?? 0 };
+  const pb = o.pupil ?? 0.5, pup = mk(ball, 'ico', PUP, r * pb * 2 * 0.5, r * pb * 2 * 0.5, r * 0.22, 0, 0, r * 0.86);
+  const E = { g, ball, scm, pup, r, blink: rnd(1, 6), shut: 0, roll: 0, sq: 1, dil: 1, pmax: 0.86 / pb, hip: rnd(0, TAU), flush: 0, yaw: 0, pitch: 0, wild: o.wild ?? 0 };
   EYES.push(E);
   return E;
 }
@@ -199,14 +200,21 @@ function lookEye(E, t, dt, mood) {
   const blinking = E.shut > 0 ? Math.sin((1 - (E.shut -= dt) / 0.16) * PI) : 0;
   E.sq += ((mood.stare > 0.5 ? 1.1 : 1 - 0.3 * (mood.drowse ?? 0)) - E.sq) * damp(5, dt);
   E.ball.scale.set(E.sq, E.sq * (1 - 0.85 * blinking), E.sq);
-  /* pupils open wide on what it wants, and pin in a beam */
+  /* the pupil, as a real one. The light falling on the eye sets it: the room's, and the flashlight's if the eye is in
+     its beam, by how near and how square in it. Fear opens it; looking at something close narrows it; it never quite
+     holds still. It closes quickly and opens slowly */
   E.g.getWorldPosition(_e);
-  const toE = _e.sub(U.uFlashPos.value), dist = toE.length(), lit = U.uFlash.value > 0 && dist < 9 && toE.normalize().dot(U.uFlashDir.value) > 0.955;
-  const dil = lit ? 0.42 : mood.stare > 0.5 ? 1.4 : 1;
-  E.dil += (dil - E.dil) * damp(lit ? 9 : 3, dt);
+  const near = _e.distanceTo(t);
+  const toE = _e.sub(U.uFlashPos.value), fd = toE.length();
+  const beam = U.uFlash.value * smooth(0.88, 0.975, toE.normalize().dot(U.uFlashDir.value)) * 2.5 / (1 + 0.09 * fd * fd);
+  const R0 = U.uRoom.value, lum = (R0.x + R0.y + R0.z) / 3 + beam;
+  let dil = lerp(1.45, 0.3, lum / (lum + 0.4)) + (mood.stare > 0.5 ? 0.3 : 0) - 0.12 * (mood.drowse ?? 0) - (near < 2.5 ? 0.22 * (1 - near / 2.5) : 0);
+  dil = clamp(dil + Math.sin(performance.now() / 1000 * 1.7 + E.hip) * 0.025 + Math.sin(performance.now() / 1000 * 0.53 + E.hip * 2) * 0.03, 0.28, E.pmax);
+  E.dil += (dil - E.dil) * damp(dil < E.dil ? 6 : 1.1, dt);
   E.pup.scale.set(E.dil, E.dil, 1);
   E.flush += ((mood.flush ?? 0) - E.flush) * damp(2, dt);
-  E.scm.uniforms.uTint.value.set(0.66, 0.24, 0.22, E.flush * 0.5);
+  /* a great eye flushes less, or its white would be lost against the skin */
+  E.scm.uniforms.uTint.value.set(0.72, 0.2, 0.18, E.flush * (E.r > 0.2 ? 0.2 : 0.45));
 }
 
 /* ---------------------------------------------------------------------------------------------------------------- */
@@ -355,7 +363,7 @@ function buildOverseer() {
   mk(H0, 'box', MEAT[2], 0.6, 0.5, 0.5, 0, 0.1, 0.1);
   mk(H0, 'ico', SKIN[0], 1.15, 1.25, 1.05, 0, 0.42, 0.32);
   const main = { h: H0, s: 1.2, rest: [0, -0.05], tgt: V(0, 1.5, 6), lag: 0.9, range: 0.6, off: V(0, 0, 0), yaw: 0, pitch: -0.05,
-    eyes: eyesOn(H0, [0, 0.42, 0.32], 0.5, 0.55, 0.46, [[0.12, -0.66, 0.14], [0.155, 0.62, 0.08]]) };
+    eyes: [eye(H0, 0.43, 0.0, 0.45, 0.55, { pupil: 0.6 })] };
   heads.push(main);
   head(H0, [0.42, 0.95, 0.15], 0.6, 0.16, SKIN[1], [[0.065, -0.62, 0.1], [0.065, 0.62, 0.1]], [0.35, -0.25]);
   head(body, [-0.85, 1.12, 0.32], 0.55, 0.3, SKIN[3], [[0.1, -0.36, 0.08], [0.11, 0.38, 0.06]], [-0.35, -0.05]);
@@ -443,8 +451,8 @@ function buildHand() {
   const S = new THREE.Scene();
   floor(S, 16, 16, 0x4a4c4a, 0x3a3c3b, 1.2);
   /* the muster hall's furniture, for scale: a crowd barrier, a bench */
-  for (let k = 0; k < 3; k++) { mk(S, 'box', 0x8a8c8e, 2.2, 0.05, 0.05, -1.5 + k * 2.3, 1.05, -3.6); mk(S, 'box', 0x8a8c8e, 2.2, 0.04, 0.04, -1.5 + k * 2.3, 0.6, -3.6); for (const e of [-1, 1]) mk(S, 'box', 0x6a6c6e, 0.05, 1.05, 0.45, -1.5 + k * 2.3 + e * 1.05, 0.52, -3.6); }
-  mk(S, 'box', 0x5a4a3a, 2.4, 0.08, 0.45, 3.4, 0.46, 0.8); for (const e of [-1, 1]) mk(S, 'box', 0x2c2f33, 0.08, 0.44, 0.4, 3.4 + e * 1.05, 0.22, 0.8);
+  for (let k = 0; k < 3; k++) { mk(S, 'box', 0x8a8c8e, 2.2, 0.05, 0.05, -1.5 + k * 2.3, 1.05, -5.4); mk(S, 'box', 0x8a8c8e, 2.2, 0.04, 0.04, -1.5 + k * 2.3, 0.6, -5.4); for (const e of [-1, 1]) mk(S, 'box', 0x6a6c6e, 0.05, 1.05, 0.45, -1.5 + k * 2.3 + e * 1.05, 0.52, -5.4); }
+  mk(S, 'box', 0x5a4a3a, 0.45, 0.08, 2.4, 5.4, 0.46, 0.4); for (const e of [-1, 1]) mk(S, 'box', 0x2c2f33, 0.4, 0.44, 0.08, 5.4, 0.22, 0.4 + e * 1.05);
 
   const g = grp(S, 0, 0, 0), body = grp(g, 0, 0.5, 0);
   /* the body: one of them on all fours, back up, smooth */
@@ -486,7 +494,7 @@ function buildHand() {
   const hb = grp(t4, 0, 0, -0.2); hb.rotation.x = -PI / 2;
   const hd = grp(hb, 0, 0, 0);
   mk(hd, 'ico', FLESH, 0.6, 0.64, 0.56, 0, 0.32, 0.02);
-  const hEyes = [[0.06, -0.19, 0.38, 0.19], [0.06, 0.19, 0.38, 0.19]].map(([r, x, y, z]) => eye(hd, r, x, y, z));
+  const hEyes = [eye(hd, 0.25, 0, 0.34, 0.15, { pupil: 0.6 })];
   /* and its long arms, from the shoulders under the head */
   const arms = [];
   for (const s of [-1, 1]) arms.push({ ...limb(t4, [s * 0.24, 0.02, -0.12], 0.55, 0.6, FLESH, FL3, 0.11, handEnd(1.2), { shape: 'ico' }), s });
@@ -494,8 +502,8 @@ function buildHand() {
   return {
     S, g, body, legs, fingers, tail, hd, hEyes, arms,
     room: [0.36, 0.37, 0.38], glow: { pos: V(0, -10, 0), c: [0, 0, 0], r: 1 },
-    cam: { yaw: 0.75, pitch: 0.2, dist: 5.6, tgt: V(0, 0.8, 0) },
-    fig: figure(S, -2.1, 0.4, 0.5),
+    cam: { yaw: 0.75, pitch: 0.22, dist: 6.2, tgt: V(2.8, 0.8, 0) },
+    fig: figure(S, 0, 0, 0.5),
     hy: 0, hp: 0, HP: V(0, 0, 0),
   };
 }
@@ -521,7 +529,7 @@ const OV_STATES = {
   atrium: ['Seen: the atrium', 'The same from the atrium\'s camera: the watcher, the lump down the cord, the eyes wide, then two knocks, a pause, two more.'],
   muster: ['Seen: the muster hall', 'Three knocks, a pause, three. The hand, wherever it is, feels it through the slab and goes.'],
   ops: ['Seen: Operations', 'Four, a pause, four: its own corridor.'],
-  glass: ['Through the glass', 'It sees you itself. Every face leaves the husk for you and follows you as you move. The eyes stop blinking and bulge, the pupils open, the whites flush. Shine the flashlight into an eye up close and its pupil pins.'],
+  glass: ['Through the glass', 'It sees you itself. Every face leaves the husk for you and follows you as you move. The eyes stop blinking and bulge, and the whites flush. The great eye\'s pupil works like a real one: wide in the dark room and wider for fear, it snaps small when your beam finds it, and opens again only slowly once it is off. Turn the flashlight off and watch it swell.'],
 };
 const CAMS = { wing: 0, atrium: 1, muster: 2, ops: 3 };
 function setOv(mode) {
@@ -600,13 +608,15 @@ function stepOverseer(dt, now) {
 }
 
 /* ---- the hand's moods ---- */
-const hs = { mode: 'listen', t: 0, raise: 0, walk: 0, ph: 0, press: 0, code: null, strike: -1, droop: 0, shake: 0 };
+const LOOK = new THREE.Vector3();
+const hs = { mode: 'idle', th: 0, t: 0, raise: 0, walk: 0, ph: 0, press: 0, code: null, strike: -1, droop: 0, shake: 0 };
 const HA_STATES = {
+  idle: ['Idle', 'Low on its four, it wanders the hall, the tail dragging behind with its eye rolled back and its fingers feeling the floor ahead. It has no face at the front: it goes by touch until it is called.'],
   listen: ['Listening', 'Low, its fingers curled down with their tips on the slab in front and the hands of its tail laid flat behind it: it is feeling for the knock. The tail\'s eyes are rolled back; from most angles it is only a tail, and the thing has no face at all.'],
   knock: ['Knocked for', 'Three knocks, a pause, three: the muster hall. On each one its fingers and hands press flat. When the code is done the tail comes up over its back, the head on the end rolls its eyes down, and it goes.'],
-  alert: ['Raised', 'The body lifts on its four. The fingers at the front stay curled down, tips just off the floor, working back and forth two and two. The tail comes up over its back, its arms hanging in front of its head.'],
-  go: ['Going', 'Raised, on its way. It walks on the body\'s four, diagonal pairs together; the tail\'s arms reach ahead of it.'],
-  strike: ['Striking', 'Its blow: the tail\'s arms go up and wide and the fingers rear up and out; then the tail plunges, the hands come down in front of it, and the fingers slam down on the floor after them.'],
+  alert: ['Raised', 'The body lifts on its four. The fingers at the front stay curled down, tips just off the floor, working back and forth two and two. The tail comes up over its back, its arms carrying the curve on past its head.'],
+  go: ['Going', 'Raised, on its way. It walks on the body\'s four, diagonal pairs together, the tail up and its eye on what is ahead.'],
+  strike: ['Striking', 'Its blow: the tail rears back with its arms drawn tight and the fingers rear up; then it plunges, the arms flung open and down in front of it, and the fingers slam down on the floor after them.'],
   unlinked: ['Unlinked', 'The overseer is dead and nothing knocks. It roams slowly, the tail half up and its head hanging, the arms dragging. It would turn on whatever struck it.'],
 };
 function setHand(mode) {
@@ -620,32 +630,41 @@ function stepHand(dt, now) {
   const M = HA, cam = camera.position;
   let raise = 0, walk = 0, droop = 0, look = cam, stare = 0;
   switch (hs.mode) {
-    case 'listen': look = _w.set(Math.sin(now * 0.4) * 2.5, 0.0, 3); break;
+    case 'idle': walk = 1; look = LOOK.set(Math.sin(now * 0.4) * 1.5, 0.0, 3); break;
+    case 'listen': look = LOOK.set(Math.sin(now * 0.4) * 2.5, 0.0, 3); break;
     case 'knock': {
       const C = hs.code, end = C ? C.times[C.times.length - 1] : 0;
-      look = _w.set(0, 0.0, 2.5);
+      look = LOOK.set(0, 0.0, 2.5);
       if (C) {
         while (C.landed < C.times.length && hs.t >= C.times[C.landed]) { C.landed++; hs.press = 1; thud(0.75, true); showKnocks(C.n, C.landed, C.name); }
-        if (hs.t > end + 0.7) { raise = 1; stare = 1; look = _w.set(-3, 1.6, 4); }
+        if (hs.t > end + 0.7) { raise = 1; stare = 1; look = LOOK.set(-3, 1.6, 4); }
         if (hs.t > end + 2.6) walk = 1;
         if (hs.t > end + 7) { showKnocks(0); setHand('go'); }
       }
       break;
     }
     case 'alert': raise = 1; stare = 1; break;
-    case 'go': raise = 1; walk = 1; stare = 1; look = _w.set(Math.sin(now * 0.3) * 2, 1.4, 6); break;
+    case 'go': raise = 1; walk = 1; stare = 1; look = LOOK.set(Math.sin(now * 0.3) * 2, 1.4, 6); break;
     case 'strike':
       raise = 1; stare = 1;
       if (hs.strike >= 0 && (hs.strike += dt) > 1.6) { hs.strike = -1; setHand('alert'); }
       break;
-    case 'unlinked': raise = 0.45; walk = 0.5; droop = 1; look = _w.set(Math.sin(now * 0.23) * 3, 0.0, 2.5); break;
+    case 'unlinked': raise = 0.45; walk = 0.5; droop = 1; look = LOOK.set(Math.sin(now * 0.23) * 3, 0.0, 2.5); break;
   }
   hs.raise += (raise - hs.raise) * damp(raise > hs.raise ? 2.4 : 1.6, dt);
   hs.walk += (walk - hs.walk) * damp(3, dt);
   hs.droop += (droop - hs.droop) * damp(1.5, dt);
   hs.press = Math.max(0, hs.press - dt * 3.5);
   const R = hs.raise, w = hs.walk, P = hs.press, D = hs.droop;
-  hs.ph += dt * (D > 0.5 ? 3 : 5.5) * w;
+  /* the gait, and the ground it covers: a loop of the hall, at just the pace that keeps its planted feet where they are */
+  const rate = D > 0.5 ? 3 : lerp(3.6, 5.5, R);
+  hs.ph += dt * rate * w;
+  hs.th += dt * 0.1027 * w * rate / 2.4;
+  const ex = 2.8, ez = 2.0;
+  M.g.position.set(Math.cos(hs.th) * ex, 0, Math.sin(hs.th) * ez);
+  M.g.rotation.y = Math.atan2(-Math.sin(hs.th) * ex, Math.cos(hs.th) * ez);
+  M.g.updateMatrixWorld(true);
+  if (look !== cam) M.g.localToWorld(look);
   /* the strike: wind (arms up and wide, fingers flared), slam (the tail plunges, hands down, fingers shut), then back */
   let wind = 0, slam = 0;
   if (hs.strike >= 0) {
@@ -684,19 +703,17 @@ function stepHand(dt, now) {
     _w.set(x, Math.max(0, y) + F.L3, z); M.g.localToWorld(_w);
     F.t.rotation.x = PI / 2 - reach(F, _w);
   }
-  /* the tail's arms: flat on the floor by its head, listening; hanging in front of it, raised; up and wide, then down */
-  M.g.updateMatrixWorld(true);
-  const H = M.hd.getWorldPosition(M.HP);
+  /* the tail's arms are not limbs it walks or feels with: they carry the tail's curve on past its head, one each side,
+     held there. Low, they lie out straight along the floor; raised, they arch up past the head and curl forward and
+     down. In the strike they draw back tight, then fling open and down in front of it */
   for (const A of M.arms) {
-    const sw = Math.sin(hs.ph + (A.s > 0 ? PI : 0)) * 0.15 * w;
-    let x = lerp(H.x + A.s * 0.55, H.x + A.s * 0.36, R), y = lerp(0.0, H.y - 0.65, R) + Math.abs(sw) * 0.5, z = lerp(H.z + 0.1, H.z + 0.55, R) + sw;
-    y -= P * 0.02;
-    x = lerp(x, H.x + A.s * 0.8, wind); y = lerp(y, H.y + 0.35, wind); z = lerp(z, H.z - 0.1, wind);
-    x = lerp(x, A.s * 0.2, slam); y = lerp(y, 0.03, slam); z = lerp(z, 1.5, slam);
-    _w.set(x, Math.max(0, y), z);
-    const a = reach(A, _w);
-    A.t.rotation.x = lerp(0, 1.1, R * (1 - slam)) - a;
-    A.end.forEach((f, k) => { f.rotation.x = lerp(0.05, 0.9, R * (1 - slam)) + (1 - R) * Math.sin(now * (6 + k * 1.3) + k + A.s) * 0.12 - P * 0.1; });
+    let a1 = lerp(-0.05, -0.45, R), a2 = lerp(-0.08, -0.75, R), a3 = lerp(-0.1, -0.6, R);
+    a1 += Math.sin(now * 0.9 + A.s) * 0.04 - D * 0.3; a2 += Math.sin(now * 1.3 + A.s * 2) * 0.05;
+    a1 = lerp(a1, -1.0, wind); a2 = lerp(a2, -1.4, wind); a3 = lerp(a3, -1.0, wind);
+    a1 = lerp(a1, -0.05, slam); a2 = lerp(a2, 0.15, slam); a3 = lerp(a3, 0.2, slam);
+    A.h.rotation.set(a1, PI + A.s * lerp(0.3, 1.25, R) + A.s * wind * 0.2 - A.s * slam * 0.7, 0);
+    A.k.rotation.set(a2, 0, 0); A.t.rotation.set(a3, 0, 0);
+    A.end.forEach((f, k) => { f.rotation.x = lerp(0.1, 0.8, R) + Math.sin(now * (1.5 + k * 0.4) + k + A.s) * 0.12 + wind * 0.6 - slam * 0.5; });
   }
   /* the stalked eyes always look; the head on the tail only once it is up, its eyes rolled back till then */
   const mood = { stare, flush: stare * 0.4, drowse: D * 0.7 };
@@ -716,7 +733,7 @@ function panel() {
   btns.innerHTML = '';
   for (const [k, [label]] of Object.entries(S)) {
     const b = document.createElement('button');
-    b.textContent = ovr ? { idle: 'Idle', wing: 'Camera: wing', atrium: 'Camera: atrium', muster: 'Camera: muster hall', ops: 'Camera: Operations', glass: 'Through the glass' }[k] : { listen: 'Listen', knock: 'Knock: muster hall', alert: 'Raise', go: 'Go', strike: 'Strike', unlinked: 'Overseer dead' }[k];
+    b.textContent = ovr ? { idle: 'Idle', wing: 'Camera: wing', atrium: 'Camera: atrium', muster: 'Camera: muster hall', ops: 'Camera: Operations', glass: 'Through the glass' }[k] : { idle: 'Idle', listen: 'Listen', knock: 'Knock: muster hall', alert: 'Raise', go: 'Go', strike: 'Strike', unlinked: 'Overseer dead' }[k];
     b.id = `b-${k}`;
     b.className = k === mode ? 'on' : '';
     b.onclick = () => { audio(); if (ovr) setOv(k); else setHand(k); panel(); };
@@ -733,7 +750,7 @@ function sync() {
 for (const b of document.querySelectorAll('nav button')) b.onclick = () => {
   cur = b.dataset.scene === 'hand' ? HA : OV;
   for (const x of document.querySelectorAll('nav button')) x.setAttribute('aria-selected', String(x === b));
-  showKnocks(0); if (cur === OV) setOv('idle'); else setHand('listen');
+  showKnocks(0); if (cur === OV) setOv('idle'); else setHand('idle');
   lastMode = ''; sync();
 };
 const flashEl = document.getElementById('flash'), figEl = document.getElementById('figure');
@@ -766,12 +783,14 @@ function resize() {
 addEventListener('resize', resize); resize();
 
 let prev = performance.now();
+const FOLLOW = new THREE.Vector3();
 function frame(nowMs) {
   const dt = Math.min(0.05, (nowMs - prev) / 1000), now = nowMs / 1000;
   prev = nowMs;
   const M = cur, C = M.cam;
   camera.position.set(C.tgt.x + Math.sin(C.yaw) * Math.cos(C.pitch) * C.dist, C.tgt.y + Math.sin(C.pitch) * C.dist, C.tgt.z + Math.cos(C.yaw) * Math.cos(C.pitch) * C.dist);
   camera.lookAt(C.tgt);
+  if (M === HA) C.tgt.lerp(FOLLOW.set(HA.g.position.x, 0.8, HA.g.position.z), damp(2.5, dt));
   /* the flashlight is held a little below and right of the eye */
   _v.set(0.18, -0.2, 0).applyQuaternion(camera.quaternion);
   U.uFlashPos.value.copy(camera.position).add(_v);
@@ -787,7 +806,7 @@ function frame(nowMs) {
   renderer.render(M.S, camera);
   requestAnimationFrame(frame);
 }
-setOv('idle'); setHand('listen'); panel();
+setOv('idle'); setHand('idle'); panel();
 requestAnimationFrame(frame);
 window.__rs = { OV, HA, ov, hs, setOv, setHand, camera, show: s => document.getElementById('tab-' + s).click() };
 </script>
