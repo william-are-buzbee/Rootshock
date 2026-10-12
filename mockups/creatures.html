@@ -348,7 +348,7 @@ function buildOverseer() {
   /* the floor broken where the hind fists went in */
   for (const s of [-1, 1]) { mk(S, 'box', 0x3a1612, 0.6, 0.006, 0.55, s * 1.33, 0.004, -1.38); for (let k = 0; k < 4; k++) mk(S, 'box', 0x141516, 0.5, 0.008, 0.025, s * 1.33, 0.006, -1.38).rotation.y = k * 0.8 + s; }
 
-  /* the heads: the first, and two more, each still somebody's, on its own shoulders. Two eyes to a head, as they had,
+  /* the head: only the first, each still somebody's, on its own shoulders. Two eyes to a head, as they had,
      one of the pair swollen; no mouths. They all watch the hall through the glass */
   const heads = [];
   /** eyes over a head's front, each [radius, round, up], from a centre and the head's half sizes */
@@ -370,8 +370,6 @@ function buildOverseer() {
   const main = { h: H0, s: 1.2, rest: [0, -0.05], tgt: V(0, 1.5, 6), lag: 0.9, range: 0.6, off: V(0, 0, 0), yaw: 0, pitch: -0.05,
     eyes: [eye(H0, 0.43, 0.0, 0.45, 0.55, { pupil: 0.6 })] };
   heads.push(main);
-  head(body, [-0.85, 1.12, 0.32], 0.55, 0.3, SKIN[3], [[0.075, -0.4, 0.12, 0.36], [0.13, 0.36, 0.04, 0.6]], [-0.35, -0.05]);
-  head(body, [0.88, 1.25, -0.25], 0.42, 0.36, SKIN[0], [[0.072, -0.6, 0.12, 0.62], [0.044, 0.64, 0.05, 0.4]], [0.5, -0.15]);
 
   /* the watchers: at each screen what is left of one of them, hunched to it, one swollen eye at the glass and a hand on
      the desk; grown into their neighbours, and a cord of meat back to the body. One screen is dead. */
@@ -413,11 +411,11 @@ function buildOverseer() {
 
 /* ================================================================================================================ */
 /* THE HAND: what is left of the response team, made one thing; a hand only in name now. One of them lies on all fours
-   and is the body, walking on its arms and legs, elbows and knees up. Out of its front grow four flat fingers, the hand
-   it was named for, curled down over the floor and working like mouthparts; it has no face. Out of its
+   and is the body, walking on its arms and legs, elbows and knees up. Out of its front hang four legs, as a husk's are,
+   one piece each, working like mouthparts and striking; it has no face. Out of its
    back grows another, feet first, as a tail; at the end of it a head with long arms of its own. Low, that tail lies
    along the floor, its hands flat on the slab feeling for the knock and its eyes rolled back, and it reads as a tail.
-   Raised, it curls up over the back with its arms hanging in front of it. All of it flesh; only the joints show white. */
+   Raised, it curls up over the back with its arms held as a person's, and stays out of the strike. All of it flesh; only the joints show white. */
 const FL2 = 0xa47664, FL3 = 0xbe9280;
 /** two segments and an end, along +z: a root that turns to face what it reaches for, and a joint that bends */
 function limb(parent, at, L1, L2, c1, c2, w, end, o = {}) {
@@ -470,18 +468,19 @@ function buildHand() {
     legs.push({ ...limb(body, [s * 0.3, 0, 0.3], 0.55, 0.62, FLESH, FL3, 0.13, handEnd(1.1), { shape: 'ico' }), rest: V(s * 0.95, 0, 0.62), ph: s > 0 ? PI : 0, s });
     legs.push({ ...limb(body, [s * 0.28, -0.02, -0.42], 0.6, 0.68, FLESH, FL3, 0.15, footEnd, { shape: 'ico' }), rest: V(s * 0.92, 0, -0.8), ph: s > 0 ? 0 : PI, s });
   }
-  /* the front: a lobe, and the four flat fingers out of it, side by side */
+  /* the front: a lobe, and the four legs out of it, side by side */
   mk(body, 'ico', FLESH, 0.74, 0.44, 0.5, 0, 0.02, 0.56);
-  const fingers = [], LEN = [[0.32, 0.29, 0.21], [0.35, 0.32, 0.22], [0.35, 0.32, 0.22], [0.3, 0.27, 0.19]];
+  /* out of the front, four legs, as a husk's are: one straight piece each from the hip to a bare foot, hung side by
+     side. They are its mouthparts, and what it strikes with */
+  const fingers = [];
   [-0.2, -0.067, 0.067, 0.2].forEach((x, i) => {
-    const L = LEN[i], c = i % 2 ? FLESH : FL3, kn = grp(body, x, 0.07, 0.72);
-    mk(kn, 'ico', FLESH, 0.14, 0.12, 0.13, 0, 0, 0);
-    mk(kn, 'box', c, 0.125, 0.085, L[0], 0, 0, L[0] / 2);
-    const j2 = grp(kn, 0, 0, L[0]); mk(j2, 'ico', BONE, 0.11, 0.085, 0.085, 0, 0.017, 0);
-    mk(j2, 'box', c, 0.112, 0.077, L[1], 0, 0, L[1] / 2);
-    const j3 = grp(j2, 0, 0, L[1]); mk(j3, 'ico', BONE, 0.092, 0.077, 0.077, 0, 0.017, 0);
-    mk(j3, 'box', c, 0.1, 0.068, L[2], 0, 0, L[2] / 2); mk(j3, 'ico', FL2, 0.1, 0.068, 0.085, 0, -0.004, L[2]);
-    fingers.push({ h: kn, k: j2, t: j3, L1: L[0], L2: L[1], L3: L[2], i, x });
+    const L = i === 1 || i === 2 ? 0.6 : 0.54, c = i % 2 ? FLESH : FL3, h = grp(body, x, 0.0, 0.72);
+    mk(h, 'ico', BONE, 0.1, 0.09, 0.09, 0, 0, 0);
+    mk(h, 'ico', c, 0.12, L * 1.3, 0.13, 0, -L / 2, 0);
+    mk(h, 'ico', FL2, 0.1, 0.12, 0.11, 0, -L * 0.52, 0.02);
+    const foot = grp(h, 0, -L, 0);
+    mk(foot, 'ico', FL3, 0.1, 0.07, 0.22, 0, -0.01, 0.06);
+    fingers.push({ h, foot, L, i, x });
   });
   /* the tail: the other one, feet first out of the back; smooth, tapering */
   const tail = [], TL = [0.42, 0.45, 0.38, 0.34, 0.22], TW = [0.62, 0.5, 0.38, 0.3, 0.26];
@@ -528,12 +527,12 @@ function ovKnock(zone, at) {
   showKnocks(n, 0, name);
 }
 const OV_STATES = {
-  idle: ['Idle', 'Every face watches the hall through the glass and follows what moves there: here, a husk on its rounds. The big head comes round last. The eyes blink out of step.'],
+  idle: ['Idle', 'Its one head watches the hall through the glass and follows what moves there: here, a husk on its rounds. It comes round slowly, the eye leading.'],
   wing: ['Seen: the wing', 'A watcher sees you on its screen and leans in. A lump runs down its cord to the body; the faces stay on the glass, but every eye opens wide and the whites flush. Then the arms knock the wing\'s code into the floor, once, a pause, once more.'],
   atrium: ['Seen: the atrium', 'The same from the atrium\'s camera: the watcher, the lump down the cord, the eyes wide, then two knocks, a pause, two more.'],
   muster: ['Seen: the muster hall', 'Three knocks, a pause, three. The hand, wherever it is, feels it through the slab and goes.'],
   ops: ['Seen: Operations', 'Four, a pause, four: its own corridor.'],
-  glass: ['Through the glass', 'It sees you itself. Every face leaves the husk for you and follows you as you move. The eyes stop blinking and bulge, and the whites flush. The great eye\'s pupil works like a real one: wide in the dark room and wider for fear, it snaps small when your beam finds it, and opens again only slowly once it is off. Turn the flashlight off and watch it swell.'],
+  glass: ['Through the glass', 'It sees you itself. The head leaves the husk for you and follows you as you move. The eye stops blinking and bulges, and the white flushes. The great eye\'s pupil works like a real one: wide in the dark room and wider for fear, it snaps small when your beam finds it, and opens again only slowly once it is off. Turn the flashlight off and watch it swell.'],
 };
 const CAMS = { wing: 0, atrium: 1, muster: 2, ops: 3 };
 function setOv(mode) {
@@ -615,12 +614,12 @@ function stepOverseer(dt, now) {
 const LOOK = new THREE.Vector3();
 const hs = { mode: 'idle', th: 0, t: 0, raise: 0, walk: 0, ph: 0, press: 0, code: null, strike: -1, droop: 0, shake: 0 };
 const HA_STATES = {
-  idle: ['Idle', 'Low on its four, it wanders the hall, the tail dragging behind with its eye rolled back, the tail\'s hands walking either side of its head, and its fingers feeling the floor ahead. It has no face at the front: it goes by touch until it is called.'],
-  listen: ['Listening', 'Low, its fingers curled down with their tips on the slab in front and the hands of its tail laid flat behind it: it is feeling for the knock. The tail\'s eyes are rolled back; from most angles it is only a tail, and the thing has no face at all.'],
-  knock: ['Knocked for', 'Three knocks, a pause, three: the muster hall. On each one its fingers and hands press flat. When the code is done the tail comes up over its back, the head on the end rolls its eyes down, and it goes.'],
-  alert: ['Raised', 'The body lifts on its four. The fingers at the front stay curled down, tips just off the floor, working back and forth two and two. The tail comes up over its back, its arms held as a person holds them: hanging at its sides, elbows back, forearms bent forward and the hands drooping.'],
+  idle: ['Idle', 'Low on its four, it wanders the hall, the tail dragging behind with its eye rolled back, the tail\'s hands walking either side of its head, and its front legs scuffing the floor ahead. It has no face at the front: it goes by touch until it is called.'],
+  listen: ['Listening', 'Low, its front legs reaching ahead with their feet on the slab and the hands of its tail laid flat behind it: it is feeling for the knock. The tail\'s eyes are rolled back; from most angles it is only a tail, and the thing has no face at all.'],
+  knock: ['Knocked for', 'Three knocks, a pause, three: the muster hall. On each one its feet and hands press down. When the code is done the tail comes up over its back, the head on the end rolls its eyes down, and it goes.'],
+  alert: ['Raised', 'The body lifts on its four. The four legs at the front swing back and forth two and two, feet just off the floor. The tail comes up over its back, its arms held as a person holds them: hanging at its sides, elbows back, forearms bent forward and the hands drooping.'],
   go: ['Going', 'Raised, on its way. It walks on the body\'s four, diagonal pairs together, the tail up and its eye on what is ahead.'],
-  strike: ['Striking', 'Its blow: the tail\'s arms rear up beside the head and the fingers rear up; then the tail plunges, the arms thrust out ahead of it, and the fingers slam down on the floor after them.'],
+  strike: ['Striking', 'Its blow is the front legs\' alone: all four swing up together in front of it, then stamp down as the body lunges after them. The tail stays up and still, a presence over it.'],
   unlinked: ['Unlinked', 'The overseer is dead and nothing knocks. It roams slowly, the tail half up and its head hanging, the arms dragging. It would turn on whatever struck it.'],
 };
 function setHand(mode) {
@@ -682,8 +681,11 @@ function stepHand(dt, now) {
   M.body.position.set(hs.shake > 0 ? Math.sin(now * 90) * hs.shake * 0.04 : 0, h, slam * 0.18 + Math.sin(hs.ph * 2) * 0.02 * w);
   M.body.rotation.set(lerp(0.08, -0.08, R) - wind * 0.1 + slam * 0.15, Math.sin(now * 0.5) * 0.04, Math.sin(hs.ph) * 0.04 * w);
   hs.shake = Math.max(0, hs.shake - dt);
-  /* the tail: along the floor, or up over the back; it plunges in the strike, and hangs when nothing calls it */
-  M.tail.forEach((T, i) => { T.rotation.x = lerp(TAIL[0][i], TAIL[1][i], R) - D * [0, 0.25, 0.25, 0.25, 0.2][i] + Math.sin(now * 1.1 - i * 0.6) * 0.035 * (0.3 + R) - wind * [0.1, 0.1, 0.05, 0, 0][i] + slam * [0.25, 0.35, 0.35, 0.3, 0.2][i]; });
+  /* the tail: along the floor, or up over the back, and it hangs when nothing calls it. It takes no part in the strike:
+     its root gives back the body's lunge and tip, so it stays where it was, standing over the blow */
+  M.tail.forEach((T, i) => { T.rotation.x = lerp(TAIL[0][i], TAIL[1][i], R) - D * [0, 0.25, 0.25, 0.25, 0.2][i] + Math.sin(now * 1.1 - i * 0.6) * 0.035 * (0.3 + R); });
+  M.tail[0].rotation.x += wind * 0.1 - slam * 0.15;
+  M.tail[0].position.set(0, 0.1 + slam * 0.1, -0.6 - slam * 0.18);
   M.g.updateMatrixWorld(true);
   /* its four walk: each foot on the floor pushes back, then lifts and swings forward; diagonal pairs together */
   for (const L of M.legs) {
@@ -695,17 +697,15 @@ function stepHand(dt, now) {
     M.g.localToWorld(_w);
     L.t.rotation.x = -reach(L, _w);
   }
-  /* the fingers: curled down like nails on a table, the knuckles arched up over the body. Listening, the tips rest on
-     the slab and feel it; raised, they lift a little and work back and forth, two and two. Each reaches for its tip
-     from above, and the last joint hangs straight down to it */
+  /* the front legs swing from the hip, two and two, the feet scuffing the floor ahead; raised, a little off it. The
+     strike is theirs alone: all four swing up together in front of it, then stamp down as the body lunges after them */
   for (const F of M.fingers) {
-    const o = now * lerp(2.2, 3.4, R) + (F.i % 2 ? PI : 0) + F.i * 0.3, amp = lerp(0.035, 0.12, R);
-    let x = F.x * 1.2, y = lerp(0, 0.26, R) + Math.max(0, Math.cos(o)) * lerp(0.015, 0.09, R), z = lerp(1.12, 1.17, R) + Math.sin(o) * amp;
-    y -= P * 0.03;
-    x = lerp(x, F.x * 1.9, wind); y = lerp(y, h + 0.4, wind); z = lerp(z, 0.92, wind);
-    x = lerp(x, F.x * 0.8, slam); y = lerp(y, 0, slam); z = lerp(z, 1.45, slam);
-    _w.set(x, Math.max(0, y) + F.L3, z); M.g.localToWorld(_w);
-    F.t.rotation.x = PI / 2 - reach(F, _w);
+    const o = now * lerp(2.2, 3.4, R) + (F.i % 2 ? PI : 0) + F.i * 0.3;
+    let a = lerp(-1.0, -0.4, R) + Math.sin(o) * lerp(0.08, 0.2, R) - P * 0.12, yaw = (F.i - 1.5) * 0.06;
+    a = lerp(a, -2.25, wind); yaw = lerp(yaw, (F.i - 1.5) * 0.22, wind);
+    a = lerp(a, -0.85, slam);
+    F.h.rotation.set(a, yaw, 0);
+    F.foot.rotation.x = -a * 0.85 + (wind ? 0.4 * wind : 0);
   }
   /* the tail's arms. Low, they walk: each hand is reached for, planted on the floor beside the head on that arm's side
      (reckoned in the hand's own frame, so they never cross), stepping as the four do. Raised, they are held as a
@@ -714,7 +714,7 @@ function stepHand(dt, now) {
      out ahead. Each joint's angle is blended from the one pose to the other as it rises */
   M.g.updateMatrixWorld(true);
   const H = M.g.worldToLocal(M.hd.getWorldPosition(M.HP));
-  const held = clamp(R + wind + slam, 0, 1);
+  const held = R;
   for (const A of M.arms) {
     const u = (((hs.ph + (A.s > 0 ? PI * 0.5 : PI * 1.5)) / TAU) % 1 + 1) % 1, st = 0.18 * w;
     let sz = 0, sy = 0;
@@ -725,12 +725,10 @@ function stepHand(dt, now) {
     /* the held pose, in the arm's own frame: +z runs down the tail toward its feet, +y is the side its chest faces */
     const sw = Math.sin(now * 1.1 + A.s) * 0.06 + Math.sin(hs.ph + (A.s > 0 ? PI : 0)) * 0.1 * w;
     let yaw = A.s * 0.32, a1 = -0.3 + sw, a2 = -1.85 + sw * 0.5, a3 = 0.95;
-    yaw = lerp(yaw, A.s * 0.95, wind); a1 = lerp(a1, -1.35, wind); a2 = lerp(a2, -1.7, wind); a3 = lerp(a3, 0.3, wind);
-    yaw = lerp(yaw, A.s * 0.22, slam); a1 = lerp(a1, -1.45, slam); a2 = lerp(a2, -0.25, slam); a3 = lerp(a3, 0.15, slam);
     A.h.rotation.set(lerp(lowA1, a1, held), lerp(lowYaw, yaw, held), 0);
     A.k.rotation.set(lerp(lowA2, a2, held), 0, 0);
     A.t.rotation.set(lerp(reachT, a3, held), 0, 0);
-    A.end.forEach((f, k) => { f.rotation.x = lerp(0.05, 0.9, held * (1 - slam)) + (1 - held) * Math.sin(now * (6 + k * 1.3) + k + A.s) * 0.12 - P * 0.1; });
+    A.end.forEach((f, k) => { f.rotation.x = lerp(0.05, 0.9, held) + (1 - held) * Math.sin(now * (6 + k * 1.3) + k + A.s) * 0.12 - P * 0.1; });
   }
   const mood = { stare, flush: stare * 0.4, drowse: D * 0.7 };
   M.g.updateMatrixWorld(true);
