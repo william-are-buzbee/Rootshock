@@ -78,7 +78,7 @@ The testers and those they turned, centred on Horticulture.
 
 ### The flesh (the second tribe)
 
-- **Origin.** A member of staff touched the animal part of a plant hybrid (a mutated arm, not the plant growth; the arm is Pia's, §10). The sample carried
+- **Origin.** A member of staff touched the animal part of a plant hybrid (a mutated arm, not the plant growth; in §10 this is Pia's touch, in her stupor, and the arm is an ordinary one). The sample carried
   perhaps a twentieth of the plant influence, so they became a mostly flesh mutant, with the same plasticity.
 - **Mindset.** The infection carried the mindset. He inherited the plants' tribalism, victimhood and fear of eradication, as his own
   private terror. It drove him to take others by force and make them change with him, one and then more, until the bloc was strong
@@ -683,6 +683,12 @@ levels are built. None of it has to reach the player: the game plays without it,
   grafts apart they are.
 - **It keeps you changing, not alive.** It cannot raise the dead or stop a bleed, and it slows without new grafts. Things die
   when they are killed. New grafts are the only way to speed up, which is a reason to infect.
+- **The plant.** Every green form is wild tobacco, *Nicotiana rustica*, mutated its own way: Pia took its stalk, leaves and
+  flowers and grew into a tree; Ines its sticky glandular hairs, whose secretion she paints in; Holt breeds the whole plant for
+  structure. The rest are to be worked out the same way: which part of the plant, and what it became.
+- **The people.** Lowfield is in a country with some racial diversity, and its staff reflect it. "Skin" in these notes means
+  any human skin tone, and a mutant keeps its host's: an elder's children differ in skin as in build, because each grew on its
+  own body.
 - **Generations.** The crop is generation 1; the elders, who took it from the crop, are 2; their children 3, and so on.
 
 ### The rules
@@ -721,19 +727,26 @@ Nobody expected worse than a bad night.
   espalier screens, heliotropes that turn to follow a light, stranglers, seed-throwers, topiary grown over borrowed bones).
   *Tell:* a bead of amber at every graft seam (June, below). *Inside:* Tom is her longest bet, Sam carries her light, June seals
   her work.
-- **Pia Lind (painkiller).** The glaze: glassy eyes, pustules, numb to pain and to everything, her metabolism slowed to a crawl.
-  She does not fight it; she slows into something stationary and survives as that. Now the Commons tree, risen out of the
-  floor, her face low in the bark and her eyes open; one limb is red meat, the arm. She cannot speak. A living god to both
-  tribes: the flesh tolerate a plant because it is their mother. *Spreads:* early by a touch of the pustule arm; late by a
-  cutting from the tree laid on you. Grafting her takes the edge off, and you lose something you do not miss. *Children:* early,
-  the dazed, husk-like; mid, half bark and half flesh, Pia caught mid-change; late, sessile, quietly euphoric, still feeling.
-  Old Pias grow faster as they age, so the tree is a clock. *Tell:* milky sap.
+- **Pia Lind (painkiller).** The stupor: glassy eyes, pupils pinned whatever the light, pustules, numb to pain and to
+  everything, her metabolism slowed to a crawl. She does not fight it; she slows into something stationary and survives as
+  that. **You meet her as the tree, or nearly:** the Commons tree, a rustica grown to about 11 m, its stalk thickened to a
+  trunk, still with the plant's broad, rounded leaves, still in flower and setting seed, risen out of a planter and through the
+  floor. The swollen foot of the stalk was her body; her face is a smear in the wood, hollows you could walk past. She cannot
+  speak. A living god to both tribes: the flesh tolerate a plant because it is their mother, and tap her for milk. *Spreads:*
+  early, by a touch in her stupor, with an ordinary arm (nothing about the arm is special; it is only what she touched people
+  with); late, by a cutting from the tree laid on you. What the Commons carry is that early snapshot of her, the flesh and the
+  opiate, not the tree. Grafting her takes the edge off, and you lose something you do not miss. *Children:* early, the dazed,
+  husk-like; mid, half stalk and half flesh, Pia caught mid-change; late, sessile, quietly euphoric, still feeling. Old Pias grow
+  faster as they age, so the tree is a clock. *Tell:* milky sap.
 - **Ines Calder (hallucinogen).** She never stops seeing. Her brain grows until it can carry the visions without believing
-  them, and what is left is lucid and finds patterns in everything. Very tall, lanky, with a big head: the growth went to the
-  head and to what perceives. She stands to paint a great wall in an open space, in a fluid from her own hands, and cannot stop.
-  She painted as a hobby, before. *Spreads:* wet paint, and slivers she cuts from herself. *Children:* the eldest are still
-  seeing, still in it; mature ones only copy her, and each generation's copy of her motifs is worse. *Tell:* height and a big
-  head; murals and street art (quality shows age, wet paint means one is near).
+  them, and what is left is lucid and finds patterns in everything. Very tall (about 7 m), lanky, with a big head: the growth
+  went to the head and to what perceives. Human and fleshy, in her own skin; her part of the plant is the tobacco's sticky
+  glandular hairs, over her head and down her arms, each beaded with the fluid she paints in. She paints great walls and cannot
+  stop. She painted as a hobby, before, and her scenes mean something: they come from her life before, and see ahead.
+  *Spreads:* wet paint, and slivers she cuts from herself. *Children:* the eldest are still seeing, still in it. Her children ape
+  the colours and the structure of her work, and spread it elsewhere in the station at low resolution; her grandchildren get
+  only the vague colours and shapes right. *Tell:* height and a big head, the beaded hairs; murals and street art (quality shows
+  distance from her, wet paint means one is near).
 - **Dale Mercer (strong leaf; employee of the month).** Weeks without sleep: rage, blackouts. The energetics were born then,
   and he barely remembers them. His brain learns to ignore the stimulant; he sleeps and is himself again, but the organ never
   stops making it, and he is very infectious. Now massive, sitting in a pool of his own stimulant on a chair that reads as a
@@ -766,7 +779,7 @@ Nobody expected worse than a bad night.
 
 ### The young gods
 
-- **The founder (generation 3).** Touched by Pia's arm in the middle of her change. Pia's fear of eradication was a thought;
+- **The founder (generation 3).** Touched by Pia in her stupor. Pia's fear of eradication was a thought;
   in the founder it became biology. It took others by force and turned the Commons.
 - **Pia's generations.** The opiate dulls with each generation; the fear does not, so the youngest are the most violent and the
   oldest the largest and most stupefied.
@@ -820,4 +833,8 @@ The player is never told any of this; they read it.
 - Where Ines paints, and where Dale holds court.
 - The antidote child: a name, and where it went.
 - Holt's lab journal (`src/content/notes.ts`) has her cutting out her own fear; that is dropped, and the note is to be
-  rewritten with the levels.
+  rewritten with the levels. So is the resident's diary, whose Pia has an arm that reaches for the lamp on its own: the arm has
+  no will of its own.
+- Tom's spores: tobacco makes none. Its seed is dust-fine, though, a single plant setting hundreds of thousands, which would
+  carry on the air as well; whether Tom keeps the fern or becomes the plant's seed is open.
+- Ines's murals: to be designed as particular scenes, with the copies worked down from them.
