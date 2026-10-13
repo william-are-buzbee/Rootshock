@@ -684,10 +684,13 @@ levels are built. None of it has to reach the player: the game plays without it,
 - **It keeps you changing, not alive.** It cannot raise the dead or stop a bleed, and it slows without new grafts. Things die
   when they are killed. New grafts are the only way to speed up, which is a reason to infect.
 - **The plant.** Every green form is wild tobacco, *Nicotiana rustica*, mutated its own way: Pia took its stalk, leaves and
-  flowers and grew into a tree; Holt breeds the whole plant for structure. Not every line shows the plant: Ines shows none. The rest are to be worked out the same way: which part of the plant, and what it became.
+  flowers and grew into a tree; Dale wears its leaves, in shelves, the colour of nicotine; Holt breeds the whole plant for
+  structure. Not every line shows the plant: Ines shows none. The rest are to be worked out the same way: which part of the plant, and what it became.
 - **The people.** Lowfield is in a country with some racial diversity, and its staff reflect it. "Skin" in these notes means
   any human skin tone, and a mutant keeps its host's: an elder's children differ in skin as in build, because each grew on its
   own body.
+- **Almost nothing looks human.** By the time of the game nearly every mutant is far from the person it was; one that still
+  looks human is in the first stages of change, and those are rare.
 - **Generations.** The crop is generation 1; the elders, who took it from the crop, are 2; their children 3, and so on.
 
 ### The rules
@@ -752,20 +755,21 @@ Nobody expected worse than a bad night.
   distance from her, wet paint means one is near).
 - **Dale Mercer (strong leaf; employee of the month).** Weeks without sleep: rage, blackouts. The energetics were born then,
   and he barely remembers them. His brain learns to ignore the stimulant; he sleeps and is himself again, but the organ never
-  stops making it, and he is very infectious. Now he sits to the belly in a tub of his own stimulant. There is no throne: the
-  tub's high back and his own shoulders only read as one from across the room. He has no head to speak of: it has sunk into
-  the hole where his neck should be, and the stimulant wells up out of it and runs down his chest into the tub. The torso is a
-  man's, nipples and all, a quarter too wide across the collarbones; one arm is enormous and comes down over the side of the
-  tub to the floor, the other is long and trails in it. Only he oozes. He is inoculating the station: there are too many
-  sleepless children for his death to fix anything, so he leaves low doses where people drink and has his eldest give grafts
-  for rapid immunity. He will not graft anyone himself. Nobody wants a second dose; it means a bad night. *A graft from his
-  eldest:* a few nights awake on the edge, then immunity; your blood carries the stimulant, and the sleepless keep away from
-  your smell. *Children:* Dale's mutations run to size. His eldest are big mutants in their own right, with his collarbones
-  and his chest, and each something more: a body grown too tall, legs like trunks, a head half sunk the way of his, one arm
-  grown huge. The sleepless are mutants of the same kind, still in it, and plainly mad. The antidote child breaks the drug down
-  instead and wants the spreading stopped, not managed; late children are mild. *Tell (the sleepless):* teeth grinding you can
-  hear, eyes that do not blink, never still. If it sits down, it is past it. *The tub as a hazard:* every mutant sleeps (rule 7),
-  so any mutant that gets enough of it goes sleepless too.
+  stops making it, and he is very infectious. Now he is an elder, and the plant shows on him: tobacco leaf grows out of him in
+  shelves, stacked the way a bracket fungus stacks, tinted the colour of nicotine, over the shoulders where a head would be,
+  down the back and the flanks and the legs. He has no head at all: a chest, nicotine-stained, sat in a tub of his own
+  stimulant on two thick, knotted, too-long legs, one knee up out of it and one leg out over the side to the floor, and from
+  one hole low in his front what he makes runs into the tub. There is no throne; the tub's high back only reads as one from
+  across the room. He is inoculating the station: there are too many sleepless children for his death to fix anything, so he
+  leaves low doses where people drink and has his eldest give grafts for rapid immunity. He will not graft anyone himself.
+  Nobody wants a second dose; it means a bad night. *A graft from his eldest:* a few nights awake on the edge, then immunity;
+  your blood carries the stimulant, and the sleepless keep away from your smell. *Children:* his line looks like him. His
+  eldest are as wrong as he is: headless chests on legs, the same colour, fewer leaves and less of the ooze, each wrong its own
+  way (on stilts, on legs like trunks, a lump where a head was, one arm grown huge). The sleepless are the same kind, still
+  in it, hunched and plainly mad, their holes toothed. The antidote child breaks the drug down instead and wants the spreading
+  stopped, not managed; late children are mild. *Tell (the sleepless):* teeth grinding you can hear, never still. If it sits
+  down, it is past it. *The tub as a hazard:* every mutant sleeps (rule 7), so any mutant that gets enough of it goes
+  sleepless too.
 - **Tom Wren (mild leaf).** Sleepless but calm; he wrote letters home until only his writing hand moved, then curled in a
   corner, and the curl became a fiddlehead, his spores in rows like handwriting. Uncurling over months into fronds about 5 m
   long, inside a pocket Holt has boxed in with roots: you cut your way in. *Spreads:* spores on the air, "as far as it can
