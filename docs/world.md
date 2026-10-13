@@ -704,7 +704,10 @@ levels are built. None of it has to reach the player: the game plays without it,
 5. **You age into your solution.** Solutions that need stillness go to plant; those that need action go to flesh. Elders are
    big, each in its own silhouette (tall, wide, heavy, rooted, coiled); an elder who is not big has a reason.
 6. **An idea in the parent is an instinct in the child.** Effects dull with each generation; instincts do not.
-7. **Kin by smell; a mind only in one body.** Mutants know kin by smell, and elders are the strongest source of the smell their
+7. **Mutation keeps what the human had.** A mutant that came from a person still sleeps, eats and breathes; the new
+   organs are added to the old ones, not swapped for them. So every mutant can be kept awake, and Dale's stimulant is a danger to
+   all of them, not only to people.
+8. **Kin by smell; a mind only in one body.** Mutants know kin by smell, and elders are the strongest source of the smell their
    line knows as home, which is why they are fed and grow huge. A shared mind needs shared tissue: fused bodies (the overseer,
    the hand) and Holt's one root system. Everything else talks by smell, sound and touch.
 
@@ -749,14 +752,20 @@ Nobody expected worse than a bad night.
   distance from her, wet paint means one is near).
 - **Dale Mercer (strong leaf; employee of the month).** Weeks without sleep: rage, blackouts. The energetics were born then,
   and he barely remembers them. His brain learns to ignore the stimulant; he sleeps and is himself again, but the organ never
-  stops making it, and he is very infectious. Now massive, sitting in a pool of his own stimulant on a chair that reads as a
-  throne, his court around him: every build, chests and lungs swollen, oozing. He is inoculating the station: there are too
-  many sleepless children for his death to fix anything, so he leaves low doses where people drink and has the court give
-  grafts for rapid immunity. He will not graft anyone himself. Nobody wants a second dose; it means a bad night. *A graft from
-  the court:* a few nights awake on the edge, then immunity; your blood carries the stimulant, and the sleepless keep away from
-  your smell. *Children:* the sleepless (still in it); the court (came through); the antidote child, who breaks the drug down
-  instead and wants the spreading stopped, not managed; late children, mild. *Tell (the sleepless):* teeth grinding you can
-  hear, eyes that do not blink, never still. If it sits down, it is past it.
+  stops making it, and he is very infectious. Now he sits to the belly in a tub of his own stimulant. There is no throne: the
+  tub's high back and his own shoulders only read as one from across the room. He has no head to speak of: it has sunk into
+  the hole where his neck should be, and the stimulant wells up out of it and runs down his chest into the tub. The torso is a
+  man's, nipples and all, a quarter too wide across the collarbones; one arm is enormous and comes down over the side of the
+  tub to the floor, the other is long and trails in it. Only he oozes. He is inoculating the station: there are too many
+  sleepless children for his death to fix anything, so he leaves low doses where people drink and has his eldest give grafts
+  for rapid immunity. He will not graft anyone himself. Nobody wants a second dose; it means a bad night. *A graft from his
+  eldest:* a few nights awake on the edge, then immunity; your blood carries the stimulant, and the sleepless keep away from
+  your smell. *Children:* Dale's mutations run to size. His eldest are big mutants in their own right, with his collarbones
+  and his chest, and each something more: a body grown too tall, legs like trunks, a head half sunk the way of his, one arm
+  grown huge. The sleepless are mutants of the same kind, still in it, and plainly mad. The antidote child breaks the drug down
+  instead and wants the spreading stopped, not managed; late children are mild. *Tell (the sleepless):* teeth grinding you can
+  hear, eyes that do not blink, never still. If it sits down, it is past it. *The tub as a hazard:* every mutant sleeps (rule 7),
+  so any mutant that gets enough of it goes sleepless too.
 - **Tom Wren (mild leaf).** Sleepless but calm; he wrote letters home until only his writing hand moved, then curled in a
   corner, and the curl became a fiddlehead, his spores in rows like handwriting. Uncurling over months into fronds about 5 m
   long, inside a pocket Holt has boxed in with roots: you cut your way in. *Spreads:* spores on the air, "as far as it can

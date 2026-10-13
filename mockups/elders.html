@@ -701,37 +701,36 @@ const DSK = [0x5e4436, 0x553d31, 0x684b3c, 0x735443];
 const STIM = 0x7a6a1e, STIMD = 0x64561a, STIMW = 0x9c8a2c, LEATHER = 0x2b2522, TILE = 0x8a9294, TILEL = 0x9aa2a4;
 const TEETH = 0xd2c690;
 const SKINS = [[0xc89c7c, 0xbd9172, 0xd2a686], [0x4e382c, 0x463226, 0x584034], [0x9a7458, 0x8f6a50, 0xa47e62], [0xd9b293, 0xcea788, 0xe2bc9e], [0x7a5a46, 0x6f513f, 0x84624e]];
-/** a person of the court, or one of the sleepless: h tall, w broad; sitting or standing; chest swollen by sw */
+/** one of his line, or one of the sleepless: h tall, w broad, sitting or standing. Every Dale mutation runs to size:
+   cl the collarbones, ch the chest, lw the legs, aL/aW each arm's length and thickness, hs how far the head has sunk */
 function person(parent, o) {
-  const k = o.h / 1.8, w = o.w, S = o.skin, root = grp(parent, o.x, o.y ?? 0, o.z); root.rotation.y = o.yaw;
-  const P = { root, k, legs: [] };
+  const k = o.h / 1.8, w = o.w, S = o.skin, cl = o.cl ?? 1, lw = o.lw ?? 1, aL = o.aL ?? [1, 1], aW = o.aW ?? [1, 1], hs = o.hs ?? 0;
+  const root = grp(parent, o.x, o.y ?? 0, o.z); root.rotation.y = o.yaw;
+  const P = { root, k, legs: [], sit: !!o.sit };
   const hipY = o.sit ? 0.1 * k : 0.92 * k;
   for (const s of [-1, 1]) {
-    const L = grp(root, s * 0.11 * k * w, hipY, 0);
-    if (o.sit) { mk(L, 'box', S[1], 0.17 * k * w, 0.17 * k * w, 0.48 * k, 0, 0, 0.22 * k); mk(L, 'box', S[2], 0.14 * k * w, 0.48 * k, 0.15 * k * w, 0, -0.22 * k, 0.46 * k); }
-    else { mk(L, 'box', S[1], 0.16 * k * w, 0.48 * k, 0.17 * k * w, 0, -0.22 * k, 0); mk(L, 'box', S[2], 0.13 * k * w, 0.46 * k, 0.14 * k * w, 0, -0.66 * k, 0.02 * k); mk(L, 'ico', S[1], 0.13 * k * w, 0.08 * k, 0.26 * k, 0, -0.89 * k, 0.07 * k); }
+    const L = grp(root, s * 0.11 * k * w * Math.max(1, lw * 0.8), hipY, 0);
+    if (o.sit) { mk(L, 'box', S[1], 0.17 * k * w * lw, 0.17 * k * w * lw, 0.48 * k, 0, 0, 0.22 * k); mk(L, 'box', S[2], 0.14 * k * w * lw, 0.48 * k, 0.15 * k * w * lw, 0, -0.22 * k, 0.46 * k); }
+    else { mk(L, 'box', S[1], 0.16 * k * w * lw, 0.48 * k, 0.17 * k * w * lw, 0, -0.22 * k, 0); mk(L, 'box', S[2], 0.13 * k * w * lw, 0.46 * k, 0.14 * k * w * lw, 0, -0.66 * k, 0.02 * k); mk(L, 'ico', S[1], 0.13 * k * w * lw, 0.08 * k, 0.26 * k, 0, -0.89 * k, 0.07 * k); }
     P.legs.push(L);
   }
   const T = grp(root, 0, hipY, 0); P.T = T;
   mk(T, 'ico', S[0], 0.4 * k * w, 0.36 * k, 0.28 * k * w, 0, 0.15 * k, 0.02 * k);
-  /* the chest, swollen: the lungs the leaf took */
-  const ch = (o.sw ?? 1.3);
+  const ch = o.ch ?? 1;
   P.chest = mk(T, 'ico', S[2], 0.5 * k * w * ch, 0.42 * k * ch, 0.34 * k * w * ch, 0, 0.38 * k, 0.03 * k * ch);
-  mk(T, 'box', S[1], 0.5 * k * w, 0.1 * k, 0.22 * k * w, 0, 0.55 * k, 0);
-  if (o.ooze) {
-    for (let j = 0; j < 7; j++) { const a = rnd(-1.1, 1.1), y = rnd(0.25, 0.5) * k; mk(T, 'ico', STIMW, 0.035 * k, 0.03 * k, 0.03 * k, Math.sin(a) * 0.24 * k * w * ch, y, Math.cos(a) * 0.17 * k * w * ch); }
-    for (let j = 0; j < 3; j++) mk(T, 'box', STIM, 0.018 * k, rnd(0.1, 0.22) * k, 0.018 * k, rnd(-0.12, 0.12) * k * w, 0.28 * k, 0.17 * k * w * ch);
-  }
+  /* the shoulders, and the collarbones across them */
+  mk(T, 'box', S[1], 0.5 * k * w * cl, 0.1 * k, 0.22 * k * w, 0, 0.55 * k, 0);
+  for (const s of [-1, 1]) beam(T, S[0], 0.035 * k, 0.03 * k, V(0, 0.56 * k, 0.11 * k * w), V(s * 0.24 * k * w * cl, 0.6 * k, 0.04 * k));
   const N = grp(T, 0, 0.6 * k, 0.01 * k); P.N = N;
-  mk(N, 'cyl', S[1], 0.11 * k, 0.12 * k, 0.11 * k, 0, 0.05 * k, 0);
-  const H = grp(N, 0, 0.17 * k, 0.01 * k); P.H = H;
+  if (hs < 0.3) mk(N, 'cyl', S[1], 0.11 * k, 0.12 * k, 0.11 * k, 0, 0.05 * k, 0);
+  else for (let j = 0; j < 8; j++) { const a = (j / 8) * TAU; mk(N, 'ico', S[1], 0.1 * k, 0.07 * k, 0.1 * k, Math.cos(a) * 0.13 * k, 0.0, Math.sin(a) * 0.13 * k); }
+  const H = grp(N, 0, (0.17 - hs * 0.2) * k, 0.01 * k); P.H = H;
   mk(H, 'ico', S[2], 0.22 * k, 0.27 * k, 0.24 * k, 0, 0, 0);
   P.jaw = mk(H, 'ico', S[1], 0.17 * k, 0.09 * k, 0.15 * k, 0, -0.1 * k, 0.04 * k);
   mk(H, 'ico', o.hair ?? 0x1e1816, 0.235 * k, 0.12 * k, 0.24 * k, 0, 0.09 * k, -0.02 * k);
-  if (o.ooze) mk(H, 'box', STIM, 0.015 * k, 0.12 * k, 0.015 * k, 0.04 * k, -0.17 * k, 0.1 * k);
   P.eyes = [-1, 1].map(s => eye(H, 0.026 * k, s * 0.05 * k, 0.02 * k, 0.105 * k, { pupil: 0.45, wild: o.wild ?? 0, slow: !o.wild }));
   if (o.noBlink) for (const E of P.eyes) E.blink = 1e9;
-  P.arms = [-1, 1].map(s => limb(T, [s * 0.27 * k * w, 0.52 * k, 0], 0.3 * k, 0.28 * k, S[1], S[2], 0.08 * k * w, fatHand(0.6 * k, S[0], S[1]), { joint: S[1] }));
+  P.arms = [-1, 1].map((s, i) => limb(T, [s * 0.27 * k * w * cl, 0.52 * k, 0], 0.3 * k * aL[i], 0.28 * k * aL[i], S[1], S[2], 0.08 * k * w * aW[i], fatHand(0.6 * k * Math.sqrt(aW[i] * aL[i]), S[0], S[1]), { joint: S[1] }));
   return P;
 }
 
@@ -740,91 +739,88 @@ function buildDale() {
   floor(S, 22, 18, 0x34383a, 0x262a2c, 1.0);
   mk(S, 'box', 0x3a3e40, 22, 7, 0.3, 0, 3.5, -5.2);
   mk(S, 'box', 0x3a3e40, 0.3, 7, 18, -9.0, 3.5, 0);
-  /* the pool: a basin in the court, tiled, and full to near the rim with what he makes */
+  /* the tub: a basin in the court, tiled, full to near the rim with what he makes. Its back stands high where he leans
+     on it, and with his shoulders in front of it, from across the room, it reads as a throne */
   const PW = 8, PD = 7, RIM = 1.0, LV = 0.9;
   for (const [x, z, w, d] of [[0, PD / 2, PW + 0.5, 0.25], [0, -PD / 2, PW + 0.5, 0.25], [PW / 2, 0, 0.25, PD], [-PW / 2, 0, 0.25, PD]]) {
     mk(S, 'box', TILE, w, RIM, d, x, RIM / 2, z);
     mk(S, 'box', TILEL, w + 0.06, 0.06, d + 0.06, x, RIM + 0.03, z);
   }
+  mk(S, 'box', TILE, 4.8, 2.9, 0.5, 0, 1.45, -PD / 2 + 0.12); mk(S, 'box', TILEL, 4.86, 0.06, 0.56, 0, 2.93, -PD / 2 + 0.12);
+  for (const s of [-1, 1]) { mk(S, 'box', TILE, 0.6, 1.7, 1.6, s * 2.7, 0.85, -PD / 2 + 0.9); mk(S, 'box', TILEL, 0.66, 0.06, 1.66, s * 2.7, 1.73, -PD / 2 + 0.9); }
+  mk(S, 'box', STIMD, 4.82, 0.5, 0.52, 0, 1.05, -PD / 2 + 0.12);
   mk(S, 'box', STIM, PW - 0.25, 0.05, PD - 0.25, 0, LV, 0);
   for (let k = 0; k < 9; k++) mk(S, 'ico', k % 2 ? STIMD : STIMW, rnd(0.6, 1.6), 0.012, rnd(0.4, 1.2), rnd(-3.4, 3.4), LV + 0.03, rnd(-3, 3)).rotation.y = rnd(0, TAU);
-  /* the throne: a great leather chair, its foot stained to the line of the pool */
-  const ch = grp(S, 0, 0, -1.4);
-  mk(ch, 'box', LEATHER, 3.0, 0.4, 2.0, 0, 0.55, 0);
-  mk(ch, 'box', LEATHER, 3.2, 4.8, 0.45, 0, 2.6, -1.05);
-  mk(ch, 'box', 0x241f1c, 2.6, 0.5, 0.5, 0, 5.05, -1.05);
-  for (const s of [-1, 1]) { mk(ch, 'box', LEATHER, 0.45, 0.32, 2.1, s * 1.68, 1.75, 0.05); mk(ch, 'box', LEATHER, 0.35, 1.3, 0.35, s * 1.68, 1.1, 0.85); }
-  mk(ch, 'box', STIMD, 3.24, 0.5, 0.47, 0, 0.95, -1.05);
-  /* Dale: huge in the chest, sat in it to the belly */
-  const D = { root: grp(S, 0, 0, -1.2) }, R = D.root;
-  for (const s of [-1, 1]) { mk(R, 'ico', DSK[1], 0.8, 0.6, 1.5, s * 0.55, 0.85, 0.5); mk(R, 'box', DSK[2], 0.5, 1.0, 0.55, s * 0.6, 0.45, 1.25); }
-  const T = grp(R, 0, 0.7, 0); D.T = T;
-  mk(T, 'ico', DSK[0], 1.9, 1.3, 1.5, 0, 0.75, 0.2);
-  D.chest = mk(T, 'ico', DSK[2], 2.4, 2.0, 1.75, 0, 1.75, 0.05);
-  mk(T, 'ico', DSK[1], 2.7, 0.75, 1.3, 0, 2.55, -0.05);
-  for (let j = 0; j < 14; j++) { const a = rnd(-1.2, 1.2), y = rnd(1.2, 2.3); mk(T, 'ico', STIMW, 0.07, 0.06, 0.06, Math.sin(a) * 1.15, y, 0.05 + Math.cos(a) * 0.82); }
-  for (let j = 0; j < 5; j++) mk(T, 'box', STIM, 0.035, rnd(0.3, 0.7), 0.035, rnd(-0.6, 0.6), 1.15, 0.86);
-  /* what runs from the gland, down over the chest and off the belly */
-  for (const dx of [-0.08, 0.05, 0.16]) { const a = V(dx, 2.95, 0.62), b = V(dx * 1.4, 2.3, 0.82), c = V(dx * 1.6, 1.75, 0.95), e = V(dx * 1.3, 1.08, 0.86); beam(T, STIM, 0.06, 0.03, a, b); beam(T, STIM, 0.06, 0.03, b, c); beam(T, STIM, 0.05, 0.03, c, e); }
-  const N = grp(T, 0, 2.85, 0.1); D.N = N;
-  mk(N, 'cyl', DSK[1], 0.75, 0.45, 0.7, 0, 0.15, 0);
-  /* the gland at the throat, which never stops */
-  D.gland = mk(N, 'ico', 0x7e6038, 0.72, 0.5, 0.55, 0, 0.1, 0.38);
-  mk(N, 'ico', STIMW, 0.3, 0.12, 0.2, 0, 0.0, 0.62);
-  const H = grp(N, 0, 0.62, 0.05); D.H = H;
-  mk(H, 'ico', DSK[2], 0.72, 0.82, 0.76, 0, 0.05, 0);
-  mk(H, 'box', DSK[1], 0.6, 0.1, 0.2, 0, 0.2, 0.3);
-  /* the jaw: heavy, the muscles of it swollen from weeks of grinding, the teeth worn flat */
-  mk(H, 'ico', DSK[1], 0.78, 0.4, 0.68, 0, -0.3, 0.1);
-  for (const s of [-1, 1]) mk(H, 'ico', DSK[0], 0.26, 0.42, 0.34, s * 0.35, -0.14, 0.05);
-  mk(H, 'box', 0x1c1210, 0.34, 0.06, 0.05, 0, -0.27, 0.42);
-  for (let j = 0; j < 6; j++) mk(H, 'box', TEETH, 0.05, 0.035, 0.03, -0.125 + j * 0.05, -0.25, 0.43);
-  mk(H, 'ico', 0x1a1412, 0.74, 0.32, 0.74, 0, 0.32, -0.06);
-  D.eyes = [-1, 1].map(s => eye(H, 0.065, s * 0.16, 0.08, 0.34, { pupil: 0.45, slow: true }));
-  /* arms on the arms of the chair, hands hanging over the ends */
-  D.arms = [-1, 1].map(s => limb(T, [s * 1.3, 2.45, 0], 1.15, 1.1, DSK[1], DSK[2], 0.42, fatHand(2.6, DSK[0], DSK[1]), { joint: DSK[1] }));
-  /* his drool, into the pool */
+  /* Dale: a torso, human, sat in it to the belly, a quarter too wide across the collarbones. No head to speak of: it has
+     sunk into the hole where his neck should be, and what the gland makes wells up out of it */
+  const D = { root: grp(S, 0, 0, -2.0) }, R = D.root, T = grp(R, 0, 0.5, 0); D.T = T;
+  mk(T, 'ico', DSK[0], 2.3, 1.4, 1.7, 0, 0.75, 0.15);
+  D.chest = mk(T, 'ico', DSK[2], 2.6, 2.2, 1.85, 0, 1.75, 0.0);
+  for (const s of [-1, 1]) {
+    mk(T, 'ico', DSK[1], 1.15, 0.72, 0.5, s * 0.58, 2.2, 0.72);
+    mk(T, 'ico', 0x3e2a22, 0.11, 0.08, 0.06, s * 0.64, 2.1, 0.98);
+    for (let j = 0; j < 3; j++) mk(T, 'box', DSK[1], 0.5, 0.06, 0.08, s * 0.55, 1.45 - j * 0.22, 0.88).rotation.z = s * 0.2;
+  }
+  mk(T, 'ico', DSK[1], 3.5, 0.85, 1.5, 0, 2.75, -0.1);
+  for (const s of [-1, 1]) { mk(T, 'ico', DSK[2], 1.0, 0.9, 1.1, s * 1.55, 2.65, -0.1); beam(T, DSK[0], 0.16, 0.12, V(s * 0.12, 2.95, 0.62), V(s * 1.6, 3.05, 0.25)); }
+  /* the hole, its lip, and him down in it */
+  for (let j = 0; j < 10; j++) { const a = (j / 10) * TAU; mk(T, 'ico', DSK[1], 0.42, 0.3, 0.42, Math.cos(a) * 0.48, 3.1, -0.05 + Math.sin(a) * 0.42); }
+  mk(T, 'ico', 0x120a08, 0.85, 0.2, 0.75, 0, 3.12, -0.05);
+  const H = grp(T, 0, 2.9, -0.02); D.H = H;
+  mk(H, 'ico', DSK[2], 0.62, 0.5, 0.6, 0, 0, 0);
+  mk(H, 'box', DSK[1], 0.5, 0.08, 0.16, 0, 0.1, 0.24);
+  D.eyes = [-1, 1].map(s => eye(H, 0.05, s * 0.13, 0.05, 0.27, { pupil: 0.45, slow: true }));
+  D.well = mk(T, 'ico', STIMW, 0.6, 0.08, 0.55, 0, 3.12, -0.05);
+  /* and what runs from it, over the collarbones and down the chest, and off the belly into the pool */
+  for (const [dx, dz] of [[-0.3, 0.32], [0.08, 0.38], [0.36, 0.3]]) {
+    const a = V(dx, 3.12, dz), b = V(dx * 1.3, 2.75, 0.62), c = V(dx * 1.5, 2.1, 0.98), e = V(dx * 1.3, 1.25, 0.95);
+    beam(T, STIM, 0.07, 0.03, a, b); beam(T, STIM, 0.07, 0.03, b, c); beam(T, STIM, 0.06, 0.03, c, e);
+  }
+  for (let j = 0; j < 12; j++) { const a = rnd(-1.2, 1.2), y = rnd(1.2, 2.4); mk(T, 'ico', STIMW, 0.07, 0.06, 0.06, Math.sin(a) * 1.2, y, Math.cos(a) * 0.88); }
+  /* one arm enormous, out over the side of the tub and down to the floor; the other long, trailing in the pool */
+  D.big = limb(T, [1.9, 2.75, 0], 2.7, 2.3, DSK[1], DSK[2], 0.85, fatHand(4.2, DSK[0], DSK[1]), { joint: DSK[1] });
+  D.long = limb(T, [-1.9, 2.75, 0], 2.3, 2.4, DSK[1], DSK[2], 0.3, fatHand(1.9, DSK[0], DSK[1]), { joint: DSK[1] });
   D.drops = [0, 1, 2, 3].map(() => ({ m: mk(S, 'ico', STIMW, 0.07, 0.11, 0.07, 0, -9, 0), t: rnd(0, 2), v: 0 }));
   D.rip = [0, 1, 2].map(() => ({ m: mk(S, 'cyl', STIMW, 1, 0.01, 1, 0, -9, 0), t: 9 }));
-  /* the court: every build, chests swollen, oozing; sitting, which is the tell */
+  /* his eldest: mutants in their own right. The collarbones and the chest, and each one something more */
   const court = [
-    person(S, { x: -4.05, y: RIM, z: 0.3, yaw: PI / 2, h: 2.2, w: 0.8, skin: SKINS[0], sit: true, ooze: true, sw: 1.35 }),
-    person(S, { x: 4.05, y: RIM, z: 1.0, yaw: -PI / 2, h: 1.8, w: 1.45, skin: SKINS[1], sit: true, ooze: true, sw: 1.4 }),
-    person(S, { x: -1.6, y: RIM, z: 3.62, yaw: 0, h: 1.5, w: 1.15, skin: SKINS[2], sit: true, ooze: true, sw: 1.45 }),
-    person(S, { x: 1.6, z: 4.4, yaw: 0.15, h: 1.85, w: 1.0, skin: SKINS[3], ooze: true, sw: 1.3, hair: 0x5a4030 }),
+    person(S, { x: -4.05, y: RIM, z: 0.6, yaw: PI / 2, h: 2.9, w: 0.85, skin: SKINS[0], sit: true, cl: 1.5, ch: 1.35 }),
+    person(S, { x: 4.05, y: RIM, z: 1.4, yaw: -PI / 2, h: 2.3, w: 1.1, skin: SKINS[1], sit: true, cl: 1.45, ch: 1.4, lw: 2.6 }),
+    person(S, { x: -1.6, y: RIM, z: 3.62, yaw: 0, h: 2.3, w: 1.05, skin: SKINS[2], sit: true, cl: 1.6, ch: 1.45, hs: 0.7 }),
+    person(S, { x: 1.7, z: 4.6, yaw: 0.15, h: 2.5, w: 1.0, skin: SKINS[3], cl: 1.45, ch: 1.35, aL: [1, 1.35], aW: [1, 2.3], hair: 0x5a4030 }),
   ];
   /* the offered wrist, cut open */
-  mk(court[3].arms[1].k, 'box', 0x5a1410, 0.075, 0.075, 0.06, 0, 0, 0.25);
+  mk(court[3].arms[1].k, 'box', 0x5a1410, 0.075 * 2.3 * court[3].k, 0.075 * 2.3 * court[3].k, 0.06 * court[3].k, 0, 0, 0.3 * court[3].k);
   /* the urn by the wall: low doses, left where people drink */
   const urn = grp(S, -7.6, 0, -3.6);
   mk(urn, 'box', 0x4a4e52, 0.6, 1.0, 0.5, 0, 0.5, 0);
   mk(urn, 'cyl', 0xb7a65a, 0.36, 0.55, 0.36, 0, 1.3, 0);
   for (let j = 0; j < 4; j++) mk(urn, 'cyl', 0xd8d4c8, 0.08, 0.1, 0.08, -0.2 + j * 0.13, 1.05, 0.2);
-  /* employee of the month, framed, on the back wall */
-  const fr = grp(S, 3.8, 3.4, -5.03);
+  /* employee of the month, framed, on the back wall: a man with a head */
+  const fr = grp(S, 4.6, 3.4, -5.03);
   mk(fr, 'box', 0x6a5a3a, 0.9, 1.1, 0.05, 0, 0, 0); mk(fr, 'box', 0xcfc8b6, 0.72, 0.92, 0.03, 0, 0, 0.02);
   mk(fr, 'ico', DSK[2], 0.22, 0.27, 0.03, 0, 0.12, 0.04); mk(fr, 'box', 0x3a4a6a, 0.42, 0.28, 0.03, 0, -0.2, 0.04);
   for (let j = 0; j < 2; j++) mk(fr, 'box', 0x6a6a6a, 0.5 - j * 0.14, 0.03, 0.03, 0, 0.4 - j * 0.06, 0.04);
-  /* the doorway, and one of the sleepless keeping its distance from them */
+  /* the doorway, and one of the sleepless keeping its distance from them: a mutant of its own, and mad */
   mk(S, 'box', 0x1a1c1d, 1.6, 2.6, 0.32, 7.2, 1.3, -5.2);
-  const sl = person(S, { x: 6.4, z: -3.6, yaw: 0, h: 1.75, w: 0.85, skin: SKINS[4], sw: 1.05, wild: 0.45, noBlink: true, hair: 0x2a2220 });
-  const fig = figure(S, -1.2, 5.6, PI + 0.3);
+  const sl = person(S, { x: 6.4, z: -3.4, yaw: 0, h: 2.3, w: 0.9, skin: SKINS[4], cl: 1.4, ch: 1.15, aL: [1.55, 1.55], wild: 0.45, noBlink: true, hair: 0x2a2220 });
+  const fig = figure(S, -1.6, 6.0, PI + 0.3);
   return {
     S, fig, D, court, sl, LV, room: [0.22, 0.215, 0.205],
     glow: { pos: V(0.5, 5.5, 2.5), c: [0.72, 0.7, 0.64], r: 11 }, fog: 0.02,
-    cam: { tgt: V(0, 2.2, 0.5), yaw: 0.35, pitch: 0.2, dist: 13, min: 1.5, max: 40 },
+    cam: { tgt: V(0.3, 2.2, 0.2), yaw: 0.35, pitch: 0.2, dist: 14, min: 1.5, max: 40 },
     mode: 'court', pace: 0, dir: 1, grind: 0,
   };
 }
 const DALE_STATES = {
-  court: ['His court', 'Dale Mercer, generation 2, employee of the month: his photograph is still on the wall. He sits in a pool of his own stimulant on a chair you could take for a throne, huge in the chest. The jaw is heavy and the teeth worn flat from the weeks he ground them. That was the crisis, and he is out of it: he blinks, he sleeps, he is himself. The gland at his throat never stops. His court sits round the pool, every build, chests swollen, oozing. They sit: if it sits down, it is past it. By the wall, the urn: low doses, left where people drink.', V(0, 2.2, 0.5), 13, 0.35],
-  offer: ['The offer', 'One of the court holds out a wrist, cut open: a graft offered. They mean well, and they want more children. Take it and you lose a few nights to the edge of madness, then you are immune; your blood carries it, and the sleepless keep away from your smell. Dale watches. He will not graft you himself.', V(1.4, 1.4, 4.6), 4.8, -0.55],
-  sleepless: ['The sleepless', 'At the door, keeping its distance from them: one of the energetics, still in it. It never stops moving. It does not blink. You can hear its teeth (sound on).', V(6.4, 1.4, -3.2), 6.5, 0.5],
+  court: ['His court', 'Dale Mercer, generation 2, employee of the month: his photograph is still on the wall. What looks like a throne is the tub\'s high back and his own shoulders. He has no head to speak of: it has sunk into the hole where his neck should be, and the stimulant wells up out of it, over his collarbones and down his chest into the pool. The torso is a man\'s, a quarter too wide across the collarbones; one arm is enormous and comes down over the side to the floor, the other is long and trails in the pool. He is out of his crisis, and sleeps. His eldest sit round him, mutants in their own right: his collarbones and his chest, and each one something more, a body grown too tall, legs like trunks, a head half gone the way of his. Only he oozes. By the wall, the urn: low doses, left where people drink.', V(-1.8, 2.4, -0.6), 14.5, 0.3],
+  offer: ['The offer', 'One of his eldest, one arm grown huge like his father\'s, holds out a wrist, cut open: a graft offered. They mean well, and they want more children. Take it and you lose a few nights to the edge of madness, then you are immune; your blood carries it, and the sleepless keep away from your smell. He will not graft you himself.', V(1.6, 1.8, 4.8), 6.0, -0.55],
+  sleepless: ['The sleepless', 'At the door, keeping its distance: one of the energetics, still in it. A mutant in its own right, his collarbones and a long reach, and plainly mad. It never stops moving. It does not blink. You can hear its teeth (sound on). It need not have been one of his: any mutant that gets enough of the pool goes the same way.', V(6.4, 1.6, -3.0), 7.0, 0.5],
 };
 function setDale(mode) {
   const M = DALE; M.mode = mode;
   const [, , tgt, dist, yaw] = DALE_STATES[mode];
-  M.cam.tgt.copy(tgt); M.cam.dist = dist; M.cam.yaw = yaw; M.cam.pitch = mode === 'court' ? 0.2 : 0.12;
+  M.cam.tgt.copy(tgt); M.cam.dist = dist; M.cam.yaw = yaw; M.cam.pitch = mode === 'court' ? 0.38 : 0.12;
   if (PIA_READY) syncPanel();
 }
 /* the teeth: short dry bursts of high noise, in a rhythm that never settles */
@@ -842,22 +838,21 @@ function grindNoise() {
 const DT = new THREE.Vector3();
 function stepDale(dt, now) {
   const M = DALE, D = M.D;
-  /* he breathes, slowly; the gland swells and lets go */
+  /* he breathes, slowly; the hole wells up and lets go */
   const br = Math.sin(now * 0.55), pulse = Math.pow(Math.max(0, Math.sin(now * 1.6)), 6);
   D.chest.scale.set(1 + 0.025 * br, 1 + 0.03 * br, 1 + 0.035 * br);
-  D.gland.scale.set(1 + 0.12 * pulse, 1 + 0.18 * pulse, 1 + 0.14 * pulse);
-  /* his hands over the ends of the chair's arms; a finger taps */
-  for (const [s, L] of [[-1, D.arms[0]], [1, D.arms[1]]]) {
-    DT.set(s * 1.68, 2.0, -0.3); reach(L, DT, 1);
-    L.end.forEach((f, k) => (f.rotation.x = 0.9 + (k === 1 && s > 0 ? Math.max(0, Math.sin(now * 2.2)) * 0.5 : 0)));
-  }
-  /* he looks at you, calmly */
-  look(D.H, camera.position, dt, 0.8, [0.6, 0.35]);
+  D.well.scale.set(1 + 0.08 * pulse, 1 + 2.5 * pulse, 1 + 0.08 * pulse);
+  /* the great arm over the side, its hand on the floor; the long one trailing in the pool */
+  DT.set(5.1 + Math.sin(now * 0.3) * 0.05, 0.08, -0.6); reach(D.big, DT, 1);
+  D.big.end.forEach((f, k) => (f.rotation.x = 0.15 + (k === 2 ? Math.max(0, Math.sin(now * 1.7)) * 0.35 : 0)));
+  DT.set(-2.6 + Math.sin(now * 0.4) * 0.3, 0.75, 0.6 + Math.cos(now * 0.33) * 0.3); reach(D.long, DT, 1);
+  D.long.end.forEach((f, k) => (f.rotation.x = 0.4 + Math.sin(now * 0.9 + k) * 0.1));
+  /* from down in the hole, he looks at you */
   for (const E of D.eyes) lookEye(E, camera.position, dt);
-  /* the drool, and the rings it makes */
-  DT.set(0.05, 1.05, 0.86); D.T.localToWorld(DT);
+  /* what runs off his belly, and the rings it makes */
+  DT.set(0.05, 1.25, 0.95); D.T.localToWorld(DT);
   for (const d of D.drops) {
-    if ((d.t -= dt) < 0 && d.m.position.y < -1) { d.m.position.set(DT.x + rnd(-0.1, 0.1), DT.y, DT.z); d.v = 0; }
+    if ((d.t -= dt) < 0 && d.m.position.y < -1) { d.m.position.set(DT.x + rnd(-0.4, 0.4), DT.y, DT.z); d.v = 0; }
     if (d.m.position.y > -1) {
       d.v += 9.8 * dt; d.m.position.y -= d.v * dt;
       if (d.m.position.y < M.LV) {
@@ -872,9 +867,11 @@ function stepDale(dt, now) {
     P.chest.scale.setScalar(1 + 0.03 * Math.sin(now * 0.7 + i));
     const offering = i === 3 && M.mode === 'offer';
     for (const [s, L] of [[-1, P.arms[0]], [1, P.arms[1]]]) {
-      if (offering && s > 0) { DT.set(0.42 * P.k, 1.47 * P.k, 0.62 * P.k); P.root.localToWorld(DT); reach(L, DT, -1); L.end.forEach(f => (f.rotation.x = -0.1)); L.k.rotation.z = -1.4; continue; }
+      const len = L.L1 + L.L2, sx = L.h.position.x, sy = L.h.position.y + P.T.position.y;
+      if (offering && s > 0) { DT.set(sx + 0.15 * P.k, sy - 0.1 * P.k, len * 1.02); P.root.localToWorld(DT); reach(L, DT, -1); L.end.forEach(f => (f.rotation.x = -0.1)); L.k.rotation.z = -1.4; continue; }
       L.k.rotation.z = 0;
-      _a.set(s * 0.24 * P.k, P.root.position.y > 0.5 ? 0.14 * P.k : 0.8 * P.k, P.root.position.y > 0.5 ? 0.35 * P.k : 0.06 * P.k); P.root.localToWorld(_a); reach(L, _a, -1);
+      if (P.sit) _a.set(s * 0.24 * P.k, 0.14 * P.k, 0.35 * P.k); else _a.set(sx + s * 0.06 * P.k, sy - len * 0.97, 0.08 * P.k);
+      P.root.localToWorld(_a); reach(L, _a, -1);
       L.end.forEach(f => (f.rotation.x = 0.5));
     }
     const t = M.mode === 'offer' || i === 3 ? camera.position : D.H.getWorldPosition(DT);
@@ -888,7 +885,7 @@ function stepDale(dt, now) {
   sl.root.rotation.y += ((M.dir > 0 ? PI / 2 : -PI / 2) - sl.root.rotation.y) * damp(6, dt);
   M.pace += dt * 6.5;
   sl.legs.forEach((L, k) => (L.rotation.x = Math.sin(M.pace + k * PI) * 0.45));
-  sl.T.rotation.z = Math.sin(now * 13) * 0.02; sl.T.rotation.x = 0.12;
+  sl.T.rotation.z = Math.sin(now * 13) * 0.02; sl.T.rotation.x = 0.32;
   sl.jaw.position.x = Math.sin(now * 19) * 0.012 * sl.k;
   for (const [s, L] of [[-1, sl.arms[0]], [1, sl.arms[1]]]) { _a.set(s * 0.3 * sl.k + Math.sin(M.pace + (s > 0 ? PI : 0)) * 0.05, 0.85 * sl.k, Math.sin(M.pace + (s > 0 ? 0 : PI)) * 0.15 * sl.k); sl.root.localToWorld(_a); reach(L, _a, -1); L.end.forEach((f, k) => (f.rotation.x = 0.2 + Math.sin(now * 23 + k) * 0.25)); }
   look(sl.H, M.mode === 'sleepless' ? camera.position : D.H.getWorldPosition(DT), dt, 6, [1.0, 0.5]);
