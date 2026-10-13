@@ -684,7 +684,7 @@ levels are built. None of it has to reach the player: the game plays without it,
 - **It keeps you changing, not alive.** It cannot raise the dead or stop a bleed, and it slows without new grafts. Things die
   when they are killed. New grafts are the only way to speed up, which is a reason to infect.
 - **The plant.** Every green form is wild tobacco, *Nicotiana rustica*, mutated its own way: Pia took its stalk, leaves and
-  flowers and grew into a tree; Ines its sticky glandular hairs, whose secretion she paints in; Holt breeds the whole plant for
+  flowers and grew into a tree; Ines its flowers, in blue; Holt breeds the whole plant for
   structure. The rest are to be worked out the same way: which part of the plant, and what it became.
 - **The people.** Lowfield is in a country with some racial diversity, and its staff reflect it. "Skin" in these notes means
   any human skin tone, and a mutant keeps its host's: an elder's children differ in skin as in build, because each grew on its
@@ -729,9 +729,10 @@ Nobody expected worse than a bad night.
   her work.
 - **Pia Lind (painkiller).** The stupor: glassy eyes, pupils pinned whatever the light, pustules, numb to pain and to
   everything, her metabolism slowed to a crawl. She does not fight it; she slows into something stationary and survives as
-  that. **You meet her as the tree, or nearly:** the Commons tree, a rustica grown to about 11 m, its stalk thickened to a
-  trunk, still with the plant's broad, rounded leaves, still in flower and setting seed, risen out of a planter and through the
-  floor. The swollen foot of the stalk was her body; her face is a smear in the wood, hollows you could walk past. She cannot
+  that. **You meet her as the tree, or nearly:** the Commons tree, a rustica grown to about 11 m, risen out of a planter and through the floor.
+  The stalk has grown like a stalagmite, lump on lump, and it is still in leaf, in flower and setting seed: beautiful, with a
+  few tells that it is not just a big plant (bulbs swollen huge, one where no flower grows; flowers out of a leaf; a branch
+  down toward the floor that no tobacco has). The swollen foot of the stalk was her body; her face is a smear in the wood, hollows you could walk past. She cannot
   speak. A living god to both tribes: the flesh tolerate a plant because it is their mother, and tap her for milk. *Spreads:*
   early, by a touch in her stupor, with an ordinary arm (nothing about the arm is special; it is only what she touched people
   with); late, by a cutting from the tree laid on you. What the Commons carry is that early snapshot of her, the flesh and the
@@ -740,12 +741,12 @@ Nobody expected worse than a bad night.
   faster as they age, so the tree is a clock. *Tell:* milky sap.
 - **Ines Calder (hallucinogen).** She never stops seeing. Her brain grows until it can carry the visions without believing
   them, and what is left is lucid and finds patterns in everything. Very tall (about 7 m), lanky, with a big head: the growth
-  went to the head and to what perceives. Human and fleshy, in her own skin; her part of the plant is the tobacco's sticky
-  glandular hairs, over her head and down her arms, each beaded with the fluid she paints in. She paints great walls and cannot
+  went to the head and to what perceives. Human and fleshy, in her own skin, and reads as an ordinary mutant; her part of the plant is
+  rows of blue tobacco flowers, out of her head and face and down and across her body, with a few blue leaves. She paints great walls and cannot
   stop. She painted as a hobby, before, and her scenes mean something: they come from her life before, and see ahead.
   *Spreads:* wet paint, and slivers she cuts from herself. *Children:* the eldest are still seeing, still in it. Her children ape
   the colours and the structure of her work, and spread it elsewhere in the station at low resolution; her grandchildren get
-  only the vague colours and shapes right. *Tell:* height and a big head, the beaded hairs; murals and street art (quality shows
+  only the vague colours and shapes right. *Tell:* height and a big head, the blue flowers in rows; murals and street art (quality shows
   distance from her, wet paint means one is near).
 - **Dale Mercer (strong leaf; employee of the month).** Weeks without sleep: rage, blackouts. The energetics were born then,
   and he barely remembers them. His brain learns to ignore the stimulant; he sleeps and is himself again, but the organ never
