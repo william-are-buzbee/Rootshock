@@ -781,8 +781,8 @@ Nobody expected worse than a bad night.
 - **Sam Okoro (a bit of everything).** Took every product at least once, and the niche strains nobody else touched (a DMT-like,
   a psilocybin-like): the trial's most watched subject. Moody like Janus, kind like the aedra; never psychotic, never violent;
   driven to fairness. A big man, about 3.3 m, long in the leg and less heavy than his height suggests; his body a patchwork of
-  pieces swapped with friends: a graft is how he shows affection. His eyes are black where the whites should be, the irises
-  neon. His left arm glows, far brighter than the mushrooms crowded on that side of him, and in a dark room it is the light.
+  pieces swapped with friends: a graft is how he shows affection. The whites of his eyes are neon, the pupils
+  black. His left arm glows, far brighter than the mushrooms crowded on that side of him, and in a dark room it is the light.
   His blood glows too, but only out of him: cut him and it shines where it runs and pools. *His graft* treats the mind, not
   the body: sleeplessness still wrecks you, but you stop being violent about it and can carry on, and the soundtrack gains
   something that is not in the room. *Inside:* the arm's light was Holt's gift. Her heliotropes follow light, so they always

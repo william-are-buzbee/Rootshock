@@ -212,6 +212,15 @@ function reach(L, t, up = 1) {
   L.h.rotation.set(a1, yaw, 0); L.k.rotation.set(a2, 0, 0);
   return a1 + a2;
 }
+/** the same, held in the limb's own fore-and-aft plane: for legs and arms that swing past straight down, where turning to
+   face the target would spin them round */
+function reachP(L, t, up = 1) {
+  _v.copy(t); L.h.parent.worldToLocal(_v); _v.sub(L.h.position);
+  const th = Math.atan2(-_v.y, _v.z), d = clamp(Math.hypot(_v.y, _v.z), Math.abs(L.L1 - L.L2) + 0.02, L.L1 + L.L2 - 0.002);
+  const B = Math.acos(clamp((L.L1 * L.L1 + d * d - L.L2 * L.L2) / (2 * L.L1 * d), -1, 1));
+  const C = Math.acos(clamp((L.L1 * L.L1 + L.L2 * L.L2 - d * d) / (2 * L.L1 * L.L2), -1, 1));
+  L.h.rotation.set(th - up * B, 0, 0); L.k.rotation.set(up * (PI - C), 0, 0);
+}
 
 /* ---------------------------------------------------------------------------------------------------------------- */
 /* the lines' own colours (world.md §10): Pia's milk, Ines's pigment; bark and leaf for what has gone to plant */
@@ -759,7 +768,7 @@ function stand(P, dt, step) {
   for (const [i, L] of P.legs.entries()) {
     const s = i ? 1 : -1, ph = step ? step + i * PI : 0;
     _a.set(s * 0.3 * P.k * P.tw, step ? Math.max(0, Math.sin(ph)) * 0.14 * P.k : 0.04 * P.k, 0.12 * P.k + (step ? Math.cos(ph) * 0.3 * P.k : 0));
-    P.root.localToWorld(_a); reach(L, _a, 1);
+    P.root.localToWorld(_a); reachP(L, _a, 1);
   }
 }
 
@@ -907,7 +916,7 @@ function stepDale(dt, now) {
   sl.T.rotation.z = Math.sin(now * 13) * 0.025;
   sl.teethG.position.x = Math.sin(now * 19) * 0.012;
   look(sl.H, M.mode === 'sleepless' ? camera.position : DT.set(0, 2, -2), dt, 6, [1.0, 0.5]);
-  const A = sl.arm; DT.set(A.h.position.x + 0.1, sl.hipY + 1.1 - (A.L1 + A.L2) * 0.9, Math.sin(M.pace) * 0.3); sl.root.localToWorld(DT); reach(A, DT, -1);
+  const A = sl.arm; DT.set(A.h.position.x + 0.1, sl.hipY + 1.1 - (A.L1 + A.L2) * 0.9, Math.sin(M.pace) * 0.3); sl.root.localToWorld(DT); reachP(A, DT, -1);
   A.end.forEach((f, k) => (f.rotation.x = 0.2 + Math.sin(now * 23 + k) * 0.3));
   if (M.mode === 'sleepless' && soundEl.checked && (M.grind -= dt) < 0) { M.grind = rnd(0.07, 0.22) + (Math.random() < 0.15 ? rnd(0.3, 0.7) : 0); grindNoise(); }
 }
@@ -961,7 +970,7 @@ function buildSam() {
   mk(H, 'ico', SAMK[1], 0.25, 0.14, 0.23, 0, -0.14, 0.06);
   mk(H, 'box', 0x3a2420, 0.11, 0.018, 0.02, 0, -0.1, 0.18);
   /* the eyes: black where the white should be, and the irises neon */
-  R.eyes = [-1, 1].map(s => eye(H, 0.032, s * 0.075, 0.03, 0.16, { white: 0x050607, pc: NEON, pupil: 0.75, slow: true }));
+  R.eyes = [-1, 1].map(s => eye(H, 0.032, s * 0.075, 0.03, 0.16, { white: NEON, pupil: 0.55, slow: true }));
   /* long arms; the left one glows, far brighter than the mushrooms, and lights the room */
   R.arms = [-1, 1].map(s => limb(T, [s * 0.7, 1.08, 0], 0.86, 0.82, SAMK[1], SAMK[2], 0.21, fatHand(1.8, SAMK[0], SAMK[1]), { joint: SAMK[0] }));
   const LA = R.arms[1];
@@ -1047,13 +1056,13 @@ function stepSam(dt, now) {
     R.T.position.y = SAMHIP + Math.abs(Math.sin(M.pace)) * 0.03 * (still ? 0 : 1); R.T.rotation.x = 0.04;
     if (still) R.root.rotation.y = Math.atan2(camera.position.x - R.root.position.x, camera.position.z - R.root.position.z);
     R.root.updateMatrixWorld(true);
-    for (const [i, L] of R.legs.entries()) { const ph = M.pace + i * PI; _a.set(i ? 0.3 : -0.3, still ? 0.05 : Math.max(0, Math.sin(ph)) * 0.14, 0.12 + (still ? 0 : Math.cos(ph) * 0.42)); R.root.localToWorld(_a); reach(L, _a, 1); }
+    for (const [i, L] of R.legs.entries()) { const ph = M.pace + i * PI; _a.set(i ? 0.3 : -0.3, still ? 0.05 : Math.max(0, Math.sin(ph)) * 0.14, 0.12 + (still ? 0 : Math.cos(ph) * 0.42)); R.root.localToWorld(_a); reachP(L, _a, 1); }
     /* the light hand held a little forward and up, the other swinging */
     /* the glowing arm held a little out, the other swinging; hurt, that hand goes to the wound */
     _a.set(0.95, M.mode === 'gift' ? 2.5 : 1.8, 0.55); R.root.localToWorld(_a); reach(R.arms[1], _a, -1);
     R.arms[1].end.forEach(f => (f.rotation.x = 0.2));
     if (still) { _a.set(-0.4, SAMHIP + 0.62, 0.42); } else _a.set(-0.75, SAMHIP - 0.95, Math.sin(M.pace + PI) * 0.3);
-    R.root.localToWorld(_a); reach(R.arms[0], _a, -1);
+    R.root.localToWorld(_a); reachP(R.arms[0], _a, -1);
     R.arms[0].end.forEach(f => (f.rotation.x = 0.6));
   } else {
     /* the bench: sat down, hunched over, hands on his knees */
