@@ -820,10 +820,10 @@ function buildDale() {
   D.rip = [0, 1, 2, 3].map(() => ({ m: mk(S, 'cyl', STIMW, 1, 0.01, 1, 0, -9, 0), t: 9 }));
   /* his eldest: as wrong as he is, fewer leaves, less of the ooze, the same colour */
   const court = [
-    spawn(S, { x: -4.7, z: 0.6, yaw: PI / 2, k: 1.05, tw: 1.3, ll: 1.75, head: true, crown: 3, leaves: 1, leak: true }),
-    spawn(S, { x: 4.75, z: 2.2, yaw: -PI / 2, k: 1.1, tw: 1.45, ll: 0.75, lw: 2.7, crown: 4, leaves: 1, leak: true }),
+    spawn(S, { x: -4.8, z: 0.6, yaw: PI / 2, k: 1.05, tw: 1.3, ll: 2.72, lw: 1.45, head: true, crown: 3, leaves: 1, leak: true }),
+    spawn(S, { x: 4.9, z: 2.2, yaw: -PI / 2, k: 1.1, tw: 1.45, ll: 1.42, lw: 3.3, crown: 4, leaves: 1, leak: true }),
     spawn(S, { x: -2.9, z: 4.6, yaw: 0.5, k: 0.8, tw: 1.1, head: true, crown: 1, navel: true }),
-    spawn(S, { x: 1.8, z: 4.7, yaw: 0.15, k: 1.15, tw: 1.2, arm: { side: 1, L: 1.5, w: 2.2 }, crown: 2, leak: true }),
+    spawn(S, { x: 1.8, z: 4.8, yaw: 0.15, k: 1.15, tw: 1.2, ll: 1.74, lw: 1.5, arm: { side: 1, L: 1.5, w: 2.2 }, crown: 2, leak: true }),
     spawn(S, { x: 3.9, z: 4.3, yaw: -0.4, k: 0.75, tw: 1.15, navel: true }),
     spawn(S, { x: -4.7, z: -1.9, yaw: PI / 2, k: 0.95, tw: 1.1, head: true, crown: 2, arm: { side: -1, L: 1.2, w: 1.2 }, navel: true }),
   ];
@@ -852,7 +852,7 @@ function buildDale() {
 }
 const DALE_STATES = {
   court: ['His court', 'Dale Mercer, generation 2, employee of the month: his photograph, with a head, is still on the wall. He is an elder, and the plant shows: tobacco leaf grows out of him in shelves, stacked the way a bracket fungus stacks, gone the colour of nicotine. He has no head at all. He is a chest, sat in the tub on two mutated legs, one knee up out of it and one leg out over the side to the floor, and from one hole low in his front what he makes runs into the tub. What looks like a throne is the tub\'s high back. His eldest stand round him, as wrong as he is: the same colour, fewer leaves, less of the ooze, about half of them with heads, the same colour as the rest, the leaf out of the tops of them in more or less; the small ones with only a navel where the big ones have the hole. By the wall, the urn: low doses, left where people drink.', V(-1.8, 2.4, -0.6), 15, 0.3],
-  offer: ['The offer', 'One of his eldest, one arm grown huge, holds out a wrist, cut open: a graft offered. They mean well, and they want more children. Take it and you lose a few nights to the edge of madness, then you are immune; your blood carries it, and the sleepless keep away from your smell. He will not graft you himself.', V(1.6, 1.8, 4.9), 6.5, -0.6],
+  offer: ['The offer', 'One of his eldest, one arm grown huge, holds out a wrist, cut open: a graft offered. They mean well, and they want more children. Take it and you lose a few nights to the edge of madness, then you are immune; your blood carries it, and the sleepless keep away from your smell. He will not graft you himself.', V(1.7, 2.5, 4.9), 8.0, -0.6],
   sleepless: ['The sleepless', 'At the door, keeping its distance: one of the energetics, still in it. The same kind as the rest of his line, hunched on long legs, and plainly mad; the sleepless mostly keep their heads. It never stops moving, and you can hear its teeth (sound on). It need not have been one of his: any mutant that gets enough of the tub goes the same way.', V(6.4, 1.6, -3.0), 7.0, 0.5],
 };
 function setDale(mode) {
