@@ -466,7 +466,7 @@ sequence of inputs. The door rules, the labels and the answers are the first eng
 
 - The new station's levels: upper station, main level and Commons, Horticulture, plant level, the sump and drowned
   sump, the cave. Ported into the v2 content format, keeping their plan coordinates.
-- The cast and its behaviours (husk, skitter, bloat (and the founder, a seated one), thresher, worm, rootworm, swimmer, grabber, vine), items,
+- The cast and its behaviours (husk: the Commons husk, the bloc and Security's patrol; skitter, bloat (and the founder, a seated one), thresher, worm, rootworm, swimmer, grabber, vine), items,
   weapons, notes, the lift, ladders, circuits, backup sets, repair kits.
 - The look, the sound, the HUD.
 - `world.md` §7: real access problems, the generator room as a climax, the thresher in the dark, light as a trade.

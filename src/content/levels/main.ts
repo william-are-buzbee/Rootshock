@@ -63,7 +63,7 @@ export function buildMain(ladders: Record<string, LadderDef>): LevelDef {
     if (v[1] === 'gore') { gore(D, cx, cz, 4); body(D, cx + 0.4, cz + 0.4, pick([0x4a5560, 0x8a8f96, 0x6b6f5a]), true); if (fl.length % 2) mut(D, 'skitter', cx - 1, cz); }
     else if (v[1] === 'worm') { mut(D, 'worm', cx - 0.6, cz); mut(D, 'worm', cx + 0.6, cz + 0.4); mut(D, 'worm', cx + 1.4, cz); eggs(D, x0 + 1.6, back, 2); }
     else if (v[1] === 'nest') { eggs(D, cx - 0.8, cz, 3); eggs(D, x0 + 5, back, 3); mut(D, 'skitter', cx + 0.6, cz); }
-    else if (v[1] === 'post') mut(D, 'husk', cx, cz, { post: 1, yaw: north ? PI : 0 });
+    else if (v[1] === 'post') mut(D, 'bloc', cx, cz, { post: 1, yaw: north ? PI : 0 });
     else if (v[1] === 'body') corpse(D, cx + 0.4, cz, pick([0x4a5560, 0x6b6f5a, 0x7a5a50]), true, { label: 'Search the resident', say: 'A room card on a lanyard. Not for this flat.', keys: [v[3]] });
   };
   /* cards lock six flats (two round the Square); each card lies on a body elsewhere */
@@ -89,7 +89,7 @@ export function buildMain(ladders: Record<string, LadderDef>): LevelDef {
   /* the director's residence: the top of the trauma centre's block, and what keeps the lift key */
   room(S3, "Director's residence", 47, 19, 7, 3, { ...HAB, c: 'RES', fl: 0x5e5248, lc: [0.85, 0.78, 0.62], noroam: 1 }); door(S3, 52, 18, { sg: [['Director', 'n']] });
   bed(S3, 47.4, 20.5, true, 0x7a5a50); tbl(S3, 49.4, 21.4, 2, 0.8, 0x4a3a2c); note(S3, 'keeper', 49.4, 21.35, 0.78); eggs(S3, 48.6, 19.6, 4); eggs(S3, 51, 21.4, 3); gore(S3, 50.4, 20.2, 5);
-  mut(S3, 'husk', 48.6, 20.2, { post: 1, yaw: -PI / 2 }); mut(S3, 'husk', 50.2, 21.2, { post: 1, yaw: -PI / 2 }); mut(S3, 'skitter', 49.6, 19.6);
+  mut(S3, 'bloc', 48.6, 20.2, { post: 1, yaw: -PI / 2 }); mut(S3, 'bloc', 50.2, 21.2, { post: 1, yaw: -PI / 2 }); mut(S3, 'skitter', 49.6, 19.6);
   buildSquare(G, S2, HB, GW, CM);
   /* east: the transit tunnel and the airlock to Horticulture */
   door(G, 89, 14, { sg: [['Horticulture', 'w'], ['The Square', 'e']] }); room(G, 'Transit tunnel', 90, 14, 3, 2, { ...UTIL, c: 'RES', em: 1 });
@@ -176,7 +176,7 @@ function buildSquare(G: Deck, S2: Deck, HB: TRoomOpts, GW: TRoomOpts, CM: TRoomO
   for (const [x, z, n] of [[76.4, 13.2, 4], [79.6, 16.9, 3], [83, 19, 3], [72, 9, 2]]) eggs(G, x, z, n); blood(G, 74, 18.6, 2); gore(G, 82.6, 10, 3);
   mut(G, 'thresher', 78, 10.5); mut(G, 'bloat', 80, 19); mut(G, 'bloat', 73.5, 11);
   /* Pia's third generation, the small ones, stood round her looking up (world.md §10) */
-  for (const [bx0, bz0] of [[74.6, 13], [81.2, 12.2], [81.5, 17.6]]) mut(G, 'bloat', bx0, bz0, { post: 1, yaw: Math.atan2(78 - bx0, 15 - bz0) }); mut(G, 'worm', 76.2, 16.6); mut(G, 'worm', 79.8, 13.4); mut(G, 'husk', 74.5, 18, { post: 1, yaw: PI / 2 }); mut(S2, 'skitter', 77, 8.6); mut(S2, 'skitter', 83.6, 16);
+  for (const [bx0, bz0] of [[74.6, 13], [81.2, 12.2], [81.5, 17.6]]) mut(G, 'bloat', bx0, bz0, { post: 1, yaw: Math.atan2(78 - bx0, 15 - bz0) }); mut(G, 'worm', 76.2, 16.6); mut(G, 'worm', 79.8, 13.4); mut(G, 'bloc', 74.5, 18, { post: 1, yaw: PI / 2 }); mut(S2, 'skitter', 77, 8.6); mut(S2, 'skitter', 83.6, 16);
   /* the band. North and south: three rooms a side behind facades on rows 7 and 22 (the street's last four ground floors and new ones);
      west and east: two a side behind facades on columns 70 and 85. Storey 2 is nine flats, C1 to C10, their doors on the ring: C4 gave way to the bar under it, for the founder. */
   const nb = { y0: 4, fy: 7 }, sb = { y0: 23, fy: 22 };
@@ -207,7 +207,7 @@ function flatRect(D: Deck, x: number, y: number, w: number, h: number, dx: numbe
   if (v[1] === 'gore') { gore(D, vx, vz, 4); body(D, vx, vz, pick([0x4a5560, 0x8a8f96, 0x6b6f5a]), true); mut(D, 'skitter', vx, cz); }
   else if (v[1] === 'worm') { mut(D, 'worm', vx - 0.5, vz); mut(D, 'worm', vx + 0.5, vz); mut(D, 'worm', vx, cz); }
   else if (v[1] === 'nest') { eggs(D, vx, vz, 3); eggs(D, ox, oz - 0.3, 2); mut(D, 'skitter', vx, cz); }
-  else if (v[1] === 'post') mut(D, 'husk', vx, vz, { post: 1, yaw: Math.atan2(dx - vx, dy - vz) });
+  else if (v[1] === 'post') mut(D, 'bloc', vx, vz, { post: 1, yaw: Math.atan2(dx - vx, dy - vz) });
   else if (v[1] === 'body') corpse(D, vx, vz, pick([0x4a5560, 0x6b6f5a, 0x7a5a50]), true, { label: 'Search the resident', say: 'A room card on a lanyard. Not for this flat.', keys: [v[3]] });
 }
 
@@ -217,7 +217,7 @@ function groundFloor(D: Deck, x0: number, north: boolean, k: number, HB: TRoomOp
   const R = (nm: string, o: TRoomOpts = {}, dopt: TDoorOpts = {}) => { room(D, nm, x0, y0, 7, 3, { ...HB, ...o }); door(D, x0 + dc, fy, { sg: [[nm.split(' ')[0], sd]], ...dopt }); };
   if (north) switch (k) {
     case 0: R('Canteen', {}, { open: true }); for (const dz of [-0.6, 0.6]) tbl(D, x0 + 2.6, mid + dz, 3.2, 0.8, 0x8a8578); bx(D, x0 + 6, back, 1.8, 1, 0.6, 0x6f7378); item(D, 'peaches', x0 + 6, back, 1.02, 2);
-      note(D, 'diary', x0 + 2.6, mid - 0.6, 0.78); blood(D, x0 + 4.4, front, 2); blood(D, x0 + 1, mid, 1.4); mut(D, 'husk', x0 + 5.4, mid + 0.6); mut(D, 'husk', x0 + 0.8, mid, { post: 1, yaw: -PI / 2 }); break;
+      note(D, 'diary', x0 + 2.6, mid - 0.6, 0.78); blood(D, x0 + 4.4, front, 2); blood(D, x0 + 1, mid, 1.4); mut(D, 'husk', x0 + 5.4, mid + 0.6); mut(D, 'bloc', x0 + 0.8, mid, { post: 1, yaw: -PI / 2 }); break;
     case 1: R('Kitchen', { fl: 0x8f9492, wl: 0xa9aeab }, { stuck: true }); bx(D, x0 + 3.5, back, 6, 0.9, 0.6, 0x7c8186); bx(D, x0 + 6.5, mid, 0.8, 1.9, 0.7, 0xb4b8ba);
       item(D, 'knife', x0 + 2.5, back, 0.92); item(D, 'ration', x0 + 4.4, back, 0.92, 2); mut(D, 'grabber', x0 + 3.5, y0 + 0.12, { yaw: 0 }); eggs(D, x0 + 1, front, 3); break;
     case 2: R('Commissary', {}, { stuck: true }); shelf(D, x0 + 2, back + 0.1, 3, 0.5, { jars: 1 }); shelf(D, x0 + 5.5, back + 0.1, 2.4, 0.5); item(D, 'peaches', x0 + 5, mid, 0.02); break;
@@ -230,7 +230,7 @@ function groundFloor(D: Deck, x0: number, north: boolean, k: number, HB: TRoomOp
       corpse(D, x0 + 4.4, front, 0x6b6f5a, false, { label: 'Search the resident', say: 'Swimming trunks, a towel, a room card.', keys: ['C2'] }); eggs(D, x0 + 1, front, 4); mut(D, 'skitter', x0 + 3.6, mid); mut(D, 'skitter', x0 + 1.4, back + 0.4); break;
   }
   else switch (k) {
-    case 0: R('Gymnasium'); bx(D, x0 + 2, mid, 3, 0.08, 2, 0x3a4a5a, { c: 0 }); for (let q = 0; q < 3; q++) P(D, 'cyl', x0 + 5 + q * 0.6, back, 0.4, 0.4, 0.4, 0x2a2c2e); mut(D, 'husk', x0 + 3.5, mid, { post: 1, yaw: 0 }); break;
+    case 0: R('Gymnasium'); bx(D, x0 + 2, mid, 3, 0.08, 2, 0x3a4a5a, { c: 0 }); for (let q = 0; q < 3; q++) P(D, 'cyl', x0 + 5 + q * 0.6, back, 0.4, 0.4, 0.4, 0x2a2c2e); mut(D, 'bloc', x0 + 3.5, mid, { post: 1, yaw: 0 }); break;
     case 1: R('School room'); for (let q = 0; q < 3; q++) for (const dz of [-0.5, 0.5]) tbl(D, x0 + 1.6 + q * 1.8, mid + dz, 1, 0.6, 0x8a7a5a); bx(D, x0 + 3.5, back, 3, 1.2, 0.06, 0x2a3a2c, { y: 1, c: 0 }); eggs(D, x0 + 6, front, 3); mut(D, 'skitter', x0 + 5.5, mid); break;
     case 2: R('Library', { lit: 'none' }); for (let q = 0; q < 3; q++) shelf(D, x0 + 1.2 + q * 2.3, back - 0.1, 1.8, 0.5); shelf(D, x0 + 3.5, mid + 0.2, 3, 0.5); break;
     case 3: R('Stores', { ...UTIL, c: 'RES' }, { kind: 'heavy' }); crates(D, x0 + 1.5, mid, 2); crates(D, x0 + 5.5, mid, 2); item(D, 'ration', x0 + 3.5, back, 0.02, 2); item(D, 'batt', x0 + 3.5, mid, 0.02); break;
@@ -246,7 +246,7 @@ function groundFloor(D: Deck, x0: number, north: boolean, k: number, HB: TRoomOp
       mut(D, 'founder', x0 + 5.5, back - 0.45, { sit: 1, yaw: Math.atan2(78 - (x0 + 5.5), 15 - (back - 0.45)) });
       for (const [dx, dz] of [[3.4, mid], [3.9, front + 0.1], [6.6, front + 0.2]]) { P(D, 'cyl', x0 + dx, dz, 0.4, 0.14, 0.4, 0x5e6062, { c: 0 }); P(D, 'cyl', x0 + dx, dz, 0.33, 0.02, 0.33, MILK, { y: 0.12, c: 0 }); }
       for (let q = 0; q < 5; q++) P(D, 'cyl', x0 + rnd(2.6, 4), y0 + rnd(0.5, 2.6), 0.16, 0.2, 0.16, pick([0xc9a227, 0x8a8f96]), { c: 0, rz: q % 2 ? PI / 2 : 0 });
-      blood(D, x0 + 2, front, 1.6); mut(D, 'husk', x0 + 2.4, front, { post: 1, yaw: PI }); break;
+      blood(D, x0 + 2, front, 1.6); mut(D, 'bloc', x0 + 2.4, front, { post: 1, yaw: PI }); break;
   }
 }
 

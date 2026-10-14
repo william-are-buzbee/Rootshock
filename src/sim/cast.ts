@@ -24,10 +24,19 @@ interface Stats {
   /** its body's height */
   h: number;
   opens?: boolean; low?: boolean; noDoors?: boolean; solid?: boolean; fixed?: boolean; swim?: boolean;
+  /** feels nothing: a blow does not stagger it, and it never runs */
+  numb?: boolean;
+  /** how fast it goes about, against a husk's */
+  pace?: number;
 }
 
 export const MT: Record<string, Stats> = {
-  husk: { hp: 75, r: 0.38, cr: 0.34, mass: 1.2, h: 1.8, opens: true },
+  /* the husks, three kinds on one drill (world.md §10). The Commons': Pia's fifth generation through the founder, who
+     feel nothing and never run; and the bloc, her fourth, older, heavier and slower, who track you with their heads.
+     Security's patrols: changed staff, recent and still nearly human */
+  husk: { hp: 75, r: 0.38, cr: 0.34, mass: 1.2, h: 1.8, opens: true, numb: true, pace: 1.1 },
+  bloc: { ai: 'husk', model: 'bloc', hp: 140, r: 0.5, cr: 0.45, mass: 2, h: 2.1, opens: true, pace: 0.75 },
+  patrol: { ai: 'husk', model: 'patrol', hp: 75, r: 0.38, cr: 0.34, mass: 1.2, h: 1.8, opens: true },
   skitter: { hp: 60, r: 0.5, cr: 0.4, mass: 1, h: 0.9, low: true },
   bloat: { hp: 600, r: 1, cr: 0.9, mass: 8, h: 2.4, noDoors: true, solid: true },
   /* the founder (world.md §10): the first and largest of Pia's third generation, a bloat grown larger, fed and seated */
@@ -85,6 +94,7 @@ export interface Mutant {
   opens: boolean; low: boolean; noDoors: boolean; fixed: boolean; swim: boolean; solid: boolean;
   /** a guard that keeps its post until it notices you; one sitting down; one grown over; a big one */
   post: boolean; sit: boolean; holt: boolean; big: boolean;
+  numb: boolean; pace: number;
   /** the overseer's: the zone it sounds when it sees you itself, and the circuit its screens and board are on */
   zone: string | null;
   screens: string | null;
@@ -149,7 +159,7 @@ export function makeCast(sim: Sim, defs: MutantDef[]): Mutant[] {
       hp: S.hp, max: S.hp, mass: S.mass, r: S.r,
       walker: S.noDoors ? 'big' : S.opens ? 'hands' : 'crawl',
       opens: !!S.opens, low: !!S.low, noDoors: !!S.noDoors, fixed: !!S.fixed, swim: !!S.swim, solid: !!S.solid,
-      post: !!o.post, sit: !!o.sit, holt: !!o.holt, big: !!o.big, zone: (def.opts.zone as string | undefined) ?? null, screens: (def.opts.screens as string | undefined) ?? null, hx: def.x, hz: def.z, room,
+      post: !!o.post, sit: !!o.sit, holt: !!o.holt, big: !!o.big, numb: !!S.numb, pace: S.pace ?? 1, zone: (def.opts.zone as string | undefined) ?? null, screens: (def.opts.screens as string | undefined) ?? null, hx: def.x, hz: def.z, room,
       wt: rnd(1, 5), wm: 0, wx: 0, wz: 0, tk: 0, lost: 0, bt: 0, burst: false, flee: 0, ct: rnd(6, 14), cdir: 0, tgt: false,
       grab: 0, tense: 0, riled: false, blow: null, dest: -1, F: null, stk: 0, fled: false, side: 0, ride: null, spot: -1,
       mv: 0, d: 99, dp: 99, dy: 0, los: false, losAt: -99, hit: 0, kx: 0, kz: 0, ph: rnd(9), dead: false, gone: 0, still: 0,
@@ -596,7 +606,7 @@ const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
     switch (m.state) {
       case 'idle': {
         if (notices(sim, m)) break;
-        if (!m.post) roam(sim, m, 1.3);
+        if (!m.post) roam(sim, m, 1.3 * m.pace);
         break;
       }
       case 'answer': {
@@ -624,11 +634,11 @@ const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
       }
       case 'hunt':
         if (blowStep(sim, m)) break;
-        if (m.hp < m.max * 0.4 && !m.fled && d > 2.8) { m.state = 'flee'; m.st = 7; m.fled = true; step_(sim, m, 'moan'); break; }
+        if (m.hp < m.max * 0.4 && !m.fled && !m.numb && d > 2.8) { m.state = 'flee'; m.st = 7; m.fled = true; step_(sim, m, 'moan'); break; }
         if (seeP(sim, m, 22)) m.lost = 0; else m.lost += dt;
         if (m.lost > 8) { m.state = 'idle'; m.dest = -1; m.wt = rnd(sim, 2, 5); break; }
         if (inStart(m, BLOWS.husk)) { turnTo(sim, m, 10); if (m.cd <= 0) beginBlow(sim, m, BLOWS.husk); }
-        else if (F) chase(sim, m, 3.5, F);
+        else if (F) chase(sim, m, 3.5 * m.pace, F);
         break;
       case 'flee':
         m.st -= dt;
@@ -951,7 +961,7 @@ export function hitMutant(sim: Sim, m: Mutant, w: { dmg: number; stun: number },
   /* a jab (pow under 1) stuns it and knocks it back in proportion, a quarter-strength jab a quarter as much; it is
      rocked a little less */
   m.hit = Math.max(m.hit, 0.3 + 0.7 * pow);
-  m.stun = Math.max(m.stun, (w.stun * 1.2 * pow * open.stun) / m.mass);
+  if (!m.numb) m.stun = Math.max(m.stun, (w.stun * 1.2 * pow * open.stun) / m.mass);
   sfx(g, 'hit');
   /* light enough to be knocked back a step: about 0.3 m from a full blow, slid over a sixth of a second */
   if (m.body && m.mass <= 1.5) {
@@ -961,10 +971,10 @@ export function hitMutant(sim: Sim, m: Mutant, w: { dmg: number; stun: number },
   if (m.hp <= 0) { kill(sim, m); return; }
   switch (m.ai) {
     case 'husk':
-      /* struck before its blow lands, it loses it; struck after, it is still recovering */
-      if (m.blow?.ph !== 'after') m.blow = null;
+      /* struck before its blow lands, it loses it; struck after, it is still recovering. One that feels nothing keeps it */
+      if (m.blow?.ph !== 'after' && !m.numb) m.blow = null;
       if (m.state === 'idle' || m.state === 'lurk') { m.state = 'hunt'; m.lost = 0; m.post = false; }
-      else if (m.hp < m.max * 0.4 && !m.fled && sim.rng.chance(0.5)) { m.state = 'flee'; m.st = 7; m.fled = true; m.blow = null; step_(sim, m, 'moan'); }
+      else if (m.hp < m.max * 0.4 && !m.fled && !m.numb && sim.rng.chance(0.5)) { m.state = 'flee'; m.st = 7; m.fled = true; m.blow = null; step_(sim, m, 'moan'); }
       break;
     case 'worm': m.flee = 5; m.blow = null; break;
     case 'swimmer': m.flee = 3.5; m.blow = null; break;

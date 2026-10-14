@@ -47,7 +47,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   for (let k = 0; k < 3; k++) bx(D, 14.6 + k * 0.6, 21.08, 0.5, 1.5, 0.12, 0xc9a227, { y: 0.4, c: 0 }); // hazmat suits on their pegs
   shelf(D, 17.7, 23.6, 0.5, 2.2, { cols: [0xc9a227, 0x3d4042] }); bx(D, 15.4, 25.4, 0.8, 0.6, 0.6, 0x3a4030);
   item(D, 'rebreather', 15.4, 25.4, 0.6); item(D, 'kit', 17.65, 23.3, 1.06);
-  corpse(D, 17.5, 12.5, 0x2c3440, true, { label: 'Search the officer', say: 'A security officer. Whatever opened him did it from behind.', keys: ['s'] }); mut(D, 'husk', 14, 18.4, { post: 1, yaw: PI / 2 });
+  corpse(D, 17.5, 12.5, 0x2c3440, true, { label: 'Search the officer', say: 'A security officer. Whatever opened him did it from behind.', keys: ['s'] }); mut(D, 'patrol', 14, 18.4, { post: 1, yaw: PI / 2 });
   room(D, 'Security corridor', 21, 13, 18, 3, { ...SEC, c: 'SEC', ht: 4.5, em: 1, safe: 1 });
   /* the cut, near the wing's end: the cabinet left open, the cable through, and the one who did it */
   panel(D, 'SEC', 37.4, 13.06, 's', { cut: 1, zone: 'wing' }); // mended, it comes live on Security's board, and the wing sounds bx(D, 37.4, 13.04, 0.12, 2.6, 0.08, 0x2a2c2e, { y: 1.8, c: 0 });
@@ -151,7 +151,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   room(D, 'Operations corridor', 42, 21, 3, 6, { ...OPS, ht: 4.5, em: 1 });
   /* the overseer's own zone sounds here, on Ops' feed and not its own switch, so it still calls the hand to its door
      once that switch is open */
-  speaker(D, 'ops', 43.5, 25, 'CRIT'); camera(D, 44.6, 21.3, 3.8, 0, 'OPS', 'ops'); mut(D, 'husk', 43.5, 24); mut(D, 'husk', 41, 18.5); blood(D, 43, 22.7, 1.2);
+  speaker(D, 'ops', 43.5, 25, 'CRIT'); camera(D, 44.6, 21.3, 3.8, 0, 'OPS', 'ops'); mut(D, 'patrol', 43.5, 24); mut(D, 'patrol', 41, 18.5); blood(D, 43, 22.7, 1.2);
   for (const [nm, x, y, dopt, east] of [['Office: operations', 37, 22, { open: true }, false], ['Office: chief of security', 46, 22, { card: 'o' }, true]] as const) {
     room(D, nm, x, y, 4, 4, { ...OPS, lc: [0.85, 0.78, 0.62] }); door(D, east ? x - 1 : x + 4, y + 1, dopt);
     desk(D, x + 2, y + 3.4, 1.8, 0.7, { c: 0x4a3a2c }); bx(D, x + 2, y + 2.7, 0.45, 0.45, 0.45, 0x2c2f33); shelf(D, east ? x + 3.7 : x + 0.3, y + 1.6, 0.5, 1.8, { cols: [0x7a4a34, 0x4d5a66, 0x8a7a4a] });
@@ -245,7 +245,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   door(T1, 36, 46, { seal: true, msg: 'Bodies. Grown into the frame and into each other, floor to lintel, faces turned in. Something behind them is breathing.' });
   for (const z of [35.6, 36.8, 38]) blood(D, 38.4 + (z - 36) * 0.15, z, 1.1); eggs(D, 37.3, 38.3, 3); eggs(D, 39.6, 37.6, 2);
   for (const z of [41, 43, 44.6]) { eggs(D, 37.3, z, 2); eggs(D, 39.6, z + 0.5, 2); }
-  eggs(T1, 37.4, 46.5, 4); eggs(T1, 39.5, 47.3, 3); gore(T1, 37.6, 47.2, 3); mut(T1, 'husk', 38.6, 46.6, { post: 1, yaw: PI / 2 });
+  eggs(T1, 37.4, 46.5, 4); eggs(T1, 39.5, 47.3, 3); gore(T1, 37.6, 47.2, 3); mut(T1, 'patrol', 38.6, 46.6, { post: 1, yaw: PI / 2 });
   /* the operations room, over the hall's south side: a wall of glass on the court, and along the back wall its screens,
      an eye at each (below, with the overseer) */
   room(T1, 'Operations room', 24, 38, 12, 9, { ...OPS, c: 'CRIT', ht: 4, em: 1, lc: [0.7, 0.74, 0.8] });
@@ -290,7 +290,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   }
   mut(D, 'hand', 30, 33, { yaw: PI });
   /* and two of the staff on their rounds of the hall */
-  mut(D, 'husk', 20.5, 29); mut(D, 'husk', 38.5, 37);
+  mut(D, 'patrol', 20.5, 29); mut(D, 'patrol', 38.5, 37);
   return finishLevel([20.3, 2.5, -PI / 2]); // in isolation room 1, facing its door
 }
 
@@ -309,9 +309,9 @@ function buildCargo(D: Deck, T1: Deck, T2: Deck, T3: Deck): void {
   crates(D, 62, 18, 2); blood(D, 64, 16, 1.4); crates(D, 66, 10, 2);
   container(D, 72, 20, false, 2); container(D, 80, 20, false, 3); container(D, 95, 20.2, false, 2); container(D, 104, 19.4, true, 1); container(D, 84, 10, false, 1); container(D, 98, 9.6, false, 1);
   container(D, 88, 17.4, true, 2); container(D, 110, 17.6, true, 3); crates(D, 92, 12, 2); crates(D, 106, 11, 2); forklift(D, 76, 16.5, true); forklift(D, 101, 16.8, false);
-  mut(D, 'husk', 80, 14.6); mut(D, 'husk', 96, 15.4);
+  mut(D, 'patrol', 80, 14.6); mut(D, 'patrol', 96, 15.4);
   for (const [x, z, n] of [[114, 12, 4], [117, 18, 5], [119, 10, 3], [121, 15, 5], [123, 20, 4], [116, 14.6, 3]]) eggs(D, x, z, n); gore(D, 118, 15.5, 4); blood(D, 120, 13, 2);
-  mut(D, 'worm', 117, 16); mut(D, 'worm', 118, 17); mut(D, 'worm', 116.5, 17.4); mut(D, 'skitter', 121, 12); mut(D, 'husk', 112, 19, { post: 1, yaw: -PI / 2 });
+  mut(D, 'worm', 117, 16); mut(D, 'worm', 118, 17); mut(D, 'worm', 116.5, 17.4); mut(D, 'skitter', 121, 12); mut(D, 'patrol', 112, 19, { post: 1, yaw: -PI / 2 });
   /* the tiers: thicker with every one */
   crates(T1, 80, 9.5, 2); container(T1, 92, 9.6, false, 1); for (const [x, z] of [[85, 10], [99, 9], [108, 11]]) eggs(T1, x, z, 4); mut(T1, 'skitter', 88, 11); mut(T1, 'skitter', 104, 10);
   for (const [x, z] of [[76, 9], [84, 11], [90, 9], [96, 10.6], [103, 9.4], [108, 10]]) eggs(T2, x, z, 5); gore(T2, 93, 10, 4); mut(T2, 'skitter', 86, 10); mut(T2, 'skitter', 97, 11); mut(T2, 'skitter', 105, 9.6);
