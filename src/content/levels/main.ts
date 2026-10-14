@@ -5,7 +5,7 @@ import {
   type Deck, type LevelInfo, type TDoorOpts, type TRoom, type TRoomOpts,
 } from '../build/tiles';
 import {
-  GR, HAB, HRT, MED, SEC, UTIL, WALK, bed, blood, body, column, corpse, crates, desk, eggs, genset, gore, liftRoom, medbed, overgrow, shelf, tbl, tree,
+  GR, HAB, HRT, MED, MILK, ROOT, SEC, STALK, STALKD, UTIL, WALK, beam, bed, blood, blooms, body, cutting, rleaf, column, corpse, crates, desk, eggs, genset, gore, liftRoom, medbed, overgrow, shelf, tbl, tree,
 } from '../build/fittings';
 
 /* The main level, 90 m down: the Commons (a street of residences under a cavern roof, three storeys of flats on
@@ -44,7 +44,7 @@ export function buildMain(ladders: Record<string, LadderDef>): LevelDef {
   stairs(S2, S3, 44, 13, 4, 'e'); stairs(S2, S3, 30, 16, 4, 'w');
   for (let k = 0; k < 6; k++) { const x = 22.5 + 8 * k; column(G, x, 13.85, STOREY); column(G, x, 16.15, STOREY); }
   /* the street itself: the sick tree, benches, lamps, and what happened here */
-  P(G, 'cyl', 46, 15, 3.6, 0.5, 3.6, 0x8a8a84); P(G, 'cyl', 46, 15, 3.3, 0.08, 3.3, 0x3a2e22, { y: 0.5, c: 0 }); tree(G, 46, 15, 5, 0.5, true);
+  P(G, 'cyl', 46, 15, 3.6, 0.5, 3.6, 0x8a8a84); P(G, 'cyl', 46, 15, 3.3, 0.08, 3.3, 0x3a2e22, { y: 0.5, c: 0 }); cutting(G, 46, 15, 2.6, 0.5);
   for (const [x, z, ns] of [[40, 14.4, 0], [52, 15.6, 0], [28, 15.6, 0], [64, 14.4, 0]]) bx(G, x, z, ns ? 0.45 : 1.8, 0.42, ns ? 1.8 : 0.45, 0x5f6266);
   for (const [x, z] of [[20, 14.25], [36, 15.75], [56, 14.25], [64, 15.75]]) { P(G, 'cyl', x, z, 0.12, 3.3, 0.12, 0x3a3d40); bx(G, x, z, 0.5, 0.12, 0.5, 0xe8eef2, { y: 3.3, c: 0, glow: 1 }); }
   bx(G, 58, 15.2, 1.8, 0.9, 0.1, 0x5b5d5f, { rz: 0.25, ry: 1.2 }); bx(G, 57.4, 16.2, 0.6, 0.6, 0.6, 0x6b5a3c, { ry: 0.6 }); blood(G, 57, 15.4, 2.4); blood(G, 34, 14.6, 1.6); blood(G, 70, 15, 1.4); gore(G, 48, 13.4, 3);
@@ -99,20 +99,79 @@ export function buildMain(ladders: Record<string, LadderDef>): LevelDef {
   return finishLevel([9.6, 16.1, PI / 2]); // in the shaft station, for ?level=main
 }
 
+/* Pia Lind, generation 2, the painkiller, as you meet her: a rustica grown to about 13 m, its stalk thickened to a ridged
+   trunk, still in leaf, in flower and setting seed, and past the flowers narrowing to a point that runs on up into the
+   cavern roof. The swollen foot of the stalk was her body; her face is a smear in the wood, turned to where the roots broke
+   the planter open. That breach is how the flesh get in to tap her: cuts in the foot, the milk running, bowls set under */
+function pia(G: Deck, x: number, z: number): void {
+  const CONC = 0x8a8a84, at = (a: number, r: number, y: number): [number, number, number] => [Math.cos(a) * r, y, Math.sin(a) * r];
+  const GAP = 2.35; // the breach, south-west, the way the face looks
+  /* the planter's rim, heaved apart where the roots came out; the soil inside */
+  P(G, 'cyl', x, z, 7.2, 0.06, 7.2, 0x3a2e22, { c: 0 });
+  for (let k = 0; k < 14; k++) {
+    const a = (k / 14) * TAU, d = Math.abs(Math.atan2(Math.sin(a - GAP), Math.cos(a - GAP))), heave = d < 0.5 ? 1 : d < 0.8 ? 0.4 : 0;
+    const r = 3.65 + heave * rnd(0.5, 1.1), [px, , pz] = at(a, r, 0);
+    bx(G, x + px / T, z + pz / T, 0.4, 0.6, 1.62, CONC, { ry: -a + heave * rnd(-0.4, 0.4), rz: heave * rnd(-0.35, 0.35), y: -0.12 * heave, c: d < 0.25 ? 0 : 1 });
+  }
+  /* roots over the court, thickest out of the breach */
+  for (let k = 0; k < 12; k++) {
+    const a = (k / 12) * TAU + rnd(-0.2, 0.2), d = Math.abs(Math.atan2(Math.sin(a - GAP), Math.cos(a - GAP))), far = d < 0.7 ? 1.6 : 1;
+    const a2 = a + rnd(-0.2, 0.2), r1 = rnd(3.2, 4) * far, r2 = rnd(5.5, 8) * far;
+    beam(G, x, z, at(a, 1.1, 0.6), at(a, r1, 0.18), 0.44, 0.32, ROOT); beam(G, x, z, at(a, r1, 0.18), at(a2, r2, 0.04), 0.22, 0.14, STALKD);
+  }
+  /* the stalk, thickened to a trunk, ridged; the swollen foot of it was her */
+  P(G, 'ico', x, z + 0.05, 3.0, 2.4, 2.7, STALK[1], { y: 0, c: 1 });
+  P(G, 'ico', x + 0.07, z, 2.2, 1.4, 2.0, STALK[3], { y: 1.6, c: 0 });
+  const TOP = 11, segs = 11, PEAK = 20.6, ps = 9;
+  let ox = 0;
+  for (let k = 0; k < segs; k++) {
+    const w = 1.9 + (0.5 - 1.9) * (k / (segs - 1)), h = (TOP - 1.6) / segs, y = 1.6 + k * h;
+    P(G, 'cyl', x + ox / T, z, w, h + 0.05, w, STALK[k % 4], { y, c: y < 1.6 ? 1 : 0 });
+    for (let j = 0; j < 6; j++) { const a = (j / 6) * TAU + k * 0.4; bx(G, x + (ox + Math.cos(a) * w * 0.47) / T, z + (Math.sin(a) * w * 0.47) / T, 0.05, h * 0.9, 0.07, STALKD, { y, ry: -a, c: 0 }); }
+    ox += 0.05;
+  }
+  /* and on past the flowers: the stalk narrows to a point and goes on up, into the roof. No tobacco does that */
+  for (let k = 0; k < ps; k++) {
+    const w = 0.5 + (0.06 - 0.5) * (k / ps), h = (PEAK - TOP) / ps;
+    P(G, 'cyl', x + ox / T, z, w, h + 0.05, w, STALK[k % 4], { y: TOP + k * h, c: 0 });
+    ox += 0.04;
+  }
+  /* the face: shallow hollows in the swollen wood, smeared down, toward the breach. You could walk past it */
+  const fy = -GAP + PI / 2, fx = Math.cos(GAP) * 1.28, fz = Math.sin(GAP) * 1.28, ex = Math.cos(fy), ez = -Math.sin(fy);
+  for (const [u, v, sx, sy, r] of [[-0.24, 0.18, 0.3, 0.13, 0.25], [0.2, 0.12, 0.26, 0.16, -0.4], [0, 0.42, 0.7, 0.1, 0.06], [-0.02, -0.32, 0.34, 0.1, 0.35], [0.05, -0.05, 0.1, 0.22, 0]])
+    P(G, 'ico', x + (fx + ex * u) / T, z + (fz + ez * u) / T, sx, sy, 0.08, 0x55513a, { y: 1.55 + v - sy / 2, ry: fy, rz: r, c: 0 });
+  bx(G, x + (fx - ex * 0.22) / T, z + (fz - ez * 0.22) / T, 0.04, 0.5, 0.05, 0x4a472f, { y: 1.25, ry: fy, rz: 0.15, c: 0 });
+  /* the leaves: broad and rounded, alternate up the stalk, biggest at the foot */
+  const GA = PI * (3 - Math.sqrt(5));
+  for (let k = 0; k < 16; k++) {
+    const t = k / 15, y = 2.6 + t * 7.7, w = 1.7 + (0.6 - 1.7) * ((y - 1.6) / (TOP - 1.6)), a = k * GA;
+    rleaf(G, x, z, Math.cos(a) * w * 0.45 + t * 0.5, y, -Math.sin(a) * w * 0.45, a, 4.2 - t * 2.4, 0.55 - t * 0.25);
+  }
+  /* the top: a spray of stems, in flower, in bud, setting seed */
+  const top: [number, number, number] = [0.55, TOP + 0.2, 0];
+  for (let k = 0; k < 7; k++) {
+    const a = (k / 7) * TAU + 0.3, e: [number, number, number] = [top[0] + Math.cos(a) * rnd(1.45, 2.4), top[1] + rnd(0.7, 1.9), Math.sin(a) * rnd(1.45, 2.4)];
+    beam(G, x, z, top, e, 0.14, 0.14, STALK[k % 4]);
+    blooms(G, x, z, e, 9, 1.9, 0.54);
+  }
+  /* where the flesh tap her, round the breach: cuts, the milk running, and bowls set under */
+  for (const [da, y] of [[0.5, 1.4], [-0.55, 1.0], [1.1, 2.1], [-1.2, 1.5]]) {
+    const a = GAP + da, [cx, , cz] = at(a, 1.42, 0), ry = -a + PI / 2;
+    bx(G, x + cx / T, z + cz / T, 0.36, 0.05, 0.06, 0x1c120e, { y, ry, rz: 0.35, c: 0 });
+    for (let k = 0; k < 3; k++) { const s = -0.1 + k * 0.1, L = rnd(0.25, 0.6); bx(G, x + (cx + Math.cos(ry) * s) / T, z + (cz - Math.sin(ry) * s) / T, 0.03, L, 0.03, MILK, { y: y - 0.2 - k * 0.05 - L / 2, c: 0 }); }
+    const [bx0, , bz0] = at(a, 2.1, 0);
+    P(G, 'cyl', x + bx0 / T, z + bz0 / T, 0.4, 0.14, 0.4, 0x5e6062, { c: 0 }); P(G, 'cyl', x + bx0 / T, z + bz0 / T, 0.33, 0.02, 0.33, MILK, { y: 0.12, c: 0 });
+  }
+}
+
 /* the Square, tiles 67 to 88 by 4 to 25: the court (71 to 84, rows 8 to 21) open to the cavern roof, the street coming in on the west and
    a passage out east to the tunnel; round it a band of rooms two storeys high behind a facade, with the ring gallery at storey 2 */
 function buildSquare(G: Deck, S2: Deck, HB: TRoomOpts, GW: TRoomOpts, CM: TRoomOpts): void {
   room(G, 'The Square', 71, 8, 14, 14, CM); room(G, 'The Square', 67, 12, 4, 6, CM); room(G, 'The Square', 85, 14, 4, 2, CM);
   for (const [x, y, w, h] of [[71, 8, 14, 2], [71, 20, 14, 2], [71, 10, 2, 10], [83, 10, 2, 10]]) room(S2, 'Ring', x, y, w, h, { ...GW, ht: 3.4 });
   stairs(G, S2, 73, 10, 4, 'n'); stairs(G, S2, 81, 16, 4, 's');
-  /* the centrepiece: the planter, and a tree the size of the court, gone the way of everything near Horticulture */
-  P(G, 'cyl', 78, 15, 7.6, 0.6, 7.6, 0x8a8a84); P(G, 'cyl', 78, 15, 7.2, 0.08, 7.2, 0x3a2e22, { y: 0.6, c: 0 }); P(G, 'cyl', 78, 15, 0.9, 11, 0.9, 0x4a3b2c, { y: 0.6, c: 1 });
-  for (let k = 0; k < 10; k++) {
-    const a = (k / 10) * TAU + rnd(0.3), L = rnd(2.4, 4.2), y = rnd(4, 9.5);
-    bx(G, 78 + (Math.cos(a) * L * 0.45) / T, 15 - (Math.sin(a) * L * 0.45) / T, L, 0.16, 0.16, 0x40332a, { y, c: 0, ry: a, rz: 0.5 });
-    P(G, 'ico', 78 + (Math.cos(a) * L * 0.9) / T, 15 - (Math.sin(a) * L * 0.9) / T, rnd(1.2, 2.2), rnd(0.8, 1.5), rnd(1.2, 2.2), pick([0x8c4a44, 0x6e2b28, 0xb08572, 0x4f7a40]), { y: y + 0.6, c: 0 });
-  }
-  for (let k = 0; k < 7; k++) { const a = rnd(TAU), L = rnd(2.6, 4.4); bx(G, 78 + (Math.cos(a) * L * 0.5) / T, 15 - (Math.sin(a) * L * 0.5) / T, L, 0.22, 0.3, 0x3a2e22, { y: 0.02, c: 0, ry: a }); }
+  /* the centrepiece: Pia (world.md §10), the tree the planter could not hold */
+  pia(G, 78, 15);
   for (const [x, z, ns] of [[75.2, 15, 1], [80.8, 15, 1], [78, 12.2, 0], [78, 17.8, 0]]) bx(G, x, z, ns ? 0.45 : 1.8, 0.42, ns ? 1.8 : 0.45, 0x5f6266);
   for (const [x, z, n] of [[76.4, 13.2, 4], [79.6, 16.9, 3], [83, 19, 3], [72, 9, 2]]) eggs(G, x, z, n); blood(G, 74, 18.6, 2); gore(G, 82.6, 10, 3);
   mut(G, 'thresher', 78, 10.5); mut(G, 'bloat', 80, 19); mut(G, 'worm', 76.2, 16.6); mut(G, 'worm', 79.8, 13.4); mut(G, 'husk', 74.5, 18, { post: 1, yaw: PI / 2 }); mut(S2, 'skitter', 77, 8.6); mut(S2, 'skitter', 83.6, 16);

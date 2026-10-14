@@ -740,7 +740,9 @@ Nobody expected worse than a bad night.
 - **Pia Lind (painkiller).** The stupor: glassy eyes, pupils pinned whatever the light, pustules, numb to pain and to
   everything, her metabolism slowed to a crawl. She does not fight it; she slows into something stationary and survives as
   that. **You meet her as the tree, or nearly:** the Commons tree, a rustica grown to about 13 m, risen out of a planter and through the floor,
-  its roots spread far across the court. The stalk has thickened to a ridged trunk, still in leaf, in flower and setting seed,
+  its roots spread far across the court. **Built:** in the Square, at the Commons' east end, the planter's rim heaved open
+  on the south-west where the roots came out, which is the way her face looks and the way the flesh come in to tap her; the
+  street's planter holds a cutting of her, rooted. The stalk has thickened to a ridged trunk, still in leaf, in flower and setting seed,
   and past the flowers it keeps going, narrowing to a point that runs on up through the roof of the Commons: no tobacco does
   that. The swollen foot of the stalk was her body; her face is a smear in the wood, hollows you could walk past. She cannot
   speak. A living god to both tribes: the flesh tolerate a plant because it is their mother, and tap her for milk. *Spreads:*

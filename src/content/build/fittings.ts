@@ -1,5 +1,6 @@
 import { PI, TAU } from '../../core/math';
-import { P, T, bx, colT, door, item, pick, rnd, room, stain, use, type Deck, type TRoom, type TRoomOpts } from './tiles';
+import type { Shape } from '../types';
+import { P, T, bx, colT, door, item, pick, rnd, room, stain, use, type Col, type Deck, type TRoom, type TRoomOpts } from './tiles';
 
 /* The first engine's furniture, clutter and fittings, on the tile adapter. Ported as they were, so the station looks as
    it did; their randomness now comes from the level's own seed. */
@@ -103,6 +104,54 @@ export function tree(D: Deck, x: number, z: number, h: number, y0: number, sick:
   P(D, 'cyl', x, z, 0.34, h, 0.34, 0x4a3b2c, { y: y0, c: 0 });
   for (let k = 0; k < 6; k++) { const a = rnd(TAU), L = rnd(0.9, 1.7); bx(D, x + (Math.cos(a) * L * 0.45) / T, z - (Math.sin(a) * L * 0.45) / T, L, 0.07, 0.07, 0x40332a, { y: y0 + h * 0.45 + k * h * 0.09, c: 0, ry: a, rz: 0.6 }); }
   if (sick) for (let k = 0; k < 4; k++) P(D, 'ico', x + rnd(-0.15, 0.15), z + rnd(-0.15, 0.15), rnd(0.3, 0.6), rnd(0.3, 0.5), rnd(0.3, 0.6), pick([0x8c4a44, 0x6e2b28, 0xb08572]), { y: y0 + rnd(0.3, h * 0.7), c: 0 });
+}
+
+/* ---- the plant. Every green line is wild tobacco, Nicotiana rustica, mutated its own way (world.md §10): a thick stalk,
+   broad rounded leaves on short stalks, pale yellow-green tubular flowers in clusters at the top, then round capsules.
+   Offsets in metres from the tile point (x, z); heights in metres over the floor */
+export const STALK = [0x6e6a44, 0x625e3c, 0x77724a, 0x585436], STALKD = 0x48452e, ROOT = 0x5a5236;
+export const RLEAF = [0x3d5e2c, 0x45682f, 0x365426, 0x4c6e34], MILK = 0xece4d0;
+const RIB = 0x9aa070, FLOWER = [0xd9d27c, 0xcfc86c, 0xe2dc90], BUD = 0xa9b25a, CAPS = [0x7d8a3c, 0x8a7a44];
+type V3 = [number, number, number];
+
+/** a box from a to b, w across and h deep */
+export function beam(D: Deck, x: number, z: number, a: V3, b: V3, w: number, h: number, c: Col): void {
+  const dx = b[0] - a[0], dy = b[1] - a[1], dz = b[2] - a[2], L = Math.hypot(dx, dy, dz);
+  bx(D, x + (a[0] + b[0]) / 2 / T, z + (a[2] + b[2]) / 2 / T, L, h, w, c, { y: (a[1] + b[1]) / 2 - h / 2, ry: Math.atan2(-dz, dx), rz: Math.atan2(dy, Math.hypot(dx, dz)), c: 0 });
+}
+/** a rustica leaf from (px, y, pz), pointing at yaw: a short stalk, the blade, and its tip drooping further */
+export function rleaf(D: Deck, x: number, z: number, px: number, y: number, pz: number, yaw: number, len: number, droop: number): void {
+  const c = pick(RLEAF), ux = Math.cos(yaw), uz = -Math.sin(yaw);
+  const at = (d: number, p: number): V3 => [px + ux * d * Math.cos(p), y + d * Math.sin(p), pz + uz * d * Math.cos(p)];
+  const p1 = -droop * 0.6, p2 = p1 - droop, k = at(0.72 * len, p1);
+  const part = (o: V3, p: number, d: number, sx: number, sz: number, s: Shape, cc: Col, sy: number) => {
+    const m: V3 = [o[0] + ux * d * Math.cos(p), o[1] + d * Math.sin(p), o[2] + uz * d * Math.cos(p)];
+    P(D, s, x + m[0] / T, z + m[2] / T, sx, sy, sz, cc, { y: m[1] - sy / 2, ry: yaw, rz: p, c: 0 });
+  };
+  part([px, y, pz], p1, 0.13 * len, 0.26 * len, 0.07 * len, 'box', STALK[2], 0.06 * len);
+  part([px, y, pz], p1, 0.5 * len, 0.62 * len, 0.7 * len, 'ico', c, 0.07 * len);
+  part([px, y, pz], p1, 0.5 * len, 0.5 * len, 0.03 * len, 'box', RIB, 0.075 * len);
+  part(k, p2, 0.22 * len, 0.6 * len, 0.62 * len, 'ico', c, 0.06 * len);
+  part(k, p2, 0.16 * len, 0.4 * len, 0.025 * len, 'box', RIB, 0.065 * len);
+}
+/** a spray at the end of a stem: flowers (a pale tube, its mouth flared), buds, and capsules setting seed */
+export function blooms(D: Deck, x: number, z: number, at: V3, n: number, s: number, spread: number): void {
+  for (let k = 0; k < n; k++) {
+    const r = rnd(1), p: V3 = [at[0] + rnd(-1, 1) * spread, at[1] + rnd(-0.3, 1) * spread * 0.6, at[2] + rnd(-1, 1) * spread];
+    beam(D, x, z, at, p, 0.025 * s, 0.025 * s, STALK[2]);
+    const X = x + p[0] / T, Z = z + p[2] / T, o = { c: 0 as const };
+    P(D, 'ico', X, Z, 0.12 * s, 0.1 * s, 0.12 * s, CAPS[0], { ...o, y: p[1] - 0.05 * s });
+    if (r < 0.55) { P(D, 'cyl', X, Z, 0.08 * s, 0.22 * s, 0.08 * s, pick(FLOWER), { ...o, y: p[1] }); P(D, 'ico', X, Z, 0.2 * s, 0.05 * s, 0.2 * s, FLOWER[2], { ...o, y: p[1] + 0.22 * s }); }
+    else if (r < 0.82) P(D, 'ico', X, Z, 0.09 * s, 0.24 * s, 0.09 * s, BUD, { ...o, y: p[1] });
+    else P(D, 'ico', X, Z, 0.17 * s, 0.2 * s, 0.17 * s, pick(CAPS), { ...o, y: p[1] });
+  }
+}
+/** a cutting of Pia's tree, rooted where it was laid: a young rustica, h tall, from a bed y0 up */
+export function cutting(D: Deck, x: number, z: number, h: number, y0: number): void {
+  P(D, 'cyl', x, z, 0.16, h, 0.16, STALK[1], { y: y0, c: 0 });
+  const GA = PI * (3 - Math.sqrt(5));
+  for (let k = 0; k < 7; k++) { const t = k / 6; rleaf(D, x, z, 0, y0 + 0.3 + t * (h - 0.6), 0, k * GA, 1.1 - t * 0.6, 0.5 - t * 0.2); }
+  blooms(D, x, z, [0, y0 + h, 0], 6, 0.9, 0.3);
 }
 export function overgrow(D: Deck, R: TRoom, dens: number, glow: boolean): void {
   const n = Math.round(R.w * R.h * dens);
