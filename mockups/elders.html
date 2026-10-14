@@ -928,7 +928,7 @@ function stepDale(dt, now) {
    body a patchwork of pieces swapped with friends, each seam sealed in amber (Holt's wax). He glows: his blood, the
    mushrooms on his skin, and a light in one hand, Holt's gift. Bright on a good day, dim on a bad one. Her heliotropes
    follow the light, so they always know where he is */
-const SAMK = [0x8a6a52, 0x7e604a, 0x96765c], PATCH = [0xc8a080, 0x5a4234, 0xb08a6c, 0x6e5040];
+const CLOTH = [0xbab4a4, 0xa8a292, 0x7a8290], SAMK = [0x8a6a52, 0x7e604a, 0x96765c], PATCH = [0xc8a080, 0x5a4234, 0xb08a6c, 0x6e5040];
 const SHRM = [2.12, 2.55, 2.48], SHRMD = 0x4e6e68, ARMG = [2.72, 2.93, 2.98], ARMGD = 0x7a8c94, NEON = [2.25, 2.85, 2.98], BLOOD = ARMG, CAP = 0x9ab8ae, SAMHIP = 1.62;
 function buildSam() {
   const S = new THREE.Scene();
@@ -963,6 +963,10 @@ function buildSam() {
   mk(T, 'ico', SAMK[1], 0.92, 0.7, 0.62, 0, 0.41, 0.02);
   R.chest = mk(T, 'ico', SAMK[2], 1.19, 0.86, 0.72, 0, 0.89, 0);
   mk(T, 'ico', SAMK[0], 1.45, 0.48, 0.78, 0, 1.17, -0.04);
+  /* a loincloth, cut from a station sheet and knotted at the hip: what he keeps of being a man */
+  mk(T, 'cyl', CLOTH[0], 0.92, 0.16, 0.62, 0, 0.1, 0.0);
+  mk(T, 'ico', CLOTH[1], 0.12, 0.1, 0.1, 0.36, 0.1, 0.18);
+  R.flaps = [[0.3, 1], [-0.28, -1]].map(([z, s]) => { const g = grp(T, 0, 0.04, z); mk(g, 'box', CLOTH[s > 0 ? 0 : 1], 0.42, 0.7, 0.03, 0, -0.35, 0); mk(g, 'box', CLOTH[2], 0.42, 0.04, 0.035, 0, -0.68, 0); g.s = s; return g; });
   /* the pieces swapped with friends: someone's chest, someone's shoulder */
   for (const [x, y, z, sx, sy, sz, c] of [[0.3, 0.93, 0.33, 0.5, 0.48, 0.14, PATCH[0]], [-0.52, 1.18, 0.05, 0.47, 0.38, 0.6, PATCH[1]], [-0.2, 0.35, 0.29, 0.38, 0.36, 0.12, PATCH[3]]]) mk(T, 'ico', c, sx, sy, sz, x, y, z);
   const N = grp(T, 0, 1.4, 0.05);
@@ -1021,7 +1025,7 @@ function buildSam() {
   };
 }
 const SAM_STATES = {
-  good: ['A good day', 'Sam Okoro, generation 2. He took every product at least once, and the strains nobody else would touch. A big man, about 3.3 m, long in the leg; his body a patchwork of pieces swapped with friends, because a graft is how he shows affection. His eyes are black where the whites should be, the irises neon. His left arm glows, far brighter than the mushrooms crowded on that side of him, and it is the only light in the room. On a good day it is bright, and he walks the quiet room full of love for everything. His graft treats the mind, not the body: listen to what it does to the soundtrack (sound on).', V(0, 1.4, 0), 10, 0.6],
+  good: ['A good day', 'Sam Okoro, generation 2. He took every product at least once, and the strains nobody else would touch. A big man, about 3.3 m, long in the leg; his body a patchwork of pieces swapped with friends, because a graft is how he shows affection. The whites of his eyes are neon, the pupils black. He still wears a loincloth, knotted at the hip. His left arm glows, far brighter than the mushrooms crowded on that side of him, and it is the only light in the room. On a good day it is bright, and he walks the quiet room full of love for everything. His graft treats the mind, not the body: listen to what it does to the soundtrack (sound on).', V(0, 1.4, 0), 10, 0.6],
   bad: ['A bad day', 'A bad day: no sleep, nothing in him to help it, and he sits it out on the bench, hunched and dim. Grumpy, never violent. The light goes down with him.', V(-4.6, 1.2, 2.8), 6.5, 0.7],
   hurt: ['Hurt', 'Cut him and you see what is in his blood: it glows, out of him, on the floor and wherever it runs. Inside him nothing shows. He stands and looks at you; he does not fight back.', V(1.0, 1.4, 1.0), 8, 0.4],
   gift: ['Holt\'s gift', 'The light was Holt\'s gift. Her heliotropes follow light, so wherever he walks they turn to his arm, and when he dims they lose him. The spores in his blood are her tissue too: they cannot let her read him, but they make him fond of her. His love for everything is his own; his warmth toward her was grown.', V(-1.0, 1.4, -1.6), 13, 0.35],
@@ -1092,6 +1096,8 @@ function stepSam(dt, now) {
   if (good) { look(R.H, camera.position, dt, 1.0, [0.8, 0.4]); for (const E of R.eyes) lookEye(E, camera.position, dt); }
   else { R.H.rotation.x += (0.5 - R.H.rotation.x) * damp(1, dt); R.H.rotation.y *= 0.98; }
   R.chest.scale.setScalar(1 + 0.02 * Math.sin(now * 0.5));
+  /* the cloth swings as he walks; sat, it falls over his thighs */
+  for (const g of R.flaps) g.rotation.x = good ? -g.s * (0.08 + (still ? 0 : Math.sin(M.pace * 2) * 0.12)) : (g.s > 0 ? -1.1 : 0.2);
   /* the light is his arm's, and it is as bright as he is */
   R.light.getWorldPosition(SP);
   M.glow.pos.copy(SP); M.glow.r = lerp(3.2, 9.5, M.lit);
