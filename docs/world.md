@@ -764,9 +764,11 @@ Nobody expected worse than a bad night.
   leaves low doses where people drink and has his eldest give grafts for rapid immunity. He will not graft anyone himself.
   Nobody wants a second dose; it means a bad night. *A graft from his eldest:* a few nights awake on the edge, then immunity;
   your blood carries the stimulant, and the sleepless keep away from your smell. *Children:* his line looks like him. His
-  eldest are as wrong as he is: headless chests on legs, the same colour, fewer leaves and less of the ooze, each wrong its own
-  way (on stilts, on legs like trunks, a lump where a head was, one arm grown huge). The sleepless are the same kind, still
-  in it, hunched and plainly mad, their holes toothed. The antidote child breaks the drug down instead and wants the spreading
+  eldest are as wrong as he is: chests on legs, the same colour, fewer leaves and less of the ooze, each wrong its own way (on
+  stilts, on legs like trunks, one arm grown huge). About half keep a head at full growth, the same tobacco colour as the rest,
+  lumped and hairless; the leaf comes out of the tops of them, head or shoulders, in more or less. Nipples and navels are dots,
+  and Dale's chest is no more muscled than theirs. The bigger have the hole; the small ones have only a navel. The sleepless
+  are the same kind, still in it, hunched and plainly mad, and mostly keep their heads. The antidote child breaks the drug down instead and wants the spreading
   stopped, not managed; late children are mild. *Tell (the sleepless):* teeth grinding you can hear, never still. If it sits
   down, it is past it. *The tub as a hazard:* every mutant sleeps (rule 7), so any mutant that gets enough of it goes
   sleepless too.

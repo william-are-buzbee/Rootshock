@@ -697,7 +697,7 @@ function stepInes(dt, now) {
 /* DALE MERCER, generation 2: the strong leaf; employee of the month. An elder, so the plant shows on him: tobacco leaf
    grown out of him in shelves, the way a bracket fungus stacks, gone the colour of nicotine. No head at all: a chest on
    two mutated legs, and one hole in the torso that leaks what he makes into the tub. His line looks like him */
-const DN = [0x9a8656, 0x8c7a4c, 0xa6925e, 0x7e6c42], DNH = 0x2a2010;
+const DN = [0x9a8656, 0x8c7a4c, 0xa6925e, 0x7e6c42], DNH = 0x2a2010, DOT = 0x4a3a20;
 const LEAFN = [0x8a7a2a, 0x9c8a34, 0x7a6a24, 0xa89440];
 const STIM = 0x7a6a1e, STIMD = 0x64561a, STIMW = 0x9c8a2c, TILE = 0x8a9294, TILEL = 0x9aa2a4;
 /** a shelf of leaves, out from the body along yaw, in tiers, nearly flat */
@@ -731,9 +731,23 @@ function spawn(parent, o) {
   mk(T, 'ico', DN[0], 0.72 * k * tw, 0.6 * k, 0.56 * k, 0, 0.28 * k, 0.03 * k);
   P.chest = mk(T, 'ico', DN[2], 0.92 * k * tw, 0.82 * k, 0.66 * k, 0, 0.82 * k, 0);
   mk(T, 'ico', DN[1], 1.2 * k * tw, 0.36 * k, 0.56 * k, 0, 1.2 * k, -0.02 * k);
-  for (const s of [-1, 1]) mk(T, 'ico', 0x4a3a20, 0.05 * k, 0.04 * k, 0.03 * k, s * 0.2 * k * tw, 0.95 * k, 0.32 * k);
-  if (o.stump) mk(T, 'ico', DN[2], 0.3 * k, 0.24 * k, 0.28 * k, 0.04 * k, 1.42 * k, 0);
-  P.hole = hole(T, 0, 0.42 * k, 0.29 * k, 0.07 * k, o.teeth);
+  for (const s of [-1, 1]) mk(T, 'ico', DOT, 0.05 * k, 0.05 * k, 0.025 * k, s * 0.2 * k * tw, 0.95 * k, 0.285 * k);
+  /* the small ones have only a navel, the same dot; the bigger have the hole */
+  if (o.navel) mk(T, 'ico', DOT, 0.05 * k, 0.05 * k, 0.025 * k, 0, 0.36 * k, 0.3 * k);
+  else P.hole = hole(T, 0, 0.42 * k, 0.29 * k, 0.07 * k, false);
+  /* about half keep a head at full growth: the same colour as the rest, lumped, no hair, eyes and a mouth like dots */
+  if (o.head) {
+    const N = grp(T, 0, 1.34 * k, 0.02 * k); P.N = N;
+    mk(N, 'cyl', DN[1], 0.17 * k, 0.16 * k, 0.17 * k, 0, 0.04 * k, 0);
+    const H = grp(N, 0, 0.24 * k, 0.03 * k); P.H = H;
+    mk(H, 'ico', DN[2], 0.3 * k, 0.34 * k, 0.32 * k, 0, 0, 0);
+    mk(H, 'ico', DN[0], 0.17 * k, 0.12 * k, 0.15 * k, rnd(-0.06, 0.06) * k, 0.12 * k, -0.07 * k);
+    mk(H, 'ico', DN[1], 0.22 * k, 0.1 * k, 0.2 * k, 0, -0.13 * k, 0.05 * k);
+    for (const s of [-1, 1]) mk(H, 'ico', DOT, (o.teeth ? 0.055 : 0.04) * k, (o.teeth ? 0.05 : 0.03) * k, 0.02 * k, s * 0.07 * k, 0.04 * k, 0.155 * k);
+    mk(H, 'box', DNH, 0.1 * k, (o.teeth ? 0.05 : 0.018) * k, 0.02 * k, 0, -0.1 * k, 0.15 * k);
+    if (o.teeth) { mk(H, 'box', TEETH, 0.09 * k, 0.016 * k, 0.02 * k, 0, -0.082 * k, 0.158 * k); P.teethG = grp(H, 0, -0.118 * k, 0.158 * k); mk(P.teethG, 'box', TEETH, 0.09 * k, 0.016 * k, 0.02 * k, 0, 0, 0); }
+    for (let j = 0; j < (o.crown ?? 0); j++) { const a = (j / Math.max(1, o.crown)) * TAU + rnd(-0.3, 0.3); shelf(H, V(Math.sin(a) * 0.08 * k, 0.15 * k, Math.cos(a) * 0.06 * k - 0.03 * k), a, 2, 0.32 * k); }
+  } else for (let j = 0; j < (o.crown ?? 0); j++) { const a = (j / Math.max(1, o.crown)) * TAU + rnd(-0.3, 0.3); shelf(T, V(Math.sin(a) * 0.3 * k * tw, 1.3 * k, Math.cos(a) * 0.18 * k), a, 2 + (j % 2), 0.45 * k); }
   if (o.leak) for (let j = 0; j < 2; j++) mk(T, 'box', STIM, 0.025 * k, rnd(0.15, 0.3) * k, 0.025 * k, (j - 0.5) * 0.05 * k, 0.28 * k, 0.32 * k);
   for (let j = 0; j < (o.leaves ?? 0); j++) { const a = rnd(-PI, PI); shelf(T, V(Math.sin(a) * 0.45 * k * tw, rnd(0.9, 1.3) * k, Math.cos(a) * 0.25 * k), a, 2, 0.4 * k); }
   if (o.arm) P.arm = limb(T, [o.arm.side * 0.58 * k * tw, 1.18 * k, 0], 0.48 * k * o.arm.L, 0.44 * k * o.arm.L, DN[1], DN[2], 0.13 * k * o.arm.w, fatHand(0.7 * k * Math.sqrt(o.arm.w * o.arm.L), DN[0], DN[1]), { joint: DN[0] });
@@ -769,7 +783,7 @@ function buildDale() {
   const D = { root: grp(S, 0, 0, -2.0) }, R = D.root, T = grp(R, 0, 0.55, 0); D.T = T;
   mk(T, 'ico', DN[0], 2.4, 1.5, 1.8, 0, 0.8, 0.15);
   D.chest = mk(T, 'ico', DN[2], 2.7, 2.3, 1.95, 0, 1.8, 0.0);
-  for (const s of [-1, 1]) { mk(T, 'ico', DN[1], 1.15, 0.7, 0.5, s * 0.58, 2.25, 0.76); mk(T, 'ico', 0x4a3a20, 0.11, 0.08, 0.06, s * 0.64, 2.15, 1.02); }
+  for (const s of [-1, 1]) mk(T, 'ico', DOT, 0.1, 0.1, 0.05, s * 0.6, 2.15, 0.83);
   mk(T, 'ico', DN[1], 3.4, 0.95, 1.6, 0, 2.85, -0.1);
   mk(T, 'ico', DN[0], 2.2, 0.55, 1.3, 0, 3.25, -0.12);
   /* the one hole, low in the front of him, and what runs out of it */
@@ -794,10 +808,12 @@ function buildDale() {
   D.rip = [0, 1, 2, 3].map(() => ({ m: mk(S, 'cyl', STIMW, 1, 0.01, 1, 0, -9, 0), t: 9 }));
   /* his eldest: as wrong as he is, fewer leaves, less of the ooze, the same colour */
   const court = [
-    spawn(S, { x: -4.7, z: 0.6, yaw: PI / 2, k: 1.05, tw: 1.3, ll: 1.75, leaves: 2, leak: true }),
-    spawn(S, { x: 4.75, z: 2.2, yaw: -PI / 2, k: 1.1, tw: 1.45, ll: 0.75, lw: 2.7, leaves: 2, leak: true }),
-    spawn(S, { x: -1.6, z: 4.5, yaw: 0.35, k: 0.95, tw: 1.1, stump: true, arm: { side: -1, L: 1.2, w: 1.2 }, leaves: 1, leak: true }),
-    spawn(S, { x: 1.8, z: 4.7, yaw: 0.15, k: 1.15, tw: 1.2, arm: { side: 1, L: 1.5, w: 2.2 }, leaves: 1, leak: true }),
+    spawn(S, { x: -4.7, z: 0.6, yaw: PI / 2, k: 1.05, tw: 1.3, ll: 1.75, head: true, crown: 3, leaves: 1, leak: true }),
+    spawn(S, { x: 4.75, z: 2.2, yaw: -PI / 2, k: 1.1, tw: 1.45, ll: 0.75, lw: 2.7, crown: 4, leaves: 1, leak: true }),
+    spawn(S, { x: -2.9, z: 4.6, yaw: 0.5, k: 0.8, tw: 1.1, head: true, crown: 1, navel: true }),
+    spawn(S, { x: 1.8, z: 4.7, yaw: 0.15, k: 1.15, tw: 1.2, arm: { side: 1, L: 1.5, w: 2.2 }, crown: 2, leak: true }),
+    spawn(S, { x: 3.9, z: 4.3, yaw: -0.4, k: 0.75, tw: 1.15, navel: true }),
+    spawn(S, { x: -4.7, z: -1.9, yaw: PI / 2, k: 0.95, tw: 1.1, head: true, crown: 2, arm: { side: -1, L: 1.2, w: 1.2 }, navel: true }),
   ];
   const off = court[3];
   mk(off.arm.k, 'box', 0x5a1410, 0.13 * 2.2 * off.k * 1.05, 0.13 * 2.2 * off.k * 1.05, 0.06 * off.k, 0, 0, off.arm.L2 * 0.82);
@@ -813,7 +829,7 @@ function buildDale() {
   for (let j = 0; j < 2; j++) mk(fr, 'box', 0x6a6a6a, 0.5 - j * 0.14, 0.03, 0.03, 0, 0.4 - j * 0.06, 0.04);
   /* the doorway, and one of the sleepless keeping its distance: the same kind, hunched, and mad. Its hole has teeth */
   mk(S, 'box', 0x1a1c1d, 1.6, 2.6, 0.32, 7.2, 1.3, -5.2);
-  const sl = spawn(S, { x: 6.4, z: -3.4, yaw: 0, k: 1.0, tw: 1.2, ll: 1.35, hunch: 0.45, teeth: true, arm: { side: 1, L: 1.9, w: 0.8 } });
+  const sl = spawn(S, { x: 6.4, z: -3.4, yaw: 0, k: 1.0, tw: 1.2, ll: 1.35, hunch: 0.45, head: true, teeth: true, crown: 1, navel: true, arm: { side: 1, L: 1.9, w: 0.8 } });
   const fig = figure(S, -1.6, 6.4, PI + 0.3);
   return {
     S, fig, D, court, sl, LV, room: [0.22, 0.215, 0.205],
@@ -823,9 +839,9 @@ function buildDale() {
   };
 }
 const DALE_STATES = {
-  court: ['His court', 'Dale Mercer, generation 2, employee of the month: his photograph, with a head, is still on the wall. He is an elder, and the plant shows: tobacco leaf grows out of him in shelves, stacked the way a bracket fungus stacks, gone the colour of nicotine. He has no head at all. He is a chest, sat in the tub on two mutated legs, one knee up out of it and one leg out over the side to the floor, and from one hole low in his front what he makes runs into the tub. What looks like a throne is the tub\'s high back. His eldest stand round him, as wrong as he is: the same colour, fewer leaves, less of the ooze, each wrong its own way, on stilts, on legs like trunks, a lump where a head was. By the wall, the urn: low doses, left where people drink.', V(-1.8, 2.4, -0.6), 15, 0.3],
+  court: ['His court', 'Dale Mercer, generation 2, employee of the month: his photograph, with a head, is still on the wall. He is an elder, and the plant shows: tobacco leaf grows out of him in shelves, stacked the way a bracket fungus stacks, gone the colour of nicotine. He has no head at all. He is a chest, sat in the tub on two mutated legs, one knee up out of it and one leg out over the side to the floor, and from one hole low in his front what he makes runs into the tub. What looks like a throne is the tub\'s high back. His eldest stand round him, as wrong as he is: the same colour, fewer leaves, less of the ooze, about half of them with heads, the same colour as the rest, the leaf out of the tops of them in more or less; the small ones with only a navel where the big ones have the hole. By the wall, the urn: low doses, left where people drink.', V(-1.8, 2.4, -0.6), 15, 0.3],
   offer: ['The offer', 'One of his eldest, one arm grown huge, holds out a wrist, cut open: a graft offered. They mean well, and they want more children. Take it and you lose a few nights to the edge of madness, then you are immune; your blood carries it, and the sleepless keep away from your smell. He will not graft you himself.', V(1.6, 1.8, 4.9), 6.5, -0.6],
-  sleepless: ['The sleepless', 'At the door, keeping its distance: one of the energetics, still in it. The same kind as the rest of his line, hunched on long legs, and plainly mad. It never stops moving. Its hole has teeth, and you can hear them (sound on). It need not have been one of his: any mutant that gets enough of the tub goes the same way.', V(6.4, 1.6, -3.0), 7.0, 0.5],
+  sleepless: ['The sleepless', 'At the door, keeping its distance: one of the energetics, still in it. The same kind as the rest of his line, hunched on long legs, and plainly mad; the sleepless mostly keep their heads. It never stops moving, and you can hear its teeth (sound on). It need not have been one of his: any mutant that gets enough of the tub goes the same way.', V(6.4, 1.6, -3.0), 7.0, 0.5],
 };
 function setDale(mode) {
   const M = DALE; M.mode = mode;
@@ -872,6 +888,7 @@ function stepDale(dt, now) {
   M.court.forEach((P, i) => {
     P.chest.scale.setScalar(1 + 0.03 * Math.sin(now * 0.7 + i));
     stand(P, dt);
+    if (P.H) look(P.H, M.mode === 'offer' ? camera.position : D.T.getWorldPosition(DT).setY(2.8), dt, 1.2, [0.8, 0.5]);
     if (P.arm) {
       const L = P.arm, len = L.L1 + L.L2, sx = L.h.position.x;
       if (i === 3 && M.mode === 'offer') { DT.set(sx + 0.1 * P.k, P.hipY + 1.1 * P.k, len); P.root.localToWorld(DT); reach(L, DT, -1); L.k.rotation.z = -1.4; L.end.forEach(f => (f.rotation.x = -0.1)); }
@@ -887,7 +904,8 @@ function stepDale(dt, now) {
   sl.root.updateMatrixWorld(true);
   stand(sl, dt, M.pace);
   sl.T.rotation.z = Math.sin(now * 13) * 0.025;
-  sl.hole.ring.rotation.z = Math.sin(now * 19) * 0.18;
+  sl.teethG.position.x = Math.sin(now * 19) * 0.012;
+  look(sl.H, M.mode === 'sleepless' ? camera.position : DT.set(0, 2, -2), dt, 6, [1.0, 0.5]);
   const A = sl.arm; DT.set(A.h.position.x + 0.1, sl.hipY + 1.1 - (A.L1 + A.L2) * 0.9, Math.sin(M.pace) * 0.3); sl.root.localToWorld(DT); reach(A, DT, -1);
   A.end.forEach((f, k) => (f.rotation.x = 0.2 + Math.sin(now * 23 + k) * 0.3));
   if (M.mode === 'sleepless' && soundEl.checked && (M.grind -= dt) < 0) { M.grind = rnd(0.07, 0.22) + (Math.random() < 0.15 ? rnd(0.3, 0.7) : 0); grindNoise(); }
