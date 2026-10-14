@@ -48,6 +48,7 @@ button:focus-visible { outline: 2px solid var(--hazard); outline-offset: 2px; }
     <button role="tab" id="tab-dale" data-scene="dale" aria-selected="false">Dale</button>
     <button role="tab" id="tab-sam" data-scene="sam" aria-selected="false">Sam</button>
     <button role="tab" id="tab-tom" data-scene="tom" aria-selected="false">Tom</button>
+    <button role="tab" id="tab-holt" data-scene="holt" aria-selected="false">Holt</button>
   </nav>
 </header>
 <section class="panel" aria-live="polite">
@@ -1239,16 +1240,124 @@ function spawnMote(M, p, v) {
 }
 
 /* ================================================================================================================ */
+/* MAREN HOLT, generation 2: the green god. She has grown through the whole of the cave under Horticulture, and she is
+   the cave: the leaf on the floor, the cane, what hangs from the roof, what is trained up the walls. Her face is in it
+   somewhere, eyes closed, a dot in an ocean. What hunts here is hers: one generation of plant-like predators, grafted
+   from parts of her, the least human things on the station */
+const HG = [0x3d5e2c, 0x45682f, 0x365426, 0x4c6e34, 0x2f4a24], HCANE = [0x6e7a44, 0x5e6a3a, 0x7a864e], ROCK = [0x2e2c2a, 0x363330, 0x282624];
+function buildHolt() {
+  const S = new THREE.Scene();
+  floor(S, 60, 50, 0x23251f, 0x1c1e19, 3);
+  /* the cave: walls of rock round a chamber some forty metres across, a roof far up */
+  for (let j = 0; j < 40; j++) { const a = (j / 40) * TAU, r = rnd(19, 23), s = rnd(6, 11); mk(S, 'ico', ROCK[j % 3], s, rnd(12, 20), s, Math.cos(a) * r * 1.15, rnd(4, 9), Math.sin(a) * r * 0.85).rotation.y = rnd(0, TAU); }
+  for (let j = 0; j < 22; j++) { const a = rnd(0, TAU), r = Math.sqrt(rnd(0, 1)) * 20; mk(S, 'ico', ROCK[j % 3], rnd(8, 14), rnd(3, 5), rnd(8, 14), Math.cos(a) * r, rnd(17, 19), Math.sin(a) * r * 0.8); }
+  /* her: leaf giants over the floor, cane standing, growth hanging from the roof, fans trained up the walls */
+  const clear = (x, z) => Math.hypot(x - 2, z - 6) < 5;
+  for (let j = 0; j < 150; j++) { const a = rnd(0, TAU), r = Math.sqrt(rnd(0, 1)) * 19, x = Math.cos(a) * r * 1.1, z = Math.sin(a) * r * 0.85; if (clear(x, z)) continue; rleaf(S, x, rnd(0.05, 0.6), z, rnd(0, TAU), rnd(1.6, 5.0), rnd(0.15, 0.6), HG[j % 5]); }
+  for (let j = 0; j < 38; j++) {
+    const a = rnd(0, TAU), r = rnd(3, 18), x = Math.cos(a) * r * 1.1, z = Math.sin(a) * r * 0.85, h = rnd(3, 11);
+    if (clear(x, z)) continue;
+    for (let k = 0; k < Math.ceil(h / 1.2); k++) mk(S, 'cyl', HCANE[k % 3], lerp(0.45, 0.2, k * 1.2 / h), 1.25, lerp(0.45, 0.2, k * 1.2 / h), x, k * 1.2 + 0.6, z);
+    for (let k = 0; k < 3; k++) rleaf(S, x, h * rnd(0.4, 0.95), z, rnd(0, TAU), rnd(1.2, 2.6), rnd(0.3, 0.6), HG[(j + k) % 5]);
+  }
+  for (let j = 0; j < 55; j++) {
+    const a = rnd(0, TAU), r = Math.sqrt(rnd(0, 1)) * 18, x = Math.cos(a) * r * 1.1, z = Math.sin(a) * r * 0.85, top = rnd(15, 17.5), bot = top - rnd(3, 9);
+    if (Math.hypot(x - 2, z - 6) < 7) continue;
+    beam(S, HG[j % 5], 0.12, 0.12, V(x, top, z), V(x + rnd(-0.6, 0.6), bot, z + rnd(-0.6, 0.6)));
+    rleaf(S, x, bot + 0.3, z, rnd(0, TAU), rnd(0.8, 1.8), 0.9, HG[(j + 2) % 5]);
+  }
+  for (let j = 0; j < 9; j++) {
+    const a = (j / 9) * TAU + 0.2, r = 18.5, cx = Math.cos(a) * r * 1.1, cz = Math.sin(a) * r * 0.85, base = V(cx * 0.97, 0, cz * 0.97);
+    for (let k = 0; k < 7; k++) { const t2 = (k / 6 - 0.5) * 1.4, tip = V(cx * 0.95 + Math.cos(a + PI / 2) * t2 * 4, rnd(7, 12), cz * 0.95 + Math.sin(a + PI / 2) * t2 * 4); beam(S, HCANE[k % 3], 0.16, 0.14, base, tip); rleaf(S, tip.x, tip.y, tip.z, rnd(0, TAU), 1.4, 0.4, HG[k % 5]); }
+  }
+  /* heliotropes, turning to whatever light there is */
+  const helios = [];
+  for (let j = 0; j < 10; j++) {
+    const a = rnd(0, TAU), r = rnd(4, 16), g = grp(S, Math.cos(a) * r * 1.1, 0, Math.sin(a) * r * 0.85), top = V(0, rnd(2.2, 3.6), 0);
+    beam(g, HG[0], 0.08, 0.08, V(0, 0, 0), top);
+    const F = grp(g, 0, top.y, 0);
+    mk(F, 'ico', 0x3a2a14, 0.42, 0.42, 0.1, 0, 0, 0.05);
+    for (let k = 0; k < 14; k++) { const b = (k / 14) * TAU; mk(F, 'ico', 0xc9a83a, 0.2, 0.2, 0.04, Math.cos(b) * 0.31, Math.sin(b) * 0.31, 0.03); }
+    helios.push(F);
+  }
+  /* her face: low in a wall of growth near the back, the size of a person's, eyes closed, the colour of the rest */
+  const FC = V(-9.5, 1.7, -13.2);
+  mk(S, 'ico', HG[2], 3.4, 3.2, 1.6, FC.x, FC.y, FC.z - 0.5);
+  for (let j = 0; j < 14; j++) { const dx = rnd(-1.8, 1.8), dy = rnd(-1.2, 1.4); if (Math.hypot(dx, dy) < 0.9) continue; rleaf(S, FC.x + dx, FC.y + dy, FC.z - 0.1, Math.atan2(dx, 0.4), rnd(0.8, 1.6), rnd(0.3, 0.7), HG[j % 5]); }
+  const face = grp(S, FC.x, FC.y, FC.z + 0.25);
+  mk(face, 'ico', HG[3], 0.42, 0.52, 0.2, 0, 0, 0);
+  mk(face, 'ico', HG[1], 0.1, 0.16, 0.1, 0, -0.02, 0.1);
+  for (const s of [-1, 1]) mk(face, 'box', 0x24381c, 0.1, 0.012, 0.02, s * 0.09, 0.07, 0.09);
+  mk(face, 'box', 0x24381c, 0.12, 0.012, 0.02, 0, -0.14, 0.09);
+  /* the light: from the crack in the roof the spring comes through */
+  /* her hunters: one generation, from parts of her. Cane for legs, a body of folded leaf, a pod for a head that opens */
+  const hunters = [0, 1, 2].map(i => {
+    const root = grp(S, 0, 0, 0), H = { root, a: rnd(0, TAU), r: rnd(6, 13), sp: rnd(0.08, 0.14) * (i % 2 ? 1 : -1), pace: rnd(0, TAU) };
+    const body = grp(root, 0, 1.5, 0); H.body = body;
+    mk(body, 'ico', HG[4], 0.9, 0.7, 1.7, 0, 0, 0);
+    for (let k = 0; k < 6; k++) rleaf(body, rnd(-0.2, 0.2), 0.25, rnd(-0.6, 0.5), (k % 2 ? 1 : -1) * rnd(1.1, 2.0), rnd(0.7, 1.1), 0.5, HG[k % 5]);
+    const head = grp(body, 0, 0.15, 1.05); H.head = head;
+    H.jaw = [-1, 1].map(s => { const g = grp(head, 0, 0, 0); mk(g, 'ico', HCANE[1], 0.5, 0.26, 0.85, 0, s * 0.11, 0.38); for (let k = 0; k < 5; k++) mk(g, 'box', 0xd8d0a0, 0.04, 0.12, 0.04, -0.18 + k * 0.09, s * -0.02, 0.7); return { g, s }; });
+    H.legs = [[-1, 1], [1, 1], [-1, -1], [1, -1]].map(([sx, sz]) => limb(root, [sx * 0.35, 1.55, sz * 0.6], 1.05, 1.1, HCANE[0], HCANE[2], 0.1, t => { mk(t, 'box', HCANE[1], 0.06, 0.06, 0.25, 0, 0, 0.1); return []; }, { joint: HCANE[1] }));
+    H.legs.forEach((L, k) => (L.off = [[-1, 1], [1, 1], [-1, -1], [1, -1]][k]));
+    return H;
+  });
+  const fig = figure(S, 3.5, 8.5, 0.5);
+  return {
+    S, fig, helios, face, FC, hunters, room: [0.09, 0.12, 0.09],
+    glow: { pos: V(5, 15, 3), c: [0.55, 0.62, 0.45], r: 34 }, fog: 0.028,
+    cam: { tgt: V(0, 3, 0), yaw: 0.4, pitch: 0.22, dist: 24, min: 1.5, max: 60 },
+    mode: 'cave',
+  };
+}
+const HOLT_STATES = {
+  cave: ['The green god', 'Maren Holt, generation 2. She grafted the plants onto herself slowly, choosing each one, and kept on: through Horticulture, and down into the cave under it, until there was nothing of the cave that was not her. The leaf giants on the floor, the cane, what hangs from the roof, the fans trained up the walls: all one body on one root. She is the level. Everything else breeds; she makes something new.', V(-2, 4, -2), 17, 1.3],
+  face: ['Her face', 'Somewhere in it, low in a wall of growth, is her face: a person\'s size, eyes closed, the colour of the rest. A dot in an ocean. Most will never see it.', V(-9.5, 1.7, -13.0), 3.2, 0.25],
+  hunt: ['Her hunters', 'What hunts here is hers: one generation of predators, grafted from parts of her, the least human things on the station. Cane for legs, a body of folded leaf, and a pod for a head that splits open. They feel you through the root as soon as you step off stone.', V(2, 1.4, 6), 9, 0.9],
+};
+function setHolt(mode) {
+  const M = HOLT; M.mode = mode;
+  const [, , tgt, dist, yaw] = HOLT_STATES[mode];
+  M.cam.tgt.copy(tgt); M.cam.dist = dist; M.cam.yaw = yaw; M.cam.pitch = mode === 'face' ? 0.08 : mode === 'hunt' ? 0.32 : 0.3;
+  if (PIA_READY) syncPanel();
+}
+function stepHolt(dt, now) {
+  const M = HOLT;
+  for (const F of M.helios) look(F, M.glow.pos, dt, 0.4, [1.2, 1.0]);
+  M.hunters.forEach((H, i) => {
+    const hunting = M.mode === 'hunt' && i === 0;
+    let x, z, yaw;
+    if (hunting) {
+      _a.set(camera.position.x, 0, camera.position.z);
+      const d = _a.sub(H.root.position).setY(0), dist = d.length();
+      if (dist > 3.5) H.root.position.addScaledVector(d.normalize(), dt * 2.2);
+      x = H.root.position.x; z = H.root.position.z; yaw = Math.atan2(camera.position.x - x, camera.position.z - z);
+      H.pace += dt * (dist > 3.5 ? 9 : 2);
+    } else {
+      H.a += dt * H.sp; x = Math.cos(H.a) * H.r * 1.1; z = Math.sin(H.a) * H.r * 0.85;
+      yaw = Math.atan2(-Math.sin(H.a) * H.r * 1.1 * Math.sign(H.sp), Math.cos(H.a) * H.r * 0.85 * Math.sign(H.sp));
+      H.root.position.set(x, 0, z); H.pace += dt * 5;
+    }
+    H.root.rotation.y = yaw;
+    H.body.position.y = 1.5 + Math.abs(Math.sin(H.pace)) * 0.06;
+    H.root.updateMatrixWorld(true);
+    H.legs.forEach((L, k) => { const ph = H.pace + (k === 0 || k === 3 ? 0 : PI); _a.set(L.off[0] * 0.9, Math.max(0, Math.sin(ph)) * 0.3, L.off[1] * 0.9 + Math.cos(ph) * 0.45); H.root.localToWorld(_a); reachP(L, _a, 1); });
+    const open = hunting ? 0.25 + 0.25 * Math.max(0, Math.sin(now * 3)) : 0.05;
+    for (const J of H.jaw) J.g.rotation.x = -J.s * open;
+  });
+}
+
+/* ================================================================================================================ */
 const canvas = document.getElementById('c');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
 const camera = new THREE.PerspectiveCamera(50, 1, 0.05, 120);
-const PIA = buildPia(), INES = buildInes(), DALE = buildDale(), SAM = buildSam(), TOM = buildTom();
+const PIA = buildPia(), INES = buildInes(), DALE = buildDale(), SAM = buildSam(), TOM = buildTom(), HOLT = buildHolt();
 let PIA_READY = false;
 let cur = PIA;
 
 const btns = document.getElementById('btns'), stateEl = document.getElementById('state'), capEl = document.getElementById('cap');
-const SCENES = { pia: () => [PIA, PIA_STATES, setPia, stepPia], ines: () => [INES, INES_STATES, setInes, stepInes], dale: () => [DALE, DALE_STATES, setDale, stepDale], sam: () => [SAM, SAM_STATES, setSam, stepSam], tom: () => [TOM, TOM_STATES, setTom, stepTom] };
+const SCENES = { pia: () => [PIA, PIA_STATES, setPia, stepPia], ines: () => [INES, INES_STATES, setInes, stepInes], dale: () => [DALE, DALE_STATES, setDale, stepDale], sam: () => [SAM, SAM_STATES, setSam, stepSam], tom: () => [TOM, TOM_STATES, setTom, stepTom], holt: () => [HOLT, HOLT_STATES, setHolt, stepHolt] };
 let curName = 'pia';
 function syncPanel() {
   const [M, S, set] = SCENES[curName](), mode = M.mode;
@@ -1317,7 +1426,7 @@ function frame(nowMs) {
   renderer.render(M.S, camera);
   requestAnimationFrame(frame);
 }
-setPia('tree'); setInes('paint'); setDale('court'); setSam('good'); setTom('zone'); PIA_READY = true; syncPanel();
+setPia('tree'); setInes('paint'); setDale('court'); setSam('good'); setTom('zone'); setHolt('cave'); PIA_READY = true; syncPanel();
 requestAnimationFrame(frame);
-window.__rs = { PIA, INES, DALE, SAM, TOM, setPia, setInes, setDale, setSam, setTom, camera, show: s => document.getElementById('tab-' + s).click() };
+window.__rs = { PIA, INES, DALE, SAM, TOM, HOLT, setPia, setInes, setDale, setSam, setTom, setHolt, camera, show: s => document.getElementById('tab-' + s).click() };
 </script>

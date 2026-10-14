@@ -723,14 +723,18 @@ Nobody expected worse than a bad night.
 ### The elders
 
 - **Maren Holt (director of research).** Raw tissue from the beds, through a burn on her hand. Her way round is care: she grafts
-  the plants onto herself slowly, choosing each one, and shapes herself with them. She is embedded in the great beds of
-  Horticulture, which she has cultivated into a home and grown herself into. She pushes the crop the way farmers pushed wild
-  corn into maize: leaves big enough to roof a room, stalks strong enough to build with, plants bred for structure and for jobs.
-  Her line is the only one that is bred, not born: clones from her cuttings, on one root system, the station's one true
-  hivemind (she feels footsteps on soil, not on tile). Above her kin because every other elder can only make more of itself,
-  and Holt can make something new; and the only one who plans by growing. *Children:* her cultivars (leaf giants, cane,
-  espalier screens, heliotropes that turn to follow a light, stranglers, seed-throwers, topiary grown over borrowed bones).
-  *Inside:* Tom is her longest bet, and Sam carries her light.
+  the plants onto herself slowly, choosing each one, and shapes herself with them, and she has never stopped. She is the green
+  god, and she is a level: Horticulture (to be rebuilt much larger) is colonised by her, and the cave under it, larger again
+  and open to explore, is her body entire, the leaf on the floor, the cane standing, what hangs from the roof, what is trained
+  up the walls, all one plant on one root. Her face is in it somewhere, a person's size, eyes closed, the colour of the rest:
+  a dot in an ocean. She pushes the crop the way farmers pushed wild corn into maize: leaves big enough to roof a room, stalks
+  strong enough to build with. Her line is the only one that is bred, not born, and her root system is the station's one true
+  hivemind (she feels footsteps on soil, not on stone). Above her kin because every other elder can only make more of
+  itself, and Holt can make something new; and the only one who plans by growing. *Children:* her cultivars (leaf giants,
+  cane, espalier screens, heliotropes that turn to follow a light, stranglers, seed-throwers), and in the cave her hunters:
+  one generation of plant-like, motile predators grafted from parts of her, the least human things on the station (cane for
+  legs, a body of folded leaf, a pod for a head that splits open). *Open:* her tell, and how she can be hurt. *Inside:* Tom is
+  her longest bet, and Sam carries her light.
 - **Pia Lind (painkiller).** The stupor: glassy eyes, pupils pinned whatever the light, pustules, numb to pain and to
   everything, her metabolism slowed to a crawl. She does not fight it; she slows into something stationary and survives as
   that. **You meet her as the tree, or nearly:** the Commons tree, a rustica grown to about 13 m, risen out of a planter and through the floor,
@@ -847,7 +851,7 @@ The player is never told any of this; they read it.
 
 ### Open
 
-- Holt's beds: in Horticulture, or in the great chamber (§2 puts the green's real arboretum in the cave)?
+- Holt: what marks her work, and how she can be hurt.
 - Is the founder the thresher? What do the young gods look like?
 - Where Ines paints, and where Dale holds court.
 - The antidote child: a name, and where it went.
