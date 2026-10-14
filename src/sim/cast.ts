@@ -30,8 +30,8 @@ export const MT: Record<string, Stats> = {
   husk: { hp: 75, r: 0.38, cr: 0.34, mass: 1.2, h: 1.8, opens: true },
   skitter: { hp: 60, r: 0.5, cr: 0.4, mass: 1, h: 0.9, low: true },
   bloat: { hp: 600, r: 1, cr: 0.9, mass: 8, h: 2.4, noDoors: true, solid: true },
-  /* the founder (world.md §10): the first and largest of Pia's third generation, fed and seated, and still a man's shape */
-  founder: { ai: 'bloat', model: 'founder', hp: 1400, r: 1.4, cr: 1.3, mass: 16, h: 3, noDoors: true, solid: true },
+  /* the founder (world.md §10): the first and largest of Pia's third generation, a bloat grown larger, fed and seated */
+  founder: { ai: 'bloat', model: 'bloat', hp: 1400, r: 1.7, cr: 1.5, mass: 16, h: 5.2, noDoors: true, solid: true },
   thresher: { hp: 150, r: 0.6, cr: 0.5, mass: 2.5, h: 2.1, solid: true, noDoors: true },
   /* 0.6 high: higher than a step, so you go round one rather than up onto it */
   worm: { hp: 40, r: 0.35, cr: 0.3, mass: 1, h: 0.6, low: true },

@@ -810,14 +810,12 @@ Nobody expected worse than a bad night.
 
 - **The founder (generation 3; agreed).** Touched by Pia in her stupor. Pia's fear of eradication was a thought;
   in the founder it became biology. He took others by force and turned the Commons. He is the first and largest of the
-  bloats, and the keeper of §2: still plainly a man, more human than any elder, and especially large and well fed, because
-  the Commons smell her on him and bring him things. Seated, never standing: on the floor of the Square's bar with his back
-  to the far wall, his legs out and his belly on his thighs, his head bowed and small for the rest, facing out of the door
-  across the court to Pia. Her stupor in his face (glassy eyes, the pupils pinned, milk at the corner of the mouth), her
-  pustules on his skin, the scars of wounds he never felt, the shirt he was in split down the back, and the director's lift
-  key on its cord round his neck. **Built.** The smaller bloats, the rest of her third generation, walk and stand round the
-  tree itself, looking up. The Commons is to be rebuilt larger in its own pass (as Security was), and his room with it:
-  he should be larger again than the room allows today.
+  bloats, and the keeper of §2: one of them, drawn as they are, only bigger (about 1.7 times), especially well fed, because
+  the Commons smell her on him and bring him things. Seated, never standing, on the floor of the Square's bar (two storeys
+  now: the flat over it is gone) with his back to the far wall, facing out of the door across the court to Pia, the
+  director's lift key on its cord round his neck. **Built.** The smaller bloats, the rest of her third generation, walk and
+  stand round the tree itself, looking up; all of them have her glassy eyes, pinned pupils and pustules. The Commons is to
+  be rebuilt larger in its own pass (as Security was), and his room with it.
 - **Pia's generations.** The opiate dulls with each generation; the fear does not, so the youngest are the most violent and the
   oldest the largest and most stupefied.
 

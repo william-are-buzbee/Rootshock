@@ -178,7 +178,7 @@ function buildSquare(G: Deck, S2: Deck, HB: TRoomOpts, GW: TRoomOpts, CM: TRoomO
   /* Pia's third generation, the small ones, stood round her looking up (world.md §10) */
   for (const [bx0, bz0] of [[74.6, 13], [81.2, 12.2], [81.5, 17.6]]) mut(G, 'bloat', bx0, bz0, { post: 1, yaw: Math.atan2(78 - bx0, 15 - bz0) }); mut(G, 'worm', 76.2, 16.6); mut(G, 'worm', 79.8, 13.4); mut(G, 'husk', 74.5, 18, { post: 1, yaw: PI / 2 }); mut(S2, 'skitter', 77, 8.6); mut(S2, 'skitter', 83.6, 16);
   /* the band. North and south: three rooms a side behind facades on rows 7 and 22 (the street's last four ground floors and new ones);
-     west and east: two a side behind facades on columns 70 and 85. Storey 2 is ten flats, C1 to C10, their doors on the ring. */
+     west and east: two a side behind facades on columns 70 and 85. Storey 2 is nine flats, C1 to C10, their doors on the ring: C4 gave way to the bar under it, for the founder. */
   const nb = { y0: 4, fy: 7 }, sb = { y0: 23, fy: 22 };
   groundFloor(G, 67, true, 7, HB, { ...nb, dc: 5 }); groundFloor(G, 74, true, 6, HB, { ...nb, dc: 3 }); groundFloor(G, 67, false, 7, HB, { ...sb, dc: 5 }); groundFloor(G, 74, false, 6, HB, { ...sb, dc: 3 });
   const shop = (nm: string, x: number, y: number, w: number, h: number, dx: number, dy: number, sd: 'n' | 's' | 'e' | 'w', f: (x: number, y: number) => void) => {
@@ -192,7 +192,7 @@ function buildSquare(G: Deck, S2: Deck, HB: TRoomOpts, GW: TRoomOpts, CM: TRoomO
   shop('Lost property', 86, 17, 3, 5, 85, 18, 'w', (x, y) => { shelf(G, x + 2.7, y + 2.4, 0.5, 3, { cols: [0x4d5a66, 0x6b5a3c, 0x8a7a6a] }); crates(G, x + 1, y + 3.6, 1); item(G, 'bandage', x + 1.2, y + 1.4, 0.02); });
   const CV: [number, number, number, number, number, number, string, Flat][] = [
     [67, 4, 7, 3, 71, 7, 'C1', [{}, 'clean', 'peaches']], [74, 4, 7, 3, 79, 7, 'C2', [{ card: 'C2' }, 'nest', 'medkit']], [81, 4, 7, 3, 84, 7, 'C3', [{ open: true }, 'body', 'bandage', 'N4.3']],
-    [67, 23, 7, 3, 71, 22, 'C4', [{ open: true }, 'clean', 'ration']], [74, 23, 7, 3, 79, 22, 'C5', [{ open: true }, 'worm', 'peaches']], [81, 23, 7, 3, 84, 22, 'C6', [{}, 'worm', 'batt']],
+    [74, 23, 7, 3, 79, 22, 'C5', [{ open: true }, 'worm', 'peaches']], [81, 23, 7, 3, 84, 22, 'C6', [{}, 'worm', 'batt']],
     [67, 8, 3, 3, 70, 8, 'C7', [{ card: 'C7' }, 'clean', 'shells']], [67, 19, 3, 3, 70, 21, 'C8', [{}, 'clean', 'ration']], [86, 8, 3, 5, 85, 9, 'C9', [{}, 'gore', 'batt']], [86, 17, 3, 5, 85, 20, 'C10', [{}, 'post', 'bandage']],
   ];
   for (const [x, y, w, h, dx, dy, nm, v] of CV) flatRect(S2, x, y, w, h, dx, dy, nm, v, HB);
@@ -239,11 +239,12 @@ function groundFloor(D: Deck, x0: number, north: boolean, k: number, HB: TRoomOp
       tbl(D, x0 + 5.4, front, 0.8, 0.7, 0xb4b8ba); note(D, 'clinic', x0 + 5.4, front, 0.78); break;
     case 5: R('Water room', { ...UTIL, c: 'RES' }); for (const q of [1.6, 5.4]) P(D, 'cyl', x0 + q, mid, 2.2, 2.6, 2.2, 0x3b4d57); bx(D, x0 + 3.5, back, 6, 0.14, 0.14, 0x3d4042, { y: 2.4, c: 0 }); break;
     case 6: R('Workshop', { ...UTIL, c: 'RES' }); tbl(D, x0 + 3, back + 0.2, 4, 0.9, 0x54504a); item(D, 'pipe', x0 + 3, mid + 0.6, 0.02); item(D, 'batt', x0 + 5.4, back + 0.2, 0.78); break;
-    /* the bar on the Square, the founder's: the counter pushed to the wall to make room for him, sat with his back to the
-       far wall and his face out of the door to Pia, and what they bring him round him (world.md §10) */
-    case 7: R('Bar', {}, { open: true }); bx(D, x0 + 0.7, mid, 0.6, 1, 2.6, 0x4a3a2c); for (let q = 0; q < 3; q++) P(D, 'cyl', x0 + 1.5, y0 + 0.7 + q * 0.8, 0.4, 0.7, 0.4, 0x2a2c2e);
-      mut(D, 'founder', x0 + 5.5, back - 0.25, { sit: 1, yaw: Math.atan2(78 - (x0 + 5.5), 15 - (back - 0.25)) });
-      for (const [dx, dz] of [[3.4, mid], [3.9, front + 0.1], [6.7, mid - 0.3], [6.5, back - 0.1]]) { P(D, 'cyl', x0 + dx, dz, 0.4, 0.14, 0.4, 0x5e6062, { c: 0 }); P(D, 'cyl', x0 + dx, dz, 0.33, 0.02, 0.33, MILK, { y: 0.12, c: 0 }); }
+    /* the bar on the Square, the founder's, two storeys (the flat over it is gone): the counter pushed to the wall to make
+       room for him, sat with his back to the far wall and his face out of the door to Pia, and what they bring him round
+       him (world.md §10) */
+    case 7: R('Bar', { ht: 6.7 }, { open: true }); bx(D, x0 + 0.7, mid, 0.6, 1, 2.6, 0x4a3a2c); for (let q = 0; q < 3; q++) P(D, 'cyl', x0 + 1.5, y0 + 0.7 + q * 0.8, 0.4, 0.7, 0.4, 0x2a2c2e);
+      mut(D, 'founder', x0 + 5.5, back - 0.45, { sit: 1, yaw: Math.atan2(78 - (x0 + 5.5), 15 - (back - 0.45)) });
+      for (const [dx, dz] of [[3.4, mid], [3.9, front + 0.1], [6.6, front + 0.2]]) { P(D, 'cyl', x0 + dx, dz, 0.4, 0.14, 0.4, 0x5e6062, { c: 0 }); P(D, 'cyl', x0 + dx, dz, 0.33, 0.02, 0.33, MILK, { y: 0.12, c: 0 }); }
       for (let q = 0; q < 5; q++) P(D, 'cyl', x0 + rnd(2.6, 4), y0 + rnd(0.5, 2.6), 0.16, 0.2, 0.16, pick([0xc9a227, 0x8a8f96]), { c: 0, rz: q % 2 ? PI / 2 : 0 });
       blood(D, x0 + 2, front, 1.6); mut(D, 'husk', x0 + 2.4, front, { post: 1, yaw: PI }); break;
   }
