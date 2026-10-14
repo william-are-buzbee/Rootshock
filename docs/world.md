@@ -733,7 +733,9 @@ Nobody expected worse than a bad night.
   itself, and Holt can make something new; and the only one who plans by growing. *Children:* her cultivars (leaf giants,
   cane, espalier screens, heliotropes that turn to follow a light, stranglers, seed-throwers), and in the cave her hunters:
   one generation of plant-like, motile predators grafted from parts of her, the least human things on the station (cane for
-  legs, a body of folded leaf, a pod for a head that splits open). *Open:* her tell, and how she can be hurt. *Inside:* Tom is
+  legs, a body of folded leaf, a pod for a head that splits open). Among her stand massive sunflowers, leaning on heavy
+  stalks, too heavy to hold their heads up to the light, each ringed by small ones; and Pia's tobacco flowers come out of
+  the rock and up out of the floor: something of her, without words. *Open:* her tell, and how she can be hurt. *Inside:* Tom is
   her longest bet, and Sam carries her light.
 - **Pia Lind (painkiller).** The stupor: glassy eyes, pupils pinned whatever the light, pustules, numb to pain and to
   everything, her metabolism slowed to a crawl. She does not fight it; she slows into something stationary and survives as
