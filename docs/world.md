@@ -782,8 +782,8 @@ Nobody expected worse than a bad night.
   a psilocybin-like): the trial's most watched subject. Moody like Janus, kind like the aedra; never psychotic, never violent;
   driven to fairness. A big man, a quarter bigger than the thresher (about 2.6 m), built like a golem; he glows (glowing blood,
   mushrooms on his skin, a bright light from one hand), and his body is a patchwork of pieces swapped with friends: a graft is
-  how he shows affection. *His graft* treats the mind, not the body: sleeplessness still wrecks you, but you stop being violent
-  about it and can carry on, and the soundtrack gains something that is not in the room. *Inside:* the light was Holt's gift.
+  how he shows affection, and each seam is sealed in amber, June's, by way of Holt. *His graft* treats the mind, not the body:
+  sleeplessness still wrecks you, but you stop being violent about it and can carry on, and the soundtrack gains something that is not in the room. *Inside:* the light was Holt's gift.
   Her heliotropes follow light, so they always know where he is; and the spores in his blood are her tissue, which makes him
   fond of her. His warmth toward Holt was grown.
 - **June Pryor (oils and resins; a lab technician).** The resin got in through her skin; she wept it, stuck, and hardened, and
