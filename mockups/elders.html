@@ -1270,15 +1270,29 @@ function buildHolt() {
     const a = (j / 9) * TAU + 0.2, r = 18.5, cx = Math.cos(a) * r * 1.1, cz = Math.sin(a) * r * 0.85, base = V(cx * 0.97, 0, cz * 0.97);
     for (let k = 0; k < 7; k++) { const t2 = (k / 6 - 0.5) * 1.4, tip = V(cx * 0.95 + Math.cos(a + PI / 2) * t2 * 4, rnd(7, 12), cz * 0.95 + Math.sin(a + PI / 2) * t2 * 4); beam(S, HCANE[k % 3], 0.16, 0.14, base, tip); rleaf(S, tip.x, tip.y, tip.z, rnd(0, TAU), 1.4, 0.4, HG[k % 5]); }
   }
-  /* heliotropes, turning to whatever light there is */
+  /* sunflowers: a few massive ones, leaning, on heavy stalks, heads too big to hold up, each with small ones round it */
   const helios = [];
+  const sunflower = (x, z, s, lean) => {
+    const g = grp(S, x, 0, z), top = V(Math.sin(lean.a) * lean.r * s, 3.0 * s, Math.cos(lean.a) * lean.r * s), mid = V(top.x * 0.4, top.y * 0.5, top.z * 0.4);
+    beam(g, HG[0], 0.12 * s, 0.12 * s, V(0, 0, 0), mid); beam(g, HG[1], 0.1 * s, 0.1 * s, mid, top);
+    for (let k = 0; k < 4; k++) rleaf(g, mid.x * (k / 3), 0.6 * s + k * 0.55 * s, mid.z * (k / 3), rnd(0, TAU), 0.6 * s, 0.5, HG[k % 5]);
+    const F = grp(g, top.x, top.y, top.z);
+    mk(F, 'ico', 0x3a2a14, 0.42 * s, 0.42 * s, 0.1 * s, 0, 0, 0.05 * s);
+    for (let k = 0; k < 16; k++) { const b = (k / 16) * TAU; mk(F, 'ico', k % 2 ? 0xc9a83a : 0xd8b440, 0.2 * s, 0.2 * s, 0.04 * s, Math.cos(b) * 0.31 * s, Math.sin(b) * 0.31 * s, 0.03 * s); }
+    F.heavy = s > 2; helios.push(F);
+  };
+  for (const [x, z] of [[-6, -6], [8, -3], [-12, 3], [5, 10], [12, 7]]) {
+    if (Math.hypot(x - 2, z - 6) < 5) continue;
+    sunflower(x, z, rnd(2.8, 3.3), { a: rnd(0, TAU), r: rnd(0.25, 0.4) });
+    for (let k = 0; k < 6; k++) { const a = rnd(0, TAU), r = rnd(1.4, 3.2); sunflower(x + Math.cos(a) * r, z + Math.sin(a) * r, rnd(0.8, 1.2), { a: rnd(0, TAU), r: rnd(0, 0.15) }); }
+  }
+  /* and the tobacco's own flowers, Pia's, coming out of the rock and up out of the floor among them */
+  for (let j = 0; j < 12; j++) { const a = rnd(0, TAU), r = 18.2, p = V(Math.cos(a) * r * 1.1 * 0.95, rnd(1.0, 8.0), Math.sin(a) * r * 0.85 * 0.95); cluster(S, p, 8, 1.6, 0.5); }
   for (let j = 0; j < 10; j++) {
-    const a = rnd(0, TAU), r = rnd(4, 16), g = grp(S, Math.cos(a) * r * 1.1, 0, Math.sin(a) * r * 0.85), top = V(0, rnd(2.2, 3.6), 0);
-    beam(g, HG[0], 0.08, 0.08, V(0, 0, 0), top);
-    const F = grp(g, 0, top.y, 0);
-    mk(F, 'ico', 0x3a2a14, 0.42, 0.42, 0.1, 0, 0, 0.05);
-    for (let k = 0; k < 14; k++) { const b = (k / 14) * TAU; mk(F, 'ico', 0xc9a83a, 0.2, 0.2, 0.04, Math.cos(b) * 0.31, Math.sin(b) * 0.31, 0.03); }
-    helios.push(F);
+    const a = rnd(0, TAU), r = rnd(3, 16), x = Math.cos(a) * r * 1.1, z = Math.sin(a) * r * 0.85;
+    if (Math.hypot(x - 2, z - 6) < 4) continue;
+    const top = V(x + rnd(-0.2, 0.2), rnd(0.8, 1.6), z + rnd(-0.2, 0.2));
+    beam(S, HCANE[0], 0.07, 0.07, V(x, 0, z), top); cluster(S, top, 9, 1.6, 0.45);
   }
   /* her face: low in a wall of growth near the back, the size of a person's, eyes closed, the colour of the rest */
   const FC = V(-9.5, 1.7, -13.2);
@@ -1323,7 +1337,8 @@ function setHolt(mode) {
 }
 function stepHolt(dt, now) {
   const M = HOLT;
-  for (const F of M.helios) look(F, M.glow.pos, dt, 0.4, [1.2, 1.0]);
+  /* they turn to the light; the big ones too heavy to hold their heads up to it */
+  for (const F of M.helios) { _a.copy(M.glow.pos); if (F.heavy) _a.y -= 22; look(F, _a, dt, 0.3, [1.2, 1.0]); }
   M.hunters.forEach((H, i) => {
     const hunting = M.mode === 'hunt' && i === 0;
     let x, z, yaw;
