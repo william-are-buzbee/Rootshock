@@ -1,0 +1,378 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Founder Traits</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400&display=swap" rel="stylesheet">
+<style>
+/* Layout: the lineup fills the screen; a header to pick one, and one panel saying which trait or generation it is. */
+:root {
+  --pitch: #060708; --panel: rgba(7, 8, 9, .84); --bone: #d9d3c1; --ash: #8a897f; --hazard: #c9a227;
+  --line: rgba(217, 211, 193, .16);
+  --sign: "Barlow Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --hand: "Newsreader", Georgia, "Times New Roman", serif;
+  color-scheme: dark;
+}
+html, body { height: 100%; margin: 0; background: var(--pitch); color: var(--bone); font-family: var(--sign); overflow: hidden; }
+canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+canvas:active { cursor: grabbing; }
+.top { position: fixed; left: 0; right: 0; top: 0; padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 0; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+.name { font-size: 15px; letter-spacing: .2em; text-transform: uppercase; color: var(--ash); }
+.name b { color: var(--bone); font-weight: 600; }
+nav { display: flex; flex-wrap: wrap; gap: 4px; pointer-events: auto; max-width: 100%; }
+nav button, .btns button { font: inherit; color: var(--bone); background: none; border: 1px solid var(--line); cursor: pointer; }
+nav button { font-size: 19px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; padding: 2px 11px 1px; }
+nav button[aria-selected="true"] { border-color: var(--hazard); color: var(--hazard); }
+.panel { position: fixed; left: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); width: min(460px, calc(100% - 32px)); background: var(--panel); border-top: 3px solid var(--hazard); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; }
+.state { font-size: 26px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; line-height: 1; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.was { font-size: 15px; font-weight: 500; letter-spacing: .12em; color: var(--ash); }
+#cap { font-family: var(--hand); font-size: 16px; line-height: 1.42; margin: 0; max-width: 38em; }
+.btns { display: flex; flex-wrap: wrap; gap: 6px; }
+.btns button { font-size: 17px; font-weight: 500; padding: 3px 10px 2px; }
+.btns button.on { background: var(--bone); color: var(--pitch); border-color: var(--bone); }
+.btns button:hover, nav button:hover { border-color: var(--bone); }
+button:focus-visible { outline: 2px solid var(--hazard); outline-offset: 2px; }
+.row { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 15px; color: var(--ash); }
+.row label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.row input { accent-color: var(--hazard); margin: 0; }
+.hint { position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); font-size: 14px; letter-spacing: .1em; text-transform: uppercase; color: var(--ash); pointer-events: none; text-align: right; }
+@media (max-width: 720px) { .hint { display: none; } #cap { font-size: 15px; } .state { font-size: 22px; } nav button { font-size: 16px; padding: 2px 8px 1px; } }
+</style>
+
+<canvas id="c" aria-label="3D view of the founder's traits; drag to orbit"></canvas>
+<header class="top">
+  <div class="name"><b>Rootshock</b> · the founder's traits, and how they come down</div>
+  <nav role="tablist" aria-label="Mutant" id="nav"></nav>
+</header>
+<section class="panel" aria-live="polite">
+  <div class="state"><span id="state"></span><span class="was" id="was"></span></div>
+  <p id="cap"></p>
+  <div class="btns" id="btns"></div>
+  <div class="row">
+    <label><input type="checkbox" id="flash" checked> Flashlight (F)</label>
+    <label><input type="checkbox" id="figure" checked> 1.8 m figure</label>
+  </div>
+</section>
+<div class="hint">Drag to orbit · scroll or pinch to zoom</div>
+
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js" } }</script>
+<script type="module">
+import * as THREE from 'three';
+
+const PI = Math.PI, TAU = PI * 2;
+/* castKit's palette, and castView's clothes */
+const FLESH = 0xb08572, RAW = 0x8c4a44, GOREC = 0x4e1616, PALE = 0xcdbfae, BONE = 0xddd6c0, DARK = 0x140c0d;
+const TR = 0x2b2e34, SHIRTS = [0xbfc3c0, 0x4a5560, 0x39485a, 0x6b6f5a, 0x7a5a50];
+
+/* the game's unit shapes (templates.ts) and look (shader.ts), as in creatures.html */
+const TPL = (() => {
+  const box = () => {
+    const c = [[-.5, -.5, -.5], [.5, -.5, -.5], [.5, .5, -.5], [-.5, .5, -.5], [-.5, -.5, .5], [.5, -.5, .5], [.5, .5, .5], [-.5, .5, .5]];
+    const f = [[0, 1, 2, 3], [5, 4, 7, 6], [4, 0, 3, 7], [1, 5, 6, 2], [3, 2, 6, 7], [4, 5, 1, 0]], p = [];
+    for (const q of f) for (const k of [0, 1, 2, 0, 2, 3]) p.push(...c[q[k]]);
+    return p;
+  };
+  const ico = () => {
+    const t = (1 + Math.sqrt(5)) / 2, n = 0.5 / Math.hypot(1, t);
+    const v = [[-1, t, 0], [1, t, 0], [-1, -t, 0], [1, -t, 0], [0, -1, t], [0, 1, t], [0, -1, -t], [0, 1, -t], [t, 0, -1], [t, 0, 1], [-t, 0, -1], [-t, 0, 1]].map(a => a.map(x => x * n));
+    const fi = [0, 11, 5, 0, 5, 1, 0, 1, 7, 0, 7, 10, 0, 10, 11, 1, 5, 9, 5, 11, 4, 11, 10, 2, 10, 7, 6, 7, 1, 8, 3, 9, 4, 3, 4, 2, 3, 2, 6, 3, 6, 8, 3, 8, 9, 4, 9, 5, 2, 4, 11, 6, 2, 10, 8, 6, 7, 9, 8, 1], p = [];
+    for (const i of fi) p.push(...v[i]);
+    return p;
+  };
+  const cyl = (N = 6) => {
+    const p = [];
+    for (let k = 0; k < N; k++) {
+      const a = (k / N) * TAU, b = ((k + 1) / N) * TAU, x0 = Math.cos(a) * .5, z0 = Math.sin(a) * .5, x1 = Math.cos(b) * .5, z1 = Math.sin(b) * .5;
+      p.push(x0, -.5, z0, x1, -.5, z1, x1, .5, z1, x0, -.5, z0, x1, .5, z1, x0, .5, z0, 0, .5, 0, x0, .5, z0, x1, .5, z1, 0, -.5, 0, x1, -.5, z1, x0, -.5, z0);
+    }
+    return p;
+  };
+  return { box: box(), ico: ico(), cyl: cyl() };
+})();
+const hex = c => Array.isArray(c) ? c : [((c >> 16) & 255) / 255, ((c >> 8) & 255) / 255, (c & 255) / 255];
+const geos = new Map();
+function geo(shape, c, sx, sy, sz) {
+  const k = `${shape}|${c}|${sx}|${sy}|${sz}`;
+  let g = geos.get(k);
+  if (g) return g;
+  const src = TPL[shape], col = hex(c), P = [], C = [];
+  for (let v = 0; v < src.length; v += 3) { P.push(src[v] * sx, src[v + 1] * sy, src[v + 2] * sz); C.push(col[0], col[1], col[2]); }
+  g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3));
+  g.setAttribute('aCol', new THREE.Float32BufferAttribute(C, 3));
+  geos.set(k, g);
+  return g;
+}
+
+/* a cut-down copy of the game's look (shader.ts): faceted, shaded by facing, a room light, the flashlight from the eye,
+   a colour over 2 drawn as its own light, fog and grain */
+const VS = `attribute vec3 aCol; varying vec3 vW; varying vec3 vC;
+void main(){ vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; vC = aCol; gl_Position = projectionMatrix * viewMatrix * w; }`;
+const FS = `uniform vec3 uRoom; uniform vec3 uFlashPos; uniform vec3 uFlashDir; uniform float uFlash;
+uniform vec3 uGlowPos; uniform vec3 uGlowC; uniform float uGlowR; uniform vec4 uTint; uniform float uTime; uniform float uFog;
+varying vec3 vW; varying vec3 vC;
+void main(){
+  vec3 n = normalize(cross(dFdx(vW), dFdy(vW)));
+  vec3 tc = cameraPosition - vW; float d = length(tc); vec3 Ld = tc / max(d, 0.001);
+  vec3 nf = dot(n, Ld) < 0.0 ? -n : n;
+  vec3 base = vC; float em = 0.0;
+  if (base.r > 1.5) { base -= 2.0; em = 1.0; }
+  base = mix(base, uTint.rgb, uTint.a);
+  float sh = 0.55 + 0.45 * (abs(nf.y) * 0.95 + abs(nf.x) * 0.7 + abs(nf.z) * 0.5);
+  vec3 light = uRoom * sh * (0.75 + 0.25 * max(nf.y, 0.0));
+  vec3 tp = vW - uFlashPos; float fd = length(tp); vec3 fdir = tp / max(fd, 0.001);
+  float cone = smoothstep(0.88, 0.975, dot(fdir, uFlashDir));
+  float facing = 0.35 + 0.65 * max(dot(nf, -fdir), 0.0);
+  light += uFlash * vec3(1.0, 0.94, 0.82) * (cone * 2.5 + 0.05) * facing / (1.0 + 0.09 * fd * fd);
+  vec3 tg = uGlowPos - vW; float gd = length(tg);
+  light += uGlowC * max(0.0, 1.0 - gd / uGlowR) * (0.35 + 0.65 * max(dot(nf, tg / max(gd, 0.001)), 0.0));
+  light += vec3(0.014) / (1.0 + 3.0 * d * d);
+  vec3 c = mix(base * light, base, em);
+  c *= exp(-d * uFog);
+  vec3 h3 = fract(vec3(gl_FragCoord.xyx + floor(fract(uTime * 7.13) * 977.0)) * 0.1031);
+  h3 += dot(h3, h3.yzx + 33.33);
+  c += (fract((h3.x + h3.y) * h3.z) - 0.5) * 0.024 * (1.0 - smoothstep(0.0, 0.35, dot(c, vec3(0.3, 0.59, 0.11))));
+  gl_FragColor = vec4(c, 1.0);
+}`;
+const U = {
+  uRoom: { value: new THREE.Vector3(0.34, 0.35, 0.37) }, uFlashPos: { value: new THREE.Vector3() }, uFlashDir: { value: new THREE.Vector3(0, 0, -1) }, uFlash: { value: 1 },
+  uGlowPos: { value: new THREE.Vector3(0, -10, 0) }, uGlowC: { value: new THREE.Vector3() }, uGlowR: { value: 1 }, uTime: { value: 0 }, uFog: { value: 0.03 },
+};
+const MAT = new THREE.ShaderMaterial({ uniforms: { ...U, uTint: { value: new THREE.Vector4(0, 0, 0, 0) } }, vertexShader: VS, fragmentShader: FS, side: THREE.DoubleSide });
+
+/* castKit, as it is: mk and grp take the material, so each BUILD below drops into castView.ts as written */
+function mk(parent, mat, shape, c, sx, sy, sz, x, y, z) {
+  const m = new THREE.Mesh(geo(shape, c, sx, sy, sz), mat);
+  m.position.set(x, y, z); m.frustumCulled = false; parent.add(m);
+  return m;
+}
+function grp(parent, x, y, z) {
+  const g = new THREE.Group(); g.position.set(x, y, z); parent.add(g);
+  return g;
+}
+function seeded(id) {
+  let s = (id * 2654435761) >>> 0 || 1;
+  const next = () => ((s = (Math.imul(s, 1664525) + 1013904223) >>> 0) / 4294967296);
+  return { rnd: (a, b) => a + next() * (b - a), pick: a => a[Math.floor(next() * a.length)] };
+}
+/* Pia's line, as the bloats have it (castView.ts): glassy eyes with the pupils pinned, and pustules */
+const GLASS = 0xd9d6cc, PUS = 0xd6c393;
+
+/* the gen 3 bloat, as the game draws it (castView.ts, standing). The founder is the same at 1.7 */
+function bloat(mat, m, k = 1) {
+  const R = seeded(m.id), g = new THREE.Group(), b = grp(g, 0, 1.75, 0);
+  mk(b, mat, 'ico', PALE, 1.9, 2.1, 1.7, 0, 0, 0); mk(b, mat, 'ico', FLESH, 1.3, 1, 1.2, 0, -0.6, 0.3); mk(b, mat, 'ico', RAW, 0.5, 0.4, 0.4, 0.6, 0.3, 0.5);
+  const hd = grp(b, 0, 1.4, 0.1);
+  mk(hd, mat, 'ico', PALE, 1.25, 1.35, 1.2, 0, 0, 0); mk(hd, mat, 'box', DARK, 0.16, 0.03, 0.04, 0, -0.38, 0.5);
+  for (const s of [-1, 1]) { mk(hd, mat, 'ico', GLASS, 0.15, 0.13, 0.08, s * 0.15, -0.2, 0.5); mk(hd, mat, 'ico', DARK, 0.03, 0.03, 0.03, s * 0.15, -0.2, 0.55); }
+  for (let q = 0; q < 7; q++) { const a = R.rnd(-1.2, 1.2), y = R.rnd(-0.7, 0.8); mk(b, mat, 'ico', PUS, R.rnd(0.08, 0.16), R.rnd(0.07, 0.13), R.rnd(0.08, 0.16), Math.sin(a) * 0.92, y, Math.cos(a) * 0.8); }
+  const arms = [];
+  for (const s of [-1, 1]) { const a = grp(b, s * 0.98, 0.35, 0); mk(a, mat, 'box', FLESH, 0.22, 1, 0.22, 0, -0.5, 0); arms.push(a); }
+  const legs = [-1, 1].map(s => { const l = grp(g, s * 0.45, 1, 0); mk(l, mat, 'box', FLESH, 0.5, 1, 0.5, 0, -0.5, 0); return l; });
+  g.scale.setScalar(k);
+  return { g, b, hd, arms, legs, bloat: true };
+}
+
+/* the husk's figure with the founder's traits on it, each 0 (none) to 1 (as the bloat has it):
+   swell   the bloat's mass: a belly out of the shirt, the shirt let out round it
+   head    the bloat's head: larger, and bowed under the weight
+   stare   her stupor in the eyes: glassy, the pupils pinned
+   pus     her pustules: how many
+   stubs   the bloat's arms: plain, thick, hanging, the hands gone into them
+   legs    the bloat's legs: thick, the trousers split off them
+   wound   the bloat's open flank
+   bone    not the founder's: Security's arm, the bone through the end (the patrols only) */
+function husk(mat, m, T) {
+  const R = seeded(m.id), g = new THREE.Group(), cl = T.cl ?? R.pick(SHIRTS), t = k => T[k] ?? 0;
+  const sw = t('swell'), hk = 1 + 0.75 * t('head'), st = t('stubs'), lg = t('legs');
+  /* the legs: trousers, thickening; past halfway the trousers give and it is the bloat's flesh below the knee */
+  const legs = [];
+  for (const s of [-1, 1]) {
+    const l = grp(g, s * (0.11 + 0.08 * lg), 0.9, 0), w = 0.16 + 0.16 * lg;
+    mk(l, mat, 'box', TR, w, lg > 0.5 ? 0.45 : 0.9, w + 0.01, 0, lg > 0.5 ? -0.225 : -0.45, 0);
+    if (lg > 0.5) mk(l, mat, 'box', FLESH, w * 0.95, 0.45, w * 0.95, 0, -0.67, 0);
+    mk(l, mat, 'box', DARK, w, 0.07, 0.26, 0, -0.87, 0.04);
+    legs.push(l);
+  }
+  const b = grp(g, 0, 0.9, 0), tw = 0.42 + 0.22 * sw, td = 0.24 + 0.14 * sw;
+  mk(b, mat, 'box', cl, tw, 0.6, td, 0, 0.3, 0); mk(b, mat, 'box', TR, tw - 0.02, 0.12, td - 0.01, 0, 0.03, 0);
+  if (sw > 0) mk(b, mat, 'ico', sw > 0.6 ? PALE : FLESH, 0.3 + 0.45 * sw, 0.3 + 0.35 * sw, 0.16 + 0.36 * sw, 0, 0.16 + 0.05 * sw, td / 2 + 0.02 + 0.06 * sw);
+  if (t('wound')) mk(b, mat, 'ico', RAW, 0.12 + 0.2 * t('wound'), 0.12 + 0.16 * t('wound'), 0.12 + 0.12 * t('wound'), tw / 2 - 0.02, 0.36, td / 2 - 0.04);
+  const hd = grp(b, -0.02, 0.62 + 0.14 * hk, 0.03 * t('head'));
+  mk(hd, mat, 'ico', PALE, 0.24 * hk, 0.28 * hk, 0.25 * hk, 0, 0, 0); mk(hd, mat, 'box', DARK, 0.1 * hk, 0.03, 0.03, 0, -0.07 * hk, 0.115 * hk);
+  if (t('stare')) for (const s of [-1, 1]) {
+    const e = 0.035 + 0.035 * t('stare');
+    mk(hd, mat, 'ico', GLASS, e * 1.6 * hk, e * 1.3 * hk, 0.03 * hk, s * 0.055 * hk, 0.03 * hk, 0.11 * hk); mk(hd, mat, 'ico', DARK, 0.014 * hk, 0.014 * hk, 0.014 * hk, s * 0.055 * hk, 0.03 * hk, 0.125 * hk);
+  } else for (const s of [-1, 1]) mk(hd, mat, 'ico', DARK, 0.04, 0.04, 0.04, s * 0.05, 0.03, 0.11);
+  if (T.bone) mk(hd, mat, 'ico', RAW, 0.1, 0.11, 0.07, 0.07, 0.04, 0.09);
+  hd.rotation.z = 0.25 * (1 - t('head')); hd.rotation.x = 0.35 * t('head');
+  /* the arms: a person's (a sleeve, a forearm, a hand); going to the bloat's, plain thick boxes with no hands; or the patrol's */
+  const arms = [];
+  for (const s of [-1, 1]) {
+    const a = grp(b, s * (tw / 2 + 0.06 + 0.05 * st), 0.56, 0);
+    if (T.bone && s > 0) { mk(a, mat, 'box', RAW, 0.14, 0.4, 0.14, 0, -0.2, 0); mk(a, mat, 'box', FLESH, 0.1, 0.52, 0.1, 0, -0.64, 0); mk(a, mat, 'box', BONE, 0.05, 0.16, 0.05, 0, -0.97, 0.02); }
+    else if (st > 0.5) { const w = 0.11 + 0.12 * st, L = 0.82 - 0.12 * st; mk(a, mat, 'box', st > 0.8 ? FLESH : cl, w + 0.01, 0.2, w + 0.01, 0, -0.1, 0); mk(a, mat, 'box', FLESH, w, L, w, 0, -L / 2, 0); }
+    else { mk(a, mat, 'box', cl, 0.11 + 0.06 * st, 0.36, 0.12 + 0.06 * st, 0, -0.18, 0); mk(a, mat, 'box', PALE, 0.08 + 0.06 * st, 0.34, 0.08 + 0.06 * st, 0, -0.53, 0); mk(a, mat, 'box', FLESH, 0.09, 0.11, 0.05, 0, -0.75, 0); }
+    arms.push(a);
+  }
+  /* her pustules: the shoulders, the neck, the head, the arms */
+  for (let q = 0; q < t('pus'); q++) {
+    const where = q % 4, sz = R.rnd(0.04, 0.08);
+    if (where === 3) mk(hd, mat, 'ico', PUS, sz * hk, sz * hk * 0.8, sz * hk, R.rnd(-0.08, 0.08) * hk, R.rnd(0.02, 0.1) * hk, 0.1 * hk);
+    else mk(b, mat, 'ico', PUS, sz, sz * 0.8, sz, R.rnd(-tw / 2, tw / 2), R.rnd(0.35, 0.6), (where === 1 ? -1 : 1) * (td / 2 + 0.01));
+  }
+  const k = T.scale ?? 1;
+  g.scale.set(k * (T.wide ?? 1), k, k * (T.wide ?? 1));
+  return { g, b, hd, arms, legs };
+}
+
+/* each entry: key, name, label, caption, and its build */
+const CAST = [
+  ['founder', 'The founder', 'gen 3 · the source', 'Every trait below is his, and Pia\'s before him: the mass, the head too big and bowed, her stare and her pustules, the arms gone to plain hanging flesh, the legs thick, the open flank. A bloat, at 1.7.', (mat, m) => bloat(mat, m, 1.7)],
+  ['bloat', 'Bloat', 'gen 3', 'His siblings, the dazed, who stand round the tree. All of the traits, at full strength.', (mat, m) => bloat(mat, m)],
+  ['plain', 'The figure', 'no traits', 'The husk\'s figure with none of it: a person, in the clothes they came to work in. Every trait below is shown alone on this.', (mat, m) => husk(mat, m, {})],
+  ['swell', 'Swell', 'trait · the mass', 'The bloat\'s body, coming through: a belly out of the shirt, the shirt let out round it. Pale where it is strong, the flesh colour where it is weak.', (mat, m) => husk(mat, m, { swell: 0.8 })],
+  ['head', 'Head', 'trait · the head', 'Too big for the body and bowed by its own weight, the way the bloats carry theirs.', (mat, m) => husk(mat, m, { head: 0.9 })],
+  ['stare', 'Stare', 'trait · her stupor', 'Glassy eyes, the pupils pinned whatever the light. The one that dulls last: an instinct more than a look.', (mat, m) => husk(mat, m, { stare: 1 })],
+  ['pus', 'Pustules', 'trait · her skin', 'Her pustules, on the shoulders, the neck and the head.', (mat, m) => husk(mat, m, { pus: 12 })],
+  ['stubs', 'Stubs', 'trait · the arms', 'The hands gone into the arms: plain, thick, hanging, as the bloat\'s. Not a weapon; a weight.', (mat, m) => husk(mat, m, { stubs: 1 })],
+  ['legs', 'Legs', 'trait · the legs', 'Thickened until the trousers split at the knee, and the bloat\'s flesh below.', (mat, m) => husk(mat, m, { legs: 1 })],
+  ['wound', 'Flank', 'trait · the open side', 'The bloat\'s open flank, which none of them seem to notice.', (mat, m) => husk(mat, m, { wound: 1 })],
+  ['bloc', 'The bloc', 'gen 4', 'One graft from the founder: most of it, still strong. Bigger (size is age), the belly through the shirt, the head heavy and bowed, the stare, pustules, the arms going to stubs, the legs thick. Halfway to a bloat.', (mat, m) => husk(mat, m, { swell: 0.7, head: 0.6, stare: 1, pus: 8, stubs: 0.7, legs: 0.7, wound: 0.6, scale: 1.2, wide: 1.1 })],
+  ['bloc2', 'The bloc', 'gen 4 · another', 'The same generation, the traits drawn in other strengths: less mass, more head.', (mat, m) => husk(mat, m, { swell: 0.4, head: 0.9, stare: 0.8, pus: 5, stubs: 0.6, legs: 0.3, wound: 0.4, scale: 1.15, wide: 1.05 })],
+  ['husk', 'Commons husk', 'gen 5', 'Two grafts down: the effects dull, the stare stays. A person still, a little heavy, the head a little big, glassy-eyed, a pustule or two.', (mat, m) => husk(mat, m, { swell: 0.3, head: 0.25, stare: 0.7, pus: 3 })],
+  ['husk2', 'Commons husk', 'gen 5 · another', 'The same generation: the stare and the flank and nothing else.', (mat, m) => husk(mat, m, { stare: 0.6, wound: 0.4, pus: 2 })],
+  ['patrol', 'Patrol', 'Security · not the founder\'s', 'Security\'s, for comparison: through the hatchlings, so none of the founder in it. The arm with the bone through the end is theirs, not every husk\'s.', (mat, m) => husk(mat, m, { bone: true })],
+];
+const BUILD = Object.fromEntries(CAST.map(c => [c[0], c[4]]));
+
+const ease = t => t * t * (3 - 2 * t);
+/* m as the sim has it: ph runs with time, mv > 0 when it walks, state idle or hunt */
+function animHusk(m, M) {
+  const mv = m.mv > 0, hunt = m.state === 'hunt', f = M.bloat ? (hunt ? 2.2 : 1.1) : hunt ? 11 : 5;
+  M.legs.forEach((l, k) => { l.rotation.x = mv ? Math.sin(m.ph * f + k * PI) * (M.bloat ? 0.2 : hunt ? 0.7 : 0.35) : 0; });
+  M.arms.forEach((a, k) => { a.rotation.x = hunt && !M.bloat ? -1.1 - k * 0.2 + Math.sin(m.ph * f + k) * 0.2 : mv ? Math.sin(m.ph * f + (1 - k) * PI) * 0.22 : Math.sin(m.ph * 0.9 + k) * 0.05; });
+  if (M.bloat) { const s = 1 + Math.sin(m.ph * 0.9) * 0.02; M.b.scale.set(s, 1 / s, s); M.hd.rotation.z = Math.sin(m.ph * 0.4) * 0.08; M.hd.rotation.y = Math.sin(m.ph * 0.23) * 0.2; }
+  else M.b.rotation.x = hunt ? 0.18 : 0.06;
+}
+const ANIM = Object.fromEntries(CAST.map(c => [c[0], animHusk]));
+
+/* ---- the scene: a floor, the lineup, a person for scale ---- */
+const S = new THREE.Scene(), SP = 2.6;
+const FLOOR_W = CAST.length * SP + 4;
+mk(S, MAT, 'box', 0x3b3d3f, FLOOR_W, 0.1, 8, 0, -0.05, 0);
+for (let x = -FLOOR_W / 2 + 1; x < FLOOR_W / 2; x += 1) mk(S, MAT, 'box', 0x2c2e30, 0.02, 0.004, 8, x, 0.001, 0);
+for (let z = -3; z < 4; z += 1) mk(S, MAT, 'box', 0x2c2e30, FLOOR_W, 0.004, 0.02, 0, 0.001, z);
+const SHOWN = CAST.map(([key], i) => {
+  /* the founder needs more room than the rest */
+  const m = { id: 11 + i * 7, ph: i * 1.7, mv: 0, state: 'idle' }, M = BUILD[key](MAT, m);
+  M.g.position.set((i - (CAST.length - 1) / 2) * SP - (i === 0 ? 1.4 : 0), 0, 0);
+  S.add(M.g);
+  return { key, m, M };
+});
+const fig = grp(S, 0, 0, 0);
+{ const c = 0x5c5f62;
+  for (const s of [-1, 1]) mk(fig, MAT, 'box', c, 0.16, 0.86, 0.18, s * 0.11, 0.43, 0);
+  mk(fig, MAT, 'box', c, 0.44, 0.62, 0.24, 0, 1.17, 0);
+  for (const s of [-1, 1]) mk(fig, MAT, 'box', c, 0.1, 0.66, 0.11, s * 0.28, 1.15, 0);
+  mk(fig, MAT, 'ico', c, 0.24, 0.28, 0.25, 0, 1.64, 0); }
+
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
+const camera = new THREE.PerspectiveCamera(50, 1, 0.05, 120);
+const cam = { yaw: 0.5, pitch: 0.12, dist: 6.5, tgt: new THREE.Vector3(), want: new THREE.Vector3() };
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const damp = (k, dt) => 1 - Math.exp(-k * dt);
+
+/* ---- the panel ---- */
+let cur = 0, mode = 'idle', figX = 0;
+const MODES = { idle: ['Idle', 0, 'idle'], walk: ['Walk', 1, 'idle'], hunt: ['Hunt', 1, 'hunt'] };
+const nav = document.getElementById('nav'), btns = document.getElementById('btns');
+CAST.forEach(([key, name], i) => {
+  const b = document.createElement('button');
+  b.setAttribute('role', 'tab'); b.id = `tab-${key}`; b.textContent = name; b.onclick = () => pick(i);
+  nav.appendChild(b);
+});
+for (const [k, [label]] of Object.entries(MODES)) {
+  const b = document.createElement('button');
+  b.id = `b-${k}`; b.textContent = label; b.onclick = () => { mode = k; panel(); };
+  btns.appendChild(b);
+}
+function panel() {
+  const [key, name, was, cap] = CAST[cur];
+  document.getElementById('state').textContent = name;
+  document.getElementById('was').textContent = was;
+  document.getElementById('cap').textContent = cap;
+  for (const b of nav.children) b.setAttribute('aria-selected', String(b.id === `tab-${key}`));
+  for (const b of btns.children) b.className = b.id === `b-${mode}` ? 'on' : '';
+}
+function pick(i) {
+  cur = i; panel();
+  const x = SHOWN[i].M.g.position.x, tall = ['founder', 'bloat'].includes(SHOWN[i].key);
+  /* on a wide screen the panel takes the lower left, so look a little left of it and it stands clear */
+  cam.want.set(x - (innerWidth > 900 ? 0.9 : 0), tall ? 1.6 : 1.0, 0);
+  figX = x + 1.4;
+  cam.dist = SHOWN[i].key === 'founder' ? 10 : tall ? 7.2 : 5.6;
+}
+const flashEl = document.getElementById('flash'), figEl = document.getElementById('figure');
+addEventListener('keydown', e => {
+  if (e.key === 'f' || e.key === 'F') flashEl.checked = !flashEl.checked;
+  if (e.key === 'ArrowRight') pick((cur + 1) % CAST.length);
+  if (e.key === 'ArrowLeft') pick((cur + CAST.length - 1) % CAST.length);
+});
+
+/* ---- orbit ---- */
+const ptrs = new Map(); let pinch = 0;
+canvas.addEventListener('pointerdown', e => { canvas.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, [e.clientX, e.clientY]); });
+canvas.addEventListener('pointerup', e => { ptrs.delete(e.pointerId); pinch = 0; });
+canvas.addEventListener('pointercancel', e => { ptrs.delete(e.pointerId); pinch = 0; });
+canvas.addEventListener('pointermove', e => {
+  const p = ptrs.get(e.pointerId); if (!p) return;
+  if (ptrs.size === 1) { cam.yaw -= (e.clientX - p[0]) * 0.006; cam.pitch = clamp(cam.pitch + (e.clientY - p[1]) * 0.005, -0.2, 1.35); }
+  ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+  if (ptrs.size === 2) {
+    const [a, b] = [...ptrs.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]);
+    if (pinch) cam.dist = clamp(cam.dist * pinch / d, 1.5, 30);
+    pinch = d;
+  }
+});
+canvas.addEventListener('wheel', e => { e.preventDefault(); cam.dist = clamp(cam.dist * Math.exp(e.deltaY * 0.001), 1.5, 30); }, { passive: false });
+
+function resize() {
+  const w = innerWidth, h = innerHeight;
+  renderer.setSize(w, h, false); camera.aspect = w / h;
+  camera.fov = w < h ? 66 : 50;
+  camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize); resize();
+
+const _v = new THREE.Vector3();
+let prev = performance.now();
+function frame(nowMs) {
+  const dt = Math.min(0.05, (nowMs - prev) / 1000);
+  prev = nowMs;
+  cam.tgt.lerp(cam.want, damp(4, dt));
+  camera.position.set(cam.tgt.x + Math.sin(cam.yaw) * Math.cos(cam.pitch) * cam.dist, cam.tgt.y + Math.sin(cam.pitch) * cam.dist, cam.tgt.z + Math.cos(cam.yaw) * Math.cos(cam.pitch) * cam.dist);
+  camera.lookAt(cam.tgt);
+  _v.set(0.18, -0.2, 0).applyQuaternion(camera.quaternion);
+  U.uFlashPos.value.copy(camera.position).add(_v);
+  U.uFlashDir.value.copy(cam.tgt).sub(U.uFlashPos.value).normalize();
+  U.uFlash.value = flashEl.checked ? 1 : 0;
+  U.uTime.value = nowMs / 1000;
+  fig.visible = figEl.checked;
+  fig.position.set(figX, 0, -1.1);
+  const [, mv, state] = MODES[mode];
+  SHOWN.forEach((s, i) => {
+    /* only the one you are looking at walks or hunts; the rest of the lineup idles */
+    s.m.mv = i === cur ? mv : 0; s.m.state = i === cur ? state : 'idle';
+    s.m.ph += dt;
+    ANIM[s.key](s.m, s.M);
+  });
+  renderer.render(S, camera);
+  requestAnimationFrame(frame);
+}
+pick(0); cam.tgt.copy(cam.want);
+requestAnimationFrame(frame);
+window.__rs = { SHOWN, pick, camera, cam };
+</script>
+
+</body></html>
