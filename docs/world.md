@@ -78,7 +78,7 @@ The testers and those they turned, centred on Horticulture.
 
 ### The flesh (the second tribe)
 
-- **Origin.** A member of staff touched the animal part of a plant hybrid (a mutated arm, not the plant growth). The sample carried
+- **Origin.** A member of staff touched the animal part of a plant hybrid (a mutated arm, not the plant growth; in §10 this is Pia's touch, in her stupor, and the arm is an ordinary one). The sample carried
   perhaps a twentieth of the plant influence, so they became a mostly flesh mutant, with the same plasticity.
 - **Mindset.** The infection carried the mindset. He inherited the plants' tribalism, victimhood and fear of eradication, as his own
   private terror. It drove him to take others by force and make them change with him, one and then more, until the bloc was strong
@@ -281,7 +281,7 @@ Each phase is playable on its own.
 1. **Who owns the facility?** Corporation, government or individual, and is there a **third pressure**: their purge protocol as a
    clock, or an ending of its own? Whoever they are, they cannot know an outbreak like this is possible, so a purge could only be a
    generic incident response (lose contact for so long, seal the shaft, send a team), not a plan for mutants.
-2. **Full mutation:** death, ending, or a playable state? (Leaning: playable, at least partway.)
+2. **Full mutation:** death, ending, or a playable state? (Intended: the player mutates, or tries to resist it, by grafting (§10). Built later; the game must be fun without it.)
 3. **Can you walk among the mutants unharmed?** If yes, faction AI is a real engine job (truce, territory). If no, the politics stay
    at arm's length, through terminals and intercoms.
 4. **The mutagen's official name.**
@@ -667,3 +667,199 @@ ties the generators together and answers questions not yet faced.
 ### Left out
 
 Hunger and thirst, sanity meters, anything that is upkeep rather than sensation.
+
+---
+
+## 10. The lineage (proposed)
+
+The mutants as one family. Where this and §2 disagree, this is the newer thinking; §2 is to be reconciled with it as the
+levels are built. None of it has to reach the player: the game plays without it, and rewards anyone who looks (see *Tells*).
+
+### The mutagen is a graft
+
+- **A living tissue, not a chemical.** The tissue Horticulture took from the aquifer core is the mutagen. Infection is a
+  graft: the host is the **rootstock**, the tissue the **scion**, and the notes already talk this way ("a cultivar that takes
+  badly"). Every mutant is a cutting of the same source, so a tribe is a family, and how related two mutants are is how many
+  grafts apart they are.
+- **It keeps you changing, not alive.** It cannot raise the dead or stop a bleed, and it slows without new grafts. Things die
+  when they are killed. New grafts are the only way to speed up, which is a reason to infect.
+- **The plant.** Every green form is wild tobacco, *Nicotiana rustica*, mutated its own way: Pia took its stalk, leaves and
+  flowers and grew into a tree; Dale wears its leaves, in shelves, the colour of nicotine; Holt breeds the whole plant for
+  structure. Not every line shows the plant: Ines shows none. The rest are to be worked out the same way: which part of the plant, and what it became.
+- **The people.** Lowfield is in a country with some racial diversity, and its staff reflect it. "Skin" in these notes means
+  any human skin tone, and a mutant keeps its host's: an elder's children differ in skin as in build, because each grew on its
+  own body.
+- **Almost nothing looks human.** By the time of the game nearly every mutant is far from the person it was; one that still
+  looks human is in the first stages of change, and those are rare.
+- **Generations.** The crop is generation 1; the elders, who took it from the crop, are 2; their children 3, and so on.
+
+### The rules
+
+1. **Strain, rootstock, habit.** You inherit your grafter's strain as it was on the day you were grafted, grown on your own body,
+   and your body grows whatever you do (the overseer watched screens and grew one great eye).
+2. **Time alone makes a strain.** Change without passing it on and you drift from your parent; change beside someone and you
+   drift together. The elders are whoever changed longest alone.
+3. **Every organ makes a problem, and the body grows a way round it.** A mutant flooded with its own drug evolves a tolerance
+   or a bypass, not a stupor. The **crisis** is the time that takes, and it leaves scars the solution keeps.
+4. **Young tissue carries the drug; old tissue carries the cure.** A graft from an elder still in crisis passes on the organ
+   without the way round it; one from an elder past it passes on the way round. The same graft cures the sick and infects the
+   clean. Children grafted during a parent's crisis are the dangerous ones.
+5. **You age into your solution.** Solutions that need stillness go to plant; those that need action go to flesh. Elders are
+   big, each in its own silhouette (tall, wide, heavy, rooted, coiled); an elder who is not big has a reason.
+6. **An idea in the parent is an instinct in the child.** Effects dull with each generation; instincts do not.
+7. **Mutation keeps what the human had.** A mutant that came from a person still sleeps, eats and breathes; the new
+   organs are added to the old ones, not swapped for them. So every mutant can be kept awake, and Dale's stimulant is a danger to
+   all of them, not only to people.
+8. **Kin by smell; a mind only in one body.** Mutants know kin by smell, and elders are the strongest source of the smell their
+   line knows as home, which is why they are fed and grow huge. A shared mind needs shared tissue: fused bodies (the overseer,
+   the hand) and Holt's one root system. Everything else talks by smell, sound and touch.
+
+### The village
+
+The testers lived in a large isolation room in Horticulture: a small village built to hold six people for as long as a trial
+ran, and, in the worst case, through sickness or death. They were encouraged to repeat the same dose, for consistent reports.
+Nobody expected worse than a bad night.
+
+### The elders
+
+- **Maren Holt (director of research).** Raw tissue from the beds, through a burn on her hand. Her way round is care: she grafts
+  the plants onto herself slowly, choosing each one, and shapes herself with them, and she has never stopped. She is the green
+  god, and she is a level: Horticulture (to be rebuilt much larger) is colonised by her, and the cave under it, larger again
+  and open to explore, is her body entire, the leaf on the floor, the cane standing, what hangs from the roof, what is trained
+  up the walls, all one plant on one root. Her face is in it somewhere, a person's size, eyes closed, the colour of the rest:
+  a dot in an ocean. She pushes the crop the way farmers pushed wild corn into maize: leaves big enough to roof a room, stalks
+  strong enough to build with. Her line is the only one that is bred, not born, and her root system is the station's one true
+  hivemind (she feels footsteps on soil, not on stone). Above her kin because every other elder can only make more of
+  itself, and Holt can make something new; and the only one who plans by growing. *Children:* her cultivars (leaf giants,
+  cane, espalier screens, heliotropes that turn to follow a light, stranglers, seed-throwers), and in the cave her hunters:
+  one generation of plant-like, motile predators grafted from parts of her, the least human things on the station (cane for
+  legs, a body of folded leaf, a pod for a head that splits open). Among her stand massive sunflowers, leaning on heavy
+  stalks, too heavy to hold their heads up to the light, each ringed by small ones; and Pia's tobacco flowers come out of
+  the rock and up out of the floor: something of her, without words. *Open:* her tell, and how she can be hurt. *Inside:* Tom is
+  her longest bet, and Sam carries her light.
+- **Pia Lind (painkiller).** The stupor: glassy eyes, pupils pinned whatever the light, pustules, numb to pain and to
+  everything, her metabolism slowed to a crawl. She does not fight it; she slows into something stationary and survives as
+  that. **You meet her as the tree, or nearly:** the Commons tree, a rustica grown to about 13 m, risen out of a planter and through the floor,
+  its roots spread far across the court. The stalk has thickened to a ridged trunk, still in leaf, in flower and setting seed,
+  and past the flowers it keeps going, narrowing to a point that runs on up through the roof of the Commons: no tobacco does
+  that. The swollen foot of the stalk was her body; her face is a smear in the wood, hollows you could walk past. She cannot
+  speak. A living god to both tribes: the flesh tolerate a plant because it is their mother, and tap her for milk. *Spreads:*
+  early, by a touch in her stupor, with an ordinary arm (nothing about the arm is special; it is only what she touched people
+  with); late, by a cutting from the tree laid on you. What the Commons carry is that early snapshot of her, the flesh and the
+  opiate, not the tree. Grafting her takes the edge off, and you lose something you do not miss. *Children:* early, the dazed,
+  husk-like; mid, half stalk and half flesh, Pia caught mid-change; late, sessile, quietly euphoric, still feeling. Old Pias grow
+  faster as they age, so the tree is a clock. *Tell:* milky sap.
+- **Ines Calder (hallucinogen).** She never stops seeing. Her brain grows until it can carry the visions without believing
+  them, and what is left is lucid and finds patterns in everything. Very tall (about 7 m), lanky, with a big head: the growth
+  went to the head and to what perceives. Human and fleshy, in her own skin, and reads as an ordinary mutant: no plant shows on her at
+  all. She paints great walls and cannot
+  stop. She painted as a hobby, before, and her scenes mean something: they come from her life before, and see ahead.
+  *Spreads:* wet paint, and slivers she cuts from herself. *Children:* the eldest are still seeing, still in it. Her children ape
+  the colours and the structure of her work, and spread it elsewhere in the station at low resolution; her grandchildren get
+  only the vague colours and shapes right. *Tell:* height and a big head; murals and street art (quality shows
+  distance from her, wet paint means one is near).
+- **Dale Mercer (strong leaf; employee of the month).** Weeks without sleep: rage, blackouts. The energetics were born then,
+  and he barely remembers them. His brain learns to ignore the stimulant; he sleeps and is himself again, but the organ never
+  stops making it, and he is very infectious. Now he is an elder, and the plant shows on him: tobacco leaf grows out of him in
+  shelves, stacked the way a bracket fungus stacks, tinted the colour of nicotine, over the shoulders where a head would be,
+  down the back and the flanks and the legs. He has no head at all: a chest, nicotine-stained, sat in a tub of his own
+  stimulant on two thick, knotted, too-long legs, one knee up out of it and one leg out over the side to the floor, and from
+  one hole low in his front what he makes runs into the tub. There is no throne; the tub's high back only reads as one from
+  across the room. He is inoculating the station: there are too many sleepless children for his death to fix anything, so he
+  leaves low doses where people drink and has his eldest give grafts for rapid immunity. He will not graft anyone himself.
+  Nobody wants a second dose; it means a bad night. *A graft from his eldest:* a few nights awake on the edge, then immunity;
+  your blood carries the stimulant, and the sleepless keep away from your smell. *Children:* his line looks like him. His
+  eldest are as wrong as he is: chests on legs, the same colour, fewer leaves and less of the ooze, each wrong its own way (on
+  stilts, on legs like trunks, one arm grown huge). About half keep a head at full growth, the same tobacco colour as the rest,
+  lumped and hairless; the leaf comes out of the tops of them, head or shoulders, in more or less. Nipples and navels are dots,
+  and Dale's chest is no more muscled than theirs. The bigger have the hole; the small ones have only a navel. The growth goes into the legs, as Dale's did: one with a hole
+  stands at least a third taller than one without, on legs grown long and thick. The sleepless
+  are the same kind, still in it, hunched and plainly mad, and mostly keep their heads. The antidote child breaks the drug down instead and wants the spreading
+  stopped, not managed; late children are mild. *Tell (the sleepless):* teeth grinding you can hear, never still. If it sits
+  down, it is past it. *The tub as a hazard:* every mutant sleeps (rule 7), so any mutant that gets enough of it goes
+  sleepless too.
+- **Tom Wren (mild leaf).** Sleepless but calm; he wrote letters home until only his writing hand moved. He was a very big
+  man, four times a man's size, and he lay down and stopped, and was grown through. He is still plainly a man, ashen, on his
+  back with his knees a little up and one hand over his letters, but his own spore producers have come up through him, out of
+  his chest, belly, thighs and face, torn skin round each: ribbed stalks, pale green, plant more than animal, each with a
+  sulphur-yellow mouth at the top that opens and throws spores with the draught and holds shut when the fans stop. *Where:*
+  Holt moved him to a zone of his own and sealed it, her roots packed into the doorway, so he can sit in a later reach of the
+  game. Round him is his bubble: the smaller producers he threw, grown up out of the floor, thicker the nearer they are
+  to him. *Spreads:* spores on the air, "as far as it can travel". *Tell:* yellow dust that follows the air.
+  *The spores and you (proposed):* a spore is a graft like any other and needs living tissue to take: a wound, or long, heavy
+  breathing of it. One breath does nothing; a cut in his zone, or hours in it unmasked, does. The rebreather keeps them out,
+  so his zone is somewhere you go equipped, and a wound taken there is the danger. On the floor, on the dead, on anything
+  organic, they grow into new producers. *Inside:* Holt is not containing him but saving him for the surface; opening his
+  zone lets him out on your schedule, not hers.
+- **Sam Okoro (a bit of everything).** Took every product at least once, and the niche strains nobody else touched (a DMT-like,
+  a psilocybin-like): the trial's most watched subject. Moody like Janus, kind like the aedra; never psychotic, never violent;
+  driven to fairness. A big man, about 3.3 m, long in the leg and less heavy than his height suggests; his body a patchwork of
+  pieces swapped with friends: a graft is how he shows affection. The whites of his eyes are neon, the pupils
+  black, and he still wears a loincloth cut from a station sheet: what he keeps of being a man. His left arm glows, far brighter than the mushrooms crowded on that side of him, and in a dark room it is the light.
+  His blood glows too, but only out of him: cut him and it shines where it runs and pools. *His graft* treats the mind, not
+  the body: sleeplessness still wrecks you, but you stop being violent about it and can carry on, and the soundtrack gains
+  something that is not in the room. *Inside:* the arm's light was Holt's gift. Her heliotropes follow light, so they always
+  know where he is; and the spores in his blood are her tissue, which makes him fond of her. His warmth toward Holt was grown.
+- **June Pryor (oils and resins; a lab technician): set aside.** A sixth elder, a person turned to hardened sap and kept by
+  Holt as grafting wax, was mocked up and shelved: there are enough elders. Nothing else depends on her.
+
+### The young gods
+
+- **The founder (generation 3).** Touched by Pia in her stupor. Pia's fear of eradication was a thought;
+  in the founder it became biology. It took others by force and turned the Commons.
+- **Pia's generations.** The opiate dulls with each generation; the fear does not, so the youngest are the most violent and the
+  oldest the largest and most stupefied.
+
+  | Gen | Who | Can | Opiate | Fear |
+  |---|---|---|---|---|
+  | 2 | Pia | nothing; cannot speak | full | an idea |
+  | 3 | the dazed, the founder | gesture | heavy | in the founder, an instinct |
+  | 4 | the Commons bloc | walk, track you with their heads | some | strong |
+  | 5 | Commons husks | act; ignore their own pain | faint | strong, and turned outward |
+
+- **The mother.** A woman of the Commons bloc whose graft took in the womb; touch her and you lay eggs too. Her hatchlings have
+  no host and lose most of the human look. She lays in Cargo, where nothing green can reach.
+- **Security's first.** Taken by a hatchling in Cargo, so it inherited no fear and no thought, only drills; it sits up out of
+  the middle of the overseer (§8). Hatchlings imprint on whoever tends the clutch, so Security raises the Commons' young, guards
+  a nest it cannot add to, and wants a mother of its own.
+
+### Grafting as treatment
+
+Grafting is a verb as well as an infection. Ines's eldest children, still seeing, are the example: no words, only a diagnosis
+and a choice of tissue.
+
+| Graft | Does | Costs |
+|---|---|---|
+| none | mercy | a life |
+| old Pia | eases the visions; starts the wood | slows their tolerance, so it lasts longer |
+| young Pia | a strong painkiller; an Ines × Pia hybrid | grows up clever, creative, checked out |
+| old Ines | races them to tolerance | they become more like her |
+| Sam | they can bear it | nothing is cured |
+
+Each graft needs a visible change within a minute (it stops pacing, sits, paints better), or the player cannot learn it. The
+same pattern serves Dale's sleepless. **The player mutating (intended, built later):** the obvious next step is grafting
+yourself. The game must be fun without it, so it waits (§6, question 2).
+
+### Tells
+
+The player is never told any of this; they read it.
+
+- **Fluid colour is lineage:** Pia milk, Dale nicotine, Ines her own pigment, Tom spore-yellow, Holt green, Sam a glow.
+  Two colours on one body is a hybrid.
+- **Behaviour is stage:** never still means crisis; sitting means past it.
+- **Size is age,** in each elder's own silhouette.
+- **Motif is descent from Ines,** degrading by generation.
+- **Scars** show which crisis it survived.
+- **An offered wrist,** cut open and held out, is a graft offered, in every lineage.
+
+### Open
+
+- Holt: what marks her work, and how she can be hurt.
+- Is the founder the thresher? What do the young gods look like?
+- Where Ines paints, and where Dale holds court.
+- The antidote child: a name, and where it went.
+- Holt's lab journal (`src/content/notes.ts`) has her cutting out her own fear; that is dropped, and the note is to be
+  rewritten with the levels. So is the resident's diary, whose Pia has an arm that reaches for the lamp on its own: the arm has
+  no will of its own.
+- Tom: his producers throw spores (not tobacco's seed after all); whether they are tobacco in any way is open.
+- Ines's murals: to be designed as particular scenes, with the copies worked down from them.
