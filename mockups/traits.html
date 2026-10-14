@@ -1,5 +1,5 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Founder Traits</title>
+<meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400&display=swap" rel="stylesheet">
 <style>
@@ -14,14 +14,14 @@
 html, body { height: 100%; margin: 0; background: var(--pitch); color: var(--bone); font-family: var(--sign); overflow: hidden; }
 canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
 canvas:active { cursor: grabbing; }
-.top { position: fixed; left: 0; right: 0; top: 0; padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 0; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+.top { position: fixed; left: 0; right: 0; top: 0; padding-top: calc(14px + env(safe-area-inset-top, 0px)); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
 .name { font-size: 15px; letter-spacing: .2em; text-transform: uppercase; color: var(--ash); }
 .name b { color: var(--bone); font-weight: 600; }
 nav { display: flex; flex-wrap: wrap; gap: 4px; pointer-events: auto; max-width: 100%; }
 nav button, .btns button { font: inherit; color: var(--bone); background: none; border: 1px solid var(--line); cursor: pointer; }
 nav button { font-size: 19px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; padding: 2px 11px 1px; }
 nav button[aria-selected="true"] { border-color: var(--hazard); color: var(--hazard); }
-.panel { position: fixed; left: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); width: min(460px, calc(100% - 32px)); background: var(--panel); border-top: 3px solid var(--hazard); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; }
+.panel { position: fixed; left: max(16px, env(safe-area-inset-left, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); width: min(460px, calc(100% - 32px)); background: var(--panel); border-top: 3px solid var(--hazard); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; }
 .state { font-size: 26px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; line-height: 1; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
 .was { font-size: 15px; font-weight: 500; letter-spacing: .12em; color: var(--ash); }
 #cap { font-family: var(--hand); font-size: 16px; line-height: 1.42; margin: 0; max-width: 38em; }
@@ -33,7 +33,7 @@ button:focus-visible { outline: 2px solid var(--hazard); outline-offset: 2px; }
 .row { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 15px; color: var(--ash); }
 .row label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
 .row input { accent-color: var(--hazard); margin: 0; }
-.hint { position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); font-size: 14px; letter-spacing: .1em; text-transform: uppercase; color: var(--ash); pointer-events: none; text-align: right; }
+.hint { position: fixed; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); font-size: 14px; letter-spacing: .1em; text-transform: uppercase; color: var(--ash); pointer-events: none; text-align: right; }
 @media (max-width: 720px) { .hint { display: none; } #cap { font-size: 15px; } .state { font-size: 22px; } nav button { font-size: 16px; padding: 2px 8px 1px; } }
 </style>
 
@@ -374,5 +374,3 @@ pick(0); cam.tgt.copy(cam.want);
 requestAnimationFrame(frame);
 window.__rs = { SHOWN, pick, camera, cam };
 </script>
-
-</body></html>
