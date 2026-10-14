@@ -773,11 +773,14 @@ Nobody expected worse than a bad night.
   down, it is past it. *The tub as a hazard:* every mutant sleeps (rule 7), so any mutant that gets enough of it goes
   sleepless too.
 - **Tom Wren (mild leaf).** Sleepless but calm; he wrote letters home until only his writing hand moved, then curled in a
-  corner, and the curl became a fiddlehead, his spores in rows like handwriting. Uncurling over months into fronds about 5 m
-  long, inside a pocket Holt has boxed in with roots: you cut your way in. *Spreads:* spores on the air, "as far as it can
-  travel". *Children:* breathing pots, mouths turned up like a sandworm's, that breathe with the ventilation; crawlers that
-  follow the draught up the shafts. *Inside:* Holt is not containing him but saving him for the surface; cutting in lets him
-  out on your schedule, not hers.
+  corner, and the curl grew together into one body, cured brown like dry leaf, his head pressed into his knees, the letters
+  and the pencil still round him. Up his back the tobacco's seed capsules stand in rows like lines of handwriting, splitting
+  and shedding seed as fine as dust. He is inside a pocket Holt has boxed in with roots, floor to ceiling, amber where she
+  grafted them: you cut your way in. *Spreads:* seed on the air, "as far as it can travel" (tobacco's seed is dust-fine, a
+  plant setting hundreds of thousands; this replaces the fern and its spores, proposed). *Children:* breathing pots, ringed,
+  mouths turned up like a sandworm's, that open and close with the draught and hold their breath when the fans stop; crawlers,
+  small and many-legged, seed on their backs, that follow the draught to the vents and up the shafts. *Inside:* Holt is not
+  containing him but saving him for the surface; cutting in lets him out on your schedule, not hers.
 - **Sam Okoro (a bit of everything).** Took every product at least once, and the niche strains nobody else touched (a DMT-like,
   a psilocybin-like): the trial's most watched subject. Moody like Janus, kind like the aedra; never psychotic, never violent;
   driven to fairness. A big man, about 3.3 m, long in the leg and less heavy than his height suggests; his body a patchwork of
@@ -851,6 +854,5 @@ The player is never told any of this; they read it.
 - Holt's lab journal (`src/content/notes.ts`) has her cutting out her own fear; that is dropped, and the note is to be
   rewritten with the levels. So is the resident's diary, whose Pia has an arm that reaches for the lamp on its own: the arm has
   no will of its own.
-- Tom's spores: tobacco makes none. Its seed is dust-fine, though, a single plant setting hundreds of thousands, which would
-  carry on the air as well; whether Tom keeps the fern or becomes the plant's seed is open.
+- Tom: seed rather than fern is proposed (the mockup has it); confirm.
 - Ines's murals: to be designed as particular scenes, with the copies worked down from them.
