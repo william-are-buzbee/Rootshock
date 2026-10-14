@@ -84,7 +84,8 @@ The testers and those they turned, centred on Horticulture.
   private terror. It drove him to take others by force and make them change with him, one and then more, until the bloc was strong
   enough to take the Commons. (This is the game's darkest thread: an analogue of assault and abuse of power. It lands harder implied,
   through notes and through what the Commons has become, than shown. Keep it restrained, in the game's clipped register.)
-- **Leader (proposed): the keeper**, the bloat in the director's residence who wears the director's lift key.
+- **Leader (agreed): the keeper**, who is the founder (§10): the largest of the bloats, seated in the Square's bar facing Pia,
+  the director's lift key round his neck.
 - **Territory:** the Commons and the Square.
 - **Wants:** energy, food and heat. They have lived on dwindling stores and backup-generator warmth. They want Engineering: the warm
   generator hall is where mats of edible flesh could be grown and harvested.
@@ -748,8 +749,8 @@ Nobody expected worse than a bad night.
   speak. A living god to both tribes: the flesh tolerate a plant because it is their mother, and tap her for milk. *Spreads:*
   early, by a touch in her stupor, with an ordinary arm (nothing about the arm is special; it is only what she touched people
   with); late, by a cutting from the tree laid on you. What the Commons carry is that early snapshot of her, the flesh and the
-  opiate, not the tree. Grafting her takes the edge off, and you lose something you do not miss. *Children:* early, the dazed,
-  husk-like; mid, half stalk and half flesh, Pia caught mid-change; late, sessile, quietly euphoric, still feeling. Old Pias grow
+  opiate, not the tree. Grafting her takes the edge off, and you lose something you do not miss. *Children:* early, the dazed:
+  the bloats (generation 3), heavy, slow and fed, who stand and walk round her; mid, half stalk and half flesh, Pia caught mid-change; late, sessile, quietly euphoric, still feeling. Old Pias grow
   faster as they age, so the tree is a clock. *Tell:* milky sap.
 - **Ines Calder (hallucinogen).** She never stops seeing. Her brain grows until it can carry the visions without believing
   them, and what is left is lucid and finds patterns in everything. Very tall (about 7 m), lanky, with a big head: the growth
@@ -807,15 +808,23 @@ Nobody expected worse than a bad night.
 
 ### The young gods
 
-- **The founder (generation 3).** Touched by Pia in her stupor. Pia's fear of eradication was a thought;
-  in the founder it became biology. It took others by force and turned the Commons.
+- **The founder (generation 3; agreed).** Touched by Pia in her stupor. Pia's fear of eradication was a thought;
+  in the founder it became biology. He took others by force and turned the Commons. He is the first and largest of the
+  bloats, and the keeper of §2: still plainly a man, more human than any elder, and especially large and well fed, because
+  the Commons smell her on him and bring him things. Seated, never standing: on the floor of the Square's bar with his back
+  to the far wall, his legs out and his belly on his thighs, his head bowed and small for the rest, facing out of the door
+  across the court to Pia. Her stupor in his face (glassy eyes, the pupils pinned, milk at the corner of the mouth), her
+  pustules on his skin, the scars of wounds he never felt, the shirt he was in split down the back, and the director's lift
+  key on its cord round his neck. **Built.** The smaller bloats, the rest of her third generation, walk and stand round the
+  tree itself, looking up. The Commons is to be rebuilt larger in its own pass (as Security was), and his room with it:
+  he should be larger again than the room allows today.
 - **Pia's generations.** The opiate dulls with each generation; the fear does not, so the youngest are the most violent and the
   oldest the largest and most stupefied.
 
   | Gen | Who | Can | Opiate | Fear |
   |---|---|---|---|---|
   | 2 | Pia | nothing; cannot speak | full | an idea |
-  | 3 | the dazed, the founder | gesture | heavy | in the founder, an instinct |
+  | 3 | the dazed (the bloats), the founder | gesture | heavy | in the founder, an instinct |
   | 4 | the Commons bloc | walk, track you with their heads | some | strong |
   | 5 | Commons husks | act; ignore their own pain | faint | strong, and turned outward |
 
@@ -857,7 +866,10 @@ The player is never told any of this; they read it.
 ### Open
 
 - Holt: what marks her work, and how she can be hurt.
-- Is the founder the thresher? What do the young gods look like?
+- What does the thresher descend from, now that the founder is a bloat? What do the other young gods look like?
+- The bloat in the arboretum (Holt, as built) is the wrong shape now that bloats are Pia's third generation.
+- The keeper's note is still on the director's desk, in the old story (the accessions). Was the founder the station's
+  director, who had the key round his neck and stayed? The note reads that way, and nothing yet says otherwise.
 - Where Ines paints, and where Dale holds court.
 - The antidote child: a name, and where it went.
 - Holt's lab journal (`src/content/notes.ts`) has her cutting out her own fear; that is dropped, and the note is to be

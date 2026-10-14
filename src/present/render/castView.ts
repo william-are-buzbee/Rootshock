@@ -12,6 +12,8 @@ import { animHand, animOverseer, buildHand, buildOverseer, type Ctx } from './se
    decides where each is and what it is doing; this only shows it. */
 
 const PI = Math.PI;
+/* Pia's line (world.md §10): glassy eyes, pustules, milk */
+const GLASS = 0xd9d6cc, PUS = 0xd6c393, MILK = 0xece4d0;
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Model = { g: THREE.Group; [k: string]: any };
 
@@ -50,13 +52,62 @@ const BUILD: Record<string, (mat: THREE.Material, m: Mutant) => Model> = {
     const R = seeded(m.id), g = new THREE.Group(), sit = m.sit, b = grp(g, 0, sit ? 1.05 : 1.75, 0);
     mk(b, mat, 'ico', PALE, 1.9, 2.1, 1.7, 0, 0, 0); mk(b, mat, 'ico', FLESH, 1.3, 1, 1.2, 0, -0.6, 0.3); mk(b, mat, 'ico', RAW, 0.5, 0.4, 0.4, 0.6, 0.3, 0.5);
     const hd = grp(b, 0, 1.4, 0.1);
-    mk(hd, mat, 'ico', PALE, 1.25, 1.35, 1.2, 0, 0, 0); mk(hd, mat, 'ico', DARK, 0.07, 0.07, 0.07, -0.14, -0.22, 0.52); mk(hd, mat, 'ico', DARK, 0.07, 0.07, 0.07, 0.14, -0.22, 0.52); mk(hd, mat, 'box', DARK, 0.16, 0.03, 0.04, 0, -0.38, 0.5);
+    mk(hd, mat, 'ico', PALE, 1.25, 1.35, 1.2, 0, 0, 0); mk(hd, mat, 'box', DARK, 0.16, 0.03, 0.04, 0, -0.38, 0.5);
+    /* Pia's third generation (world.md §10): glassy eyes, the pupils pinned whatever the light, and her pustules */
+    for (const s of [-1, 1]) { mk(hd, mat, 'ico', GLASS, 0.15, 0.13, 0.08, s * 0.15, -0.2, 0.5); mk(hd, mat, 'ico', DARK, 0.03, 0.03, 0.03, s * 0.15, -0.2, 0.55); }
+    if (!m.holt) for (let k = 0; k < 7; k++) { const a = R.rnd(-1.2, 1.2), y = R.rnd(-0.7, 0.8); mk(b, mat, 'ico', PUS, R.rnd(0.08, 0.16), R.rnd(0.07, 0.13), R.rnd(0.08, 0.16), Math.sin(a) * 0.92, y, Math.cos(a) * 0.8); }
     const arms: O3[] = [];
     for (const s of [-1, 1]) { const a = grp(b, s * 0.98, 0.35, 0); mk(a, mat, 'box', FLESH, 0.22, 1, 0.22, 0, -0.5, 0); arms.push(a); }
     if (sit) for (const s of [-1, 1]) mk(g, mat, 'box', FLESH, 0.42, 0.4, 1.3, s * 0.45, 0.2, 0.85);
     else for (const s of [-1, 1]) mk(g, mat, 'box', FLESH, 0.5, 1, 0.5, s * 0.45, 0.5, 0);
-    if (sit && !m.holt) { mk(b, mat, 'box', DARK, 0.5, 0.02, 0.02, 0, 0.62, 0.8); mk(b, mat, 'box', [2.9, 2.85, 2.6], 0.12, 0.18, 0.02, 0, 0.48, 0.84); }
     if (m.holt) for (let k = 0; k < 9; k++) mk(b, mat, 'ico', R.pick(GR), R.rnd(0.3, 0.7), R.rnd(0.2, 0.5), R.rnd(0.3, 0.7), R.rnd(-0.9, 0.9), R.rnd(-0.8, 1.6), R.rnd(-0.6, 0.7));
+    return { g, b, hd, arms };
+  },
+  /* the founder: the first of Pia's third generation and the largest, fed for years by the Commons, which smell her on him.
+     Still plainly a man, sat on the floor with his back to the wall and his legs out, the belly on his thighs, his head
+     bowed and too small for the rest; the shirt he was in, split, and the director's key on its cord. Her stupor in his
+     face, her pustules on his skin, and the scars of what he never felt */
+  founder(mat, m) {
+    const R = seeded(m.id), g = new THREE.Group(), SK = 0x8d6047, SK2 = 0x7d543e, TR = 0x34373e, SH = 0xb9b6ac;
+    /* the legs out in front, knees a little up, in what is left of his trousers */
+    for (const s of [-1, 1]) {
+      mk(g, mat, 'ico', TR, 0.95, 0.85, 1.9, s * 0.62, 0.45, 0.85); mk(g, mat, 'ico', SK, 0.72, 0.62, 1.5, s * 0.66, 0.42, 2.15);
+      mk(g, mat, 'ico', TR, 0.8, 0.3, 0.7, s * 0.64, 0.55, 1.6); mk(g, mat, 'box', SK2, 0.42, 0.62, 0.3, s * 0.7, 0.38, 2.95);
+    }
+    mk(g, mat, 'ico', TR, 2.4, 1.1, 1.8, 0, 0.55, -0.1);
+    const b = grp(g, 0, 0.9, -0.15);
+    /* the belly, resting on his thighs, and the rolls over it */
+    mk(b, mat, 'ico', SK, 2.5, 1.9, 2.1, 0, 0.35, 0.55); mk(b, mat, 'ico', SK2, 2.2, 0.4, 1.6, 0, -0.25, 1.05); mk(b, mat, 'ico', SK, 2.0, 0.5, 1.5, 0, 0.75, 0.9);
+    mk(b, mat, 'ico', SK2, 0.1, 0.12, 0.05, 0, 0.2, 1.6);
+    /* the chest and the shoulders, sloping; the shirt split down the back and hanging off them */
+    mk(b, mat, 'ico', SK, 2.3, 1.7, 1.6, 0, 1.25, 0); for (const s of [-1, 1]) { mk(b, mat, 'ico', SK, 0.85, 0.75, 0.6, s * 0.48, 1.25, 0.62); mk(b, mat, 'ico', SK, 0.95, 0.85, 0.95, s * 1.08, 1.65, 0); }
+    for (const s of [-1, 1]) { const f = mk(b, mat, 'box', SH, 0.7, 1.3, 0.06, s * 0.95, 1.2, -0.62); f.rotation.y = s * 0.5; f.rotation.z = s * 0.15; mk(b, mat, 'box', SH, 0.12, 1.2, 0.5, s * 1.45, 1.05, 0.1).rotation.z = s * 0.2; }
+    /* the key round his neck */
+    for (const s of [-1, 1]) { const c = mk(b, mat, 'box', DARK, 0.02, 0.5, 0.02, s * 0.15, 1.72, 0.6); c.rotation.z = s * 0.6; c.rotation.x = -0.45; }
+    mk(b, mat, 'box', 0xb89b5a, 0.07, 0.16, 0.02, 0, 1.44, 0.75);
+    /* the neck, thick, and the head bowed on it: small for him. Jowls, the ears, a little hair */
+    mk(b, mat, 'cyl', SK, 0.75, 0.4, 0.7, 0, 2.05, 0.15);
+    const hd = grp(b, 0, 2.38, 0.28); hd.rotation.x = 0.35;
+    mk(hd, mat, 'ico', SK, 0.6, 0.66, 0.62, 0, 0, 0); mk(hd, mat, 'ico', SK, 0.72, 0.32, 0.55, 0, -0.3, 0.06);
+    for (const s of [-1, 1]) mk(hd, mat, 'ico', SK2, 0.08, 0.17, 0.12, s * 0.3, 0.02, -0.02);
+    mk(hd, mat, 'ico', 0x1e1814, 0.56, 0.16, 0.5, 0, 0.27, -0.06);
+    /* her stupor in his face: glassy eyes, pupils pinned whatever the light; the mouth slack, and milk at its corner */
+    for (const s of [-1, 1]) { mk(hd, mat, 'ico', GLASS, 0.12, 0.08, 0.06, s * 0.12, 0.06, 0.28); mk(hd, mat, 'ico', DARK, 0.022, 0.022, 0.02, s * 0.12, 0.06, 0.315); mk(hd, mat, 'box', SK2, 0.14, 0.03, 0.04, s * 0.12, 0.12, 0.29); }
+    mk(hd, mat, 'box', SK2, 0.08, 0.16, 0.1, 0, -0.03, 0.31); mk(hd, mat, 'box', DARK, 0.17, 0.03, 0.03, 0, -0.17, 0.29); mk(hd, mat, 'box', MILK, 0.025, 0.12, 0.025, 0.08, -0.24, 0.29);
+    /* the arms: long, heavy, the hands down on his thighs; old wounds he never felt, healed badly */
+    const arms: O3[] = [];
+    for (const s of [-1, 1]) {
+      const a = grp(b, s * 1.3, 1.62, 0.05); a.rotation.z = s * 0.12;
+      mk(a, mat, 'ico', SK, 0.6, 1.25, 0.65, 0, -0.55, 0.05); mk(a, mat, 'ico', SK, 0.5, 1.15, 0.52, s * -0.08, -1.3, 0.42).rotation.x = -0.7;
+      mk(a, mat, 'ico', SK2, 0.42, 0.24, 0.55, s * -0.12, -1.78, 0.9);
+      for (let k = 0; k < 2; k++) mk(a, mat, 'box', RAW, 0.04, R.rnd(0.25, 0.45), 0.05, s * 0.28, -0.3 - k * 0.5, 0.2).rotation.z = R.rnd(-0.5, 0.5);
+      arms.push(a);
+    }
+    /* Pia's pustules, scattered over him */
+    for (let k = 0; k < 16; k++) {
+      const a = R.rnd(-1.4, 1.4), y = R.rnd(-0.2, 1.8), r = y < 0.9 ? 1.2 : 1.1;
+      mk(b, mat, 'ico', PUS, R.rnd(0.09, 0.2), R.rnd(0.08, 0.16), R.rnd(0.09, 0.2), Math.sin(a) * r, y, Math.cos(a) * (y < 0.9 ? 1.5 : 0.8) + (y < 0.9 ? 0.15 : 0));
+    }
     return { g, b, hd, arms };
   },
   /* a man whose ribcage has parted down the sternum and learned to open like a pair of doors */
