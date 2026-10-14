@@ -12,8 +12,8 @@ import { animHand, animOverseer, buildHand, buildOverseer, type Ctx } from './se
    decides where each is and what it is doing; this only shows it. */
 
 const PI = Math.PI;
-/* Pia's line (world.md §10): glassy eyes, pustules */
-const GLASS = 0xd9d6cc, PUS = 0xd6c393;
+/* the founder's line (world.md §10): red pustules */
+const PUS = [0x9a3e36, 0xa8473c, 0x8c4a44];
 /* how the husk figure varies by kind: height and breadth, the striking arm's length, the chance the other arm has gone
    too, and how many lumps have grown on it. Security's patrols are not here: they keep the figure as it is */
 const HUSKS: Record<string, { h: [number, number]; w: [number, number]; arm: [number, number]; both: number; lumps: [number, number] }> = {
@@ -76,9 +76,12 @@ const BUILD: Record<string, (mat: THREE.Material, m: Mutant) => Model> = {
     mk(b, mat, 'ico', PALE, 1.9, 2.1, 1.7, 0, 0, 0); mk(b, mat, 'ico', FLESH, 1.3, 1, 1.2, 0, -0.6, 0.3); mk(b, mat, 'ico', RAW, 0.5, 0.4, 0.4, 0.6, 0.3, 0.5);
     const hd = grp(b, 0, 1.4, 0.1);
     mk(hd, mat, 'ico', PALE, 1.25, 1.35, 1.2, 0, 0, 0); mk(hd, mat, 'box', DARK, 0.16, 0.03, 0.04, 0, -0.38, 0.5);
-    /* Pia's third generation (world.md §10): glassy eyes, the pupils pinned whatever the light, and her pustules */
-    for (const s of [-1, 1]) { mk(hd, mat, 'ico', GLASS, 0.15, 0.13, 0.08, s * 0.15, -0.2, 0.5); mk(hd, mat, 'ico', DARK, 0.03, 0.03, 0.03, s * 0.15, -0.2, 0.55); }
-    if (!m.holt) for (let k = 0; k < 7; k++) { const a = R.rnd(-1.2, 1.2), y = R.rnd(-0.7, 0.8); mk(b, mat, 'ico', PUS, R.rnd(0.08, 0.16), R.rnd(0.07, 0.13), R.rnd(0.08, 0.16), Math.sin(a) * 0.92, y, Math.cos(a) * 0.8); }
+    mk(hd, mat, 'ico', DARK, 0.07, 0.07, 0.07, -0.14, -0.22, 0.52); mk(hd, mat, 'ico', DARK, 0.07, 0.07, 0.07, 0.14, -0.22, 0.52);
+    /* the founder's line (world.md §10): red pustules, over the body and the face */
+    if (!m.holt) {
+      for (let k = 0; k < 9; k++) { const a = R.rnd(-1.3, 1.3), y = R.rnd(-0.7, 0.8), q = R.rnd(0.1, 0.22); mk(b, mat, 'ico', R.pick(PUS), q, q * 0.8, q, Math.sin(a) * 0.9, y, Math.cos(a) * 0.78); }
+      for (let k = 0; k < 3; k++) { const q = R.rnd(0.07, 0.13); mk(hd, mat, 'ico', R.pick(PUS), q, q * 0.8, q, R.rnd(-0.45, 0.45), R.rnd(-0.1, 0.4), 0.52); }
+    }
     const arms: O3[] = [];
     for (const s of [-1, 1]) { const a = grp(b, s * 0.98, 0.35, 0); mk(a, mat, 'box', FLESH, 0.22, 1, 0.22, 0, -0.5, 0); arms.push(a); }
     if (sit) for (const s of [-1, 1]) mk(g, mat, 'box', FLESH, 0.42, 0.4, 1.3, s * 0.45, 0.2, 0.85);

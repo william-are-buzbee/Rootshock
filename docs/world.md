@@ -814,7 +814,8 @@ Nobody expected worse than a bad night.
   the Commons smell her on him and bring him things. Seated, never standing, on the floor of the Square's bar (two storeys
   now: the flat over it is gone) with his back to the far wall, facing out of the door across the court to Pia, the
   director's lift key on its cord round his neck. **Built.** The smaller bloats, the rest of her third generation, walk and
-  stand round the tree itself, looking up; all of them have her glassy eyes, pinned pupils and pustules. The Commons is to
+  stand round the tree itself, looking up. The founder's line is three things: **red pustules**, the bloating, and
+  size; otherwise a person's shape. Nothing white grows on any of them. The Commons is to
   be rebuilt larger in its own pass (as Security was), and his room with it.
 - **Pia's generations.** The opiate dulls with each generation; the fear does not, so the youngest are the most violent and the
   oldest the largest and most stupefied.
@@ -826,12 +827,16 @@ Nobody expected worse than a bad night.
   | 4 | the Commons bloc | walk, track you with their heads | some | strong |
   | 5 | Commons husks | act; ignore their own pain | faint | strong, and turned outward |
 
-- **Three kinds of husk (agreed; built).** One drill and one figure (the husk's: staff, one arm gone wrong), varied by
-  kind. *Security's patrols* (the far end of the line, through the hatchlings, and recent) keep it as it is. *Commons
-  husks* (generation 5) are a little taller or broader, the arm longer, sometimes both arms gone, a lump or two grown on
-  them; they feel nothing, so a blow neither staggers them nor stops a swing, and they never run. *The bloc* (generation 4)
-  are older and so bigger again (about a quarter taller and broader), longer in the arm and more grown over; they keep the
-  Commons' posts, slow, and turn their heads to follow you. Engineering's two husks are Commons husks that came down.
+- **Three kinds of husk (agreed; built as variants, to be redone).** One drill and one figure (the husk's: a person in
+  what they came to work in). *Security's patrols* (the far end of the line, through the hatchlings, and recent) keep it
+  as it is, and the arm with the bone through the end is theirs alone. *The bloc* (generation 4) and *the Commons husks*
+  (generation 5) carry the founder's line instead (proposed, `mockups/traits.html`). Generation 4: *red*, a person with
+  the pustules and nothing else, the most human and the commonest; *bloated*, the pustules and the belly, up to the ones
+  that take after him most, bigger and swollen through the shirt; and *lopsided*, larger, with a growth of its own on one
+  side (an inflated arm, an inflated hand, one side of the head inflated, or two at once). Generation 5: fewer pustules, a
+  little heavy, a growth that never got going. The Commons husks feel nothing, so a blow neither staggers them nor stops a
+  swing, and they never run; the bloc are slow and turn their heads to follow you. In the game today they are still the
+  husk figure varied in size and arm length, with the bone arm; that is to be replaced by the above.
 - **The mother.** A woman of the Commons bloc whose graft took in the womb; touch her and you lay eggs too. Her hatchlings have
   no host and lose most of the human look. She lays in Cargo, where nothing green can reach.
 - **Security's first.** Taken by a hatchling in Cargo, so it inherited no fear and no thought, only drills; it sits up out of
