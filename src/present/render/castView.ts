@@ -14,15 +14,24 @@ import { animHand, animOverseer, buildHand, buildOverseer, type Ctx } from './se
 const PI = Math.PI;
 /* Pia's line (world.md §10): glassy eyes, pustules */
 const GLASS = 0xd9d6cc, PUS = 0xd6c393;
-/* the skin each was born with (world.md §10): a mutant keeps its host's */
-const SKINS = [0xa06c50, 0x8d6047, 0xc49a7c, 0x6e4a36, 0xb08060, 0x5c3d2c];
+/* how the husk figure varies by kind: height and breadth, the striking arm's length, the chance the other arm has gone
+   too, and how many lumps have grown on it. Security's patrols are not here: they keep the figure as it is */
+const HUSKS: Record<string, { h: [number, number]; w: [number, number]; arm: [number, number]; both: number; lumps: [number, number] }> = {
+  husk: { h: [0.95, 1.12], w: [0.95, 1.12], arm: [1, 1.35], both: 0.3, lumps: [0, 2] },
+  bloc: { h: [1.15, 1.3], w: [1.2, 1.35], arm: [1.2, 1.5], both: 0.6, lumps: [2, 4] },
+};
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Model = { g: THREE.Group; [k: string]: any };
 
 const BUILD: Record<string, (mat: THREE.Material, m: Mutant) => Model> = {
-  /* Security's patrols: staff, changed recently, still a person's outline in uniform, one arm already something else */
-  patrol(mat, m) {
-    const R = seeded(m.id), g = new THREE.Group(), cl = R.pick([0xbfc3c0, 0x4a5560, 0x39485a, 0x6b6f5a, 0x7a5a50]), tr = 0x2b2e34;
+  /* staff, early in the Regimen: still a person's outline, one arm already something else. One figure for every husk,
+     varied (world.md §10): Security's patrols as they were; the Commons' husks, Pia's fifth generation, a little taller
+     or broader, the arm longer, more grown on them; the bloc, her fourth, older and so bigger again, and more gone */
+  husk(mat, m) {
+    /* (the seed's first draws barely differ between neighbours: the varied kinds draw a few first, so they differ) */
+    const R = seeded(m.id);
+    if (HUSKS[m.type]) for (let k = 0; k < 3; k++) R.rnd(0, 1);
+    const g = new THREE.Group(), cl = R.pick([0xbfc3c0, 0x4a5560, 0x39485a, 0x6b6f5a, 0x7a5a50]), tr = 0x2b2e34;
     const legs: O3[] = [];
     for (const s of [-1, 1]) { const l = grp(g, s * 0.11, 0.9, 0); mk(l, mat, 'box', tr, 0.16, 0.9, 0.17, 0, -0.45, 0); mk(l, mat, 'box', DARK, 0.16, 0.07, 0.26, 0, -0.87, 0.04); legs.push(l); }
     const b = grp(g, 0, 0.9, 0);
@@ -33,48 +42,17 @@ const BUILD: Record<string, (mat: THREE.Material, m: Mutant) => Model> = {
     const arms: O3[] = [];
     let a = grp(b, -0.27, 0.56, 0); mk(a, mat, 'box', cl, 0.11, 0.36, 0.12, 0, -0.18, 0); mk(a, mat, 'box', PALE, 0.08, 0.34, 0.08, 0, -0.52, 0); arms.push(a);
     a = grp(b, 0.3, 0.58, 0); mk(a, mat, 'box', RAW, 0.14, 0.4, 0.14, 0, -0.2, 0); mk(a, mat, 'box', FLESH, 0.1, 0.52, 0.1, 0, -0.64, 0); mk(a, mat, 'box', BONE, 0.05, 0.16, 0.05, 0, -0.97, 0.02); arms.push(a);
-    return { g, b, hd, legs, arms };
-  },
-  /* a Commons husk, Pia's fifth generation through the founder: further gone than a patrol, the clothes mostly torn off,
-     hunched, the striking arm heavy and its knuckles through the skin; her glassy eyes and a pustule or two, faintly, and
-     wounds it has not noticed */
-  husk(mat, m) {
-    const R = seeded(m.id), g = new THREE.Group(), sk = R.pick(SKINS), tr = R.pick([0x2b2e34, 0x3a3d44, 0x4a4238]);
-    const legs: O3[] = [];
-    for (const s of [-1, 1]) { const l = grp(g, s * 0.11, 0.9, 0); mk(l, mat, 'box', tr, 0.17, 0.5, 0.18, 0, -0.25, 0); mk(l, mat, 'box', sk, 0.13, 0.42, 0.14, 0, -0.68, 0); mk(l, mat, 'box', sk, 0.13, 0.06, 0.24, 0, -0.87, 0.04); legs.push(l); }
-    const b = grp(g, 0, 0.9, 0);
-    mk(b, mat, 'box', sk, 0.42, 0.58, 0.24, 0, 0.3, 0); mk(b, mat, 'box', tr, 0.4, 0.12, 0.23, 0, 0.03, 0);
-    mk(b, mat, 'ico', RAW, 0.2, 0.24, 0.08, -0.1, 0.36, 0.11); mk(b, mat, 'box', GOREC, 0.06, 0.22, 0.03, -0.1, 0.18, 0.12);
-    mk(b, mat, 'box', R.pick([0xbfc3c0, 0x6b6f5a, 0x7a5a50]), 0.2, 0.5, 0.25, -0.14, 0.33, -0.02);
-    for (let k = 0; k < 2; k++) mk(b, mat, 'ico', PUS, 0.06, 0.05, 0.06, R.rnd(-0.18, 0.18), R.rnd(0.45, 0.58), 0.12);
-    const hd = grp(b, 0, 0.7, 0.08);
-    mk(hd, mat, 'ico', sk, 0.24, 0.27, 0.25, 0, 0, 0); mk(hd, mat, 'box', DARK, 0.12, 0.04, 0.03, 0, -0.08, 0.11);
-    for (const s of [-1, 1]) { mk(hd, mat, 'ico', GLASS, 0.06, 0.045, 0.03, s * 0.055, 0.03, 0.11); mk(hd, mat, 'ico', DARK, 0.015, 0.015, 0.015, s * 0.055, 0.03, 0.125); }
-    const arms: O3[] = [];
-    let a = grp(b, -0.27, 0.56, 0); mk(a, mat, 'box', sk, 0.1, 0.36, 0.11, 0, -0.18, 0); mk(a, mat, 'box', sk, 0.08, 0.34, 0.08, 0, -0.52, 0); arms.push(a);
-    a = grp(b, 0.3, 0.58, 0); mk(a, mat, 'box', RAW, 0.15, 0.42, 0.15, 0, -0.21, 0); mk(a, mat, 'box', sk, 0.13, 0.56, 0.13, 0, -0.68, 0); mk(a, mat, 'box', BONE, 0.12, 0.06, 0.1, 0, -0.98, 0.02); arms.push(a);
-    return { g, b, hd, legs, arms };
-  },
-  /* the bloc, Pia's fourth generation: older, so bigger and heavier, gone pale with more of her stupor; long arms, a
-     slack mouth, her glassy eyes wide on a neck grown long enough to turn and follow you */
-  bloc(mat, m) {
-    const R = seeded(m.id), g = new THREE.Group(), sk = R.pick([0xb89a86, 0xa58670, 0xcdb8a4, 0x8f7462]), tr = R.pick([0x2b2e34, 0x3a3d44, 0x4a4238]);
-    const legs: O3[] = [];
-    for (const s of [-1, 1]) { const l = grp(g, s * 0.16, 0.85, 0); mk(l, mat, 'box', tr, 0.22, 0.5, 0.24, 0, -0.25, 0); mk(l, mat, 'box', sk, 0.18, 0.38, 0.19, 0, -0.64, 0); mk(l, mat, 'box', sk, 0.17, 0.07, 0.28, 0, -0.82, 0.04); legs.push(l); }
-    const b = grp(g, 0, 0.85, 0);
-    mk(b, mat, 'ico', sk, 0.62, 0.8, 0.42, 0, 0.4, 0); mk(b, mat, 'ico', sk, 0.5, 0.36, 0.34, 0, 0.12, 0.08); mk(b, mat, 'box', tr, 0.52, 0.14, 0.34, 0, 0.0, 0);
-    mk(b, mat, 'ico', RAW, 0.16, 0.18, 0.08, 0.12, 0.5, 0.19);
-    for (let k = 0; k < 5; k++) mk(b, mat, 'ico', PUS, 0.07, 0.06, 0.07, R.rnd(-0.26, 0.26), R.rnd(0.5, 0.75), R.rnd(0.08, 0.16));
-    mk(b, mat, 'box', sk, 0.13, 0.26, 0.13, 0, 0.88, 0.02);
-    const hd = grp(b, 0, 1.06, 0.05);
-    mk(hd, mat, 'ico', sk, 0.3, 0.33, 0.3, 0, 0, 0); mk(hd, mat, 'box', DARK, 0.08, 0.05, 0.03, 0, -0.1, 0.14);
-    for (const s of [-1, 1]) { mk(hd, mat, 'ico', GLASS, 0.085, 0.065, 0.04, s * 0.07, 0.03, 0.13); mk(hd, mat, 'ico', DARK, 0.016, 0.016, 0.016, s * 0.07, 0.03, 0.15); }
-    mk(hd, mat, 'ico', PUS, 0.06, 0.05, 0.06, R.rnd(-0.1, 0.1), 0.14, 0.1);
-    const arms: O3[] = [];
-    for (const s of [-1, 1]) {
-      const a = grp(b, s * 0.36, 0.7, 0), w = s > 0 ? 1.15 : 1;
-      mk(a, mat, 'box', sk, 0.15 * w, 0.46, 0.15 * w, 0, -0.23, 0); mk(a, mat, 'box', sk, 0.13 * w, 0.56, 0.13 * w, 0, -0.74, 0); mk(a, mat, 'ico', sk, 0.16 * w, 0.18, 0.18 * w, 0, -1.08, 0.02);
-      arms.push(a);
+    const V = HUSKS[m.type];
+    if (V) {
+      const h = R.rnd(V.h[0], V.h[1]), w = R.rnd(V.w[0], V.w[1]);
+      g.scale.set(w, h, w); g.userData.k = h;
+      a.scale.y = R.rnd(V.arm[0], V.arm[1]);
+      /* the other arm going the same way, sometimes */
+      if (R.rnd(0, 1) < V.both) { const o = arms[0]; o.clear(); mk(o, mat, 'box', RAW, 0.13, 0.38, 0.13, 0, -0.19, 0); mk(o, mat, 'box', FLESH, 0.09, 0.46, 0.09, 0, -0.6, 0); o.scale.y = R.rnd(1, V.arm[1]); }
+      /* and more grown on it: lumps over the shoulders, the back, the head */
+      const n = Math.floor(R.rnd(V.lumps[0], V.lumps[1] + 1));
+      for (let k = 0; k < n; k++) mk(b, mat, 'ico', R.pick([RAW, FLESH, RAW]), R.rnd(0.12, 0.24), R.rnd(0.1, 0.22), R.rnd(0.1, 0.2), R.rnd(-0.22, 0.22), R.rnd(0.3, 0.68), R.pick([-0.12, 0.1]));
+      if (R.rnd(0, 1) < V.both) mk(hd, mat, 'ico', RAW, 0.14, 0.12, 0.12, -0.07, 0.1, -0.04);
     }
     return { g, b, hd, legs, arms, look: 0 };
   },
@@ -293,6 +271,7 @@ const ANIM: Record<string, (m: Mutant, M: Model, c: Ctx) => void> = {
   },
 };
 ANIM.swimmer = ANIM.worm;
+BUILD.bloc = (mat, m) => BUILD.husk(mat, m);
 /* the bloc moves as a husk does, and turns its head to follow you while you are near */
 ANIM.bloc = (m, M, c) => {
   ANIM.husk(m, M, c);

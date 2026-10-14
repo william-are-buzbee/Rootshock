@@ -826,13 +826,12 @@ Nobody expected worse than a bad night.
   | 4 | the Commons bloc | walk, track you with their heads | some | strong |
   | 5 | Commons husks | act; ignore their own pain | faint | strong, and turned outward |
 
-- **Three kinds of husk (agreed; built).** One drill, three bodies. *The bloc* (generation 4) are older, so bigger:
-  heavy, pale with more of her stupor, long-armed, slow, their glassy eyes wide on necks grown long enough to turn and
-  follow you; they keep the Commons' posts. *Commons husks* (generation 5) are further gone than any patrol, clothes mostly
-  torn off, hunched, the striking arm heavy with its knuckles through the skin, her eyes and pustules faint; they feel
-  nothing, so a blow neither staggers them nor stops a swing, and they never run. *Security's patrols* (the far end of the
-  line, through the hatchlings, and recent) keep the old figure: staff in uniform, nearly human, one arm gone wrong.
-  Engineering's two husks are Commons husks that came down.
+- **Three kinds of husk (agreed; built).** One drill and one figure (the husk's: staff, one arm gone wrong), varied by
+  kind. *Security's patrols* (the far end of the line, through the hatchlings, and recent) keep it as it is. *Commons
+  husks* (generation 5) are a little taller or broader, the arm longer, sometimes both arms gone, a lump or two grown on
+  them; they feel nothing, so a blow neither staggers them nor stops a swing, and they never run. *The bloc* (generation 4)
+  are older and so bigger again (about a quarter taller and broader), longer in the arm and more grown over; they keep the
+  Commons' posts, slow, and turn their heads to follow you. Engineering's two husks are Commons husks that came down.
 - **The mother.** A woman of the Commons bloc whose graft took in the womb; touch her and you lay eggs too. Her hatchlings have
   no host and lose most of the human look. She lays in Cargo, where nothing green can reach.
 - **Security's first.** Taken by a hatchling in Cargo, so it inherited no fear and no thought, only drills; it sits up out of

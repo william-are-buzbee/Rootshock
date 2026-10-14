@@ -36,7 +36,7 @@ export const MT: Record<string, Stats> = {
      Security's patrols: changed staff, recent and still nearly human */
   husk: { hp: 75, r: 0.38, cr: 0.34, mass: 1.2, h: 1.8, opens: true, numb: true, pace: 1.1 },
   bloc: { ai: 'husk', model: 'bloc', hp: 140, r: 0.5, cr: 0.45, mass: 2, h: 2.1, opens: true, pace: 0.75 },
-  patrol: { ai: 'husk', model: 'patrol', hp: 75, r: 0.38, cr: 0.34, mass: 1.2, h: 1.8, opens: true },
+  patrol: { ai: 'husk', model: 'husk', hp: 75, r: 0.38, cr: 0.34, mass: 1.2, h: 1.8, opens: true },
   skitter: { hp: 60, r: 0.5, cr: 0.4, mass: 1, h: 0.9, low: true },
   bloat: { hp: 600, r: 1, cr: 0.9, mass: 8, h: 2.4, noDoors: true, solid: true },
   /* the founder (world.md §10): the first and largest of Pia's third generation, a bloat grown larger, fed and seated */
