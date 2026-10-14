@@ -1121,179 +1121,121 @@ function stepSam(dt, now) {
 }
 
 /* ================================================================================================================ */
-/* TOM WREN, generation 2: the mild leaf. He curled in a corner when he could not sleep and wrote home until only his
-   writing hand moved; the curl fused into one body, cured brown like dry leaf, and up his back the tobacco's seed
-   capsules stand in rows like lines of handwriting, shedding seed fine as dust. Holt has boxed him in with her roots.
-   His children, the breathing pots, breathe with the station's air; the crawlers follow the draught */
-const TOMK = [0x6e5a3e, 0x62503a, 0x7a6646, 0x574632], CAPS2 = [0x5a4428, 0x6e5432, 0x4c3a22], DUST = 0xd8c89a;
-const ROOTH = [0x4a5a2c, 0x3e4a26, 0x56663a], CUTF = 0xd8d0a0;
-const POCKET = { x0: -7.4, x1: -2.2, z0: -6.2, z1: -1.6 }, GAP = { x0: -4.7, x1: -3.6 }, VENT = V(5.0, 3.0, -5.9);
+/* TOM WREN, generation 2: the mild leaf. A very big man who lay down and stopped, and was grown through: his own spore
+   producers have come up through him, chest, belly, thighs and face, plant more than animal, and they throw spores that
+   grow into smaller ones round him. Holt moved him here, to a zone of his own, and sealed it */
+const TSK = [0x8e8a80, 0x84807a, 0x989488, 0x7a766e], TBRUISE = 0x5e5a4e;
+const SPR = [0xd6c24a, 0xc9b640, 0xe0cf62], STALK2 = [0xa9b27a, 0x9aa46c, 0xb4bc86], SPORE = 0xe6da8a;
+const TVENT = V(9.0, 3.4, -8.9), ROOTH = [0x4a5a2c, 0x3e4a26, 0x56663a];
+/** a spore producer: a ribbed stalk, out of whatever it grows from, and a mouth at the top that opens and throws */
+function producer(parent, x, y, z, h, tilt = 0) {
+  const g = grp(parent, x, y, z); g.rotation.set(rnd(-tilt, tilt), rnd(0, TAU), rnd(-tilt, tilt));
+  const segs = 5, P = { g, h, lips: [], ph: rnd(0, TAU) };
+  for (let j = 0; j < segs; j++) { const w = lerp(0.36, 0.2, j / (segs - 1)) * Math.sqrt(h); mk(g, 'cyl', STALK2[j % 3], w, h / segs + 0.02, w, 0, (j + 0.5) * h / segs, 0); mk(g, 'cyl', STALK2[1], w * 1.08, 0.025, w * 1.08, 0, j * h / segs, 0); }
+  const m = 0.32 * Math.sqrt(h);
+  mk(g, 'cyl', SPR[0], m * 0.9, 0.12 * m, m * 0.9, 0, h + 0.03, 0);
+  mk(g, 'ico', 0x3a3010, m * 0.55, 0.05, m * 0.55, 0, h + 0.1, 0);
+  for (let j = 0; j < 8; j++) { const a = (j / 8) * TAU, L = grp(g, Math.cos(a) * m * 0.42, h + 0.08, Math.sin(a) * m * 0.42); L.rotation.y = -a + PI / 2; mk(L, 'ico', SPR[j % 3], m * 0.32, m * 0.75, m * 0.16, 0, m * 0.32, 0); P.lips.push(L); }
+  return P;
+}
 function buildTom() {
   const S = new THREE.Scene();
-  floor(S, 16, 14, 0x303335, 0x242729, 1.0);
-  mk(S, 'box', 0x383c3e, 16, 4.2, 0.3, 0, 2.1, -6.35);
-  mk(S, 'box', 0x383c3e, 0.3, 4.2, 14, -7.55, 2.1, 0);
-  /* the vent, high on the back wall, and its fan */
-  mk(S, 'box', 0x2a2d2f, 1.3, 1.3, 0.12, VENT.x, VENT.y, -6.17);
-  const fan = grp(S, VENT.x, VENT.y, -6.1);
-  for (let j = 0; j < 4; j++) { const b = mk(fan, 'box', 0x55595c, 0.18, 0.55, 0.03, 0, 0.27, 0); const g = grp(fan, 0, 0, 0); g.add(b); g.rotation.z = j * PI / 2; }
-  for (let j = 0; j < 6; j++) mk(S, 'box', 0x1c1e20, 1.2, 0.04, 0.05, VENT.x, VENT.y - 0.5 + j * 0.2, -6.06);
-  /* Holt's roots: a pocket of them, floor to ceiling, round the corner he is in; amber where they are grafted */
-  const roots = [], cutParts = [];
-  const rootLine = (ax, az, bx, bz) => {
-    const n = Math.round(Math.hypot(bx - ax, bz - az) / 0.32);
-    for (let i = 0; i <= n; i++) {
-      const u = i / n, x = lerp(ax, bx, u), z = lerp(az, bz, u), w = rnd(-0.12, 0.12);
-      const inGap = az === bz && x > GAP.x0 && x < GAP.x1;
-      const a = V(x + w, 0, z + rnd(-0.08, 0.08)), m = V(x - w, 2.0, z + rnd(-0.12, 0.12)), b = V(x + rnd(-0.1, 0.1), 4.2, z);
-      const parts = [beam(S, ROOTH[i % 3], 0.14, 0.12, a, m), beam(S, ROOTH[(i + 1) % 3], 0.12, 0.1, m, b)];
-      if (inGap) { roots.push(...parts); cutParts.push(mk(S, 'box', ROOTH[0], 0.14, 0.45, 0.12, a.x, 0.22, a.z), mk(S, 'ico', CUTF, 0.15, 0.04, 0.13, a.x, 0.46, a.z), mk(S, 'box', ROOTH[1], 0.12, 0.6, 0.1, b.x, 3.9, b.z), mk(S, 'ico', CUTF, 0.13, 0.04, 0.11, b.x, 3.58, b.z)); }
-      if (i % 3 === 0) mk(S, 'ico', AMBER2, 0.08, 0.08, 0.08, m.x, 2.0, m.z);
-    }
-    for (const y of [0.9, 1.9, 3.0]) {
-      const segs = 8;
-      for (let i = 0; i < segs; i++) {
-        const u0 = i / segs, u1 = (i + 1) / segs, p0 = V(lerp(ax, bx, u0), y + rnd(-0.15, 0.15), lerp(az, bz, u0)), p1 = V(lerp(ax, bx, u1), y + rnd(-0.15, 0.15), lerp(az, bz, u1));
-        const mid = (p0.x + p1.x) / 2, gapped = az === bz && mid > GAP.x0 - 0.2 && mid < GAP.x1 + 0.2;
-        const bm = beam(S, ROOTH[(i + 2) % 3], 0.09, 0.08, p0, p1);
-        if (gapped) roots.push(bm);
-      }
-    }
-  };
-  rootLine(POCKET.x0, POCKET.z1, POCKET.x1, POCKET.z1);
-  rootLine(POCKET.x1, POCKET.z1, POCKET.x1, POCKET.z0);
-  for (const c of cutParts) c.visible = false;
-  /* Tom, curled in the corner, grown together into one body */
-  const TG = grp(S, -5.4, 0, -4.4); TG.rotation.y = 0.75;
-  const C = V(0, 0.95, 0), RD = V(1.5, 0.95, 1.2);
-  mk(TG, 'ico', TOMK[0], 3.0, 1.9, 2.4, C.x, C.y, C.z);
-  for (const [x, y, z, s, c] of [[-0.8, 1.2, -0.5, 1.2, 1], [0.8, 1.15, -0.45, 1.15, 2], [0, 0.55, 0.9, 1.3, 3], [0.5, 0.45, 0.95, 0.8, 1], [-0.5, 0.45, 0.95, 0.8, 2]]) mk(TG, 'ico', TOMK[c], s, s * 0.7, s * 0.8, x, y, z);
-  for (let j = 0; j < 9; j++) { const a = lerp(-1.25, 1.25, j / 8); mk(TG, 'ico', TOMK[2], 0.24, 0.18, 0.22, 0, C.y + RD.y * Math.cos(a) * 1.02, RD.z * Math.sin(a) * 1.02 - 0.05); }
-  /* his head pressed into his knees, and the writing hand out on the floor, with the letters */
-  mk(TG, 'ico', TOMK[1], 0.42, 0.4, 0.42, 0.05, 0.75, 1.15);
-  const arm = limb(TG, [1.05, 0.9, 0.55], 0.62, 0.58, TOMK[1], TOMK[2], 0.13, fatHand(1.1, TOMK[2], TOMK[1]), { joint: TOMK[0] });
-  mk(arm.t, 'box', 0xc9a43a, 0.02, 0.02, 0.22, 0.04, -0.02, 0.16).rotation.y = 0.3;
-  const letters = [];
-  for (let j = 0; j < 18; j++) {
-    const a = rnd(-0.3, 1.9), r = rnd(1.5, 2.6), m = mk(TG, 'box', j % 5 ? 0xdcd6c6 : 0xc9c2b0, 0.21, 0.005, 0.29, Math.cos(a) * r, 0.006 + j * 0.002, Math.sin(a) * r);
-    m.rotation.y = rnd(0, TAU); letters.push(m);
-    for (let l = 0; l < 6; l++) mk(TG, 'box', 0x3a3a44, rnd(0.08, 0.16), 0.006, 0.006, m.position.x, m.position.y + 0.004, m.position.z - 0.1 + l * 0.04).rotation.y = m.rotation.y;
+  floor(S, 24, 18, 0x2c2f31, 0x222426, 1.2);
+  mk(S, 'box', 0x34383a, 24, 6, 0.3, 0, 3, -9.15);
+  mk(S, 'box', 0x34383a, 0.3, 6, 18, -12.15, 3, 0);
+  /* the way in, sealed: Holt's roots packed into the doorway, amber at the grafts */
+  mk(S, 'box', 0x1a1c1d, 2.4, 3.0, 0.3, -6.0, 1.5, -9.0);
+  for (let j = 0; j < 14; j++) { const x = -7.0 + j * 0.15; beam(S, ROOTH[j % 3], 0.16, 0.14, V(x + rnd(-0.1, 0.1), 0, -8.95), V(x + rnd(-0.2, 0.2), 3.0, -8.95)); }
+  for (const y of [0.8, 1.6, 2.4]) { beam(S, ROOTH[1], 0.12, 0.1, V(-7.1, y, -8.85), V(-4.9, y + rnd(-0.2, 0.2), -8.85)); mk(S, 'ico', AMBER2, 0.09, 0.09, 0.09, -6.0 + rnd(-0.6, 0.6), y, -8.8); }
+  /* the vent, and its fan */
+  mk(S, 'box', 0x2a2d2f, 1.3, 1.3, 0.12, TVENT.x, TVENT.y, -9.0);
+  const fan = grp(S, TVENT.x, TVENT.y, -8.93);
+  for (let j = 0; j < 4; j++) { const g = grp(fan, 0, 0, 0); g.rotation.z = j * PI / 2; mk(g, 'box', 0x55595c, 0.18, 0.55, 0.03, 0, 0.27, 0); }
+  /* Tom: a man four times the size of one, on his back where he lay down, his knees a little up, one arm over his chest */
+  const B = grp(S, -1.0, 0, -2.0); B.rotation.y = -0.35;
+  mk(B, 'ico', TSK[0], 2.6, 1.3, 3.2, 0, 0.62, 0);
+  mk(B, 'ico', TSK[2], 2.4, 1.2, 2.2, 0, 0.62, 2.1);
+  mk(B, 'ico', TSK[1], 2.3, 1.0, 1.7, 0, 0.55, -1.7);
+  mk(B, 'cyl', TSK[1], 0.9, 0.9, 0.9, 0, 0.6, 3.5).rotation.x = PI / 2;
+  const head = grp(B, 0, 0.75, 4.55); head.rotation.x = -0.25;
+  mk(head, 'ico', TSK[2], 1.35, 1.25, 1.55, 0, 0, 0);
+  mk(head, 'ico', TSK[1], 0.3, 0.55, 0.45, 0, 0.75, 0.3);
+  mk(head, 'ico', TSK[0], 0.75, 0.45, 0.6, 0, 0.35, 0.72);
+  for (const s of [-1, 1]) { mk(head, 'ico', TBRUISE, 0.22, 0.1, 0.16, s * 0.28, 0.58, 0.48); mk(head, 'ico', TSK[3], 0.3, 0.4, 0.3, s * 0.65, 0.05, 0.1); }
+  mk(head, 'box', TBRUISE, 0.36, 0.04, 0.08, 0, 0.62, 0.2);
+  for (const s of [-1, 1]) {
+    const knee = V(s * 0.8, 2.3, -3.5), hip = V(s * 0.6, 0.6, -2.0), foot = V(s * 0.9, 0.35, -5.4);
+    beam(B, TSK[0], 0.85, 0.8, hip, knee); beam(B, TSK[1], 0.7, 0.66, knee, foot);
+    mk(B, 'ico', TSK[3], 0.75, 0.55, 1.0, foot.x, 0.3, foot.z - 0.35);
   }
-  /* the capsules up his back, in rows like handwriting, words and gaps; some split open */
-  const emit = [];
-  for (const a of [-0.75, -0.42, -0.1, 0.22, 0.55, 0.85]) {
-    let x = -1.15;
-    while (x < 1.15) {
-      if (Math.random() < 0.12) { x += 0.2; continue; }
-      const f = Math.sqrt(Math.max(0, 1 - (x / RD.x) ** 2)), d = V(x / RD.x, Math.cos(a) * f, Math.sin(a) * f);
-      const p = V(C.x + x, C.y + RD.y * Math.cos(a) * f, C.z + RD.z * Math.sin(a) * f), g = grp(TG, p.x, p.y, p.z);
-      g.lookAt(TG.localToWorld(V(p.x + d.x, p.y + d.y * 2, p.z + d.z * 2)));
-      const k = grp(g, 0, 0, 0); k.rotation.x = PI / 2;
-      mk(k, 'cyl', TOMK[3], 0.025, 0.08, 0.025, 0, 0.04, 0);
-      if (Math.random() < 0.3) for (const s of [-1, 1]) mk(k, 'ico', CAPS2[2], 0.06, 0.13, 0.08, s * 0.04, 0.13, 0).rotation.z = s * 0.5;
-      else mk(k, 'ico', CAPS2[Math.floor(rnd(0, 2))], 0.1, 0.14, 0.1, 0, 0.14, 0);
-      emit.push(g);
-      x += rnd(0.11, 0.16);
-    }
+  beam(B, TSK[1], 0.6, 0.55, V(-1.4, 0.75, 2.8), V(-1.9, 0.3, 0.8)); beam(B, TSK[0], 0.5, 0.48, V(-1.9, 0.3, 0.8), V(-2.1, 0.25, -1.2));
+  beam(B, TSK[1], 0.6, 0.55, V(1.4, 0.75, 2.8), V(1.2, 1.35, 1.4)); beam(B, TSK[0], 0.5, 0.48, V(1.2, 1.35, 1.4), V(-0.2, 1.35, 1.9));
+  mk(B, 'ico', TSK[2], 0.55, 0.3, 0.7, -0.4, 1.4, 1.9);
+  /* the letters, under his hand on his chest and scattered by him */
+  for (let j = 0; j < 14; j++) {
+    const onChest = j < 3, x = onChest ? rnd(-0.6, -0.1) : rnd(-3.8, 3.8), z = onChest ? rnd(1.6, 2.2) : rnd(-5, 5), y = onChest ? 1.3 : 0.006 + j * 0.002;
+    if (!onChest && Math.abs(x) < 1.8 && z > -6 && z < 5.4) continue;
+    const m = mk(B, 'box', 0xdcd6c6, 0.32, 0.006, 0.44, x, y, z); m.rotation.y = rnd(0, TAU); if (onChest) m.rotation.x = -0.15;
   }
-  /* his children: pots, mouths turned up like a sandworm's, ringed; they breathe with the draught */
-  const pots = [[-3.2, -2.6, 1.3], [-6.7, -2.3, 1.0], [-2.9, -5.4, 1.5], [-4.3, -2.2, 0.9], [4.0, -5.3, 1.4], [5.9, -4.7, 1.1]].map(([x, z, h], i) => {
-    const g = grp(S, x, 0, z), segs = 5, P = { g, h, ph: rnd(0, TAU), lips: [] };
-    for (let j = 0; j < segs; j++) { const w = lerp(0.75, 0.42, j / (segs - 1)) * h; mk(g, 'cyl', TOMK[j % 4], w, h / segs + 0.02, w, 0, (j + 0.5) * h / segs, 0); mk(g, 'cyl', TOMK[3], w * 1.06, 0.03, w * 1.06, 0, j * h / segs, 0); }
-    mk(g, 'ico', 0x1a120a, 0.34 * h, 0.06, 0.34 * h, 0, h + 0.02, 0);
-    for (let j = 0; j < 7; j++) { const a = (j / 7) * TAU, L = grp(g, Math.cos(a) * 0.19 * h, h, Math.sin(a) * 0.19 * h); L.rotation.y = -a + PI / 2; mk(L, 'ico', TOMK[2], 0.12 * h, 0.28 * h, 0.08 * h, 0, 0.12 * h, 0); P.lips.push(L); }
-    P.mouth = V(x, h + 0.1, z);
-    return P;
-  });
-  /* the crawlers: small, low, many-legged, seed on their backs, going round and round inside the pocket */
-  const crawlers = [0, 1, 2].map(i => {
-    const g = grp(S, 0, 0, 0), C2 = { g, u: i / 3, legs: [], out: 0 };
-    mk(g, 'ico', TOMK[1], 0.42, 0.22, 0.55, 0, 0.17, 0);
-    for (let j = 0; j < 4; j++) mk(g, 'ico', CAPS2[j % 2], 0.08, 0.1, 0.08, rnd(-0.1, 0.1), 0.3, -0.18 + j * 0.12);
-    for (let j = 0; j < 6; j++) { const s = j % 2 ? 1 : -1, L = grp(g, s * 0.18, 0.15, -0.15 + Math.floor(j / 2) * 0.15); mk(L, 'box', TOMK[3], 0.25, 0.03, 0.03, s * 0.12, -0.06, 0).rotation.z = s * 0.5; C2.legs.push(L); }
-    return C2;
-  });
-  /* the dust: what he sheds, and what they breathe out */
-  const motes = []; for (let j = 0; j < 280; j++) motes.push({ m: mk(S, 'ico', DUST, 0.035, 0.035, 0.035, 0, -9, 0), v: V(0, 0, 0), life: 0 });
-  const fig = figure(S, -1.0, 1.4, 2.6);
+  /* what came up through him: torn skin at each, and the producers, tall, plant more than animal */
+  const prods = [];
+  for (const [x, y, z, h] of [[0.3, 1.2, 2.3, 3.0], [-0.5, 1.15, 1.6, 2.3], [0.6, 1.1, 0.8, 2.6], [-0.3, 1.2, 0.0, 3.4], [0.5, 1.2, -0.6, 1.9], [-0.6, 1.1, -1.3, 2.4], [0.2, 1.0, -1.9, 1.6],
+    [0.8, 1.6, -3.4, 1.4], [-0.75, 1.5, -3.7, 1.7], [0.2, 1.3, 4.7, 2.2], [-0.4, 1.2, 4.3, 1.5], [-1.9, 0.6, 0.2, 1.3], [1.3, 1.6, 1.5, 1.2]]) {
+    for (let j = 0; j < 6; j++) { const a = (j / 6) * TAU; mk(B, 'ico', TBRUISE, 0.3, 0.12, 0.3, x + Math.cos(a) * 0.28, y - 0.08, z + Math.sin(a) * 0.28); }
+    prods.push(producer(B, x, y - 0.1, z, h, 0.25));
+  }
+  /* his bubble: smaller ones, thrown by these, grown up out of the floor round him */
+  for (let j = 0; j < 46; j++) {
+    const a = rnd(0, TAU), r = Math.sqrt(rnd(0, 1)) * 8 + 2.8, x = -1.0 + Math.cos(a) * r * 1.1, z = -2.0 + Math.sin(a) * r * 0.8;
+    if (x < -11.5 || x > 11.5 || z < -8.6 || z > 8.6) continue;
+    prods.push(producer(S, x, 0, z, rnd(0.25, 0.25 + 1.2 * Math.max(0, 1 - (r - 2.8) / 8)), 0.15));
+  }
+  const motes = []; for (let j = 0; j < 320; j++) motes.push({ m: mk(S, 'ico', SPORE, 0.04, 0.04, 0.04, 0, -9, 0), v: V(0, 0, 0), life: 0 });
+  const fig = figure(S, 4.2, 4.0, -2.4);
   return {
-    S, fig, TG, roots, cutParts, emit, pots, crawlers, motes, fan, room: [0.16, 0.16, 0.15],
-    glow: { pos: V(-0.5, 3.4, 0.5), c: [0.55, 0.52, 0.46], r: 12 }, fog: 0.02,
-    cam: { tgt: V(-3.6, 1.6, -2.8), yaw: 0.45, pitch: 0.25, dist: 12, min: 1.5, max: 34 },
-    mode: 'cage', cut: false, fans: true, mi: 0,
+    S, fig, B, prods, motes, fan, room: [0.17, 0.17, 0.155],
+    glow: { pos: V(0, 6, 3), c: [0.5, 0.48, 0.4], r: 18 }, fog: 0.016,
+    cam: { tgt: V(-1, 1.5, -1.5), yaw: 0.9, pitch: 0.4, dist: 17, min: 1.5, max: 40 },
+    mode: 'zone', fans: true, mi: 0,
   };
 }
 const AMBER2 = 0xd2781a;
 const TOM_STATES = {
-  cage: ['The pocket', 'Tom Wren, generation 2: the mild leaf. Holt has boxed him into a corner with her roots, a pocket of them from floor to ceiling, amber where she grafted them. Inside, the air is thick with what he sheds. She is not containing him. She is saving him.', V(-3.6, 1.6, -2.8), 12, 0.45],
-  tom: ['Tom', 'He curled in the corner when he could not sleep, and wrote letters home until only his writing hand moved; the letters are still round him, and the pencil. The curl has grown together into one body, cured brown like dry leaf, his head pressed into his knees, and up his back the tobacco\'s seed capsules stand in rows like lines of handwriting, splitting, shedding seed as fine as dust. Sending them his love, as far as it can travel.', V(-5.4, 0.9, -4.4), 4.1, 0.85],
-  cut: ['Cut in', 'Cut a way in and he is out on your schedule, not hers. The dust goes where the air goes, and with the fans on the air goes to the vents and up the shafts. His crawlers follow it.', V(-0.5, 2.0, -3.0), 13, 0.35],
-  still: ['Fans off', 'Turn the fans off and his children stop: the pots open and close with the draught, and with no draught they hold their breath. The dust hangs where it is.', V(-2.5, 1.8, -3.2), 12, 0.5],
+  zone: ['His zone', 'Tom Wren, generation 2: the mild leaf. He was a very big man, four times a man\'s size, and he lay down here and stopped, and was grown through. Holt moved him to this zone and sealed it; her roots fill the doorway. Round him is his own bubble: the producers he threw, grown up out of the floor, thicker the nearer they are to him.', V(-1, 1.5, -1.5), 17, 1.1],
+  tom: ['Tom', 'Still a man, on his back, his knees a little up and one hand on his chest over his letters. His own spore producers have come up through him, out of his chest and belly and thighs and face, torn skin round each: ribbed stalks, plant more than animal, a mouth at the top of each that opens and throws. Sending them his love, as far as it can travel.', V(-0.6, 1.6, 0.0), 11, 1.22],
+  still: ['Fans off', 'Turn the fans off and they stop: the producers open and throw with the draught, and with no draught they hold their mouths shut. What they have thrown hangs in the air.', V(-1, 1.5, -1.5), 15, 0.4],
 };
 function setTom(mode) {
   const M = TOM; M.mode = mode;
   const [, , tgt, dist, yaw] = TOM_STATES[mode];
-  M.cam.tgt.copy(tgt); M.cam.dist = dist; M.cam.yaw = yaw; M.cam.pitch = mode === 'tom' ? 0.5 : 0.25;
-  if (mode === 'cut') M.cut = true; else if (mode === 'cage') M.cut = false;
+  M.cam.tgt.copy(tgt); M.cam.dist = dist; M.cam.yaw = yaw; M.cam.pitch = mode === 'tom' ? 0.22 : 0.4;
   M.fans = mode !== 'still';
-  for (const r of M.roots) r.visible = !M.cut;
-  for (const c of M.cutParts) c.visible = M.cut;
   if (PIA_READY) syncPanel();
 }
-const inPocket = p => p.x > POCKET.x0 && p.x < POCKET.x1 && p.z > POCKET.z0 && p.z < POCKET.z1;
 function stepTom(dt, now) {
-  const M = TOM;
-  if (M.fans) M.fan.rotation.z += dt * 9;
-  const flow = M.fans ? 1 : 0;
-  /* the pots breathe with the draught: out, a puff; in, the lips close */
-  for (const P of M.pots) {
-    P.ph += dt * (0.4 + 1.1 * flow);
-    const s = flow ? Math.sin(P.ph) : -0.6;
-    for (const L of P.lips) L.rotation.x = -0.25 - 0.55 * Math.max(0, s) + 0.35 * Math.max(0, -s);
-    P.g.scale.set(1 + 0.04 * s, 1, 1 + 0.04 * s);
-    if (flow && s > 0.85 && Math.random() < 0.5) spawnMote(M, P.mouth, V(rnd(-0.1, 0.1), 0.6, rnd(-0.1, 0.1)));
+  const M = TOM, flow = M.fans ? 1 : 0;
+  if (flow) M.fan.rotation.z += dt * 9;
+  for (const P of M.prods) {
+    P.ph += dt * (0.3 + 0.9 * flow);
+    const s = flow ? Math.sin(P.ph) : -0.7;
+    for (const L of P.lips) L.rotation.x = -0.15 - 0.6 * Math.max(0, s) + 0.45 * Math.max(0, -s);
+    if (flow && s > 0.9 && P.h > 0.9 && Math.random() < 0.25) { _a.set(0, P.h + 0.2, 0); P.g.localToWorld(_a); spawnMote(M, _a.clone(), V(rnd(-0.15, 0.15), 0.5 + rnd(0, 0.3), rnd(-0.15, 0.15))); }
   }
-  /* he sheds, always, a little */
-  if (Math.random() < 0.6) { const g = M.emit[Math.floor(rnd(0, M.emit.length))]; g.getWorldPosition(_a); spawnMote(M, _a.clone(), V(rnd(-0.05, 0.05), 0.12, rnd(-0.05, 0.05))); }
-  /* the dust goes where the air goes */
-  const gapC = V((GAP.x0 + GAP.x1) / 2, 1.6, POCKET.z1 + 0.2);
+  /* what they throw goes where the air goes: to the vent, with the fans on */
   for (const d of M.motes) {
     if (d.life <= 0) continue;
     d.life -= dt;
     const p = d.m.position;
-    if (flow) {
-      const inside = inPocket(p), goal = M.cut ? (inside ? gapC : VENT) : null;
-      if (goal) { _b.copy(goal).sub(p).setLength(0.35); d.v.lerp(_b, damp(0.6, dt)); }
-      else d.v.lerp(_b.set(Math.sin(now * 0.3 + p.x) * 0.12, Math.cos(now * 0.4 + p.z) * 0.06, Math.cos(now * 0.25 + p.y) * 0.12), damp(0.8, dt));
-    } else d.v.multiplyScalar(1 - damp(1.5, dt));
+    if (flow) { _b.copy(TVENT).sub(p).setLength(0.25); _b.y += Math.sin(now + p.x) * 0.05; d.v.lerp(_b, damp(0.25, dt)); }
+    else d.v.multiplyScalar(1 - damp(1.5, dt));
     d.v.x += rnd(-0.02, 0.02); d.v.y += rnd(-0.02, 0.02); d.v.z += rnd(-0.02, 0.02);
-    p.addScaledVector(d.v, dt);
-    if (!M.cut && !inPocket(p) && d.inside) { p.x = clamp(p.x, POCKET.x0 + 0.05, POCKET.x1 - 0.05); p.z = clamp(p.z, POCKET.z0 + 0.05, POCKET.z1 - 0.05); d.v.multiplyScalar(-0.3); }
-    p.y = clamp(p.y, 0.05, 4.1);
-    if (p.distanceTo(VENT) < 0.6 || d.life <= 0) { d.life = 0; p.y = -9; }
+    p.addScaledVector(d.v, dt); p.y = clamp(p.y, 0.05, 5.8);
+    if (p.distanceTo(TVENT) < 0.7 || d.life <= 0) { d.life = 0; p.y = -9; }
   }
-  /* the crawlers: round inside the pocket; cut, they make for the vent and climb to it */
-  M.crawlers.forEach((C2, i) => {
-    C2.u += dt * 0.05;
-    let x, z, y = 0, head;
-    if (M.cut && (C2.out > 0 || (C2.u % 1) < 0.02)) {
-      C2.out = Math.min(1, C2.out + dt * 0.06);
-      const u = C2.out, a = V(lerp(-4.2, 4.6, Math.min(1, u * 1.4)), 0, lerp(-1.8, -6.05, Math.min(1, u * 1.4)));
-      x = a.x; z = a.z; y = u > 0.72 ? (u - 0.72) / 0.28 * (VENT.y - 0.6) : 0;
-      head = Math.atan2(4.6 + 4.2, -6.05 + 1.8);
-      if (C2.out >= 1) { C2.out = 0; C2.u = rnd(0, 1); }
-    } else {
-      C2.out = 0;
-      const a = C2.u * TAU; x = -4.8 + Math.cos(a) * 1.9; z = -3.9 + Math.sin(a) * 1.5;
-      head = Math.atan2(-Math.sin(a) * 1.9, Math.cos(a) * 1.5);
-    }
-    C2.g.position.set(x, y, z); C2.g.rotation.y = head; C2.g.rotation.x = y > 0 ? -PI / 2 : 0;
-    C2.legs.forEach((L, j) => (L.rotation.y = Math.sin(now * 9 + j * 1.7) * 0.4));
-  });
 }
 function spawnMote(M, p, v) {
   const d = M.motes[M.mi]; M.mi = (M.mi + 1) % M.motes.length;
-  d.m.position.copy(p); d.v.copy(v); d.life = rnd(9, 16); d.inside = inPocket(p);
+  d.m.position.copy(p); d.v.copy(v); d.life = rnd(10, 18);
 }
 
 /* ================================================================================================================ */
@@ -1375,7 +1317,7 @@ function frame(nowMs) {
   renderer.render(M.S, camera);
   requestAnimationFrame(frame);
 }
-setPia('tree'); setInes('paint'); setDale('court'); setSam('good'); setTom('cage'); PIA_READY = true; syncPanel();
+setPia('tree'); setInes('paint'); setDale('court'); setSam('good'); setTom('zone'); PIA_READY = true; syncPanel();
 requestAnimationFrame(frame);
 window.__rs = { PIA, INES, DALE, SAM, TOM, setPia, setInes, setDale, setSam, setTom, camera, show: s => document.getElementById('tab-' + s).click() };
 </script>

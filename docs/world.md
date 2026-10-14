@@ -772,15 +772,19 @@ Nobody expected worse than a bad night.
   stopped, not managed; late children are mild. *Tell (the sleepless):* teeth grinding you can hear, never still. If it sits
   down, it is past it. *The tub as a hazard:* every mutant sleeps (rule 7), so any mutant that gets enough of it goes
   sleepless too.
-- **Tom Wren (mild leaf).** Sleepless but calm; he wrote letters home until only his writing hand moved, then curled in a
-  corner, and the curl grew together into one body, cured brown like dry leaf, his head pressed into his knees, the letters
-  and the pencil still round him. Up his back the tobacco's seed capsules stand in rows like lines of handwriting, splitting
-  and shedding seed as fine as dust. He is inside a pocket Holt has boxed in with roots, floor to ceiling, amber where she
-  grafted them: you cut your way in. *Spreads:* seed on the air, "as far as it can travel" (tobacco's seed is dust-fine, a
-  plant setting hundreds of thousands; this replaces the fern and its spores, proposed). *Children:* breathing pots, ringed,
-  mouths turned up like a sandworm's, that open and close with the draught and hold their breath when the fans stop; crawlers,
-  small and many-legged, seed on their backs, that follow the draught to the vents and up the shafts. *Inside:* Holt is not
-  containing him but saving him for the surface; cutting in lets him out on your schedule, not hers.
+- **Tom Wren (mild leaf).** Sleepless but calm; he wrote letters home until only his writing hand moved. He was a very big
+  man, four times a man's size, and he lay down and stopped, and was grown through. He is still plainly a man, ashen, on his
+  back with his knees a little up and one hand over his letters, but his own spore producers have come up through him, out of
+  his chest, belly, thighs and face, torn skin round each: ribbed stalks, pale green, plant more than animal, each with a
+  sulphur-yellow mouth at the top that opens and throws spores with the draught and holds shut when the fans stop. *Where:*
+  Holt moved him to a zone of his own and sealed it, her roots packed into the doorway, so he can sit in a later reach of
+  the game. Round him is his bubble: the smaller producers he threw, grown up out of the floor, thicker the nearer they are
+  to him. *Spreads:* spores on the air, "as far as it can travel". *Tell:* yellow dust that follows the air.
+  *The spores and you (proposed):* a spore is a graft like any other and needs living tissue to take: a wound, or long, heavy
+  breathing of it. One breath does nothing; a cut in his zone, or hours in it unmasked, does. The rebreather keeps them out,
+  so his zone is somewhere you go equipped, and a wound taken there is the danger. On the floor, on the dead, on anything
+  organic, they grow into new producers. *Inside:* Holt is not containing him but saving him for the surface; opening his
+  zone lets him out on your schedule, not hers.
 - **Sam Okoro (a bit of everything).** Took every product at least once, and the niche strains nobody else touched (a DMT-like,
   a psilocybin-like): the trial's most watched subject. Moody like Janus, kind like the aedra; never psychotic, never violent;
   driven to fairness. A big man, about 3.3 m, long in the leg and less heavy than his height suggests; his body a patchwork of
@@ -854,5 +858,5 @@ The player is never told any of this; they read it.
 - Holt's lab journal (`src/content/notes.ts`) has her cutting out her own fear; that is dropped, and the note is to be
   rewritten with the levels. So is the resident's diary, whose Pia has an arm that reaches for the lamp on its own: the arm has
   no will of its own.
-- Tom: seed rather than fern is proposed (the mockup has it); confirm.
+- Tom: his producers throw spores (not tobacco's seed after all); whether they are tobacco in any way is open.
 - Ines's murals: to be designed as particular scenes, with the copies worked down from them.
