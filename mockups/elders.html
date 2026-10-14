@@ -48,7 +48,6 @@ button:focus-visible { outline: 2px solid var(--hazard); outline-offset: 2px; }
     <button role="tab" id="tab-dale" data-scene="dale" aria-selected="false">Dale</button>
     <button role="tab" id="tab-sam" data-scene="sam" aria-selected="false">Sam</button>
     <button role="tab" id="tab-tom" data-scene="tom" aria-selected="false">Tom</button>
-    <button role="tab" id="tab-june" data-scene="june" aria-selected="false">June</button>
   </nav>
 </header>
 <section class="panel" aria-live="polite">
@@ -1147,7 +1146,7 @@ function buildTom() {
   /* the way in, sealed: Holt's roots packed into the doorway, amber at the grafts */
   mk(S, 'box', 0x1a1c1d, 2.4, 3.0, 0.3, -6.0, 1.5, -9.0);
   for (let j = 0; j < 14; j++) { const x = -7.0 + j * 0.15; beam(S, ROOTH[j % 3], 0.16, 0.14, V(x + rnd(-0.1, 0.1), 0, -8.95), V(x + rnd(-0.2, 0.2), 3.0, -8.95)); }
-  for (const y of [0.8, 1.6, 2.4]) { beam(S, ROOTH[1], 0.12, 0.1, V(-7.1, y, -8.85), V(-4.9, y + rnd(-0.2, 0.2), -8.85)); mk(S, 'ico', AMBER2, 0.09, 0.09, 0.09, -6.0 + rnd(-0.6, 0.6), y, -8.8); }
+  for (const y of [0.8, 1.6, 2.4]) { beam(S, ROOTH[1], 0.12, 0.1, V(-7.1, y, -8.85), V(-4.9, y + rnd(-0.2, 0.2), -8.85)); }
   /* the vent, and its fan */
   mk(S, 'box', 0x2a2d2f, 1.3, 1.3, 0.12, TVENT.x, TVENT.y, -9.0);
   const fan = grp(S, TVENT.x, TVENT.y, -8.93);
@@ -1240,133 +1239,16 @@ function spawnMote(M, p, v) {
 }
 
 /* ================================================================================================================ */
-/* JUNE PRYOR, generation 2: oils and resins, by the skin; a lab technician. She became sap: a compressed, hardened sap
-   person, layered like amber. Holt keeps her grafted to her own base, wired and pruned so she never grows, and taps her
-   for grafting wax. Rigid in the cold, soft and quick near heat; and she burns, and Holt with her */
-const AMB = [0xc8781e, 0xb0661a, 0xd88a2a, 0x9a5614], AMBW = 0xf0a23a, AMBD = 0x6a3a10, INCL = 0x2a1a0c;
-const HOLTB = [0x4a5e34, 0x3e5030, 0x56683c, 0x5a4a32], COPPER = 0xb87333, PRUNE = 0xf0d890, FLAME = [[2.98, 2.55, 1.6], [2.98, 2.2, 1.2], [2.98, 2.8, 2.0]];
-function buildJune() {
-  const S = new THREE.Scene();
-  floor(S, 18, 14, 0x2e3032, 0x232527, 1.0);
-  /* a bed in Horticulture, and the foot of Holt: a wall of her, root and stem and bark, going up out of sight */
-  mk(S, 'box', 0x2a2018, 12, 0.4, 5, 0, 0.2, -3.6);
-  for (let j = 0; j < 22; j++) { const x = rnd(-5.5, 5.5), y = rnd(0.8, 5.5), s = rnd(1.2, 2.6); mk(S, 'ico', HOLTB[j % 4], s * 1.1, s, s * 0.8, x, y, -4.4 + rnd(-0.4, 0.4)); }
-  for (let j = 0; j < 9; j++) { const x = -5 + j * 1.25; if (Math.abs(x - 0.2) < 1.5) continue; beam(S, HOLTB[j % 4], 0.4, 0.35, V(x, 2.6, -3.6), V(x + rnd(-0.6, 0.6), 0.25, -1.6 + rnd(-0.4, 0.6))); }
-  /* amber at the seams of her grafts: June's work, all over Holt */
-  for (let j = 0; j < 26; j++) mk(S, 'ico', AMB[j % 4], 0.12, 0.12, 0.12, rnd(-5.4, 5.4), rnd(0.6, 4.8), -3.5 + rnd(-0.3, 0.2));
-  /* June, low on Holt, half in her: a person pressed down into a lump of hardened sap, in layers */
-  const J = grp(S, 0.2, 0.45, -2.6), L = [];
-  const layer = (c, sx, sy, sz, x, y, z) => { const m = mk(J, 'ico', c, sx, sy, sz, x, y, z); L.push({ m, c, sx, sy, sz }); return m; };
-  layer(AMB[3], 1.5, 1.1, 1.1, 0, 0.45, 0); layer(AMB[0], 1.3, 0.95, 0.95, 0.05, 0.62, 0.12); layer(AMB[2], 1.05, 0.8, 0.8, -0.05, 0.8, 0.22);
-  layer(AMB[1], 0.85, 0.95, 0.7, 0, 1.15, 0.2); layer(AMB[0], 0.62, 0.6, 0.55, 0.05, 1.55, 0.3);
-  /* her face in it, near the top, pressed flat; awake */
-  const H = grp(J, 0.05, 1.62, 0.52);
-  { const m = mk(H, 'ico', AMB[2], 0.42, 0.48, 0.3, 0, 0, 0); L.push({ m, c: AMB[2], sx: 0.42, sy: 0.48, sz: 0.3 }); }
-  mk(H, 'box', AMBD, 0.14, 0.02, 0.03, 0, -0.12, 0.13);
-  J.eyes = [-1, 1].map(s => eye(H, 0.04, s * 0.09, 0.05, 0.12, { white: 0xd8b070, pupil: 0.5, slow: true }));
-  /* knees and an arm, folded in, the shape of a person under the layers */
-  layer(AMB[1], 0.55, 0.45, 0.6, -0.42, 0.55, 0.55); layer(AMB[3], 0.5, 0.42, 0.55, 0.42, 0.5, 0.55);
-  /* things caught in her: a pen, a key, a ring of bone */
-  for (const [x, y, z, sx, sy, sz] of [[-0.3, 0.9, 0.62, 0.18, 0.03, 0.03], [0.32, 1.1, 0.55, 0.08, 0.05, 0.02], [0.1, 0.4, 0.66, 0.12, 0.08, 0.04], [-0.15, 1.3, 0.5, 0.05, 0.12, 0.03]]) mk(J, 'box', INCL, sx, sy, sz, x, y, z);
-  /* pruned: stubs where she was cut back, pale at the ends; wired, the way a bonsai is wired */
-  for (const [x, y, z, a] of [[0.72, 1.0, 0.1, -0.9], [-0.7, 1.2, 0.0, 0.9], [0.3, 1.8, 0.1, -0.3]]) {
-    const g = grp(J, x, y, z); g.rotation.z = a;
-    mk(g, 'cyl', AMB[1], 0.18, 0.4, 0.18, 0, 0.2, 0); mk(g, 'cyl', PRUNE, 0.17, 0.02, 0.17, 0, 0.41, 0);
-  }
-  for (let j = 0; j < 40; j++) { const a = j * 0.55, y = 0.3 + j * 0.035; mk(J, 'box', COPPER, 0.05, 0.02, 0.02, Math.cos(a) * 0.62, y, 0.12 + Math.sin(a) * 0.5); }
-  /* the arm that comes free when she is warm */
-  J.arm = limb(J, [0.35, 1.25, 0.3], 0.42, 0.4, AMB[0], AMB[2], 0.13, fatHand(0.9, AMB[0], AMB[2]), { joint: AMB[1] });
-  /* tapped, like a pine: the herringbone cuts, and the cups under them */
-  const cups = [];
-  for (const s of [-1, 1]) {
-    for (let j = 0; j < 4; j++) mk(J, 'box', AMBD, 0.28, 0.03, 0.03, s * 0.28, 0.75 - j * 0.1, 0.5 + 0.02 * j).rotation.z = s * 0.55;
-    const cup = grp(J, s * 0.38, 0.12, 0.62); mk(cup, 'cyl', 0x8a8c8e, 0.2, 0.18, 0.2, 0, 0, 0); mk(cup, 'cyl', AMB[2], 0.17, 0.02, 0.17, 0, 0.07, 0);
-    cups.push(cup);
-  }
-  J.drops = [0, 1].map(s => ({ m: mk(S, 'ico', AMB[2], 0.04, 0.07, 0.04, 0, -9, 0), t: rnd(0, 2), v: 0, s: s ? 1 : -1 }));
-  /* the heater, for warmth */
-  const heat = grp(S, 2.6, 0, -0.6); heat.rotation.y = -0.9;
-  mk(heat, 'box', 0x3a3c3e, 0.7, 0.9, 0.3, 0, 0.45, 0);
-  const coils = [0, 1, 2].map(j => mk(heat, 'box', 0x5a3020, 0.55, 0.05, 0.04, 0, 0.3 + j * 0.2, 0.16));
-  /* her children: one like her insides, small, in layers; one plant and flesh, weeping sap */
-  const kids = [];
-  const k1 = grp(S, -3.2, 0, -0.6);
-  for (const [y, s, c] of [[0.35, 0.55, 3], [0.7, 0.5, 0], [1.0, 0.36, 2]]) mk(k1, 'ico', AMB[c], s, s * 0.9, s * 0.8, 0, y, 0);
-  for (const s of [-1, 1]) mk(k1, 'box', AMB[1], 0.1, 0.4, 0.1, s * 0.15, 0.1, 0);
-  kids.push(k1);
-  const k2 = grp(S, 4.6, 0, -1.8);
-  for (const [x, y, s, c] of [[0, 0.5, 0.8, 0x6a5a3e], [0.2, 0.95, 0.55, 0x4e6a34], [-0.15, 1.2, 0.4, 0x7a5a46]]) mk(k2, 'ico', c, s, s * 0.85, s * 0.8, x, y, 0);
-  for (let j = 0; j < 5; j++) mk(k2, 'box', AMB[2], 0.03, rnd(0.2, 0.5), 0.03, rnd(-0.3, 0.3), rnd(0.4, 1.0), 0.32);
-  kids.push(k2);
-  /* fire, when it comes: on her, and up Holt from her */
-  const flames = [];
-  for (let j = 0; j < 46; j++) { const onHer = j < 18, p = onHer ? V(0.2 + rnd(-0.7, 0.7), 0.6 + rnd(0, 1.6), -2.2 + rnd(-0.2, 0.4)) : V(rnd(-2.5, 2.8), rnd(1.0, 4.5), -3.2 + rnd(-0.3, 0.3)); const m = mk(S, 'ico', FLAME[j % 3], 0.3, 0.55, 0.3, p.x, p.y, p.z); m.visible = false; flames.push({ m, p, ph: rnd(0, TAU), on: onHer ? 0 : rnd(0.5, 3.5) }); }
-  const fig = figure(S, 3.4, 2.6, -2.6);
-  return {
-    S, fig, J, L, cups, heat, coils, kids, flames, room: [0.14, 0.15, 0.17],
-    glow: { pos: V(2.4, 0.9, -0.4), c: [0, 0, 0], r: 6 }, fog: 0.025,
-    cam: { tgt: V(0.2, 1.3, -2.0), yaw: 0.45, pitch: 0.2, dist: 6.5, min: 1.5, max: 30 },
-    mode: 'cold', warm: 0, t: 0,
-  };
-}
-const JUNE_STATES = {
-  cold: ['Cold', 'June Pryor, generation 2: oils and resins, through the skin; a lab technician. She became sap, a person pressed down into a lump of it, in layers like amber, things caught in her. Holt keeps her grafted low on her own foot, wired and pruned back like a bonsai so she never grows, and taps her like a pine: the cuts, the cups. That is Holt\'s grafting wax, and it is on every seam of her. In the cold June is rigid. Her eyes still move.', V(0.2, 1.3, -2.0), 6.5, 0.45],
-  warm: ['Warm', 'Put heat near her and she softens: the sap runs, she slumps and shines, the cups fill faster, and an arm comes free of the mass and reaches. Near heat she is quick.', V(0.8, 1.2, -1.6), 6.0, 0.7],
-  fire: ['Fire', 'And she burns. She is grafted to Holt\'s foot and her sap is in every one of Holt\'s seams, so the fire goes up Holt from her. Burning June is how you hurt Holt. Whether June minds, or wants it, is not for the player to be told.', V(0.2, 2.0, -2.4), 10, 0.4],
-};
-function setJune(mode) {
-  const M = JUNE; M.mode = mode; M.t = 0;
-  const [, , tgt, dist, yaw] = JUNE_STATES[mode];
-  M.cam.tgt.copy(tgt); M.cam.dist = dist; M.cam.yaw = yaw; M.cam.pitch = mode === 'fire' ? 0.25 : 0.2;
-  for (const c of M.coils) c.geometry = geo('box', mode === 'cold' ? 0x5a3020 : [2.98, 1.9, 1.1], 0.55, 0.05, 0.04);
-  for (const F of M.flames) F.m.visible = false;
-  if (PIA_READY) syncPanel();
-}
-function stepJune(dt, now) {
-  const M = JUNE, J = M.J;
-  M.t += dt;
-  M.warm += ((M.mode === 'cold' ? 0 : 1) - M.warm) * damp(0.5, dt);
-  const w = M.warm;
-  /* she slumps and shines as she warms */
-  J.scale.set(1 + 0.06 * w, 1 - 0.1 * w + Math.sin(now * 0.8) * 0.01 * w, 1 + 0.05 * w);
-  const shine = w > 0.5;
-  for (const l of M.L) { const c = shine ? AMBW : l.c; if (l.cur !== c) { l.m.geometry = geo('ico', c, l.sx, l.sy, l.sz); l.cur = c; } }
-  /* the arm: stuck in the cold; warm, it peels free and reaches for the heat, slowly */
-  _a.set(0.35 + 0.1 * w, 1.0 + 0.4 * w, 0.5 + 0.55 * w); J.localToWorld(_a);
-  if (w > 0.1) { M.heat.getWorldPosition(_b); _b.y = 1.0; _a.lerp(_b, 0.35 * w); }
-  reach(J.arm, _a, -1);
-  J.arm.end.forEach((f, k) => (f.rotation.x = 0.4 + Math.sin(now * (0.5 + 2 * w) + k) * 0.15 * w));
-  for (const E of J.eyes) lookEye(E, camera.position, dt);
-  /* the drip into the cups, faster when warm */
-  for (const d of J.drops) {
-    if ((d.t -= dt) < 0 && d.m.position.y < -1) { _a.set(d.s * 0.38, 0.55, 0.62); J.localToWorld(_a); d.m.position.copy(_a); d.v = 0; }
-    if (d.m.position.y > -1) { d.v += 4 * dt; d.m.position.y -= d.v * dt; if (d.m.position.y < 0.62) { d.m.position.y = -9; d.t = rnd(1.5, 3.5) / (1 + 4 * w); } }
-  }
-  /* the heater's glow, and the fire */
-  const fire = M.mode === 'fire';
-  if (M.mode === 'cold') M.glow.c = [0, 0, 0];
-  else { const f = fire ? 1.6 + Math.sin(now * 13) * 0.2 + Math.sin(now * 7.3) * 0.15 : 0.7; M.glow.c = [f, f * 0.55, f * 0.2]; M.glow.r = fire ? 12 : 5; M.glow.pos.set(fire ? 0.2 : 2.4, fire ? 2.0 : 0.9, fire ? -1.8 : -0.4); }
-  for (const F of M.flames) {
-    const on = fire && M.t > F.on;
-    F.m.visible = on;
-    if (on) { const s = 0.7 + 0.35 * Math.sin(now * 11 + F.ph) + 0.2 * Math.sin(now * 17 + F.ph * 2); F.m.scale.set(s, s * (1.2 + 0.3 * Math.sin(now * 9 + F.ph)), s); F.m.position.set(F.p.x, F.p.y + Math.sin(now * 5 + F.ph) * 0.06, F.p.z); }
-  }
-  /* her children: the small one walks slowly back and forth, quicker when warm */
-  M.kids[0].position.x = -3.2 + Math.sin(now * (0.2 + 0.4 * w)) * 0.8;
-  M.kids[0].rotation.y = Math.cos(now * (0.2 + 0.4 * w)) > 0 ? PI / 2 : -PI / 2;
-}
-
-/* ================================================================================================================ */
 const canvas = document.getElementById('c');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
 const camera = new THREE.PerspectiveCamera(50, 1, 0.05, 120);
-const PIA = buildPia(), INES = buildInes(), DALE = buildDale(), SAM = buildSam(), TOM = buildTom(), JUNE = buildJune();
+const PIA = buildPia(), INES = buildInes(), DALE = buildDale(), SAM = buildSam(), TOM = buildTom();
 let PIA_READY = false;
 let cur = PIA;
 
 const btns = document.getElementById('btns'), stateEl = document.getElementById('state'), capEl = document.getElementById('cap');
-const SCENES = { pia: () => [PIA, PIA_STATES, setPia, stepPia], ines: () => [INES, INES_STATES, setInes, stepInes], dale: () => [DALE, DALE_STATES, setDale, stepDale], sam: () => [SAM, SAM_STATES, setSam, stepSam], tom: () => [TOM, TOM_STATES, setTom, stepTom], june: () => [JUNE, JUNE_STATES, setJune, stepJune] };
+const SCENES = { pia: () => [PIA, PIA_STATES, setPia, stepPia], ines: () => [INES, INES_STATES, setInes, stepInes], dale: () => [DALE, DALE_STATES, setDale, stepDale], sam: () => [SAM, SAM_STATES, setSam, stepSam], tom: () => [TOM, TOM_STATES, setTom, stepTom] };
 let curName = 'pia';
 function syncPanel() {
   const [M, S, set] = SCENES[curName](), mode = M.mode;
@@ -1435,7 +1317,7 @@ function frame(nowMs) {
   renderer.render(M.S, camera);
   requestAnimationFrame(frame);
 }
-setPia('tree'); setInes('paint'); setDale('court'); setSam('good'); setTom('zone'); setJune('cold'); PIA_READY = true; syncPanel();
+setPia('tree'); setInes('paint'); setDale('court'); setSam('good'); setTom('zone'); PIA_READY = true; syncPanel();
 requestAnimationFrame(frame);
-window.__rs = { PIA, INES, DALE, SAM, TOM, JUNE, setPia, setInes, setDale, setSam, setTom, setJune, camera, show: s => document.getElementById('tab-' + s).click() };
+window.__rs = { PIA, INES, DALE, SAM, TOM, setPia, setInes, setDale, setSam, setTom, camera, show: s => document.getElementById('tab-' + s).click() };
 </script>

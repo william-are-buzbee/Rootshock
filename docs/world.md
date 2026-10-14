@@ -730,8 +730,7 @@ Nobody expected worse than a bad night.
   hivemind (she feels footsteps on soil, not on tile). Above her kin because every other elder can only make more of itself,
   and Holt can make something new; and the only one who plans by growing. *Children:* her cultivars (leaf giants, cane,
   espalier screens, heliotropes that turn to follow a light, stranglers, seed-throwers, topiary grown over borrowed bones).
-  *Tell:* a bead of amber at every graft seam (June, below). *Inside:* Tom is her longest bet, Sam carries her light, June seals
-  her work.
+  *Inside:* Tom is her longest bet, and Sam carries her light.
 - **Pia Lind (painkiller).** The stupor: glassy eyes, pupils pinned whatever the light, pustules, numb to pain and to
   everything, her metabolism slowed to a crawl. She does not fight it; she slows into something stationary and survives as
   that. **You meet her as the tree, or nearly:** the Commons tree, a rustica grown to about 13 m, risen out of a planter and through the floor,
@@ -777,8 +776,8 @@ Nobody expected worse than a bad night.
   back with his knees a little up and one hand over his letters, but his own spore producers have come up through him, out of
   his chest, belly, thighs and face, torn skin round each: ribbed stalks, pale green, plant more than animal, each with a
   sulphur-yellow mouth at the top that opens and throws spores with the draught and holds shut when the fans stop. *Where:*
-  Holt moved him to a zone of his own and sealed it, her roots packed into the doorway, so he can sit in a later reach of
-  the game. Round him is his bubble: the smaller producers he threw, grown up out of the floor, thicker the nearer they are
+  Holt moved him to a zone of his own and sealed it, her roots packed into the doorway, so he can sit in a later reach of the
+  game. Round him is his bubble: the smaller producers he threw, grown up out of the floor, thicker the nearer they are
   to him. *Spreads:* spores on the air, "as far as it can travel". *Tell:* yellow dust that follows the air.
   *The spores and you (proposed):* a spore is a graft like any other and needs living tissue to take: a wound, or long, heavy
   breathing of it. One breath does nothing; a cut in his zone, or hours in it unmasked, does. The rebreather keeps them out,
@@ -794,11 +793,8 @@ Nobody expected worse than a bad night.
   the body: sleeplessness still wrecks you, but you stop being violent about it and can carry on, and the soundtrack gains
   something that is not in the room. *Inside:* the arm's light was Holt's gift. Her heliotropes follow light, so they always
   know where he is; and the spores in his blood are her tissue, which makes him fond of her. His warmth toward Holt was grown.
-- **June Pryor (oils and resins; a lab technician).** The resin got in through her skin; she wept it, stuck, and hardened, and
-  became sap: a compressed, hardened sap-person, layered like amber. Now a resin mass grafted to Holt's base like a blister on
-  a pine, tapped, pruned and root-bound (a bonsai, so she never grows), and awake: Holt's grafting wax. Rigid in the cold, soft
-  and quick near heat, and she burns. Burning June is how you hurt Holt. Ally or prisoner: leave both readable. *Children:* some
-  look like her insides; some are plant and flesh that weep sap.
+- **June Pryor (oils and resins; a lab technician): set aside.** A sixth elder, a person turned to hardened sap and kept by
+  Holt as grafting wax, was mocked up and shelved: there are enough elders. Nothing else depends on her.
 
 ### The young gods
 
@@ -841,7 +837,7 @@ yourself. The game must be fun without it, so it waits (§6, question 2).
 
 The player is never told any of this; they read it.
 
-- **Fluid colour is lineage:** Pia milk, Dale nicotine, Ines her own pigment, Tom spore-rust, June amber, Holt green, Sam a glow.
+- **Fluid colour is lineage:** Pia milk, Dale nicotine, Ines her own pigment, Tom spore-yellow, Holt green, Sam a glow.
   Two colours on one body is a hybrid.
 - **Behaviour is stage:** never still means crisis; sitting means past it.
 - **Size is age,** in each elder's own silhouette.
