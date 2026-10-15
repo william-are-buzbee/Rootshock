@@ -199,9 +199,8 @@ export function step(sim: Sim, input: Input): void {
   /* what you hold slows how you change your pace, and is in what you weigh */
   sim.player.load = wstats(g.weapon).mass * (g.weapon ? 1 : 0);
   b.mass = MASS + sim.player.load;
-  /* what your hands are doing slows your feet: loading, swinging, coming back from it, reeling */
-  const P = pace(sim);
-  sim.player.pace = P.pace; sim.player.back = P.back;
+  /* reeling slows your feet */
+  sim.player.pace = pace(sim);
   const { stride, hit } = updatePlayer(sim.world, sim.player, input, STEP);
   /* walking into something loose shoves it */
   if (hit && hit !== 'world' && hit.kind === 'loose') {

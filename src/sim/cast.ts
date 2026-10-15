@@ -6,7 +6,7 @@ import type { Dyn } from '../world/world';
 import { fall, makeBody, push, settle, shove, slide, steer, walk, type Body } from './body';
 import { doorShut, opensItself, routeRules, rulesFor, type Fields, type Walker } from './fields';
 import { hurtBy, power, sayOnce, sfx } from './game';
-import { exposed, raised, struck } from './combat';
+import { exposed, struck } from './combat';
 import { sendPlatform, type Door } from './movers';
 import { eyeHeight } from './player';
 import { MOVES, POISE, react, regain, type Move } from './moves';
@@ -455,10 +455,9 @@ const step_ = (sim: Sim, m: Mutant, name: string, big = false) => sfx(sim.game, 
 
    Husks come at you one at a time. The one at you is the nearest of those hunting you close by (one mid-blow keeps its
    place); the rest hold off at arm's length and a half, circling, faced to you, until you are open (a blow of yours
-   thrown, your arm coming back, or you reeling) or they have waited long enough. Your opening is their turn. Nor will
-   the one at you walk into a full load you hold ready: it stops just out of its reach and waits for it to come down. */
+   thrown, your arm coming back, or you reeling) or they have waited long enough. Your opening is their turn. */
 
-const WAIT = { ring: 2.4, near: 4, patience: 3, edge: 0.35 };
+const WAIT = { ring: 2.4, near: 4, patience: 3 };
 
 /** the husk at you, or -1 */
 function frontOf(sim: Sim): number {
@@ -474,13 +473,6 @@ function frontOf(sim: Sim): number {
 /** it holds off: another is at you, you are not open, and it has not waited too long */
 function waits(sim: Sim, m: Mutant): boolean {
   return sim.front >= 0 && sim.front !== m.id && !exposed(sim) && m.pat < WAIT.patience && m.dp < WAIT.near;
-}
-
-/** it will not walk into a blow you hold ready: it keeps just out of its reach, until you let it go, it drops, or it
- *  has waited long enough. Wait it out and your arm tires; let it go and you are open. */
-function wary(sim: Sim, m: Mutant): boolean {
-  const r = raised(sim);
-  return r > 0 && m.pat < WAIT.patience && m.dp < r + m.r + WAIT.edge + 1.2;
 }
 
 /** `ring` from you, edging round you, faced to you */
@@ -654,7 +646,6 @@ const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
         if (m.lost > 8) { m.state = 'idle'; m.dest = -1; m.wt = rnd(sim, 2, 5); break; }
         if (inStart(m, MOVES.husk)) { turnTo(sim, m, 10); if (m.cd <= 0) { beginBlow(sim, m, MOVES.husk); m.pat = 0; } }
         else if (waits(sim, m)) { m.pat += dt; hover(sim, m, WAIT.ring); }
-        else if (wary(sim, m)) { m.pat += dt; hover(sim, m, raised(sim) + m.r + WAIT.edge); }
         else if (F) chase(sim, m, 3.5, F);
         break;
       case 'flee':

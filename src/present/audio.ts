@@ -438,8 +438,6 @@ export class Audio {
         case 'hurt': this.tn(180, 60, 0.35, 'sawtooth', 0.3); this.nz(0.2, 0.3, 500); break;
         case 'reel': // your poise gone: the wind knocked out of you, and your feet going
           this.nz(0.35, 0.22, 380, 'bandpass', 0, 1.2, 160, 0.03); this.tn(140, 70, 0.3, 'sawtooth', 0.12, 0.03); this.nz(0.2, 0.12, 900, 'bandpass', 0.2, 1, 500); break;
-        case 'tire': // the arm gives: a breath let go, and what you held coming down
-          this.nz(0.5, 0.1, 700, 'bandpass', 0, 1.5, 300, 0.1); this.nz(0.15, 0.08, 220, 'lowpass', 0.25); break;
         case 'take': this.tn(520, 780, 0.07, 'sine', 0.1); break;
         case 'deny': this.tn(140, 140, 0.15, 'square', 0.1); break;
         case 'power': this.nz(0.6, 0.7, 90); this.tn(40, 100, 2.5, 'sawtooth', 0.12); break;

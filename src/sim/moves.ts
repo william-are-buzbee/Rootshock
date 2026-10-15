@@ -3,12 +3,13 @@
    you hold; the cast's are written here. Over every blow sits the reaction ladder: a hit takes poise, and what it does
    depends on what is left. Thresholds, never a roll: the same blow does the same thing every time, so it can be learned.
 
-   - none: it took the hit and goes on. A blow in a part that has armour (the axe coming down, a thresher's arms) is
+   - none: it took the hit and goes on. A blow in a part that has armour (a thresher's arms, a skitter rearing) is
      not stopped by a hit lighter than its armour.
    - flinch: a wind-up or strike is lost; a moment's pause.
    - stagger: its poise is broken. It reels, open, for a while, and its poise comes back whole.
 
-   Knocked down and thrown (the rungs past stagger) come with the knockdowns (§6). */
+   Knocked down and thrown (the rungs past stagger) come with the knockdowns (§6). Your own blows are never stopped
+   (engine.md §6, F2 as built): the ladder only ever makes you reel. */
 
 export interface Move {
   /** seconds of each motion; recovery after a blow that landed, and after one that met nothing; a rest after that */
@@ -76,29 +77,20 @@ export function regain(left: number, max: number, calm: number, dt: number): num
 export interface Swing {
   /** the poise a full blow takes */
   poise: number;
-  /** what a full blow shrugs off between letting go and landing: a heavy weapon trades, a light one does not */
-  armour: number;
   /** the step forward a full blow carries you (m/s, along the blow) */
   lunge: number;
   /** recovery after a full blow that met nothing (s): the weight of it carries on */
   miss: number;
-  /** how long a full load can be held before the arm drops it (s) */
-  tire: number;
 }
 
 export function swingOf(kind: 'blunt' | 'edge' | 'fist' | 'gun', mass: number): Swing {
   return {
     poise: kind === 'fist' ? 4 : kind === 'edge' ? 9 * mass : 12 * mass,
-    armour: mass >= 2 ? 25 + 5 * mass : 0,
     lunge: 1 + 0.6 * mass,
     miss: 0.15 + 0.12 * mass,
-    tire: 1.4 - 0.2 * mass,
   };
 }
 
-/** your pace, as a share of it, while loading a blow, throwing it, coming back from it, and reeling; backing off as
- *  you do any of those goes at a share of that again */
-export const PACE = { load: 0.55, swing: 0.4, rec: 0.7, reel: 0.3, back: 0.6 };
-
-/** how long you reel when your poise breaks (s), and how hard it pushes you from the blow (m/s) */
-export const REEL = { you: 0.7, push: 2.5 };
+/** how long you reel when your poise breaks (s), how hard it pushes you from the blow (m/s), and your pace meanwhile
+ *  (a share of it) */
+export const REEL = { you: 0.7, push: 2.5, pace: 0.3 };

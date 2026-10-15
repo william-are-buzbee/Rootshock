@@ -3,9 +3,9 @@ import { clamp } from '../core/math';
 import { STEP } from '../core/loop';
 import type { Dyn } from '../world/world';
 import { hitMutant, type Mutant } from './cast';
-import { consume, makeNoise, say, sayOnce, sfx } from './game';
+import { consume, makeNoise, say, sfx } from './game';
 import { push } from './body';
-import { PACE, POISE, react, REEL, regain, swingOf, type Swing } from './moves';
+import { POISE, react, REEL, regain, swingOf, type Swing } from './moves';
 import type { Input } from './input';
 import { eyeHeight } from './player';
 import type { Sim } from './sim';
@@ -18,10 +18,10 @@ export { wstats, type WeaponStats };
    press.
 
    Once thrown, a blow is committed (sim/moves.ts): it goes along the line you let it go on, wherever you look after;
-   a full one carries you a step forward, and one that meets nothing leaves you longer coming back. A full load cannot
-   be held for ever: the arm tires and drops it. Loading and swinging slow your feet. A hit on you takes poise: it costs
-   you a load or a swing on its way (unless the swing is heavy enough to shrug it off), and enough of it breaks your
-   poise and you reel. A press while you are busy is kept a moment, so a blow can follow a blow. */
+   a full one carries you a step forward, and one that meets nothing leaves you longer coming back. A load can be held
+   as long as you like, and nothing that hits you takes a load or a blow from you. A hit takes poise, though: enough of
+   it and you reel, thrown back and slowed, and cannot start another load until you have your feet. A press while you
+   are busy is kept a moment, so a blow can follow a blow. */
 
 export interface Hands {
   /** seconds a swing has been loading; -1 when not */
@@ -58,9 +58,8 @@ export const makeHands = (): Hands => ({
 
 /** a jab: how hard, at the least and as it nears a full load; how long the arm takes to come back */
 const JAB = { min: 0.25, max: 0.7, rec: 0.3 };
-/** how long a press is kept while you are busy (s); how long the arm takes to come back from a load it dropped, or one
- *  a hit cost you */
-const BUF = 0.2, DROP = 0.45, LOST = 0.25;
+/** how long a press is kept while you are busy (s) */
+const BUF = 0.2;
 
 const dt = STEP;
 const wet = (sim: Sim) => sim.player.water !== 'dry';
@@ -73,15 +72,8 @@ export const exposed = (sim: Sim): boolean => {
   return h.rec > 0 || h.stag > 0 || !!h.swing?.done;
 };
 
-/** a full load held, and how far it reaches (from your middle to a target's edge): what a husk will not walk into */
-export const raised = (sim: Sim): number => (sim.hands.full && sim.hands.chg >= 0 ? wstats(sim.game.weapon).reach : 0);
-
-/** your pace as a share of it, and of that again backing off, for what your hands are doing (sim/moves.ts, PACE) */
-export function pace(sim: Sim): { pace: number; back: number } {
-  const h = sim.hands;
-  const k = h.stag > 0 ? PACE.reel : h.swing ? PACE.swing : h.chg >= 0 ? PACE.load : h.rec > 0 ? PACE.rec : 1;
-  return { pace: k, back: k < 1 ? PACE.back : 1 };
-}
+/** your pace as a share of it: a third while you reel (sim/moves.ts, REEL); loading and swinging do not slow you */
+export const pace = (sim: Sim): number => (sim.hands.stag > 0 ? REEL.pace : 1);
 
 export function updateHands(sim: Sim, input: Input): void {
   const h = sim.hands, g = sim.game, w = wstats(g.weapon), S = swingFor(w);
@@ -101,15 +93,7 @@ export function updateHands(sim: Sim, input: Input): void {
   if (free && (press || (h.buf > 0 && input.attack))) { h.chg = 0; h.full = false; h.buf = 0; }
   if (h.chg >= 0) {
     h.chg += dt;
-    const T = loadTime(sim, w);
-    if (h.chg >= T && !h.full) { h.full = true; sfx(g, 'load'); }
-    /* held too long, the arm gives: the load is gone, and the arm slow to come up again */
-    if (h.full && h.chg >= T + S.tire) {
-      h.chg = -1; h.full = false; h.rec = DROP;
-      sfx(g, 'tire');
-      sayOnce(g, 'tire', 'Your arms will not hold it up for ever.');
-      return;
-    }
+    if (h.chg >= loadTime(sim, w) && !h.full) { h.full = true; sfx(g, 'load'); }
   }
   if (release && h.chg >= 0) {
     const f = h.chg / loadTime(sim, w), pow = f >= 1 ? 1 : JAB.min + (JAB.max - JAB.min) * f;
@@ -139,18 +123,13 @@ function lunge(sim: Sim, S: Swing, pow: number): void {
   push(sim.player.body, -Math.sin(L.yaw) * S.lunge, -Math.cos(L.yaw) * S.lunge);
 }
 
-/** a blow lands on you, with `poise` behind it: the ladder (sim/moves.ts). A load is lost to any hit that gets
- *  through; a swing on its way, unless it is heavy enough to shrug the hit off; and enough of it, and you reel. */
+/** a blow lands on you, with `poise` behind it: the ladder (sim/moves.ts). It takes no load and no blow from you; if
+ *  it breaks your poise, you reel: thrown back from it, slowed, and no new load until you have your feet. */
 export function struck(sim: Sim, poise: number, from?: { x: number; z: number }): void {
-  const h = sim.hands, g = sim.game, w = wstats(g.weapon), s = h.swing;
+  const h = sim.hands, g = sim.game;
   if (g.ended) return;
-  /* a full blow of a heavy thing, let go and not yet landed, comes down whatever hits you */
-  const armour = s && !s.done && s.pow >= 1 ? swingFor(w).armour : 0;
-  const R = react(h.poise, POISE.you, poise, armour);
+  const R = react(h.poise, POISE.you, poise, 0);
   h.poise = R.left; h.calm = 0;
-  if (R.r === 'none') return;
-  if (h.chg >= 0) { h.chg = -1; h.full = false; h.rec = Math.max(h.rec, LOST); }
-  if (s && (R.r === 'stagger' || !s.done)) { h.swing = null; h.line = null; h.rec = Math.max(h.rec, LOST); }
   if (R.r !== 'stagger') return;
   h.stag = REEL.you;
   sfx(g, 'reel');
