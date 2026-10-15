@@ -48,7 +48,12 @@ export class HandsView {
     const w = wstats(g.weapon), fist = !g.weapon, sw = h.swing;
     const ld = h.chg >= 0 ? clamp(h.chg / loadTime(sim, w), 0, 1) : 0;
     vm.rotation.y = fist ? 0.12 : 0;
-    if (w.gun) {
+    if (h.stag > 0) {
+      /* reeling: the arm flung down and out, shaking, until you have your feet again */
+      const e = Math.min(1, h.stag / 0.25), sh = Math.sin(time * 31) * 0.02 * e;
+      vm.rotation.x = 0.7 * e + sh;
+      vm.position.set(0.34 + 0.06 * e, -0.36 - 0.18 * e + sh, -0.42 + 0.06 * e);
+    } else if (w.gun) {
       vm.rotation.x = h.kick * 0.5;
       vm.position.set(0.22, -0.3 + h.kick * 0.04 + Math.sin(bob) * 0.01, -0.42 + h.kick * 0.12);
     } else if (sw) {

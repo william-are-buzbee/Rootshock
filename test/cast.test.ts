@@ -7,7 +7,8 @@ import { STEP } from '../src/core/loop';
 import { give } from '../src/sim/game';
 import { field, openRules } from '../src/world/nav';
 import { refreshFields } from '../src/sim/fields';
-import { BLOWS, hitMutant, rounds, type Mutant } from '../src/sim/cast';
+import { hitMutant, rounds, type Mutant } from '../src/sim/cast';
+import { MOVES as BLOWS } from '../src/sim/moves';
 
 /* The cast on the upper station: the graph they walk, what they notice, how they follow, and what hurts them. */
 
@@ -297,17 +298,18 @@ describe('fighting', () => {
       only(s, [m]);
       m.state = 'hunt';
       m.blow = ph && { ph, t: 0, hit: false };
-      hitMutant(s, m, { dmg: 30, stun: 0.6 }, 1);
-      return { lost: m.max - m.hp, stun: m.stun, m };
+      hitMutant(s, m, { dmg: 30, poise: 10 }, 1);
+      return { lost: m.max - m.hp, stun: m.stun, poise: m.pmax - m.poise, m };
     };
     const open = struck('after'), shut = struck(null);
     expect(open.lost).toBeGreaterThan(shut.lost * 1.2);
     expect(open.stun).toBeGreaterThan(shut.stun * 1.5);
+    expect(open.poise).toBeGreaterThan(shut.poise * 1.5);
     expect(open.m.blow?.ph).toBe('after'); // still recovering
     const s = fresh(), m = cargoHusk(s);
     m.state = 'hunt';
     m.blow = { ph: 'wind', t: 0.3, hit: false };
-    hitMutant(s, m, { dmg: 10, stun: 0.3 }, 0.3);
+    hitMutant(s, m, { dmg: 10, poise: 10 }, 0.3);
     expect(m.blow).toBe(null);
   });
 

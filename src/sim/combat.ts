@@ -4,22 +4,34 @@ import { STEP } from '../core/loop';
 import type { Dyn } from '../world/world';
 import { hitMutant, type Mutant } from './cast';
 import { consume, makeNoise, say, sfx } from './game';
+import { push } from './body';
+import { POISE, react, REEL, regain, swingOf, type Swing } from './moves';
 import type { Input } from './input';
 import { eyeHeight } from './player';
 import type { Sim } from './sim';
 
 export { wstats, type WeaponStats };
 
-/* Your hands (engine.md §8). A swing is two motions: hold to load it, let go to throw it. Let go early and it is a jab:
-   quicker to throw, weaker, and it leaves your arm slow to come back, so it pushes something off you but does not
-   win a fight. A blow that lands stops the swing for a moment (hit-stop), so you feel it land. A gun fires on the
-   press. */
+/* Your hands (engine.md §8; §6, F2). A swing is two motions: hold to load it, let go to throw it. Let go early and it
+   is a jab: quicker to throw, weaker, and it leaves your arm slow to come back, so it pushes something off you but does
+   not win a fight. A blow that lands stops the swing for a moment (hit-stop), so you feel it land. A gun fires on the
+   press.
+
+   Once thrown, a blow is committed (sim/moves.ts): it goes along the line you let it go on, wherever you look after;
+   a full one carries you a step forward, and one that meets nothing leaves you longer coming back. A load can be held
+   as long as you like, and nothing that hits you takes a load or a blow from you. A hit takes poise, though: enough of
+   it and you reel, thrown back and slowed, and cannot start another load until you have your feet. A press while you
+   are busy is kept a moment, so a blow can follow a blow. */
 
 export interface Hands {
   /** seconds a swing has been loading; -1 when not */
   chg: number;
   full: boolean;
-  swing: { t: number; dur: number; done: boolean; pow: number } | null;
+  /** a swing under way: how far through, how long it takes, whether it has struck, how hard, and whether it met
+   *  anything when it struck */
+  swing: { t: number; dur: number; done: boolean; pow: number; missed?: boolean } | null;
+  /** the line a thrown blow goes along, fixed as you let it go */
+  line: { yaw: number; pitch: number } | null;
   /** after a jab, the arm coming back: no new swing until it is in */
   rec: number;
   /** a blow has landed: the swing holds still this long */
@@ -31,27 +43,54 @@ export interface Hands {
   muzzle: number;
   /** the button was down last step */
   held: boolean;
+  /** a press while busy, kept this much longer */
+  buf: number;
+  /** your poise, seconds since you were last hit, and seconds left of reeling */
+  poise: number;
+  calm: number;
+  stag: number;
 }
 
-export const makeHands = (): Hands => ({ chg: -1, full: false, swing: null, rec: 0, stop: 0, gcd: 0, kick: 0, muzzle: 0, held: false });
+export const makeHands = (): Hands => ({
+  chg: -1, full: false, swing: null, line: null, rec: 0, stop: 0, gcd: 0, kick: 0, muzzle: 0, held: false, buf: 0,
+  poise: POISE.you, calm: 99, stag: 0,
+});
 
 /** a jab: how hard, at the least and as it nears a full load; how long the arm takes to come back */
 const JAB = { min: 0.25, max: 0.7, rec: 0.3 };
+/** how long a press is kept while you are busy (s) */
+const BUF = 0.2;
 
 const dt = STEP;
 const wet = (sim: Sim) => sim.player.water !== 'dry';
 export const loadTime = (sim: Sim, w: WeaponStats) => (w.time + 0.15) * (wet(sim) ? 1.3 : 1);
+const swingFor = (w: WeaponStats) => swingOf(w.kind, w.mass);
+
+/** you are open: a blow of yours thrown, your arm coming back, or you reeling. What waits for its turn goes now. */
+export const exposed = (sim: Sim): boolean => {
+  const h = sim.hands;
+  return h.rec > 0 || h.stag > 0 || !!h.swing?.done;
+};
+
+/** your pace as a share of it: a third while you reel (sim/moves.ts, REEL); loading and swinging do not slow you */
+export const pace = (sim: Sim): number => (sim.hands.stag > 0 ? REEL.pace : 1);
 
 export function updateHands(sim: Sim, input: Input): void {
-  const h = sim.hands, g = sim.game, w = wstats(g.weapon);
+  const h = sim.hands, g = sim.game, w = wstats(g.weapon), S = swingFor(w);
   if (h.gcd > 0) h.gcd -= dt;
   if (h.kick > 0) h.kick = Math.max(0, h.kick - dt * 5);
   if (h.muzzle > 0) h.muzzle -= dt;
   if (h.rec > 0) h.rec -= dt;
+  if (h.stag > 0) h.stag = Math.max(0, h.stag - dt);
+  if (h.buf > 0) h.buf -= dt;
+  h.calm += dt;
+  h.poise = regain(h.poise, POISE.you, h.calm, dt);
   const press = input.attack && !h.held, release = !input.attack && h.held;
   h.held = input.attack;
-  if (w.gun) { h.chg = -1; h.swing = null; if (press) fire(sim, w); return; }
-  if (press && !h.swing && h.chg < 0 && h.rec <= 0) { h.chg = 0; h.full = false; }
+  if (w.gun) { h.chg = -1; h.swing = null; if (press && h.stag <= 0) fire(sim, w); return; }
+  const free = !h.swing && h.chg < 0 && h.rec <= 0 && h.stag <= 0;
+  if (press && !free) h.buf = BUF;
+  if (free && (press || (h.buf > 0 && input.attack))) { h.chg = 0; h.full = false; h.buf = 0; }
   if (h.chg >= 0) {
     h.chg += dt;
     if (h.chg >= loadTime(sim, w) && !h.full) { h.full = true; sfx(g, 'load'); }
@@ -60,6 +99,7 @@ export function updateHands(sim: Sim, input: Input): void {
     const f = h.chg / loadTime(sim, w), pow = f >= 1 ? 1 : JAB.min + (JAB.max - JAB.min) * f;
     h.chg = -1;
     h.swing = { t: 0, dur: (0.2 + 0.05 * w.mass) * (wet(sim) ? 1.3 : 1) * (pow < 1 ? 0.8 : 1), done: false, pow };
+    h.line = { yaw: sim.player.yaw, pitch: sim.player.pitch };
     sfx(g, 'swing');
   }
   const s = h.swing;
@@ -67,17 +107,43 @@ export function updateHands(sim: Sim, input: Input): void {
     if (h.stop > 0) h.stop -= dt;
     else s.t += dt;
     const q = Math.min(1, s.t / s.dur);
-    if (q >= (g.weapon ? 0.45 : 0.4) && !s.done) { s.done = true; strike(sim, w, s.pow); }
-    if (q >= 1) { h.swing = null; if (s.pow < 1) h.rec = JAB.rec; }
+    if (q >= (g.weapon ? 0.45 : 0.4) && !s.done) { s.done = true; s.missed = !strike(sim, w, s.pow); lunge(sim, S, s.pow); }
+    if (q >= 1) {
+      h.swing = null; h.line = null;
+      if (s.pow < 1) h.rec = JAB.rec;
+      else if (s.missed) h.rec = S.miss;
+    }
   }
+}
+
+/** a full blow carries you a step along it */
+function lunge(sim: Sim, S: Swing, pow: number): void {
+  const L = sim.hands.line;
+  if (pow < 1 || !L || !sim.player.body.ground) return;
+  push(sim.player.body, -Math.sin(L.yaw) * S.lunge, -Math.cos(L.yaw) * S.lunge);
+}
+
+/** a blow lands on you, with `poise` behind it: the ladder (sim/moves.ts). It takes no load and no blow from you; if
+ *  it breaks your poise, you reel: thrown back from it, slowed, and no new load until you have your feet. */
+export function struck(sim: Sim, poise: number, from?: { x: number; z: number }): void {
+  const h = sim.hands, g = sim.game;
+  if (g.ended) return;
+  const R = react(h.poise, POISE.you, poise, 0);
+  h.poise = R.left; h.calm = 0;
+  if (R.r !== 'stagger') return;
+  h.stag = REEL.you;
+  sfx(g, 'reel');
+  g.events.push({ type: 'shake', k: 0.35 });
+  const b = sim.player.body;
+  if (from) { const dx = b.x - from.x, dz = b.z - from.z, d = Math.hypot(dx, dz) || 1; push(b, (dx / d) * REEL.push, (dz / d) * REEL.push); }
 }
 
 const seeThrough = (d: Dyn) => d.kind === 'body';
 
-/** where you look from and which way */
+/** where you look from and which way: for a blow under way, the line it was let go on */
 function aim(sim: Sim) {
-  const p = sim.player, b = p.body, cp = Math.cos(p.pitch);
-  return { ex: b.x, ey: b.y + eyeHeight(p), ez: b.z, fx: -Math.sin(p.yaw) * cp, fy: Math.sin(p.pitch), fz: -Math.cos(p.yaw) * cp };
+  const p = sim.player, b = p.body, L = sim.hands.line ?? p, cp = Math.cos(L.pitch);
+  return { ex: b.x, ey: b.y + eyeHeight(p), ez: b.z, fx: -Math.sin(L.yaw) * cp, fy: Math.sin(L.pitch), fz: -Math.cos(L.yaw) * cp };
 }
 
 /** a grabber's head, the only part of it worth hitting */
@@ -91,8 +157,8 @@ function aimedAt(A: ReturnType<typeof aim>, x: number, y: number, z: number): { 
 
 /* A swing lands on whatever in reach is nearest the crosshair (and, between two about as near it, the nearer one),
    so with two in front of you, you choose which you hit by looking at it. */
-function strike(sim: Sim, w: WeaponStats, pow: number): void {
-  const g = sim.game, b = sim.player.body, A = aim(sim), pfx = -Math.sin(sim.player.yaw), pfz = -Math.cos(sim.player.yaw);
+function strike(sim: Sim, w: WeaponStats, pow: number): boolean {
+  const g = sim.game, b = sim.player.body, A = aim(sim), yaw = sim.hands.line?.yaw ?? sim.player.yaw, pfx = -Math.sin(yaw), pfz = -Math.cos(yaw);
   let best: Mutant | null = null, bs = -1e9;
   for (const m of sim.cast) {
     if (m.dead) continue;
@@ -112,15 +178,16 @@ function strike(sim: Sim, w: WeaponStats, pow: number): void {
     if (t.score > bs) { bs = t.score; best = m; }
   }
   if (best) {
-    hitMutant(sim, best, w, pow);
+    hitMutant(sim, best, { dmg: w.dmg, poise: swingFor(w).poise }, pow);
     makeNoise(g, 6 + 4 * pow);
     landed(sim, 0.3 + 0.7 * pow);
-    return;
+    return true;
   }
   /* nothing there but the wall */
   const r = w.reach - 0.3, cy = A.ey - 0.3;
   const hit = sim.world.raycast(A.ex, cy, A.ez, A.ex + pfx * r, cy, A.ez + pfz * r, seeThrough);
-  if (hit < 1) { sfx(g, 'blow', { x: A.ex + pfx * r * hit, y: cy, z: A.ez + pfz * r * hit }); makeNoise(g, 8); landed(sim, 0.6); }
+  if (hit < 1) { sfx(g, 'blow', { x: A.ex + pfx * r * hit, y: cy, z: A.ez + pfz * r * hit }); makeNoise(g, 8); landed(sim, 0.6); return true; }
+  return false;
 }
 
 /** a blow met something: the swing stops for a moment, and the view takes the jolt */
@@ -153,5 +220,5 @@ function fire(sim: Sim, w: WeaponStats): void {
     if (sim.world.raycast(A.ex, A.ey, A.ez, m.x, ty, m.z, seeThrough) < 1) continue;
     if (d < bd) { bd = d; best = m; }
   }
-  if (best) hitMutant(sim, best, { dmg: w.dmg * (big ? clamp(1.2 - bd / range, 0.25, 1) : 1), stun: 0.5 }, 1);
+  if (best) hitMutant(sim, best, { dmg: w.dmg * (big ? clamp(1.2 - bd / range, 0.25, 1) : 1), poise: big ? 60 : 22 }, 1);
 }

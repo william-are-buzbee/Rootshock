@@ -17,8 +17,9 @@ import { makeSim, type Sim, type SimOpts } from './sim';
 
 /** 2: the upper station laid out again (Security's wing and the atrium), so its doors and things are made in a new order.
  *  3: again (the muster hall, and the operations room behind glass), with the staff's power-failure drills
- *  4: bodies keep their velocity on the plan (engine.md §6, F1); the shoves that were kept beside it are gone */
-export const SAVE_VERSION = 4;
+ *  4: bodies keep their velocity on the plan (engine.md §6, F1); the shoves that were kept beside it are gone
+ *  5: poise, and blows that commit (engine.md §6, F2) */
+export const SAVE_VERSION = 5;
 
 /** copy the named fields of an object */
 const pick = <T extends object, K extends keyof T>(o: T, keys: readonly K[]): Pick<T, K> => {
@@ -38,7 +39,7 @@ const PLATFORM = ['y', 'target', 'wait', 'moving', 'armed'] as const;
 const LOOSE = ['x', 'y', 'z', 'vx', 'vy', 'vz', 'awake', 'ground', 'still', 'woke'] as const;
 const MUTANT = ['x', 'y', 'z', 'px', 'py', 'pz', 'yaw', 'state', 'st', 'cd', 'stun', 'hp', 'post', 'wt', 'wm', 'wx', 'wz', 'tk',
   'lost', 'bt', 'burst', 'flee', 'ct', 'cdir', 'tgt', 'grab', 'tense', 'stk', 'fled', 'side', 'spot', 'mv',
-  'hit', 'ph', 'dead', 'gone', 'dest', 'los', 'losAt', 'still', 'riled'] as const;
+  'hit', 'poise', 'calm', 'reel', 'pat', 'ph', 'dead', 'gone', 'dest', 'los', 'losAt', 'still', 'riled'] as const;
 
 /** what a rider stands on, by the moving thing's id */
 const onId = (r: { on: { id: number } | null }) => r.on?.id ?? 0;
@@ -155,9 +156,7 @@ export function load(level: LevelDef, data: Save, o: SimOpts = {}): Sim {
       if (m.dead) { const k = sim.world.dyn.indexOf(m.body.dyn); if (k >= 0) sim.world.dyn.splice(k, 1); }
     }
   });
-  /* a save from before jabs and hit-stop: its swing was a full one */
   sim.hands = { ...makeHands(), ...structuredClone(data.hands) };
-  if (sim.hands.swing) sim.hands.swing.pow ??= 1;
   sim.lighting = null;
   const F = sim.fields, d = data.fields;
   if (F && d) {
