@@ -7,8 +7,6 @@ import { meets, samples, segmentBox, type Box, type Footprint } from './shapes';
 export interface Dyn extends Box {
   kind: 'mover' | 'loose' | 'body';
   id: number;
-  /** a body you can walk through (a husk, a worm: they stop short of you rather than block you, as they always did) */
-  soft?: boolean;
   /** glass: it stops what moves, and what looks goes through it */
   glass?: boolean;
   /** what it is made of, for what stands on it: a platform's deck, a crate's boards */

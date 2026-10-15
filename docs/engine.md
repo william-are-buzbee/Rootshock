@@ -44,8 +44,10 @@ None of this is a reason to lose what works. The content, the look, the sound an
   `npm run dev` serves it with live reload; `npm run build` produces the files to publish.
 - **Agreed: the new station only.** v2 builds the station from `NEWSTATION` (the `?dev=newstation` levels). The old
   six-floor station is not ported.
-- **Agreed: no general physics library.** The world is a station of rooms, shafts and caves, not a pile of rigid bodies.
-  A purpose-built world model (§4) fits it; cannon or rapier would fight it.
+- **Agreed: no general physics library for the world or the cast.** The world is a station of rooms, shafts and caves,
+  not a pile of rigid bodies. A purpose-built world model (§4) fits it; cannon or rapier would fight it. **Proposed:**
+  one may come later for debris alone (corpses that fall loose, crates that tumble), fed the grid as static colliders
+  and never asked anything by the sim's rules (§6, *What a solver is for*).
 - **Agreed: current three.js from npm**, replacing r128 from a CDN.
 
 ---
@@ -213,6 +215,100 @@ perception → air and light → events out.
   - **Simple shapes.** Boxes and cylinders that stay upright or tip onto a face; no tumbling rigid-body solver.
   - **A budget.** A fixed number awake at once (start at 16); past that, the oldest settles where it is.
   - **Measured.** A step-2 test level with a pile of crates, timed headless, decides whether the budget holds.
+
+### The fight is physical (proposed)
+
+`world.md` asks for fights that are about timing, not spacing: you commit to a blow and live with it, two husks are a
+problem, and what you weigh and how fast you are going is in what you hit. That needs a few things under the sim that
+it does not have yet. None of them is a solver; all of them are the body controller and the combat rules, done once
+for everything that fights.
+
+**The principle: one set of rules for both sides.** Mass, momentum, commitment and recovery are the same for you and
+for the cast. A husk's blow and yours are the same thing at different weights; what knocks you down is what your axe
+does to something lighter. You learn the rules by having them used on you.
+
+**F1. Bodies with velocity and mass.** A body has a velocity on the plan as well as up and down, and a mass in
+kilograms. You no longer move by a stride straight from the keys: you speed toward the velocity you want, at a rate
+your footing allows (full on the ground, a little in the air, slow in water), and what you carry slows the change. One
+function, `push`, changes a body's velocity, and everything that shoves goes through it: a thresher's charge, a blow
+that knocks something back, a launch. A body moving faster than it can move itself has been thrown, and slows by
+friction rather than by choice. Moving into a wall takes the velocity into the wall away and reports how fast that was
+(the slam), as a landing reports its fall: wall damage (F3) reads it. **Built** (below). The cast still steer
+kinematically: they walk by a step from their behaviours, with their velocity holding only what was done to them.
+Steering them by velocity too is the step after, when the lunges become real.
+
+**F1b. Bodies are solid to each other.** You walked through husks, skitters and worms: only the bloat, the thresher
+and the hand stopped you, and the cast passed through you. So you could not be cornered and two husks could not hold
+a corridor against you. Now every body stops every other, and one moving into another shoves it by mass, as two
+bodies meeting share their momentum: you push a husk at about half your pace, a worm almost at your own, a thresher
+barely, and a bloat not at all (it is rooted where it sits). A husk or a skitter shoved this way knows you are there.
+**Built** (below).
+
+**F2. One kind of action for both sides.** Your swing (`combat.ts`, `Hands`) and a mutant's blow (`cast.ts`, `BLOWS`)
+are two implementations of one idea. Both become moves, written as data: phases (wind-up, active, recovery), and for
+each what the body may do in it (how fast it may move, whether it may turn, what cancels it), where it can hit, and
+what a hit carries. Over every action sits a **reaction ladder**: flinch (a wind-up lost), stagger (a stumble, open),
+knockdown (on the floor a while), launch (thrown, then down). Which one comes is set by the hit against the body's
+**poise**: a threshold, never a roll, so the same blow does the same thing every time and can be learned.
+
+- **Commitment is in the blow, not the camera.** Taking the view from you in first person reads as the game failing.
+  The line of a blow is fixed as it commits, as a husk's already is; you look where you like, and the blow goes
+  where you sent it.
+- A heavy blow carries a step forward; there is no backing off at full pace while swinging; a held load tires the
+  arm and drops; a hit cancels a wind-up; the axe does not flinch in its active part (it trades), a jab does. A short
+  buffer (about 0.2 s) keeps commitment deliberate rather than unresponsive.
+- A second husk waits for the first one's opening, which is yours: the recovery of a blow you committed to.
+
+**F3. Hits are impulses.** What a blow carries is the speed of what strikes (the weapon's head, by how far the swing
+was loaded) plus the body behind it, along the line of the blow, times an effective mass by the weapon. That drives
+the damage, the poise it breaks and the push it gives, by one function for both directions. Running into a blow is
+running into its strike: the counter hurts both. A blow is swept through the world across its active part, not
+tested at one instant: an axe can take two husks in one sweep, and **a blow that meets a wall glances and staggers
+whoever threw it**, so the big axe is a poor choice in a vent. Slams into walls hurt, as falls do, and the cast take
+fall damage too, so a ledge is a weapon.
+
+**F4. Ways to see it.** Headless duel tests that script inputs and check what follows (a running axe blow floors a
+husk; a standing jab does not; committed to one husk, the second lands). A fight arena in the test bed. A dev
+overlay of reach and arcs, poise and velocities, with slow motion.
+
+**Knockdowns** sit on F2 and F3. A body has a posture: standing, crouched, down, getting up. A launch is a push with
+some of it upward; gravity and landing do the rest. You knocked down: the view is thrown along the hit, lands low and
+tilted, and you are down about a second; the cast use it (a husk stomps whoever is down). Getting up gives a moment of
+extra poise, not immunity, so a knockdown cannot chain into a death. A husk knocked down has a pose (`castView`), and a
+blow to it counts for more. These are authored, not simulated: the cast are boxes and blobs, and a reaction that is
+written reads better than one that is solved.
+
+### What a solver is for (proposed)
+
+Rapier (or cannon) gives none of what the fight needs: no phases, no poise, no blow that trades, no momentum in the
+damage. Its character controller does what `body.ts` does. Taking it as the foundation would mean feeding it the grid
+and the caves' surfaces while still asking `world.ts` for sight, sound and paths, and saving its snapshots in place of
+plain data. What it is good at is debris: corpses that fall loose, crates that tumble, a body skidding down a stair.
+Those sit on top of the game. If it comes in, it comes in for them, after the knockdowns, as a layer of its own.
+
+### Order
+
+F1 and F1b, then F2, then F3, with F4 built alongside from the start; then the tuning. A solver waits until there is a
+corpse worth throwing.
+
+### F1 and F1b, as built
+
+- **Velocity.** A body has `vx`, `vz` (m/s) and `mass` (kg). Yours is 75 kg and what you hold. On the ground you speed
+  toward what you want at 30 m/s² (less by 5% a kilogram of weapon in hand, so the axe makes you slower to start and to
+  stop); in the air at a third of that, wading at a half, swimming at a quarter. Past what you could go yourself, you
+  have been thrown, and friction (24 m/s²) slows you whatever you do.
+- **`slide`** moves a body by its velocity and takes away what a wall stopped, axis by axis; how much is its `slam`.
+  **`push`** adds to a body's velocity; `impulse` is a push by a momentum, so mass tells.
+- **The cast** keep their own steering; their velocity is what was done to them, slowed by friction (28 m/s², which
+  keeps a blow's knock back at the 0.3 m it was). The thresher's charge throws you at 9 m/s, as it did.
+- **Shoving.** When you move into one of the cast, you and it go on at the pace you would share if your momentum were
+  shared between you: your pace times your mass over both, by the pace you were going or meant to go, whichever is
+  more (so a rush into one hits harder). While it is carried so, friction does not slow it as well. Measured walking
+  (and running): a worm (25 kg) 2.4 m/s (4.2), a skitter (45) 2.0 (3.5), a husk (80) 1.55 (2.7), a thresher (220)
+  0.8 (1.4), the hand (300) 0.6 (1.1), a bloat none. One of the cast moving into you shoves you the same way. A husk or
+  a skitter you walk into knows you are there, and hunts.
+- **Tests**: `test/momentum.test.ts`.
+- **Saves** carry each body's velocity (save version 4).
 
 ---
 

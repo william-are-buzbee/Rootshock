@@ -3,7 +3,7 @@ import { angLerp, clamp, PI, TAU } from '../core/math';
 import { STEP } from '../core/loop';
 import { Edge, edgeCost, field as fieldFrom } from '../world/nav';
 import type { Dyn } from '../world/world';
-import { fall, makeBody, settle, walk, type Body } from './body';
+import { fall, makeBody, push, settle, shove, slide, steer, walk, type Body } from './body';
 import { doorShut, opensItself, routeRules, rulesFor, type Fields, type Walker } from './fields';
 import { hurtBy, power, sayOnce, sfx } from './game';
 import { sendPlatform, type Door } from './movers';
@@ -21,27 +21,29 @@ export type Ai = 'husk' | 'skitter' | 'bloat' | 'thresher' | 'worm' | 'swimmer' 
 interface Stats {
   ai?: Ai; model?: string; green?: boolean;
   hp: number; r: number; cr: number; mass: number;
+  /** what its body weighs (kg), for shoving and being shoved; Infinity for one rooted where it sits */
+  kg: number;
   /** its body's height */
   h: number;
   opens?: boolean; low?: boolean; noDoors?: boolean; solid?: boolean; fixed?: boolean; swim?: boolean;
 }
 
 export const MT: Record<string, Stats> = {
-  husk: { hp: 75, r: 0.38, cr: 0.34, mass: 1.2, h: 1.8, opens: true },
-  skitter: { hp: 60, r: 0.5, cr: 0.4, mass: 1, h: 0.9, low: true },
-  bloat: { hp: 600, r: 1, cr: 0.9, mass: 8, h: 2.4, noDoors: true, solid: true },
-  thresher: { hp: 150, r: 0.6, cr: 0.5, mass: 2.5, h: 2.1, solid: true, noDoors: true },
+  husk: { hp: 75, r: 0.38, cr: 0.34, mass: 1.2, kg: 80, h: 1.8, opens: true },
+  skitter: { hp: 60, r: 0.5, cr: 0.4, mass: 1, kg: 45, h: 0.9, low: true },
+  bloat: { hp: 600, r: 1, cr: 0.9, mass: 8, kg: Infinity, h: 2.4, noDoors: true, solid: true },
+  thresher: { hp: 150, r: 0.6, cr: 0.5, mass: 2.5, kg: 220, h: 2.1, solid: true, noDoors: true },
   /* 0.6 high: higher than a step, so you go round one rather than up onto it */
-  worm: { hp: 40, r: 0.35, cr: 0.3, mass: 1, h: 0.6, low: true },
-  rootworm: { ai: 'worm', model: 'worm', green: true, hp: 40, r: 0.35, cr: 0.3, mass: 1, h: 0.6, low: true },
-  swimmer: { ai: 'swimmer', model: 'worm', hp: 40, r: 0.35, cr: 0.3, mass: 1, h: 0.6, swim: true },
-  grabber: { hp: 30, r: 0.4, cr: 0, mass: 1, h: 0, fixed: true },
-  vine: { ai: 'grabber', model: 'grabber', green: true, hp: 30, r: 0.4, cr: 0, mass: 1, h: 0, fixed: true },
+  worm: { hp: 40, r: 0.35, cr: 0.3, mass: 1, kg: 25, h: 0.6, low: true },
+  rootworm: { ai: 'worm', model: 'worm', green: true, hp: 40, r: 0.35, cr: 0.3, mass: 1, kg: 25, h: 0.6, low: true },
+  swimmer: { ai: 'swimmer', model: 'worm', hp: 40, r: 0.35, cr: 0.3, mass: 1, kg: 25, h: 0.6, swim: true },
+  grabber: { hp: 30, r: 0.4, cr: 0, mass: 1, kg: Infinity, h: 0, fixed: true },
+  vine: { ai: 'grabber', model: 'grabber', green: true, hp: 30, r: 0.4, cr: 0, mass: 1, kg: Infinity, h: 0, fixed: true },
   /* Security's (world.md §8): the growth that was the operations centre, which sees through the cameras; and its hand,
      made of Security's response team, which goes wherever the overseer knocks for it. It fights as a thresher does. Too
      big for a door frame, it keeps to the halls. */
-  overseer: { ai: 'overseer', model: 'overseer', hp: 260, r: 1.1, cr: 0, mass: 8, h: 0, fixed: true },
-  hand: { ai: 'thresher', model: 'hand', hp: 220, r: 0.65, cr: 0.52, mass: 3, h: 2.2, solid: true, noDoors: true },
+  overseer: { ai: 'overseer', model: 'overseer', hp: 260, r: 1.1, cr: 0, mass: 8, kg: Infinity, h: 0, fixed: true },
+  hand: { ai: 'thresher', model: 'hand', hp: 220, r: 0.65, cr: 0.52, mass: 3, kg: 300, h: 2.2, solid: true, noDoors: true },
 };
 
 export const DEATH: Record<Ai, string> = {
@@ -115,8 +117,6 @@ export interface Mutant {
   los: boolean; losAt: number;
   /** 1 when just hit, dying away */
   hit: number;
-  /** being knocked back: its slide along the ground, m/s, dying away */
-  kx: number; kz: number;
   /** time, for its animation */
   ph: number;
   dead: boolean;
@@ -132,14 +132,8 @@ export function makeCast(sim: Sim, defs: MutantDef[]): Mutant[] {
   const rnd = (a: number, b?: number) => sim.rng.range(a, b);
   return defs.filter(d => MT[d.type]).map((def, id) => {
     const S = MT[def.type], o = def.opts as Record<string, number | undefined>;
-    const body = S.fixed ? null : makeBody(sim.world, def.x, def.y, def.z, S.cr, S.h);
-    if (body) {
-      /* as the first engine had it: you pass through all but the solid ones, and they stop short of you rather than
-         push; so none of them is ever held up by you either */
-      const own = body.dyn, you = sim.player.body.dyn;
-      body.dyn.soft = !S.solid;
-      body.skip = d => d === own || d === you;
-    }
+    /* every body stops every other, yours too (engine.md §6, F1b); they stop short of you, and shove you when they do not */
+    const body = S.fixed ? null : makeBody(sim.world, def.x, def.y, def.z, S.cr, S.h, S.kg);
     const room = sim.world.roomAt(def.x, def.y + 0.5, def.z)?.id ?? -1;
     const m: Mutant = {
       id, type: def.type, ai: S.ai ?? (def.type as Ai), model: S.model ?? def.type, green: !!S.green, body,
@@ -150,7 +144,7 @@ export function makeCast(sim: Sim, defs: MutantDef[]): Mutant[] {
       post: !!o.post, sit: !!o.sit, holt: !!o.holt, big: !!o.big, zone: (def.opts.zone as string | undefined) ?? null, screens: (def.opts.screens as string | undefined) ?? null, hx: def.x, hz: def.z, room,
       wt: rnd(1, 5), wm: 0, wx: 0, wz: 0, tk: 0, lost: 0, bt: 0, burst: false, flee: 0, ct: rnd(6, 14), cdir: 0, tgt: false,
       grab: 0, tense: 0, riled: false, blow: null, dest: -1, F: null, stk: 0, fled: false, side: 0, ride: null, spot: -1,
-      mv: 0, d: 99, dp: 99, dy: 0, los: false, losAt: -99, hit: 0, kx: 0, kz: 0, ph: rnd(9), dead: false, gone: 0, still: 0,
+      mv: 0, d: 99, dp: 99, dy: 0, los: false, losAt: -99, hit: 0, ph: rnd(9), dead: false, gone: 0, still: 0,
     };
     return m;
   });
@@ -211,7 +205,8 @@ function go(sim: Sim, m: Mutant, tx: number, tz: number, spd: number): boolean {
   const p = sim.player.body, nx = b.x + dx * st, nz = b.z + dz * st, nd = Math.hypot(nx - p.x, nz - p.z);
   if (Math.abs(m.dy) < 1.5 && nd < m.r + 0.3 && nd < m.dp) { m.mv = 0; return true; }
   const ox = b.x, oz = b.z;
-  walk(sim.world, b, dx * st, dz * st);
+  const hit = walk(sim.world, b, dx * st, dz * st);
+  if (hit === p.dyn) shove(b, p, dx * spd, dz * spd, dx * spd, dz * spd, false);
   const moved = Math.hypot(b.x - ox, b.z - oz) >= st * 0.3;
   /* wedged on a corner or against another of them: sidestep, and keep to the same side until it clears. Not round you. */
   if (!moved) {
@@ -724,7 +719,8 @@ const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
         if ((m.tk -= dt) < 0) { m.tk = 0.16; step_(sim, m, 'hstep', true); }
         if (m.dp < m.r + 0.55 && Math.abs(m.dy) < 1.4) {
           strikes(sim, m, 45);
-          p.kx = Math.sin(m.cdir) * 9; p.kz = Math.cos(m.cdir) * 9;
+          /* it throws you: 9 m/s along its charge, whatever you were doing */
+          p.body.vx = 0; p.body.vz = 0; push(p.body, Math.sin(m.cdir) * 9, Math.cos(m.cdir) * 9);
           m.state = 'recover'; m.st = 1.6;
           break;
         }
@@ -914,14 +910,14 @@ export function updateCast(sim: Sim): void {
     m.d = Math.hypot(dx, dz, m.dy);
     m.mv = 0;
     m.ph += dt;
-    /* knocked back: it slides a step's worth over a few steps, not all at once */
-    if (mb && (m.kx || m.kz)) {
-      walk(sim.world, mb, m.kx * dt, m.kz * dt, 0);
+    /* what was done to it (a knock back, a shove): it slides on that, and friction takes it away; what it meets, it shoves */
+    if (mb && (mb.vx || mb.vz)) {
+      const vx = mb.vx, vz = mb.vz, { hit } = slide(sim.world, mb, dt, 0);
+      if (hit === b.dyn) shove(mb, b, vx, vz, 0, 0, true);
+      if (!mb.carried) steer(mb, 0, 0, FRICTION, dt);
       m.x = mb.x; m.z = mb.z;
-      const k = Math.exp(-dt * KNOCK.ease);
-      m.kx *= k; m.kz *= k;
-      if (Math.hypot(m.kx, m.kz) < 0.05) m.kx = m.kz = 0;
     }
+    if (mb) mb.carried = false;
     if (m.stun > 0) m.stun -= dt;
     else AI[m.ai](sim, m);
     if (mb) {
@@ -935,8 +931,11 @@ export function updateCast(sim: Sim): void {
   }
 }
 
-/** a knock back: how far it slides in all, and how fast the slide dies (per second) */
-const KNOCK = { dist: 0.3, ease: 14 };
+/** what slows one of the cast that something shoved (m/s²): a knock back at KNOCK.speed goes about 0.3 m */
+const FRICTION = 28;
+
+/** a knock back: how fast a full blow sends it (m/s) */
+const KNOCK = { speed: 4.2 };
 /** a blow that catches one open, recovering from its own */
 const OPEN = { dmg: 1.25, stun: 1.6 };
 
@@ -953,8 +952,8 @@ export function hitMutant(sim: Sim, m: Mutant, w: { dmg: number; stun: number },
   sfx(g, 'hit');
   /* light enough to be knocked back a step: about 0.3 m from a full blow, slid over a sixth of a second */
   if (m.body && m.mass <= 1.5) {
-    const dx = m.x - p.x, dz = m.z - p.z, d = Math.hypot(dx, dz) || 1, v = KNOCK.dist * pow * KNOCK.ease;
-    m.kx = (dx / d) * v; m.kz = (dz / d) * v;
+    const dx = m.x - p.x, dz = m.z - p.z, d = Math.hypot(dx, dz) || 1, v = KNOCK.speed * pow;
+    m.body.vx = (dx / d) * v; m.body.vz = (dz / d) * v;
   }
   if (m.hp <= 0) { kill(sim, m); return; }
   switch (m.ai) {
@@ -971,6 +970,13 @@ export function hitMutant(sim: Sim, m: Mutant, w: { dmg: number; stun: number },
     case 'bloat': sayOnce(g, 'bloat', 'It does not seem to notice.'); break;
     default: break;
   }
+}
+
+/** you walked into it: what was not already after you is now */
+export function shoved(sim: Sim, m: Mutant): void {
+  if (m.dead) return;
+  if (m.ai === 'husk' && m.state !== 'hunt' && m.state !== 'flee') { m.state = 'hunt'; m.lost = 0; m.post = false; m.dest = -1; step_(sim, m, 'moan'); }
+  else if (m.ai === 'skitter' && m.state === 'idle') { m.state = 'hunt'; m.lost = 0; m.bt = 0; step_(sim, m, 'skit'); }
 }
 
 function kill(sim: Sim, m: Mutant): void {

@@ -70,14 +70,17 @@ describe('you', () => {
 });
 
 describe('the cast, as the first engine had them', () => {
-  it('you walk through a husk; it stops short of you rather than on you', () => {
+  it('a husk stops you (you shove it, and it knows); it stops short of you rather than on you', () => {
     const s = fresh(), m = s.cast[1];
     still(s);
     openLobbyDoor(s);
     place(s, m, 30, 0, -1);
     place(s, 'player', 27, 0, -1); s.player.yaw = -Math.PI / 2;
     hold(s, 1.5, { forward: 1 });
-    expect(s.player.body.x).toBeGreaterThan(31); // through it and out the other side
+    /* no longer through it (engine.md §6, F1b): you are never past it, and it has been pushed on ahead of you */
+    expect(s.player.body.x).toBeLessThan(m.x);
+    expect(m.x).toBeGreaterThan(30.3);
+    expect(m.state).toBe('hunt');
     /* awake and hunting, it comes to arm's length and no nearer */
     m.stun = 0; m.state = 'hunt';
     place(s, 'player', 36, 0, -1); s.game.hp = 1e9;

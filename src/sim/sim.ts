@@ -4,16 +4,17 @@ import { STEP } from '../core/loop';
 import { World } from '../world/world';
 import { clamp } from '../core/math';
 import { Lighting, type Loose } from '../world/light';
-import { castBodies, castMovers, makeCast, updateCast, type Drill, type Mutant } from './cast';
+import { castBodies, castMovers, makeCast, shoved, updateCast, type Drill, type Mutant } from './cast';
 import { makeCams, updateEyes, type Alarm, type Cam, type Knock } from './eyes';
-import { makeHands, updateHands, type Hands } from './combat';
+import { makeHands, updateHands, wstats, type Hands } from './combat';
+import { shove } from './body';
 import { makeFields, refreshFields, updateFields, type Fields } from './fields';
 import { hurt, makeGame, makeNoise, power, runLight, toggleLight, unwear, useItem, type Command, type Game, type StationState, say, sfx } from './game';
 import type { Input } from './input';
 import { buildUsables, findUsable, itemUse, padKey, type Usable, type WorldItem } from './interact';
 import { LooseSet, makeLoose } from './loose';
 import { makeDoor, makePlatform, updateDoor, updatePlatform, type Door, type Platform, type Rider } from './movers';
-import { airFor, eyeHeight, makePlayer, updatePlayer, type Player } from './player';
+import { airFor, eyeHeight, makePlayer, MASS, updatePlayer, type Player } from './player';
 
 /* The simulation: everything that is true about the game, advanced one fixed step at a time.
    Nothing here touches three.js or the page (engine.md §3). */
@@ -193,11 +194,19 @@ export function step(sim: Sim, input: Input): void {
   /* take a rebreather off under water and you have what is in your lungs */
   sim.player.airMax = airFor(g.worn);
   sim.player.air = Math.min(sim.player.air, sim.player.airMax);
+  /* what you hold slows how you change your pace, and is in what you weigh */
+  sim.player.load = wstats(g.weapon).mass * (g.weapon ? 1 : 0);
+  b.mass = MASS + sim.player.load;
   const { stride, hit } = updatePlayer(sim.world, sim.player, input, STEP);
   /* walking into something loose shoves it */
   if (hit && hit !== 'world' && hit.kind === 'loose') {
     const o = sim.loose.all.find(q => q.dyn === hit), len = Math.hypot(stride.dx, stride.dz);
     if (o && len > 0) sim.loose.push(o, stride.dx / len, stride.dz / len, stride.speed * 0.9, sim.tick);
+  }
+  /* walking into one of the cast shoves it, by what you both weigh; and it knows you are there */
+  if (hit && hit !== 'world' && hit.kind === 'body') {
+    const m = sim.cast.find(q => q.body?.dyn === hit);
+    if (m?.body) { shove(b, m.body, stride.dx / STEP, stride.dz / STEP, stride.wx, stride.wz, true); shoved(sim, m); }
   }
   /* falls hurt (as before: past 10 m/s, 6 a metre a second); breath that runs out hurts more */
   const p = sim.player;

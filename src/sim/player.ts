@@ -1,6 +1,6 @@
 import { clamp } from '../core/math';
-import type { World } from '../world/world';
-import { fall, fits, footprint, makeBody, settle, walk, STEP_UP, type Body } from './body';
+import type { Hit, World } from '../world/world';
+import { fall, fits, footprint, makeBody, settle, slide, steer, STEP_UP, type Body } from './body';
 import type { Input } from './input';
 
 export const STAND = 1.8;
@@ -15,6 +15,15 @@ const SWIM = 1.3;
 /** how high you can haul yourself out of water onto a ledge */
 const CLIMB_OUT = 1.7;
 export const AIR = 35;
+/** what you weigh, before what you hold */
+export const MASS = 75;
+/** how fast you change your pace on firm ground (m/s²), and how much less a kilogram of weapon in hand makes it */
+const ACCEL = 30;
+const LOAD = 0.05;
+/** thrown faster than you could go yourself, you slow by this (m/s²) whatever you do */
+const FRICTION = 24;
+/** and in the air, by this: thrown is thrown */
+const AIR_DRAG = 2;
 /** the air you can hold, as you are dressed: four times as much with a rebreather on */
 export const airFor = (worn: readonly string[]): number => (worn.includes('rebreather') ? 150 : AIR);
 
@@ -37,9 +46,10 @@ export interface Player {
   under: boolean;
   /** seconds left of being held (you move at a third of your speed) */
   slow: number;
-  /** a shove (m/s) that dies away: what a charge leaves you with */
-  kx: number;
-  kz: number;
+  /** the mass of the weapon in your hand (kg), which the sim keeps up to date: it slows how you change your pace */
+  load: number;
+  /** this step: how fast you were going into what stopped you (m/s) */
+  slam: number;
   /** this step: running, for the noise it makes */
   running: boolean;
   /** this step: jumped */
@@ -51,21 +61,32 @@ export interface Player {
 }
 
 export function makePlayer(w: World, x: number, y: number, z: number, yaw: number): Player {
-  const body = makeBody(w, x, y, z, RADIUS, STAND), own = body.dyn;
-  /* you walk through the soft ones of the cast; the solid ones (the bloat, the thresher) stop you */
-  body.skip = d => d === own || d.soft === true;
+  const body = makeBody(w, x, y, z, RADIUS, STAND, MASS), own = body.dyn;
+  /* every body stops you, the cast's too (engine.md §6, F1b) */
+  body.skip = own;
   return {
     body, yaw, pitch: 0, crouch: false, wantStand: false, moved: 0, impact: 0,
-    water: 'dry', air: AIR, airMax: AIR, under: false, slow: 0, kx: 0, kz: 0, running: false, jumped: false, stepD: 0, fly: false,
+    water: 'dry', air: AIR, airMax: AIR, under: false, slow: 0, load: 0, slam: 0, running: false, jumped: false, stepD: 0, fly: false,
   };
 }
 
 export const eyeHeight = (p: Player): number => (p.crouch ? EYE_CROUCH : EYE);
 
 /** a step's walking intent: where it wants to go, so the sim can tell what it ran into */
-export interface Stride { dx: number; dz: number; speed: number }
+export interface Stride {
+  /** where your velocity was taking you this step, and how fast */
+  dx: number; dz: number; speed: number;
+  /** the pace you meant to go at (m/s) */
+  wx: number; wz: number;
+}
 
-export function updatePlayer(w: World, p: Player, inp: Input, dt: number): { stride: Stride; hit: ReturnType<typeof walk> } {
+/** how fast you can change your pace where you are: your footing, and what you hold */
+function accel(p: Player): number {
+  const footing = p.water === 'swimming' ? 0.25 : p.water === 'wading' ? 0.5 : p.body.ground ? 1 : 0.33;
+  return ACCEL * footing * Math.max(0.5, 1 - LOAD * p.load);
+}
+
+export function updatePlayer(w: World, p: Player, inp: Input, dt: number): { stride: Stride; hit: Hit } {
   const b = p.body;
   p.yaw += inp.yaw;
   p.pitch = clamp(p.pitch + inp.pitch, -1.45, 1.45);
@@ -97,19 +118,19 @@ export function updatePlayer(w: World, p: Player, inp: Input, dt: number): { str
   p.running = run && l > 0;
   if (p.slow > 0) { p.slow -= dt; speed *= 0.35; }
   const ox = b.x, oz = b.z;
-  const stride: Stride = { dx: 0, dz: 0, speed };
-  let hit: ReturnType<typeof walk> = null;
+  b.carried = false; // only the cast's friction asks it
+  /* the pace you want, and how you get to it: as fast as your footing allows, or, thrown faster than you could go
+     yourself, only as fast as friction slows you */
+  let tx = 0, tz = 0;
   if (l > 0) {
-    const fx = -Math.sin(p.yaw), fz = -Math.cos(p.yaw), rx = Math.cos(p.yaw), rz = -Math.sin(p.yaw), k = (speed * dt) / Math.max(1, l);
-    stride.dx = (fx * f + rx * s) * k; stride.dz = (fz * f + rz * s) * k;
-    hit = walk(w, b, stride.dx, stride.dz, swim ? CLIMB_OUT : STEP_UP);
+    const fx = -Math.sin(p.yaw), fz = -Math.cos(p.yaw), rx = Math.cos(p.yaw), rz = -Math.sin(p.yaw), k = speed / Math.max(1, l);
+    tx = (fx * f + rx * s) * k; tz = (fz * f + rz * s) * k;
   }
-  if (p.kx || p.kz) {
-    walk(w, b, p.kx * dt, p.kz * dt);
-    const k = Math.max(0, 1 - dt * 6);
-    p.kx *= k; p.kz *= k;
-    if (Math.hypot(p.kx, p.kz) < 0.05) p.kx = p.kz = 0;
-  }
+  const thrown = Math.hypot(b.vx, b.vz) > speed + 0.5;
+  steer(b, tx, tz, !thrown ? accel(p) : b.ground || p.water !== 'dry' ? FRICTION : AIR_DRAG, dt);
+  const stride: Stride = { dx: b.vx * dt, dz: b.vz * dt, speed: Math.hypot(b.vx, b.vz), wx: tx, wz: tz };
+  const { hit, slam } = slide(w, b, dt, swim ? CLIMB_OUT : STEP_UP);
+  p.slam = slam;
   p.moved = Math.hypot(b.x - ox, b.z - oz);
 
   /* weight; in deep water you float at the surface, and swim up or down. Under a roof the water fills (the drowned
@@ -133,9 +154,9 @@ function flyAbout(p: Player, inp: Input, dt: number): { stride: Stride; hit: nul
   b.x += (-Math.sin(p.yaw) * f + Math.cos(p.yaw) * s) * spd * dt;
   b.z += (-Math.cos(p.yaw) * f - Math.sin(p.yaw) * s) * spd * dt;
   b.y += ((inp.rise ? 1 : 0) - (inp.sink ? 1 : 0)) * spd * dt;
-  b.vy = 0; b.ground = false; b.on = null;
+  b.vx = b.vz = b.vy = 0; b.ground = false; b.on = null;
   b.sync();
   p.moved = 0; p.impact = 0; p.jumped = false; p.running = false; p.water = 'dry'; p.under = false; p.air = p.airMax;
   p.crouch = false;
-  return { stride: { dx: 0, dz: 0, speed: 0 }, hit: null };
+  return { stride: { dx: 0, dz: 0, speed: 0, wx: 0, wz: 0 }, hit: null };
 }
