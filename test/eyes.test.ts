@@ -194,12 +194,12 @@ describe('the overseer and its hand', () => {
   it('with the overseer dead, nothing sends it, and it leaves you be until you strike it', () => {
     const s = fresh(), h = hand(s), o = overseer(s);
     for (const q of s.cast) if (q !== h) q.stun = 1e9;
-    hitMutant(s, o, { dmg: 10000, stun: 0 }, 1);
+    hitMutant(s, o, { dmg: 10000, poise: 0 }, 1);
     hold(s, 0.2);
     place(s, h.x, h.y, h.z - 6); // in plain sight in its lit hall
     hold(s, 2);
     expect(['idle', 'patrol']).toContain(h.state);
-    hitMutant(s, h, { dmg: 1, stun: 0 }, 1);
+    hitMutant(s, h, { dmg: 1, poise: 0 }, 1);
     expect(h.state).toBe('wind'); // now it fights
   });
 
@@ -220,7 +220,7 @@ describe('the overseer and its hand', () => {
     still(s);
     soundZone(s, 'atrium');
     hold(s, 0.5);
-    hitMutant(s, o, { dmg: 10000, stun: 0 }, 1);
+    hitMutant(s, o, { dmg: 10000, poise: 0 }, 1);
     s.game.events.length = 0;
     hold(s, 0.2);
     expect(o.dead).toBe(true);

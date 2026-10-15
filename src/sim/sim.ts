@@ -6,7 +6,7 @@ import { clamp } from '../core/math';
 import { Lighting, type Loose } from '../world/light';
 import { castBodies, castMovers, makeCast, shoved, updateCast, type Drill, type Mutant } from './cast';
 import { makeCams, updateEyes, type Alarm, type Cam, type Knock } from './eyes';
-import { makeHands, updateHands, wstats, type Hands } from './combat';
+import { makeHands, pace, updateHands, wstats, type Hands } from './combat';
 import { shove } from './body';
 import { makeFields, refreshFields, updateFields, type Fields } from './fields';
 import { hurt, makeGame, makeNoise, power, runLight, toggleLight, unwear, useItem, type Command, type Game, type StationState, say, sfx } from './game';
@@ -38,6 +38,8 @@ export interface Sim {
   hands: Hands;
   /** worms close about you: two together will bite */
   wormN: number;
+  /** the husk at you, whose turn it is (the rest hold off); -1 for none. Worked out again each step */
+  front: number;
   /** the light as it is now, for being seen; made again when the power changes */
   lighting: Lighting | null;
   /** the overseer's eyes, and the zone alarms sounding (sim/eyes.ts) */
@@ -103,7 +105,7 @@ export function makeSim(level: LevelDef, o: SimOpts = {}): Sim {
     doors: level.doors.map(d => makeDoor(world, d)),
     platforms: level.platforms.map(p => makePlatform(world, p)),
     items: level.items.map(it => ({ ...it, taken: false })),
-    usables: [], focus: null, cast: [], fields: null, hands: makeHands(), wormN: 0, lighting: null, cams: [], alarms: [], knocks: [], mute: [], drills: [],
+    usables: [], focus: null, cast: [], fields: null, hands: makeHands(), wormN: 0, front: -1, lighting: null, cams: [], alarms: [], knocks: [], mute: [], drills: [],
   };
   sim.cams = makeCams(sim);
   sim.usables = buildUsables(sim);
@@ -197,6 +199,9 @@ export function step(sim: Sim, input: Input): void {
   /* what you hold slows how you change your pace, and is in what you weigh */
   sim.player.load = wstats(g.weapon).mass * (g.weapon ? 1 : 0);
   b.mass = MASS + sim.player.load;
+  /* what your hands are doing slows your feet: loading, swinging, coming back from it, reeling */
+  const P = pace(sim);
+  sim.player.pace = P.pace; sim.player.back = P.back;
   const { stride, hit } = updatePlayer(sim.world, sim.player, input, STEP);
   /* walking into something loose shoves it */
   if (hit && hit !== 'world' && hit.kind === 'loose') {

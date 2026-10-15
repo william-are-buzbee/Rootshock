@@ -53,7 +53,7 @@ export function travel(run: Run, id: string, mark: string): void {
   /* you, as you were, at the far end */
   const m = to.world.def.marks[mark] ?? to.world.def.start, a = from.player, p = to.player, b = p.body;
   Object.assign(p, {
-    yaw: m.yaw, pitch: 0, crouch: false, wantStand: false, air: a.air, airMax: a.airMax, slow: 0, load: 0, slam: 0, stepD: 0, fly: a.fly,
+    yaw: m.yaw, pitch: 0, crouch: false, wantStand: false, air: a.air, airMax: a.airMax, slow: 0, load: 0, slam: 0, pace: 1, back: 1, stepD: 0, fly: a.fly,
   });
   b.x = m.x; b.y = m.y; b.z = m.z; b.vx = b.vz = b.vy = 0; b.ground = true; b.h = 1.8; b.on = null;
   syncBody(b);

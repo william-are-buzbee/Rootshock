@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { clamp } from '../../core/math';
 import { loadTime, wstats } from '../../sim/combat';
+import { swingOf } from '../../sim/moves';
 import type { Sim } from '../../sim/sim';
 import type { Lighting } from '../../world/light';
 import { dynamicMaterial, lightMaterial } from './shader';
@@ -48,7 +49,12 @@ export class HandsView {
     const w = wstats(g.weapon), fist = !g.weapon, sw = h.swing;
     const ld = h.chg >= 0 ? clamp(h.chg / loadTime(sim, w), 0, 1) : 0;
     vm.rotation.y = fist ? 0.12 : 0;
-    if (w.gun) {
+    if (h.stag > 0) {
+      /* reeling: the arm flung down and out, shaking, until you have your feet again */
+      const e = Math.min(1, h.stag / 0.25), sh = Math.sin(time * 31) * 0.02 * e;
+      vm.rotation.x = 0.7 * e + sh;
+      vm.position.set(0.34 + 0.06 * e, -0.36 - 0.18 * e + sh, -0.42 + 0.06 * e);
+    } else if (w.gun) {
       vm.rotation.x = h.kick * 0.5;
       vm.position.set(0.22, -0.3 + h.kick * 0.04 + Math.sin(bob) * 0.01, -0.42 + h.kick * 0.12);
     } else if (sw) {
@@ -71,8 +77,9 @@ export class HandsView {
       vm.rotation.x = 0.05;
       vm.position.set(0.26 + ld * 0.04, -0.3 - ld * 0.03 + Math.sin(bob) * 0.012, -0.42 + ld * 0.2);
     } else {
-      /* loaded and held: it trembles */
-      const tr = ld >= 1 ? Math.sin(time * 38) * 0.012 : 0;
+      /* loaded and held: it trembles, more as the arm tires, and sags at the last */
+      const T = loadTime(sim, w), held = h.full ? clamp((h.chg - T) / swingOf(w.kind, w.mass).tire, 0, 1) : 0;
+      const tr = ld >= 1 ? Math.sin(time * (38 + 20 * held)) * (0.012 + 0.03 * held * held) - 0.25 * held * held * held : 0;
       vm.rotation.x = -0.5 + ld + Math.sin(bob * 0.5) * 0.02 + tr;
       vm.position.set(0.3 + ld * 0.08, -0.34 + ld * 0.14 + Math.sin(bob) * 0.012, -0.5 + ld * 0.1);
     }

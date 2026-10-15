@@ -152,6 +152,13 @@ const ANIM: Record<string, (m: Mutant, M: Model, c: Ctx) => void> = {
         M.b.rotation.x = 0.5 - 0.32 * e;
       }
     }
+    /* reeling, its poise broken: thrown back on its heels, the arms gone slack, until it has its feet */
+    if (m.reel > 0) {
+      const e = Math.min(1, m.reel / 0.3), sh = Math.sin(m.ph * 23) * 0.06 * e;
+      M.b.rotation.x = -0.4 * e + sh;
+      M.arms[0].rotation.x = -0.25 * e;
+      M.arms[1].rotation.x = 0.2 * e + sh;
+    }
     M.b.rotation.z = Math.sin(m.ph * (mv ? f : 0.8)) * 0.04;
     M.hd.rotation.z = 0.25 + Math.sin(m.ph * 0.7) * 0.1 + (Math.random() < 0.015 ? r(-0.5, 0.5) : 0);
     M.hd.rotation.y = Math.sin(m.ph * 0.5) * 0.25;

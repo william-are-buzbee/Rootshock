@@ -50,6 +50,9 @@ export interface Player {
   load: number;
   /** this step: how fast you were going into what stopped you (m/s) */
   slam: number;
+  /** what your hands leave of your pace (sim/combat.ts, pace), and of that again backing off; the sim sets them */
+  pace: number;
+  back: number;
   /** this step: running, for the noise it makes */
   running: boolean;
   /** this step: jumped */
@@ -66,7 +69,7 @@ export function makePlayer(w: World, x: number, y: number, z: number, yaw: numbe
   body.skip = own;
   return {
     body, yaw, pitch: 0, crouch: false, wantStand: false, moved: 0, impact: 0,
-    water: 'dry', air: AIR, airMax: AIR, under: false, slow: 0, load: 0, slam: 0, running: false, jumped: false, stepD: 0, fly: false,
+    water: 'dry', air: AIR, airMax: AIR, under: false, slow: 0, load: 0, slam: 0, pace: 1, back: 1, running: false, jumped: false, stepD: 0, fly: false,
   };
 }
 
@@ -112,11 +115,12 @@ export function updatePlayer(w: World, p: Player, inp: Input, dt: number): { str
   b.h = p.crouch ? CROUCH : STAND;
 
   /* walking, wading, swimming */
-  const f = clamp(inp.forward, -1, 1), s = clamp(inp.strafe, -1, 1), l = Math.hypot(f, s);
+  const f = clamp(inp.forward, -1, 1) * (inp.forward < 0 ? p.back : 1), s = clamp(inp.strafe, -1, 1), l = Math.hypot(f, s);
   const run = inp.run && !p.crouch && f > 0 && p.water === 'dry';
   let speed = swim ? 2.4 : p.water === 'wading' ? 2.2 : p.crouch ? 1.6 : run ? 5.6 : 3.2;
   p.running = run && l > 0;
   if (p.slow > 0) { p.slow -= dt; speed *= 0.35; }
+  speed *= p.pace;
   const ox = b.x, oz = b.z;
   b.carried = false; // only the cast's friction asks it
   /* the pace you want, and how you get to it: as fast as your footing allows, or, thrown faster than you could go

@@ -310,6 +310,55 @@ corpse worth throwing.
 - **Tests**: `test/momentum.test.ts`.
 - **Saves** carry each body's velocity (save version 4).
 
+### F2, as built
+
+- **Moves** (`sim/moves.ts`): every blow of the cast is a `Move` in one table (`MOVES`, which was `BLOWS`), with its
+  motions, reach, damage, the poise it takes, and its armour while winding up and while striking. Yours are worked
+  out from what you hold (`swingOf`: the poise a full blow takes, its armour, the step it carries you, the recovery
+  when it meets nothing, how long a full load can be held). The two sides still run their own code for the motions
+  (`combat.ts`, `updateHands`; `cast.ts`, `blowStep`), but read the same kind of data and the same ladder.
+- **The ladder**: `react(left, max, hit, armour)`. A hit takes poise. Broken: **stagger** (it reels, open; its poise
+  comes back whole). Not broken, but more than the armour of the part it is in: **flinch** (a wind-up or a strike on
+  its way is lost). Otherwise **none**. Poise comes back once left alone a second, at half the whole a second. A jab
+  takes poise only by how far it was loaded. A blow that catches one open (recovering from its own) takes 1.6 times
+  the poise and holds it 1.6 times as long.
+- **Poise**: you 30; a worm 12, a skitter 20 (a big one 40), a husk 25, a thresher 70, the hand 90; a bloat cannot be
+  moved. **What a blow takes**: a husk's 20, a skitter's 18, a thresher's 45, its charge 60; yours, at full, 12 a
+  kilogram blunt and 9 edged (the baton 13, the pipe 29, the axe 29), fists 4; a pistol round 22, a shotgun 60.
+  So one full blow of the axe or the pipe staggers a husk, the baton takes two close together, a jab only flinches it;
+  two husk blows close together stagger you.
+- **Armour**: a heavy weapon (2 kg and more) let go at full and not yet landed shrugs off a hit up to 25 + 5 a
+  kilogram (the axe 41, the pipe 37): it **trades** with a husk. A thresher winding up shrugs off 30, striking 60; a
+  skitter winding up 10, so a jab does not put it off its drop. Armour keeps a blow going; it does not keep poise
+  from breaking.
+- **Your blow commits.** Its line is fixed as you let it go: you can look away, and it lands where you sent it. A full
+  one carries you a step along it (1 + 0.6 m/s a kilogram). One that meets nothing, not even a wall, leaves the arm
+  0.15 + 0.12 s a kilogram coming back (the axe half a second). A full load can be held 1.4 − 0.2 s a kilogram (the
+  axe 0.76 s, fists 1.3); then the arm drops it, is heard to, and is half a second coming up again. While you load,
+  swing, come back or reel, your feet go at 0.55, 0.4, 0.7 and 0.3 of their pace, and backing off at 0.6 of that.
+  A press while you are busy is kept 0.2 s.
+- **Hits on you**: a hit that gets through costs you a load, or a swing on its way unless its armour holds; one that
+  breaks your poise throws you back from it (2.5 m/s) and you reel 0.7 s: no blows, a third of your pace, the view
+  jolted, the arm flung down.
+- **Reach** is an arm (0.8 m) and what is in it, to a target's edge: the axe 1.7, the pipe 1.5, the baton 1.3, fists
+  0.8. It was 1.3 and the weapon, which let the axe reach a husk's middle from 2.6 m, well outside anything a husk
+  can do; the fight was won by spacing alone.
+- **Husks** creep after you through the first part of a wind-up (1.8 m/s, a thresher 1.0) if you back out of it, so
+  backing off does not dodge them; a step aside once they have stopped turning still does. They take turns: the one
+  at you is the nearest of those hunting close by, and the rest hold off 2.4 m from you, circling, faced to you, until
+  you are **open** (a blow of yours thrown, your arm coming back, or you reeling) or they have waited 3 s. Nor will one
+  walk into a full load you hold ready: it stops just out of its reach and waits for it to come down.
+- **Heard and seen**: `reel` (yours) and `tire` (the arm giving); a husk reeling is thrown back on its heels, arms
+  slack; your arm trembles more as a held load tires it and sags at the last.
+- **What it plays like** (`test/fight.test.ts`, *duels*: a scripted fighter that loads early, gives ground while not
+  ready, steps in when ready, lets go as the nearest steps into reach): timed well, the axe beats one husk without a
+  scratch; with a husk each side it never gets a full blow off and dies in about five seconds, and the pipe fares
+  no better. With the old reach, and husks that stood still to wind up, the same fighter killed both with the axe
+  untouched. A player who keeps both in front of them will do better than it does; how much is for playing to say.
+- **Saves**: version 5.
+- **Not yet**: knockdown and launch (the rungs past stagger), the dev overlay of reach and poise, the cast steering by
+  velocity, and husks giving ground themselves.
+
 ---
 
 ## 7. Navigation

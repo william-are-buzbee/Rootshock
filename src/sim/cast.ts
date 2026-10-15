@@ -6,8 +6,10 @@ import type { Dyn } from '../world/world';
 import { fall, makeBody, push, settle, shove, slide, steer, walk, type Body } from './body';
 import { doorShut, opensItself, routeRules, rulesFor, type Fields, type Walker } from './fields';
 import { hurtBy, power, sayOnce, sfx } from './game';
+import { exposed, raised, struck } from './combat';
 import { sendPlatform, type Door } from './movers';
 import { eyeHeight } from './player';
+import { MOVES, POISE, react, regain, type Move } from './moves';
 import { simLighting, type Sim } from './sim';
 import { blinded, manned, soundZone } from './eyes';
 
@@ -117,6 +119,10 @@ export interface Mutant {
   los: boolean; losAt: number;
   /** 1 when just hit, dying away */
   hit: number;
+  /** what it can take before it reels (sim/moves.ts), seconds since it was last hit, and seconds left of reeling */
+  poise: number; pmax: number; calm: number; reel: number;
+  /** seconds it has held off, waiting for its turn at you (a husk while another is at you) */
+  pat: number;
   /** time, for its animation */
   ph: number;
   dead: boolean;
@@ -144,10 +150,17 @@ export function makeCast(sim: Sim, defs: MutantDef[]): Mutant[] {
       post: !!o.post, sit: !!o.sit, holt: !!o.holt, big: !!o.big, zone: (def.opts.zone as string | undefined) ?? null, screens: (def.opts.screens as string | undefined) ?? null, hx: def.x, hz: def.z, room,
       wt: rnd(1, 5), wm: 0, wx: 0, wz: 0, tk: 0, lost: 0, bt: 0, burst: false, flee: 0, ct: rnd(6, 14), cdir: 0, tgt: false,
       grab: 0, tense: 0, riled: false, blow: null, dest: -1, F: null, stk: 0, fled: false, side: 0, ride: null, spot: -1,
-      mv: 0, d: 99, dp: 99, dy: 0, los: false, losAt: -99, hit: 0, ph: rnd(9), dead: false, gone: 0, still: 0,
+      mv: 0, d: 99, dp: 99, dy: 0, los: false, losAt: -99, hit: 0, poise: poiseOf(def.type, S.ai, !!o.big), pmax: poiseOf(def.type, S.ai, !!o.big), calm: 99, reel: 0, pat: 0, ph: rnd(9), dead: false, gone: 0, still: 0,
     };
     return m;
   });
+}
+
+/** what it can take before it reels: by its kind, a big skitter more */
+function poiseOf(type: string, ai: Ai | undefined, big: boolean): number {
+  const P = POISE as Record<string, number>;
+  if ((ai ?? type) === 'skitter' && big) return POISE.bigSkitter;
+  return P[type] ?? P[ai ?? ''] ?? POISE.other;
 }
 
 /** the bodies of the living, for doors and platforms to know about */
@@ -428,13 +441,55 @@ function roam(sim: Sim, m: Mutant, spd: number): void {
 
 /* ---- hurting you */
 
-function strikes(sim: Sim, m: Mutant, dmg: number): void {
+/** it lands on you: what it takes of you, and of your poise (sim/combat.ts, struck) */
+function strikes(sim: Sim, m: Mutant, dmg: number, poise: number): void {
   /* you are on something well above it: it cannot reach */
   if (!m.fixed && sim.player.body.y - m.y > 1.4) return;
   hurtBy(sim.game, dmg, DEATH[m.ai], { x: m.x, z: m.z });
+  struck(sim, poise, { x: m.x, z: m.z });
 }
 
 const step_ = (sim: Sim, m: Mutant, name: string, big = false) => sfx(sim.game, name, m, big);
+
+/* ---- taking turns
+
+   Husks come at you one at a time. The one at you is the nearest of those hunting you close by (one mid-blow keeps its
+   place); the rest hold off at arm's length and a half, circling, faced to you, until you are open (a blow of yours
+   thrown, your arm coming back, or you reeling) or they have waited long enough. Your opening is their turn. Nor will
+   the one at you walk into a full load you hold ready: it stops just out of its reach and waits for it to come down. */
+
+const WAIT = { ring: 2.4, near: 4, patience: 3, edge: 0.35 };
+
+/** the husk at you, or -1 */
+function frontOf(sim: Sim): number {
+  let best = -1, bd = 3.2;
+  for (const m of sim.cast) {
+    if (m.dead || m.ai !== 'husk' || m.state !== 'hunt' || Math.abs(m.dy) > 1.5) continue;
+    const d = m.blow ? -1 : m.dp;
+    if (d < bd) { bd = d; best = m.id; }
+  }
+  return best;
+}
+
+/** it holds off: another is at you, you are not open, and it has not waited too long */
+function waits(sim: Sim, m: Mutant): boolean {
+  return sim.front >= 0 && sim.front !== m.id && !exposed(sim) && m.pat < WAIT.patience && m.dp < WAIT.near;
+}
+
+/** it will not walk into a blow you hold ready: it keeps just out of its reach, until you let it go, it drops, or it
+ *  has waited long enough. Wait it out and your arm tires; let it go and you are open. */
+function wary(sim: Sim, m: Mutant): boolean {
+  const r = raised(sim);
+  return r > 0 && m.pat < WAIT.patience && m.dp < r + m.r + WAIT.edge + 1.2;
+}
+
+/** `ring` from you, edging round you, faced to you */
+function hover(sim: Sim, m: Mutant, ring: number): void {
+  const p = sim.player.body, d = m.dp || 1, ux = (m.x - p.x) / d, uz = (m.z - p.z) / d;
+  const a = m.id % 2 ? 0.35 : -0.35, c = Math.cos(a), sn = Math.sin(a);
+  go(sim, m, p.x + (ux * c - uz * sn) * ring, p.z + (ux * sn + uz * c) * ring, 1.3);
+  turnTo(sim, m, 8);
+}
 
 /* ---- a blow: wound up, thrown, recovered from
 
@@ -447,44 +502,17 @@ const step_ = (sim: Sim, m: Mutant, name: string, big = false) => sfx(sim.game, 
 export type BlowPhase = 'wind' | 'strike' | 'after';
 export interface Blow { ph: BlowPhase; t: number; hit: boolean }
 
-export interface BlowKind {
-  /** seconds of each motion; recovery after a blow that landed, and after one that met nothing; a rest after that */
-  wind: number; strike: number; rec: number; miss: number; cd: number;
-  /** how fast it turns to follow you as it winds up, and how far through the wind-up it stops turning */
-  turn: number; lock: number;
-  /** how near it comes before it begins, how far past its own edge the blow reaches, the cosine of half the arc it
-     sweeps, and how far it lunges as it strikes */
-  start: number; reach: number; arc: number; lunge: number;
-  dmg: number;
-  /** what it makes heard as it winds up */
-  tell: string;
-  big?: boolean;
-}
-
-const deg = (a: number) => Math.cos((a * PI) / 180);
-
-export const BLOWS = {
-  /* overhead, with one arm: wide, as an arm comes down, and slow to come back from */
-  husk: { wind: 0.55, strike: 0.12, rec: 0.5, miss: 0.85, cd: 0.3, turn: 10, lock: 0.7, start: 0.85, reach: 1.0, arc: deg(55), lunge: 0.3, dmg: 20, tell: 'heave' },
-  /* it rears and drops on you: narrow, and further forward than it looks */
-  skitter: { wind: 0.5, strike: 0.1, rec: 0.4, miss: 0.7, cd: 0.45, turn: 6, lock: 0.6, start: 0.75, reach: 0.75, arc: deg(35), lunge: 0.5, dmg: 22, tell: 'skit' },
-  bigSkitter: { wind: 0.7, strike: 0.15, rec: 0.7, miss: 1.1, cd: 0.6, turn: 5, lock: 0.6, start: 1.1, reach: 1.1, arc: deg(45), lunge: 0.6, dmg: 45, tell: 'skit', big: true },
-  /* both arms, side to side: hard to get round, but a long time open after */
-  thresher: { wind: 0.6, strike: 0.15, rec: 0.9, miss: 1.3, cd: 0.4, turn: 6, lock: 0.65, start: 0.7, reach: 0.9, arc: deg(70), lunge: 0.25, dmg: 45, tell: 'growl', big: true },
-  /* a worm's or a swimmer's is hardly a blow: a short rasp, the head lifted and the hand drawn back, then a grab. Quick
-     to see, quick to be over: a step back as it lifts is enough */
-  worm: { wind: 0.3, strike: 0.08, rec: 0.25, miss: 0.4, cd: 1.0, turn: 8, lock: 0.5, start: 0.7, reach: 0.75, arc: deg(60), lunge: 0.15, dmg: 12, tell: 'rasp' },
-  swimmer: { wind: 0.3, strike: 0.08, rec: 0.25, miss: 0.4, cd: 0.9, turn: 8, lock: 0.5, start: 0.7, reach: 0.75, arc: deg(60), lunge: 0.2, dmg: 15, tell: 'rasp' },
-} satisfies Record<string, BlowKind>;
+/** a blow's motions, reach and weight: the same kind of thing as yours (sim/moves.ts) */
+export type BlowKind = Move;
 
 /** the blow this one throws, if it throws one */
 export function blowKind(m: Mutant): BlowKind | null {
   switch (m.ai) {
-    case 'husk': return BLOWS.husk;
-    case 'skitter': return m.big ? BLOWS.bigSkitter : BLOWS.skitter;
-    case 'thresher': return BLOWS.thresher;
-    case 'worm': return BLOWS.worm;
-    case 'swimmer': return BLOWS.swimmer;
+    case 'husk': return MOVES.husk;
+    case 'skitter': return m.big ? MOVES.bigSkitter : MOVES.skitter;
+    case 'thresher': return MOVES.thresher;
+    case 'worm': return MOVES.worm;
+    case 'swimmer': return MOVES.swimmer;
     default: return null;
   }
 }
@@ -521,14 +549,18 @@ function blowStep(sim: Sim, m: Mutant): boolean {
   B.t += dt;
   switch (B.ph) {
     case 'wind':
-      if (B.t < K.wind * K.lock) turnTo(sim, m, K.turn);
+      if (B.t < K.wind * K.lock) {
+        turnTo(sim, m, K.turn);
+        /* backed off from: it comes after you, until it has committed */
+        if (K.creep && m.body && !inStart(m, K)) walk(sim.world, m.body, Math.sin(m.yaw) * K.creep * dt, Math.cos(m.yaw) * K.creep * dt);
+      }
       if (B.t >= K.wind) { B.ph = 'strike'; B.t = 0; step_(sim, m, 'swing', K.big); }
       break;
     case 'strike': {
       /* the lunge, along the line it chose; not into you if you are already under it */
       if (m.body && m.dp > m.r + 0.3) walk(sim.world, m.body, Math.sin(m.yaw) * (K.lunge / K.strike) * dt, Math.cos(m.yaw) * (K.lunge / K.strike) * dt, 0);
       if (m.body) { m.x = m.body.x; m.z = m.body.z; }
-      if (!B.hit && inBlow(sim, m, K)) { B.hit = true; strikes(sim, m, K.dmg); }
+      if (!B.hit && inBlow(sim, m, K)) { B.hit = true; strikes(sim, m, K.dmg, K.poise); }
       if (B.t >= K.strike) { if (!B.hit) step_(sim, m, 'whiff', K.big); B.ph = 'after'; B.t = 0; }
       break;
     }
@@ -620,7 +652,9 @@ const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
         if (m.hp < m.max * 0.4 && !m.fled && d > 2.8) { m.state = 'flee'; m.st = 7; m.fled = true; step_(sim, m, 'moan'); break; }
         if (seeP(sim, m, 22)) m.lost = 0; else m.lost += dt;
         if (m.lost > 8) { m.state = 'idle'; m.dest = -1; m.wt = rnd(sim, 2, 5); break; }
-        if (inStart(m, BLOWS.husk)) { turnTo(sim, m, 10); if (m.cd <= 0) beginBlow(sim, m, BLOWS.husk); }
+        if (inStart(m, MOVES.husk)) { turnTo(sim, m, 10); if (m.cd <= 0) { beginBlow(sim, m, MOVES.husk); m.pat = 0; } }
+        else if (waits(sim, m)) { m.pat += dt; hover(sim, m, WAIT.ring); }
+        else if (wary(sim, m)) { m.pat += dt; hover(sim, m, raised(sim) + m.r + WAIT.edge); }
         else if (F) chase(sim, m, 3.5, F);
         break;
       case 'flee':
@@ -718,7 +752,7 @@ const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
         m.st -= dt;
         if ((m.tk -= dt) < 0) { m.tk = 0.16; step_(sim, m, 'hstep', true); }
         if (m.dp < m.r + 0.55 && Math.abs(m.dy) < 1.4) {
-          strikes(sim, m, 45);
+          strikes(sim, m, 45, 60);
           /* it throws you: 9 m/s along its charge, whatever you were doing */
           p.body.vx = 0; p.body.vz = 0; push(p.body, Math.sin(m.cdir) * 9, Math.cos(m.cdir) * 9);
           m.state = 'recover'; m.st = 1.6;
@@ -741,7 +775,7 @@ const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
         m.st -= dt;
         if (m.st < 0) { m.state = 'patrol'; break; }
         if (wary && seeP(sim, m, 18) && d > 3.5) { m.state = 'wind'; m.st = 0.5; step_(sim, m, 'roar'); break; }
-        if (inStart(m, BLOWS.thresher)) { turnTo(sim, m, 4); if (m.cd <= 0) beginBlow(sim, m, BLOWS.thresher); }
+        if (inStart(m, MOVES.thresher)) { turnTo(sim, m, 4); if (m.cd <= 0) beginBlow(sim, m, MOVES.thresher); }
         else if (sim.fields) chase(sim, m, 2.6, sim.fields.big);
         break;
     }
@@ -755,8 +789,8 @@ const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
     if ((d < 10 && flash && inBeam(sim, m)) || (d < 4.5 && lamp)) { m.blow = null; away(sim, m, 1.5); return; }
     if (blowStep(sim, m)) return;
     if (d < 5 || (d < 13 && sight(sim, m))) {
-      if (inStart(m, BLOWS.worm)) {
-        if (sim.wormN >= 2) { turnTo(sim, m, 8); if (m.cd <= 0) beginBlow(sim, m, BLOWS.worm); }
+      if (inStart(m, MOVES.worm)) {
+        if (sim.wormN >= 2) { turnTo(sim, m, 8); if (m.cd <= 0) beginBlow(sim, m, MOVES.worm); }
         else sayOnce(g, 'touched', 'It only touches you. Its hand is warm.');
       } else if (F) chase(sim, m, 1.25, F);
       return;
@@ -772,7 +806,7 @@ const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
     if (m.flee > 0) { m.flee -= dt; away(sim, m, 3); return; }
     if (blowStep(sim, m)) return;
     if (m.d < (lamp ? 22 : 9)) {
-      if (inStart(m, BLOWS.swimmer)) { turnTo(sim, m, 8); if (m.cd <= 0) beginBlow(sim, m, BLOWS.swimmer); }
+      if (inStart(m, MOVES.swimmer)) { turnTo(sim, m, 8); if (m.cd <= 0) beginBlow(sim, m, MOVES.swimmer); }
       else if (F) {
         chase(sim, m, 2.5, F);
         if (m.mv && (m.tk -= dt) < 0) { m.tk = 0.5; step_(sim, m, 'slosh'); }
@@ -793,7 +827,7 @@ const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
     if (m.dp < 2.2 && Math.abs(m.dy) < 2.5 && sight(sim, m)) {
       if (m.tense === 0) step_(sim, m, 'growl');
       m.tense += dt;
-      if (m.tense > 0.9 && m.cd <= 0) { m.cd = 2; m.tense = 0.01; strikes(sim, m, 22); }
+      if (m.tense > 0.9 && m.cd <= 0) { m.cd = 2; m.tense = 0.01; strikes(sim, m, 22, 15); }
     } else m.tense = Math.max(0, m.tense - dt * 2);
   },
 
@@ -804,7 +838,7 @@ const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
       m.tense += dt;
       if (m.tense > 0.8 && m.cd <= 0) {
         m.cd = 2.4; m.grab = 1; m.tense = 0.01;
-        strikes(sim, m, 20);
+        strikes(sim, m, 20, 10);
         sim.player.slow = 1.4;
         sayOnce(sim.game, 'grab', 'The arms are only arms. Whatever is holding on is above them.');
       }
@@ -889,6 +923,7 @@ function updateDrills(sim: Sim): void {
 /** a step of everything alive */
 export function updateCast(sim: Sim): void {
   updateDrills(sim);
+  sim.front = frontOf(sim);
   const b = sim.player.body, Fs = sim.fields;
   let wn = 0;
   for (const m of sim.cast) if (m.ai === 'worm' && !m.dead && m.flee <= 0 && m.dp < 2.6) wn++;
@@ -896,6 +931,9 @@ export function updateCast(sim: Sim): void {
   for (const m of sim.cast) {
     m.px = m.x; m.py = m.y; m.pz = m.z;
     if (m.hit > 0) m.hit = Math.max(0, m.hit - dt * 4);
+    m.calm += dt;
+    m.poise = regain(m.poise, m.pmax, m.calm, dt);
+    if (m.reel > 0) m.reel = Math.max(0, m.reel - dt);
     if (m.dead) { if (m.gone < 1) m.gone = Math.min(1, m.gone + dt * 2.5); continue; }
     const mb = m.body, resting = !!mb && m.still > 2 && mb.ground && mb.vy === 0 && !mb.on, ox = mb?.x, oz = mb?.z;
     if (mb) {
@@ -936,19 +974,19 @@ const FRICTION = 28;
 
 /** a knock back: how fast a full blow sends it (m/s) */
 const KNOCK = { speed: 4.2 };
-/** a blow that catches one open, recovering from its own */
-const OPEN = { dmg: 1.25, stun: 1.6 };
+/** a blow that catches one open, recovering from its own: it hurts more, and takes more of its poise */
+const OPEN = { dmg: 1.25, poise: 1.6 };
+/** how long a flinch holds it, and a stagger (s); longer caught open */
+const HOLD = { flinch: 0.2, stagger: 0.9 };
+
+/** what a hit carries: the harm, and the poise it takes (at full; a jab takes its share of each) */
+export interface Hit { dmg: number; poise: number }
 
 /** something hit it (a swing at `pow` of full, or a shot) */
-export function hitMutant(sim: Sim, m: Mutant, w: { dmg: number; stun: number }, pow: number): void {
-  const g = sim.game, p = sim.player.body;
-  /* caught recovering from a blow of its own: it takes it worse, and is longer getting over it */
-  const open = m.blow?.ph === 'after' ? OPEN : { dmg: 1, stun: 1 };
-  m.hp -= w.dmg * (0.3 + 0.7 * pow) * open.dmg;
-  /* a jab (pow under 1) stuns it and knocks it back in proportion, a quarter-strength jab a quarter as much; it is
-     rocked a little less */
-  m.hit = Math.max(m.hit, 0.3 + 0.7 * pow);
-  m.stun = Math.max(m.stun, (w.stun * 1.2 * pow * open.stun) / m.mass);
+export function hitMutant(sim: Sim, m: Mutant, w: Hit, pow: number): void {
+  const g = sim.game, p = sim.player.body, ph = m.blow?.ph, open = ph === 'after', k = 0.3 + 0.7 * pow;
+  m.hp -= w.dmg * k * (open ? OPEN.dmg : 1);
+  m.hit = Math.max(m.hit, k);
   sfx(g, 'hit');
   /* light enough to be knocked back a step: about 0.3 m from a full blow, slid over a sixth of a second */
   if (m.body && m.mass <= 1.5) {
@@ -956,16 +994,22 @@ export function hitMutant(sim: Sim, m: Mutant, w: { dmg: number; stun: number },
     m.body.vx = (dx / d) * v; m.body.vz = (dz / d) * v;
   }
   if (m.hp <= 0) { kill(sim, m); return; }
+  /* the ladder (sim/moves.ts): a jab takes poise only in proportion; the part of its blow it is in may shrug it off */
+  const K = blowKind(m), armour = !K ? 0 : ph === 'wind' ? K.armour.wind : ph === 'strike' ? K.armour.strike : 0;
+  const R = react(m.poise, m.pmax, w.poise * pow * (open ? OPEN.poise : 1), armour), hold = open ? OPEN.poise : 1;
+  m.poise = R.left; m.calm = 0;
+  if (R.r === 'stagger') { m.blow = null; m.reel = HOLD.stagger * hold; m.stun = Math.max(m.stun, m.reel); }
+  /* a flinch loses a blow on its way; one already thrown, it is still recovering from */
+  else if (R.r === 'flinch') { if (!open) m.blow = null; m.stun = Math.max(m.stun, HOLD.flinch * hold); }
   switch (m.ai) {
     case 'husk':
-      /* struck before its blow lands, it loses it; struck after, it is still recovering */
-      if (m.blow?.ph !== 'after') m.blow = null;
       if (m.state === 'idle' || m.state === 'lurk') { m.state = 'hunt'; m.lost = 0; m.post = false; }
       else if (m.hp < m.max * 0.4 && !m.fled && sim.rng.chance(0.5)) { m.state = 'flee'; m.st = 7; m.fled = true; m.blow = null; step_(sim, m, 'moan'); }
+      if (R.r === 'stagger') step_(sim, m, 'moan');
       break;
     case 'worm': m.flee = 5; m.blow = null; break;
     case 'swimmer': m.flee = 3.5; m.blow = null; break;
-    case 'skitter': if (pow > 0.6 && m.blow?.ph !== 'after') m.blow = null; if (m.state === 'idle') { m.state = 'hunt'; m.lost = 0; } break;
+    case 'skitter': if (m.state === 'idle') { m.state = 'hunt'; m.lost = 0; } break;
     case 'thresher': m.riled = true; if (['idle', 'patrol', 'listen', 'go'].includes(m.state)) { m.state = 'wind'; m.st = 0.5; m.dest = -1; } break;
     case 'bloat': sayOnce(g, 'bloat', 'It does not seem to notice.'); break;
     default: break;

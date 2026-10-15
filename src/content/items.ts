@@ -64,8 +64,10 @@ const KEYN: Record<string, string> = {
 export const keyName = (k: string): string => KEYN[k] ?? 'Room card, Residence ' + k;
 
 /** how a weapon handles, from its mass and kind, as the first engine worked it out: damage, the time to load a swing
- *  (before the wind-up's own .15), reach, stun. Bare hands when there is none. */
+ *  (before the wind-up's own .15), reach (an arm, 0.8 m, and what is in it), stun. Bare hands when there is none. */
 export interface WeaponStats {
+  /** what kind of thing it is: blunt, edged, your fists, or a gun */
+  kind: 'blunt' | 'edge' | 'fist' | 'gun';
   dmg: number;
   /** seconds to load a swing (before the wind-up's own .15) */
   time: number;
@@ -81,8 +83,8 @@ export interface WeaponStats {
 
 export function wstats(id: string | null): WeaponStats {
   const w = (id && ITEMS[id]?.w) || { mass: 0.6, type: 'fist' as const, len: 0 };
-  if (w.gun) return { time: 0.3, reach: 0, stun: 0.5, dmg: w.dmg ?? 0, mass: w.mass, gun: true, range: w.range, cone: w.cone, ammo: w.ammo, cd: w.cd };
+  if (w.gun) return { kind: 'gun', time: 0.3, reach: 0, stun: 0.5, dmg: w.dmg ?? 0, mass: w.mass, gun: true, range: w.range, cone: w.cone, ammo: w.ammo, cd: w.cd };
   const dmg = w.type === 'edge' ? 14 + 9 * w.mass : w.type === 'fist' ? 5 : 12 * Math.pow(w.mass, 0.85);
-  return { dmg, time: 0.3 + 0.2 * w.mass, reach: 1.3 + (w.len ?? 0), stun: 0.15 + 0.2 * w.mass, mass: w.mass };
+  return { kind: w.type ?? 'blunt', dmg, time: 0.3 + 0.2 * w.mass, reach: 0.8 + (w.len ?? 0), stun: 0.15 + 0.2 * w.mass, mass: w.mass };
 }
 
