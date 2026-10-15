@@ -399,11 +399,11 @@ describe('fighting', () => {
       only(s, []);
       give(s.game, 'pipe');
       faceOff(s, w, 1.2, 0.3);
-      const x0 = w.x, z0 = w.z;
       w.stun = 0;
       hold(s, secs, { attack: true });
-      let stun = 0;
-      for (let t = 0; t < 1 && !stun; t += STEP) { step(s, noInput()); if (w.hp < 40) stun = w.stun; }
+      /* from where it stood as the blow landed: before that it was coming at you */
+      let stun = 0, x0 = w.x, z0 = w.z;
+      for (let t = 0; t < 1 && !stun; t += STEP) { x0 = w.x; z0 = w.z; step(s, noInput()); if (w.hp < 40) stun = w.stun; }
       w.stun = 1e9; // held still, so the slide is the knock alone
       hold(s, 0.5);
       return { stun, slid: Math.hypot(w.x - x0, w.z - z0) };

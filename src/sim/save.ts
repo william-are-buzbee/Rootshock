@@ -16,8 +16,9 @@ import { makeSim, type Sim, type SimOpts } from './sim';
    again. Loaded, a run plays on exactly as it would have. */
 
 /** 2: the upper station laid out again (Security's wing and the atrium), so its doors and things are made in a new order.
- *  3: again (the muster hall, and the operations room behind glass), with the staff's power-failure drills */
-export const SAVE_VERSION = 3;
+ *  3: again (the muster hall, and the operations room behind glass), with the staff's power-failure drills
+ *  4: bodies keep their velocity on the plan (engine.md §6, F1); the shoves that were kept beside it are gone */
+export const SAVE_VERSION = 4;
 
 /** copy the named fields of an object */
 const pick = <T extends object, K extends keyof T>(o: T, keys: readonly K[]): Pick<T, K> => {
@@ -29,15 +30,15 @@ const put = <T extends object>(o: T, data: Partial<T>): void => { Object.assign(
 
 const GAME = ['inv', 'cap', 'tools', 'keys', 'worn', 'weapon', 'read', 'code', 'code2', 'hp', 'batt', 'light', 'lightOn', 'pad',
   'ended', 'time', 'noise', 'noiseI', 'noiseT', 'vis', 'once', 'kills', 'god'] as const;
-const PLAYER = ['yaw', 'pitch', 'crouch', 'wantStand', 'moved', 'impact', 'water', 'air', 'airMax', 'under', 'slow', 'kx', 'kz',
+const PLAYER = ['yaw', 'pitch', 'crouch', 'wantStand', 'moved', 'impact', 'water', 'air', 'airMax', 'under', 'slow', 'load', 'slam',
   'running', 'jumped', 'stepD', 'fly'] as const;
-const BODY = ['x', 'y', 'z', 'vy', 'h', 'ground'] as const;
+const BODY = ['x', 'y', 'z', 'vx', 'vz', 'vy', 'h', 'ground'] as const;
 const DOOR = ['t', 'open', 'unlocked', 'hold', 'bolt', 'bolting'] as const;
 const PLATFORM = ['y', 'target', 'wait', 'moving', 'armed'] as const;
 const LOOSE = ['x', 'y', 'z', 'vx', 'vy', 'vz', 'awake', 'ground', 'still', 'woke'] as const;
 const MUTANT = ['x', 'y', 'z', 'px', 'py', 'pz', 'yaw', 'state', 'st', 'cd', 'stun', 'hp', 'post', 'wt', 'wm', 'wx', 'wz', 'tk',
   'lost', 'bt', 'burst', 'flee', 'ct', 'cdir', 'tgt', 'grab', 'tense', 'stk', 'fled', 'side', 'spot', 'mv',
-  'hit', 'kx', 'kz', 'ph', 'dead', 'gone', 'dest', 'los', 'losAt', 'still', 'riled'] as const;
+  'hit', 'ph', 'dead', 'gone', 'dest', 'los', 'losAt', 'still', 'riled'] as const;
 
 /** what a rider stands on, by the moving thing's id */
 const onId = (r: { on: { id: number } | null }) => r.on?.id ?? 0;

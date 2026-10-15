@@ -6,11 +6,18 @@ import type { Rider } from './movers';
    own weight; the player now, the cast later (engine.md §6). Each body is also a Dyn in the world (its bounding box), so
    crates, doors and platforms know it is there. */
 export interface Body extends Rider {
+  /** velocity on the plan (m/s): what it is doing, or what was done to it */
+  vx: number;
+  vz: number;
   vy: number;
+  /** kilograms: what a shove has to move */
+  mass: number;
+  /** something is pushing it along this step, so friction does not slow it as well */
+  carried: boolean;
   r: number;
   h: number;
   ground: boolean;
-  /** what it moves through: its own box, and whatever else its kind passes (you pass the soft ones of the cast) */
+  /** what it moves through: its own box, and whatever else its kind passes */
   skip: Ignore;
 }
 
@@ -19,10 +26,10 @@ export const STEP_UP = 0.5;
 export const GRAVITY = 20;
 const EPS = 1e-3;
 
-export function makeBody(w: World, x: number, y: number, z: number, r: number, h: number): Body {
+export function makeBody(w: World, x: number, y: number, z: number, r: number, h: number, mass = 75): Body {
   const dyn: Dyn = { kind: 'body', id: w.newId(), x0: 0, y0: 0, z0: 0, x1: 0, y1: 0, z1: 0 };
   const b: Body = {
-    x, y, z, vy: 0, r, h, ground: true, on: null, dyn, skip: dyn,
+    x, y, z, vx: 0, vz: 0, vy: 0, mass, carried: false, r, h, ground: true, on: null, dyn, skip: dyn,
     sync: () => syncBody(b),
     clear: (dx, dy, dz) => fits(w, b, b.x + dx, b.z + dz, b.y + dy),
   };
@@ -69,6 +76,70 @@ function tryMove(w: World, b: Body, x: number, z: number, climb: number): Hit {
   const t = w.sweep(footprint(b), b.y + EPS, b.y + b.h, x - b.x, z - b.z, b.skip);
   b.x += (x - b.x) * t; b.z += (z - b.z) * t;
   return hit;
+}
+
+/* Momentum (engine.md §6, F1). A body keeps its velocity from step to step; whatever shoves it adds to that velocity
+   (push), and a wall takes away the part that goes into it (slide). What it does itself, it does by speeding toward
+   what it wants (steer), as fast as its footing allows. */
+
+/** add to its velocity (m/s) */
+export function push(b: Body, dvx: number, dvz: number, dvy = 0): void {
+  b.vx += dvx; b.vz += dvz;
+  if (dvy) { b.vy += dvy; b.ground = false; }
+}
+
+/** a shove by a momentum (kg m/s): the heavier it is, the less it moves. Nothing moves what is rooted (mass Infinity). */
+export function impulse(b: Body, jx: number, jz: number, jy = 0): void {
+  if (!Number.isFinite(b.mass)) return;
+  push(b, jx / b.mass, jz / b.mass, jy / b.mass);
+}
+
+/** speed its velocity toward (tx, tz), changing it by at most `rate` m/s² */
+export function steer(b: Body, tx: number, tz: number, rate: number, dt: number): void {
+  const dx = tx - b.vx, dz = tz - b.vz, d = Math.hypot(dx, dz), k = rate * dt;
+  if (d <= k) { b.vx = tx; b.vz = tz; } else { b.vx += (dx / d) * k; b.vz += (dz / d) * k; }
+}
+
+/** a moved into b at (vx, vz), meaning to go at (wx, wz), and was stopped by it: they go on together at the pace they
+ *  would share if a's momentum along the line between them were shared between them, the momentum of the pace a was
+ *  going or meant to go, whichever is more. So you push a husk at about half your pace, a rush into one hits harder,
+ *  and a thing that is rooted (mass Infinity) does not move at all. `both`: a goes on at that pace too (false for one
+ *  whose walking is its own business, as the cast's is). */
+export function shove(a: Body, b: Body, vx: number, vz: number, wx: number, wz: number, both: boolean): void {
+  let nx = b.x - a.x, nz = b.z - a.z;
+  const d = Math.hypot(nx, nz);
+  if (d < 1e-6) return;
+  nx /= d; nz /= d;
+  const vn = Math.max(vx * nx + vz * nz, wx * nx + wz * nz);
+  if (vn <= 0) return;
+  const share = !Number.isFinite(b.mass) ? 0 : !Number.isFinite(a.mass) ? vn : (vn * a.mass) / (a.mass + b.mass);
+  /* b goes at least that fast along the line, carried, and a goes on with it */
+  const bn = b.vx * nx + b.vz * nz;
+  if (bn < share) { b.vx += (share - bn) * nx; b.vz += (share - bn) * nz; }
+  b.carried = share > 0;
+  if (both) {
+    const an = a.vx * nx + a.vz * nz;
+    a.vx += (share - an) * nx; a.vz += (share - an) * nz;
+  }
+}
+
+export interface Slid {
+  /** what stopped it, if anything did */
+  hit: Hit;
+  /** how fast it was going into what stopped it (m/s): 0 when nothing did */
+  slam: number;
+}
+
+/** move by its velocity for dt, sliding along what it meets; what a wall stopped is taken from the velocity */
+export function slide(w: World, b: Body, dt: number, climb = STEP_UP): Slid {
+  const wx = b.vx * dt, wz = b.vz * dt;
+  if (!wx && !wz) return { hit: null, slam: 0 };
+  const ox = b.x, oz = b.z, hit = walk(w, b, wx, wz, climb);
+  let slam = 0;
+  /* an axis that got less far than it meant to was stopped: what is left of the velocity along it is what it managed */
+  if (Math.abs(b.x - ox) < Math.abs(wx) - EPS * 0.1) { const v = (b.x - ox) / dt; slam = Math.max(slam, Math.abs(b.vx - v)); b.vx = v; }
+  if (Math.abs(b.z - oz) < Math.abs(wz) - EPS * 0.1) { const v = (b.z - oz) / dt; slam = Math.hypot(slam, Math.abs(b.vz - v)); b.vz = v; }
+  return { hit, slam };
 }
 
 export interface Landing {
