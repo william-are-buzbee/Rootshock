@@ -57,6 +57,29 @@ describe('a blow commits', () => {
     expect(s.hands.swing).not.toBe(null);
   });
 
+  it('tapping as fast as you can swings no faster than the arm comes up, and every blow is whole', () => {
+    const s = hall(b => b.mutant('husk', 11.4, 0, 6));
+    const m = s.cast[0];
+    m.hp = m.max = 1e9;
+    give(s.game, 'axe');
+    face(s, m.x, m.y + 1, m.z);
+    let swings = 0, was = false;
+    const hits: number[] = [];
+    for (let t = 0; t < 6; t += STEP) {
+      const before = m.hp;
+      step(s, { ...noInput(), attack: Math.round(t / STEP) % 4 < 2 }); // down two steps, up two: fifteen taps a second
+      if (m.hp < before) hits.push(before - m.hp);
+      const now = !!s.hands.swing;
+      if (now && !was) swings++;
+      was = now;
+    }
+    /* the axe's arm is 1.09 s coming up and 0.36 s coming down: four blows in six seconds, not ninety */
+    expect(swings).toBeGreaterThanOrEqual(3);
+    expect(swings).toBeLessThanOrEqual(5);
+    expect(hits.length).toBe(swings);
+    for (const h of hits) expect(h).toBeCloseTo(hits[0], 6);
+  });
+
   it('a blow carries you a step forward, clicked or held', () => {
     const moved = (secs: number) => {
       const s = hall();
