@@ -522,6 +522,23 @@ export function blowAt(m: Mutant): { ph: BlowPhase; q: number } | null {
   return { ph: B.ph, q: Math.min(1, B.t / dur) };
 }
 
+/** how long a wide blow that glanced off a wall leaves it reeling (s), before the long recovery of a blow that met
+ *  nothing */
+const GLANCED = 0.6;
+
+/** what an arm goes through: other bodies, and nothing else (glass stops it, though sight goes through) */
+const onlyBodies = (d: Dyn) => d.kind === 'body';
+
+/** a wall within the arc of its wide blow, at about a metre up, either side, out to most of its reach */
+function cramped(sim: Sim, m: Mutant, K: Move): boolean {
+  const half = Math.acos(K.arc), R = m.r + K.reach * 0.8, y = m.y + 1;
+  for (const e of [-half, half]) {
+    const a = m.yaw + e;
+    if (sim.world.raycast(m.x, y, m.z, m.x + Math.sin(a) * R, y, m.z + Math.cos(a) * R, onlyBodies) < 1) return true;
+  }
+  return false;
+}
+
 /** close enough to begin one */
 const inStart = (m: Mutant, K: BlowKind) => m.dp < m.r + K.start && Math.abs(m.dy) < 1.2;
 
@@ -551,7 +568,17 @@ function blowStep(sim: Sim, m: Mutant): boolean {
         /* backed off from: it comes after you, until it has committed */
         if (K.creep && m.body && !inStart(m, K)) walk(sim.world, m.body, Math.sin(m.yaw) * K.creep * dt, Math.cos(m.yaw) * K.creep * dt);
       }
-      if (B.t >= K.wind) { B.ph = 'strike'; B.t = 0; step_(sim, m, 'swing', K.big); }
+      if (B.t >= K.wind) {
+        /* a wide blow with a wall in its arc glances off it: nothing lands, and it reels, long open */
+        if (K.wide && cramped(sim, m, K)) {
+          B.ph = 'after'; B.t = 0; B.hit = false;
+          sfx(sim.game, 'blow', { x: m.x, y: m.y + 1, z: m.z });
+          step_(sim, m, 'thud', true);
+          m.reel = GLANCED; m.stun = Math.max(m.stun, GLANCED);
+          break;
+        }
+        B.ph = 'strike'; B.t = 0; step_(sim, m, 'swing', K.big);
+      }
       break;
     case 'strike': {
       /* the lunge, along the line it chose; not into you if you are already under it */
@@ -977,8 +1004,9 @@ const OPEN = { dmg: 1.25, poise: 1.6 };
 /** how long a flinch holds it, and a stagger (s); longer caught open */
 const HOLD = { flinch: 0.2, stagger: 0.9 };
 
-/** what a hit carries: the harm, the poise it takes, and the shove it gives (kg m/s), all as stood still */
-export interface Hit { dmg: number; poise: number; shove?: number }
+/** what a hit carries: the harm, the poise it takes, and the shove it gives (kg m/s), all as stood still; and the way
+ *  the shove goes, if not straight away from you */
+export interface Hit { dmg: number; poise: number; shove?: number; dir?: { x: number; z: number } }
 
 /** something hit it: a blow or a shot, landing `k` times as hard as one stood still (sim/moves.ts, closing). It is
  *  shoved away from you by what it weighs: a worm is thrown, a husk sent back a step, a thresher rocked, a bloat not
@@ -990,7 +1018,8 @@ export function hitMutant(sim: Sim, m: Mutant, w: Hit, k = 1): void {
   sfx(g, 'hit');
   if (m.body && w.shove) {
     const dx = m.x - p.x, dz = m.z - p.z, d = Math.hypot(dx, dz) || 1, v = Math.min(SHOVE.most, (w.shove * k) / m.body.mass);
-    if (v > 0) { m.body.vx += (dx / d) * v; m.body.vz += (dz / d) * v; }
+    const ux = w.dir ? w.dir.x : dx / d, uz = w.dir ? w.dir.z : dz / d;
+    if (v > 0) { m.body.vx += ux * v; m.body.vz += uz * v; }
   }
   if (m.hp <= 0) { kill(sim, m); return; }
   /* the ladder (sim/moves.ts): the part of its blow it is in may shrug it off */

@@ -31,6 +31,9 @@ export interface Move {
   /** what it makes heard as it winds up */
   tell: string;
   big?: boolean;
+  /** a blow swept wide, side to side: where a wall stands within its arc it glances off it (sim/cast.ts, blowStep) and
+   *  is left reeling, long open. A corridor is the place to fight one */
+  wide?: boolean;
 }
 
 const deg = (a: number) => Math.cos((a * Math.PI) / 180);
@@ -42,7 +45,7 @@ export const MOVES = {
   skitter: { wind: 0.5, strike: 0.1, rec: 0.4, miss: 0.7, cd: 0.45, turn: 6, lock: 0.6, creep: 0, start: 0.75, reach: 0.75, arc: deg(35), lunge: 0.5, dmg: 22, poise: 18, shove: 120, armour: { wind: 10, strike: 14 }, tell: 'skit' },
   bigSkitter: { wind: 0.7, strike: 0.15, rec: 0.7, miss: 1.1, cd: 0.6, turn: 5, lock: 0.6, creep: 0, start: 1.1, reach: 1.1, arc: deg(45), lunge: 0.6, dmg: 45, poise: 34, shove: 220, armour: { wind: 18, strike: 28 }, tell: 'skit', big: true },
   /* both arms, side to side: hard to get round, hard to stop, but a long time open after */
-  thresher: { wind: 0.6, strike: 0.15, rec: 0.9, miss: 1.3, cd: 0.4, turn: 6, lock: 0.65, creep: 1.0, start: 0.7, reach: 0.9, arc: deg(70), lunge: 0.25, dmg: 45, poise: 45, shove: 300, armour: { wind: 30, strike: 60 }, tell: 'growl', big: true },
+  thresher: { wind: 0.6, strike: 0.15, rec: 0.9, miss: 1.3, cd: 0.4, turn: 6, lock: 0.65, creep: 1.0, start: 0.7, reach: 0.9, arc: deg(70), lunge: 0.25, dmg: 45, poise: 45, shove: 300, armour: { wind: 30, strike: 60 }, tell: 'growl', big: true, wide: true },
   /* a worm's or a swimmer's is hardly a blow: a short rasp, the head lifted and the hand drawn back, then a grab. Quick
      to see, quick to be over: a step back as it lifts is enough */
   worm: { wind: 0.3, strike: 0.08, rec: 0.25, miss: 0.4, cd: 1.0, turn: 8, lock: 0.5, creep: 0, start: 0.7, reach: 0.75, arc: deg(60), lunge: 0.15, dmg: 12, poise: 8, shove: 30, armour: { wind: 0, strike: 0 }, tell: 'rasp' },
@@ -95,6 +98,10 @@ export const SHOVE = { you: 70, arm: 1.5, most: 7 };
  *  `poise` for each m/s over. Your own feet never slam you: only being thrown does */
 export const SLAM = { min: 3, dmg: 4, poise: 6 };
 export const FALL = { min: 10, dmg: 6, poise: 8 };
+
+/** a blow of yours that glances off the world comes back at you with this share of the poise it would have taken
+ *  (sim/combat.ts, sweep): a full blow of the axe or the pipe knocks the wind out of you, the baton's does not */
+export const GLANCE = { poise: 1.1 };
 
 /* ---- yours: what you hold makes the blow */
 

@@ -414,25 +414,24 @@ describe('fighting', () => {
     expect(click.slid).toBeCloseTo(held.slid, 2);
   });
 
-  it('a swing lands on the one at the crosshair, not merely the nearest', () => {
-    const s = fresh(), [a, b] = s.cast.filter(m => m.ai === 'worm');
-    only(s, []);
-    a.stun = b.stun = 1e9;
-    give(s.game, 'pipe');
-    const y = a.y, px = 220, pz = 2;
-    place(s, 'player', px, y, pz);
-    place(s, a, px + Math.cos(0.6) * 1.0, y, pz + Math.sin(0.6) * 1.0); // nearer, off to the side
-    place(s, b, px + 1.5, y, pz); // further, straight ahead
-    face(s, b.x, b.y + 0.36, b.z);
-    hold(s, 1.1, { attack: true });
-    hold(s, 0.5);
-    expect(b.hp).toBeLessThan(40);
-    expect(a.hp).toBe(40);
-    /* look at the near one and it is the one struck */
-    face(s, a.x, a.y + 0.36, a.z);
-    hold(s, 1.1, { attack: true });
-    hold(s, 0.5);
-    expect(a.hp).toBeLessThan(40);
+  it('a side swing takes the first thing in its path: one on your right as you swing at another is struck instead', () => {
+    /* the pipe swings right to left (engine.md §6, F3b). Facing east, your right is south (+z) */
+    const swing = (side: 1 | -1) => {
+      const s = fresh(), [a, b] = s.cast.filter(m => m.ai === 'worm');
+      only(s, []);
+      a.stun = b.stun = 1e9;
+      give(s.game, 'pipe');
+      const y = a.y, px = 220, pz = 2;
+      place(s, 'player', px, y, pz);
+      place(s, a, px + Math.cos(0.6) * 1.0, y, pz + side * Math.sin(0.6) * 1.0); // nearer, off to one side
+      place(s, b, px + 1.5, y, pz); // further, straight ahead
+      face(s, b.x, b.y + 0.36, b.z);
+      hold(s, 1.1, { attack: true });
+      hold(s, 0.5);
+      return { a: a.hp < 40, b: b.hp < 40 };
+    };
+    expect(swing(1)).toEqual({ a: true, b: false }); // on the right: in the way of it
+    expect(swing(-1)).toEqual({ a: false, b: true }); // on the left: the swing is done before it gets there
   });
 
   it('a pistol fires on the press, spends a round, is heard, and kills', () => {

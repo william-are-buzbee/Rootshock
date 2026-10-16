@@ -24,6 +24,12 @@ const hold = (s: Sim, secs: number, inp: Partial<Input> = {}) => {
 /** what a blow (or whatever the steps do) took from it */
 const lost = (m: Mutant) => m.max - m.hp;
 const AXE_REACH = 0.8 + 0.9;
+/** look at the middle of it, as anyone swinging at it would */
+function look(s: Sim, m: Mutant): void {
+  const b = s.player.body, dx = m.x - b.x, dz = m.z - b.z, y = m.y + (m.body?.h ?? 1) / 2;
+  s.player.yaw = Math.atan2(-dx, -dz);
+  s.player.pitch = Math.atan2(y - (b.y + 1.62), Math.hypot(dx, dz));
+}
 
 describe('a blow lands by how fast you were closing', () => {
   it('run in and it lands harder; back off as you throw it and it lands softer', () => {
@@ -75,11 +81,12 @@ describe('a blow lands by how fast you were closing', () => {
     const moved = (type: string) => {
       const s = hall(b => b.mutant(type, 11.6, 0, 6)), m = s.cast[0];
       give(s.game, 'axe');
-      const x = m.x;
+      look(s, m);
+      const x = m.x, z = m.z;
       hold(s, STEP, { attack: true });
       hold(s, 2);
       expect(lost(m)).toBeGreaterThan(0);
-      return m.x - x;
+      return Math.hypot(m.x - x, m.z - z);
     };
     const worm = moved('worm'), husk = moved('husk'), thresher = moved('thresher'), bloat = moved('bloat');
     expect(worm).toBeGreaterThan(husk * 1.5);
