@@ -6,7 +6,8 @@ import { clamp } from '../core/math';
 import { Lighting, type Loose } from '../world/light';
 import { castBodies, castMovers, makeCast, shoved, updateCast, type Drill, type Mutant } from './cast';
 import { makeCams, updateEyes, type Alarm, type Cam, type Knock } from './eyes';
-import { makeHands, pace, updateHands, wstats, type Hands } from './combat';
+import { makeHands, pace, struck, updateHands, wstats, type Hands } from './combat';
+import { SLAM } from './moves';
 import { shove } from './body';
 import { makeFields, refreshFields, updateFields, type Fields } from './fields';
 import { hurt, makeGame, makeNoise, power, runLight, toggleLight, unwear, useItem, type Command, type Game, type StationState, say, sfx } from './game';
@@ -211,6 +212,14 @@ export function step(sim: Sim, input: Input): void {
   if (hit && hit !== 'world' && hit.kind === 'body') {
     const m = sim.cast.find(q => q.body?.dyn === hit);
     if (m?.body) { shove(b, m.body, stride.dx / STEP, stride.dz / STEP, stride.wx, stride.wz, true); shoved(sim, m); }
+  }
+  /* thrown into a wall, a door, a crate: it hurts, and may knock the wind out of you (sim/moves.ts, SLAM) */
+  else if (hit && sim.player.thrown && sim.player.slam > SLAM.min) {
+    const over = sim.player.slam - SLAM.min;
+    sfx(g, 'thud');
+    makeNoise(g, 8);
+    hurt(g, over * SLAM.dmg, 'You met the wall harder than it met you.', 0.5);
+    struck(sim, over * SLAM.poise);
   }
   /* falls hurt (as before: past 10 m/s, 6 a metre a second); breath that runs out hurts more */
   const p = sim.player;

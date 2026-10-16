@@ -5,7 +5,7 @@ import type { Dyn } from '../world/world';
 import { hitMutant, type Mutant } from './cast';
 import { consume, makeNoise, say, sfx } from './game';
 import { push } from './body';
-import { POISE, react, REEL, regain, swingOf, type Swing } from './moves';
+import { closing, POISE, react, REEL, regain, SHOVE, swingOf, type Swing } from './moves';
 import type { Input } from './input';
 import { eyeHeight } from './player';
 import type { Sim } from './sim';
@@ -178,7 +178,9 @@ function strike(sim: Sim, w: WeaponStats): boolean {
     if (t.score > bs) { bs = t.score; best = m; }
   }
   if (best) {
-    hitMutant(sim, best, { dmg: w.dmg, poise: swingFor(w).poise }, 1);
+    /* how fast you and it were closing along the blow: you running in, it coming at you (sim/moves.ts, closing) */
+    const you = b.vx * pfx + b.vz * pfz, it = best.fixed ? 0 : -((best.x - best.px) * pfx + (best.z - best.pz) * pfz) / dt;
+    hitMutant(sim, best, { dmg: w.dmg, poise: swingFor(w).poise, shove: SHOVE.you * (w.mass + SHOVE.arm) }, closing(you + it));
     makeNoise(g, 10);
     landed(sim, 1);
     return true;
@@ -220,5 +222,5 @@ function fire(sim: Sim, w: WeaponStats): void {
     if (sim.world.raycast(A.ex, A.ey, A.ez, m.x, ty, m.z, seeThrough) < 1) continue;
     if (d < bd) { bd = d; best = m; }
   }
-  if (best) hitMutant(sim, best, { dmg: w.dmg * (big ? clamp(1.2 - bd / range, 0.25, 1) : 1), poise: big ? 60 : 22 }, 1);
+  if (best) hitMutant(sim, best, { dmg: w.dmg * (big ? clamp(1.2 - bd / range, 0.25, 1) : 1), poise: big ? 60 : 22, shove: big ? 300 : 40 }, 1);
 }

@@ -24,6 +24,8 @@ export interface Move {
   dmg: number;
   /** the poise a blow that lands takes */
   poise: number;
+  /** the shove a blow that lands gives (kg m/s): on you, 75 kg, a husk's is 1.5 m/s */
+  shove: number;
   /** the hit it shrugs off while winding up, and while striking, without losing the blow (it still costs it poise) */
   armour: { wind: number; strike: number };
   /** what it makes heard as it winds up */
@@ -35,16 +37,16 @@ const deg = (a: number) => Math.cos((a * Math.PI) / 180);
 
 export const MOVES = {
   /* overhead, with one arm: wide, as an arm comes down, and slow to come back from */
-  husk: { wind: 0.55, strike: 0.12, rec: 0.5, miss: 0.85, cd: 0.3, turn: 10, lock: 0.7, creep: 1.8, start: 0.85, reach: 1.0, arc: deg(55), lunge: 0.3, dmg: 20, poise: 20, armour: { wind: 0, strike: 12 }, tell: 'heave' },
+  husk: { wind: 0.55, strike: 0.12, rec: 0.5, miss: 0.85, cd: 0.3, turn: 10, lock: 0.7, creep: 1.8, start: 0.85, reach: 1.0, arc: deg(55), lunge: 0.3, dmg: 20, poise: 20, shove: 110, armour: { wind: 0, strike: 12 }, tell: 'heave' },
   /* it rears and drops on you: narrow, and further forward than it looks. Fists do not put it off its drop */
-  skitter: { wind: 0.5, strike: 0.1, rec: 0.4, miss: 0.7, cd: 0.45, turn: 6, lock: 0.6, creep: 0, start: 0.75, reach: 0.75, arc: deg(35), lunge: 0.5, dmg: 22, poise: 18, armour: { wind: 10, strike: 14 }, tell: 'skit' },
-  bigSkitter: { wind: 0.7, strike: 0.15, rec: 0.7, miss: 1.1, cd: 0.6, turn: 5, lock: 0.6, creep: 0, start: 1.1, reach: 1.1, arc: deg(45), lunge: 0.6, dmg: 45, poise: 34, armour: { wind: 18, strike: 28 }, tell: 'skit', big: true },
+  skitter: { wind: 0.5, strike: 0.1, rec: 0.4, miss: 0.7, cd: 0.45, turn: 6, lock: 0.6, creep: 0, start: 0.75, reach: 0.75, arc: deg(35), lunge: 0.5, dmg: 22, poise: 18, shove: 120, armour: { wind: 10, strike: 14 }, tell: 'skit' },
+  bigSkitter: { wind: 0.7, strike: 0.15, rec: 0.7, miss: 1.1, cd: 0.6, turn: 5, lock: 0.6, creep: 0, start: 1.1, reach: 1.1, arc: deg(45), lunge: 0.6, dmg: 45, poise: 34, shove: 220, armour: { wind: 18, strike: 28 }, tell: 'skit', big: true },
   /* both arms, side to side: hard to get round, hard to stop, but a long time open after */
-  thresher: { wind: 0.6, strike: 0.15, rec: 0.9, miss: 1.3, cd: 0.4, turn: 6, lock: 0.65, creep: 1.0, start: 0.7, reach: 0.9, arc: deg(70), lunge: 0.25, dmg: 45, poise: 45, armour: { wind: 30, strike: 60 }, tell: 'growl', big: true },
+  thresher: { wind: 0.6, strike: 0.15, rec: 0.9, miss: 1.3, cd: 0.4, turn: 6, lock: 0.65, creep: 1.0, start: 0.7, reach: 0.9, arc: deg(70), lunge: 0.25, dmg: 45, poise: 45, shove: 300, armour: { wind: 30, strike: 60 }, tell: 'growl', big: true },
   /* a worm's or a swimmer's is hardly a blow: a short rasp, the head lifted and the hand drawn back, then a grab. Quick
      to see, quick to be over: a step back as it lifts is enough */
-  worm: { wind: 0.3, strike: 0.08, rec: 0.25, miss: 0.4, cd: 1.0, turn: 8, lock: 0.5, creep: 0, start: 0.7, reach: 0.75, arc: deg(60), lunge: 0.15, dmg: 12, poise: 8, armour: { wind: 0, strike: 0 }, tell: 'rasp' },
-  swimmer: { wind: 0.3, strike: 0.08, rec: 0.25, miss: 0.4, cd: 0.9, turn: 8, lock: 0.5, creep: 0, start: 0.7, reach: 0.75, arc: deg(60), lunge: 0.2, dmg: 15, poise: 10, armour: { wind: 0, strike: 0 }, tell: 'rasp' },
+  worm: { wind: 0.3, strike: 0.08, rec: 0.25, miss: 0.4, cd: 1.0, turn: 8, lock: 0.5, creep: 0, start: 0.7, reach: 0.75, arc: deg(60), lunge: 0.15, dmg: 12, poise: 8, shove: 30, armour: { wind: 0, strike: 0 }, tell: 'rasp' },
+  swimmer: { wind: 0.3, strike: 0.08, rec: 0.25, miss: 0.4, cd: 0.9, turn: 8, lock: 0.5, creep: 0, start: 0.7, reach: 0.75, arc: deg(60), lunge: 0.2, dmg: 15, poise: 10, shove: 30, armour: { wind: 0, strike: 0 }, tell: 'rasp' },
 } satisfies Record<string, Move>;
 
 /* ---- the ladder */
@@ -70,6 +72,29 @@ export function react(left: number, max: number, hit: number, armour: number): {
 export function regain(left: number, max: number, calm: number, dt: number): number {
   return calm < POISE.calm ? left : Math.min(max, left + max * POISE.regain * dt);
 }
+
+/* ---- impact (engine.md §6, F3a)
+
+   What a blow carries is the speed of what strikes, relative to what it strikes. A blow stood still lands as written
+   here; one thrown running in, or into something coming at you, lands harder; one thrown backing off lands softer.
+   The head of a swung thing goes at about 11 m/s, so a blow run into at a sprint (5.6 m/s) is half again as hard.
+   It is the same rule both ways: run into a husk's blow and it is harder on you too. Damage, the poise it takes and
+   the shove it gives all go by it. */
+
+export const IMPACT = { head: 11, least: 0.6, most: 1.8 };
+
+/** how hard a blow lands, as a share of one stood still, for how fast the two were closing along it (m/s) */
+export const closing = (v: number): number => Math.min(IMPACT.most, Math.max(IMPACT.least, 1 + v / IMPACT.head));
+
+/** the shove a blow of yours gives: kg m/s for each kilogram swung, an arm's 1.5 kg with it; and the fastest a blow
+ *  sends anything (m/s), so a worm is thrown, not fired. The axe sends a husk (80 kg) back at 4 m/s, a thresher at 1.5,
+ *  a bloat not at all */
+export const SHOVE = { you: 70, arm: 1.5, most: 7 };
+
+/** thrown into something solid faster than `min` (m/s), or falling onto it faster than `min`: it hurts, `dmg` and
+ *  `poise` for each m/s over. Your own feet never slam you: only being thrown does */
+export const SLAM = { min: 3, dmg: 4, poise: 6 };
+export const FALL = { min: 10, dmg: 6, poise: 8 };
 
 /* ---- yours: what you hold makes the blow */
 

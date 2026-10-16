@@ -375,7 +375,7 @@ describe('fighting', () => {
     expect(s.game.hp).toBe(100);
   });
 
-  it('a knock back slides: a step over a few frames, not all at once', () => {
+  it('a knock back slides: over a few frames, not all at once, and a worm (25 kg) is thrown the best part of a metre', () => {
     const s = fresh(), w = cavernWorm(s);
     only(s, []);
     w.stun = 1e9;
@@ -389,8 +389,8 @@ describe('fighting', () => {
     expect(first).toBeLessThan(0.15); // the step it was struck: only the start of the slide
     hold(s, 0.5);
     const total = Math.hypot(w.x - x0, w.z - z0);
-    expect(total).toBeGreaterThan(0.2);
-    expect(total).toBeLessThan(0.4);
+    expect(total).toBeGreaterThan(0.6);
+    expect(total).toBeLessThan(1.2);
   });
 
   it('a click and a held blow stun and knock back alike', () => {
