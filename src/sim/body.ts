@@ -135,11 +135,12 @@ export function slide(w: World, b: Body, dt: number, climb = STEP_UP): Slid {
   const wx = b.vx * dt, wz = b.vz * dt;
   if (!wx && !wz) return { hit: null, slam: 0 };
   const ox = b.x, oz = b.z, hit = walk(w, b, wx, wz, climb);
-  let slam = 0;
-  /* an axis that got less far than it meant to was stopped: what is left of the velocity along it is what it managed */
-  if (Math.abs(b.x - ox) < Math.abs(wx) - EPS * 0.1) { const v = (b.x - ox) / dt; slam = Math.max(slam, Math.abs(b.vx - v)); b.vx = v; }
-  if (Math.abs(b.z - oz) < Math.abs(wz) - EPS * 0.1) { const v = (b.z - oz) / dt; slam = Math.hypot(slam, Math.abs(b.vz - v)); b.vz = v; }
-  return { hit, slam };
+  let sx = 0, sz = 0;
+  /* an axis that got less far than it meant to met something: all the speed along it went into that, at once, even if
+     it got part of the way first (counting the part it managed as kept would split one blow into two lesser ones) */
+  if (Math.abs(b.x - ox) < Math.abs(wx) - EPS * 0.1) { sx = Math.abs(b.vx); b.vx = 0; }
+  if (Math.abs(b.z - oz) < Math.abs(wz) - EPS * 0.1) { sz = Math.abs(b.vz); b.vz = 0; }
+  return { hit, slam: Math.hypot(sx, sz) };
 }
 
 export interface Landing {

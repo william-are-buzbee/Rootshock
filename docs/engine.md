@@ -266,10 +266,11 @@ the damage, the poise it breaks and the push it gives, by one function for both 
 running into its strike: the counter hurts both. A blow is swept through the world across its active part, not
 tested at one instant: an axe can take two husks in one sweep, and **a blow that meets a wall glances and staggers
 whoever threw it**, so the big axe is a poor choice in a vent. Slams into walls hurt, as falls do, and the cast take
-fall damage too, so a ledge is a weapon.
+fall damage too, so a ledge is a weapon. In two halves: **F3a**, what a blow carries, slams and falls (built, below);
+**F3b**, blows swept through the world and glancing off it, which waits on the shape of each weapon's swing.
 
 **F4. Ways to see it.** Headless duel tests that script inputs and check what follows (a running axe blow floors a
-husk; a standing jab does not; committed to one husk, the second lands). A fight arena in the test bed. A dev
+husk; a standing one does not; committed to one husk, the second lands). A fight arena in the test bed. A dev
 overlay of reach and arcs, poise and velocities, with slow motion.
 
 **Knockdowns** sit on F2 and F3. A body has a posture: standing, crouched, down, getting up. A launch is a push with
@@ -320,20 +321,22 @@ corpse worth throwing.
   (`combat.ts`, `updateHands`; `cast.ts`, `blowStep`), but read the same kind of data and the same ladder.
 - **The ladder**: `react(left, max, hit, armour)`. A hit takes poise. Broken: **stagger** (it reels, open; its poise
   comes back whole). Not broken, but more than the armour of the part it is in: **flinch** (a wind-up or a strike on
-  its way is lost). Otherwise **none**. Poise comes back once left alone a second, at half the whole a second. A jab
-  takes poise only by how far it was loaded. A blow that catches one open (recovering from its own) takes 1.6 times
-  the poise and holds it 1.6 times as long.
+  its way is lost). Otherwise **none**. Poise comes back once left alone a second, at half the whole a second. A blow
+  that catches one open (recovering from its own) takes 1.6 times the poise and holds it 1.6 times as long.
 - **Poise**: you 30; a worm 12, a skitter 20 (a big one 40), a husk 25, a thresher 70, the hand 90; a bloat cannot be
   moved. **What a blow takes**: a husk's 20, a skitter's 18, a thresher's 45, its charge 60; yours, at full, 12 a
   kilogram blunt and 9 edged (the baton 13, the pipe 29, the axe 29), fists 4; a pistol round 22, a shotgun 60.
-  So one full blow of the axe or the pipe staggers a husk, the baton takes two close together, a jab only flinches it;
-  two husk blows close together stagger you. On you the ladder has one rung: you reel, or you do not (below).
-- **Armour** (the cast's): a thresher winding up shrugs off 30, striking 60; a skitter winding up 10, so a jab does
+  So one blow of the axe or the pipe staggers a husk, the baton takes two close together, fists only flinch it; two
+  husk blows close together stagger you. On you the ladder has one rung: you reel, or you do not (below).
+- **Armour** (the cast's): a thresher winding up shrugs off 30, striking 60; a skitter winding up 10, so fists do
   not put it off its drop; a husk striking 12. Armour keeps a blow going; it does not keep poise from breaking.
-- **Your blow commits.** Its line is fixed as you let it go: you can look away, and it lands where you sent it. A full
-  one carries you a step along it (1 + 0.6 m/s a kilogram). One that meets nothing, not even a wall, leaves the arm
-  0.15 + 0.12 s a kilogram coming back (the axe half a second). A load can be held as long as you like. Loading and
-  swinging do not slow your feet. A press while you are busy is kept 0.2 s.
+- **Every blow is a whole blow.** The arm comes up as fast as the weight in it allows (0.45 + 0.2 s a kilogram: fists
+  0.57, the baton 0.67, the pipe 0.93, the axe 1.09) and the blow comes down in full: click and it goes as soon as
+  the arm is up; hold and it stays up until you let go, as long as you like. There are no half blows (below).
+- **Your blow commits.** Its line is fixed as it is thrown: you can look away, and it lands where you sent it. It
+  carries you a step along it (1 + 0.6 m/s a kilogram). One that meets nothing, not even a wall, leaves the arm
+  0.15 + 0.12 s a kilogram coming back (the axe half a second). Loading and swinging do not slow your feet. A click
+  while you are busy is kept 0.2 s, and is a blow when the arm is free.
 - **Hits on you never take a load or a blow from you.** One that breaks your poise throws you back from it (2.5 m/s)
   and you reel 0.7 s: a third of your pace, the view jolted, the arm flung down, and no new load until you have your
   feet (a load already in hand, or a blow already thrown, goes on).
@@ -354,6 +357,9 @@ corpse worth throwing.
   - *Hits that cancel your load or your blow* (with heavy weapons trading through them). It felt odd: your blows
     cannot be cancelled for now. The reel stays.
   - *Husks that would not walk into a raised weapon* and hung at the edge of its reach. It read as artificial.
+  - *Jabs*: a swing let go early came down at a quarter to seven tenths of a full blow, a fifth faster, and left the
+    arm slow to come back. It felt like poking with a stick, or swinging three kilograms of axe absurdly fast. As in
+    System Shock 2, a weapon has one swing, at its own pace.
 - **What it plays like** (`test/fight.test.ts`, *duels*: a scripted fighter that loads early, gives ground while not
   ready, steps in when ready, lets go as the nearest steps into reach). Timed well, the axe beats one husk without a
   scratch. **Two husks are not yet a problem**: with a husk each side, or both in front, the axe kills both
@@ -365,6 +371,34 @@ corpse worth throwing.
 - **Saves**: version 5.
 - **Not yet**: knockdown and launch (the rungs past stagger), the dev overlay of reach and poise, the cast steering by
   velocity, and husks giving ground themselves.
+
+### F3a, as built
+
+- **A blow lands by how fast the two were closing along it** (`sim/moves.ts`, `closing`): 1 + the closing speed over
+  11 m/s (about the speed of a swung thing's head), between 0.6 and 1.8 of a blow stood still. Damage, the poise it
+  takes and the shove it gives all go by it. Stood still, every blow is what it was. For yours, closing is your
+  speed along the blow and its speed at you: an axe blow run in at a sprint takes 65 from a husk where one stood still
+  takes 43; one thrown backing off, about 0.7 of that; a husk walking into it takes about a third more. For theirs,
+  only your speed counts (their lunge is part of the blow as written): run into a husk's blow and it lands harder,
+  back off and it lands softer.
+- **Everything is shoved by what it weighs.** Your blow gives 70 kg m/s for each kilogram swung, an arm's 1.5 kg
+  with it, at most 7 m/s to anything; it adds to what the thing is already doing. An axe blow stood still sends a worm
+  or a skitter 0.9 m, a husk 0.34, a thresher 0.05, a bloat nowhere. (Before, anything light enough was knocked the
+  same 0.3 m, whatever hit it, and nothing heavier moved.) A pistol round shoves 40, a shotgun 300. Their blows shove
+  you: a husk's sends you back at 1.5 m/s, a skitter's 1.6, a big skitter's 2.9, a thresher's 4, a worm's 0.4.
+- **Slams.** Thrown into something solid (a wall, a door, a crate; not another body, which it only shoves) faster
+  than 3 m/s, a body takes 4 damage and 6 poise for each m/s over. Only being thrown slams you (going faster than you
+  could go yourself): sprinting into a wall costs nothing. A thresher's charge throws you at 9 m/s: on open floor it
+  takes 45; with a wall behind you, 61, and you reel.
+- **Falls** hurt the cast as they hurt you: past 10 m/s, 6 damage and 8 poise for each m/s over. A husk knocked off
+  3 m takes 6, off 6 m 32, off 10 m 60. A step or a stair does nothing.
+- **Fixed on the way**: a body that met a wall part way through a step kept the part it managed as speed, so one
+  impact counted as two lesser ones on two steps, each under the threshold. All the speed into a wall now goes into
+  it at once.
+- **What it plays like** (the same duels as F2): one husk is beaten untouched with any of the three weapons; two
+  husks still hardly hurt the axe (it kills one or both untouched), while the pipe and the baton come out of a husk
+  each side at three quarters and three fifths, without a kill. The levers of F2 still stand.
+- **Tests**: `test/impact.test.ts`. No change to saves.
 
 ---
 

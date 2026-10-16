@@ -48,8 +48,10 @@ export interface Player {
   slow: number;
   /** the mass of the weapon in your hand (kg), which the sim keeps up to date: it slows how you change your pace */
   load: number;
-  /** this step: how fast you were going into what stopped you (m/s) */
+  /** this step: how fast you were going into what stopped you (m/s), and whether you were thrown (going faster than
+   *  you could go yourself): only then does a slam hurt */
   slam: number;
+  thrown: boolean;
   /** what is left of your pace while you reel (sim/combat.ts, pace); the sim sets it */
   pace: number;
   /** this step: running, for the noise it makes */
@@ -68,7 +70,7 @@ export function makePlayer(w: World, x: number, y: number, z: number, yaw: numbe
   body.skip = own;
   return {
     body, yaw, pitch: 0, crouch: false, wantStand: false, moved: 0, impact: 0,
-    water: 'dry', air: AIR, airMax: AIR, under: false, slow: 0, load: 0, slam: 0, pace: 1, running: false, jumped: false, stepD: 0, fly: false,
+    water: 'dry', air: AIR, airMax: AIR, under: false, slow: 0, load: 0, slam: 0, thrown: false, pace: 1, running: false, jumped: false, stepD: 0, fly: false,
   };
 }
 
@@ -130,6 +132,7 @@ export function updatePlayer(w: World, p: Player, inp: Input, dt: number): { str
     tx = (fx * f + rx * s) * k; tz = (fz * f + rz * s) * k;
   }
   const thrown = Math.hypot(b.vx, b.vz) > speed + 0.5;
+  p.thrown = thrown;
   steer(b, tx, tz, !thrown ? accel(p) : b.ground || p.water !== 'dry' ? FRICTION : AIR_DRAG, dt);
   const stride: Stride = { dx: b.vx * dt, dz: b.vz * dt, speed: Math.hypot(b.vx, b.vz), wx: tx, wz: tz };
   const { hit, slam } = slide(w, b, dt, swim ? CLIMB_OUT : STEP_UP);

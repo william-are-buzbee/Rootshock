@@ -54,20 +54,43 @@ describe('a blow commits', () => {
     expect(s.hands.chg).toBeGreaterThan(5);
     expect(heard(s, 'swing')).toBe(false);
     hold(s, STEP);
-    expect(s.hands.swing?.pow).toBe(1);
+    expect(s.hands.swing).not.toBe(null);
   });
 
-  it('a full blow carries you a step forward; a jab does not', () => {
+  it('tapping as fast as you can swings no faster than the arm comes up, and every blow is whole', () => {
+    const s = hall(b => b.mutant('husk', 11.4, 0, 6));
+    const m = s.cast[0];
+    m.hp = m.max = 1e9;
+    give(s.game, 'axe');
+    face(s, m.x, m.y + 1, m.z);
+    let swings = 0, was = false;
+    const hits: number[] = [];
+    for (let t = 0; t < 6; t += STEP) {
+      const before = m.hp;
+      step(s, { ...noInput(), attack: Math.round(t / STEP) % 4 < 2 }); // down two steps, up two: fifteen taps a second
+      if (m.hp < before) hits.push(before - m.hp);
+      const now = !!s.hands.swing;
+      if (now && !was) swings++;
+      was = now;
+    }
+    /* the axe's arm is 1.09 s coming up and 0.36 s coming down: four blows in six seconds, not ninety */
+    expect(swings).toBeGreaterThanOrEqual(3);
+    expect(swings).toBeLessThanOrEqual(5);
+    expect(hits.length).toBe(swings);
+    for (const h of hits) expect(h).toBeCloseTo(hits[0], 6);
+  });
+
+  it('a blow carries you a step forward, clicked or held', () => {
     const moved = (secs: number) => {
       const s = hall();
       give(s.game, 'axe');
       hold(s, secs, { attack: true });
       const x = s.player.body.x;
-      hold(s, 1);
+      hold(s, 2);
       return s.player.body.x - x;
     };
-    expect(moved(1.2)).toBeGreaterThan(0.1);
-    expect(Math.abs(moved(0.1))).toBeLessThan(0.02);
+    expect(moved(1.5)).toBeGreaterThan(0.1);
+    expect(moved(STEP)).toBeCloseTo(moved(1.5), 2);
   });
 
   it('a full blow that meets nothing leaves you longer coming back than one that lands', () => {
@@ -97,24 +120,28 @@ describe('a blow commits', () => {
     expect(back).toBeCloseTo(walk, 5);
   });
 
-  it('a press while the arm is coming back is kept a moment, and starts the next load when it is in', () => {
-    const s = hall();
-    give(s.game, 'pipe');
-    hold(s, 0.1, { attack: true });
-    hold(s, STEP); // a jab
-    for (let k = 0; k < 120 && s.hands.rec <= 0; k++) step(s, noInput());
+  it('a click while the arm is coming back is kept a moment, and is a blow when it is in', () => {
+    /* a blow at nothing: the arm half a second coming back */
+    const missed = () => {
+      const s = hall();
+      give(s.game, 'axe');
+      hold(s, STEP, { attack: true });
+      for (let k = 0; k < 200 && s.hands.rec <= 0; k++) step(s, noInput());
+      expect(s.hands.rec).toBeGreaterThan(0.3);
+      return s;
+    };
+    const s = missed();
     while (s.hands.rec > 0.12) step(s, noInput());
-    hold(s, 0.2, { attack: true }); // pressed with the arm still coming back, and held
-    expect(s.hands.chg).toBeGreaterThan(0);
-    /* pressed too early, and let go: nothing comes of it */
-    const t = hall();
-    give(t.game, 'pipe');
-    hold(t, 0.1, { attack: true });
-    hold(t, STEP);
+    hold(s, STEP, { attack: true }); // a click, with the arm not yet in
+    hold(s, 2);
+    expect(heard(s, 'swing')).toBe(true);
+    /* clicked too early: nothing comes of it */
+    const t = missed();
+    t.game.events.length = 0;
     hold(t, STEP, { attack: true });
-    hold(t, 0.6);
+    hold(t, 2);
     expect(t.hands.chg).toBe(-1);
-    expect(t.hands.swing).toBe(null);
+    expect(heard(t, 'swing')).toBe(false);
   });
 });
 
@@ -161,7 +188,7 @@ describe('the ladder, on them', () => {
   const husk = () => { const s = hall(b => b.mutant('husk', 11, 0, 6)); return { s, m: s.cast[0] }; };
   const full = (id: string, kind: 'blunt' | 'edge', mass: number) => ({ dmg: 1, poise: swingOf(kind, mass).poise, id });
 
-  it('one full axe blow staggers a husk; a baton takes two; a jab only flinches it', () => {
+  it('one axe blow staggers a husk; a baton takes two', () => {
     const axe = husk();
     hitMutant(axe.s, axe.m, full('axe', 'edge', 3.2), 1);
     expect(axe.m.reel).toBeGreaterThan(0);
@@ -171,11 +198,6 @@ describe('the ladder, on them', () => {
     expect(baton.m.reel).toBe(0);
     hitMutant(baton.s, baton.m, full('baton', 'blunt', 1.1), 1);
     expect(baton.m.reel).toBeGreaterThan(0);
-    const jab = husk();
-    jab.m.stun = 0;
-    hitMutant(jab.s, jab.m, full('axe', 'edge', 3.2), 0.3);
-    expect(jab.m.reel).toBe(0);
-    expect(jab.m.stun).toBeGreaterThan(0);
   });
 
   it('a thresher winding up shrugs off a baton, and its blow goes on', () => {

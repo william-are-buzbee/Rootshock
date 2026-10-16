@@ -3,13 +3,13 @@ import { angLerp, clamp, PI, TAU } from '../core/math';
 import { STEP } from '../core/loop';
 import { Edge, edgeCost, field as fieldFrom } from '../world/nav';
 import type { Dyn } from '../world/world';
-import { fall, makeBody, push, settle, shove, slide, steer, walk, type Body } from './body';
+import { fall, impulse, makeBody, push, settle, shove, slide, steer, walk, type Body } from './body';
 import { doorShut, opensItself, routeRules, rulesFor, type Fields, type Walker } from './fields';
 import { hurtBy, power, sayOnce, sfx } from './game';
 import { exposed, struck } from './combat';
 import { sendPlatform, type Door } from './movers';
 import { eyeHeight } from './player';
-import { MOVES, POISE, react, regain, type Move } from './moves';
+import { closing, FALL, MOVES, POISE, react, regain, SHOVE, SLAM, type Move } from './moves';
 import { simLighting, type Sim } from './sim';
 import { blinded, manned, soundZone } from './eyes';
 
@@ -441,12 +441,17 @@ function roam(sim: Sim, m: Mutant, spd: number): void {
 
 /* ---- hurting you */
 
-/** it lands on you: what it takes of you, and of your poise (sim/combat.ts, struck) */
-function strikes(sim: Sim, m: Mutant, dmg: number, poise: number): void {
+/** it lands on you: what it takes of you and of your poise (sim/combat.ts, struck), and the shove it gives you
+ *  (kg m/s). Run into it and it lands harder; back off and softer (sim/moves.ts, closing) */
+function strikes(sim: Sim, m: Mutant, dmg: number, poise: number, shove = 0): void {
+  const b = sim.player.body;
   /* you are on something well above it: it cannot reach */
-  if (!m.fixed && sim.player.body.y - m.y > 1.4) return;
-  hurtBy(sim.game, dmg, DEATH[m.ai], { x: m.x, z: m.z });
-  struck(sim, poise, { x: m.x, z: m.z });
+  if (!m.fixed && b.y - m.y > 1.4) return;
+  const dx = b.x - m.x, dz = b.z - m.z, d = Math.hypot(dx, dz) || 1, ux = dx / d, uz = dz / d;
+  const k = closing(-(b.vx * ux + b.vz * uz));
+  hurtBy(sim.game, dmg * k, DEATH[m.ai], { x: m.x, z: m.z });
+  struck(sim, poise * k, { x: m.x, z: m.z });
+  if (shove) impulse(b, ux * shove * k, uz * shove * k);
 }
 
 const step_ = (sim: Sim, m: Mutant, name: string, big = false) => sfx(sim.game, name, m, big);
@@ -552,7 +557,7 @@ function blowStep(sim: Sim, m: Mutant): boolean {
       /* the lunge, along the line it chose; not into you if you are already under it */
       if (m.body && m.dp > m.r + 0.3) walk(sim.world, m.body, Math.sin(m.yaw) * (K.lunge / K.strike) * dt, Math.cos(m.yaw) * (K.lunge / K.strike) * dt, 0);
       if (m.body) { m.x = m.body.x; m.z = m.body.z; }
-      if (!B.hit && inBlow(sim, m, K)) { B.hit = true; strikes(sim, m, K.dmg, K.poise); }
+      if (!B.hit && inBlow(sim, m, K)) { B.hit = true; strikes(sim, m, K.dmg, K.poise, K.shove); }
       if (B.t >= K.strike) { if (!B.hit) step_(sim, m, 'whiff', K.big); B.ph = 'after'; B.t = 0; }
       break;
     }
@@ -941,18 +946,22 @@ export function updateCast(sim: Sim): void {
     m.ph += dt;
     /* what was done to it (a knock back, a shove): it slides on that, and friction takes it away; what it meets, it shoves */
     if (mb && (mb.vx || mb.vz)) {
-      const vx = mb.vx, vz = mb.vz, { hit } = slide(sim.world, mb, dt, 0);
+      const vx = mb.vx, vz = mb.vz, { hit, slam } = slide(sim.world, mb, dt, 0);
       if (hit === b.dyn) shove(mb, b, vx, vz, 0, 0, true);
+      /* thrown into a wall, a door, a crate: it hurts (into another body, it only shoves it) */
+      else if (hit && (hit === 'world' || hit.kind !== 'body') && slam > SLAM.min) battered(sim, m, slam - SLAM.min, SLAM);
       if (!mb.carried) steer(mb, 0, 0, FRICTION, dt);
       m.x = mb.x; m.z = mb.z;
     }
     if (mb) mb.carried = false;
+    if (m.dead) continue;
     if (m.stun > 0) m.stun -= dt;
     else AI[m.ai](sim, m);
     if (mb) {
       /* a body that has stood still on firm ground for a few steps stays where it is: its weight would only put it back */
       const moved = mb.x !== ox || mb.z !== oz;
-      if (moved || !resting) fall(sim.world, mb, dt);
+      /* a fall hurts it as one hurts you */
+      if (moved || !resting) { const { impact } = fall(sim.world, mb, dt); if (impact > FALL.min) battered(sim, m, impact - FALL.min, FALL); }
       m.still = moved ? 0 : m.still + 1;
       m.x = mb.x; m.y = mb.y; m.z = mb.z;
     }
@@ -960,34 +969,33 @@ export function updateCast(sim: Sim): void {
   }
 }
 
-/** what slows one of the cast that something shoved (m/s²): a knock back at KNOCK.speed goes about 0.3 m */
+/** what slows one of the cast that something shoved (m/s²): sent back at 4 m/s, it goes about 0.3 m */
 const FRICTION = 28;
 
-/** a knock back: how fast a full blow sends it (m/s) */
-const KNOCK = { speed: 4.2 };
 /** a blow that catches one open, recovering from its own: it hurts more, and takes more of its poise */
 const OPEN = { dmg: 1.25, poise: 1.6 };
 /** how long a flinch holds it, and a stagger (s); longer caught open */
 const HOLD = { flinch: 0.2, stagger: 0.9 };
 
-/** what a hit carries: the harm, and the poise it takes (at full; a jab takes its share of each) */
-export interface Hit { dmg: number; poise: number }
+/** what a hit carries: the harm, the poise it takes, and the shove it gives (kg m/s), all as stood still */
+export interface Hit { dmg: number; poise: number; shove?: number }
 
-/** something hit it (a swing at `pow` of full, or a shot) */
-export function hitMutant(sim: Sim, m: Mutant, w: Hit, pow: number): void {
-  const g = sim.game, p = sim.player.body, ph = m.blow?.ph, open = ph === 'after', k = 0.3 + 0.7 * pow;
+/** something hit it: a blow or a shot, landing `k` times as hard as one stood still (sim/moves.ts, closing). It is
+ *  shoved away from you by what it weighs: a worm is thrown, a husk sent back a step, a thresher rocked, a bloat not
+ *  moved at all. */
+export function hitMutant(sim: Sim, m: Mutant, w: Hit, k = 1): void {
+  const g = sim.game, p = sim.player.body, ph = m.blow?.ph, open = ph === 'after';
   m.hp -= w.dmg * k * (open ? OPEN.dmg : 1);
-  m.hit = Math.max(m.hit, k);
+  m.hit = Math.max(m.hit, Math.min(1, k));
   sfx(g, 'hit');
-  /* light enough to be knocked back a step: about 0.3 m from a full blow, slid over a sixth of a second */
-  if (m.body && m.mass <= 1.5) {
-    const dx = m.x - p.x, dz = m.z - p.z, d = Math.hypot(dx, dz) || 1, v = KNOCK.speed * pow;
-    m.body.vx = (dx / d) * v; m.body.vz = (dz / d) * v;
+  if (m.body && w.shove) {
+    const dx = m.x - p.x, dz = m.z - p.z, d = Math.hypot(dx, dz) || 1, v = Math.min(SHOVE.most, (w.shove * k) / m.body.mass);
+    if (v > 0) { m.body.vx += (dx / d) * v; m.body.vz += (dz / d) * v; }
   }
   if (m.hp <= 0) { kill(sim, m); return; }
-  /* the ladder (sim/moves.ts): a jab takes poise only in proportion; the part of its blow it is in may shrug it off */
+  /* the ladder (sim/moves.ts): the part of its blow it is in may shrug it off */
   const K = blowKind(m), armour = !K ? 0 : ph === 'wind' ? K.armour.wind : ph === 'strike' ? K.armour.strike : 0;
-  const R = react(m.poise, m.pmax, w.poise * pow * (open ? OPEN.poise : 1), armour), hold = open ? OPEN.poise : 1;
+  const R = react(m.poise, m.pmax, w.poise * k * (open ? OPEN.poise : 1), armour), hold = open ? OPEN.poise : 1;
   m.poise = R.left; m.calm = 0;
   if (R.r === 'stagger') { m.blow = null; m.reel = HOLD.stagger * hold; m.stun = Math.max(m.stun, m.reel); }
   /* a flinch loses a blow on its way; one already thrown, it is still recovering from */
@@ -1005,6 +1013,20 @@ export function hitMutant(sim: Sim, m: Mutant, w: Hit, pow: number): void {
     case 'bloat': sayOnce(g, 'bloat', 'It does not seem to notice.'); break;
     default: break;
   }
+}
+
+/** thrown into something solid, or fallen: `over` m/s past what does no harm, and the harm and poise of each (a
+ *  slam or a fall, sim/moves.ts) */
+function battered(sim: Sim, m: Mutant, over: number, r: { dmg: number; poise: number }): void {
+  if (m.dead) return;
+  m.hp -= over * r.dmg;
+  m.hit = Math.max(m.hit, 0.6);
+  step_(sim, m, 'thud', m.big || m.mass > 2);
+  if (m.hp <= 0) { kill(sim, m); return; }
+  const R = react(m.poise, m.pmax, over * r.poise, 0);
+  m.poise = R.left; m.calm = 0;
+  if (R.r === 'stagger') { m.blow = null; m.reel = HOLD.stagger; m.stun = Math.max(m.stun, m.reel); }
+  else if (R.r === 'flinch') { m.blow = null; m.stun = Math.max(m.stun, HOLD.flinch); }
 }
 
 /** you walked into it: what was not already after you is now */
