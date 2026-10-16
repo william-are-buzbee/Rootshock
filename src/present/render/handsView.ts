@@ -1,12 +1,35 @@
 import * as THREE from 'three';
 import { clamp } from '../../core/math';
 import { loadTime, wstats } from '../../sim/combat';
+import { ACTIVE, PATHS } from '../../sim/sweep';
+import type { Shape } from '../../content/items';
 import type { Sim } from '../../sim/sim';
 import type { Lighting } from '../../world/light';
 import { dynamicMaterial, lightMaterial } from './shader';
 import { parts, type Part } from './things';
 
-/* What is in your hand, in front of the camera: the first engine's weaponModel, and how it loads, swings and kicks. */
+/* What is in your hand, in front of the camera: the first engine's weaponModel, and how it loads, swings and kicks.
+   A swung thing is drawn as the sim swings it (sim/sweep.ts): drawn back to the right and brought across right to left;
+   the axe raised up and right and brought down to the left; fists and the knife driven straight out. It crosses the
+   middle of the view in the part of the swing that can land, and one that glances off a wall jumps back. */
+
+const HALF = Math.PI / 2;
+/** how far past the start of its path a loaded swing is drawn back (radians): far enough to read as drawn, not so far
+ *  it leaves the view */
+const DRAWN = 0.3;
+const ease = (t: number) => t * t * (3 - 2 * t);
+
+/** where a swung thing points across its swing, `q` (0..1) through it: from drawn back, across the part that can land,
+ *  and on through; one that glanced at `gq` jumps back the way it came and shakes */
+function swept(shape: Shape, q: number, gq?: number): number {
+  const P = PATHS[shape], back = P.from + DRAWN, on = P.to - 0.6;
+  const at = (k: number) => k < ACTIVE.from ? back + (P.from - back) * ease(k / ACTIVE.from)
+    : k < ACTIVE.to ? P.from + ((P.to - P.from) * (k - ACTIVE.from)) / (ACTIVE.to - ACTIVE.from)
+      : P.to + (on - P.to) * ease((k - ACTIVE.to) / (1 - ACTIVE.to));
+  if (gq === undefined || q < gq) return at(q);
+  const g = at(gq), k = (q - gq) / Math.max(1e-3, 1 - gq);
+  return g + (P.from - g) * 0.35 * Math.sin(Math.min(1, k * 2) * HALF);
+}
 
 function weaponParts(id: string | null): Part[] {
   switch (id) {
@@ -29,7 +52,8 @@ export class HandsView {
   private id: string | null | undefined = undefined;
 
   constructor(camera: THREE.Camera, public sim: Sim, private L: Lighting) {
-    this.vm.rotation.z = -0.15;
+    /* turned first to point out from you, then swung about the up of the plane it sweeps in, then that plane tilted */
+    this.vm.rotation.order = 'ZYX';
     camera.add(this.vm);
   }
 
@@ -47,7 +71,8 @@ export class HandsView {
     lightMaterial(this.mat, this.L.atPoint(b.x, b.y + 1, b.z), this.L.flickAt(b.x, b.y + 1, b.z));
     const w = wstats(g.weapon), fist = !g.weapon, sw = h.swing;
     const ld = h.chg >= 0 ? clamp(h.chg / loadTime(sim, w), 0, 1) : 0;
-    vm.rotation.y = fist ? 0.12 : 0;
+    const shape = w.shape, thrust = fist || shape === 'thrust', tilt = shape === 'chop' ? PATHS.chop.tilt : -0.15;
+    vm.rotation.set(0, fist ? 0.12 : 0, -0.15);
     if (h.stag > 0) {
       /* reeling: the arm flung down and out, shaking, until you have your feet again */
       const e = Math.min(1, h.stag / 0.25), sh = Math.sin(time * 31) * 0.02 * e;
@@ -56,30 +81,28 @@ export class HandsView {
     } else if (w.gun) {
       vm.rotation.x = h.kick * 0.5;
       vm.position.set(0.22, -0.3 + h.kick * 0.04 + Math.sin(bob) * 0.01, -0.42 + h.kick * 0.12);
+    } else if (sw && thrust) {
+      /* driven straight out and back: fists, or the knife's point first */
+      const q = Math.min(1, sw.t / sw.dur), out = fist ? 0.6 : 0.45, sh = sw.glance !== undefined && q > sw.glance ? Math.sin(time * 60) * 0.015 : 0;
+      vm.rotation.x = fist ? 0.05 : -HALF + 0.1;
+      if (q < 0.4) { const t = q / 0.4; vm.position.set(0.26 - t * 0.16, -0.3 + t * 0.1, -0.42 + 0.2 * (1 - t) - t * out); }
+      else { const t = (q - 0.4) / 0.6; vm.position.set(0.1 + t * 0.16 + sh, -0.2 - t * 0.1, -0.42 - out * (1 - t)); }
     } else if (sw) {
-      const q = Math.min(1, sw.t / sw.dur), L = 1;
-      if (fist) {
-        const out = 0.6;
-        vm.rotation.x = 0.05;
-        if (q < 0.4) { const t = q / 0.4; vm.position.set(0.26 - t * 0.16, -0.3 + t * 0.1, -0.42 + 0.2 * (1 - t) - t * out); }
-        else { const t = (q - 0.4) / 0.6; vm.position.set(0.1 + t * 0.16, -0.2 - t * 0.1, -0.42 - out * (1 - t)); }
-      } else if (q < 0.45) {
-        const t = q / 0.45;
-        vm.rotation.x = (-0.5 + L) * (1 - t) - 1.9 * t;
-        vm.position.set(0.3 + L * 0.08 - t * (0.28 + L * 0.08), -0.34 + L * 0.14 * (1 - t) + 0.04 * t, -0.5 + L * 0.1 * (1 - t) - t * 0.15);
-      } else {
-        const t = (q - 0.45) / 0.55;
-        vm.rotation.x = -1.9 + t * 1.4;
-        vm.position.set(0.02 + t * 0.28, -0.3 - t * 0.04, -0.65 + t * 0.15);
-      }
-    } else if (fist) {
-      vm.rotation.x = 0.05;
+      /* swung across: pointing out from you, turned through the sweep, in its plane */
+      const q = Math.min(1, sw.t / sw.dur), th = swept(shape, q, sw.glance);
+      const sh = sw.glance !== undefined && q > sw.glance ? Math.sin(time * 55) * 0.04 * (1 - q) : 0;
+      vm.rotation.set(-HALF + 0.35 - 0.25 * Math.min(1, q / ACTIVE.to) + sh, -th, tilt);
+      vm.position.set(0.16 + 0.14 * Math.sin(th), -0.28 + (shape === 'chop' ? 0.1 * Math.sin(th) : 0), -0.32);
+    } else if (thrust) {
+      vm.rotation.x = fist ? 0.05 : -HALF + 0.1;
       vm.position.set(0.26 + ld * 0.04, -0.3 - ld * 0.03 + Math.sin(bob) * 0.012, -0.42 + ld * 0.2);
     } else {
-      /* loaded and held: it trembles */
-      const tr = ld >= 1 ? Math.sin(time * 38) * 0.012 : 0;
-      vm.rotation.x = -0.5 + ld + Math.sin(bob * 0.5) * 0.02 + tr;
-      vm.position.set(0.3 + ld * 0.08, -0.34 + ld * 0.14 + Math.sin(bob) * 0.012, -0.5 + ld * 0.1);
+      /* at rest, held up before you; loading, drawn back to where the swing starts (right, or for the axe up and
+         right), and trembling once it is all the way */
+      const tr = ld >= 1 ? Math.sin(time * 38) * 0.012 : 0, e = ease(ld), back = PATHS[shape].from + DRAWN;
+      vm.rotation.set((-0.5 + Math.sin(bob * 0.5) * 0.02) * (1 - e) + (-HALF + 0.35) * e + tr, -back * e, -0.15 * (1 - e) + tilt * e);
+      const lift = shape === 'chop' ? 0.1 * Math.sin(back) : 0;
+      vm.position.set(0.3 - 0.14 * e + 0.14 * Math.sin(back) * e, -0.34 + (0.06 + lift) * e + Math.sin(bob) * 0.012 * (1 - e), -0.5 + 0.18 * e);
     }
   }
 }

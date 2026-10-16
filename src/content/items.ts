@@ -1,9 +1,15 @@
 /* Everything that can be carried, as the first engine had it. A weapon carries its handling (w); stackable things count
    (stack, and per: how many come in one find); a tool is a light; worn things go on; a key is not carried but known. */
 
+/** the way a swung thing travels (engine.md §6, F3b): side to side, right to left; a chop, from up and right to down
+ *  and left; or straight out, a thrust */
+export type Shape = 'side' | 'chop' | 'thrust';
+
 export interface WeaponDef {
   mass: number;
   type?: 'blunt' | 'edge' | 'fist';
+  /** how it is swung: side by default */
+  shape?: Shape;
   len?: number;
   gun?: boolean;
   dmg?: number;
@@ -38,8 +44,8 @@ export const ITEMS: Record<string, ItemDef> = {
   shotgun: { n: 'Shotgun', d: '12 gauge. Ruinous up close, a suggestion at distance.', w: { gun: true, dmg: 105, range: 15, cone: 0.93, ammo: 'shells', cd: 1.05, mass: 3.2 } },
   ammo9: { n: '9 mm rounds', d: 'Loose rounds for the pistol.', stack: true, per: 12 },
   shells: { n: 'Shotgun shells', d: '12 gauge.', stack: true, per: 6 },
-  knife: { n: 'Kitchen knife', d: '200 g of edge. Fast. You have to stand very close.', w: { mass: 0.2, type: 'edge', len: 0.25 } },
-  axe: { n: 'Fire axe', d: '3.2 kg with an edge. Every swing is a commitment.', w: { mass: 3.2, type: 'edge', len: 0.9 } },
+  knife: { n: 'Kitchen knife', d: '200 g of edge. Fast. You have to stand very close.', w: { mass: 0.2, type: 'edge', len: 0.25, shape: 'thrust' } },
+  axe: { n: 'Fire axe', d: '3.2 kg with an edge. Every swing is a commitment.', w: { mass: 3.2, type: 'edge', len: 0.9, shape: 'chop' } },
   flash: { n: 'Flashlight', tool: true },
   lantern: { n: 'Dive lantern', tool: true },
   batt: { n: 'Battery', d: 'A fresh cell. Fits the flashlight and the lantern.', stack: true },
@@ -68,6 +74,8 @@ export const keyName = (k: string): string => KEYN[k] ?? 'Room card, Residence '
 export interface WeaponStats {
   /** what kind of thing it is: blunt, edged, your fists, or a gun */
   kind: 'blunt' | 'edge' | 'fist' | 'gun';
+  /** how it is swung (a gun's is never asked) */
+  shape: Shape;
   dmg: number;
   /** seconds to load a swing (before the wind-up's own .15) */
   time: number;
@@ -83,8 +91,8 @@ export interface WeaponStats {
 
 export function wstats(id: string | null): WeaponStats {
   const w = (id && ITEMS[id]?.w) || { mass: 0.6, type: 'fist' as const, len: 0 };
-  if (w.gun) return { kind: 'gun', time: 0.3, reach: 0, stun: 0.5, dmg: w.dmg ?? 0, mass: w.mass, gun: true, range: w.range, cone: w.cone, ammo: w.ammo, cd: w.cd };
+  if (w.gun) return { kind: 'gun', shape: 'thrust', time: 0.3, reach: 0, stun: 0.5, dmg: w.dmg ?? 0, mass: w.mass, gun: true, range: w.range, cone: w.cone, ammo: w.ammo, cd: w.cd };
   const dmg = w.type === 'edge' ? 14 + 9 * w.mass : w.type === 'fist' ? 5 : 12 * Math.pow(w.mass, 0.85);
-  return { kind: w.type ?? 'blunt', dmg, time: 0.3 + 0.2 * w.mass, reach: 0.8 + (w.len ?? 0), stun: 0.15 + 0.2 * w.mass, mass: w.mass };
+  return { kind: w.type ?? 'blunt', shape: w.shape ?? (w.type === 'fist' ? 'thrust' : 'side'), dmg, time: 0.3 + 0.2 * w.mass, reach: 0.8 + (w.len ?? 0), stun: 0.15 + 0.2 * w.mass, mass: w.mass };
 }
 

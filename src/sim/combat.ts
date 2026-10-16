@@ -5,7 +5,8 @@ import type { Dyn } from '../world/world';
 import { hitMutant, type Mutant } from './cast';
 import { consume, makeNoise, say, sfx } from './game';
 import { push } from './body';
-import { closing, POISE, react, REEL, regain, SHOVE, swingOf, type Swing } from './moves';
+import { closing, GLANCE, POISE, react, REEL, regain, SHOVE, swingOf, type Swing } from './moves';
+import { ACTIVE, across, along, frame, meetsCylinder, meetsSphere, type Frame, type V3 } from './sweep';
 import type { Input } from './input';
 import { eyeHeight } from './player';
 import type { Sim } from './sim';
@@ -29,8 +30,10 @@ export interface Hands {
   full: boolean;
   /** let go before the arm was up: the blow goes as soon as it is */
   go: boolean;
-  /** a swing under way: how far through, how long it takes, whether it has struck, and whether it met anything */
-  swing: { t: number; dur: number; done: boolean; missed?: boolean } | null;
+  /** a swing under way: how far through it is and how long it takes; how far across the part that can land it has
+   *  been traced (sim/sweep.ts); whether that part is over, and whether it ended meeting nothing but the world; and
+   *  how far through it was when it glanced off something, if it did */
+  swing: { t: number; dur: number; a: number; done: boolean; missed?: boolean; glance?: number } | null;
   /** the line a thrown blow goes along, fixed as you let it go */
   line: { yaw: number; pitch: number } | null;
   /** after a blow that met nothing, the arm coming back: no new swing until it is in */
@@ -98,7 +101,7 @@ export function updateHands(sim: Sim, input: Input): void {
     /* up, and let go of: down it comes, along the way you face now */
     if (h.full && h.go) {
       h.chg = -1; h.full = false; h.go = false;
-      h.swing = { t: 0, dur: (0.2 + 0.05 * w.mass) * (wet(sim) ? 1.3 : 1), done: false };
+      h.swing = { t: 0, dur: (0.2 + 0.05 * w.mass) * (wet(sim) ? 1.3 : 1), a: 0, done: false };
       h.line = { yaw: sim.player.yaw, pitch: sim.player.pitch };
       sfx(g, 'swing');
     }
@@ -108,7 +111,18 @@ export function updateHands(sim: Sim, input: Input): void {
     if (h.stop > 0) h.stop -= dt;
     else s.t += dt;
     const q = Math.min(1, s.t / s.dur);
-    if (q >= (g.weapon ? 0.45 : 0.4) && !s.done) { s.done = true; s.missed = !strike(sim, w); lunge(sim, S); }
+    if (!s.done) {
+      /* trace it across what it has covered this step; the first thing it meets ends it */
+      const a = across(q);
+      const met = a > s.a ? sweep(sim, w, s.a, a) : 'none';
+      s.a = a;
+      if (met !== 'none' || q >= ACTIVE.to) {
+        s.done = true;
+        s.missed = met !== 'hit';
+        if (met === 'glance') s.glance = q;
+        lunge(sim, S);
+      }
+    }
     if (q >= 1) {
       h.swing = null; h.line = null;
       if (s.missed) h.rec = S.miss;
@@ -116,7 +130,7 @@ export function updateHands(sim: Sim, input: Input): void {
   }
 }
 
-/** a blow carries you a step along it */
+/** a blow carries you a step along it, once it is done */
 function lunge(sim: Sim, S: Swing): void {
   const L = sim.hands.line;
   if (!L || !sim.player.body.ground) return;
@@ -140,56 +154,89 @@ export function struck(sim: Sim, poise: number, from?: { x: number; z: number })
 
 const seeThrough = (d: Dyn) => d.kind === 'body';
 
-/** where you look from and which way: for a blow under way, the line it was let go on */
+/** where a gun looks from and which way */
 function aim(sim: Sim) {
-  const p = sim.player, b = p.body, L = sim.hands.line ?? p, cp = Math.cos(L.pitch);
-  return { ex: b.x, ey: b.y + eyeHeight(p), ez: b.z, fx: -Math.sin(L.yaw) * cp, fy: Math.sin(L.pitch), fz: -Math.cos(L.yaw) * cp };
+  const p = sim.player, b = p.body, cp = Math.cos(p.pitch);
+  return { ex: b.x, ey: b.y + eyeHeight(p), ez: b.z, fx: -Math.sin(p.yaw) * cp, fy: Math.sin(p.pitch), fz: -Math.cos(p.yaw) * cp };
 }
 
 /** a grabber's head, the only part of it worth hitting */
 const headOf = (m: Mutant) => ({ x: m.x + Math.sin(m.yaw) * 0.22, y: m.y + 2.02, z: m.z + Math.cos(m.yaw) * 0.22 });
 
-/** how well a swing is aimed at a point: how near the crosshair it is, and a little how near you */
-function aimedAt(A: ReturnType<typeof aim>, x: number, y: number, z: number): { d: number; score: number } {
-  const dx = x - A.ex, dy = y - A.ey, dz = z - A.ez, d = Math.hypot(dx, dy, dz) || 1e-3;
-  return { d, score: (dx * A.fx + dy * A.fy + dz * A.fz) / d - 0.08 * d };
+/** the frame of the blow under way: your eye, and the line it was thrown along */
+function blowFrame(sim: Sim): Frame {
+  const p = sim.player, b = p.body, L = sim.hands.line ?? p;
+  return frame({ x: b.x, y: b.y + eyeHeight(p), z: b.z }, L.yaw, L.pitch);
 }
 
-/* A swing lands on whatever in reach is nearest the crosshair (and, between two about as near it, the nearer one),
-   so with two in front of you, you choose which you hit by looking at it. */
-function strike(sim: Sim, w: WeaponStats): boolean {
-  const g = sim.game, b = sim.player.body, A = aim(sim), yaw = sim.hands.line?.yaw ?? sim.player.yaw, pfx = -Math.sin(yaw), pfz = -Math.cos(yaw);
-  let best: Mutant | null = null, bs = -1e9;
-  for (const m of sim.cast) {
-    if (m.dead) continue;
-    if (m.fixed) {
-      /* only the head counts, and you have to be looking at it */
-      const H = headOf(m), t = aimedAt(A, H.x, H.y, H.z);
-      if (t.d > w.reach + 0.75 || t.score + 0.08 * t.d < 0.88) continue;
-      if (t.score > bs) { bs = t.score; best = m; }
-      continue;
+/** how far out the head of what you swing goes along its path: its reach across the floor, whatever the pitch (you
+ *  lean into a blow aimed low, so looking down at a worm costs you no reach) */
+const headReach = (sim: Sim, w: WeaponStats): number => w.reach / Math.max(0.6, Math.cos((sim.hands.line ?? sim.player).pitch));
+
+/** the path the head of your blow takes across the part that can land, for the dev overlay; null with none under way */
+export function sweepPath(sim: Sim, n = 16): V3[] | null {
+  if (!sim.hands.swing || sim.hands.swing.done) return null;
+  const w = wstats(sim.game.weapon), F = blowFrame(sim), R = headReach(sim, w), out: V3[] = [];
+  for (let i = 0; i <= n; i++) out.push(along(F, w.shape, R, i / n));
+  return out;
+}
+
+const mix = (a: V3, b: V3, t: number): V3 => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t, z: a.z + (b.z - a.z) * t });
+const ray = (sim: Sim, a: V3, b: V3) => sim.world.raycast(a.x, a.y, a.z, b.x, b.y, b.z, seeThrough);
+
+/* Your blow traced across the part of it that can land, from `a0` to `a1` of it (sim/sweep.ts): the hand to the head of
+   what you swing, a few points along it, each followed through this step's move. The first thing any of them meets is
+   what the blow meets: one of the cast, and it is hit; a wall, a door, a crate, and the blow glances off it (a heavy
+   one hard enough to knock the wind out of you). The floor it scrapes along. A thing on the far side of a wall is not
+   reached through it. */
+function sweep(sim: Sim, w: WeaponStats, a0: number, a1: number): 'none' | 'hit' | 'glance' {
+  const g = sim.game, b = sim.player.body, F = blowFrame(sim), R = headReach(sim, w), sh = w.shape;
+  const n = Math.max(1, Math.ceil((a1 - a0) * 8));
+  for (let i = 0; i < n; i++) {
+    const u0 = a0 + ((a1 - a0) * i) / n, u1 = a0 + ((a1 - a0) * (i + 1)) / n;
+    let best: Mutant | null = null, bt = 2, at: V3 | null = null, from: V3 | null = null, to: V3 | null = null;
+    for (const k of [0.5, 0.75, 1]) {
+      const A = along(F, sh, R, u0, k), B = along(F, sh, R, u1, k);
+      for (const m of sim.cast) {
+        if (m.dead) continue;
+        const t = m.fixed ? meetsSphere(A, B, headOf(m), 0.35) : meetsCylinder(A, B, m.x, m.z, m.r + 0.08, m.y, m.y + (m.body?.h ?? 1));
+        if (t === null || t >= bt) continue;
+        const P = mix(A, B, t);
+        if (ray(sim, F.p, P) < 1) continue; // behind something
+        bt = t; best = m; at = P; from = A; to = B;
+      }
     }
-    const dx = m.x - b.x, dz = m.z - b.z, d = Math.hypot(dx, dz);
-    if (d - m.r > w.reach || Math.abs(b.y - m.y) > 1.8) continue;
-    if (d > m.r && (dx * pfx + dz * pfz) / d < 0.6) continue;
-    const ty = m.y + Math.min(0.9, (m.body?.h ?? 1) * 0.6);
-    if (sim.world.raycast(A.ex, A.ey, A.ez, m.x, ty, m.z, seeThrough) < 1) continue;
-    const t = aimedAt(A, m.x, ty, m.z);
-    if (t.score > bs) { bs = t.score; best = m; }
+    /* the world: the head's own path this step, and the length of the thing from your hand to the head. The floor
+       does not stop it: a blow aimed low scrapes along it */
+    const H0 = along(F, sh, R, u0), H1 = along(F, sh, R, u1), tp = ray(sim, H0, H1), ts = ray(sim, F.p, H1);
+    const C = tp < 1 ? mix(H0, H1, tp) : ts < 1 ? mix(F.p, H1, ts) : null;
+    const tw = !C || C.y < b.y + 0.3 ? 2 : tp < 1 ? tp : 1;
+    if (best && at && from && to && bt <= tw) { landOn(sim, w, best, from, to); return 'hit'; }
+    if (C && tw <= 1) {
+      sfx(g, 'blow', C);
+      makeNoise(g, 8);
+      landed(sim, 0.8);
+      /* it comes back at you: a heavy thing hard enough to knock the wind out of you */
+      struck(sim, swingFor(w).poise * GLANCE.poise, { x: C.x, z: C.z });
+      return 'glance';
+    }
   }
-  if (best) {
-    /* how fast you and it were closing along the blow: you running in, it coming at you (sim/moves.ts, closing) */
-    const you = b.vx * pfx + b.vz * pfz, it = best.fixed ? 0 : -((best.x - best.px) * pfx + (best.z - best.pz) * pfz) / dt;
-    hitMutant(sim, best, { dmg: w.dmg, poise: swingFor(w).poise, shove: SHOVE.you * (w.mass + SHOVE.arm) }, closing(you + it));
-    makeNoise(g, 10);
-    landed(sim, 1);
-    return true;
-  }
-  /* nothing there but the wall */
-  const r = w.reach - 0.3, cy = A.ey - 0.3;
-  const hit = sim.world.raycast(A.ex, cy, A.ez, A.ex + pfx * r, cy, A.ez + pfz * r, seeThrough);
-  if (hit < 1) { sfx(g, 'blow', { x: A.ex + pfx * r * hit, y: cy, z: A.ez + pfz * r * hit }); makeNoise(g, 8); landed(sim, 0.6); return true; }
-  return false;
+  return 'none';
+}
+
+/** your blow lands on one of the cast: as hard as you and it were closing along it (sim/moves.ts, closing), and it is
+ *  shoved the way the blow was going (half along the line, half the way the head was moving: a side swing sends a
+ *  worm off to your left) */
+function landOn(sim: Sim, w: WeaponStats, m: Mutant, A: V3, B: V3): void {
+  const b = sim.player.body, L = sim.hands.line ?? sim.player, fx = -Math.sin(L.yaw), fz = -Math.cos(L.yaw);
+  const you = b.vx * fx + b.vz * fz, it = m.fixed ? 0 : -((m.x - m.px) * fx + (m.z - m.pz) * fz) / dt;
+  let hx = B.x - A.x, hz = B.z - A.z;
+  const hl = Math.hypot(hx, hz);
+  if (hl > 1e-6) { hx /= hl; hz /= hl; } else { hx = fx; hz = fz; }
+  const dx = fx + hx, dz = fz + hz, dl = Math.hypot(dx, dz) || 1;
+  hitMutant(sim, m, { dmg: w.dmg, poise: swingFor(w).poise, shove: SHOVE.you * (w.mass + SHOVE.arm), dir: { x: dx / dl, z: dz / dl } }, closing(you + it));
+  makeNoise(sim.game, 10);
+  landed(sim, 1);
 }
 
 /** a blow met something: the swing stops for a moment, and the view takes the jolt */

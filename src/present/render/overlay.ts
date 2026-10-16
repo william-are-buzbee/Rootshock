@@ -1,11 +1,12 @@
 import * as THREE from 'three';
 import { blowKind } from '../../sim/cast';
+import { sweepPath } from '../../sim/combat';
 import type { Sim } from '../../sim/sim';
 import type { Box } from '../../world/shapes';
 
 /* Dev only (?dev, then O): every collider drawn as lines. Fixed boxes in grey, sloped surfaces in green, whatever moves
    in amber, the player's body in white. A blow under way is drawn as the ground it covers: orange as it winds up, red
-   while it can land, blue as it recovers. */
+   while it can land, blue as it recovers. Yours is drawn as the path its head takes, in white. */
 const PHASE = { wind: [1, 0.55, 0.1], strike: [1, 0.1, 0.1], after: [0.3, 0.5, 1] } as const;
 export class Overlay {
   private fixed: THREE.LineSegments;
@@ -59,6 +60,9 @@ export class Overlay {
       }
       while (C.length < B.length) C.push(...c);
     }
+    /* your own blow under way: the path its head will take across the part that can land, in white */
+    const path = sweepPath(this.sim);
+    if (path) for (let k = 0; k + 1 < path.length; k++) { const a = path[k], z = path[k + 1]; B.push(a.x, a.y, a.z, z.x, z.y, z.z); C.push(1, 1, 1, 1, 1, 1); }
     this.blows.geometry.dispose();
     this.blows.geometry = lineGeo(B);
     this.blows.geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(C), 3));

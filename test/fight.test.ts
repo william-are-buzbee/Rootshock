@@ -33,7 +33,9 @@ function face(s: Sim, x: number, y: number, z: number): void {
 
 describe('a blow commits', () => {
   it('it goes along the line you let it go on, wherever you look after', () => {
-    const s = hall(b => { b.mutant('worm', 11.2, 0, 5.3); b.mutant('worm', 11.2, 0, 6.7); });
+    /* a, ahead and to the right; c, ahead and to the left: the pipe swings right to left, so aimed at a it is done
+       before it could reach c, and c is struck only if the blow follows where you look */
+    const s = hall(b => { b.mutant('worm', 11.2, 0, 6.7); b.mutant('worm', 11.2, 0, 5.3); });
     const [a, c] = s.cast;
     give(s.game, 'pipe');
     face(s, a.x, a.y + 0.36, a.z);
@@ -68,6 +70,7 @@ describe('a blow commits', () => {
     for (let t = 0; t < 6; t += STEP) {
       const before = m.hp;
       step(s, { ...noInput(), attack: Math.round(t / STEP) % 4 < 2 }); // down two steps, up two: fifteen taps a second
+      m.body!.x = 11.4; m.body!.z = 6; m.body!.vx = m.body!.vz = 0; m.body!.sync(); m.x = 11.4; m.z = 6; // held where it is
       if (m.hp < before) hits.push(before - m.hp);
       const now = !!s.hands.swing;
       if (now && !was) swings++;

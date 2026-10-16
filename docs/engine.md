@@ -267,7 +267,7 @@ running into its strike: the counter hurts both. A blow is swept through the wor
 tested at one instant: an axe can take two husks in one sweep, and **a blow that meets a wall glances and staggers
 whoever threw it**, so the big axe is a poor choice in a vent. Slams into walls hurt, as falls do, and the cast take
 fall damage too, so a ledge is a weapon. In two halves: **F3a**, what a blow carries, slams and falls (built, below);
-**F3b**, blows swept through the world and glancing off it, which waits on the shape of each weapon's swing.
+**F3b**, blows swept through the world and glancing off it (built, below).
 
 **F4. Ways to see it.** Headless duel tests that script inputs and check what follows (a running axe blow floors a
 husk; a standing one does not; committed to one husk, the second lands). A fight arena in the test bed. A dev
@@ -399,6 +399,41 @@ corpse worth throwing.
   husks still hardly hurt the axe (it kills one or both untouched), while the pipe and the baton come out of a husk
   each side at three quarters and three fifths, without a kill. The levers of F2 still stand.
 - **Tests**: `test/impact.test.ts`. No change to saves.
+
+### F3b, as built
+
+- **Shapes** (`content/items.ts`, `shape`): the pipe, the baton and the wrenches swing **side** to side, right to left
+  across the way you face (40° each side of it); the axe **chops**, from up and right (55°) down to the left (35°), in
+  a plane tilted 45°; fists and the knife **thrust** straight out. The path is laid on the line the blow was thrown
+  along, pitch and all: look down at a worm and the swing goes low. Its reach across the floor is the weapon's, at any
+  pitch (you lean into a low blow).
+- **Swept, not tested at an instant** (`sim/sweep.ts`; `combat.ts`, `sweep`): the part of a swing from a fifth to
+  three fifths of the way through can land. Each step, three points along the weapon (the hand to the head) are
+  followed through their move, and the first thing any of them meets is what the blow meets. One of the cast: it is
+  hit. Something on the far side of a wall is not reached through it. Who you hit is no longer who is nearest the
+  crosshair: a side swing aimed at one worm takes the one on your right first.
+- **Glancing.** If the head's path, or the length of the weapon from your hand to it, meets a wall, a door or a crate
+  first, the blow glances: heard, felt, and it comes back on your poise at 1.1 times what it would have taken (so a
+  full blow of the axe or the pipe knocks the wind out of you; the baton's, 15, does not). The arm is as long coming
+  back as from a blow at nothing. The floor does not stop a blow: one aimed low scrapes along it.
+- **Shoved the way the blow went**: half along the line, half the way the head was moving. A side swing sends a worm
+  off to your left.
+- **Where it glances** (measured over every place to stand on two levels, facing every way with 1.6 m clear ahead):
+  the pipe and the baton in 7% of them on the upper station and 10% on the main level; the axe in 10% and 16% (its chop
+  starts high and catches door heads and low ceilings); a thresher in 11% and 16%.
+- **The thresher's blow is wide** (`MOVES.thresher.wide`): if a wall stands within its arc (70° each side, at a metre
+  up, out to most of its reach) as it comes to strike, it glances: nothing lands, it is heard to hit the wall, and it
+  reels 0.6 s before the 1.3 s recovery of a blow that met nothing. A corridor is the place to fight one; it still
+  charges.
+- **Seen**: the swing is drawn as the sim swings it. A side swing is drawn back to the right as it loads, brought
+  across the middle of the view in the part that can land and on to the left; the axe is raised up and right and
+  brought down to the left; fists and the knife go straight out. A glance jumps back the way it came and shakes. The
+  dev overlay (O) draws the path your blow's head will take, in white.
+- **What it plays like** (the duels): one husk is beaten untouched with the axe or the pipe; the baton's fighter no
+  longer kills one in time. Two husks still leave the axe and the pipe unhurt (with fewer kills: a traced swing has to
+  reach); the baton dies to two in front of it. Not yet done: a heavy blow carrying through a light thing into the
+  next (cleaving).
+- **Tests**: `test/sweep.test.ts`. No change to saves.
 
 ---
 
