@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { blowAt, type Mutant } from '../../sim/cast';
+import { DOWN } from '../../sim/moves';
 import type { Sim } from '../../sim/sim';
 import type { Lighting } from '../../world/light';
 import { dynamicMaterial, lightMaterial } from './shader';
@@ -255,7 +256,7 @@ BUILD.overseer = mat => buildOverseer(mat);
 ANIM.hand = (m, M, c) => animHand(m, M as ReturnType<typeof buildHand>, c);
 ANIM.overseer = (m, M, c) => animOverseer(m, M as ReturnType<typeof buildOverseer>, c);
 
-interface Shown { m: Mutant; M: Model; mat: THREE.ShaderMaterial; blood: boolean }
+interface Shown { m: Mutant; M: Model; mat: THREE.ShaderMaterial; blood: boolean; fall: number }
 
 export class CastView {
   private shown: Shown[] = [];
@@ -264,7 +265,7 @@ export class CastView {
     for (const m of sim.cast) {
       const mat = dynamicMaterial(), M = BUILD[m.model](mat, m);
       scene.add(M.g);
-      this.shown.push({ m, M, mat, blood: false });
+      this.shown.push({ m, M, mat, blood: false, fall: 0 });
     }
   }
 
@@ -294,6 +295,10 @@ export class CastView {
       g.rotation.order = 'YXZ';
       g.rotation.y = m.yaw;
       g.rotation.x = m.dead || m.fixed ? 0 : -0.32 * m.hit * m.hit / Math.max(1, m.mass);
+      /* knocked down: over backward onto the floor, quickly, and back up as it gets up (sim/moves.ts, DOWN) */
+      const down = m.down > 0 ? 1 : m.rise > 0 ? m.rise / DOWN.rise : 0;
+      s.fall += (down - s.fall) * Math.min(1, c.dt * (down > s.fall ? 10 : 5));
+      if (s.fall > 0.001 && !m.dead) { g.rotation.x -= s.fall * 1.45; g.position.y += s.fall * 0.15; }
       mat.uniforms.uHit.value = m.hit;
       const R = w.roomAt(x, y + 0.5, z) ?? w.roomAt(x, y + 1.2, z), none = [0, 0, 0];
       lightMaterial(mat, R ? this.L.atPoint(x, y + 0.8, z) : none, R ? this.L.flickAt(x, y + 0.8, z) : none);

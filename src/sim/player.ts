@@ -54,6 +54,8 @@ export interface Player {
   thrown: boolean;
   /** what is left of your pace while you reel (sim/combat.ts, pace); the sim sets it */
   pace: number;
+  /** knocked down, or getting up (sim/combat.ts, floored): you lie low and cannot jump; the sim sets it */
+  down: boolean;
   /** this step: running, for the noise it makes */
   running: boolean;
   /** this step: jumped */
@@ -70,7 +72,7 @@ export function makePlayer(w: World, x: number, y: number, z: number, yaw: numbe
   body.skip = own;
   return {
     body, yaw, pitch: 0, crouch: false, wantStand: false, moved: 0, impact: 0,
-    water: 'dry', air: AIR, airMax: AIR, under: false, slow: 0, load: 0, slam: 0, thrown: false, pace: 1, running: false, jumped: false, stepD: 0, fly: false,
+    water: 'dry', air: AIR, airMax: AIR, under: false, slow: 0, load: 0, slam: 0, thrown: false, pace: 1, down: false, running: false, jumped: false, stepD: 0, fly: false,
   };
 }
 
@@ -107,9 +109,11 @@ export function updatePlayer(w: World, p: Player, inp: Input, dt: number): { str
     if (p.crouch) p.wantStand = true;
     else { p.crouch = true; p.wantStand = false; }
   }
-  if (p.crouch && p.wantStand && fits(w, b, b.x, b.z, b.y, STAND)) { p.crouch = false; p.wantStand = false; }
+  /* on the floor you are as low as crouching, and stand when you are up, if there is room */
+  if (p.down && !swim) { p.crouch = true; p.wantStand = true; }
+  if (p.crouch && p.wantStand && !p.down && fits(w, b, b.x, b.z, b.y, STAND)) { p.crouch = false; p.wantStand = false; }
   p.jumped = false;
-  if (!swim && inp.jump && b.ground && (!p.crouch || fits(w, b, b.x, b.z, b.y, STAND))) {
+  if (!swim && !p.down && inp.jump && b.ground && (!p.crouch || fits(w, b, b.x, b.z, b.y, STAND))) {
     p.jumped = true;
     b.vy = JUMP; b.ground = false; p.crouch = false; p.wantStand = false;
   }

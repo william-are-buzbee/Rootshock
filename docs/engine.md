@@ -435,6 +435,31 @@ corpse worth throwing.
   next (cleaving).
 - **Tests**: `test/sweep.test.ts`. No change to saves.
 
+### Knockdowns, as built
+
+- **The rungs past stagger** (`sim/moves.ts`, `DOWN`, `LAUNCH`, `RISE`). A hit that breaks a body's poise and shoves
+  it at 4.5 m/s or more knocks it off its feet, if it stands on them: you, a husk, a thresher, the hand. Not a worm or
+  a skitter, which are on the floor already, nor a bloat, which nothing moves. At 7 m/s or more it is thrown as well,
+  0.45 of the shove turned upward, and comes down where it lands. A fall that breaks an upright body's poise puts it
+  down too. Thresholds, as the rest of the ladder.
+- **What does it.** Your axe, stood still, sends a husk back at 4.1 m/s: it reels. Run in, 6.2: it goes down. The pipe
+  run in, 5.1: down. A worm or a skitter struck with the axe is thrown (7 m/s, the most a blow sends anything). A
+  husk's blow shoves you at 1.5 m/s: two of them stagger you but never floor you. A thresher's swipe (its shove raised
+  from 300 to 360 kg m/s so it does: 4.8 m/s) puts you on the floor; its charge (9 m/s) throws you.
+- **Down** for a second, then **getting up** for 0.6 s. Down, nothing is done: no blows, no steps, no turn of its own
+  (the cast's AI waits; you cannot move or start a load); a blow on whatever is down lands 1.5 times as hard and takes
+  no more footing from it. Getting up, a hit's poise counts only past 25: a moment of better footing, not immunity,
+  so a knockdown cannot chain into another (a pipe blow that would stagger a husk on its feet does not as it rises).
+  Your own blows are still never stopped: one already thrown, or held loaded, goes on.
+- **You, down**: as low as crouching (and standing again only where there is room); the view drops to the floor,
+  tipped over the way you went and looking up, and comes back up as you rise; the arm is flung down out of the way.
+  Heard: the wind knocked out of you and the floor coming up.
+- **The cast, down**: drawn over backward onto the floor, and back up as they rise.
+- **Not built**: a husk that goes for whoever is down (they do go on striking, and land harder, but have no stomp of
+  their own); rolling to get up; corpses that fall loose.
+- **Tests**: `test/down.test.ts`. Saves carry the cast's `down` and `rise` (still version 5: a save without them loads
+  with nobody down).
+
 ---
 
 ## 7. Navigation

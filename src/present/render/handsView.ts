@@ -73,9 +73,9 @@ export class HandsView {
     const ld = h.chg >= 0 ? clamp(h.chg / loadTime(sim, w), 0, 1) : 0;
     const shape = w.shape, thrust = fist || shape === 'thrust', tilt = shape === 'chop' ? PATHS.chop.tilt : -0.15;
     vm.rotation.set(0, fist ? 0.12 : 0, -0.15);
-    if (h.stag > 0) {
-      /* reeling: the arm flung down and out, shaking, until you have your feet again */
-      const e = Math.min(1, h.stag / 0.25), sh = Math.sin(time * 31) * 0.02 * e;
+    if (h.stag > 0 || h.down > 0 || h.rise > 0) {
+      /* reeling, or on the floor: the arm flung down and out, shaking, until you have your feet again */
+      const e = h.down > 0 ? 1 : h.rise > 0 ? Math.min(1, h.rise / 0.3) : Math.min(1, h.stag / 0.25), sh = Math.sin(time * 31) * 0.02 * e;
       vm.rotation.x = 0.7 * e + sh;
       vm.position.set(0.34 + 0.06 * e, -0.36 - 0.18 * e + sh, -0.42 + 0.06 * e);
     } else if (w.gun) {

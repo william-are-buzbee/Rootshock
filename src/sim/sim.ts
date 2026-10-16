@@ -6,7 +6,7 @@ import { clamp } from '../core/math';
 import { Lighting, type Loose } from '../world/light';
 import { castBodies, castMovers, makeCast, shoved, updateCast, type Drill, type Mutant } from './cast';
 import { makeCams, updateEyes, type Alarm, type Cam, type Knock } from './eyes';
-import { makeHands, pace, struck, updateHands, wstats, type Hands } from './combat';
+import { floored, makeHands, pace, struck, updateHands, wstats, type Hands } from './combat';
 import { SLAM } from './moves';
 import { shove } from './body';
 import { makeFields, refreshFields, updateFields, type Fields } from './fields';
@@ -200,8 +200,9 @@ export function step(sim: Sim, input: Input): void {
   /* what you hold slows how you change your pace, and is in what you weigh */
   sim.player.load = wstats(g.weapon).mass * (g.weapon ? 1 : 0);
   b.mass = MASS + sim.player.load;
-  /* reeling slows your feet */
+  /* reeling slows your feet; on the floor you lie low */
   sim.player.pace = pace(sim);
+  sim.player.down = floored(sim);
   const { stride, hit } = updatePlayer(sim.world, sim.player, input, STEP);
   /* walking into something loose shoves it */
   if (hit && hit !== 'world' && hit.kind === 'loose') {

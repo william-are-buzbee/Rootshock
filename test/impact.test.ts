@@ -119,13 +119,13 @@ describe('their blows on you', () => {
     expect(hp2 - into.s.game.hp).toBeGreaterThan(stood + 0.5);
   });
 
-  it('a thresher\'s charge into a wall hurts far more than one into open floor, and knocks the wind out of you', () => {
+  it('a thresher\'s charge into a wall hurts far more than one into open floor, and throws you off your feet', () => {
     const charge = (px: number) => {
       const s = hall(b => b.mutant('thresher', px - 2, 0, 6), [px, 6]), m = s.cast[0];
       m.stun = 0; m.state = 'charge'; m.st = 3; m.tgt = false; m.cdir = Math.PI / 2; // east, at you
       const hp = s.game.hp;
       let reeled = false;
-      for (let t = 0; t < 1.5; t += STEP) { step(s, noInput()); reeled ||= s.hands.stag > 0; }
+      for (let t = 0; t < 1.5; t += STEP) { step(s, noInput()); reeled ||= s.hands.down > 0; }
       return { took: hp - s.game.hp, reeled };
     };
     const open = charge(8), wall = charge(19.1);

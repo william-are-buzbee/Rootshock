@@ -5,6 +5,7 @@ import type { Sim } from '../sim/sim';
 import type { Dyn } from '../world/world';
 import { U } from './render/shader';
 import { BOUNCE } from '../world/light';
+import { DOWN } from '../sim/moves';
 
 /** what the beam's bounce passes through: the cast, not the walls */
 /** what sight goes through: bodies, and glass */
@@ -32,6 +33,8 @@ export class CameraRig {
   private bounce = 0;
   /** jolts to the view, in radians (yaw, pitch, roll): put on at once, easing off */
   private jolt = { y: 0, p: 0, r: 0 };
+  /** how far over you are (0 on your feet, 1 on the floor): quick to go, slower back up */
+  private fall = 0;
 
   /** your blow landed, this hard (0..1): the view dips into it */
   impact(k: number): void {
@@ -58,7 +61,12 @@ export class CameraRig {
     const x = prev.x + (b.x - prev.x) * alpha, y = prev.y + (b.y - prev.y) * alpha, z = prev.z + (b.z - prev.z) * alpha;
     if (Number.isNaN(this.cy)) this.cy = y;
     this.cy += (y - this.cy) * Math.min(1, dt * 18);
-    this.eye += ((p.crouch ? 0.95 : 1.62) - this.eye) * Math.min(1, dt * 10);
+    /* knocked down: the view goes to the floor quickly, tipped over the way you fell and looking up, and comes back
+       up as you get up (sim/combat.ts, struck) */
+    const h = sim.hands, over = h.down > 0 ? 1 : h.rise > 0 ? h.rise / DOWN.rise : 0;
+    this.fall += (over - this.fall) * Math.min(1, dt * (over > this.fall ? 12 : 5));
+    const stand = p.crouch ? 0.95 : 1.62;
+    this.eye += (stand + (0.35 - stand) * this.fall - this.eye) * Math.min(1, dt * (this.fall > 0.01 ? 14 : 10));
     this.bob += (p.moved / STEP) * dt * 3.3;
     const yaw = p.yaw + look.yaw, pitch = clamp(p.pitch + look.pitch, -1.45, 1.45);
     this.at.x = x; this.at.y = this.cy; this.at.z = z; this.at.yaw = yaw; this.at.pitch = pitch;
@@ -67,7 +75,7 @@ export class CameraRig {
     cam.position.set(x + j(), this.cy + this.eye + Math.sin(this.bob) * 0.035 + j(), z + j());
     const J = this.jolt, ease = Math.exp(-dt * 9);
     J.y *= ease; J.p *= ease; J.r *= ease;
-    cam.rotation.set(pitch + J.p, yaw + J.y, J.r);
+    cam.rotation.set(pitch + J.p + 0.3 * this.fall, yaw + J.y, J.r - 0.45 * h.side * this.fall);
     /* the flashlight is in your hand: a little below the eye and to the right, so its light rakes across what is close */
     U.uFlashPos.value.set(cam.position.x + Math.cos(yaw) * 0.22, cam.position.y - 0.3, cam.position.z - Math.sin(yaw) * 0.22);
     /* the hand follows the eye a beat late (about 70 ms), wanders with the stride and, standing, with your breath */
