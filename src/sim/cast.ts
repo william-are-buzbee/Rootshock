@@ -970,7 +970,7 @@ const OPEN = { dmg: 1.25, poise: 1.6 };
 /** how long a flinch holds it, and a stagger (s); longer caught open */
 const HOLD = { flinch: 0.2, stagger: 0.9 };
 
-/** what a hit carries: the harm, and the poise it takes (at full; a jab takes its share of each) */
+/** what a hit carries: the harm, and the poise it takes */
 export interface Hit { dmg: number; poise: number }
 
 /** something hit it (a swing at `pow` of full, or a shot) */
@@ -985,7 +985,7 @@ export function hitMutant(sim: Sim, m: Mutant, w: Hit, pow: number): void {
     m.body.vx = (dx / d) * v; m.body.vz = (dz / d) * v;
   }
   if (m.hp <= 0) { kill(sim, m); return; }
-  /* the ladder (sim/moves.ts): a jab takes poise only in proportion; the part of its blow it is in may shrug it off */
+  /* the ladder (sim/moves.ts): the part of its blow it is in may shrug it off */
   const K = blowKind(m), armour = !K ? 0 : ph === 'wind' ? K.armour.wind : ph === 'strike' ? K.armour.strike : 0;
   const R = react(m.poise, m.pmax, w.poise * pow * (open ? OPEN.poise : 1), armour), hold = open ? OPEN.poise : 1;
   m.poise = R.left; m.calm = 0;

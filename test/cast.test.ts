@@ -173,7 +173,7 @@ describe('how they follow', () => {
 });
 
 describe('fighting', () => {
-  it('a swing let go early is a jab: it lands for less than a loaded one, and the arm is slow to come back', () => {
+  it('a click is a whole blow: it comes down as soon as the arm is up, and lands as hard as one held', () => {
     const blow = (secs: number) => {
       const s = fresh(), w = cavernWorm(s); // a worm in the cavern
       only(s, []);
@@ -181,17 +181,15 @@ describe('fighting', () => {
       give(s.game, 'pipe');
       faceOff(s, w, 1.2, 0.3);
       hold(s, secs, { attack: true });
-      hold(s, 0.5);
-      return { s, lost: 40 - w.hp };
+      let at = -1;
+      for (let t = 0; t < 1.5 && at < 0; t += STEP) { step(s, noInput()); if (w.hp < 40) at = secs + t; }
+      return { lost: 40 - w.hp, at };
     };
-    const jab = blow(0.1), full = blow(1.1);
-    expect(jab.lost).toBeGreaterThan(0);
-    expect(full.lost).toBeGreaterThan(jab.lost * 1.5);
-    /* straight after a jab, a press does not start another */
-    const s = jab.s;
-    s.hands.rec = 0.2;
-    hold(s, STEP, { attack: true });
-    expect(s.hands.chg).toBe(-1);
+    const click = blow(STEP), held = blow(1.5);
+    expect(click.lost).toBeGreaterThan(0);
+    expect(click.lost).toBeCloseTo(held.lost, 6);
+    /* not before the arm is up: the pipe's load (0.93 s) and the blow coming down */
+    expect(click.at).toBeGreaterThan(0.93);
   });
 
   it('a blow that lands holds the swing still a moment, and says so', () => {
@@ -395,7 +393,7 @@ describe('fighting', () => {
     expect(total).toBeLessThan(0.4);
   });
 
-  it('a jab stuns and knocks back in proportion: much less than a loaded blow', () => {
+  it('a click and a held blow stun and knock back alike', () => {
     const blow = (secs: number) => {
       const s = fresh(), w = cavernWorm(s);
       only(s, []);
@@ -405,15 +403,15 @@ describe('fighting', () => {
       hold(s, secs, { attack: true });
       /* from where it stood as the blow landed: before that it was coming at you */
       let stun = 0, x0 = w.x, z0 = w.z;
-      for (let t = 0; t < 1 && !stun; t += STEP) { x0 = w.x; z0 = w.z; step(s, noInput()); if (w.hp < 40) stun = w.stun; }
+      for (let t = 0; t < 2 && !stun; t += STEP) { x0 = w.x; z0 = w.z; step(s, noInput()); if (w.hp < 40) stun = w.stun; }
       w.stun = 1e9; // held still, so the slide is the knock alone
       hold(s, 0.5);
       return { stun, slid: Math.hypot(w.x - x0, w.z - z0) };
     };
-    const jab = blow(0.1), full = blow(1.1);
-    expect(jab.stun).toBeGreaterThan(0);
-    expect(jab.stun).toBeLessThan(full.stun * 0.5);
-    expect(jab.slid).toBeLessThan(full.slid * 0.5);
+    const click = blow(STEP), held = blow(1.5);
+    expect(click.stun).toBeGreaterThan(0);
+    expect(click.stun).toBeCloseTo(held.stun, 6);
+    expect(click.slid).toBeCloseTo(held.slid, 2);
   });
 
   it('a swing lands on the one at the crosshair, not merely the nearest', () => {

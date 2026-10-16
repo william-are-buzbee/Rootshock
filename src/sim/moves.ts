@@ -36,7 +36,7 @@ const deg = (a: number) => Math.cos((a * Math.PI) / 180);
 export const MOVES = {
   /* overhead, with one arm: wide, as an arm comes down, and slow to come back from */
   husk: { wind: 0.55, strike: 0.12, rec: 0.5, miss: 0.85, cd: 0.3, turn: 10, lock: 0.7, creep: 1.8, start: 0.85, reach: 1.0, arc: deg(55), lunge: 0.3, dmg: 20, poise: 20, armour: { wind: 0, strike: 12 }, tell: 'heave' },
-  /* it rears and drops on you: narrow, and further forward than it looks. A jab does not put it off its drop */
+  /* it rears and drops on you: narrow, and further forward than it looks. Fists do not put it off its drop */
   skitter: { wind: 0.5, strike: 0.1, rec: 0.4, miss: 0.7, cd: 0.45, turn: 6, lock: 0.6, creep: 0, start: 0.75, reach: 0.75, arc: deg(35), lunge: 0.5, dmg: 22, poise: 18, armour: { wind: 10, strike: 14 }, tell: 'skit' },
   bigSkitter: { wind: 0.7, strike: 0.15, rec: 0.7, miss: 1.1, cd: 0.6, turn: 5, lock: 0.6, creep: 0, start: 1.1, reach: 1.1, arc: deg(45), lunge: 0.6, dmg: 45, poise: 34, armour: { wind: 18, strike: 28 }, tell: 'skit', big: true },
   /* both arms, side to side: hard to get round, hard to stop, but a long time open after */
