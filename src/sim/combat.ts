@@ -32,8 +32,8 @@ export interface Hands {
   go: boolean;
   /** a swing under way: how far through it is and how long it takes; how far across the part that can land it has
    *  been traced (sim/sweep.ts); whether that part is over, and whether it ended meeting nothing but the world; and
-   *  how far through it was when it glanced off something, if it did */
-  swing: { t: number; dur: number; a: number; done: boolean; missed?: boolean; glance?: number } | null;
+   *  how far through it was when it glanced off something, or when it met one of the cast and stopped in it, if it did */
+  swing: { t: number; dur: number; a: number; done: boolean; missed?: boolean; glance?: number; struck?: number } | null;
   /** the line a thrown blow goes along, fixed as you let it go */
   line: { yaw: number; pitch: number } | null;
   /** after a blow that met nothing, the arm coming back: no new swing until it is in */
@@ -134,6 +134,8 @@ export function updateHands(sim: Sim, input: Input): void {
         s.done = true;
         s.missed = met !== 'hit';
         if (met === 'glance') s.glance = q;
+        /* it stops in what it hit: it does not go on through it */
+        if (met === 'hit') s.struck = q;
         lunge(sim, S);
       }
     }

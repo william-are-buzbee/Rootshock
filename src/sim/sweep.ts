@@ -2,7 +2,7 @@ import type { Shape } from '../content/items';
 
 /* A swung thing's path (engine.md §6, F3b). A blow is not tested at one instant: the weapon is traced through the
    world across the part of the swing that can land, and the first thing it meets is what it meets. A side swing goes
-   right to left across the way you face; a chop comes from up and right down to the left; a thrust goes straight out.
+   right to left across the way you face; a chop comes straight down from over your head; a thrust goes straight out.
    The path is laid on the line the blow was thrown along, pitch and all, so you aim it by looking: down at a worm, and
    the swing goes low.
 
@@ -14,11 +14,12 @@ export interface V3 { x: number; y: number; z: number }
  *  through */
 export const ACTIVE = { from: 0.2, to: 0.6 };
 
-/** each shape's path: the angles it sweeps across (radians, out from the line; + is the right, or for a chop up and
- *  right), the tilt of the plane it sweeps in (a chop's, up from flat), and for a thrust how far out it starts */
+/** each shape's path: the angles it sweeps across (radians, out from the line; + is the right, or for a chop up), the
+ *  tilt of the plane it sweeps in (a chop's is upright: it comes straight down), and for a thrust how far out it
+ *  starts */
 export const PATHS: Record<Shape, { from: number; to: number; tilt: number; near: number }> = {
   side: { from: (40 * Math.PI) / 180, to: (-40 * Math.PI) / 180, tilt: (-8 * Math.PI) / 180, near: 1 },
-  chop: { from: (55 * Math.PI) / 180, to: (-35 * Math.PI) / 180, tilt: (45 * Math.PI) / 180, near: 1 },
+  chop: { from: (50 * Math.PI) / 180, to: (-40 * Math.PI) / 180, tilt: Math.PI / 2, near: 1 },
   thrust: { from: 0, to: 0, tilt: 0, near: 0.35 },
 };
 
