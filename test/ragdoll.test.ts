@@ -5,7 +5,7 @@ import { STEP } from '../src/core/loop';
 import { hitMutant, killAll, MT, spawn, type Hit, type Mutant } from '../src/sim/cast';
 import { give } from '../src/sim/game';
 import { noInput, type Input } from '../src/sim/input';
-import { bones, RAG, ragAt, REFLEX, SKEL } from '../src/sim/ragdoll';
+import { bones, RAG, ragAt, REFLEX, SKEL, STAGGER } from '../src/sim/ragdoll';
 import { load, save } from '../src/sim/save';
 import { makeSim, step, type Sim } from '../src/sim/sim';
 import { ANIM, BUILD } from '../src/present/render/castView';
@@ -323,6 +323,40 @@ describe('reflexes', () => {
       return ['footLF', 'footRF', 'footLB', 'footRB'].reduce((a, n) => { const f = pt(m, n); return a + Math.hypot(f.x - mid.x, f.z - mid.z); }, 0) / 4;
     });
     expect(drawn(true)).toBeLessThan(drawn(false) - 0.05);
+  });
+});
+
+describe('stagger steps', () => {
+  /** knocked down, shoved at 5.5 m/s, with the stagger steps as they are or none: how many steps, and how long before
+   *  its head is lower than half its height */
+  const knocked = (type: string, on: boolean) => {
+    const keep = STAGGER.alive;
+    if (!on) STAGGER.alive = -1;
+    try {
+      const s = arena(), m = stood(s, type, 8, 0, -8, Math.PI);
+      m.stun = 0;
+      hitMutant(s, m, { dmg: 5, poise: 500, shove: m.body!.mass * 5.5, dir: { x: 0, z: -1 }, at: { x: m.x, y: m.body!.h * 0.75, z: m.z + 0.3 }, way: { x: 0, y: 0, z: -1 } }, 1);
+      const R = m.rag!;
+      let down = -1;
+      for (let t = 0; t < 1.5; t += STEP) { step(s, noInput()); if (down < 0 && pt(m, 'head').y < m.body!.h * 0.5) down = t; }
+      return { steps: R.steps ?? 0, down };
+    } finally { STAGGER.alive = keep; }
+  };
+
+  it('knocked off its feet, a body steps to catch itself before it goes down', () => {
+    for (const t of ['husk', 'thresher']) {
+      const on = knocked(t, true), off = knocked(t, false);
+      console.log(`${t}: ${on.steps} steps, its head down in ${on.down.toFixed(2)} s (with no steps, ${off.down.toFixed(2)} s)`);
+      expect(on.steps, t).toBeGreaterThanOrEqual(1);
+      expect(on.down, t).toBeGreaterThan(off.down + 0.15);
+    }
+  });
+
+  it('the dying do not: no step under a body killed', () => {
+    const s = arena(), m = stood(s, 'husk', 8, 0, -9);
+    strike(s, m, AXE({ x: 1, z: 0 }));
+    hold(s, 1);
+    expect(m.rag!.steps ?? 0).toBe(0);
   });
 });
 

@@ -46,6 +46,8 @@ export interface Skel {
   hands?: [string, string][];
   curl?: Record<string, [number, number, number]>;
   writhe?: boolean;
+  /** its legs, hip, knee and foot, for stepping to catch itself (STAGGER) */
+  legs?: [string, string, string][];
 }
 
 /* The skeletons, from the models in castView.ts and security.ts (test/ragdoll.test.ts holds them to each other). A
@@ -73,6 +75,7 @@ export const SKEL: Record<string, Skel> = {
     core: ['hipL', 'hipR', 'shL'],
     tone: { kneeL: 0.5, kneeR: 0.5, footL: 0.5, footR: 0.5, handL: 0.6, handR: 0.6 },
     hands: [['handL', 'shL'], ['handR', 'shR']],
+    legs: [['hipL', 'kneeL', 'footL'], ['hipR', 'kneeR', 'footR']],
   },
   thresher: {
     pts: {
@@ -95,6 +98,7 @@ export const SKEL: Record<string, Skel> = {
     core: ['hipL', 'hipR', 'shL'],
     tone: { kneeL: 0.5, kneeR: 0.5, footL: 0.5, footR: 0.5, elbL: 0.6, elbR: 0.6, handL: 0.5, handR: 0.5 },
     hands: [['handL', 'shL'], ['handR', 'shR']],
+    legs: [['hipL', 'kneeL', 'footL'], ['hipR', 'kneeR', 'footR']],
   },
   skitter: {
     pts: {
@@ -189,6 +193,8 @@ export interface Bones {
   hands: { hand: number; from: number; reach: number }[];
   curl: number[];
   writhe: boolean;
+  /** its legs (hip, knee, foot) and how long each is */
+  legs: { hip: number; knee: number; foot: number; len: number }[];
   /** how tall it stands: for the slump, which turns its top one way and its feet the other */
   ht: number;
 }
@@ -221,6 +227,7 @@ export function bones(kind: string): Bones {
     core, frame0: core ? frameOf(rest, core) : [], c0, tone: names.map(n => S.tone?.[n] ?? 1),
     hands: (S.hands ?? []).map(([h, f]) => ({ hand: at[h], from: at[f], reach: len(at[h], at[f]) })),
     curl: Object.entries(S.curl ?? {}).flatMap(([n, xyz]) => [at[n], ...xyz]), writhe: !!S.writhe,
+    legs: (S.legs ?? []).map(([h, k, f]) => ({ hip: at[h], knee: at[k], foot: at[f], len: len(at[h], at[k]) + len(at[k], at[f]) })),
   };
   ready.set(kind, B);
   return B;
@@ -293,6 +300,10 @@ export interface Rag {
    *  struck while it is down */
   wound?: number;
   guard?: number;
+  /** a step under way to catch itself (STAGGER): which leg, from where to where on the plan, how far through (0..1);
+   *  and how many it has taken */
+  stride?: { leg: number; x0: number; z0: number; x1: number; z1: number; s: number } | null;
+  steps?: number;
 }
 
 /** what struck the blow that killed it: the way it was shoved (on the plan) and how hard (m/s, as the body was
@@ -613,6 +624,7 @@ function begin(sim: Sim, R: Rag, m: Mutant): void {
   }
   tone(R, B, !m.dead);
   reflexes(sim, R, B, m);
+  stagger(sim, R, B, m);
   /* the sticks, a few times over; the floor each time, so they cannot push a point through it */
   const St = B.sticks, A = B.apart, H = B.hinge, W = B.w;
   for (let it = 0; it < RAG.iters; it++) {
@@ -768,6 +780,66 @@ function reflexes(sim: Sim, R: Rag, B: Bones, m: Mutant): void {
       reach(p, B.curl[a], x, y, z, k);
     }
   }
+}
+
+/** stagger steps (engine.md §6, *Stagger steps, as built*): a body still trying to stand steps to catch itself before
+ *  it goes down. Where its weight is going (its middle, and its speed by how long a body that tall takes to fall: the
+ *  capture point) is past `slack` metres from between its feet, it swings the foot further from there to it, lifted
+ *  `lift` metres, in `time` seconds, no further from its hip than `reach` of its leg; meanwhile its trunk is held over
+ *  its feet, `upright` of the way each step. Knocked down, it tries for `alive` seconds and `steps` steps, then lets go
+ *  and falls: its knees are sent forward at `give` m/s, so one balanced on the feet it has stepped to does not stand
+ *  there while the fight has it on the floor. The dying do not step: a dying step toward a wall took the slump from a
+ *  body killed against it */
+export const STAGGER = { slack: 0.12, lift: 0.12, time: 0.22, reach: 0.55, upright: 0.06, alive: 0.45, steps: 2, give: 1.5 };
+
+function stagger(sim: Sim, R: Rag, B: Bones, m: Mutant): void {
+  const X = STAGGER, age = R.age ?? 99, { p } = R;
+  if (m.dead || !B.legs.length) return;
+  if (age > X.alive) {
+    /* it gives up: its knees go (once, as its time to try runs out), so one that has caught itself still goes down, as
+       the fight has it */
+    if (R.stride !== undefined && age - dt <= X.alive && B.core) {
+      const F = frameOf(p, B.core), fwd = placed(B, F, B.frame0, [0, 0, 0], B.c0[0], B.c0[1], B.c0[2] + 1);
+      for (const L of B.legs) { const j = L.knee * 3; p[j] += fwd[0] * X.give * dt; p[j + 1] -= X.give * 0.5 * dt; p[j + 2] += fwd[2] * X.give * dt; }
+    }
+    R.stride = null;
+    return;
+  }
+  if (R.stride === undefined) R.stride = null;
+  const most = X.steps, taken = R.steps ?? 0;
+  /* its middle, how fast it is going, and how high it is over its feet */
+  let cx = 0, cy = 0, cz = 0, vx = 0, vz = 0;
+  for (let i = 0; i < B.names.length; i++) {
+    const k = i * 3, w = B.kg[i] / B.mass;
+    cx += p[k] * w; cy += p[k + 1] * w; cz += p[k + 2] * w; vx += (p[k] - R.q[k]) / dt * w; vz += (p[k + 2] - R.q[k + 2]) / dt * w;
+  }
+  const feet = B.legs.map(L => [p[L.foot * 3], p[L.foot * 3 + 1], p[L.foot * 3 + 2]]);
+  const fx = feet.reduce((a, f) => a + f[0], 0) / feet.length, fz = feet.reduce((a, f) => a + f[2], 0) / feet.length;
+  const fy = Math.min(...feet.map(f => f[1])), hc = Math.max(0.2, cy - fy), k = Math.sqrt(hc / RAG.gravity);
+  const px = cx + vx * k, pz = cz + vz * k;
+  /* its trunk held over its feet while it is still trying, less as it gives up */
+  const hold = X.upright * (1 - age / X.alive);
+  if (B.core) for (const i of B.core) {
+    const j = i * 3, lean = (p[j + 1] - fy) / hc;
+    p[j] += (fx - cx) * hold * lean; p[j + 2] += (fz - cz) * hold * lean;
+  }
+  if (!R.stride && taken < most && Math.hypot(px - fx, pz - fz) > X.slack) {
+    /* the foot further from where its weight is going steps there, as far as the leg lets it from its hip */
+    let leg = 0, far = -1;
+    B.legs.forEach((_, j) => { const d = Math.hypot(feet[j][0] - px, feet[j][2] - pz); if (d > far) { far = d; leg = j; } });
+    const L = B.legs[leg], hx = p[L.hip * 3], hz = p[L.hip * 3 + 2];
+    let tx = px - hx, tz = pz - hz;
+    const d = Math.hypot(tx, tz), most = L.len * X.reach;
+    if (d > most) { tx *= most / d; tz *= most / d; }
+    R.stride = { leg, x0: feet[leg][0], z0: feet[leg][2], x1: hx + tx, z1: hz + tz, s: 0 };
+  }
+  const S = R.stride;
+  if (!S) return;
+  S.s = Math.min(1, S.s + dt / X.time);
+  const L = B.legs[S.leg], e = S.s * S.s * (3 - 2 * S.s), x = S.x0 + (S.x1 - S.x0) * e, z = S.z0 + (S.z1 - S.z0) * e;
+  const r = B.r[L.foot], ground = sim.world.groundBelow(rect(x, z, r * 0.6, r * 0.6), p[L.hip * 3 + 1], passes);
+  reach(p, L.foot, x, ground + r + X.lift * Math.sin(Math.PI * S.s), z, 0.5);
+  if (S.s >= 1) { R.stride = null; R.steps = taken + 1; }
 }
 
 /** a worm dying thrashes: a wave down it, side to side across its length, dying away */
