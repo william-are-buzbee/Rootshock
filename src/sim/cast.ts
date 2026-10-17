@@ -12,7 +12,7 @@ import { eyeHeight } from './player';
 import { closing, DOWN, FALL, LAUNCH, MOVES, POISE, react, regain, RISE, SHOVE, SLAM, type Move } from './moves';
 import { simLighting, type Sim } from './sim';
 import { blinded, manned, soundZone } from './eyes';
-import { knockRag, makeRag, RAG, type Killing, type Rag } from './ragdoll';
+import { knockRag, makeRag, RAG, REFLEX, type Killing, type Rag } from './ragdoll';
 import type { V3 } from './sweep';
 
 /* The cast (engine.md §7, §8): what lives in the station, ported from the first engine's behaviours. Each is a body that
@@ -1093,6 +1093,8 @@ export function hitMutant(sim: Sim, m: Mutant, w: Hit, k = 1): void {
   if (m.down > 0) {
     /* the body on the floor takes the blow where it landed (sim/ragdoll.ts) */
     if (m.rag && m.body && w.at && v > 0) knockRag(m.rag, w.at, w.way ?? { x: ux, y: 0, z: uz }, v * m.body.mass, sim.tick);
+    /* and its hands come up to its face (sim/ragdoll.ts, REFLEX) */
+    if (m.rag) m.rag.guard = REFLEX.guard.time;
     said('down already');
     return;
   }
