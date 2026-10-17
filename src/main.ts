@@ -3,6 +3,8 @@ import { testbed } from './content/levels/testbed';
 import { STATION } from './content/station';
 import { Lighting } from './world/light';
 import { applyCommands, looseLights, makeSim, simLighting, type Sim } from './sim/sim';
+import { killAll, spawn } from './sim/cast';
+import { give } from './sim/game';
 import { Beams } from './present/render/beams';
 import { levelDef, loadRun, makeRun, saveRun, soloRun, stepRun, type Run } from './sim/run';
 import { save } from './sim/save';
@@ -104,9 +106,33 @@ const fade = document.getElementById('fade')!;
 
 const controls = new Controls(canvas, () => { if (mode === 'play') setMode('pause'); }, text => panels.say(text));
 const panels = new Panels(c => sim.game.commands.push(c), () => sim.game, () => { if (mode === 'panel') { setMode('play'); controls.lock(); } });
-/* ?dev keys, as the first engine had them: V fly, G god, B bright; O for the collider overlay; P for the tracker */
-const devFlags = { bright: false, track: false };
+/* ?dev keys, as the first engine had them: V fly, G god, B bright; O for the collider overlay; P for the tracker. And for
+   working on the fight (engine.md §6, F4; the arena is in the test bed, north of the hall): 1 to 6 put one of the cast
+   down in front of you, awake and after you (a husk, a skitter, a thresher, a worm, a big skitter, the hand), 0 clears
+   them all; T slows time (a quarter, a tenth, and back); Y changes what is in your hand; H puts you right (whole,
+   standing, your poise back); U holds the cast still, or lets them go. The readout shows how you stand and the last
+   few blows, in numbers. */
+const devFlags = { bright: false, track: false, slow: 1, frozen: false };
+const hitLog: string[] = [];
+const SPAWN: [string, Record<string, unknown>][] = [['husk', {}], ['skitter', {}], ['thresher', {}], ['worm', {}], ['skitter', { big: 1 }], ['hand', {}]];
+const ARMS: (string | null)[] = [null, 'baton', 'pipe', 'wrench', 'axe', 'knife'];
 if (DEV) {
+  SPAWN.forEach(([type, opts], i) => controls.onKey.set('Digit' + (i + 1), () => {
+    if (mode !== 'play') return;
+    const b = sim.player.body, x = b.x - Math.sin(sim.player.yaw) * 3.5, z = b.z - Math.cos(sim.player.yaw) * 3.5;
+    const y = sim.world.groundBelow({ x, z, hx: 0.3, hz: 0.3, round: true }, b.y + 1.5);
+    const m = spawn(sim, type, x, y, z, opts);
+    if (m && devFlags.frozen) m.stun = 1e9;
+  }));
+  controls.onKey.set('Digit0', () => killAll(sim));
+  controls.onKey.set('KeyT', () => { devFlags.slow = devFlags.slow === 1 ? 0.25 : devFlags.slow === 0.25 ? 0.1 : 1; });
+  controls.onKey.set('KeyY', () => {
+    const g = sim.game, next = ARMS[(ARMS.indexOf(g.weapon) + 1) % ARMS.length];
+    if (next && !g.inv.some(s => s.id === next)) give(g, next);
+    g.weapon = next;
+  });
+  controls.onKey.set('KeyH', () => { const h = sim.hands; sim.game.hp = 100; h.poise = 30; h.stag = h.down = h.rise = 0; });
+  controls.onKey.set('KeyU', () => { devFlags.frozen = !devFlags.frozen; for (const m of sim.cast) m.stun = devFlags.frozen ? 1e9 : 0; });
   controls.onKey.set('KeyV', () => { sim.player.fly = !sim.player.fly; });
   controls.onKey.set('KeyG', () => { sim.game.god = !sim.game.god; });
   controls.onKey.set('KeyB', () => { devFlags.bright = !devFlags.bright; U.uBright.value = devFlags.bright ? 0.55 : 0; });
@@ -197,6 +223,13 @@ window.addEventListener('keydown', e => {
   } else if (c === 'Escape' || c === 'Tab' || c === 'KeyI' || (c === 'KeyE' && open !== 'inv') || (c === 'Space' && open === 'note')) panels.close();
 });
 
+/** the dev readout's lines for the fight: how you stand, the keys, and the last few blows */
+function fightLine(): string {
+  const h = sim.hands, g = sim.game, b = sim.player.body, state = h.down > 0 ? 'down' : h.rise > 0 ? 'getting up' : h.stag > 0 ? 'reeling' : '';
+  const you = `you  hp ${Math.max(0, g.hp).toFixed(0)}  poise ${h.poise.toFixed(0)}/30  ${Math.hypot(b.vx, b.vz).toFixed(1)} m/s  ${g.weapon ?? 'fists'}  ${state}${devFlags.slow < 1 ? `  time ×${devFlags.slow}` : ''}${devFlags.frozen ? '  cast held' : ''}`;
+  return `${you}\n1-6 put down husk skitter thresher worm big-skitter hand  0 clear  T slow  Y weapon  H heal  U hold\n${hitLog.join('\n')}`;
+}
+
 /** a power change being seen to come on, or null */
 let cascade: Cascade | null = null;
 function relightAll(L: Lighting): void {
@@ -238,6 +271,7 @@ function events(): void {
   for (const ev of g.events.splice(0)) {
     switch (ev.type) {
       case 'say': panels.say(ev.text); break;
+      case 'log': if (DEV) { hitLog.push(ev.text); if (hitLog.length > 5) hitLog.shift(); } break;
       case 'sfx': scape.event(sim, ev); break;
       case 'note': openPanel(() => panels.showNote(g, ev.key)); break;
       case 'pad': openPanel(() => { panels.show('pad'); panels.renderPad(g); }); break;
@@ -286,7 +320,7 @@ function frame(t: number): void {
   /* the world runs while you play; while a menu is open it stands still and only takes the menu's commands. A lift
      chosen from its panel is a command: the step after it is the one that takes you. */
   if (mode === 'play') {
-    const n = loop.advance(dt);
+    const n = loop.advance(dt * devFlags.slow);
     for (let k = 0; k < n; k++) {
       const b = sim.player.body;
       prev.x = b.x; prev.y = b.y; prev.z = b.z;
@@ -349,7 +383,7 @@ function frame(t: number): void {
   hud.setRoom(room?.name ?? '', sim.world.def.name, mode === 'title' ? 0 : dt); // the label waits for you to open your eyes
   if (dt > 0) fps += (1 / dt - fps) * 0.05;
   if (DEV) track(dt);
-  hud.dev(DEV ? `${b.x.toFixed(2)} ${b.y.toFixed(2)} ${b.z.toFixed(2)}  ${room?.name ?? 'rock'}  ${b.ground ? 'ground' : 'air'}  ${Math.round(fps)} fps\n${sim.world.def.name}: ${sim.world.grid.chunkCount} chunks  mesh ${here.meshMs.toFixed(0)} ms  ${['fly', 'god', 'bright'].filter(k => k === 'fly' ? sim.player.fly : k === 'god' ? sim.game.god : devFlags.bright).join(' ')}\nV fly  G god  B bright  O colliders  P tracker  M surface detail` : null);
+  hud.dev(DEV ? `${b.x.toFixed(2)} ${b.y.toFixed(2)} ${b.z.toFixed(2)}  ${room?.name ?? 'rock'}  ${b.ground ? 'ground' : 'air'}  ${Math.round(fps)} fps\n${sim.world.def.name}: ${sim.world.grid.chunkCount} chunks  mesh ${here.meshMs.toFixed(0)} ms  ${['fly', 'god', 'bright'].filter(k => k === 'fly' ? sim.player.fly : k === 'god' ? sim.game.god : devFlags.bright).join(' ')}\nV fly  G god  B bright  O colliders  P tracker  M surface detail\n${fightLine()}` : null);
   beams.render(view.renderer, view.scene, view.camera.position, lighting.looseLights);
   view.draw(t / 1000);
 }

@@ -10,7 +10,7 @@ import { floored, makeHands, pace, struck, updateHands, wstats, type Hands } fro
 import { SLAM } from './moves';
 import { shove } from './body';
 import { makeFields, refreshFields, updateFields, type Fields } from './fields';
-import { hurt, makeGame, makeNoise, power, runLight, toggleLight, unwear, useItem, type Command, type Game, type StationState, say, sfx } from './game';
+import { hurt, log, makeGame, makeNoise, power, runLight, toggleLight, unwear, useItem, type Command, type Game, type StationState, say, sfx } from './game';
 import type { Input } from './input';
 import { buildUsables, findUsable, itemUse, padKey, type Usable, type WorldItem } from './interact';
 import { LooseSet, makeLoose } from './loose';
@@ -220,7 +220,8 @@ export function step(sim: Sim, input: Input): void {
     sfx(g, 'thud');
     makeNoise(g, 8);
     hurt(g, over * SLAM.dmg, 'You met the wall harder than it met you.', 0.5);
-    struck(sim, over * SLAM.poise);
+    const r = struck(sim, over * SLAM.poise);
+    log(g, `slam → you  ${(over * SLAM.dmg).toFixed(0)} dmg  (${over.toFixed(1)} m/s over)  → ${r}`);
   }
   /* falls hurt (as before: past 10 m/s, 6 a metre a second); breath that runs out hurts more */
   const p = sim.player;

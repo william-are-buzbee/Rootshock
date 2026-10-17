@@ -29,7 +29,9 @@ export type SimEvent =
   | { type: 'impact'; k: number }
   | { type: 'end'; win: boolean; msg: string }
   /** you are on another level now */
-  | { type: 'level'; id: string };
+  | { type: 'level'; id: string }
+  /** what a blow did, in numbers: for the dev readout's hit log (engine.md §6, F4) */
+  | { type: 'log'; text: string };
 
 export type Command =
   | { type: 'use'; slot: number }
@@ -111,6 +113,8 @@ export function power(g: Game, c: string): PowerLevel {
 }
 
 export const say = (g: Game, text: string): void => { g.events.push({ type: 'say', text }); };
+/** a line for the dev readout's hit log */
+export const log = (g: Game, text: string): void => { g.events.push({ type: 'log', text }); };
 /** a sound: from a place, or (without one) your own, `d` metres' worth quieter; `k` how hard, for those that vary */
 export const sfx = (g: Game, name: string, at?: { x: number; y?: number; z: number }, big?: boolean, d?: number, k?: number): void => {
   g.events.push({ type: 'sfx', name, x: at?.x, y: at?.y, z: at?.z, big, d, k });

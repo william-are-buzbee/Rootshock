@@ -233,9 +233,9 @@ your footing allows (full on the ground, a little in the air, slow in water), an
 function, `push`, changes a body's velocity, and everything that shoves goes through it: a thresher's charge, a blow
 that knocks something back, a launch. A body moving faster than it can move itself has been thrown, and slows by
 friction rather than by choice. Moving into a wall takes the velocity into the wall away and reports how fast that was
-(the slam), as a landing reports its fall: wall damage (F3) reads it. **Built** (below). The cast still steer
-kinematically: they walk by a step from their behaviours, with their velocity holding only what was done to them.
-Steering them by velocity too is the step after, when the lunges become real.
+(the slam), as a landing reports its fall: wall damage (F3) reads it. **Built** (below). The cast at first still
+steered by a step from their behaviours, with their velocity holding only what was done to them; they move by velocity
+too now (*The cast by velocity, as built*, below).
 
 **F1b. Bodies are solid to each other.** You walked through husks, skitters and worms: only the bloat, the thresher
 and the hand stopped you, and the cast passed through you. So you could not be cornered and two husks could not hold
@@ -301,8 +301,9 @@ corpse worth throwing.
   have been thrown, and friction (24 m/s²) slows you whatever you do.
 - **`slide`** moves a body by its velocity and takes away what a wall stopped, axis by axis; how much is its `slam`.
   **`push`** adds to a body's velocity; `impulse` is a push by a momentum, so mass tells.
-- **The cast** keep their own steering; their velocity is what was done to them, slowed by friction (28 m/s², which
-  keeps a blow's knock back at the 0.3 m it was). The thresher's charge throws you at 9 m/s, as it did.
+- **The cast** kept their own steering at first, their velocity what was done to them, slowed by friction (28 m/s²,
+  which keeps a blow's knock back at the 0.3 m it was); since, they move by velocity too (below). The thresher's charge
+  throws you at 9 m/s, as it did.
 - **Shoving.** When you move into one of the cast, you and it go on at the pace you would share if your momentum were
   shared between you: your pace times your mass over both, by the pace you were going or meant to go, whichever is
   more (so a rush into one hits harder). While it is carried so, friction does not slow it as well. Measured walking
@@ -369,8 +370,8 @@ corpse worth throwing.
   how far a husk's blow reaches against yours (a lunge from just outside your reach), how long a husk reels (0.9 s)
   against how long the axe takes to load (1.1 s), and how many axe blows a husk's poise takes (now one).
 - **Saves**: version 5.
-- **Not yet**: knockdown and launch (the rungs past stagger), the dev overlay of reach and poise, the cast steering by
-  velocity, and husks giving ground themselves.
+- **Not yet** (as F2 was built; since done: knockdowns, the dev overlay, the cast by velocity): husks giving ground
+  themselves.
 
 ### F3a, as built
 
@@ -464,6 +465,51 @@ corpse worth throwing.
   their own); rolling to get up; corpses that fall loose.
 - **Tests**: `test/down.test.ts`. Saves carry the cast's `down` and `rise` (still version 5: a save without them loads
   with nobody down).
+
+### F4, as built
+
+- **The arena** (`content/levels/testbed.ts`), north of the test bed's hall through a gate: 20 by 16 m of open floor
+  5 m high; the baton, the pipe, the wrench, the axe and the knife on a table by the gate; a corridor 1.6 m wide off
+  its east side, where a side swing and a thresher's sweep glance off the walls; a bay with a 2.2 m ceiling off its
+  west side, where the axe's chop catches; a ledge 3 m up a ramp to knock things off. Nothing lives in it.
+- **Keys** (`?dev`, `main.ts`): 1 to 6 put one of the cast down 3.5 m in front of you, faced to you and after you (a
+  husk, a skitter, a thresher, a worm, a big skitter, the hand; `cast.ts`, `spawn`, which makes the level's ways about
+  the first time if nothing else needed them); 0 clears them all (`killAll`); T slows time to a quarter, a tenth, and
+  back; Y changes the weapon in your hand (fists, baton, pipe, wrench, axe, knife); H puts you right; U holds the cast
+  still, or lets them go. Anywhere, not only in the arena; a dev page does not save, so nothing put down is kept.
+- **The overlay** (O) draws about each body its fight as the sim has it: a bar over its head as tall as the poise it
+  has left, green going to red; an arrow at its feet for where its velocity takes it in a third of a second; a ring,
+  red while it is down, yellow while it gets up, orange while it reels. Yours too, with your swing's path in white.
+- **The hit log**: every blow, slam, fall and glance writes a line (`game.ts`, `log`; a `log` event the dev readout
+  keeps the last five of): what struck what, the damage, the closing multiplier, whether it caught the other open,
+  the shove, what came of it (shrugged off, flinch, stagger, down, thrown, dead), and the poise taken and left. Your own
+  standing (health, poise, speed, weapon, down or reeling, the time scale) heads it.
+- **Tests**: `test/arena.test.ts`.
+
+### The cast by velocity, as built
+
+- **One way of moving** (`cast.ts`, `drive`): whatever a behaviour does, it does by wanting a velocity, and the body
+  speeds toward it as fast as its kind changes pace: a skitter 40 m/s² (at once), a husk 18, a swimmer 10, a thresher
+  10, a worm 8, the hand 8, a bloat 3. Once a step: what the behaviours asked for, or, if none moved it (standing,
+  winding up, reeling, down, stunned), coming to a stop on its own feet. Faster than it wants to go (knocked, thrown,
+  carried along), friction slows it (28 m/s²) and a wall it is thrown into slams it, as before. What it walks into it
+  shoves by what it weighs.
+- **So**: a husk gets going in about a fifth of a second and arrives with way on, braking (by the way it has on) to
+  stop short of you; knocked back, it has the knock to work off before it can come on again; its lunge is velocity,
+  thrown at you at once (120 m/s²), and it carries a little past where it struck before it stands; its creep after you
+  in a wind-up is velocity too. Walking to a point, it slows to arrive.
+- **The thresher's charge** gets going at 16 m/s², reaching its 7.4 m/s in about 0.4 s, so there is a moment to step
+  aside; into a wall it cannot stop, and the wall slams it by how fast it met it (17.6 from a full charge), whether
+  or not it got part of the way first.
+- **Stepping aside** when wedged on a corner or against another of them is still a nudge, as it was: the one piece of
+  their moving not done by velocity.
+- **Tests changed**: a husk now carries its lunge a step (up to 0.3 m) before it stands, where it stood dead still; a
+  husk thrown into you shoves you a little less far (friction now takes the first step's speed before it meets you);
+  the duels hold their husks past fleeing (one below two fifths of its health may flee once, on a coin's toss, which
+  the change of timing turned up and the fighter, which does not chase, could not finish).
+- **What it plays like** (the duels, fleeing held off): one husk, or two, is beaten untouched with the axe or the
+  pipe; the baton takes one each side for a fifth of your health, and dies to two in front of it.
+- **Tests**: `test/momentum.test.ts`, *the cast on their own feet*.
 
 ---
 

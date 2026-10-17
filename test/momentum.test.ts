@@ -114,7 +114,64 @@ describe('solid bodies', () => {
     s.player.body.x = 5; s.player.body.sync();
     m.body!.vx = 6;
     hold(s, 0.5);
-    expect(s.player.body.x).toBeGreaterThan(5.05);
+    expect(s.player.body.x).toBeGreaterThan(5.02);
     expect(m.x).toBeLessThan(s.player.body.x);
+  });
+});
+
+describe('the cast on their own feet', () => {
+  /* A hall 20 by 12 m, you at (5, 6) facing east; what is put in it is awake. */
+  function hall(build: (b: LevelBuilder) => void): Sim {
+    const b = new LevelBuilder('hall', 'Hall');
+    b.room('Hall', 0, 0, 20, 12, { ht: 4 });
+    build(b);
+    b.start(5, 6, -Math.PI / 2);
+    const s = makeSim(b.finish());
+    s.game.hp = 1e9;
+    return s;
+  }
+  const v = (m: { body: { vx: number; vz: number } | null }) => Math.hypot(m.body!.vx, m.body!.vz);
+
+  it('a husk gets going, rather than starting at a run, and brakes to stop short of you', () => {
+    const s = hall(b => b.mutant('husk', 12, 0, 6)), m = s.cast[0];
+    m.state = 'hunt'; m.fled = true;
+    hold(s, STEP * 2);
+    expect(v(m)).toBeLessThan(1.5);
+    hold(s, 0.4);
+    expect(v(m)).toBeCloseTo(3.5, 1);
+    let nearest = 99;
+    for (let t = 0; t < 3 && !m.blow; t += STEP) { step(s, noInput()); nearest = Math.min(nearest, m.dp); }
+    expect(nearest).toBeGreaterThan(m.body!.r + s.player.body.r - 0.01);
+  });
+
+  it('its lunge is way it has on: thrown at you as it strikes', () => {
+    const s = hall(b => b.mutant('husk', 6.2, 0, 6)), m = s.cast[0];
+    m.state = 'hunt'; m.fled = true; m.yaw = -Math.PI / 2;
+    let fastest = 0;
+    for (let t = 0; t < 1.5; t += STEP) { step(s, noInput()); if (m.blow?.ph === 'strike') fastest = Math.max(fastest, v(m)); }
+    expect(fastest).toBeGreaterThan(1.5);
+  });
+
+  it('knocked back, it has the knock to work off before it can come on again', () => {
+    const s = hall(b => b.mutant('husk', 6.5, 0, 6)), m = s.cast[0];
+    m.state = 'hunt'; m.fled = true;
+    hold(s, 0.2);
+    m.body!.vx = 5; // sent away from you, east
+    step(s, noInput());
+    expect(m.body!.vx).toBeGreaterThan(3.5); // still going away though it wants to come at you
+  });
+
+  it('a thresher\'s charge takes time to get going, and one into a wall hurts it', () => {
+    const s = hall(b => b.mutant('thresher', 14, 0, 6)), m = s.cast[0];
+    s.player.body.x = 2; s.player.body.sync();
+    m.state = 'charge'; m.st = 3; m.tgt = false; m.cdir = Math.PI / 2; // east, at the wall 5.4 m off
+    hold(s, 0.2);
+    expect(v(m)).toBeLessThan(4);
+    const hp = m.hp;
+    let fastest = 0;
+    for (let t = 0; t < 2 && m.state === 'charge'; t += STEP) { step(s, noInput()); fastest = Math.max(fastest, v(m)); }
+    expect(fastest).toBeGreaterThan(6);
+    expect(m.state).toBe('recover');
+    expect(m.hp).toBeLessThan(hp);
   });
 });

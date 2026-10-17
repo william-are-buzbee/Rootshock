@@ -3,9 +3,9 @@ import { angLerp, clamp, PI, TAU } from '../core/math';
 import { STEP } from '../core/loop';
 import { Edge, edgeCost, field as fieldFrom } from '../world/nav';
 import type { Dyn } from '../world/world';
-import { fall, impulse, makeBody, push, settle, shove, slide, steer, walk, type Body } from './body';
-import { doorShut, opensItself, routeRules, rulesFor, type Fields, type Walker } from './fields';
-import { hurtBy, power, sayOnce, sfx } from './game';
+import { fall, impulse, makeBody, push, settle, shove, slide, steer, walk, type Body, type Slid } from './body';
+import { doorShut, makeFields, opensItself, refreshFields, routeRules, rulesFor, type Fields, type Walker } from './fields';
+import { hurtBy, log, power, sayOnce, sfx } from './game';
 import { exposed, struck } from './combat';
 import { sendPlatform, type Door } from './movers';
 import { eyeHeight } from './player';
@@ -25,27 +25,29 @@ interface Stats {
   hp: number; r: number; cr: number; mass: number;
   /** what its body weighs (kg), for shoving and being shoved; Infinity for one rooted where it sits */
   kg: number;
+  /** how fast it changes its own pace (m/s²): a skitter at once, a thresher slowly (engine.md §6, the cast by velocity) */
+  acc: number;
   /** its body's height */
   h: number;
   opens?: boolean; low?: boolean; noDoors?: boolean; solid?: boolean; fixed?: boolean; swim?: boolean;
 }
 
 export const MT: Record<string, Stats> = {
-  husk: { hp: 75, r: 0.38, cr: 0.34, mass: 1.2, kg: 80, h: 1.8, opens: true },
-  skitter: { hp: 60, r: 0.5, cr: 0.4, mass: 1, kg: 45, h: 0.9, low: true },
-  bloat: { hp: 600, r: 1, cr: 0.9, mass: 8, kg: Infinity, h: 2.4, noDoors: true, solid: true },
-  thresher: { hp: 150, r: 0.6, cr: 0.5, mass: 2.5, kg: 220, h: 2.1, solid: true, noDoors: true },
+  husk: { hp: 75, r: 0.38, cr: 0.34, mass: 1.2, kg: 80, acc: 18, h: 1.8, opens: true },
+  skitter: { hp: 60, r: 0.5, cr: 0.4, mass: 1, kg: 45, acc: 40, h: 0.9, low: true },
+  bloat: { hp: 600, r: 1, cr: 0.9, mass: 8, kg: Infinity, acc: 3, h: 2.4, noDoors: true, solid: true },
+  thresher: { hp: 150, r: 0.6, cr: 0.5, mass: 2.5, kg: 220, acc: 10, h: 2.1, solid: true, noDoors: true },
   /* 0.6 high: higher than a step, so you go round one rather than up onto it */
-  worm: { hp: 40, r: 0.35, cr: 0.3, mass: 1, kg: 25, h: 0.6, low: true },
-  rootworm: { ai: 'worm', model: 'worm', green: true, hp: 40, r: 0.35, cr: 0.3, mass: 1, kg: 25, h: 0.6, low: true },
-  swimmer: { ai: 'swimmer', model: 'worm', hp: 40, r: 0.35, cr: 0.3, mass: 1, kg: 25, h: 0.6, swim: true },
-  grabber: { hp: 30, r: 0.4, cr: 0, mass: 1, kg: Infinity, h: 0, fixed: true },
-  vine: { ai: 'grabber', model: 'grabber', green: true, hp: 30, r: 0.4, cr: 0, mass: 1, kg: Infinity, h: 0, fixed: true },
+  worm: { hp: 40, r: 0.35, cr: 0.3, mass: 1, kg: 25, acc: 8, h: 0.6, low: true },
+  rootworm: { ai: 'worm', model: 'worm', green: true, hp: 40, r: 0.35, cr: 0.3, mass: 1, kg: 25, acc: 8, h: 0.6, low: true },
+  swimmer: { ai: 'swimmer', model: 'worm', hp: 40, r: 0.35, cr: 0.3, mass: 1, kg: 25, acc: 10, h: 0.6, swim: true },
+  grabber: { hp: 30, r: 0.4, cr: 0, mass: 1, kg: Infinity, acc: 0, h: 0, fixed: true },
+  vine: { ai: 'grabber', model: 'grabber', green: true, hp: 30, r: 0.4, cr: 0, mass: 1, kg: Infinity, acc: 0, h: 0, fixed: true },
   /* Security's (world.md §8): the growth that was the operations centre, which sees through the cameras; and its hand,
      made of Security's response team, which goes wherever the overseer knocks for it. It fights as a thresher does. Too
      big for a door frame, it keeps to the halls. */
-  overseer: { ai: 'overseer', model: 'overseer', hp: 260, r: 1.1, cr: 0, mass: 8, kg: Infinity, h: 0, fixed: true },
-  hand: { ai: 'thresher', model: 'hand', hp: 220, r: 0.65, cr: 0.52, mass: 3, kg: 300, h: 2.2, solid: true, noDoors: true },
+  overseer: { ai: 'overseer', model: 'overseer', hp: 260, r: 1.1, cr: 0, mass: 8, kg: Infinity, acc: 0, h: 0, fixed: true },
+  hand: { ai: 'thresher', model: 'hand', hp: 220, r: 0.65, cr: 0.52, mass: 3, kg: 300, acc: 8, h: 2.2, solid: true, noDoors: true },
 };
 
 export const DEATH: Record<Ai, string> = {
@@ -125,6 +127,8 @@ export interface Mutant {
   pat: number;
   /** knocked down (sim/moves.ts, DOWN): seconds left on the floor, then seconds left getting up */
   down: number; rise: number;
+  /** how fast it changes its own pace (m/s²); and whether it moved itself this step (if not, it comes to a stop) */
+  acc: number; drove: boolean;
   /** time, for its animation */
   ph: number;
   dead: boolean;
@@ -137,8 +141,13 @@ export interface Mutant {
 const dt = STEP;
 
 export function makeCast(sim: Sim, defs: MutantDef[]): Mutant[] {
+  return defs.filter(d => MT[d.type]).map((def, id) => makeMutant(sim, def, id));
+}
+
+/** one of the cast, as a level places it, numbered `id` */
+function makeMutant(sim: Sim, def: MutantDef, id: number): Mutant {
   const rnd = (a: number, b?: number) => sim.rng.range(a, b);
-  return defs.filter(d => MT[d.type]).map((def, id) => {
+  {
     const S = MT[def.type], o = def.opts as Record<string, number | undefined>;
     /* every body stops every other, yours too (engine.md §6, F1b); they stop short of you, and shove you when they do not */
     const body = S.fixed ? null : makeBody(sim.world, def.x, def.y, def.z, S.cr, S.h, S.kg);
@@ -152,10 +161,23 @@ export function makeCast(sim: Sim, defs: MutantDef[]): Mutant[] {
       post: !!o.post, sit: !!o.sit, holt: !!o.holt, big: !!o.big, zone: (def.opts.zone as string | undefined) ?? null, screens: (def.opts.screens as string | undefined) ?? null, hx: def.x, hz: def.z, room,
       wt: rnd(1, 5), wm: 0, wx: 0, wz: 0, tk: 0, lost: 0, bt: 0, burst: false, flee: 0, ct: rnd(6, 14), cdir: 0, tgt: false,
       grab: 0, tense: 0, riled: false, blow: null, dest: -1, F: null, stk: 0, fled: false, side: 0, ride: null, spot: -1,
-      mv: 0, d: 99, dp: 99, dy: 0, los: false, losAt: -99, hit: 0, poise: poiseOf(def.type, S.ai, !!o.big), pmax: poiseOf(def.type, S.ai, !!o.big), calm: 99, reel: 0, pat: 0, down: 0, rise: 0, ph: rnd(9), dead: false, gone: 0, still: 0,
+      mv: 0, d: 99, dp: 99, dy: 0, los: false, losAt: -99, hit: 0, poise: poiseOf(def.type, S.ai, !!o.big), pmax: poiseOf(def.type, S.ai, !!o.big), calm: 99, reel: 0, pat: 0, down: 0, rise: 0, acc: S.acc, drove: false, ph: rnd(9), dead: false, gone: 0, still: 0,
     };
     return m;
-  });
+  }
+}
+
+/** dev (the arena): one of the cast put down where nothing placed it, awake and after you. The ways about the level are
+ *  worked out the first time, if no one else needed them. Not for a run that saves: a save knows the level's cast only */
+export function spawn(sim: Sim, type: string, x: number, y: number, z: number, opts: Record<string, unknown> = {}): Mutant | null {
+  if (!MT[type]) return null;
+  const m = makeMutant(sim, { type, x, y, z, opts }, sim.cast.length);
+  m.yaw = Math.atan2(sim.player.body.x - x, sim.player.body.z - z);
+  sim.cast.push(m);
+  if (!sim.fields) { sim.fields = makeFields(sim); refreshFields(sim, sim.fields); }
+  if (m.ai === 'husk' || m.ai === 'skitter') { m.state = 'hunt'; m.lost = 0; }
+  else if (m.ai === 'thresher') { m.state = 'pursue'; m.st = 1e9; m.riled = true; }
+  return m;
 }
 
 /** what it can take before it reels: by its kind, a big skitter more */
@@ -206,35 +228,55 @@ function inBeam(sim: Sim, m: Mutant): boolean {
 
 /* ---- moving */
 
-/** walk straight toward (tx, tz). True if it got somewhere (or is there). */
+/* Its own feet (engine.md §6, the cast by velocity). Whatever it does, it does by wanting a velocity: it speeds toward it
+   as fast as its kind can change pace, so it arrives with way on, brakes to stop, is slow to come back from a knock,
+   and shoves what it walks into by what it weighs. Faster than it wants to go (knocked, thrown, carried along), friction
+   slows it as it slows you, and a wall it is thrown into hurts it. One step of it, once a step: what the behaviours
+   ask for, or, if none of them moved it, coming to a stop. */
+function drive(sim: Sim, m: Mutant, wx: number, wz: number, rate = m.acc): Slid & { moved: number; pre: number } {
+  const b = m.body!, p = sim.player.body, want = Math.hypot(wx, wz), thrown = Math.hypot(b.vx, b.vz) > want + 0.5;
+  if (!b.carried) steer(b, wx, wz, thrown ? FRICTION : rate, dt);
+  const vx = b.vx, vz = b.vz, ox = b.x, oz = b.z, r = slide(sim.world, b, dt);
+  if (r.hit === p.dyn) shove(b, p, vx, vz, wx, wz, thrown);
+  /* thrown into a wall, a door, a crate: it hurts (into another body, it only shoves it) */
+  else if (thrown && r.hit && (r.hit === 'world' || r.hit.kind !== 'body') && r.slam > SLAM.min) battered(sim, m, r.slam - SLAM.min, SLAM);
+  m.x = b.x; m.z = b.z;
+  m.drove = true;
+  const moved = Math.hypot(b.x - ox, b.z - oz);
+  m.mv = moved / dt > 0.2 ? moved / dt : 0;
+  return { ...r, moved, pre: Math.hypot(vx, vz) * dt };
+}
+
+/** walk toward (tx, tz) at `spd`, braking to arrive. True if it is there (or as near you as it comes); false if it was
+ *  stopped this step and had to step aside */
 function go(sim: Sim, m: Mutant, tx: number, tz: number, spd: number): boolean {
   const b = m.body;
   if (!b) return false;
   let dx = tx - b.x, dz = tz - b.z;
   const d = Math.hypot(dx, dz);
-  if (d < 0.05) return true;
+  if (d < 0.05) { drive(sim, m, 0, 0); return true; }
   dx /= d; dz /= d;
   m.yaw = angLerp(m.yaw, Math.atan2(dx, dz), Math.min(1, dt * 8));
-  const st = Math.min(d, spd * dt);
-  /* it stops short of you: close enough to reach, never on top of you */
-  const p = sim.player.body, nx = b.x + dx * st, nz = b.z + dz * st, nd = Math.hypot(nx - p.x, nz - p.z);
-  if (Math.abs(m.dy) < 1.5 && nd < m.r + 0.3 && nd < m.dp) { m.mv = 0; return true; }
-  const ox = b.x, oz = b.z;
-  const hit = walk(sim.world, b, dx * st, dz * st);
-  if (hit === p.dyn) shove(b, p, dx * spd, dz * spd, dx * spd, dz * spd, false);
-  const moved = Math.hypot(b.x - ox, b.z - oz) >= st * 0.3;
+  /* it stops short of you, close enough to reach, never on top of you: braking in time, by the way it has on */
+  const p = sim.player.body, v = Math.hypot(b.vx, b.vz), brake = (v * v) / (2 * Math.max(1, m.acc));
+  const ahead = spd * dt + brake, nx = b.x + dx * ahead, nz = b.z + dz * ahead, nd = Math.hypot(nx - p.x, nz - p.z);
+  if (Math.abs(m.dy) < 1.5 && nd < m.r + 0.3 && nd < m.dp) { drive(sim, m, 0, 0); return true; }
+  /* and slows to arrive where it is going */
+  const pace = Math.min(spd, Math.sqrt(2 * Math.max(1, m.acc) * d));
+  const r = drive(sim, m, dx * pace, dz * pace);
   /* wedged on a corner or against another of them: sidestep, and keep to the same side until it clears. Not round you. */
-  if (!moved) {
+  if (r.hit && r.hit !== p.dyn && r.moved < r.pre * 0.3 && r.pre > 1e-3) {
+    const st = Math.max(r.pre, pace * dt * 0.5);
     if (!m.side) m.side = sim.rng.chance(0.5) ? 1 : -1;
     for (const q of [m.side, -m.side]) {
       const px = b.x, pz = b.z;
       walk(sim.world, b, dz * st * q, -dx * st * q);
-      if (Math.hypot(b.x - px, b.z - pz) >= st * 0.3) { m.side = q; m.mv = spd; return false; }
+      if (Math.hypot(b.x - px, b.z - pz) >= st * 0.3) { m.side = q; m.x = b.x; m.z = b.z; m.mv = spd; return false; }
     }
+    return false;
   }
-  if (moved) m.side = 0;
-  m.mv = moved ? spd : 0;
-  return moved;
+  m.side = 0;
+  return true;
 }
 
 /** the door a spot stands in, if it is shut to this one now: open it by hand if it can, or wait for it */
@@ -342,13 +384,18 @@ function away(sim: Sim, m: Mutant, spd: number, F?: Float32Array): boolean {
 
 /** a charge: straight on, whatever is there. False when it hits something. */
 function chargeMove(sim: Sim, m: Mutant, spd: number): boolean {
-  const b = m.body!, st = spd * dt, dx = Math.sin(m.cdir) * st, dz = Math.cos(m.cdir) * st;
-  const ox = b.x, oz = b.z;
-  walk(sim.world, b, dx, dz);
+  const r = drive(sim, m, Math.sin(m.cdir) * spd, Math.cos(m.cdir) * spd, CHARGE);
   m.yaw = m.cdir;
-  m.mv = spd;
-  return Math.hypot(b.x - ox, b.z - oz) >= st * 0.6;
+  /* into a wall at full tilt: it cannot stop, and it hurts, by how fast it met it (even if it got part of the way first) */
+  if (r.hit && r.hit !== sim.player.body.dyn && (r.slam > 1 || r.moved < r.pre * 0.6)) {
+    if (r.slam > SLAM.min) battered(sim, m, r.slam - SLAM.min, SLAM);
+    return false;
+  }
+  return true;
 }
+
+/** how fast a charge gets going (m/s²): quicker than its walk, never all at once */
+const CHARGE = 16;
 
 /** a point somewhere in its own room */
 function roomWp(sim: Sim, m: Mutant): void {
@@ -453,7 +500,8 @@ function strikes(sim: Sim, m: Mutant, dmg: number, poise: number, shove = 0, thr
   const dx = b.x - m.x, dz = b.z - m.z, d = Math.hypot(dx, dz) || 1, ux = dx / d, uz = dz / d;
   const k = closing(-(b.vx * ux + b.vz * uz)) * (sim.hands.down > 0 ? DOWN.more : 1);
   hurtBy(sim.game, dmg * k, DEATH[m.ai], { x: m.x, z: m.z });
-  struck(sim, poise * k, { x: m.x, z: m.z }, throws || (shove * k) / b.mass);
+  const dv = throws || (shove * k) / b.mass, r = struck(sim, poise * k, { x: m.x, z: m.z }, dv);
+  log(sim.game, `${m.type} → you  ${(dmg * k).toFixed(0)} dmg  ×${k.toFixed(2)}  shove ${dv.toFixed(1)} m/s  → ${r}  (poise ${(poise * k).toFixed(0)}, ${sim.hands.poise.toFixed(0)}/30 left)`);
   if (shove) impulse(b, ux * shove * k, uz * shove * k);
 }
 
@@ -542,6 +590,9 @@ function cramped(sim: Sim, m: Mutant, K: Move): boolean {
   return false;
 }
 
+/** how fast a lunge gets going (m/s²): it is thrown, all but at once */
+const LUNGE = 120;
+
 /** close enough to begin one */
 const inStart = (m: Mutant, K: BlowKind) => m.dp < m.r + K.start && Math.abs(m.dy) < 1.2;
 
@@ -569,7 +620,7 @@ function blowStep(sim: Sim, m: Mutant): boolean {
       if (B.t < K.wind * K.lock) {
         turnTo(sim, m, K.turn);
         /* backed off from: it comes after you, until it has committed */
-        if (K.creep && m.body && !inStart(m, K)) walk(sim.world, m.body, Math.sin(m.yaw) * K.creep * dt, Math.cos(m.yaw) * K.creep * dt);
+        if (K.creep && m.body && !inStart(m, K)) drive(sim, m, Math.sin(m.yaw) * K.creep, Math.cos(m.yaw) * K.creep);
       }
       if (B.t >= K.wind) {
         /* a wide blow with a wall in its arc glances off it: nothing lands, and it reels, long open */
@@ -584,9 +635,8 @@ function blowStep(sim: Sim, m: Mutant): boolean {
       }
       break;
     case 'strike': {
-      /* the lunge, along the line it chose; not into you if you are already under it */
-      if (m.body && m.dp > m.r + 0.3) walk(sim.world, m.body, Math.sin(m.yaw) * (K.lunge / K.strike) * dt, Math.cos(m.yaw) * (K.lunge / K.strike) * dt, 0);
-      if (m.body) { m.x = m.body.x; m.z = m.body.z; }
+      /* the lunge, along the line it chose, thrown at once; not into you if you are already under it */
+      if (m.body && m.dp > m.r + 0.3) drive(sim, m, Math.sin(m.yaw) * (K.lunge / K.strike), Math.cos(m.yaw) * (K.lunge / K.strike), LUNGE);
       if (!B.hit && inBlow(sim, m, K)) { B.hit = true; strikes(sim, m, K.dmg, K.poise, K.shove); }
       if (B.t >= K.strike) { if (!B.hit) step_(sim, m, 'whiff', K.big); B.ph = 'after'; B.t = 0; }
       break;
@@ -977,19 +1027,14 @@ export function updateCast(sim: Sim): void {
     m.d = Math.hypot(dx, dz, m.dy);
     m.mv = 0;
     m.ph += dt;
-    /* what was done to it (a knock back, a shove): it slides on that, and friction takes it away; what it meets, it shoves */
-    if (mb && (mb.vx || mb.vz)) {
-      const vx = mb.vx, vz = mb.vz, { hit, slam } = slide(sim.world, mb, dt, 0);
-      if (hit === b.dyn) shove(mb, b, vx, vz, 0, 0, true);
-      /* thrown into a wall, a door, a crate: it hurts (into another body, it only shoves it) */
-      else if (hit && (hit === 'world' || hit.kind !== 'body') && slam > SLAM.min) battered(sim, m, slam - SLAM.min, SLAM);
-      if (!mb.carried) steer(mb, 0, 0, FRICTION, dt);
-      m.x = mb.x; m.z = mb.z;
-    }
-    if (mb) mb.carried = false;
-    if (m.dead) continue;
+    m.drove = false;
     if (m.stun > 0) m.stun -= dt;
     else AI[m.ai](sim, m);
+    /* nothing it did moved it this step (it stands, winds up, reels, lies there): it comes to a stop on its own feet,
+       or, faster than it would go, by friction; what it meets meanwhile, it shoves */
+    if (mb && !m.dead && !m.drove) drive(sim, m, 0, 0);
+    if (mb) mb.carried = false;
+    if (m.dead) continue;
     if (mb) {
       /* a body that has stood still on firm ground for a few steps stays where it is: its weight would only put it back */
       const moved = mb.x !== ox || mb.z !== oz;
@@ -1010,9 +1055,9 @@ const OPEN = { dmg: 1.25, poise: 1.6 };
 /** how long a flinch holds it, and a stagger (s); longer caught open */
 const HOLD = { flinch: 0.2, stagger: 0.9 };
 
-/** what a hit carries: the harm, the poise it takes, and the shove it gives (kg m/s), all as stood still; and the way
- *  the shove goes, if not straight away from you */
-export interface Hit { dmg: number; poise: number; shove?: number; dir?: { x: number; z: number } }
+/** what a hit carries: the harm, the poise it takes, and the shove it gives (kg m/s), all as stood still; the way the
+ *  shove goes, if not straight away from you; and what struck, for the hit log */
+export interface Hit { dmg: number; poise: number; shove?: number; dir?: { x: number; z: number }; by?: string }
 
 /** something hit it: a blow or a shot, landing `k` times as hard as one stood still (sim/moves.ts, closing). It is
  *  shoved away from you by what it weighs: a worm is thrown, a husk sent back a step, a thresher rocked, a bloat not
@@ -1031,8 +1076,9 @@ export function hitMutant(sim: Sim, m: Mutant, w: Hit, k = 1): void {
     ux = w.dir ? w.dir.x : dx / d; uz = w.dir ? w.dir.z : dz / d;
     if (v > 0) { m.body.vx += ux * v; m.body.vz += uz * v; }
   }
-  if (m.hp <= 0) { kill(sim, m); return; }
-  if (m.down > 0) return;
+  const said = (r: string) => log(g, `${w.by ?? 'blow'} → ${m.type}  ${(w.dmg * k * (open ? OPEN.dmg : 1)).toFixed(0)} dmg  ×${k.toFixed(2)}${open ? ' open' : ''}  shove ${v.toFixed(1)} m/s  → ${r}`);
+  if (m.hp <= 0) { kill(sim, m); said('dead'); return; }
+  if (m.down > 0) { said('down already'); return; }
   /* the ladder (sim/moves.ts): the part of its blow it is in may shrug it off; getting up, it has better footing */
   const K = blowKind(m), armour = !K ? 0 : ph === 'wind' ? K.armour.wind : ph === 'strike' ? K.armour.strike : 0;
   const hitPoise = Math.max(0, w.poise * k * (open ? OPEN.poise : 1) - (m.rise > 0 ? RISE.guard : 0));
@@ -1043,6 +1089,7 @@ export function hitMutant(sim: Sim, m: Mutant, w: Hit, k = 1): void {
   else if (R.r === 'stagger') { m.blow = null; m.reel = HOLD.stagger * hold; m.stun = Math.max(m.stun, m.reel); }
   /* a flinch loses a blow on its way; one already thrown, it is still recovering from */
   else if (R.r === 'flinch') { if (!open) m.blow = null; m.stun = Math.max(m.stun, HOLD.flinch * hold); }
+  said(`${m.down > 0 ? (v >= LAUNCH.dv ? 'thrown' : 'down') : R.r}  (poise ${hitPoise.toFixed(0)}, ${R.left.toFixed(0)}/${m.pmax} left)`);
   switch (m.ai) {
     case 'husk':
       if (m.state === 'idle' || m.state === 'lurk') { m.state = 'hunt'; m.lost = 0; m.post = false; }
@@ -1075,6 +1122,7 @@ function floored(sim: Sim, m: Mutant): void {
 function battered(sim: Sim, m: Mutant, over: number, r: { dmg: number; poise: number }): void {
   if (m.dead) return;
   if (m.down > 0) over *= DOWN.more;
+  log(sim.game, `${r === FALL ? 'fall' : 'slam'} → ${m.type}  ${(over * r.dmg).toFixed(0)} dmg  (${over.toFixed(1)} m/s over)`);
   m.hp -= over * r.dmg;
   m.hit = Math.max(m.hit, 0.6);
   step_(sim, m, 'thud', m.big || m.mass > 2);
@@ -1092,6 +1140,11 @@ export function shoved(sim: Sim, m: Mutant): void {
   if (m.dead) return;
   if (m.ai === 'husk' && m.state !== 'hunt' && m.state !== 'flee') { m.state = 'hunt'; m.lost = 0; m.post = false; m.dest = -1; step_(sim, m, 'moan'); }
   else if (m.ai === 'skitter' && m.state === 'idle') { m.state = 'hunt'; m.lost = 0; m.bt = 0; step_(sim, m, 'skit'); }
+}
+
+/** dev (the arena): every one of the cast dead and gone at once */
+export function killAll(sim: Sim): void {
+  for (const m of sim.cast) if (!m.dead) kill(sim, m);
 }
 
 function kill(sim: Sim, m: Mutant): void {
