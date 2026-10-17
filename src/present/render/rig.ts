@@ -122,6 +122,9 @@ export class Rigged {
   /** where each was drawn at death, and how far it has gone from that */
   private from: THREE.Matrix4[] | null = null;
   private t = 0;
+  /** laid as it lies asleep, blended in: nothing to do until it wakes */
+  private still = false;
+  private woke = -1;
   /** the body it was last drawn from: a new one (a knockdown, then death) blends in afresh */
   private last: Rag | null = null;
   /** each part as it stands idle, in its parent's frame: put back before the animation runs again (it sets only the
@@ -130,6 +133,7 @@ export class Rigged {
 
   /** each part put back as it stands, for the animation to take it from there */
   restore(): void {
+    this.still = false;
     this.bound.forEach((b, i) => { b.obj.position.copy(this.idle[i].p); b.obj.quaternion.copy(this.idle[i].q); b.obj.scale.copy(this.idle[i].s); });
   }
   private W: THREE.Matrix4[];
@@ -170,17 +174,23 @@ export class Rigged {
    *  from where it was drawn when it went loose */
   pose(R: Rag, alpha: number, dt: number): void {
     const g = this.M.g;
-    if (R !== this.last) { this.last = R; this.from = null; }
+    if (R !== this.last) { this.last = R; this.from = null; this.still = false; }
+    /* woken since (even if asleep again by now, between two frames) */
+    if (R.awake || R.woke !== this.woke) this.still = false;
+    this.woke = R.woke;
+    g.position.set(0, 0, 0); g.rotation.set(0, 0, 0); g.scale.set(1, 1, 1);
+    /* asleep, blended in and laid as it lies: its points do not move until it wakes, so neither does it */
+    if (this.still) return;
     if (!this.from) {
       g.updateMatrixWorld(true);
       this.from = this.bound.map(b => b.obj.matrixWorld.clone());
       this.t = 0;
     }
     this.t = Math.min(BLEND, this.t + dt);
-    g.position.set(0, 0, 0); g.rotation.set(0, 0, 0); g.scale.set(1, 1, 1);
     g.updateMatrix(); g.updateMatrixWorld(true);
     const k = this.t / BLEND;
     this.lay(R, alpha, this.from, k * k * (3 - 2 * k));
+    this.still = !R.awake && this.t >= BLEND;
   }
 
   /** getting up (sim/cast.ts, `rise`): the model as its animation has it this frame, `e` (0..1) of the way there from
@@ -191,6 +201,7 @@ export class Rigged {
     const to = this.bound.map(b => b.obj.matrixWorld.clone()), s = Math.min(1, Math.max(0, e));
     this.lay(R, alpha, to, 1 - s * s * (3 - 2 * s));
     this.from = null;
+    this.still = false;
   }
 
   /** each part where its points put it, blended `e` of the way from `other` (1: all the points'), then into its

@@ -9,7 +9,7 @@ import { bones, RAG, ragAt, REFLEX, SKEL, STAGGER } from '../src/sim/ragdoll';
 import { load, save } from '../src/sim/save';
 import { makeSim, step, type Sim } from '../src/sim/sim';
 import { ANIM, BUILD } from '../src/present/render/castView';
-import { RIG } from '../src/present/render/rig';
+import { RIG, Rigged } from '../src/present/render/rig';
 
 /* Corpses that fall loose (engine.md §6, bodies with physics). */
 
@@ -450,6 +450,26 @@ describe('corpses stay in the world', () => {
     expect(Math.hypot(a.x - a0.x, a.z - a0.z)).toBeGreaterThan(0.1);
     hold(s, 3);
     expect(m.rag!.awake).toBe(false); // and it settles again
+  });
+
+  it('is drawn where it lies while it sleeps, though it is laid only once, and again where it goes once woken', () => {
+    const s = arena(), m = lying(s), M = BUILD.husk(new THREE.MeshBasicMaterial(), m), rig = new Rigged(M, 'husk');
+    const head = () => { M.g.updateMatrixWorld(true); const v = M.hd.getWorldPosition(new THREE.Vector3()); return v; };
+    const near = (v: THREE.Vector3) => Math.hypot(v.x - pt(m, 'head').x, v.y - pt(m, 'head').y, v.z - pt(m, 'head').z);
+    rig.pose(m.rag!, 1, 1);
+    const h0 = head();
+    expect(near(h0)).toBeLessThan(0.15);
+    /* drawn as one of the living is placed, first (castView.ts): the pose it was laid in stands */
+    M.g.position.set(3, 1, 3); M.g.rotation.y = 1;
+    rig.pose(m.rag!, 0.5, 1 / 60);
+    expect(head().distanceTo(h0)).toBeLessThan(1e-9);
+    /* walked through, it wakes and goes along: drawn there */
+    const b = s.player.body, a0 = ragAt(m.rag!);
+    b.x = a0.x; b.z = a0.z + 2; b.sync(); s.player.yaw = 0;
+    hold(s, 1.5, { forward: 1 });
+    rig.pose(m.rag!, 1, 1 / 60);
+    expect(head().distanceTo(h0)).toBeGreaterThan(0.1);
+    expect(near(head())).toBeLessThan(0.15);
   });
 
   it('one of the cast walking through one shoves it too', () => {
