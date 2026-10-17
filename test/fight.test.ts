@@ -257,7 +257,9 @@ describe('duels', () => {
     b.start(10, 6, -Math.PI / 2);
     const s = makeSim(b.finish(), { seed: 1 });
     give(s.game, weapon);
-    for (const m of s.cast) m.state = 'hunt';
+    /* hunting, and past running away: a husk below two fifths of its health may flee once, on a coin's toss, and a
+       fight that ends in a chase is not what these test */
+    for (const m of s.cast) { m.state = 'hunt'; m.fled = true; }
     const reach = (weapon === 'axe' ? 0.8 + 0.9 : 0.8 + 0.7) + 0.38;
     let held = false;
     for (let t = 0; t < secs && !s.game.ended && s.cast.some(m => !m.dead); t += STEP) {

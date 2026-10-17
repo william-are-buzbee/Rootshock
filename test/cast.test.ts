@@ -249,7 +249,7 @@ describe('fighting', () => {
     throw new Error('no room about ' + m.type);
   }
 
-  it('a husk winds up, strikes, and then stands where it struck, not turning, before it comes on again', () => {
+  it('a husk winds up, strikes, carries its lunge a step and stands, not turning, before it comes on again', () => {
     const { s, m } = committed();
     s.game.hp = 1e9;
     const yaw = m.yaw;
@@ -257,9 +257,13 @@ describe('fighting', () => {
     expect(m.blow?.ph).toBe('after');
     const x = m.x, z = m.z;
     around(s, m, 1.6, [Math.PI / 2, -Math.PI / 2]); // off to its side
-    hold(s, BLOWS.husk.rec - 0.1);
+    /* the way on it had from its lunge carries it a little (engine.md §6, the cast by velocity), and then it stands */
+    hold(s, 0.25);
+    const x2 = m.x, z2 = m.z;
+    expect(Math.hypot(x2 - x, z2 - z)).toBeLessThan(0.3);
+    hold(s, BLOWS.husk.rec - 0.35);
     expect(m.blow?.ph).toBe('after');
-    expect(Math.hypot(m.x - x, m.z - z)).toBeLessThan(1e-6);
+    expect(Math.hypot(m.x - x2, m.z - z2)).toBeLessThan(1e-3);
     expect(m.yaw).toBeCloseTo(yaw, 6); // it has not turned since it committed
     hold(s, 0.6);
     expect(m.blow?.ph ?? null).not.toBe('after');
