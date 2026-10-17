@@ -41,6 +41,11 @@ export interface Skel {
   core?: [string, string, string];
   /** how much of its muscles' hold each point has, where not all (1): legs give first, the neck last */
   tone?: Record<string, number>;
+  /** its reflexes (REFLEX): its hands, each with the shoulder it reaches from, for bracing a fall, clutching a wound and
+   *  guarding its face; where its legs curl to as it dies, in its own frame as it stands; and whether it writhes */
+  hands?: [string, string][];
+  curl?: Record<string, [number, number, number]>;
+  writhe?: boolean;
 }
 
 /* The skeletons, from the models in castView.ts and security.ts (test/ragdoll.test.ts holds them to each other). A
@@ -67,6 +72,7 @@ export const SKEL: Record<string, Skel> = {
     mid: ['hipL', 'hipR', 'belly'],
     core: ['hipL', 'hipR', 'shL'],
     tone: { kneeL: 0.5, kneeR: 0.5, footL: 0.5, footR: 0.5, handL: 0.6, handR: 0.6 },
+    hands: [['handL', 'shL'], ['handR', 'shR']],
   },
   thresher: {
     pts: {
@@ -88,6 +94,7 @@ export const SKEL: Record<string, Skel> = {
     mid: ['hipL', 'hipR', 'back'],
     core: ['hipL', 'hipR', 'shL'],
     tone: { kneeL: 0.5, kneeR: 0.5, footL: 0.5, footR: 0.5, elbL: 0.6, elbR: 0.6, handL: 0.5, handR: 0.5 },
+    hands: [['handL', 'shL'], ['handR', 'shR']],
   },
   skitter: {
     pts: {
@@ -115,6 +122,7 @@ export const SKEL: Record<string, Skel> = {
     sticks: [['head', 's0'], ['s0', 's1'], ['s1', 's2'], ['s2', 's3'], ['s3', 's4'], ['s4', 's5']],
     apart: [['head', 's1', 0.75], ['s0', 's2', 0.75], ['s1', 's3', 0.75], ['s2', 's4', 0.75], ['s3', 's5', 0.75]],
     mid: ['s1', 's2'],
+    writhe: true,
   },
   /* the hand as it goes about, low: its four on the floor, the tail along it (security.ts, animHand) */
   hand: {
@@ -150,6 +158,9 @@ export const SKEL: Record<string, Skel> = {
       tip0: 0.6, tip1: 0.6, tip2: 0.6, tip3: 0.6, t1: 0.8, t2: 0.8, t3: 0.8, t4: 0.8, hd: 0.8, aL: 0.8, aR: 0.8,
       elbL: 0.6, elbR: 0.6, handL: 0.6, handR: 0.6,
     },
+    hands: [['handL', 'aL'], ['handR', 'aR']],
+    /* its four draw in toward it, as far as their knees let them */
+    curl: { footLF: [-0.65, 0.05, 0.3], footLB: [-0.62, 0.05, -0.45], footRF: [0.65, 0.05, 0.3], footRB: [0.62, 0.05, -0.45] },
   },
 };
 
@@ -174,6 +185,10 @@ export interface Bones {
   frame0: number[];
   c0: number[];
   tone: number[];
+  /** its hands and their shoulders, and how far each reaches; its legs' curl, as (point, x, y, z) */
+  hands: { hand: number; from: number; reach: number }[];
+  curl: number[];
+  writhe: boolean;
   /** how tall it stands: for the slump, which turns its top one way and its feet the other */
   ht: number;
 }
@@ -204,6 +219,8 @@ export function bones(kind: string): Bones {
   B = {
     names, at, rest, r, kg, w: kg.map(k => 1 / k), mass: kg.reduce((a, b) => a + b, 0), sticks, apart, hinge, mid: S.mid.map(n => at[n]), ht: hi - lo,
     core, frame0: core ? frameOf(rest, core) : [], c0, tone: names.map(n => S.tone?.[n] ?? 1),
+    hands: (S.hands ?? []).map(([h, f]) => ({ hand: at[h], from: at[f], reach: len(at[h], at[f]) })),
+    curl: Object.entries(S.curl ?? {}).flatMap(([n, xyz]) => [at[n], ...xyz]), writhe: !!S.writhe,
   };
   ready.set(kind, B);
   return B;
@@ -272,6 +289,10 @@ export interface Rag {
   /** seconds it has been loose and awake, which its tone goes by (a kick wakes it, but does not bring its tone back);
    *  none in a save from before tone */
   age?: number;
+  /** the point a blow last landed nearest, for a hand to go to (a reflex); and seconds left of guarding its face,
+   *  struck while it is down */
+  wound?: number;
+  guard?: number;
 }
 
 /** what struck the blow that killed it: the way it was shoved (on the plan) and how hard (m/s, as the body was
@@ -341,8 +362,8 @@ function loose(m: Mutant, B: Bones, p: number[], v: number[], kill: Killing | nu
       v[i * 3] += (w.x / wl) * dv; v[i * 3 + 1] += (w.y / wl) * dv; v[i * 3 + 2] += (w.z / wl) * dv;
     }
   }
-  const q = p.map((c, k) => c - v[k] * STEP);
-  return { kind: m.model, p, q, o: p.slice(), awake: true, still: 0, t: 0, woke: 0, heard: 99, age: 0 };
+  const q = p.map((c, k) => c - v[k] * STEP), wound = kill?.at ? nearest(B, p, kill.at) : undefined;
+  return { kind: m.model, p, q, o: p.slice(), awake: true, still: 0, t: 0, woke: 0, heard: 99, age: 0, ...(wound !== undefined ? { wound } : {}) };
 }
 
 /** what a corpse's points pass through: the living (they are kept apart from it otherwise) */
@@ -527,6 +548,7 @@ export function knockRag(R: Rag, at: V3, way: V3, J: number, tick: number): void
   }
   if (sum <= 0) { f[near] = 1; sum = B.kg[near]; }
   wakeRag(R, tick);
+  R.wound = near;
   /* as a killing blow is laid on (makeRag): some of it to the whole body, the rest to the part it struck */
   const whole = (J * (1 - RAG.local)) / B.mass;
   for (let i = 0; i < n; i++) {
@@ -590,6 +612,7 @@ function begin(sim: Sim, R: Rag, m: Mutant): void {
     for (let i = 0; i < n; i++) { p[i * 3] += dx; p[i * 3 + 2] += dz; }
   }
   tone(R, B, !m.dead);
+  reflexes(sim, R, B, m);
   /* the sticks, a few times over; the floor each time, so they cannot push a point through it */
   const St = B.sticks, A = B.apart, H = B.hinge, W = B.w;
   for (let it = 0; it < RAG.iters; it++) {
@@ -640,6 +663,122 @@ function tone(R: Rag, B: Bones, alive: boolean): void {
     p[j] += (c[0] + u * F[0] + v * F[3] + w * F[6] - p[j]) * s;
     p[j + 1] += (c[1] + u * F[1] + v * F[4] + w * F[7] - p[j + 1]) * s;
     p[j + 2] += (c[2] + u * F[2] + v * F[5] + w * F[8] - p[j + 2]) * s;
+  }
+}
+
+/** the point of a body nearest a place */
+function nearest(B: Bones, p: number[], at: V3): number {
+  let best = 0, bd = Infinity;
+  for (let i = 0; i < B.names.length; i++) {
+    const d = (p[i * 3] - at.x) ** 2 + (p[i * 3 + 1] - at.y) ** 2 + (p[i * 3 + 2] - at.z) ** 2;
+    if (d < bd) { bd = d; best = i; }
+  }
+  return best;
+}
+
+/** reflexes (engine.md §6, *Reflexes, as built*): what a body does with its hands and legs in the moment it has, as
+ *  targets for a few of its points, pulled toward a share of the way each step. `latency`: nothing is quicker than this
+ *  (s). `brace`: knocked down and toppling past `lean` (the sine of its trunk's tilt), its hands reach out and down the
+ *  way it goes, to the floor or the wall they meet, for the `alive` seconds of its fall, fading (held longer, an arm
+ *  of one bone braced on the floor props the body back up). `clutch`: dying, the hand
+ *  nearest goes toward where it was struck (as far as its arm reaches), from `from` to `to` seconds. `guard`: struck while it is down, its hands come
+ *  up to its face for `time` seconds. `curl`: dying, the hand's legs draw in under it, coming on over
+ *  `over` seconds. `writhe`: a worm dying thrashes, `amp` metres side to side, `hz` a second, for `time` seconds. No
+ *  hand is moved faster than `most` (m/s) */
+export const REFLEX = {
+  latency: 0.08,
+  brace: { pull: 0.2, lean: 0.35, alive: 0.5 },
+  clutch: { pull: 0.15, from: 0.1, to: 0.7 },
+  guard: { pull: 0.25, time: 0.6 },
+  curl: { pull: 0.08, over: 0.6 },
+  writhe: { amp: 0.12, hz: 2.5, time: 1.6 },
+  most: 4,
+};
+
+/** a point of the model as it stands (x, y, z), put where it is now in the frame of its trunk (F; F0 as it stands, c
+ *  the trunk's middle now) */
+function placed(B: Bones, F: number[], F0: number[], c: number[], x: number, y: number, z: number): [number, number, number] {
+  const rx = x - B.c0[0], ry = y - B.c0[1], rz = z - B.c0[2];
+  const u = rx * F0[0] + ry * F0[1] + rz * F0[2], v = rx * F0[3] + ry * F0[4] + rz * F0[5], w = rx * F0[6] + ry * F0[7] + rz * F0[8];
+  return [c[0] + u * F[0] + v * F[3] + w * F[6], c[1] + u * F[1] + v * F[4] + w * F[7], c[2] + u * F[2] + v * F[5] + w * F[8]];
+}
+
+/** point i pulled `k` of the way toward (x, y, z), no faster than a hand moves (a speed, as tone is) */
+function reach(p: number[], i: number, x: number, y: number, z: number, k: number): void {
+  const j = i * 3, dx = (x - p[j]) * k, dy = (y - p[j + 1]) * k, dz = (z - p[j + 2]) * k, d = Math.sqrt(dx * dx + dy * dy + dz * dz), cap = REFLEX.most * dt;
+  const s = d > cap ? cap / d : 1;
+  p[j] += dx * s; p[j + 1] += dy * s; p[j + 2] += dz * s;
+}
+
+function reflexes(sim: Sim, R: Rag, B: Bones, m: Mutant): void {
+  const X = REFLEX, age = R.age ?? 99, alive = !m.dead, { p } = R;
+  if ((R.guard ?? 0) > 0) R.guard = Math.max(0, R.guard! - dt);
+  if (age < X.latency) return;
+  if (B.writhe && !alive && age < X.writhe.time) writhe(R, B, age);
+  if (!B.core) return;
+  const F = frameOf(p, B.core), F0 = B.frame0, core = B.core;
+  const c = [0, 1, 2].map(j => (p[core[0] * 3 + j] + p[core[1] * 3 + j] + p[core[2] * 3 + j]) / 3);
+  /* which way it stands now: its own up (and forward), as it stands, turned as its trunk is */
+  const up = placed(B, F, F0, [0, 0, 0], B.c0[0], B.c0[1] + 1, B.c0[2]), fwd = placed(B, F, F0, [0, 0, 0], B.c0[0], B.c0[1], B.c0[2] + 1);
+  const lean = Math.hypot(up[0], up[2]);
+  /* the hand that goes to the wound: of those that are not it, the one whose shoulder is nearest it as it stands */
+  let clutch = -1;
+  if (!alive && R.wound !== undefined && age > X.clutch.from && age < X.clutch.to) {
+    let bd = Infinity;
+    const W = [0, 1, 2].map(k => B.rest[R.wound! * 3 + k]);
+    B.hands.forEach((h, j) => {
+      /* not a hand on the arm that was struck: as it stands, its arm passes near the wound */
+      const S = [0, 1, 2].map(k => B.rest[h.from * 3 + k]), H = [0, 1, 2].map(k => B.rest[h.hand * 3 + k]), a = H.map((v, k) => v - S[k]);
+      const t = Math.max(0, Math.min(1, a.reduce((x, v, k) => x + v * (W[k] - S[k]), 0) / a.reduce((x, v) => x + v * v, 0)));
+      if (Math.hypot(...[0, 1, 2].map(k => S[k] + a[k] * t - W[k])) < 0.15) return;
+      const d = Math.hypot(...[0, 1, 2].map(k => S[k] - W[k]));
+      if (d < bd) { bd = d; clutch = j; }
+    });
+  }
+  const head = B.at.head ?? B.at.hd;
+  B.hands.forEach((h, j) => {
+    if (alive && (R.guard ?? 0) > 0 && head !== undefined) {
+      /* struck while down: hands up in front of its face */
+      const k = head * 3;
+      reach(p, h.hand, p[k] + fwd[0] * 0.18, p[k + 1] + fwd[1] * 0.18, p[k + 2] + fwd[2] * 0.18, X.guard.pull);
+    } else if (j === clutch) {
+      /* the arm laid toward the wound, across the front of it, at its own length: an arm of one bone cannot bend to it,
+         and a hand pulled nearer its shoulder than the arm is long swings the whole arm about */
+      const k = R.wound! * 3, s = h.from * 3, fade = 1 - (age - X.clutch.from) / (X.clutch.to - X.clutch.from);
+      let dx = p[k] - p[s], dy = p[k + 1] - p[s + 1], dz = p[k + 2] - p[s + 2];
+      const d = Math.hypot(dx, dy, dz) || 1;
+      dx = dx / d + fwd[0] * 0.5; dy = dy / d + fwd[1] * 0.5; dz = dz / d + fwd[2] * 0.5;
+      const e = Math.hypot(dx, dy, dz) || 1, L = h.reach;
+      reach(p, h.hand, p[s] + (dx / e) * L, p[s + 1] + (dy / e) * L, p[s + 2] + (dz / e) * L, X.clutch.pull * fade);
+    } else if (alive && lean > X.brace.lean && age < X.brace.alive) {
+      const fade = 1 - age / X.brace.alive;
+      /* knocked over: out and down the way it goes, as far as its arm reaches or the first thing it meets. (Not dying:
+         the dying do not catch themselves, and an arm of one bone braced on the floor props a body like a strut) */
+      const s = h.from * 3, dx = (up[0] / lean) * 0.7, dz = (up[2] / lean) * 0.7, L = h.reach * 0.95;
+      const ex = p[s] + dx * L, ey = p[s + 1] - 0.7 * L, ez = p[s + 2] + dz * L;
+      const t = sim.world.raycast(p[s], p[s + 1], p[s + 2], ex, ey, ez, passes);
+      reach(p, h.hand, p[s] + (ex - p[s]) * t, p[s + 1] + (ey - p[s + 1]) * t, p[s + 2] + (ez - p[s + 2]) * t, X.brace.pull * fade);
+    }
+  });
+  /* dying, its legs fold in under it */
+  if (!alive && B.curl.length) {
+    const k = X.curl.pull * Math.min(1, age / X.curl.over);
+    for (let a = 0; a < B.curl.length; a += 4) {
+      const [x, y, z] = placed(B, F, F0, c, B.curl[a + 1], B.curl[a + 2], B.curl[a + 3]);
+      reach(p, B.curl[a], x, y, z, k);
+    }
+  }
+}
+
+/** a worm dying thrashes: a wave down it, side to side across its length, dying away */
+function writhe(R: Rag, B: Bones, age: number): void {
+  const X = REFLEX.writhe, { p } = R, n = B.names.length, fade = 1 - age / X.time, w = X.hz * Math.PI * 2;
+  for (let i = 0; i < n; i++) {
+    const a = Math.max(0, i - 1) * 3, b = Math.min(n - 1, i + 1) * 3, tx = p[b] - p[a], tz = p[b + 2] - p[a + 2], tl = Math.hypot(tx, tz);
+    if (tl < 1e-6) continue;
+    /* across it, on the plan; a speed, as all of it is */
+    const v = X.amp * w * Math.cos(w * age - i * 0.9) * fade * dt;
+    p[i * 3] += (-tz / tl) * v; p[i * 3 + 2] += (tx / tl) * v;
   }
 }
 

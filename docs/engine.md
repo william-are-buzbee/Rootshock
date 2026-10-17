@@ -647,7 +647,7 @@ Playing the corpses found them goofy, for three reasons: nobody goes limp in no 
 20 m/s², twice the earth's, which suits a jump and yanks a body down as if on a string; and the blow's shove was laid on
 like a cartoon's (the head at 1.9 times it). The first of three tiers toward bodies that react (Euphoria's, in GTA and
 Red Dead, are muscles on a ragdoll: every joint driven toward a pose, and behaviours choosing the poses); the next two
-are reflexes and stagger steps.
+are reflexes (built: *Reflexes, as built*) and stagger steps.
 
 - **Muscle tone** (`RAG.tone`, `tone` in `sim/ragdoll.ts`). For the first moments after a body goes loose, each point is
   pulled toward where it is as it stands, in the frame its trunk has now (three points of the trunk, `SKEL.core`): the
@@ -688,6 +688,41 @@ are reflexes and stagger steps.
 - **Tests**: `test/ragdoll.test.ts`, *muscle tone*; the earlier ones moved with it (the axe and the baton compared by
   how fast and how far, not which way they lie; the wall from 1.2 m and a metre; the ledge with the axe; a lying body
   pinned by the axe's chop rather than shoved).
+
+### Reflexes, as built
+
+The second tier. Tone holds a body's shape; a reflex gives a few of its points somewhere to go, as Euphoria's
+behaviours pick the poses its muscles drive toward. Each is a target pulled toward a share of the way each step, no
+faster than a hand moves (4 m/s), and nothing is quicker than 0.08 s (`REFLEX` in `sim/ragdoll.ts`, `SKEL.hands`,
+`curl`, `writhe`). All of it is the loose body's: none of it reaches the fight.
+
+- **Brace** (knocked down, alive). Toppling past a tilt of 20°, its hands reach out and down the way it is going over,
+  as far as each arm reaches or to the first thing they meet (a ray from the shoulder: the floor, or a wall), for the
+  half second of its fall, fading. A third of a second into a fall its hands are 1.4 m further out and down, each,
+  than they fall of themselves. A husk thrown down catches itself on a hand and sits propped a moment before it lies.
+- **Guard** (knocked down, alive, struck while down). Its hands come up in front of its face for 0.6 s: struck on the
+  floor, its nearer hand is 0.5 m from its head (0.9 m with no reflexes).
+- **Clutch** (dying, struck by a blow). The hand on the other arm from the one struck reaches toward where the blow
+  landed, from 0.1 to 0.7 s, fading: its arm laid at its own length toward the wound and a little in front of it, so a
+  husk killed by the axe lies with an arm across its chest. A dying thresher's nearer hand comes within 0.38 m of the
+  wound (0.54 m with none).
+- **Curl** (dying). The hand's four draw in under it as it sinks.
+- **Writhe** (a worm dying). A wave down it, side to side, 0.12 m at 2.5 a second, dying away over 1.6 s.
+- **Tried and set aside**:
+  - *Bracing the dying.* Dying bodies do not catch themselves, and a husk's arm is one bone: braced on the floor it is
+    a strut, and the corpse lay propped on it like a tent.
+  - *A brace aimed past the arm's length*, and one held all the time it was down. The arm fought its own bone and
+    flailed; held, it pushed the body back up off the floor before it was due to rise.
+  - *A clutching hand pulled to the wound itself.* A wound nearer its shoulder than its arm is long (a husk's right arm
+    is a metre) cannot be reached by an arm of one bone, and the arm swung about, and stood up off a body lying down.
+  - *A dead skitter's legs curled in.* Its legs are each one bent piece, so a curl that broke their lengths threw the
+    body into the air; on its back with its legs up it reads as a dead spider already.
+  - *A clutch by the hand nearest the wound*, when the wound was its own elbow.
+- **What it changed**: the baton's kill now takes a little longer to go down (0.57 s, with its arms coming up in front
+  as it goes over), so the axe and the baton differ now by how far they are carried (2.3 m and 1.2 m), not how fast.
+  A knockdown thrown hard is down no higher than sitting, where before it lay flat.
+- **Measured**: two rays a step for each knocked-down humanoid while it falls; nothing else that shows.
+- **Tests**: `test/ragdoll.test.ts`, *reflexes*, each with the reflexes on and off.
 
 ---
 

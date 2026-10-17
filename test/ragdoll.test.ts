@@ -5,7 +5,7 @@ import { STEP } from '../src/core/loop';
 import { hitMutant, killAll, MT, spawn, type Hit, type Mutant } from '../src/sim/cast';
 import { give } from '../src/sim/game';
 import { noInput, type Input } from '../src/sim/input';
-import { bones, RAG, ragAt, SKEL } from '../src/sim/ragdoll';
+import { bones, RAG, ragAt, REFLEX, SKEL } from '../src/sim/ragdoll';
 import { load, save } from '../src/sim/save';
 import { makeSim, step, type Sim } from '../src/sim/sim';
 import { ANIM, BUILD } from '../src/present/render/castView';
@@ -79,7 +79,7 @@ describe('a body killed goes loose', () => {
     }
   });
 
-  it('an axe kill is not a baton kill: the chop buckles it and carries it along the blow, the swing knocks it straight over', () => {
+  it('an axe kill is not a baton kill: the chop carries it along the blow, the swing turns it over where it stood', () => {
     const fall = (w: Hit) => {
       const s = arena(), m = stood(s, 'husk', 8, 0, -9, 0), x0 = m.x, z0 = m.z;
       strike(s, m, w);
@@ -90,7 +90,6 @@ describe('a body killed goes loose', () => {
     };
     const axe = fall(AXE({ x: 1, z: 0 })), baton = fall(BATON({ x: 1, z: 0 }));
     console.log(`axe: down in ${axe.down.toFixed(2)} s, ${axe.went.toFixed(2)} m from where it stood; baton: down in ${baton.down.toFixed(2)} s, ${baton.went.toFixed(2)} m`);
-    expect(axe.down).toBeGreaterThan(baton.down + 0.15);
     expect(axe.went).toBeGreaterThan(baton.went + 0.5);
   });
 
@@ -249,6 +248,84 @@ describe('muscle tone', () => {
   });
 });
 
+describe('reflexes', () => {
+  /** run with the reflexes as they are, or with none */
+  const without = <T>(on: boolean, f: () => T): T => {
+    const keep = structuredClone(REFLEX);
+    if (!on) { REFLEX.brace.pull = 0; REFLEX.clutch.pull = 0; REFLEX.guard.pull = 0; REFLEX.curl.pull = 0; REFLEX.writhe.amp = 0; }
+    try { return f(); } finally { Object.assign(REFLEX, keep); }
+  };
+  const dist = (a: { x: number; y: number; z: number }, b: { x: number; y: number; z: number }) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+  /** a husk knocked down backward (shoved north, the way it faces away from), and its hands a third of a second on */
+  const knocked = (on: boolean) => without(on, () => {
+    const s = arena(), m = stood(s, 'husk', 8, 0, -8, Math.PI);
+    m.stun = 0;
+    hitMutant(s, m, { dmg: 5, poise: 500, shove: 420, dir: { x: 0, z: -1 }, at: { x: m.x, y: 1.35, z: m.z + 0.3 }, way: { x: 0, y: 0, z: -1 } }, 1);
+    hold(s, 0.35);
+    return { s, m, hands: ['handL', 'handR'].map(n => pt(m, n)), hips: pt(m, 'hipL') };
+  });
+
+  it('knocked down, its hands go out and down the way it is going over, to catch it', () => {
+    const on = knocked(true), off = knocked(false);
+    /* the way it goes is north (-z): its hands further that way, and lower, than they fall of themselves */
+    const reachOn = on.hands.reduce((a, h) => a + (on.hips.z - h.z) - h.y, 0), reachOff = off.hands.reduce((a, h) => a + (off.hips.z - h.z) - h.y, 0);
+    console.log(`braced, its hands are ${((reachOn - reachOff) / 2).toFixed(2)} m further out and down each, a third of a second into its fall`);
+    expect(reachOn).toBeGreaterThan(reachOff + 0.2);
+  });
+
+  it('struck while it is down, its hands come up to its face', () => {
+    const guard = (on: boolean) => {
+      const { s, m } = knocked(on);
+      hold(s, 0.4);
+      without(on, () => {
+        hitMutant(s, m, { dmg: 2, poise: 5, shove: 100, dir: { x: 0, z: -1 }, at: pt(m, 'belly'), way: { x: 0, y: -1, z: 0 } }, 1);
+        hold(s, 0.3);
+      });
+      return Math.min(...['handL', 'handR'].map(n => dist(pt(m, n), pt(m, 'head'))));
+    };
+    const on = guard(true), off = guard(false);
+    console.log(`struck down, its nearer hand is ${on.toFixed(2)} m from its head (with no reflexes, ${off.toFixed(2)} m)`);
+    expect(on).toBeLessThan(off - 0.15);
+  });
+
+  it('dying, a hand goes toward where it was struck', () => {
+    const clutch = (on: boolean) => without(on, () => {
+      const s = arena(), m = stood(s, 'thresher', 8, 0, -9, 0);
+      hitMutant(s, m, { dmg: 999, poise: 1, shove: 300, dir: { x: 1, z: 0 }, at: { x: m.x - 0.2, y: 1.4, z: m.z + 0.2 }, way: { x: 1, y: 0, z: 0 } }, 1);
+      const R = m.rag!;
+      let near = Infinity;
+      for (let t = 0; t < 0.7; t += STEP) {
+        step(s, noInput());
+        const w = { x: R.p[R.wound! * 3], y: R.p[R.wound! * 3 + 1], z: R.p[R.wound! * 3 + 2] };
+        near = Math.min(near, ...['handL', 'handR'].map(n => dist(pt(m, n), w)));
+      }
+      return near;
+    });
+    const on = clutch(true), off = clutch(false);
+    console.log(`a thresher dying: its nearest hand comes within ${on.toFixed(2)} m of the wound (with no reflexes, ${off.toFixed(2)} m)`);
+    expect(on).toBeLessThan(off - 0.1);
+  });
+
+  it('a worm dying thrashes, and the hand\'s legs draw in under it', () => {
+    const thrash = (on: boolean) => without(on, () => {
+      const s = arena(), m = stood(s, 'worm', 8, 0, -9, 0);
+      killAll(s);
+      let side = 0;
+      for (let t = 0; t < 1.5; t += STEP) { const x0 = m.rag!.p.filter((_, k) => k % 3 === 0); step(s, noInput()); side += m.rag!.p.filter((_, k) => k % 3 === 0).reduce((a, x, k) => a + Math.abs(x - x0[k]), 0); }
+      return side;
+    });
+    expect(thrash(true)).toBeGreaterThan(thrash(false) * 2);
+    const drawn = (on: boolean) => without(on, () => {
+      const s = arena(), m = stood(s, 'hand', 8, 0, -9, 0);
+      killAll(s);
+      hold(s, 1.5);
+      const mid = ragAt(m.rag!);
+      return ['footLF', 'footRF', 'footLB', 'footRB'].reduce((a, n) => { const f = pt(m, n); return a + Math.hypot(f.x - mid.x, f.z - mid.z); }, 0) / 4;
+    });
+    expect(drawn(true)).toBeLessThan(drawn(false) - 0.05);
+  });
+});
+
 describe('corpses stay in the world', () => {
   /** a husk killed and left to settle, lying north of you */
   const lying = (s: Sim, x = 8, z = -6) => {
@@ -402,7 +479,8 @@ describe('knocked down, loose', () => {
       expect(m.rag).not.toBe(null);
       const R = m.rag!, B = bones(t);
       hold(s, 0.9);
-      expect(Math.max(...B.names.map((_, i) => R.p[i * 3 + 1])), t).toBeLessThan(m.body!.h * 0.45);
+      /* down: no higher than sitting (one thrown hard catches itself on its hands, REFLEX.brace) */
+      expect(Math.max(...B.names.map((_, i) => R.p[i * 3 + 1])), t).toBeLessThan(m.body!.h * 0.55);
       /* drawn after its feet: it lies about where the fight has it */
       const a = ragAt(R);
       expect(Math.hypot(a.x - m.x, a.z - m.z), t).toBeLessThan(1);
