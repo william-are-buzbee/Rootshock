@@ -477,7 +477,8 @@ corpse worth throwing.
   west side, where the axe's chop catches; a ledge 3 m up a ramp to knock things off. Nothing lives in it.
 - **Keys** (`?dev`, `main.ts`): 1 to 6 put one of the cast down 3.5 m in front of you, faced to you and after you (a
   husk, a skitter, a thresher, a worm, a big skitter, the hand; `cast.ts`, `spawn`, which makes the level's ways about
-  the first time if nothing else needed them); 0 clears them all (`killAll`); T slows time to a quarter, a tenth, and
+  the first time if nothing else needed them); 0 kills them all where they stand (`killAll`), and, with none left
+  alive, takes the dead away; T slows time to a quarter, a tenth, and
   back; Y changes the weapon in your hand (fists, baton, pipe, wrench, axe, knife); H puts you right; U holds the cast
   still, or lets them go. Anywhere, not only in the arena; a dev page does not save, so nothing put down is kept.
 - **The overlay** (O) draws about each body its fight as the sim has it: a bar over its head as tall as the poise it
@@ -518,8 +519,8 @@ corpse worth throwing.
 
 The cast's bodies are physical while they live (velocity, mass, shoves, slams, falls); their deaths were drawn: a model
 that shrank and tipped where it stood, its collider gone at once. Now what dies goes loose. Step 1 of three: corpses
-fall loose (built); corpses stay in the world (knocked about, saved: next); knockdowns as ragdolls (after, if the two go
-well).
+fall loose (built); corpses stay in the world (knocked about, saved: built); knockdowns as ragdolls (after, if the two
+go well).
 
 - **Not Rapier: a ragdoll of our own** (`sim/ragdoll.ts`). Rapier's current build (0.21; `@dimforge/rapier3d-compat`,
   and `@dimforge/rapier3d-deterministic-compat` for the same result on every machine) is a 3.1 MB WebAssembly module,
@@ -532,9 +533,17 @@ well).
   grid, ramps and cave floors, props, doors, platforms, crates), is plain numbers with no chance in it, and is some
   four hundred lines. What it lacks: rigid bodies with real inertia, and contact between boxes; only its points touch
   the world, so a limb's middle can rest across an edge it should not. For boxes on joints, enough.
-- **A corpse is the sim's** (`Mutant.rag`), stepped after the cast (`updateCorpses`), not drawn alone: the next step
-  knocks it about and saves it, and the sim needs to know where it lies for that. It is not a `Dyn`: nothing stands on
-  it or is stopped by it, and sight goes over it (next step, with the argument).
+- **A corpse is the sim's** (`Mutant.rag`), stepped after the cast (`updateCorpses`): it is pushed, and saved; it does
+  not block. Why the sim's and not the drawing's alone: a blow or a body walking into it moves it, and those are the
+  sim's to know (the sweep of a blow, where a husk walks), so a drawn-only corpse would need the sim to report every
+  blow's path and every step to the drawing, which would then keep a second, unsaved copy of where the dead lie; it
+  would be back where it fell after a load, and two players' runs from one save would differ. In the sim it is plain
+  numbers, costs nothing asleep, and a run plays on from a save exactly. Why it does not block (it is not a `Dyn`:
+  nothing stands on it, is stopped by it, or fails to see past it): a husk lying across a 1.6 m corridor that stopped
+  you as a wall does would be a corridor shut by a fight, and the nav graph would not know it was there, so the cast
+  would walk into it for ever; to stand on one, a body would step up and down 0.3 m with each, the view lurching; and
+  each would be boxes in every query anything makes. Instead what walks into it shoves it aside (below), and is not
+  slowed. One that should block (a heap in a doorway) is a thing to build when a level wants one.
 - **Skeletons** (`SKEL`), from the models: a point for each joint and end, with a radius and a weight (they weigh what
   the body does), held by sticks; a torso is held rigid (four points to each other, the rest to those four); `apart`
   keeps pairs a share of their length apart, which is how far a hip or an elbow folds; a `hinge` bends one way (a
@@ -577,19 +586,43 @@ well).
   head 0.9 m up, legs out; nearer, it crumples at the wall's foot; further, it falls short. The baton's swing turns it
   along the wall, and it sits only killed within about half a metre. **On the ledge**: struck off it, it goes over and
   lies 3 m below; killed 0.8 m back from the edge by a light blow, it is left draped over it, head down.
-- **Measured** (headless, `test/ragdoll.test.ts`): sixteen corpses falling at once cost about 1.5 ms a step together
-  (93 µs each, a husk; the hand, 33 points, more), 1.1 ms while they settle, and nothing once they are asleep, which
-  they all are within 8 s. The arena alone steps in about 0.1 ms. Bones are held within 5 mm (a thresher's heavy back
+- **Measured** (headless, `test/ragdoll.test.ts`; as step 1 was built, since cheaper: below): sixteen corpses falling
+  at once cost about 1.5 ms a step together (93 µs each, a husk; the hand, 33 points, more), 1.1 ms while they
+  settle, and nothing once they are asleep, which they all are within 8 s. The arena alone steps in about 0.1 ms. Bones are held within 5 mm (a thresher's heavy back
   stretches its torso by up to 25 mm lying down).
 - **Tried and set aside**: friction as a fixed slowing (12 m/s²) whatever the load: a body hanging over the ledge was
   held there seconds by its feet. A wall's hold by impact alone: bodies slid down walls and lay flat at their foot,
   and none closer than 0.8 m sat. A wall's hold with no cap: a foot pressed against the ledge's face by its hip's limit
   hung a whole husk from it. The shove laid on evenly: a body carried bodily into a wall met it flat, from hips to head,
   and slid down it. Asleep by its fastest point: a thresher's arm swinging slowly at its side kept it awake 7 s.
-- **Not yet** (the next step): corpses knocked about by blows and by what walks into them, against each other, woken
-  by doors and platforms, saved; the dev key that clears them. A save from now loads the dead folded
-  where they lay.
-- **Tests**: `test/ragdoll.test.ts`. No change to saves.
+- **Knocked about** (step 2). A swing of yours that passes through a corpse (the head's path, or the length of the
+  weapon down to it, since a blow aimed at the floor goes into it) knocks it once a swing with what it would shove
+  one of the living by, laid on as a killing blow is, and goes on through it: a body on the floor is not in the way of
+  a blow. A shot shoves one on its line as it would one of the living (40, a shotgun's 300). The pipe's side swing
+  shoves a husk lying at your feet 0.2 m along; the axe's chop drives it into the floor and pins it (7 cm). The cast's
+  own blows do not move corpses yet.
+- **Walked into**, by you or one of the cast: the points in the walker's way are put out of it by its share of the
+  two weights (yours on a husk's corpse, 75 to 80: about half; a worm on a thresher's, a tenth), and keep that as
+  their speed; the walker is not slowed. You walk through a husk's body and leave it shoved off its blood.
+- **Against each other**: their points pushed apart, the lighter more, and dragging on each other by how hard they
+  press (`RAG.rub`, 0.8), so one that falls on another lies on it; without the drag it slid off onto the floor. One
+  asleep is woken only by a push of more than 3 cm (`RAG.stir`): at 1 cm, a body lying on another woke it with its
+  own weight, and the two woke each other in turn for as long as they lay there.
+- **Doors, platforms and crates**: a door on its way, a platform under way or a crate sliding wakes what it meets,
+  and puts the points in its way out of its box by the shortest way that is not down. A platform carries a body on it
+  up; a door coming down on a body lying across its sill puts it to one side, and shuts. (A door does not stop for a
+  corpse as it does for the living: a body wedging a door open is a design question, not a physics one.)
+- **The budget** puts to sleep the corpse awake longest, but never one awake less than a second (`RAG.down`): one put
+  to sleep in the air would hang there standing. So forty killed at once are all awake while they fall.
+- **Saved**: each corpse's points, as they are and were, and whether it sleeps (`Save.cast[].rag`, plain numbers). A
+  run saved with a body falling plays on exactly as it would have. A save from before loads its dead laid on their
+  backs where they lay, asleep. Still version 5. The dev key 0, with none alive, takes the dead away (`Mutant.away`).
+- **Measured**, again (`test/ragdoll.test.ts`, after making the step cheaper: a floor found once a step, not twice;
+  lengths by square roots, not `Math.hypot`; a prop's lookup without a set when it meets one column, in `world.ts`):
+  sixteen falling at once cost about 1 ms a step together (60 µs each), 0.85 ms settling, nothing asleep. Forty husks
+  killed together in a heap 5 m across, 2.5 ms a step while they fall (all awake, the budget waiting for them to land),
+  all asleep within 2.5 s; walking through the heap, 0.7 ms.
+- **Tests**: `test/ragdoll.test.ts`.
 
 ---
 

@@ -138,6 +138,8 @@ export interface Mutant {
   gone: number;
   /** its body gone loose, once it is dead (sim/ragdoll.ts) */
   rag: Rag | null;
+  /** dev (the arena's clear): taken out of the world altogether */
+  away: boolean;
   /** steps it has stood still: a body at rest is not asked about its footing */
   still: number;
 }
@@ -165,7 +167,7 @@ function makeMutant(sim: Sim, def: MutantDef, id: number): Mutant {
       post: !!o.post, sit: !!o.sit, holt: !!o.holt, big: !!o.big, zone: (def.opts.zone as string | undefined) ?? null, screens: (def.opts.screens as string | undefined) ?? null, hx: def.x, hz: def.z, room,
       wt: rnd(1, 5), wm: 0, wx: 0, wz: 0, tk: 0, lost: 0, bt: 0, burst: false, flee: 0, ct: rnd(6, 14), cdir: 0, tgt: false,
       grab: 0, tense: 0, riled: false, blow: null, dest: -1, F: null, stk: 0, fled: false, side: 0, ride: null, spot: -1,
-      mv: 0, d: 99, dp: 99, dy: 0, los: false, losAt: -99, hit: 0, poise: poiseOf(def.type, S.ai, !!o.big), pmax: poiseOf(def.type, S.ai, !!o.big), calm: 99, reel: 0, pat: 0, down: 0, rise: 0, acc: S.acc, drove: false, ph: rnd(9), dead: false, gone: 0, rag: null, still: 0,
+      mv: 0, d: 99, dp: 99, dy: 0, los: false, losAt: -99, hit: 0, poise: poiseOf(def.type, S.ai, !!o.big), pmax: poiseOf(def.type, S.ai, !!o.big), calm: 99, reel: 0, pat: 0, down: 0, rise: 0, acc: S.acc, drove: false, ph: rnd(9), dead: false, gone: 0, rag: null, away: false, still: 0,
     };
     return m;
   }
@@ -1150,9 +1152,10 @@ export function shoved(sim: Sim, m: Mutant): void {
   else if (m.ai === 'skitter' && m.state === 'idle') { m.state = 'hunt'; m.lost = 0; m.bt = 0; step_(sim, m, 'skit'); }
 }
 
-/** dev (the arena): every one of the cast dead and gone at once */
+/** dev (the arena): every one of the cast dead at once; with none left alive, the dead taken away */
 export function killAll(sim: Sim): void {
-  for (const m of sim.cast) if (!m.dead) kill(sim, m);
+  if (sim.cast.some(m => !m.dead)) { for (const m of sim.cast) if (!m.dead) kill(sim, m); return; }
+  for (const m of sim.cast) { m.rag = null; m.away = true; }
 }
 
 function kill(sim: Sim, m: Mutant, blow: Killing | null = null): void {

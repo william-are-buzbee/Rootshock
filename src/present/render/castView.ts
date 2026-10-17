@@ -313,6 +313,8 @@ export class CastView {
     this.last = t;
     for (const s of this.shown) {
       const { m, M, mat } = s, g = M.g;
+      g.visible = !m.away;
+      if (m.away) continue;
       const x = m.px + (m.x - m.px) * alpha, z = m.pz + (m.z - m.pz) * alpha;
       let y = m.py + (m.y - m.py) * alpha;
       /* a swimmer rides just under the surface of shallow water, and a little off the floor of deep (as before) */

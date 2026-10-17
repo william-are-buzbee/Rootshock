@@ -111,9 +111,16 @@ export class World {
   }
   /** each fixed solid whose plan meets the footprint, once */
   private boxesNear(f: Footprint, fn: (b: Box & { mat?: Mat }) => void): void {
-    const B = World.B, seen = new Set<Box>();
-    for (let k = Math.floor((f.z - f.hz) / B); k <= Math.floor((f.z + f.hz) / B); k++)
-      for (let i = Math.floor((f.x - f.hx) / B); i <= Math.floor((f.x + f.hx) / B); i++) {
+    const B = World.B, k0 = Math.floor((f.z - f.hz) / B), k1 = Math.floor((f.z + f.hz) / B), i0 = Math.floor((f.x - f.hx) / B), i1 = Math.floor((f.x + f.hx) / B);
+    /* in one column, nothing is met twice: no need to keep count (a small footprint, a corpse's point, nearly always) */
+    if (k0 === k1 && i0 === i1) {
+      const a = this.boxes.get(this.bkey(i0, k0));
+      if (a) for (const b of a) if (meets(f, b.x0, b.z0, b.x1, b.z1)) fn(b);
+      return;
+    }
+    const seen = new Set<Box>();
+    for (let k = k0; k <= k1; k++)
+      for (let i = i0; i <= i1; i++) {
         const a = this.boxes.get(this.bkey(i, k));
         if (a) for (const b of a) {
           if (seen.has(b)) continue;

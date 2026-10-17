@@ -108,8 +108,8 @@ const controls = new Controls(canvas, () => { if (mode === 'play') setMode('paus
 const panels = new Panels(c => sim.game.commands.push(c), () => sim.game, () => { if (mode === 'panel') { setMode('play'); controls.lock(); } });
 /* ?dev keys, as the first engine had them: V fly, G god, B bright; O for the collider overlay; P for the tracker. And for
    working on the fight (engine.md §6, F4; the arena is in the test bed, north of the hall): 1 to 6 put one of the cast
-   down in front of you, awake and after you (a husk, a skitter, a thresher, a worm, a big skitter, the hand), 0 clears
-   them all; T slows time (a quarter, a tenth, and back); Y changes what is in your hand; H puts you right (whole,
+   down in front of you, awake and after you (a husk, a skitter, a thresher, a worm, a big skitter, the hand), 0 kills
+   them all (and, with none left alive, takes the dead away); T slows time (a quarter, a tenth, and back); Y changes what is in your hand; H puts you right (whole,
    standing, your poise back); U holds the cast still, or lets them go. The readout shows how you stand and the last
    few blows, in numbers. */
 const devFlags = { bright: false, track: false, slow: 1, frozen: false };

@@ -3,6 +3,7 @@ import { NOTES } from '../content/notes';
 import { Rng } from '../core/rng';
 import { syncBody } from './body';
 import { restoreRoute } from './cast';
+import { layRag } from './ragdoll';
 import { bigWay, restoreAlarms } from './eyes';
 import type { Game } from './game';
 import { makeHands } from './combat';
@@ -18,7 +19,8 @@ import { makeSim, type Sim, type SimOpts } from './sim';
 /** 2: the upper station laid out again (Security's wing and the atrium), so its doors and things are made in a new order.
  *  3: again (the muster hall, and the operations room behind glass), with the staff's power-failure drills
  *  4: bodies keep their velocity on the plan (engine.md §6, F1); the shoves that were kept beside it are gone
- *  5: poise, and blows that commit (engine.md §6, F2) */
+ *  5: poise, and blows that commit (engine.md §6, F2); since, the cast's knockdowns and corpses (each loads from a save
+ *  without them: nobody down, the dead laid where they lay) */
 export const SAVE_VERSION = 5;
 
 /** copy the named fields of an object */
@@ -39,7 +41,7 @@ const PLATFORM = ['y', 'target', 'wait', 'moving', 'armed'] as const;
 const LOOSE = ['x', 'y', 'z', 'vx', 'vy', 'vz', 'awake', 'ground', 'still', 'woke'] as const;
 const MUTANT = ['x', 'y', 'z', 'px', 'py', 'pz', 'yaw', 'state', 'st', 'cd', 'stun', 'hp', 'post', 'wt', 'wm', 'wx', 'wz', 'tk',
   'lost', 'bt', 'burst', 'flee', 'ct', 'cdir', 'tgt', 'grab', 'tense', 'stk', 'fled', 'side', 'spot', 'mv',
-  'hit', 'poise', 'calm', 'reel', 'pat', 'down', 'rise', 'ph', 'dead', 'gone', 'dest', 'los', 'losAt', 'still', 'riled'] as const;
+  'hit', 'poise', 'calm', 'reel', 'pat', 'down', 'rise', 'ph', 'dead', 'gone', 'away', 'dest', 'los', 'losAt', 'still', 'riled'] as const;
 
 /** what a rider stands on, by the moving thing's id */
 const onId = (r: { on: { id: number } | null }) => r.on?.id ?? 0;
@@ -103,7 +105,7 @@ export function save(sim: Sim): Save {
     loose: sim.loose.all.map(o => pick(o, LOOSE)),
     items: structuredClone(sim.items),
     spent: sim.usables.filter(u => u.off && u.key).map(u => u.key!),
-    cast: sim.cast.map(m => ({ ...pick(m, MUTANT), ride: structuredClone(m.ride), blow: structuredClone(m.blow), body: m.body ? pick(m.body, BODY) : null })),
+    cast: sim.cast.map(m => ({ ...pick(m, MUTANT), ride: structuredClone(m.ride), blow: structuredClone(m.blow), rag: structuredClone(m.rag), body: m.body ? pick(m.body, BODY) : null })),
     hands: structuredClone(sim.hands),
     on: [sim.player.body, ...sim.loose.all, ...sim.cast.map(m => m.body)].map(r => (r ? onId(r) : 0)),
     cams: sim.cams.map(c => ({ broken: c.broken, hold: c.hold })),
@@ -146,15 +148,18 @@ export function load(level: LevelDef, data: Save, o: SimOpts = {}): Sim {
   const spent = new Set(data.spent);
   for (const u of sim.usables) if (u.key && spent.has(u.key)) u.off = true;
   sim.cast.forEach((m, i) => {
-    const { body, ride, blow, ...own } = data.cast[i];
+    const { body, ride, blow, rag, ...own } = data.cast[i];
     put(m, own as never);
     m.ride = structuredClone(ride as typeof m.ride) ?? null;
     m.blow = structuredClone(blow as typeof m.blow) ?? null;
+    m.rag = structuredClone(rag as typeof m.rag) ?? null;
     if (m.body) {
       put(m.body, body as never);
       syncBody(m.body);
       if (m.dead) { const k = sim.world.dyn.indexOf(m.body.dyn); if (k >= 0) sim.world.dyn.splice(k, 1); }
     }
+    /* the dead of a save from before corpses were kept lie where they lay */
+    if (m.dead && !m.away && rag === undefined) m.rag = layRag(m);
   });
   sim.hands = { ...makeHands(), ...structuredClone(data.hands) };
   sim.lighting = null;
