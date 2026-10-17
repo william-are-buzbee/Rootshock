@@ -122,6 +122,9 @@ export class Rigged {
   /** where each was drawn at death, and how far it has gone from that */
   private from: THREE.Matrix4[] | null = null;
   private t = 0;
+  /** laid as it lies asleep, blended in: nothing to do until it wakes */
+  private still = false;
+  private woke = -1;
   /** the body it was last drawn from: a new one (a knockdown, then death) blends in afresh */
   private last: Rag | null = null;
   /** each part as it stands idle, in its parent's frame: put back before the animation runs again (it sets only the
@@ -130,6 +133,7 @@ export class Rigged {
 
   /** each part put back as it stands, for the animation to take it from there */
   restore(): void {
+    this.still = false;
     this.bound.forEach((b, i) => { b.obj.position.copy(this.idle[i].p); b.obj.quaternion.copy(this.idle[i].q); b.obj.scale.copy(this.idle[i].s); });
   }
   private W: THREE.Matrix4[];
@@ -170,17 +174,50 @@ export class Rigged {
    *  from where it was drawn when it went loose */
   pose(R: Rag, alpha: number, dt: number): void {
     const g = this.M.g;
-    if (R !== this.last) { this.last = R; this.from = null; }
+    if (R !== this.last) { this.last = R; this.from = null; this.still = false; }
+    /* woken since (even if asleep again by now, between two frames) */
+    if (R.awake || R.woke !== this.woke) this.still = false;
+    this.woke = R.woke;
+    g.position.set(0, 0, 0); g.rotation.set(0, 0, 0); g.scale.set(1, 1, 1);
+    /* asleep, blended in and laid as it lies: its points do not move until it wakes, so neither does it */
+    if (this.still) return;
     if (!this.from) {
       g.updateMatrixWorld(true);
       this.from = this.bound.map(b => b.obj.matrixWorld.clone());
       this.t = 0;
     }
     this.t = Math.min(BLEND, this.t + dt);
-    g.position.set(0, 0, 0); g.rotation.set(0, 0, 0); g.scale.set(1, 1, 1);
     g.updateMatrix(); g.updateMatrixWorld(true);
     const k = this.t / BLEND;
     this.lay(R, alpha, this.from, k * k * (3 - 2 * k));
+    this.still = !R.awake && this.t >= BLEND;
+  }
+
+  /** laid as it lies asleep: it will not move until it wakes */
+  get settled(): boolean {
+    return this.still;
+  }
+
+  /** every part shown, as it was last laid, as one geometry in its group's frame: a body asleep drawn in one draw call
+   *  rather than one a part (castView.ts). The parts' own geometries are shared, and left as they are */
+  bake(): THREE.BufferGeometry {
+    const g = this.M.g, inv = _m.copy(g.matrixWorld).invert(), shown: THREE.Mesh[] = [];
+    g.traverseVisible(o => { if ((o as THREE.Mesh).isMesh) shown.push(o as THREE.Mesh); });
+    let n = 0;
+    for (const o of shown) n += o.geometry.getAttribute('position').count;
+    const P = new Float32Array(n * 3), C = new Float32Array(n * 3);
+    let at = 0;
+    for (const o of shown) {
+      const pos = o.geometry.getAttribute('position'), col = o.geometry.getAttribute('aCol'), T = _n.multiplyMatrices(inv, o.matrixWorld);
+      for (let v = 0; v < pos.count; v++, at++) {
+        _p.fromBufferAttribute(pos, v).applyMatrix4(T).toArray(P, at * 3);
+        C[at * 3] = col.getX(v); C[at * 3 + 1] = col.getY(v); C[at * 3 + 2] = col.getZ(v);
+      }
+    }
+    const out = new THREE.BufferGeometry();
+    out.setAttribute('position', new THREE.BufferAttribute(P, 3));
+    out.setAttribute('aCol', new THREE.BufferAttribute(C, 3));
+    return out;
   }
 
   /** getting up (sim/cast.ts, `rise`): the model as its animation has it this frame, `e` (0..1) of the way there from
@@ -191,6 +228,7 @@ export class Rigged {
     const to = this.bound.map(b => b.obj.matrixWorld.clone()), s = Math.min(1, Math.max(0, e));
     this.lay(R, alpha, to, 1 - s * s * (3 - 2 * s));
     this.from = null;
+    this.still = false;
   }
 
   /** each part where its points put it, blended `e` of the way from `other` (1: all the points'), then into its

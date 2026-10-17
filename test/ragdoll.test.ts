@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, onTestFinished, vi } from 'vitest';
 import { testbed } from '../src/content/levels/testbed';
 import { STEP } from '../src/core/loop';
 import { hitMutant, killAll, MT, spawn, type Hit, type Mutant } from '../src/sim/cast';
@@ -7,9 +7,9 @@ import { give } from '../src/sim/game';
 import { noInput, type Input } from '../src/sim/input';
 import { bones, RAG, ragAt, REFLEX, SKEL, STAGGER } from '../src/sim/ragdoll';
 import { load, save } from '../src/sim/save';
-import { makeSim, step, type Sim } from '../src/sim/sim';
-import { ANIM, BUILD } from '../src/present/render/castView';
-import { RIG } from '../src/present/render/rig';
+import { makeSim, simLighting, step, type Sim } from '../src/sim/sim';
+import { ANIM, BUILD, CastView } from '../src/present/render/castView';
+import { RIG, Rigged } from '../src/present/render/rig';
 
 /* Corpses that fall loose (engine.md §6, bodies with physics). */
 
@@ -450,6 +450,58 @@ describe('corpses stay in the world', () => {
     expect(Math.hypot(a.x - a0.x, a.z - a0.z)).toBeGreaterThan(0.1);
     hold(s, 3);
     expect(m.rag!.awake).toBe(false); // and it settles again
+  });
+
+  it('is drawn where it lies while it sleeps, though it is laid only once, and again where it goes once woken', () => {
+    const s = arena(), m = lying(s), M = BUILD.husk(new THREE.MeshBasicMaterial(), m), rig = new Rigged(M, 'husk');
+    const head = () => { M.g.updateMatrixWorld(true); const v = M.hd.getWorldPosition(new THREE.Vector3()); return v; };
+    const near = (v: THREE.Vector3) => Math.hypot(v.x - pt(m, 'head').x, v.y - pt(m, 'head').y, v.z - pt(m, 'head').z);
+    rig.pose(m.rag!, 1, 1);
+    const h0 = head();
+    expect(near(h0)).toBeLessThan(0.15);
+    /* drawn as one of the living is placed, first (castView.ts): the pose it was laid in stands */
+    M.g.position.set(3, 1, 3); M.g.rotation.y = 1;
+    rig.pose(m.rag!, 0.5, 1 / 60);
+    expect(head().distanceTo(h0)).toBeLessThan(1e-9);
+    /* walked through, it wakes and goes along: drawn there */
+    const b = s.player.body, a0 = ragAt(m.rag!);
+    b.x = a0.x; b.z = a0.z + 2; b.sync(); s.player.yaw = 0;
+    hold(s, 1.5, { forward: 1 });
+    rig.pose(m.rag!, 1, 1 / 60);
+    expect(head().distanceTo(h0)).toBeGreaterThan(0.1);
+    expect(near(head())).toBeLessThan(0.15);
+  });
+
+  it('asleep, it is drawn as one mesh where its parts lay, and as its parts again once woken', () => {
+    const s = arena(), m = lying(s), cv = new CastView(new THREE.Group(), s, simLighting(s));
+    /* frames a sixtieth of a second apart, as the page draws them (the blend into its points goes by time) */
+    let now = 0;
+    vi.spyOn(performance, 'now').mockImplementation(() => now);
+    onTestFinished(() => { vi.restoreAllMocks(); });
+    const draw = (n = 1) => { for (let k = 0; k < n; k++) { now += 1000 / 60; cv.update(1); } };
+    const shown = () => (cv as unknown as { shown: { m: Mutant; M: { g: THREE.Group }; baked: THREE.Mesh | null }[] }).shown.find(x => x.m === m)!;
+    draw(15); // blended in and laid as it lies
+    const S = shown();
+    expect(S.baked).not.toBe(null);
+    expect(S.M.g.visible).toBe(false);
+    /* the one mesh covers what its parts did, to the vertex */
+    S.M.g.visible = true;
+    const parts = new THREE.Box3().setFromObject(S.M.g, true), one = new THREE.Box3().setFromObject(S.baked!, true);
+    let n = 0;
+    S.M.g.traverseVisible(o => { if ((o as THREE.Mesh).isMesh) n += (o as THREE.Mesh).geometry.getAttribute('position').count; });
+    S.M.g.visible = false;
+    expect(parts.min.distanceTo(one.min) + parts.max.distanceTo(one.max)).toBeLessThan(1e-5);
+    expect(S.baked!.geometry.getAttribute('position').count).toBe(n);
+    /* walked through, it wakes: its parts again, and the mesh gone */
+    const b = s.player.body, a0 = ragAt(m.rag!);
+    b.x = a0.x; b.z = a0.z + 2; b.sync(); s.player.yaw = 0;
+    for (let t = 0; t < 1.5; t += STEP) { step(s, { ...noInput(), forward: 1 }); draw(); }
+    expect(m.rag!.awake).toBe(true);
+    expect(S.baked).toBe(null);
+    expect(S.M.g.visible).toBe(true);
+    hold(s, 3);
+    draw(15);
+    expect(S.baked).not.toBe(null); // and again, once it settles
   });
 
   it('one of the cast walking through one shoves it too', () => {

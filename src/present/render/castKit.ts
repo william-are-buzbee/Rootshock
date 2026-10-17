@@ -21,7 +21,8 @@ function geo(shape: Shape, c: C, sx: number, sy: number, sz: number): THREE.Buff
 export function mk(parent: O3, mat: THREE.Material, shape: Shape, c: C, sx: number, sy: number, sz: number, x: number, y: number, z: number): THREE.Mesh {
   const m = new THREE.Mesh(geo(shape, c, sx, sy, sz), mat);
   m.position.set(x, y, z);
-  m.frustumCulled = false;
+  /* culled part by part, by each camera that draws it (the view, and a beam's shadow map): a level's whole cast, living
+     and dead, is a thousand parts and more, and most are out of sight */
   parent.add(m);
   return m;
 }
