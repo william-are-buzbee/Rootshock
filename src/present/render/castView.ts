@@ -1,6 +1,9 @@
 import * as THREE from 'three';
 import { blowAt, type Mutant } from '../../sim/cast';
 import { DOWN } from '../../sim/moves';
+import { ragSpeed } from '../../sim/ragdoll';
+import { STEP } from '../../core/loop';
+import { rect } from '../../world/shapes';
 import type { Sim } from '../../sim/sim';
 import type { Lighting } from '../../world/light';
 import { dynamicMaterial, lightMaterial } from './shader';
@@ -266,6 +269,10 @@ BUILD.overseer = mat => buildOverseer(mat);
 ANIM.hand = (m, M, c) => animHand(m, M as ReturnType<typeof buildHand>, c);
 ANIM.overseer = (m, M, c) => animOverseer(m, M as ReturnType<typeof buildOverseer>, c);
 
+/** a corpse bleeds once it has been loose `after` seconds and is on the floor slower than `speed` (m/s); its pool
+ *  starts at `from` of its size and comes to the whole of it over `spread` seconds, most of it in the first */
+const BLEED = { after: 0.25, speed: 0.6, from: 0.15, spread: 3.5 };
+
 /** `loose`: the rig has had its parts since the animation last did */
 interface Shown { m: Mutant; M: Model; mat: THREE.ShaderMaterial; blood: boolean; fall: number; rig: Rigged | null; loose: boolean }
 
@@ -301,6 +308,8 @@ export class CastView {
     for (const b of this.bloods) this.light(b);
   }
   private bloods: THREE.Mesh[] = [];
+  /** pools still spreading: from the tick they began, under whom, and whether it still lies where it will */
+  private spreading: { mesh: THREE.Mesh; m: Mutant; t0: number; held: boolean }[] = [];
   private light(mesh: THREE.Mesh): void {
     const p = mesh.position, R = this.sim.world.roomAt(p.x, p.y + 0.3, p.z), none = [0, 0, 0];
     lightMaterial(mesh.material as THREE.ShaderMaterial, R ? this.L.atPoint(p.x, p.y, p.z) : none, R ? this.L.flickAt(p.x, p.y, p.z) : none);
@@ -312,6 +321,7 @@ export class CastView {
     if (this.shown.length < this.sim.cast.length) this.more();
     const w = this.sim.world, t = performance.now() / 1000, c: Ctx = { sim: this.sim, dt: this.last ? Math.min(0.1, t - this.last) : 0, L: this.L };
     this.last = t;
+    this.spread();
     for (const s of this.shown) {
       const { m, M, mat } = s, g = M.g;
       g.visible = !m.away;
@@ -339,7 +349,7 @@ export class CastView {
         /* gone loose: drawn as its points lie (rig.ts); it bleeds where it comes to rest */
         s.rig.pose(m.rag, alpha, c.dt);
         s.loose = true;
-        if (!s.blood && !m.rag.awake && !m.swim && w.waterAt(m.x, m.z) < m.y) { s.blood = true; this.blood(m); }
+        if (!s.blood && !m.swim && w.waterAt(m.x, m.z) < m.y && this.down(m)) { s.blood = true; this.blood(m); }
         continue;
       }
       if (m.dead) {
@@ -360,13 +370,34 @@ export class CastView {
     }
   }
 
+  /** gone loose and down: on the floor, and all but stopped (it need not have gone to sleep) */
+  private down(m: Mutant): boolean {
+    const R = m.rag!;
+    if (!R.awake) return true;
+    if (R.t < BLEED.after || ragSpeed(R) > BLEED.speed) return false;
+    return m.y - this.sim.world.groundBelow(rect(m.x, m.z, 0.05, 0.05), m.y + 0.1) < 0.06;
+  }
+
   private blood(m: Mutant): void {
     const mat = dynamicMaterial(), mesh = new THREE.Mesh(parts([['box', m.green ? 0x24401f : 0x3a0b0b, m.r * 2.6, 0.012, m.r * 2.2, 0, 0, 0]]), mat);
     mesh.position.set(m.x, m.y + 0.012, m.z);
     mesh.rotation.y = Math.random() * PI;
+    mesh.scale.set(BLEED.from, 1, BLEED.from);
     mesh.frustumCulled = false;
     this.light(mesh);
     this.bloods.push(mesh);
     this.scene.add(mesh);
+    this.spreading.push({ mesh, m, t0: this.sim.tick, held: !!m.rag?.awake });
+  }
+
+  /* a pool spreads out from under it, fast and then slower; while it is still settling, it goes where the body does */
+  private spread(): void {
+    this.spreading = this.spreading.filter(P => {
+      const { mesh, m } = P, u = Math.min(1, (this.sim.tick - P.t0) * STEP / BLEED.spread), k = BLEED.from + (1 - BLEED.from) * (1 - (1 - u) ** 3);
+      mesh.scale.set(k, 1, k);
+      if (P.held && !m.rag?.awake) P.held = false;
+      if (P.held) { mesh.position.set(m.x, m.y + 0.012, m.z); this.light(mesh); }
+      return u < 1 || P.held;
+    });
   }
 }

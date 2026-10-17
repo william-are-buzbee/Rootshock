@@ -393,6 +393,17 @@ export function ragAt(R: Rag): V3 {
   return { x: x / B.mid.length, y, z: z / B.mid.length };
 }
 
+/** how fast it moved this step, on the whole (its points by their weight, as it is reckoned still by) (m/s) */
+export function ragSpeed(R: Rag): number {
+  const B = bones(R.kind), { p, o } = R;
+  let moving = 0;
+  for (let i = 0; i < B.names.length; i++) {
+    const k = i * 3;
+    moving += B.kg[i] * ((p[k] - o[k]) ** 2 + (p[k + 1] - o[k + 1]) ** 2 + (p[k + 2] - o[k + 2]) ** 2);
+  }
+  return Math.sqrt(moving / B.mass) / dt;
+}
+
 /** a step of every corpse: woken by what moves into it, then those awake, together, so they can meet each other and
  *  what walks among them; keeping to the budget */
 export function updateCorpses(sim: Sim): void {
