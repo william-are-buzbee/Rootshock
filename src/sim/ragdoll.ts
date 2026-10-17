@@ -1,7 +1,8 @@
 import { STEP } from '../core/loop';
 import { rect } from '../world/shapes';
+import type { Box } from '../world/shapes';
 import type { Dyn, World } from '../world/world';
-import { GRAVITY } from './body';
+import { GRAVITY, type Body } from './body';
 import type { Mutant } from './cast';
 import type { Sim } from './sim';
 import { sfx } from './game';
@@ -16,7 +17,8 @@ import type { V3 } from './sweep';
    way, every time.
 
    A corpse is awake while it moves, and sleeps once still, as a loose crate does (loose.ts): asleep it costs nothing.
-   No more than RAG.budget are awake at once; past that, the longest-awake one on the floor sleeps where it is. */
+   No more than RAG.budget are awake at once; past that, the longest-awake one that has had time to fall sleeps where
+   it is. */
 
 /** a point of a body: where it is in the model's own frame as it stands (x to its right as drawn, y up, z the way
  *  it faces), its radius, and what it weighs (kg); a body's points weigh what the body does (cast.ts, MT) */
@@ -196,8 +198,9 @@ export const RAG = {
    *  seconds; and asleep anyway after `most`
    *  seconds awake, if it is on the floor, so one that cannot settle does not cost for ever */
   sleep: { speed: 0.12, after: 0.5, most: 8 },
-  /** no more than this many awake at once (as loose crates) */
-  budget: 16,
+  /** no more than this many awake at once (as loose crates), but none put to sleep that has not been awake `down`
+   *  seconds */
+  budget: 16, down: 1,
   /** the share of a killing blow felt in the part it struck rather than the whole body, and how far from where it
    *  landed it is felt (m): a head struck turns the body about it */
   local: 0.55, spread: 0.6,
@@ -213,6 +216,10 @@ export const RAG = {
   slump: 1.1,
   /** under water: what it takes of a point's speed each second, and the share of its weight left */
   water: { drag: 3, weight: 0.12 },
+  /** what one corpse's points take of another's sliding over them, as a share of how hard they press */
+  rub: 0.8,
+  /** how far one corpse has to push into a sleeping one to wake it (m) */
+  stir: 0.03,
   /** a point landing harder than this (m/s) is heard, at most every `gap` seconds a body */
   thud: 3.5, gap: 0.3,
 };
@@ -246,6 +253,19 @@ export function makeRag(m: Mutant, kill: Killing | null): Rag | null {
   const B = bones(m.model), n = B.names.length, p: number[] = [], v: number[] = [];
   const down = m.down > 0 || m.rise > 0;
   for (let i = 0; i < n; i++) p.push(...place(B.rest[i * 3], B.rest[i * 3 + 1], B.rest[i * 3 + 2], m.yaw, b.x, b.y, b.z, down));
+  return loose(m, B, p, v, kill, down);
+}
+
+/** one dead in a save from before corpses were kept: laid on its back where it lay, asleep */
+export function layRag(m: Mutant): Rag | null {
+  if (!m.body || !SKEL[m.model] || !Number.isFinite(m.body.mass)) return null;
+  const B = bones(m.model), p: number[] = [];
+  for (let i = 0; i < B.names.length; i++) p.push(...place(B.rest[i * 3], B.rest[i * 3 + 1], B.rest[i * 3 + 2], m.yaw, m.x, m.y, m.z, true));
+  return { kind: m.model, p, q: p.slice(), o: p.slice(), awake: false, still: 0, t: 0, woke: 0, heard: 99 };
+}
+
+function loose(m: Mutant, B: Bones, p: number[], v: number[], kill: Killing | null, down: boolean): Rag {
+  const b = m.body!, n = B.names.length;
   /* the way it goes: the blow's, or back off its heels */
   let ux = kill && kill.v > 0 ? kill.ux : -Math.sin(m.yaw), uz = kill && kill.v > 0 ? kill.uz : -Math.cos(m.yaw);
   const ul = Math.hypot(ux, uz) || 1;
@@ -295,24 +315,49 @@ export function ragAt(R: Rag): V3 {
   return { x: x / B.mid.length, y, z: z / B.mid.length };
 }
 
-/** a step of every corpse that is awake, keeping to the budget */
+/** a step of every corpse: woken by what moves into it, then those awake, together, so they can meet each other and
+ *  what walks among them; keeping to the budget */
 export function updateCorpses(sim: Sim): void {
+  const dead = sim.cast.filter(m => m.rag);
+  if (!dead.length) return;
+  const movers = moving(sim), walkers = sim.cast.filter(m => !m.dead && m.body).map(m => m.body!);
+  walkers.push(sim.player.body);
+  for (const m of dead) {
+    const R = m.rag!;
+    m.px = m.x; m.py = m.y; m.pz = m.z;
+    if (R.awake) continue;
+    /* asleep: woken by a door, a platform or a crate moving into it, or by anything walking into it */
+    const box = bounds(R);
+    if (movers.some(d => meetsBox(box, d, 0.1)) || walkers.some(b => meetsBody(box, b) && treads(R, b))) wakeRag(R, sim.tick);
+  }
   let awake = 0;
-  for (const m of sim.cast) if (m.rag?.awake) awake++;
-  /* past the budget, the longest awake that has come to the floor sleeps where it is */
+  for (const m of dead) if (m.rag!.awake) awake++;
+  /* past the budget, the longest awake sleeps where it is, if it has been awake long enough to be down (a fall is
+     over in half a second); never one still in the air */
   while (awake > RAG.budget) {
-    let oldest: Mutant | null = null;
-    for (const m of sim.cast) if (m.rag?.awake && (!oldest || m.rag.woke < oldest.rag!.woke)) oldest = m;
+    let oldest: Rag | null = null;
+    for (const m of dead) if (m.rag!.awake && m.rag!.t > RAG.down && (!oldest || m.rag!.woke < oldest.woke)) oldest = m.rag!;
     if (!oldest) break;
-    sleep(oldest.rag!);
+    sleep(oldest);
     awake--;
   }
-  for (const m of sim.cast) {
-    const R = m.rag;
-    if (!R) continue;
-    m.px = m.x; m.py = m.y; m.pz = m.z;
+  const live = dead.filter(m => m.rag!.awake).map(m => m.rag!);
+  for (const R of live) begin(sim, R);
+  /* what touches them: whoever walks into one, each other, and what moves into them */
+  for (const R of live) for (const b of walkers) kicked(R, b);
+  const box = new Map(dead.map(m => [m.rag!, bounds(m.rag!)]));
+  live.forEach((R, i) => {
+    const a = box.get(R)!;
+    for (const m of dead) {
+      const S = m.rag!, j = live.indexOf(S);
+      if (S !== R && (j < 0 || j > i) && meetsBox(a, box.get(S)!)) meet(R, S, sim.tick);
+    }
+  });
+  for (const R of live) for (const d of movers) pushedOut(R, d);
+  for (const m of dead) {
+    const R = m.rag!;
     if (!R.awake) continue;
-    step(sim, R);
+    if (scratch.has(R)) finish(sim, R);
     const a = ragAt(R);
     m.x = a.x; m.y = a.y; m.z = a.z;
   }
@@ -329,14 +374,148 @@ export function wakeRag(R: Rag, tick: number): void {
   R.awake = true; R.still = 0; R.t = 0; R.woke = tick;
 }
 
-const dt = STEP, g = GRAVITY * dt * dt;
-/* scratch, per point: the floor under it as the step began, whether it is under water, how far the floor has pushed
-   it up this step (how hard it is pressed on it, for friction), and how fast it was coming down (for a landing) */
-let floor = new Float64Array(64), wet = new Float64Array(64), press = new Float64Array(64), sink = new Float64Array(64);
+/** the box about all its points */
+function bounds(R: Rag): Box {
+  const B = bones(R.kind), b: Box = { x0: Infinity, y0: Infinity, z0: Infinity, x1: -Infinity, y1: -Infinity, z1: -Infinity };
+  for (let i = 0; i < B.names.length; i++) {
+    const k = i * 3, r = B.r[i];
+    b.x0 = Math.min(b.x0, R.p[k] - r); b.x1 = Math.max(b.x1, R.p[k] + r);
+    b.y0 = Math.min(b.y0, R.p[k + 1] - r); b.y1 = Math.max(b.y1, R.p[k + 1] + r);
+    b.z0 = Math.min(b.z0, R.p[k + 2] - r); b.z1 = Math.max(b.z1, R.p[k + 2] + r);
+  }
+  return b;
+}
+const meetsBox = (a: Box, b: Box, pad = 0) =>
+  a.x0 < b.x1 + pad && a.x1 > b.x0 - pad && a.y0 < b.y1 + pad && a.y1 > b.y0 - pad && a.z0 < b.z1 + pad && a.z1 > b.z0 - pad;
+const meetsBody = (a: Box, b: Body) => a.x0 < b.x + b.r && a.x1 > b.x - b.r && a.y0 < b.y + b.h && a.y1 > b.y && a.z0 < b.z + b.r && a.z1 > b.z - b.r;
 
-function step(sim: Sim, R: Rag): void {
+/** what is moving this step: a door on its way, a platform under way, a crate sliding */
+function moving(sim: Sim): Box[] {
+  const out: Box[] = [];
+  for (const d of sim.doors) if (d.t !== (d.def.stuck ? d.t : d.open ? 1 : 0)) out.push(d.dyn);
+  for (const p of sim.platforms) if (p.moving) out.push(p.dyn);
+  for (const o of sim.loose.all) if (o.awake) out.push(o.dyn);
+  return out;
+}
+
+/** a walker is in it: some point of it more than a centimetre inside the walker */
+function treads(R: Rag, b: Body): boolean {
+  const B = bones(R.kind), { p } = R;
+  for (let i = 0; i < B.names.length; i++) {
+    const k = i * 3;
+    if (p[k + 1] + B.r[i] < b.y || p[k + 1] - B.r[i] > b.y + b.h) continue;
+    if (Math.hypot(p[k] - b.x, p[k + 2] - b.z) < b.r + B.r[i] - RAG.stir) return true;
+  }
+  return false;
+}
+
+/** whoever walks into it shoves the points in their way aside, as two bodies meeting share their momentum: a husk walks
+ *  a husk's body along at half its pace, a worm hardly moves a thresher's. The walker is not slowed: a corpse is not in
+ *  anyone's way (engine.md §6, bodies with physics, as built) */
+function kicked(R: Rag, b: Body): void {
+  if (!Number.isFinite(b.mass)) return;
+  const B = bones(R.kind), share = b.mass / (b.mass + B.mass), { p } = R;
+  for (let i = 0; i < B.names.length; i++) {
+    const k = i * 3, y = p[k + 1];
+    if (y + B.r[i] < b.y || y - B.r[i] > b.y + b.h) continue;
+    const dx = p[k] - b.x, dz = p[k + 2] - b.z, d = Math.hypot(dx, dz), over = b.r + B.r[i] - d;
+    if (over <= 0 || d < 1e-6) continue;
+    /* pushed out by its share of the overlap: what moves it this step is its speed after */
+    p[k] += (dx / d) * over * share; p[k + 2] += (dz / d) * over * share;
+  }
+}
+
+/** two corpses where their points overlap: pushed apart, the lighter more. One asleep is woken only by a push worth
+ *  waking for, so a body coming to rest on another does not keep both awake */
+function meet(R: Rag, S: Rag, tick: number): void {
+  const A = bones(R.kind), C = bones(S.kind);
+  for (let i = 0; i < A.names.length; i++) for (let j = 0; j < C.names.length; j++) {
+    const a = i * 3, c = j * 3, dx = S.p[c] - R.p[a], dy = S.p[c + 1] - R.p[a + 1], dz = S.p[c + 2] - R.p[a + 2];
+    const rr = A.r[i] + C.r[j], d2 = dx * dx + dy * dy + dz * dz;
+    if (d2 >= rr * rr || d2 < 1e-12) continue;
+    const d = Math.sqrt(d2), over = rr - d;
+    /* one asleep is woken by a push worth waking for, but stays put this step: what falls on it lands on it */
+    if (!S.awake && over > RAG.stir) wakeRag(S, tick);
+    const wa = A.w[i], wc = scratch.has(S) ? C.w[j] : 0, k = over / (d * (wa + wc));
+    R.p[a] -= dx * k * wa; R.p[a + 1] -= dy * k * wa; R.p[a + 2] -= dz * k * wa;
+    S.p[c] += dx * k * wc; S.p[c + 1] += dy * k * wc; S.p[c + 2] += dz * k * wc;
+    /* and they drag on each other by how hard they press, so one lying on another stays on it */
+    const nx = dx / d, ny = dy / d, nz = dz / d;
+    let tx = R.p[a] - R.q[a] - (S.p[c] - S.q[c]), ty = R.p[a + 1] - R.q[a + 1] - (S.p[c + 1] - S.q[c + 1]), tz = R.p[a + 2] - R.q[a + 2] - (S.p[c + 2] - S.q[c + 2]);
+    const vn = tx * nx + ty * ny + tz * nz;
+    tx -= nx * vn; ty -= ny * vn; tz -= nz * vn;
+    const t = Math.hypot(tx, ty, tz);
+    if (t < 1e-9) continue;
+    const f = Math.min(1, (RAG.rub * over) / t) / (wa + wc);
+    R.q[a] += tx * f * wa; R.q[a + 1] += ty * f * wa; R.q[a + 2] += tz * f * wa;
+    S.q[c] -= tx * f * wc; S.q[c + 1] -= ty * f * wc; S.q[c + 2] -= tz * f * wc;
+  }
+}
+
+/** a door, a platform or a crate moving into its points puts them out of its way, by the shortest way out of its box */
+function pushedOut(R: Rag, d: Box): void {
+  const B = bones(R.kind), { p } = R;
+  for (let i = 0; i < B.names.length; i++) {
+    const k = i * 3, r = B.r[i];
+    const outs = [d.x1 + r - p[k], p[k] - (d.x0 - r), d.y1 + r - p[k + 1], p[k + 1] - (d.y0 - r), d.z1 + r - p[k + 2], p[k + 2] - (d.z0 - r)];
+    if (outs.some(v => v <= 0)) continue;
+    /* never down: there is floor there, and a door coming down on it puts it to one side */
+    let best = 0;
+    for (const j of [1, 2, 4, 5]) if (outs[j] < outs[best]) best = j;
+    const ax = best >> 1, sign = best & 1 ? -1 : 1;
+    p[k + ax] += sign * outs[best];
+    /* it starts the step clear of it, so the world does not take it back in */
+    R.o[k + ax] = p[k + ax];
+    scratch.get(R)!.moved[i] = 1;
+  }
+}
+
+/** a blow on a corpse: `J` (kg m/s) given to the points near where it landed, along the way the blow was going */
+export function knockRag(R: Rag, at: V3, way: V3, J: number, tick: number): void {
+  const B = bones(R.kind), n = B.names.length, f: number[] = [], wl = Math.hypot(way.x, way.y, way.z) || 1;
+  let sum = 0, near = 0, nd = Infinity;
+  for (let i = 0; i < n; i++) {
+    const d = Math.hypot(R.p[i * 3] - at.x, R.p[i * 3 + 1] - at.y, R.p[i * 3 + 2] - at.z), k = Math.max(0, 1 - d / RAG.spread);
+    if (d < nd) { nd = d; near = i; }
+    f.push(k * k); sum += k * k * B.kg[i];
+  }
+  if (sum <= 0) { f[near] = 1; sum = B.kg[near]; }
+  wakeRag(R, tick);
+  /* as a killing blow is laid on (makeRag): some of it to the whole body, the rest to the part it struck */
+  const whole = (J * (1 - RAG.local)) / B.mass;
+  for (let i = 0; i < n; i++) {
+    const dv = Math.min(RAG.most, whole + (J * RAG.local * f[i]) / sum) * dt / wl;
+    R.q[i * 3] -= way.x * dv; R.q[i * 3 + 1] -= way.y * dv; R.q[i * 3 + 2] -= way.z * dv;
+  }
+}
+
+/** the first point of a corpse a segment (a to b) comes within its radius of, and how far along: for blows and shots */
+export function ragOnLine(R: Rag, a: V3, b: V3, pad = 0): { t: number; at: V3 } | null {
+  const B = bones(R.kind), dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z, L2 = dx * dx + dy * dy + dz * dz || 1;
+  let best: { t: number; at: V3 } | null = null;
+  for (let i = 0; i < B.names.length; i++) {
+    const k = i * 3, cx = R.p[k], cy = R.p[k + 1], cz = R.p[k + 2];
+    const t = Math.max(0, Math.min(1, ((cx - a.x) * dx + (cy - a.y) * dy + (cz - a.z) * dz) / L2));
+    const r = B.r[i] + pad;
+    if (Math.hypot(a.x + dx * t - cx, a.y + dy * t - cy, a.z + dz * t - cz) < r && (!best || t < best.t)) best = { t, at: { x: cx, y: cy, z: cz } };
+  }
+  return best;
+}
+
+const dt = STEP, g = GRAVITY * dt * dt;
+/** what a step of one body needs between its halves: per point, the floor under it as the step began, whether it is
+ *  under water, how far the floor has pushed it up (how hard it is pressed on it, for friction), and how fast it was
+ *  coming down (for a landing). Made again each step; never saved */
+interface Scratch { floor: Float64Array; wet: Uint8Array; press: Float64Array; sink: Float64Array; moved: Uint8Array }
+const scratch = new WeakMap<Rag, Scratch>();
+
+/** the first half of a step: on by its speed, down by its weight, held to its bones */
+function begin(sim: Sim, R: Rag): void {
   const w = sim.world, B = bones(R.kind), n = B.names.length, { p, q, o } = R;
-  if (floor.length < n) { floor = new Float64Array(n * 2); wet = new Float64Array(n * 2); press = new Float64Array(n * 2); sink = new Float64Array(n * 2); }
+  let S = scratch.get(R);
+  if (!S) scratch.set(R, (S = { floor: new Float64Array(n), wet: new Uint8Array(n), press: new Float64Array(n), sink: new Float64Array(n), moved: new Uint8Array(n) }));
+  const { floor, wet, press, sink } = S;
+  S.moved.fill(0);
   /* where each is now, and the floor under it */
   for (let i = 0; i < n; i++) {
     const k = i * 3, x = p[k], y = p[k + 1], z = p[k + 2], r = B.r[i];
@@ -356,45 +535,50 @@ function step(sim: Sim, R: Rag): void {
     press[i] = 0; sink[i] = -vy / dt;
   }
   /* the sticks, a few times over; the floor each time, so they cannot push a point through it */
-  const S = B.sticks, A = B.apart, H = B.hinge, W = B.w;
+  const St = B.sticks, A = B.apart, H = B.hinge, W = B.w;
   for (let it = 0; it < RAG.iters; it++) {
-    for (let s = 0; s < S.length; s += 3) hold(p, W, S[s], S[s + 1], S[s + 2], false);
+    for (let s = 0; s < St.length; s += 3) hold(p, W, St[s], St[s + 1], St[s + 2], false);
     for (let s = 0; s < A.length; s += 3) hold(p, W, A[s], A[s + 1], A[s + 2], true);
     for (let s = 0; s < H.length; s += 6) bend(p, W, H[s], H[s + 1], H[s + 2], H[s + 3], H[s + 4], H[s + 5]);
     for (let i = 0; i < n; i++) { const lo = floor[i] + B.r[i]; if (p[i * 3 + 1] < lo) { press[i] += lo - p[i * 3 + 1]; p[i * 3 + 1] = lo; } }
   }
-  /* then the world, point by point: what it ran into stops it there */
+}
+
+/** the second half: the world, point by point (what it ran into stops it there); the floor's drag; asleep if still */
+function finish(sim: Sim, R: Rag): void {
+  const w = sim.world, B = bones(R.kind), n = B.names.length, { p, q, o } = R, S = scratch.get(R)!;
   let moving = 0, landed = 0, lx = 0, ly = 0, lz = 0;
   for (let i = 0; i < n; i++) {
-    const k = i * 3, fall = sink[i];
-    const onFloor = collide(w, p, o, i, B.r[i]);
+    const k = i * 3, fall = S.sink[i];
+    const onFloor = collide(w, p, o, i, B.r[i], S);
     if (onFloor) {
       if (fall > landed) { landed = fall; lx = p[k]; ly = p[k + 1]; lz = p[k + 2]; }
       /* the floor holds it up (it keeps no speed into it, nor any it was pushed up by), and drags it along by how
          hard it is pressed on it: the weight on it, not merely its own */
       q[k + 1] = p[k + 1];
-      const vx = p[k] - q[k], vz = p[k + 2] - q[k + 2], v = Math.hypot(vx, vz), keep = v > 0 ? Math.max(0, 1 - (RAG.friction * press[i]) / v) : 0;
+      const vx = p[k] - q[k], vz = p[k + 2] - q[k + 2], v = Math.hypot(vx, vz), keep = v > 0 ? Math.max(0, 1 - (RAG.friction * S.press[i]) / v) : 0;
       q[k] = p[k] - vx * keep; q[k + 2] = p[k + 2] - vz * keep;
     }
     moving += B.kg[i] * ((p[k] - o[k]) ** 2 + (p[k + 1] - o[k + 1]) ** 2 + (p[k + 2] - o[k + 2]) ** 2);
   }
+  scratch.delete(R);
   R.t += dt; R.heard += dt;
   if (landed > RAG.thud && R.heard > RAG.gap) { R.heard = 0; sfx(sim.game, 'thud', { x: lx, y: ly, z: lz }, B.mass > 150); }
   /* still: its weight, on the whole, hardly moving (a hand twitching under it does not keep it awake) */
   R.still = Math.sqrt(moving / B.mass) / dt < RAG.sleep.speed ? R.still + dt : 0;
-  if (R.still > RAG.sleep.after || (R.t > RAG.sleep.most && grounded(B, p, n))) sleep(R);
+  if (R.still > RAG.sleep.after || (R.t > RAG.sleep.most && grounded(B, p, S.floor))) sleep(R);
 }
 
 /** some of it is on the floor */
-function grounded(B: Bones, p: number[], n: number): boolean {
-  for (let i = 0; i < n; i++) if (p[i * 3 + 1] - B.r[i] <= floor[i] + 0.02) return true;
+function grounded(B: Bones, p: number[], floor: Float64Array): boolean {
+  for (let i = 0; i < B.names.length; i++) if (p[i * 3 + 1] - B.r[i] <= floor[i] + 0.02) return true;
   return false;
 }
 
 /** two points held at `len` (or, `least`, at least `len`) apart, each moved by its share: the lighter more */
 function hold(p: number[], W: number[], a: number, b: number, len: number, least: boolean): void {
   const ka = a * 3, kb = b * 3, dx = p[kb] - p[ka], dy = p[kb + 1] - p[ka + 1], dz = p[kb + 2] - p[ka + 2];
-  const d = Math.hypot(dx, dy, dz);
+  const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
   if (d < 1e-9 || (least && d >= len)) return;
   const wa = W[a], wb = W[b], k = (d - len) / (d * (wa + wb));
   p[ka] += dx * k * wa; p[ka + 1] += dy * k * wa; p[ka + 2] += dz * k * wa;
@@ -408,7 +592,7 @@ function bend(p: number[], W: number[], a: number, b: number, c: number, s0: num
   const ux = p[Bk] - p[A], uy = p[Bk + 1] - p[A + 1], uz = p[Bk + 2] - p[A + 2];
   const sx = p[S1] - p[S0], sy = p[S1 + 1] - p[S0 + 1], sz = p[S1 + 2] - p[S0 + 2];
   let fx = uy * sz - uz * sy, fy = uz * sx - ux * sz, fz = ux * sy - uy * sx;
-  const fl = Math.hypot(fx, fy, fz);
+  const fl = Math.sqrt(fx * fx + fy * fy + fz * fz);
   if (fl < 1e-9) return;
   fx /= fl; fy /= fl; fz /= fl;
   const d = ((p[C] - p[Bk]) * fx + (p[C + 1] - p[Bk + 1]) * fy + (p[C + 2] - p[Bk + 2]) * fz) * way;
@@ -421,10 +605,11 @@ function bend(p: number[], W: number[], a: number, b: number, c: number, s0: num
 /** a point from where it began the step (o) to where it would go (p): down or up first, then along each way on the
  *  plan, as a body walks; what stops it on a way takes its speed that way. A lip lower than a little of it is gone
  *  over. True if it is on the floor. */
-function collide(w: World, p: number[], o: number[], i: number, r: number): boolean {
-  const k = i * 3, h = r * 0.6, x0 = o[k], z0 = o[k + 2];
+function collide(w: World, p: number[], o: number[], i: number, r: number, S: Scratch): boolean {
+  const k = i * 3, h = r * 0.6, x0 = o[k], z0 = o[k + 2], press = S.press;
   let y = p[k + 1], onFloor = false;
-  const f0 = rect(x0, z0, h, h), gr = w.groundBelow(f0, o[k + 1] - r * 0.4, passes);
+  /* the floor under where it began, found as the step began (unless something moved it since: then again) */
+  const f0 = rect(x0, z0, h, h), gr = S.moved[i] ? w.groundBelow(f0, o[k + 1] - r * 0.4, passes) : S.floor[i];
   if (y - r <= gr + 1e-4) { press[i] += Math.max(0, gr + r - y); y = gr + r; onFloor = true; }
   else if (y > o[k + 1]) {
     const c = w.ceilingAbove(f0, o[k + 1] + r * 0.4, passes, y + r + 0.05);

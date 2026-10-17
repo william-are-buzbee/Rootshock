@@ -3,20 +3,22 @@ import { describe, expect, it } from 'vitest';
 import { testbed } from '../src/content/levels/testbed';
 import { STEP } from '../src/core/loop';
 import { hitMutant, killAll, MT, spawn, type Hit, type Mutant } from '../src/sim/cast';
-import { noInput } from '../src/sim/input';
+import { give } from '../src/sim/game';
+import { noInput, type Input } from '../src/sim/input';
 import { bones, RAG, ragAt, SKEL } from '../src/sim/ragdoll';
+import { load, save } from '../src/sim/save';
 import { makeSim, step, type Sim } from '../src/sim/sim';
 import { ANIM, BUILD } from '../src/present/render/castView';
 import { RIG } from '../src/present/render/rig';
 
 /* Corpses that fall loose (engine.md §6, bodies with physics). */
 
-const arena = (): Sim => {
-  const s = makeSim(testbed(), { seed: 3 }), b = s.player.body;
+const arena = (lv = testbed()): Sim => {
+  const s = makeSim(lv, { seed: 3 }), b = s.player.body;
   b.x = 8; b.z = -3; b.y = 0; b.sync(); s.player.yaw = 0; s.game.god = true;
   return s;
 };
-const hold = (s: Sim, secs: number) => { for (let t = 0; t < secs; t += STEP) step(s, noInput()); };
+const hold = (s: Sim, secs: number, inp: Partial<Input> = {}) => { for (let t = 0; t < secs; t += STEP) step(s, { ...noInput(), ...inp }); };
 /** one of the cast stood still at (x, y, z) facing yaw, a few steps to find its feet */
 const stood = (s: Sim, type: string, x: number, y: number, z: number, yaw = Math.PI / 2): Mutant => {
   const m = spawn(s, type, x, y, z)!;
@@ -185,11 +187,149 @@ describe('a body killed goes loose', () => {
   });
 });
 
-it('costs little: sixteen falling at once, and asleep, timed against the arena with nothing in it', () => {
+describe('corpses stay in the world', () => {
+  /** a husk killed and left to settle, lying north of you */
+  const lying = (s: Sim, x = 8, z = -6) => {
+    const m = stood(s, 'husk', x, 0, z);
+    killAll(s);
+    hold(s, 3);
+    expect(m.rag!.awake).toBe(false);
+    return m;
+  };
+
+  it('a blow through one knocks it the way it went, and goes on: the pipe\'s swing shoves it along, the axe\'s chop pins it', () => {
+    for (const [id, least] of [['axe', 0.03], ['pipe', 0.15]] as const) {
+      const s = arena(), m = lying(s), a0 = ragAt(m.rag!);
+      const b = s.player.body; b.x = a0.x; b.z = a0.z + 1.2; b.sync(); s.player.yaw = 0; s.player.pitch = -0.7;
+      give(s.game, id); s.game.weapon = id;
+      hold(s, STEP, { attack: true });
+      hold(s, 2.5); // the arm comes up (the axe 1.1 s), and the blow comes down
+      const a = ragAt(m.rag!);
+      console.log(`${id} knocks a husk lying 1.2 m off ${(a0.z - a.z).toFixed(2)} m`);
+      expect(a0.z - a.z, id).toBeGreaterThan(least); // north, the way you faced
+      expect(s.hands.swing?.struck ?? null).toBe(null); // not stopped in it
+    }
+  });
+
+  it('a shot knocks one too', () => {
+    const s = arena(), m = lying(s), a0 = ragAt(m.rag!);
+    const b = s.player.body; b.x = a0.x; b.z = a0.z + 3; b.sync(); s.player.yaw = 0; s.player.pitch = -0.45;
+    give(s.game, 'shotgun'); give(s.game, 'shells'); s.game.weapon = 'shotgun';
+    hold(s, 2 * STEP, { attack: true });
+    expect(m.rag!.awake).toBe(true);
+    hold(s, 1);
+    expect(a0.z - ragAt(m.rag!).z).toBeGreaterThan(0.1);
+  });
+
+  it('walked into, it is shoved aside by what you weigh, and you are not stopped', () => {
+    const s = arena(), m = lying(s), a0 = ragAt(m.rag!), b = s.player.body;
+    b.x = a0.x; b.z = a0.z + 2; b.sync(); s.player.yaw = 0;
+    hold(s, 1.5, { forward: 1 });
+    expect(b.z).toBeLessThan(a0.z - 0.5); // you went on past it
+    const a = ragAt(m.rag!);
+    expect(Math.hypot(a.x - a0.x, a.z - a0.z)).toBeGreaterThan(0.1);
+    hold(s, 3);
+    expect(m.rag!.awake).toBe(false); // and it settles again
+  });
+
+  it('one of the cast walking through one shoves it too', () => {
+    const s = arena(), m = lying(s), a0 = ragAt(m.rag!), b = s.player.body;
+    b.x = a0.x; b.z = a0.z - 5; b.sync(); s.player.yaw = Math.PI;
+    const h = spawn(s, 'husk', a0.x, 0, a0.z + 3)!;
+    s.game.god = true;
+    hold(s, 3);
+    expect(h.z).toBeLessThan(a0.z);
+    const a = ragAt(m.rag!);
+    expect(Math.hypot(a.x - a0.x, a.z - a0.z)).toBeGreaterThan(0.1);
+  });
+
+  it('one falls on another: they lie one on the other, not through it', () => {
+    const s = arena(), under = lying(s), a0 = ragAt(under.rag!);
+    const top = stood(s, 'husk', a0.x, 0, a0.z + 0.9, Math.PI);
+    strike(s, top, AXE({ x: 0, z: -1 }), 1);
+    hold(s, 4);
+    const A = bones('husk');
+    let worst = 0;
+    for (let i = 0; i < A.names.length; i++) for (let j = 0; j < A.names.length; j++) {
+      const p = top.rag!.p, q = under.rag!.p;
+      worst = Math.max(worst, A.r[i] + A.r[j] - Math.hypot(p[i * 3] - q[j * 3], p[i * 3 + 1] - q[j * 3 + 1], p[i * 3 + 2] - q[j * 3 + 2]));
+    }
+    expect(worst).toBeLessThan(0.06);
+    expect(Math.max(...bones('husk').names.map((_, i) => top.rag!.p[i * 3 + 1]))).toBeGreaterThan(0.22); // on it, not beside it
+    expect(top.rag!.awake || under.rag!.awake).toBe(false);
+  });
+
+  it('a platform carries one that lies on it, and a door coming down puts one out of its way', () => {
+    /* the lab's lift: 8..10 by 30..32, from 0.2 up to 3 */
+    const s = arena(), m = stood(s, 'husk', 9, 0.2, 31, 0);
+    killAll(s);
+    hold(s, 3);
+    const p = s.platforms[0];
+    p.target = 1; p.moving = true;
+    hold(s, 3);
+    expect(p.y).toBe(3);
+    expect(m.y).toBeGreaterThan(2.9);
+    /* the door in the passage south of the hall, 7..9 by 13.75..14, open with a body lying across its sill */
+    const t = arena(), d = t.doors[0], q = stood(t, 'husk', 8, 0, 14.6, Math.PI);
+    d.open = true; d.t = 1;
+    strike(t, q, BATON({ x: 0, z: -1 }), 1);
+    hold(t, 2);
+    expect(Math.min(...bones('husk').names.map((_, i) => Math.abs(q.rag!.p[i * 3 + 2] - 13.875)))).toBeLessThan(0.3); // across the sill
+    d.open = false; d.hold = 0;
+    hold(t, 2);
+    expect(d.t).toBe(0);
+    const B = bones('husk');
+    for (let i = 0; i < B.names.length; i++) {
+      const x = q.rag!.p[i * 3], z = q.rag!.p[i * 3 + 2];
+      /* a point meets the world as a box 0.6 of its radius about it (sim/ragdoll.ts, collide) */
+      expect(x > 7 && x < 9 && z > 13.75 - B.r[i] * 0.6 && z < 14 + B.r[i] * 0.6, B.names[i]).toBe(false);
+    }
+  });
+
+  it('is saved: a run saved with a body falling plays on as it would have', () => {
+    /* a husk the level places (a save knows the level's cast, not those the arena puts down) */
+    const level = () => { const lv = testbed(); lv.mutants.push({ type: 'husk', x: 8, y: 0, z: -8, opts: {} }); return lv; };
+    const run = (saveAt: number | null) => {
+      let s = arena(level());
+      const m = s.cast[0];
+      m.stun = 1e9;
+      hold(s, 0.1);
+      strike(s, m, AXE({ x: 0.6, z: -0.8 }), 1.4);
+      for (let k = 0; k < 90; k++) {
+        if (k === saveAt) s = load(level(), JSON.parse(JSON.stringify(save(s))));
+        step(s, noInput());
+      }
+      return s.cast[0].rag!.p;
+    };
+    expect(run(20)).toEqual(run(null));
+  });
+
+  it('a save from before corpses were kept loads its dead laid where they lay', () => {
+    const level = () => { const lv = testbed(); lv.mutants.push({ type: 'husk', x: 8, y: 0, z: -6, opts: {} }); return lv; };
+    const s = arena(level()), m = s.cast[0];
+    killAll(s);
+    hold(s, 3);
+    const data = JSON.parse(JSON.stringify(save(s)));
+    delete data.cast[0].rag;
+    const t = load(level(), data);
+    expect(t.cast[0].rag?.awake).toBe(false);
+    expect(Math.hypot(ragAt(t.cast[0].rag!).x - m.x, ragAt(t.cast[0].rag!).z - m.z)).toBeLessThan(1.2);
+  });
+
+  it('the dev key clears the dead once none are left alive', () => {
+    const s = arena();
+    lying(s);
+    killAll(s);
+    expect(s.cast[0].away).toBe(true);
+    expect(s.cast[0].rag).toBe(null);
+  });
+});
+
+it('costs little: sixteen falling at once, and asleep, timed against the arena with nothing in it; forty, walked through', () => {
   /* a step of the whole sim, on average over `secs`, in ms */
-  const timed = (s: Sim, secs: number) => {
+  const timed = (s: Sim, secs: number, inp: Partial<Input> = {}) => {
     let all = 0, n = 0;
-    for (let t = 0; t < secs; t += STEP) { const t0 = performance.now(); step(s, noInput()); all += performance.now() - t0; n++; }
+    for (let t = 0; t < secs; t += STEP) { const t0 = performance.now(); step(s, { ...noInput(), ...inp }); all += performance.now() - t0; n++; }
     return all / n;
   };
   const empty = arena();
@@ -203,9 +343,23 @@ it('costs little: sixteen falling at once, and asleep, timed against the arena w
   const falling = timed(s, 0.5), settling = timed(s, 0.5);
   hold(s, 8);
   const asleep = timed(s, 1);
-  console.log(`a step: the arena alone ${base.toFixed(3)} ms; with 16 corpses falling ${falling.toFixed(3)} ms (${((falling - base) / 16 * 1000).toFixed(0)} µs a corpse), ` +
-    `settling ${settling.toFixed(3)} ms, all asleep ${asleep.toFixed(3)} ms`);
   expect(cast.every(m => !m.rag!.awake)).toBe(true);
+  /* forty husks, killed together in a heap 5 m across, then walked through */
+  const t = arena(), heap: Mutant[] = [];
+  for (let k = 0; k < 40; k++) heap.push(stood(t, 'husk', 5.5 + (k % 8) * 0.7, 0, -12 + Math.floor(k / 8) * 0.9));
+  for (const m of heap) strike(t, m, AXE({ x: 0.3, z: 1 }), 1);
+  const forty = timed(t, 0.5), most = Math.max(...Array.from({ length: 1 }, () => heap.filter(m => m.rag!.awake).length));
+  hold(t, 2);
+  const capped = heap.filter(m => m.rag!.awake).length;
+  hold(t, 8);
+  const b = t.player.body;
+  b.x = 8; b.z = -14; b.sync(); t.player.yaw = Math.PI;
+  const walking = timed(t, 2, { forward: 1 });
+  console.log(`a step: the arena alone ${base.toFixed(3)} ms; 16 corpses falling ${falling.toFixed(3)} ms (${((falling - base) / 16 * 1000).toFixed(0)} µs a corpse), ` +
+    `settling ${settling.toFixed(3)} ms, all asleep ${asleep.toFixed(3)} ms; 40 falling in a heap ${forty.toFixed(3)} ms (${most} awake), ` +
+    `${capped} awake 2 s on; walking through the heap ${walking.toFixed(3)} ms`);
   expect(falling - base).toBeLessThan(4);
   expect(asleep - base).toBeLessThan(0.3);
+  expect(capped).toBeLessThanOrEqual(RAG.budget);
+  expect(walking).toBeLessThan(4);
 });

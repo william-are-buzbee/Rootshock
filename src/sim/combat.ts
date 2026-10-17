@@ -5,6 +5,7 @@ import type { Dyn } from '../world/world';
 import { hitMutant, type Mutant } from './cast';
 import { consume, log, makeNoise, say, sfx } from './game';
 import { push } from './body';
+import { knockRag, ragOnLine } from './ragdoll';
 import { closing, DOWN, GLANCE, LAUNCH, POISE, react, REEL, regain, RISE, SHOVE, swingOf, type Swing } from './moves';
 import { ACTIVE, across, along, frame, meetsCylinder, meetsSphere, type Frame, type V3 } from './sweep';
 import type { Input } from './input';
@@ -33,7 +34,7 @@ export interface Hands {
   /** a swing under way: how far through it is and how long it takes; how far across the part that can land it has
    *  been traced (sim/sweep.ts); whether that part is over, and whether it ended meeting nothing but the world; and
    *  how far through it was when it glanced off something, or when it met one of the cast and stopped in it, if it did */
-  swing: { t: number; dur: number; a: number; done: boolean; missed?: boolean; glance?: number; struck?: number } | null;
+  swing: { t: number; dur: number; a: number; done: boolean; missed?: boolean; glance?: number; struck?: number; knocked?: number[] } | null;
   /** the line a thrown blow goes along, fixed as you let it go */
   line: { yaw: number; pitch: number } | null;
   /** after a blow that met nothing, the arm coming back: no new swing until it is in */
@@ -225,6 +226,9 @@ function sweep(sim: Sim, w: WeaponStats, a0: number, a1: number): 'none' | 'hit'
   for (let i = 0; i < n; i++) {
     const u0 = a0 + ((a1 - a0) * i) / n, u1 = a0 + ((a1 - a0) * (i + 1)) / n;
     let best: Mutant | null = null, bt = 2, at: V3 | null = null, from: V3 | null = null, to: V3 | null = null;
+    /* what lies in its way is knocked by the head's path, or by the length of it, which reaches the floor */
+    const H0 = along(F, sh, R, u0), H1 = along(F, sh, R, u1), S0 = along(F, sh, R, u1, 0.5);
+    for (const m of sim.cast) if (m.dead && m.rag) knock(sim, w, m, H0, H1, F) || knock(sim, w, m, S0, H1, F, H1.x - H0.x, H1.y - H0.y, H1.z - H0.z);
     for (const k of [0.5, 0.75, 1]) {
       const A = along(F, sh, R, u0, k), B = along(F, sh, R, u1, k);
       for (const m of sim.cast) {
@@ -238,7 +242,7 @@ function sweep(sim: Sim, w: WeaponStats, a0: number, a1: number): 'none' | 'hit'
     }
     /* the world: the head's own path this step, and the length of the thing from your hand to the head. The floor
        does not stop it: a blow aimed low scrapes along it */
-    const H0 = along(F, sh, R, u0), H1 = along(F, sh, R, u1), tp = ray(sim, H0, H1), ts = ray(sim, F.p, H1);
+    const tp = ray(sim, H0, H1), ts = ray(sim, F.p, H1);
     const C = tp < 1 ? mix(H0, H1, tp) : ts < 1 ? mix(F.p, H1, ts) : null;
     const tw = !C || C.y < b.y + 0.3 ? 2 : tp < 1 ? tp : 1;
     if (best && at && from && to && bt <= tw) { landOn(sim, w, best, from, to, at); return 'hit'; }
@@ -253,6 +257,23 @@ function sweep(sim: Sim, w: WeaponStats, a0: number, a1: number): 'none' | 'hit'
     }
   }
   return 'none';
+}
+
+/** a swing that passes through a corpse knocks it, once a swing, with what it would shove one of the living by, and
+ *  goes on through it (sim/ragdoll.ts): a body on the floor is not in the way of a blow */
+function knock(sim: Sim, w: WeaponStats, m: Mutant, A: V3, B: V3, F: Frame, hx = B.x - A.x, hy = B.y - A.y, hz = B.z - A.z): boolean {
+  const S = sim.hands.swing;
+  if (!S || S.knocked?.includes(m.id)) return false;
+  const hit = ragOnLine(m.rag!, A, B, 0.05);
+  if (!hit || ray(sim, F.p, hit.at) < 1) return false;
+  (S.knocked ??= []).push(m.id);
+  const b = sim.player.body, L = sim.hands.line ?? sim.player, fx = -Math.sin(L.yaw), fz = -Math.cos(L.yaw);
+  const hl = Math.hypot(hx, hy, hz) || 1;
+  /* half along the line it was thrown, half the way the head was going (hx, hy, hz), as a blow on the living goes */
+  const way = { x: fx + hx / hl, y: hy / hl, z: fz + hz / hl };
+  knockRag(m.rag!, hit.at, way, SHOVE.you * (w.mass + SHOVE.arm) * closing(b.vx * fx + b.vz * fz), sim.tick);
+  sfx(sim.game, 'hit', hit.at);
+  return true;
 }
 
 /** your blow lands on one of the cast: as hard as you and it were closing along it (sim/moves.ts, closing), and it is
@@ -301,4 +322,14 @@ function fire(sim: Sim, w: WeaponStats): void {
     if (d < bd) { bd = d; best = m; by = ty; }
   }
   if (best) hitMutant(sim, best, { dmg: w.dmg * (big ? clamp(1.2 - bd / range, 0.25, 1) : 1), poise: big ? 60 : 22, shove: big ? 300 : 40, by: g.weapon ?? 'gun', at: { x: best.x, y: by, z: best.z }, way: { x: A.fx, y: A.fy, z: A.fz } }, 1);
+  /* a corpse on its line, short of the wall, is shoved as one of the living would be; the round goes on */
+  const from = { x: A.ex, y: A.ey, z: A.ez }, far = { x: A.ex + A.fx * range, y: A.ey + A.fy * range, z: A.ez + A.fz * range };
+  const t = sim.world.raycast(from.x, from.y, from.z, far.x, far.y, far.z, seeThrough), to = { x: from.x + (far.x - from.x) * t, y: from.y + (far.y - from.y) * t, z: from.z + (far.z - from.z) * t };
+  let hit: { m: Mutant; t: number; at: V3 } | null = null;
+  for (const m of sim.cast) {
+    if (!m.rag) continue;
+    const h = ragOnLine(m.rag, from, to);
+    if (h && (!hit || h.t < hit.t)) hit = { m, ...h };
+  }
+  if (hit) knockRag(hit.m.rag!, hit.at, { x: A.fx, y: A.fy, z: A.fz }, big ? 300 : 40, sim.tick);
 }

@@ -140,7 +140,7 @@ export class Prints {
   private spilt(sim: Sim, x: number, y: number, z: number): 'red' | 'green' | null {
     for (const S of sim.world.def.stains ?? []) if (Math.abs(S.y - y) < 0.5 && Math.hypot(S.x - x, S.z - z) < S.r + 0.12) return 'red';
     for (const m of sim.cast) {
-      if (!m.dead || m.fixed || m.swim || Math.abs(m.y - y) > 0.5) continue;
+      if (!m.dead || m.away || m.fixed || m.swim || Math.abs(m.y - y) > 0.5) continue;
       if (Math.hypot(m.x - x, m.z - z) < m.r * 1.2 + 0.12) return m.green ? 'green' : 'red';
     }
     return null;
