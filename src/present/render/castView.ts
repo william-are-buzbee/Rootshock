@@ -262,9 +262,14 @@ export class CastView {
   private shown: Shown[] = [];
 
   constructor(private scene: THREE.Object3D, private sim: Sim, private L: Lighting) {
-    for (const m of sim.cast) {
-      const mat = dynamicMaterial(), M = BUILD[m.model](mat, m);
-      scene.add(M.g);
+    this.more();
+  }
+
+  /** draw any of the cast not drawn yet: all of them at first, then any the arena puts down (sim/cast.ts, spawn) */
+  private more(): void {
+    for (let i = this.shown.length; i < this.sim.cast.length; i++) {
+      const m = this.sim.cast[i], mat = dynamicMaterial(), M = BUILD[m.model](mat, m);
+      this.scene.add(M.g);
       this.shown.push({ m, M, mat, blood: false, fall: 0 });
     }
   }
@@ -282,6 +287,7 @@ export class CastView {
   private last = 0;
   /** draw everything where it is, `alpha` of the way through the step */
   update(alpha: number): void {
+    if (this.shown.length < this.sim.cast.length) this.more();
     const w = this.sim.world, t = performance.now() / 1000, c: Ctx = { sim: this.sim, dt: this.last ? Math.min(0.1, t - this.last) : 0, L: this.L };
     this.last = t;
     for (const s of this.shown) {

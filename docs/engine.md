@@ -465,6 +465,26 @@ corpse worth throwing.
 - **Tests**: `test/down.test.ts`. Saves carry the cast's `down` and `rise` (still version 5: a save without them loads
   with nobody down).
 
+### F4, as built
+
+- **The arena** (`content/levels/testbed.ts`), north of the test bed's hall through a gate: 20 by 16 m of open floor
+  5 m high; the baton, the pipe, the wrench, the axe and the knife on a table by the gate; a corridor 1.6 m wide off
+  its east side, where a side swing and a thresher's sweep glance off the walls; a bay with a 2.2 m ceiling off its
+  west side, where the axe's chop catches; a ledge 3 m up a ramp to knock things off. Nothing lives in it.
+- **Keys** (`?dev`, `main.ts`): 1 to 6 put one of the cast down 3.5 m in front of you, faced to you and after you (a
+  husk, a skitter, a thresher, a worm, a big skitter, the hand; `cast.ts`, `spawn`, which makes the level's ways about
+  the first time if nothing else needed them); 0 clears them all (`killAll`); T slows time to a quarter, a tenth, and
+  back; Y changes the weapon in your hand (fists, baton, pipe, wrench, axe, knife); H puts you right; U holds the cast
+  still, or lets them go. Anywhere, not only in the arena; a dev page does not save, so nothing put down is kept.
+- **The overlay** (O) draws about each body its fight as the sim has it: a bar over its head as tall as the poise it
+  has left, green going to red; an arrow at its feet for where its velocity takes it in a third of a second; a ring,
+  red while it is down, yellow while it gets up, orange while it reels. Yours too, with your swing's path in white.
+- **The hit log**: every blow, slam, fall and glance writes a line (`game.ts`, `log`; a `log` event the dev readout
+  keeps the last five of): what struck what, the damage, the closing multiplier, whether it caught the other open,
+  the shove, what came of it (shrugged off, flinch, stagger, down, thrown, dead), and the poise taken and left. Your own
+  standing (health, poise, speed, weapon, down or reeling, the time scale) heads it.
+- **Tests**: `test/arena.test.ts`.
+
 ---
 
 ## 7. Navigation

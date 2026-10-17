@@ -17,8 +17,14 @@ npm run dev        # serves the game at http://localhost:5173 and reloads on eve
 ```
 
 Open `http://localhost:5173/?dev` for the position readout and `window.rs.sim` in the browser console. Dev keys: V fly,
-G god, B bright, O draws every collider, P the tracker (what the progression checker says you can reach from where you
-stand). `?level=<id>` starts on another level (`upper`, `main`, `plant`, `sump`, `sumpdeep`, `cave`, or `testbed`);
+G god, B bright, O draws every collider (and each body's poise, velocity and state, and your swing's path), P the
+tracker (what the progression checker says you can reach from where you stand).
+
+For working on the fight, `?dev&level=testbed` and go north through the gate to the arena (weapons on the table). Keys
+1 to 6 put one of the cast down in front of you, awake (husk, skitter, thresher, worm, big skitter, the hand), 0 clears
+them; T slows time (×0.25, ×0.1, back); Y changes the weapon in your hand; H puts you right; U holds the cast still or
+lets them go. The readout shows how you stand and the last few blows in numbers: damage, the closing multiplier, the
+shove, and what came of it. `?level=<id>` starts on another level (`upper`, `main`, `plant`, `sump`, `sumpdeep`, `cave`, or `testbed`);
 `?power=full` starts with everything on.
 
 | command | what it does |

@@ -6,7 +6,8 @@ import type { Box } from '../../world/shapes';
 
 /* Dev only (?dev, then O): every collider drawn as lines. Fixed boxes in grey, sloped surfaces in green, whatever moves
    in amber, the player's body in white. A blow under way is drawn as the ground it covers: orange as it winds up, red
-   while it can land, blue as it recovers. Yours is drawn as the path its head takes, in white. */
+   while it can land, blue as it recovers. Yours is drawn as the path its head takes, in white. Each body's poise, its
+   velocity, and whether it is down, getting up or reeling, are drawn about it (below). */
 const PHASE = { wind: [1, 0.55, 0.1], strike: [1, 0.1, 0.1], after: [0.3, 0.5, 1] } as const;
 export class Overlay {
   private fixed: THREE.LineSegments;
@@ -59,6 +60,32 @@ export class Overlay {
         for (let k = 0; k < n; k++) B.push(...at(m.yaw - half + (2 * half * k) / n, R, y), ...at(m.yaw - half + (2 * half * (k + 1)) / n, R, y));
       }
       while (C.length < B.length) C.push(...c);
+    }
+    /* each body's fight, as the sim has it (engine.md §6, F4): a bar over its head as tall as the poise it has left,
+       green going to red; an arrow at its feet for its velocity (where it will be in a third of a second); and round
+       its feet a ring, red while it is down, yellow while it gets up, orange while it reels. Yours too. */
+    const ring = (x: number, y: number, z: number, r: number, c: readonly number[]) => {
+      for (let k = 0; k < 12; k++) {
+        const a0 = (k / 12) * Math.PI * 2, a1 = ((k + 1) / 12) * Math.PI * 2;
+        B.push(x + Math.cos(a0) * r, y, z + Math.sin(a0) * r, x + Math.cos(a1) * r, y, z + Math.sin(a1) * r);
+        C.push(...c, ...c);
+      }
+    };
+    const fight = (x: number, y: number, z: number, top: number, r: number, poise: number, vx: number, vz: number, state: string) => {
+      const c = [1 - poise, poise, 0.2];
+      B.push(x, top, z, x, top + 0.6 * poise, z); C.push(...c, ...c);
+      if (vx || vz) { B.push(x, y + 0.05, z, x + vx / 3, y + 0.05, z + vz / 3); C.push(0.3, 0.8, 1, 0.3, 0.8, 1); }
+      if (state === 'down') ring(x, y + 0.05, z, r + 0.15, [1, 0.15, 0.1]);
+      else if (state === 'rise') ring(x, y + 0.05, z, r + 0.15, [1, 0.9, 0.2]);
+      else if (state === 'reel') ring(x, y + 0.05, z, r + 0.15, [1, 0.55, 0.1]);
+    };
+    for (const m of this.sim.cast) {
+      if (m.dead || !m.body) continue;
+      fight(m.x, m.y, m.z, m.y + m.body.h + 0.25, m.r, m.poise / m.pmax, m.body.vx, m.body.vz, m.down > 0 ? 'down' : m.rise > 0 ? 'rise' : m.reel > 0 ? 'reel' : '');
+    }
+    {
+      const h = this.sim.hands;
+      fight(b.x, b.y, b.z, b.y + b.h + 0.25, b.r, h.poise / 30, b.vx, b.vz, h.down > 0 ? 'down' : h.rise > 0 ? 'rise' : h.stag > 0 ? 'reel' : '');
     }
     /* your own blow under way: the path its head will take across the part that can land, in white */
     const path = sweepPath(this.sim);

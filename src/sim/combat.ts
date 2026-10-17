@@ -3,7 +3,7 @@ import { clamp } from '../core/math';
 import { STEP } from '../core/loop';
 import type { Dyn } from '../world/world';
 import { hitMutant, type Mutant } from './cast';
-import { consume, makeNoise, say, sfx } from './game';
+import { consume, log, makeNoise, say, sfx } from './game';
 import { push } from './body';
 import { closing, DOWN, GLANCE, LAUNCH, POISE, react, REEL, regain, RISE, SHOVE, swingOf, type Swing } from './moves';
 import { ACTIVE, across, along, frame, meetsCylinder, meetsSphere, type Frame, type V3 } from './sweep';
@@ -157,14 +157,14 @@ function lunge(sim: Sim, S: Swing): void {
  *  and no blow from you. If it breaks your poise you reel: thrown back from it, slowed, no new load until you have
  *  your feet. If it breaks your poise and shoves you hard enough (DOWN.dv), you go down; harder still (LAUNCH.dv), you
  *  are thrown, and land down. Down, a hit takes no more footing from you; getting up, it has to get past RISE.guard. */
-export function struck(sim: Sim, poise: number, from?: { x: number; z: number }, dv = 0): void {
+export function struck(sim: Sim, poise: number, from?: { x: number; z: number }, dv = 0): string {
   const h = sim.hands, g = sim.game, b = sim.player.body;
-  if (g.ended) return;
+  if (g.ended) return 'none';
   h.calm = 0;
-  if (h.down > 0) return;
+  if (h.down > 0) return 'down already';
   const R = react(h.poise, POISE.you, Math.max(0, poise - (h.rise > 0 ? RISE.guard : 0)), 0);
   h.poise = R.left;
-  if (R.r !== 'stagger') return;
+  if (R.r !== 'stagger') return R.r === 'flinch' ? 'shrugged off' : 'none';
   if (dv >= DOWN.dv) {
     /* off your feet: over the way the blow sent you, and, hard enough, up and over */
     h.down = DOWN.time; h.rise = 0; h.stag = 0;
@@ -173,12 +173,13 @@ export function struck(sim: Sim, poise: number, from?: { x: number; z: number },
     sfx(g, 'reel');
     sfx(g, 'land', undefined, false, 0, 1);
     g.events.push({ type: 'shake', k: 0.6 });
-    return;
+    return dv >= LAUNCH.dv ? 'thrown' : 'down';
   }
   h.stag = REEL.you;
   sfx(g, 'reel');
   g.events.push({ type: 'shake', k: 0.35 });
   if (from) { const dx = b.x - from.x, dz = b.z - from.z, d = Math.hypot(dx, dz) || 1; push(b, (dx / d) * REEL.push, (dz / d) * REEL.push); }
+  return 'stagger';
 }
 
 const seeThrough = (d: Dyn) => d.kind === 'body';
@@ -246,7 +247,8 @@ function sweep(sim: Sim, w: WeaponStats, a0: number, a1: number): 'none' | 'hit'
       makeNoise(g, 8);
       landed(sim, 0.8);
       /* it comes back at you: a heavy thing hard enough to knock the wind out of you */
-      struck(sim, swingFor(w).poise * GLANCE.poise, { x: C.x, z: C.z });
+      const r = struck(sim, swingFor(w).poise * GLANCE.poise, { x: C.x, z: C.z });
+      log(g, `${sim.game.weapon ?? 'fists'} glanced off the wall  → ${r}  (poise ${(swingFor(w).poise * GLANCE.poise).toFixed(0)}, ${sim.hands.poise.toFixed(0)}/30 left)`);
       return 'glance';
     }
   }
@@ -263,7 +265,7 @@ function landOn(sim: Sim, w: WeaponStats, m: Mutant, A: V3, B: V3): void {
   const hl = Math.hypot(hx, hz);
   if (hl > 1e-6) { hx /= hl; hz /= hl; } else { hx = fx; hz = fz; }
   const dx = fx + hx, dz = fz + hz, dl = Math.hypot(dx, dz) || 1;
-  hitMutant(sim, m, { dmg: w.dmg, poise: swingFor(w).poise, shove: SHOVE.you * (w.mass + SHOVE.arm), dir: { x: dx / dl, z: dz / dl } }, closing(you + it));
+  hitMutant(sim, m, { dmg: w.dmg, poise: swingFor(w).poise, shove: SHOVE.you * (w.mass + SHOVE.arm), dir: { x: dx / dl, z: dz / dl }, by: sim.game.weapon ?? 'fists' }, closing(you + it));
   makeNoise(sim.game, 10);
   landed(sim, 1);
 }
@@ -298,5 +300,5 @@ function fire(sim: Sim, w: WeaponStats): void {
     if (sim.world.raycast(A.ex, A.ey, A.ez, m.x, ty, m.z, seeThrough) < 1) continue;
     if (d < bd) { bd = d; best = m; }
   }
-  if (best) hitMutant(sim, best, { dmg: w.dmg * (big ? clamp(1.2 - bd / range, 0.25, 1) : 1), poise: big ? 60 : 22, shove: big ? 300 : 40 }, 1);
+  if (best) hitMutant(sim, best, { dmg: w.dmg * (big ? clamp(1.2 - bd / range, 0.25, 1) : 1), poise: big ? 60 : 22, shove: big ? 300 : 40, by: g.weapon ?? 'gun' }, 1);
 }

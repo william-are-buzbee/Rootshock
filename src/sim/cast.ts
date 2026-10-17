@@ -4,8 +4,8 @@ import { STEP } from '../core/loop';
 import { Edge, edgeCost, field as fieldFrom } from '../world/nav';
 import type { Dyn } from '../world/world';
 import { fall, impulse, makeBody, push, settle, shove, slide, steer, walk, type Body } from './body';
-import { doorShut, opensItself, routeRules, rulesFor, type Fields, type Walker } from './fields';
-import { hurtBy, power, sayOnce, sfx } from './game';
+import { doorShut, makeFields, opensItself, refreshFields, routeRules, rulesFor, type Fields, type Walker } from './fields';
+import { hurtBy, log, power, sayOnce, sfx } from './game';
 import { exposed, struck } from './combat';
 import { sendPlatform, type Door } from './movers';
 import { eyeHeight } from './player';
@@ -137,8 +137,13 @@ export interface Mutant {
 const dt = STEP;
 
 export function makeCast(sim: Sim, defs: MutantDef[]): Mutant[] {
+  return defs.filter(d => MT[d.type]).map((def, id) => makeMutant(sim, def, id));
+}
+
+/** one of the cast, as a level places it, numbered `id` */
+function makeMutant(sim: Sim, def: MutantDef, id: number): Mutant {
   const rnd = (a: number, b?: number) => sim.rng.range(a, b);
-  return defs.filter(d => MT[d.type]).map((def, id) => {
+  {
     const S = MT[def.type], o = def.opts as Record<string, number | undefined>;
     /* every body stops every other, yours too (engine.md §6, F1b); they stop short of you, and shove you when they do not */
     const body = S.fixed ? null : makeBody(sim.world, def.x, def.y, def.z, S.cr, S.h, S.kg);
@@ -155,7 +160,20 @@ export function makeCast(sim: Sim, defs: MutantDef[]): Mutant[] {
       mv: 0, d: 99, dp: 99, dy: 0, los: false, losAt: -99, hit: 0, poise: poiseOf(def.type, S.ai, !!o.big), pmax: poiseOf(def.type, S.ai, !!o.big), calm: 99, reel: 0, pat: 0, down: 0, rise: 0, ph: rnd(9), dead: false, gone: 0, still: 0,
     };
     return m;
-  });
+  }
+}
+
+/** dev (the arena): one of the cast put down where nothing placed it, awake and after you. The ways about the level are
+ *  worked out the first time, if no one else needed them. Not for a run that saves: a save knows the level's cast only */
+export function spawn(sim: Sim, type: string, x: number, y: number, z: number, opts: Record<string, unknown> = {}): Mutant | null {
+  if (!MT[type]) return null;
+  const m = makeMutant(sim, { type, x, y, z, opts }, sim.cast.length);
+  m.yaw = Math.atan2(sim.player.body.x - x, sim.player.body.z - z);
+  sim.cast.push(m);
+  if (!sim.fields) { sim.fields = makeFields(sim); refreshFields(sim, sim.fields); }
+  if (m.ai === 'husk' || m.ai === 'skitter') { m.state = 'hunt'; m.lost = 0; }
+  else if (m.ai === 'thresher') { m.state = 'pursue'; m.st = 1e9; m.riled = true; }
+  return m;
 }
 
 /** what it can take before it reels: by its kind, a big skitter more */
@@ -453,7 +471,8 @@ function strikes(sim: Sim, m: Mutant, dmg: number, poise: number, shove = 0, thr
   const dx = b.x - m.x, dz = b.z - m.z, d = Math.hypot(dx, dz) || 1, ux = dx / d, uz = dz / d;
   const k = closing(-(b.vx * ux + b.vz * uz)) * (sim.hands.down > 0 ? DOWN.more : 1);
   hurtBy(sim.game, dmg * k, DEATH[m.ai], { x: m.x, z: m.z });
-  struck(sim, poise * k, { x: m.x, z: m.z }, throws || (shove * k) / b.mass);
+  const dv = throws || (shove * k) / b.mass, r = struck(sim, poise * k, { x: m.x, z: m.z }, dv);
+  log(sim.game, `${m.type} → you  ${(dmg * k).toFixed(0)} dmg  ×${k.toFixed(2)}  shove ${dv.toFixed(1)} m/s  → ${r}  (poise ${(poise * k).toFixed(0)}, ${sim.hands.poise.toFixed(0)}/30 left)`);
   if (shove) impulse(b, ux * shove * k, uz * shove * k);
 }
 
@@ -1010,9 +1029,9 @@ const OPEN = { dmg: 1.25, poise: 1.6 };
 /** how long a flinch holds it, and a stagger (s); longer caught open */
 const HOLD = { flinch: 0.2, stagger: 0.9 };
 
-/** what a hit carries: the harm, the poise it takes, and the shove it gives (kg m/s), all as stood still; and the way
- *  the shove goes, if not straight away from you */
-export interface Hit { dmg: number; poise: number; shove?: number; dir?: { x: number; z: number } }
+/** what a hit carries: the harm, the poise it takes, and the shove it gives (kg m/s), all as stood still; the way the
+ *  shove goes, if not straight away from you; and what struck, for the hit log */
+export interface Hit { dmg: number; poise: number; shove?: number; dir?: { x: number; z: number }; by?: string }
 
 /** something hit it: a blow or a shot, landing `k` times as hard as one stood still (sim/moves.ts, closing). It is
  *  shoved away from you by what it weighs: a worm is thrown, a husk sent back a step, a thresher rocked, a bloat not
@@ -1031,8 +1050,9 @@ export function hitMutant(sim: Sim, m: Mutant, w: Hit, k = 1): void {
     ux = w.dir ? w.dir.x : dx / d; uz = w.dir ? w.dir.z : dz / d;
     if (v > 0) { m.body.vx += ux * v; m.body.vz += uz * v; }
   }
-  if (m.hp <= 0) { kill(sim, m); return; }
-  if (m.down > 0) return;
+  const said = (r: string) => log(g, `${w.by ?? 'blow'} → ${m.type}  ${(w.dmg * k * (open ? OPEN.dmg : 1)).toFixed(0)} dmg  ×${k.toFixed(2)}${open ? ' open' : ''}  shove ${v.toFixed(1)} m/s  → ${r}`);
+  if (m.hp <= 0) { kill(sim, m); said('dead'); return; }
+  if (m.down > 0) { said('down already'); return; }
   /* the ladder (sim/moves.ts): the part of its blow it is in may shrug it off; getting up, it has better footing */
   const K = blowKind(m), armour = !K ? 0 : ph === 'wind' ? K.armour.wind : ph === 'strike' ? K.armour.strike : 0;
   const hitPoise = Math.max(0, w.poise * k * (open ? OPEN.poise : 1) - (m.rise > 0 ? RISE.guard : 0));
@@ -1043,6 +1063,7 @@ export function hitMutant(sim: Sim, m: Mutant, w: Hit, k = 1): void {
   else if (R.r === 'stagger') { m.blow = null; m.reel = HOLD.stagger * hold; m.stun = Math.max(m.stun, m.reel); }
   /* a flinch loses a blow on its way; one already thrown, it is still recovering from */
   else if (R.r === 'flinch') { if (!open) m.blow = null; m.stun = Math.max(m.stun, HOLD.flinch * hold); }
+  said(`${m.down > 0 ? (v >= LAUNCH.dv ? 'thrown' : 'down') : R.r}  (poise ${hitPoise.toFixed(0)}, ${R.left.toFixed(0)}/${m.pmax} left)`);
   switch (m.ai) {
     case 'husk':
       if (m.state === 'idle' || m.state === 'lurk') { m.state = 'hunt'; m.lost = 0; m.post = false; }
@@ -1075,6 +1096,7 @@ function floored(sim: Sim, m: Mutant): void {
 function battered(sim: Sim, m: Mutant, over: number, r: { dmg: number; poise: number }): void {
   if (m.dead) return;
   if (m.down > 0) over *= DOWN.more;
+  log(sim.game, `${r === FALL ? 'fall' : 'slam'} → ${m.type}  ${(over * r.dmg).toFixed(0)} dmg  (${over.toFixed(1)} m/s over)`);
   m.hp -= over * r.dmg;
   m.hit = Math.max(m.hit, 0.6);
   step_(sim, m, 'thud', m.big || m.mass > 2);
@@ -1092,6 +1114,11 @@ export function shoved(sim: Sim, m: Mutant): void {
   if (m.dead) return;
   if (m.ai === 'husk' && m.state !== 'hunt' && m.state !== 'flee') { m.state = 'hunt'; m.lost = 0; m.post = false; m.dest = -1; step_(sim, m, 'moan'); }
   else if (m.ai === 'skitter' && m.state === 'idle') { m.state = 'hunt'; m.lost = 0; m.bt = 0; step_(sim, m, 'skit'); }
+}
+
+/** dev (the arena): every one of the cast dead and gone at once */
+export function killAll(sim: Sim): void {
+  for (const m of sim.cast) if (!m.dead) kill(sim, m);
 }
 
 function kill(sim: Sim, m: Mutant): void {

@@ -6,7 +6,11 @@ import type { LevelDef } from '../types';
 
 /* A place for proving the engine, not part of the station. The hall: steps, a mezzanine, a ledge you can jump onto, a wall
    you cannot, a crawl you have to crouch through, a dark room for the flashlight. Through the door south, the lab: a ramp
-   up to a balcony, a lift to a gallery, a pool with a shallow end, crates to push, and a cave off its east side. */
+   up to a balcony, a lift to a gallery, a pool with a shallow end, crates to push, and a cave off its east side.
+   Through the gate north, the arena (engine.md §6, F4): open floor to fight on, the weapons on a table by the gate, a
+   corridor 1.6 m wide off its east side (where a side swing and a thresher's glance off the walls), a bay with a 2.2 m
+   ceiling off its west side (where the axe's chop catches), and a ledge 3 m up a ramp to knock things off. Nothing
+   lives in it: with ?dev, the keys 1 to 6 put the cast down in front of you (main.ts). */
 export function testbed(): LevelDef {
   const b = new LevelBuilder('testbed', 'Test bed');
 
@@ -60,6 +64,16 @@ export function testbed(): LevelDef {
     ceil: (x, z) => 1.6 * Math.sin((Math.PI * (z - 14)) / 16) + 0.3 * Math.sin(x * 1.3 + z),
   });
   for (const [x, z, s] of [[24, 18, 1.2], [28, 25, 1.6], [21, 27, 0.9]]) b.prop('ico', x, z, s, s * 0.7, s, 0x5a5248, { solid: true });
+
+  /* the arena, north through a gate */
+  b.room('Arena gate', 6, -2, 8, 0, { ht: 3, pal: UTIL, light: [0.4, 0.42, 0.45], nolamp: true });
+  b.room('Arena', -2, -18, 18, -2, { ht: 5, pal: SEC, light: [0.62, 0.64, 0.66] });
+  table(b, 3.5, -3.4, 2.4, 0.8);
+  ['baton', 'pipe', 'wrench', 'axe', 'knife'].forEach((id, i) => b.item(id, 2.6 + i * 0.45, 0.77, -3.4));
+  b.block(12, 0, -18, 18, 3, -13, 0x55585c); // the ledge, 3 m up
+  b.ramp(4, -18, 12, -15.5, 0, 3, 'e', 0x5f6266); // and the ramp up to it from the west
+  b.room('Arena corridor', 18, -11, 28, -9.4, { ht: 3, pal: UTIL, light: [0.45, 0.46, 0.5] });
+  b.room('Low bay', -8, -14, -2, -6, { ht: 2.2, pal: UTIL, light: [0.45, 0.42, 0.38] });
 
   b.start(3, 3, -PI / 2);
   return b.finish();
