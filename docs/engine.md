@@ -647,7 +647,7 @@ Playing the corpses found them goofy, for three reasons: nobody goes limp in no 
 20 m/s², twice the earth's, which suits a jump and yanks a body down as if on a string; and the blow's shove was laid on
 like a cartoon's (the head at 1.9 times it). The first of three tiers toward bodies that react (Euphoria's, in GTA and
 Red Dead, are muscles on a ragdoll: every joint driven toward a pose, and behaviours choosing the poses); the next two
-are reflexes (built: *Reflexes, as built*) and stagger steps.
+are reflexes and stagger steps (built: *Reflexes, as built*; *Stagger steps, as built*).
 
 - **Muscle tone** (`RAG.tone`, `tone` in `sim/ragdoll.ts`). For the first moments after a body goes loose, each point is
   pulled toward where it is as it stands, in the frame its trunk has now (three points of the trunk, `SKEL.core`): the
@@ -723,6 +723,37 @@ faster than a hand moves (4 m/s), and nothing is quicker than 0.08 s (`REFLEX` i
   A knockdown thrown hard is down no higher than sitting, where before it lay flat.
 - **Measured**: two rays a step for each knocked-down humanoid while it falls; nothing else that shows.
 - **Tests**: `test/ragdoll.test.ts`, *reflexes*, each with the reflexes on and off.
+
+### Stagger steps, as built
+
+The third tier, and the one with the uncertain payoff: a body knocked off its feet steps to catch itself before it goes
+down, so a knock reads as a stumble and then a fall (`STAGGER` and `stagger` in `sim/ragdoll.ts`; `SKEL.legs`).
+
+- **The step.** Where its weight is going is its middle carried on by its speed for as long as a body that tall takes
+  to fall (the capture point). Past 0.12 m from between its feet, it swings the foot further from there to it, lifted
+  0.12 m, over 0.22 s, no further from its hip than 0.55 of its leg. While it tries, its trunk is held over its feet
+  (`upright`, 0.06 of the way each step, fading to nothing over its time). It tries for 0.45 s and two steps; then its
+  knees are sent forward (`give`, 1.5 m/s), so one balanced on the feet it stepped to does not stand there while the
+  fight has it on the floor. The step under way is the loose body's (`Rag.stride`, `Rag.steps`): saved, plain numbers.
+- **Only the knocked down, and only those on two legs** (a husk, a thresher). The dying do not step: a step taken
+  toward a wall put a body's feet under it and took the slump from one killed against it, and a dead thresher that had
+  stepped stood balanced like a statue for two seconds.
+- **What it looks like.** A husk floored stumbles a step back, drops to a knee with an arm out, and goes down on its
+  side; its head is down 0.6 s after the blow (0.3 s with no steps). A thresher steps twice, leans, and goes over.
+- **How it measured, and why it is fragile.** Without the trunk held up, the steps were for show: the body fell in the
+  same 0.28 s whether or not its feet moved. With it held, when it goes down swings with small changes: across three
+  facings and three knocks, the thresher's head got below half its height anywhere from 0.45 s to never in 1.6 s (held
+  at 0.08 without the fade), the husk's from 0.6 to 1.35 s. With the fade over its time to try and the knees giving
+  at the end, every case gets down, but not every case before it begins to rise (1 s after the blow): the latest, a
+  husk knocked hard from the side, at 1.3 s, and one knocked lightly from the front at 1.1 s. With no steps, three of the
+  eighteen were as late or later (1.18 s, 1.43 s, and one that never got there, sitting propped on a hand:
+  REFLEX.brace). So a body can still be sitting up,
+  or only just going over, when the fight has it down: the drawing says down, if not flat, while the rule (blows land
+  1.5 times as hard) holds. Worth watching when you play.
+- **Not built**: a reel (a stagger short of a knockdown) that stumbles. A reeling body is not loose: it is the model's
+  animation, and stepping it would mean a body loose while it is still on its feet and fighting, every reel.
+- **Tests**: `test/ragdoll.test.ts`, *stagger steps*: steps taken, and its head down later than with none; the dying
+  take none.
 
 ---
 
