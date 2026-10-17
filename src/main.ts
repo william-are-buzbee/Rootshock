@@ -25,6 +25,7 @@ import { Cascade } from './present/cascade';
 import { U, setDetail } from './present/render/shader';
 import { Hud } from './present/ui/hud';
 import { Panels } from './present/ui/panels';
+import { Meter } from './present/perf';
 
 /* Boot: content -> world -> sim, and the page around it. The frame runs whole sim steps for the time that passed, then draws
    between the last two. The sim reports what happened as events (messages, sounds, a note to show, the power changing,
@@ -313,8 +314,15 @@ function events(): void {
 }
 
 let last = 0, fps = 60, flick = 0, expo = 1;
+/* where a frame goes (?dev): the sim's steps; the cast, crates and doors put where the sim has them; the rest of the
+   page's work; and the frame handed to the GPU (the beams' shadow maps and the view), with how many draw calls and
+   triangles that was. The GPU's own time is not here: a low fps with little of it spent here is the GPU */
+const meter = new Meter();
+view.renderer.info.autoReset = false;
 function frame(t: number): void {
   requestAnimationFrame(frame);
+  const t0 = performance.now();
+  view.renderer.info.reset();
   const dt = last ? Math.min(0.25, (t - last) / 1000) : 0;
   last = t;
   /* the world runs while you play; while a menu is open it stands still and only takes the menu's commands. A lift
@@ -327,7 +335,10 @@ function frame(t: number): void {
       stepRun(run, controls.take());
       if (run.here !== sim) { events(); arrive(); }
     }
+    meter.add('steps', n);
   } else if (mode === 'panel') applyCommands(sim);
+  const t1 = performance.now();
+  meter.add('sim', t1 - t0);
   if (!sim.tick) { const b = sim.player.body; prev.x = b.x; prev.y = b.y; prev.z = b.z; }
   rig.update(view.camera, sim, prev, mode === 'play' ? loop.alpha : 1, dt, controls.pending);
   /* a failing battery stutters */
@@ -335,7 +346,10 @@ function frame(t: number): void {
   flick -= dt;
   if (flick < 0 && Math.random() < dt * (g.batt < 20 ? 1.4 : 0.3)) flick = 0.05 + Math.random() * 0.2;
   if (flick > 0 && g.lightOn) { U.uFlash.value *= 0.25; U.uBounce.value *= 0.25; }
+  const t2 = performance.now();
   here.update(mode === 'play' ? loop.alpha : 1);
+  const castMs = performance.now() - t2;
+  meter.add('cast', castMs);
   /* the eye: it opens in the dark, slowly, and narrows against light quickly, so a room coming on glares a moment.
      It adapts to what is around you and to your own light, close in front of you; in a lit room it stays a little open,
      so the light reads as light */
@@ -383,9 +397,24 @@ function frame(t: number): void {
   hud.setRoom(room?.name ?? '', sim.world.def.name, mode === 'title' ? 0 : dt); // the label waits for you to open your eyes
   if (dt > 0) fps += (1 / dt - fps) * 0.05;
   if (DEV) track(dt);
-  hud.dev(DEV ? `${b.x.toFixed(2)} ${b.y.toFixed(2)} ${b.z.toFixed(2)}  ${room?.name ?? 'rock'}  ${b.ground ? 'ground' : 'air'}  ${Math.round(fps)} fps\n${sim.world.def.name}: ${sim.world.grid.chunkCount} chunks  mesh ${here.meshMs.toFixed(0)} ms  ${['fly', 'god', 'bright'].filter(k => k === 'fly' ? sim.player.fly : k === 'god' ? sim.game.god : devFlags.bright).join(' ')}\nV fly  G god  B bright  O colliders  P tracker  M surface detail\n${fightLine()}` : null);
+  hud.dev(DEV ? `${b.x.toFixed(2)} ${b.y.toFixed(2)} ${b.z.toFixed(2)}  ${room?.name ?? 'rock'}  ${b.ground ? 'ground' : 'air'}  ${Math.round(fps)} fps\n${sim.world.def.name}: ${sim.world.grid.chunkCount} chunks  mesh ${here.meshMs.toFixed(0)} ms  ${['fly', 'god', 'bright'].filter(k => k === 'fly' ? sim.player.fly : k === 'god' ? sim.game.god : devFlags.bright).join(' ')}\n${perfLine()}\nV fly  G god  B bright  O colliders  P tracker  M surface detail\n${fightLine()}` : null);
+  const t3 = performance.now();
   beams.render(view.renderer, view.scene, view.camera.position, lighting.looseLights);
   view.draw(t / 1000);
+  const t4 = performance.now(), info = view.renderer.info.render;
+  meter.add('gl', t4 - t3);
+  meter.add('page', t3 - t1 - castMs);
+  meter.add('frame', t4 - t0);
+  meter.add('calls', info.calls);
+  meter.add('tris', info.triangles / 1000);
+  meter.end(dt);
+}
+
+/** the dev readout's lines for where a frame goes (meter): ms, as the mean and worst of the last half second */
+function perfLine(): string {
+  const dead = sim.cast.filter(m => m.rag), awake = dead.filter(m => m.rag!.awake).length;
+  return `ms  ${meter.line(['frame', 'sim', 'cast', 'page', 'gl'])}  (${meter.line(['steps'], 1)} a frame)\n` +
+    `${meter.line(['calls'], 0)} draw calls  ${meter.line(['tris'], 0)}k triangles  loose bodies ${awake} awake of ${dead.length}`;
 }
 /* ?dev: the run on the window, for poking at from the console or a test script */
 if (DEV) (window as unknown as { rs: unknown }).rs = {

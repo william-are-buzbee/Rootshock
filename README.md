@@ -16,7 +16,10 @@ npm install        # once, and whenever package.json changes
 npm run dev        # serves the game at http://localhost:5173 and reloads on every save
 ```
 
-Open `http://localhost:5173/?dev` for the position readout and `window.rs.sim` in the browser console. Dev keys: V fly,
+Open `http://localhost:5173/?dev` for the position readout and `window.rs.sim` in the browser console. The readout also says
+where each frame goes, in ms as the mean and worst of the last half second: the sim's steps, the cast put where the sim
+has them, the rest of the page, and handing the frame to the GPU; with the draw calls and triangles that made, and how
+many loose bodies are awake. The GPU's own time is not counted: a low fps with little of the frame spent here is the GPU. Dev keys: V fly,
 G god, B bright, O draws every collider (and each body's poise, velocity and state, and your swing's path), P the
 tracker (what the progression checker says you can reach from where you stand).
 
