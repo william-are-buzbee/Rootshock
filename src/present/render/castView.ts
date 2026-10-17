@@ -383,7 +383,6 @@ export class CastView {
     mesh.position.set(m.x, m.y + 0.012, m.z);
     mesh.rotation.y = Math.random() * PI;
     mesh.scale.set(BLEED.from, 1, BLEED.from);
-    mesh.frustumCulled = false;
     this.light(mesh);
     this.bloods.push(mesh);
     this.scene.add(mesh);
