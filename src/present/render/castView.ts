@@ -7,6 +7,7 @@ import { dynamicMaterial, lightMaterial } from './shader';
 import { parts } from './things';
 import { BONE, DARK, FLESH, GOREC, GR, ORANGE, PALE, RAW, grp, mk, seeded, type O3 } from './castKit';
 import { animHand, animOverseer, buildHand, buildOverseer, type Ctx } from './security';
+import { RIG, Rigged } from './rig';
 
 /* The cast, drawn: the first engine's models (BUILD) and their animation (ANIM), ported nearly line for line. Each is a
    tree of parts on one material, so it flashes when hit and is lit by the room it stands in. Looks only: the sim
@@ -16,12 +17,17 @@ const PI = Math.PI;
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Model = { g: THREE.Group; [k: string]: any };
 
-const BUILD: Record<string, (mat: THREE.Material, m: Mutant) => Model> = {
+export const BUILD: Record<string, (mat: THREE.Material, m: Mutant) => Model> = {
   /* staff, early in the Regimen: still a person's outline, one arm already something else */
   husk(mat, m) {
     const R = seeded(m.id), g = new THREE.Group(), cl = R.pick([0xbfc3c0, 0x4a5560, 0x39485a, 0x6b6f5a, 0x7a5a50]), tr = 0x2b2e34;
-    const legs: O3[] = [];
-    for (const s of [-1, 1]) { const l = grp(g, s * 0.11, 0.9, 0); mk(l, mat, 'box', tr, 0.16, 0.9, 0.17, 0, -0.45, 0); mk(l, mat, 'box', DARK, 0.16, 0.07, 0.26, 0, -0.87, 0.04); legs.push(l); }
+    /* each leg in two at the knee, which only a body gone loose bends (rig.ts) */
+    const legs: O3[] = [], shins: O3[] = [];
+    for (const s of [-1, 1]) {
+      const l = grp(g, s * 0.11, 0.9, 0), k = grp(l, 0, -0.45, 0);
+      mk(l, mat, 'box', tr, 0.16, 0.45, 0.17, 0, -0.225, 0); mk(k, mat, 'box', tr, 0.16, 0.45, 0.17, 0, -0.225, 0); mk(k, mat, 'box', DARK, 0.16, 0.07, 0.26, 0, -0.42, 0.04);
+      legs.push(l); shins.push(k);
+    }
     const b = grp(g, 0, 0.9, 0);
     mk(b, mat, 'box', cl, 0.42, 0.6, 0.24, 0, 0.3, 0); mk(b, mat, 'box', tr, 0.4, 0.12, 0.23, 0, 0.03, 0); mk(b, mat, 'ico', RAW, 0.26, 0.3, 0.22, 0.17, 0.52, -0.04);
     const hd = grp(b, -0.02, 0.76, 0);
@@ -30,7 +36,7 @@ const BUILD: Record<string, (mat: THREE.Material, m: Mutant) => Model> = {
     const arms: O3[] = [];
     let a = grp(b, -0.27, 0.56, 0); mk(a, mat, 'box', cl, 0.11, 0.36, 0.12, 0, -0.18, 0); mk(a, mat, 'box', PALE, 0.08, 0.34, 0.08, 0, -0.52, 0); arms.push(a);
     a = grp(b, 0.3, 0.58, 0); mk(a, mat, 'box', RAW, 0.14, 0.4, 0.14, 0, -0.2, 0); mk(a, mat, 'box', FLESH, 0.1, 0.52, 0.1, 0, -0.64, 0); mk(a, mat, 'box', BONE, 0.05, 0.16, 0.05, 0, -0.97, 0.02); arms.push(a);
-    return { g, b, hd, legs, arms };
+    return { g, b, hd, legs, shins, arms };
   },
   skitter(mat) {
     const g = new THREE.Group(), b = grp(g, 0, 0.55, 0);
@@ -63,8 +69,12 @@ const BUILD: Record<string, (mat: THREE.Material, m: Mutant) => Model> = {
   /* a man whose ribcage has parted down the sternum and learned to open like a pair of doors */
   thresher(mat) {
     const g = new THREE.Group(), tr = 0x2b2e34, sh = 0xa9a595;
-    const legs: O3[] = [];
-    for (const s of [-1, 1]) { const l = grp(g, s * 0.17, 1, 0); mk(l, mat, 'box', tr, 0.2, 0.52, 0.22, 0, -0.26, 0); mk(l, mat, 'box', tr, 0.17, 0.46, 0.19, 0, -0.74, 0.02); mk(l, mat, 'box', DARK, 0.17, 0.08, 0.3, 0, -0.96, 0.06); legs.push(l); }
+    const legs: O3[] = [], shins: O3[] = [];
+    for (const s of [-1, 1]) {
+      const l = grp(g, s * 0.17, 1, 0), k = grp(l, 0, -0.52, 0);
+      mk(l, mat, 'box', tr, 0.2, 0.52, 0.22, 0, -0.26, 0); mk(k, mat, 'box', tr, 0.17, 0.46, 0.19, 0, -0.22, 0.02); mk(k, mat, 'box', DARK, 0.17, 0.08, 0.3, 0, -0.44, 0.06);
+      legs.push(l); shins.push(k);
+    }
     mk(g, mat, 'box', tr, 0.5, 0.2, 0.3, 0, 1.06, 0); mk(g, mat, 'box', 0x8a887c, 0.4, 0.38, 0.03, 0, 0.9, 0.17);
     const b = grp(g, 0, 1.14, 0);
     mk(b, mat, 'box', sh, 0.6, 0.8, 0.1, 0, 0.42, -0.19); mk(b, mat, 'box', GOREC, 0.52, 0.7, 0.14, 0, 0.42, -0.09); mk(b, mat, 'box', BONE, 0.07, 0.74, 0.07, 0, 0.42, -0.03);
@@ -89,7 +99,7 @@ const BUILD: Record<string, (mat: THREE.Material, m: Mutant) => Model> = {
       mk(f, mat, 'box', PALE, 0.09, 0.48, 0.09, 0, -0.24, 0); mk(f, mat, 'box', FLESH, 0.1, 0.15, 0.05, 0, -0.55, 0);
       arms.push({ a, f, s });
     }
-    return { g, b, hd, legs, arms, doors };
+    return { g, b, hd, legs, shins, arms, doors };
   },
   worm(mat, m) {
     const g = new THREE.Group(), segs: O3[] = [], gr = m.green;
@@ -123,7 +133,7 @@ const r = (a: number, b: number) => a + Math.random() * (b - a);
 /** smoothstep, 0..1 */
 const ease = (t: number) => t * t * (3 - 2 * t);
 
-const ANIM: Record<string, (m: Mutant, M: Model, c: Ctx) => void> = {
+export const ANIM: Record<string, (m: Mutant, M: Model, c: Ctx) => void> = {
   husk(m, M) {
     const mv = m.mv > 0, hunt = m.state === 'hunt', f = hunt ? 11 : 5;
     for (let k = 0; k < 2; k++) M.legs[k].rotation.x = mv ? Math.sin(m.ph * f + k * PI) * (hunt ? 0.7 : 0.35) : 0;
@@ -256,7 +266,17 @@ BUILD.overseer = mat => buildOverseer(mat);
 ANIM.hand = (m, M, c) => animHand(m, M as ReturnType<typeof buildHand>, c);
 ANIM.overseer = (m, M, c) => animOverseer(m, M as ReturnType<typeof buildOverseer>, c);
 
-interface Shown { m: Mutant; M: Model; mat: THREE.ShaderMaterial; blood: boolean; fall: number }
+interface Shown { m: Mutant; M: Model; mat: THREE.ShaderMaterial; blood: boolean; fall: number; rig: Rigged | null }
+
+/** a model fixed to its skeleton's points for when it goes loose (rig.ts), stood as it stands idle to be fixed */
+function rigOf(m: Mutant, M: Model, c: Ctx): Rigged | null {
+  if (!RIG[m.model] || !m.body) return null;
+  const idle = { ...m, state: 'idle', mv: 0, blow: null, reel: 0, ph: 0, down: 0, rise: 0, los: false, riled: false, hit: 0 } as Mutant;
+  const A = ANIM[m.model] ?? ANIM[m.ai];
+  /* the hand eases into how it holds itself, so it is given a few seconds of standing about */
+  for (let k = 0, n = m.model === 'hand' ? 300 : 1; k < n; k++) A?.(idle, M, c);
+  return new Rigged(M, m.model);
+}
 
 export class CastView {
   private shown: Shown[] = [];
@@ -269,8 +289,9 @@ export class CastView {
   private more(): void {
     for (let i = this.shown.length; i < this.sim.cast.length; i++) {
       const m = this.sim.cast[i], mat = dynamicMaterial(), M = BUILD[m.model](mat, m);
+      const rig = rigOf(m, M, { sim: this.sim, dt: 1 / 60, L: this.L });
       this.scene.add(M.g);
-      this.shown.push({ m, M, mat, blood: false, fall: 0 });
+      this.shown.push({ m, M, mat, blood: false, fall: 0, rig });
     }
   }
 
@@ -307,7 +328,14 @@ export class CastView {
       if (s.fall > 0.001 && !m.dead) { g.rotation.x -= s.fall * 1.45; g.position.y += s.fall * 0.15; }
       mat.uniforms.uHit.value = m.hit;
       const R = w.roomAt(x, y + 0.5, z) ?? w.roomAt(x, y + 1.2, z), none = [0, 0, 0];
-      lightMaterial(mat, R ? this.L.atPoint(x, y + 0.8, z) : none, R ? this.L.flickAt(x, y + 0.8, z) : none);
+      const ly = y + (m.rag ? 0.4 : 0.8);
+      lightMaterial(mat, R ? this.L.atPoint(x, ly, z) : none, R ? this.L.flickAt(x, ly, z) : none);
+      if (m.dead && m.rag && s.rig) {
+        /* gone loose: drawn as its points lie (rig.ts); it bleeds where it comes to rest */
+        s.rig.pose(m.rag, alpha, c.dt);
+        if (!s.blood && !m.rag.awake && !m.swim && w.waterAt(m.x, m.z) < m.y) { s.blood = true; this.blood(m); }
+        continue;
+      }
       if (m.dead) {
         /* it folds down where it fell, and leaves itself on the floor */
         g.scale.y = 1 - 0.62 * m.gone;

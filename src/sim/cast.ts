@@ -12,6 +12,8 @@ import { eyeHeight } from './player';
 import { closing, DOWN, FALL, LAUNCH, MOVES, POISE, react, regain, RISE, SHOVE, SLAM, type Move } from './moves';
 import { simLighting, type Sim } from './sim';
 import { blinded, manned, soundZone } from './eyes';
+import { makeRag, type Killing, type Rag } from './ragdoll';
+import type { V3 } from './sweep';
 
 /* The cast (engine.md §7, §8): what lives in the station, ported from the first engine's behaviours. Each is a body that
    walks like yours, so it has weight, falls, rides platforms and is stopped by what stops you; they block each other
@@ -132,8 +134,10 @@ export interface Mutant {
   /** time, for its animation */
   ph: number;
   dead: boolean;
-  /** 0..1 of its fall when it dies */
+  /** 0..1 of its fall when it dies, for those that only fold where they are (a bloat, what grows on a wall) */
   gone: number;
+  /** its body gone loose, once it is dead (sim/ragdoll.ts) */
+  rag: Rag | null;
   /** steps it has stood still: a body at rest is not asked about its footing */
   still: number;
 }
@@ -161,7 +165,7 @@ function makeMutant(sim: Sim, def: MutantDef, id: number): Mutant {
       post: !!o.post, sit: !!o.sit, holt: !!o.holt, big: !!o.big, zone: (def.opts.zone as string | undefined) ?? null, screens: (def.opts.screens as string | undefined) ?? null, hx: def.x, hz: def.z, room,
       wt: rnd(1, 5), wm: 0, wx: 0, wz: 0, tk: 0, lost: 0, bt: 0, burst: false, flee: 0, ct: rnd(6, 14), cdir: 0, tgt: false,
       grab: 0, tense: 0, riled: false, blow: null, dest: -1, F: null, stk: 0, fled: false, side: 0, ride: null, spot: -1,
-      mv: 0, d: 99, dp: 99, dy: 0, los: false, losAt: -99, hit: 0, poise: poiseOf(def.type, S.ai, !!o.big), pmax: poiseOf(def.type, S.ai, !!o.big), calm: 99, reel: 0, pat: 0, down: 0, rise: 0, acc: S.acc, drove: false, ph: rnd(9), dead: false, gone: 0, still: 0,
+      mv: 0, d: 99, dp: 99, dy: 0, los: false, losAt: -99, hit: 0, poise: poiseOf(def.type, S.ai, !!o.big), pmax: poiseOf(def.type, S.ai, !!o.big), calm: 99, reel: 0, pat: 0, down: 0, rise: 0, acc: S.acc, drove: false, ph: rnd(9), dead: false, gone: 0, rag: null, still: 0,
     };
     return m;
   }
@@ -1057,7 +1061,11 @@ const HOLD = { flinch: 0.2, stagger: 0.9 };
 
 /** what a hit carries: the harm, the poise it takes, and the shove it gives (kg m/s), all as stood still; the way the
  *  shove goes, if not straight away from you; and what struck, for the hit log */
-export interface Hit { dmg: number; poise: number; shove?: number; dir?: { x: number; z: number }; by?: string }
+export interface Hit {
+  dmg: number; poise: number; shove?: number; dir?: { x: number; z: number }; by?: string;
+  /** where it landed, and the way what struck was going there: what a body killed by it goes loose with */
+  at?: V3; way?: V3;
+}
 
 /** something hit it: a blow or a shot, landing `k` times as hard as one stood still (sim/moves.ts, closing). It is
  *  shoved away from you by what it weighs: a worm is thrown, a husk sent back a step, a thresher rocked, a bloat not
@@ -1077,7 +1085,7 @@ export function hitMutant(sim: Sim, m: Mutant, w: Hit, k = 1): void {
     if (v > 0) { m.body.vx += ux * v; m.body.vz += uz * v; }
   }
   const said = (r: string) => log(g, `${w.by ?? 'blow'} → ${m.type}  ${(w.dmg * k * (open ? OPEN.dmg : 1)).toFixed(0)} dmg  ×${k.toFixed(2)}${open ? ' open' : ''}  shove ${v.toFixed(1)} m/s  → ${r}`);
-  if (m.hp <= 0) { kill(sim, m); said('dead'); return; }
+  if (m.hp <= 0) { kill(sim, m, { ux, uz, v, at: w.at, way: w.way }); said('dead'); return; }
   if (m.down > 0) { said('down already'); return; }
   /* the ladder (sim/moves.ts): the part of its blow it is in may shrug it off; getting up, it has better footing */
   const K = blowKind(m), armour = !K ? 0 : ph === 'wind' ? K.armour.wind : ph === 'strike' ? K.armour.strike : 0;
@@ -1147,8 +1155,11 @@ export function killAll(sim: Sim): void {
   for (const m of sim.cast) if (!m.dead) kill(sim, m);
 }
 
-function kill(sim: Sim, m: Mutant): void {
+function kill(sim: Sim, m: Mutant, blow: Killing | null = null): void {
   m.dead = true;
+  /* what has a body goes loose, carrying what killed it (sim/ragdoll.ts); the rest folds where it is */
+  m.rag = makeRag(m, blow);
+  if (m.rag) m.rag.woke = sim.tick;
   m.gone = 0;
   m.blow = null;
   m.ride = null;
