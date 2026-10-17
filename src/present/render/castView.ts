@@ -266,7 +266,8 @@ BUILD.overseer = mat => buildOverseer(mat);
 ANIM.hand = (m, M, c) => animHand(m, M as ReturnType<typeof buildHand>, c);
 ANIM.overseer = (m, M, c) => animOverseer(m, M as ReturnType<typeof buildOverseer>, c);
 
-interface Shown { m: Mutant; M: Model; mat: THREE.ShaderMaterial; blood: boolean; fall: number; rig: Rigged | null }
+/** `loose`: the rig has had its parts since the animation last did */
+interface Shown { m: Mutant; M: Model; mat: THREE.ShaderMaterial; blood: boolean; fall: number; rig: Rigged | null; loose: boolean }
 
 /** a model fixed to its skeleton's points for when it goes loose (rig.ts), stood as it stands idle to be fixed */
 function rigOf(m: Mutant, M: Model, c: Ctx): Rigged | null {
@@ -291,7 +292,7 @@ export class CastView {
       const m = this.sim.cast[i], mat = dynamicMaterial(), M = BUILD[m.model](mat, m);
       const rig = rigOf(m, M, { sim: this.sim, dt: 1 / 60, L: this.L });
       this.scene.add(M.g);
-      this.shown.push({ m, M, mat, blood: false, fall: 0, rig });
+      this.shown.push({ m, M, mat, blood: false, fall: 0, rig, loose: false });
     }
   }
 
@@ -327,6 +328,8 @@ export class CastView {
       /* knocked down: over backward onto the floor, quickly, and back up as it gets up (sim/moves.ts, DOWN) */
       const down = m.down > 0 ? 1 : m.rise > 0 ? m.rise / DOWN.rise : 0;
       s.fall += (down - s.fall) * Math.min(1, c.dt * (down > s.fall ? 10 : 5));
+      /* gone loose (sim/ragdoll.ts): its points have it, not a tip of the whole */
+      if (m.rag && s.rig) s.fall = 0;
       if (s.fall > 0.001 && !m.dead) { g.rotation.x -= s.fall * 1.45; g.position.y += s.fall * 0.15; }
       mat.uniforms.uHit.value = m.hit;
       const R = w.roomAt(x, y + 0.5, z) ?? w.roomAt(x, y + 1.2, z), none = [0, 0, 0];
@@ -335,6 +338,7 @@ export class CastView {
       if (m.dead && m.rag && s.rig) {
         /* gone loose: drawn as its points lie (rig.ts); it bleeds where it comes to rest */
         s.rig.pose(m.rag, alpha, c.dt);
+        s.loose = true;
         if (!s.blood && !m.rag.awake && !m.swim && w.waterAt(m.x, m.z) < m.y) { s.blood = true; this.blood(m); }
         continue;
       }
@@ -346,8 +350,13 @@ export class CastView {
         if (!s.blood && !m.fixed && !m.swim && w.waterAt(m.x, m.z) < m.y) { s.blood = true; this.blood(m); }
         continue;
       }
+      /* knocked down, loose: lying as its points lie, until it gets up */
+      if (m.rag && s.rig && m.down > 0) { s.rig.pose(m.rag, alpha, c.dt); s.loose = true; continue; }
+      if (s.loose) { s.rig!.restore(); s.loose = false; }
       /* by its model first: the hand fights as a thresher, and is drawn as itself */
       (ANIM[m.model] ?? ANIM[m.ai])?.(m, M, c);
+      /* getting up: from as its points lie into how it stands, as it rises */
+      if (m.rag && s.rig) { s.rig.rise(m.rag, alpha, 1 - m.rise / DOWN.rise); s.loose = true; }
     }
   }
 

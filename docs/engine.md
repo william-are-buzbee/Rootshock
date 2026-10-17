@@ -279,7 +279,8 @@ some of it upward; gravity and landing do the rest. You knocked down: the view i
 tilted, and you are down about a second; the cast use it (a husk stomps whoever is down). Getting up gives a moment of
 extra poise, not immunity, so a knockdown cannot chain into a death. A husk knocked down has a pose (`castView`), and a
 blow to it counts for more. These are authored, not simulated: the cast are boxes and blobs, and a reaction that is
-written reads better than one that is solved.
+written reads better than one that is solved. (Built so; since, the cast's knockdowns are drawn loose, the rules as
+they were: *Bodies with physics, as built*.)
 
 ### What a solver is for (proposed)
 
@@ -463,7 +464,8 @@ corpse worth throwing.
 - **You, down**: as low as crouching (and standing again only where there is room); the view drops to the floor,
   tipped over the way you went and looking up, and comes back up as you rise; the arm is flung down out of the way.
   Heard: the wind knocked out of you and the floor coming up.
-- **The cast, down**: drawn over backward onto the floor, and back up as they rise.
+- **The cast, down**: drawn over backward onto the floor, and back up as they rise. (Since: loose, *Bodies with
+  physics, as built*.)
 - **Not built**: a husk that goes for whoever is down (they do go on striking, and land harder, but have no stomp of
   their own); rolling to get up. (Corpses that fall loose: since, below.)
 - **Tests**: `test/down.test.ts`. Saves carry the cast's `down` and `rise` (still version 5: a save without them loads
@@ -519,8 +521,7 @@ corpse worth throwing.
 
 The cast's bodies are physical while they live (velocity, mass, shoves, slams, falls); their deaths were drawn: a model
 that shrank and tipped where it stood, its collider gone at once. Now what dies goes loose. Step 1 of three: corpses
-fall loose (built); corpses stay in the world (knocked about, saved: built); knockdowns as ragdolls (after, if the two
-go well).
+fall loose; corpses stay in the world (knocked about, saved); knockdowns as ragdolls. All three built.
 
 - **Not Rapier: a ragdoll of our own** (`sim/ragdoll.ts`). Rapier's current build (0.21; `@dimforge/rapier3d-compat`,
   and `@dimforge/rapier3d-deterministic-compat` for the same result on every machine) is a 3.1 MB WebAssembly module,
@@ -622,6 +623,21 @@ go well).
   sixteen falling at once cost about 1 ms a step together (60 µs each), 0.85 ms settling, nothing asleep. Forty husks
   killed together in a heap 5 m across, 2.5 ms a step while they fall (all awake, the budget waiting for them to land),
   all asleep within 2.5 s; walking through the heap, 0.7 ms.
+- **Knocked down, loose** (step 3). A husk, a thresher or the hand floored (`cast.ts`, `floored`) goes down as a body
+  gone loose, carrying the blow that floored it, as a corpse does a killing one (less the throw, which the fight has
+  given its body already). The fight is untouched: its body (the upright cylinder) is still where the rules have it,
+  sliding on the knock, slamming into walls, getting up when `m.down` and `m.rise` say; the loose body is drawn after
+  it, a fifth of the way to its feet each step (`RAG.held`), and never moves it. Down, it does not sleep, and nothing
+  of it but the drawing reads it. A blow on one down jolts its body where it lands; killed down, the same body goes on,
+  dead. Getting up (0.6 s), the model comes out of the pose its points have into its animation as it rises (`rig.ts`,
+  `rise`), and the loose body is let go when it is up. The same knockdown with this on and off (`RAG.floored`) gives
+  the same fight to the step, hit points, poise and timers alike (a test holds it to that).
+- **What it looks like**: an axe run into a husk drops it to sitting within a third of a second (its knees go), then
+  it lies back; a thresher floored sits down hard, leaning back on its arms. Drawn after its feet, a husk ends up lying
+  about where it will stand. Up, it unfolds into its stance over the rise, which reads as getting up, if a smooth one.
+- **Not built**: rolling over to get up (it rises the way its animation stands, from wherever its points lie); you, knocked down, are still a view thrown to the
+  floor (there is no body of yours to go loose: `selfView` is drawn by the camera).
+- **Saved**: the knocked down's loose body too; a run saved with one on the floor plays on exactly.
 - **Tests**: `test/ragdoll.test.ts`.
 
 ---

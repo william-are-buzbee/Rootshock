@@ -325,6 +325,76 @@ describe('corpses stay in the world', () => {
   });
 });
 
+describe('knocked down, loose', () => {
+  /** a husk the axe floors, run in (engine.md §6, knockdowns: 6.2 m/s) */
+  const floor = (s: Sim, m: Mutant) => hitMutant(s, m, { dmg: 10, poise: 29, shove: 70 * 4.7, dir: { x: 0, z: -1 }, by: 'axe', at: { x: m.x, y: m.y + 1.35, z: m.z + 0.4 }, way: { x: 0, y: -1, z: -0.3 } }, 1.5);
+
+  it('goes down loose, lies, and is its own body again once up', () => {
+    for (const t of ['husk', 'thresher', 'hand']) {
+      const s = arena(), m = stood(s, t, 8, 0, -8, 0);
+      m.stun = 0; s.game.god = true;
+      hitMutant(s, m, { dmg: 10, poise: 500, shove: 1500, dir: { x: 0, z: -1 }, at: { x: m.x, y: m.y + m.body!.h * 0.75, z: m.z + 0.4 }, way: { x: 0, y: -1, z: -0.3 } }, 1);
+      expect(m.down, t).toBeGreaterThan(0);
+      expect(m.rag).not.toBe(null);
+      const R = m.rag!, B = bones(t);
+      hold(s, 0.9);
+      expect(Math.max(...B.names.map((_, i) => R.p[i * 3 + 1])), t).toBeLessThan(m.body!.h * 0.45);
+      /* drawn after its feet: it lies about where the fight has it */
+      const a = ragAt(R);
+      expect(Math.hypot(a.x - m.x, a.z - m.z), t).toBeLessThan(1);
+      hold(s, 0.8);
+      expect(m.down + m.rise).toBe(0);
+      expect(m.rag).toBe(null);
+    }
+  });
+
+  it('changes nothing in the fight: the same knockdown with and without it goes the same', () => {
+    const run = (loose: boolean) => {
+      RAG.floored = loose;
+      const s = arena(), m = stood(s, 'husk', 8, 0, -6, 0);
+      m.stun = 0;
+      floor(s, m);
+      const out: number[] = [];
+      for (let k = 0; k < 150; k++) { step(s, noInput()); out.push(m.x, m.z, m.hp, m.down, m.rise, m.poise, s.player.body.x, s.player.body.z, s.game.hp); }
+      return out;
+    };
+    try { expect(run(true)).toEqual(run(false)); } finally { RAG.floored = true; }
+  });
+
+  it('a blow on one down jolts its body where it lands; killed there, the same body goes on, dead', () => {
+    const s = arena(), m = stood(s, 'husk', 8, 0, -8, 0);
+    m.stun = 0;
+    floor(s, m);
+    hold(s, 0.5);
+    const R = m.rag!, before = R.p.slice();
+    hitMutant(s, m, { dmg: 5, poise: 10, shove: 300, dir: { x: 1, z: 0 }, at: pt(m, 'head'), way: { x: 1, y: 0, z: 0 } }, 1);
+    hold(s, 0.2);
+    const head = bones('husk').at.head * 3;
+    expect(R.p[head] - before[head]).toBeGreaterThan(0.05);
+    hitMutant(s, m, { dmg: 999, poise: 10, shove: 300, dir: { x: 1, z: 0 }, at: pt(m, 'belly'), way: { x: 1, y: 0, z: 0 } }, 1);
+    expect(m.dead).toBe(true);
+    expect(m.rag).toBe(R);
+    hold(s, 3);
+    expect(R.awake).toBe(false);
+  });
+
+  it('is saved while down: a run saved with one on the floor plays on as it would have', () => {
+    const level = () => { const lv = testbed(); lv.mutants.push({ type: 'husk', x: 8, y: 0, z: -6, opts: {} }); return lv; };
+    const run = (saveAt: number | null) => {
+      let s = arena(level());
+      hold(s, 0.1);
+      floor(s, s.cast[0]);
+      for (let k = 0; k < 120; k++) {
+        if (k === saveAt) s = load(level(), JSON.parse(JSON.stringify(save(s))));
+        step(s, noInput());
+      }
+      const m = s.cast[0];
+      return [m.x, m.z, m.down, m.rise, m.rag?.p ?? null];
+    };
+    expect(run(30)).toEqual(run(null));
+  });
+});
+
 it('costs little: sixteen falling at once, and asleep, timed against the arena with nothing in it; forty, walked through', () => {
   /* a step of the whole sim, on average over `secs`, in ms */
   const timed = (s: Sim, secs: number, inp: Partial<Input> = {}) => {
