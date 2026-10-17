@@ -14,6 +14,7 @@ import { hurt, log, makeGame, makeNoise, power, runLight, toggleLight, unwear, u
 import type { Input } from './input';
 import { buildUsables, findUsable, itemUse, padKey, type Usable, type WorldItem } from './interact';
 import { LooseSet, makeLoose } from './loose';
+import { updateCorpses } from './ragdoll';
 import { makeDoor, makePlatform, updateDoor, updatePlatform, type Door, type Platform, type Rider } from './movers';
 import { airFor, eyeHeight, makePlayer, MASS, updatePlayer, type Player } from './player';
 
@@ -263,6 +264,7 @@ export function step(sim: Sim, input: Input): void {
   if (sim.fields) updateFields(sim, sim.fields);
   updateEyes(sim);
   updateCast(sim);
+  updateCorpses(sim);
   sim.loose.update(STEP, sim.tick, rs);
 
   const f = findUsable(sim);

@@ -241,7 +241,7 @@ function sweep(sim: Sim, w: WeaponStats, a0: number, a1: number): 'none' | 'hit'
     const H0 = along(F, sh, R, u0), H1 = along(F, sh, R, u1), tp = ray(sim, H0, H1), ts = ray(sim, F.p, H1);
     const C = tp < 1 ? mix(H0, H1, tp) : ts < 1 ? mix(F.p, H1, ts) : null;
     const tw = !C || C.y < b.y + 0.3 ? 2 : tp < 1 ? tp : 1;
-    if (best && at && from && to && bt <= tw) { landOn(sim, w, best, from, to); return 'hit'; }
+    if (best && at && from && to && bt <= tw) { landOn(sim, w, best, from, to, at); return 'hit'; }
     if (C && tw <= 1) {
       sfx(g, 'blow', C);
       makeNoise(g, 8);
@@ -258,14 +258,14 @@ function sweep(sim: Sim, w: WeaponStats, a0: number, a1: number): 'none' | 'hit'
 /** your blow lands on one of the cast: as hard as you and it were closing along it (sim/moves.ts, closing), and it is
  *  shoved the way the blow was going (half along the line, half the way the head was moving: a side swing sends a
  *  worm off to your left) */
-function landOn(sim: Sim, w: WeaponStats, m: Mutant, A: V3, B: V3): void {
+function landOn(sim: Sim, w: WeaponStats, m: Mutant, A: V3, B: V3, at: V3): void {
   const b = sim.player.body, L = sim.hands.line ?? sim.player, fx = -Math.sin(L.yaw), fz = -Math.cos(L.yaw);
   const you = b.vx * fx + b.vz * fz, it = m.fixed ? 0 : -((m.x - m.px) * fx + (m.z - m.pz) * fz) / dt;
   let hx = B.x - A.x, hz = B.z - A.z;
   const hl = Math.hypot(hx, hz);
   if (hl > 1e-6) { hx /= hl; hz /= hl; } else { hx = fx; hz = fz; }
   const dx = fx + hx, dz = fz + hz, dl = Math.hypot(dx, dz) || 1;
-  hitMutant(sim, m, { dmg: w.dmg, poise: swingFor(w).poise, shove: SHOVE.you * (w.mass + SHOVE.arm), dir: { x: dx / dl, z: dz / dl }, by: sim.game.weapon ?? 'fists' }, closing(you + it));
+  hitMutant(sim, m, { dmg: w.dmg, poise: swingFor(w).poise, shove: SHOVE.you * (w.mass + SHOVE.arm), dir: { x: dx / dl, z: dz / dl }, by: sim.game.weapon ?? 'fists', at, way: { x: B.x - A.x, y: B.y - A.y, z: B.z - A.z } }, closing(you + it));
   makeNoise(sim.game, 10);
   landed(sim, 1);
 }
@@ -289,7 +289,7 @@ function fire(sim: Sim, w: WeaponStats): void {
   makeNoise(g, 36);
   g.events.push({ type: 'shake', k: big ? 0.3 : 0.12 });
   const A = aim(sim);
-  let best: Mutant | null = null, bd = 1e9;
+  let best: Mutant | null = null, bd = 1e9, by = 0;
   for (const m of sim.cast) {
     if (m.dead) continue;
     const dx = m.x - A.ex, dz = m.z - A.ez, d = Math.hypot(dx, dz);
@@ -298,7 +298,7 @@ function fire(sim: Sim, w: WeaponStats): void {
     const dot = (dx * A.fx + hy * A.fy + dz * A.fz) / Math.hypot(dx, hy, dz);
     if (dot < (w.cone ?? 0.98) && d > m.r + 0.8) continue;
     if (sim.world.raycast(A.ex, A.ey, A.ez, m.x, ty, m.z, seeThrough) < 1) continue;
-    if (d < bd) { bd = d; best = m; }
+    if (d < bd) { bd = d; best = m; by = ty; }
   }
-  if (best) hitMutant(sim, best, { dmg: w.dmg * (big ? clamp(1.2 - bd / range, 0.25, 1) : 1), poise: big ? 60 : 22, shove: big ? 300 : 40, by: g.weapon ?? 'gun' }, 1);
+  if (best) hitMutant(sim, best, { dmg: w.dmg * (big ? clamp(1.2 - bd / range, 0.25, 1) : 1), poise: big ? 60 : 22, shove: big ? 300 : 40, by: g.weapon ?? 'gun', at: { x: best.x, y: by, z: best.z }, way: { x: A.fx, y: A.fy, z: A.fz } }, 1);
 }
