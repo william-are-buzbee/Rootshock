@@ -580,7 +580,10 @@ fall loose; corpses stay in the world (knocked about, saved); knockdowns as ragd
   twist on its own. Each is fixed to its frame as the model stands idle. What is not tied to a frame (a thresher's
   ribs, the hand's fingers' second joint, its head and eye) stays as it was the moment it died. Death is not a cut:
   over 0.15 s the model goes from where it was drawn to where its points are. It bleeds where it comes to rest (the
-  pool waits until it is asleep).
+  pool waits until it is asleep). Asleep, it is laid once, not every frame, and drawn as one mesh of all its parts
+  where they lie (one draw call, not one a part: a husk is 18, a thresher 47, the hand 81), its parts again once it
+  wakes. Every part of the cast, living or dead, is culled by its own bounds by whichever camera draws it, a beam's
+  shadow map too. The dev readout (`?dev`) says where each frame goes and how many draw calls it made.
 - **What it looks like** (the arena, killed side on). A husk stood still and chopped with the axe is on the floor in
   0.25 s, 1.3 m along the blow, asleep in 1.6 s; run in, 1.6 m. The baton's swing turns it over its side and leaves it
   0.9 m along. Killed with no blow, its knees go and it crumples within 0.3 m of where it stood. A thresher drops onto

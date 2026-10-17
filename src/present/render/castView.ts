@@ -274,7 +274,11 @@ ANIM.overseer = (m, M, c) => animOverseer(m, M as ReturnType<typeof buildOversee
 const BLEED = { after: 0.25, speed: 0.6, from: 0.15, spread: 3.5 };
 
 /** `loose`: the rig has had its parts since the animation last did */
-interface Shown { m: Mutant; M: Model; mat: THREE.ShaderMaterial; blood: boolean; fall: number; rig: Rigged | null; loose: boolean }
+interface Shown {
+  m: Mutant; M: Model; mat: THREE.ShaderMaterial; blood: boolean; fall: number; rig: Rigged | null; loose: boolean;
+  /** asleep, all of it as one mesh where it lies, in place of its parts (rig.ts, bake) */
+  baked: THREE.Mesh | null;
+}
 
 /** a model fixed to its skeleton's points for when it goes loose (rig.ts), stood as it stands idle to be fixed */
 function rigOf(m: Mutant, M: Model, c: Ctx): Rigged | null {
@@ -299,7 +303,7 @@ export class CastView {
       const m = this.sim.cast[i], mat = dynamicMaterial(), M = BUILD[m.model](mat, m);
       const rig = rigOf(m, M, { sim: this.sim, dt: 1 / 60, L: this.L });
       this.scene.add(M.g);
-      this.shown.push({ m, M, mat, blood: false, fall: 0, rig, loose: false });
+      this.shown.push({ m, M, mat, blood: false, fall: 0, rig, loose: false, baked: null });
     }
   }
 
@@ -324,7 +328,8 @@ export class CastView {
     this.spread();
     for (const s of this.shown) {
       const { m, M, mat } = s, g = M.g;
-      g.visible = !m.away;
+      if (s.baked && (m.away || !m.rag)) this.unbake(s);
+      g.visible = !m.away && !s.baked;
       if (m.away) continue;
       const x = m.px + (m.x - m.px) * alpha, z = m.pz + (m.z - m.pz) * alpha;
       let y = m.py + (m.y - m.py) * alpha;
@@ -349,6 +354,7 @@ export class CastView {
         /* gone loose: drawn as its points lie (rig.ts); it bleeds where it comes to rest */
         s.rig.pose(m.rag, alpha, c.dt);
         s.loose = true;
+        if (s.rig.settled !== !!s.baked) s.rig.settled ? this.bake(s) : this.unbake(s);
         if (!s.blood && !m.swim && w.waterAt(m.x, m.z) < m.y && this.down(m)) { s.blood = true; this.blood(m); }
         continue;
       }
@@ -368,6 +374,24 @@ export class CastView {
       /* getting up: from as its points lie into how it stands, as it rises */
       if (m.rag && s.rig) { s.rig.rise(m.rag, alpha, 1 - m.rise / DOWN.rise); s.loose = true; }
     }
+  }
+
+  /** asleep where it lies: one mesh of all its parts, on its material, drawn in place of them; its parts are hidden */
+  private bake(s: Shown): void {
+    /* beside its parts, where they are: one laid as it lies stands where its group's frame is its parent's */
+    const g = s.M.g, mesh = new THREE.Mesh(s.rig!.bake(), s.mat);
+    g.parent!.add(mesh);
+    s.baked = mesh;
+    g.visible = false;
+  }
+
+  /** woken (or taken away): its parts again */
+  private unbake(s: Shown): void {
+    const mesh = s.baked!;
+    mesh.removeFromParent();
+    mesh.geometry.dispose();
+    s.baked = null;
+    s.M.g.visible = !s.m.away;
   }
 
   /** gone loose and down: on the floor, and all but stopped (it need not have gone to sleep) */

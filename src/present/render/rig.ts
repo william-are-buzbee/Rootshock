@@ -193,6 +193,33 @@ export class Rigged {
     this.still = !R.awake && this.t >= BLEND;
   }
 
+  /** laid as it lies asleep: it will not move until it wakes */
+  get settled(): boolean {
+    return this.still;
+  }
+
+  /** every part shown, as it was last laid, as one geometry in its group's frame: a body asleep drawn in one draw call
+   *  rather than one a part (castView.ts). The parts' own geometries are shared, and left as they are */
+  bake(): THREE.BufferGeometry {
+    const g = this.M.g, inv = _m.copy(g.matrixWorld).invert(), shown: THREE.Mesh[] = [];
+    g.traverseVisible(o => { if ((o as THREE.Mesh).isMesh) shown.push(o as THREE.Mesh); });
+    let n = 0;
+    for (const o of shown) n += o.geometry.getAttribute('position').count;
+    const P = new Float32Array(n * 3), C = new Float32Array(n * 3);
+    let at = 0;
+    for (const o of shown) {
+      const pos = o.geometry.getAttribute('position'), col = o.geometry.getAttribute('aCol'), T = _n.multiplyMatrices(inv, o.matrixWorld);
+      for (let v = 0; v < pos.count; v++, at++) {
+        _p.fromBufferAttribute(pos, v).applyMatrix4(T).toArray(P, at * 3);
+        C[at * 3] = col.getX(v); C[at * 3 + 1] = col.getY(v); C[at * 3 + 2] = col.getZ(v);
+      }
+    }
+    const out = new THREE.BufferGeometry();
+    out.setAttribute('position', new THREE.BufferAttribute(P, 3));
+    out.setAttribute('aCol', new THREE.BufferAttribute(C, 3));
+    return out;
+  }
+
   /** getting up (sim/cast.ts, `rise`): the model as its animation has it this frame, `e` (0..1) of the way there from
    *  as its points lie. The animation has been run, and the model placed where the sim has it */
   rise(R: Rag, alpha: number, e: number): void {
