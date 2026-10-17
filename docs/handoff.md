@@ -1,0 +1,95 @@
+# Handoff: bodies with physics
+
+For whoever picks this up in a new session. What was built, where it is, how it was measured, and what is still open.
+The record of each piece is engine.md §6 (*Bodies with physics*, *Muscle tone*, *Reflexes*, *Stagger steps*, *After
+play*, each "as built"); this is the map to it.
+
+## Where it stands
+
+- Merged: corpses loose (#68), corpses kept (#69), knockdowns loose (#70), muscle tone and corpse gravity (#71),
+  reflexes (#72), stagger steps (#73).
+- This branch (`claude/eager-fermi-bp97gu`, its own PR): four things found playing. The chop's shove went sideways
+  (combat.ts, `landOn`); the dead flew (ragdoll.ts, `loose`, `RAG.shove`); the dying worm swam (`writhe`); the
+  floored husk spun on its feet (`stagger`'s upright hold); the grabber could only be hit at its head (combat.ts,
+  `GRAB`). engine.md §6, *After play, as built*, has the numbers.
+
+## The asks that stand
+
+- `src/sim/` and `src/world/` never import three.js or touch the page; the sim runs headless (vitest).
+- Determinism: seeded randomness only; two identical runs end identically. Saves are plain data (`sim/save.ts`; the
+  ragdoll's `Rag` is plain numbers). The world is rebuilt from the level, never saved. world.ts is the authority for
+  characters, sight, sound, pathfinding; the ragdoll asks it, never the other way.
+- **Ask before anything that changes how combat plays**: damage, poise, knockdown thresholds, and (by extension)
+  when and where a blow lands. Tuned by feel; the owner likes where they are.
+- `npm run check` (types and tests) before every push. Headless tests for anything new. Look at it in the built
+  game with headless Chromium. House style: comments and docs in clipped prose in the game's register; constants in
+  tables, each with a comment. Commit: a short title, a prose body saying why. A PR per step: what changed, what was
+  measured, what is not built. Record what was built and measured, and what was tried and set aside, in engine.md §6.
+
+## Where things are
+
+- `src/sim/ragdoll.ts`: all of it. `SKEL` (each kind's points, rigid cluster, sticks, joint limits, hinges, tone,
+  hands, legs), `RAG` (the solver and how blows land on a body), `REFLEX`, `STAGGER`. `makeRag`/`loose` turn a body
+  loose with the blow in it; `updateCorpses` steps them all (budget 16 awake, asleep costs nothing); `begin` and
+  `finish` are the two halves of a step; `knockRag` is a blow on one already loose.
+- `src/sim/cast.ts`: `hitMutant` (the shove, the kill, the knockdown), `floored`, `kill`.
+- `src/sim/combat.ts`: your blows. `sweep` traces the swing (`sim/sweep.ts`: `PATHS`, `ACTIVE`, `along`); `landOn`
+  makes the hit (shove, its way, `Hit.at`, `Hit.way`); `knock` is a swing through a corpse; `fire` the guns.
+- `src/present/render/rig.ts`: draws a loose body with the model's own boxes (`RIG` per model), blends in and out.
+- `src/present/render/castView.ts`: the models (`BUILD`, `ANIM`); the husk's and thresher's legs have knees for it.
+
+## How to see what it does
+
+- In the game: `npm run dev`, then `/?dev&level=testbed`, north into the arena. Keys 1 to 6 put down the cast, 0
+  kills them all (again: clears the dead), T slow motion, Y your weapon, U freezes them, O the colliders. The hit log
+  is in the dev readout. `window.rs` is the run: `rs.sim`, `rs.step(rs.run, input)`.
+- Headless numbers: `test/probes/` (README there). `aim`, `kill`, `down`, each with knobs. Every fault in this
+  branch was found by one of these first; looking at the game said only "it looks wrong".
+- Headless Chromium (Playwright is preinstalled, not a dependency): put `playwright-core` in a scratch folder
+  (`npm i playwright-core`), serve with `npx vite --port 5173`, and drive it:
+
+      const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+        args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+      const page = await browser.newPage({ viewport: { width: 960, height: 600 } });
+      page.on('pageerror', e => errors.push(String(e)));
+      await page.goto('http://localhost:5173/?dev&level=testbed');
+      await page.waitForFunction(() => window.rs?.sim);
+      await page.click('#title').catch(() => {});
+      // T twice, then step it by hand from page.evaluate: import('/src/sim/input.ts') for noInput,
+      // import('/src/sim/cast.ts') for spawn and hitMutant, rs.step(rs.run, { ...noInput(), attack: true })
+
+  One 404 on load is the favicon, and is not a page error.
+
+## Open
+
+1. **The axe's aim** (asked about, not changed). The owner: "you'd think to just place the crosshair and swing; it
+   doesn't land where you'd expect". Measured (`aim` probe): a chop meets the first thing its arc comes down on, so
+   on anything tall it lands 22 to 43° above the crosshair wherever you aim (the top of a husk's head, from 1 m); on
+   low things within 12°. Its reach is a radius from your eye (axe 1.7 m, more looking down), and nothing 2.5 m off is
+   reached. Ways to go, each a change to how combat plays, so put to the owner first:
+   - start the chop's arc lower (`PATHS.chop.from` 50° to 25°, say), so it lands nearer the crosshair, and a little
+     later (by up to 0.1 s on a husk close by), and reaches less above you;
+   - have the one under the crosshair met where the arc crosses the crosshair, the arc catching only others first;
+   - leave it, and draw where it will land (the dev overlay already draws the path: `sweepPath`).
+   The sideways shove (fixed here) will have made it feel worse than it is: try it again first.
+2. **The overseer's hit volume** is the grabber's old head ball, 2 m up, above a mound 1.6 m high. Probably the same
+   fault; not reported, so not touched.
+3. **Knockdowns still turn some**: 118° in all while down across eighteen floorings, most of it lying and rolling
+   after it is down; worst 208°. If it still reads as a trip, look at `RAG.local` and `RAG.tip` for the living (each
+   alone made little difference to the spin, but that was with the spin's real cause in) and the brace.
+4. **The stagger is fragile.** When a floored body goes down swings with small changes (engine.md, *Stagger steps*:
+   "fragile"). The test for it allows the thresher's steps only 0.1 s over none (0.77 s against 0.62).
+5. Not built, and never asked for: a reel that stumbles (a reel is the model's animation); corpses that block.
+
+## What was learned
+
+- Measure before touching: each fault here had an obvious suspect that was not it. The spin was not the local
+  impulse, the tip, the anchor, or the steps (each off alone, it still spun); it was a pull on three of a rigid body's
+  six points. Turn things off one at a time with `SET=`, and trace one case step by step (`TRACE=1`).
+- Anything pulled on part of a rigid cluster turns the cluster. Pull all of it, or a point that is not in one.
+- A wave along a body on a floor with friction is locomotion.
+- Normalising a sum of two units can amplify rounding into a direction. Weight by what each is worth before adding.
+- The fight's numbers (shove, poise, closing) are tuned for the living, on a cylinder with strong friction. A loose
+  body given the same is a lighter, slipperier thing: give it its own share, and cap it.
+- Tests that stood for a feel ("the axe carries it further than the baton") turn out to stand for a fault later.
+  Write what it should look like, and check it against the owner's words.

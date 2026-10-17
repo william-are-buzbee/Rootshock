@@ -191,7 +191,12 @@ function aim(sim: Sim) {
   return { ex: b.x, ey: b.y + eyeHeight(p), ez: b.z, fx: -Math.sin(p.yaw) * cp, fy: Math.sin(p.pitch), fz: -Math.cos(p.yaw) * cp };
 }
 
-/** a grabber's head, the only part of it worth hitting */
+/** what of a grabber can be hit: all of it as it is drawn (castView.ts), its sac and head and the tentacles that hang
+ *  from them to your knee, taken as an upright column `r` across standing `out` off its wall, from `y0` to `y1` over
+ *  the floor. (Its head alone, as first built, was a ball above your eye, and you could not tell where it was) */
+const GRAB = { out: 0.12, r: 0.42, y0: 0.35, y1: 2.55 };
+const grabAt = (m: Mutant) => ({ x: m.x + Math.sin(m.yaw) * GRAB.out, z: m.z + Math.cos(m.yaw) * GRAB.out });
+/** the rest of the fixed (the overseer): a ball where a grabber's head would be */
 const headOf = (m: Mutant) => ({ x: m.x + Math.sin(m.yaw) * 0.22, y: m.y + 2.02, z: m.z + Math.cos(m.yaw) * 0.22 });
 
 /** the frame of the blow under way: your eye, and the line it was thrown along */
@@ -233,7 +238,9 @@ function sweep(sim: Sim, w: WeaponStats, a0: number, a1: number): 'none' | 'hit'
       const A = along(F, sh, R, u0, k), B = along(F, sh, R, u1, k);
       for (const m of sim.cast) {
         if (m.dead) continue;
-        const t = m.fixed ? meetsSphere(A, B, headOf(m), 0.35) : meetsCylinder(A, B, m.x, m.z, m.r + 0.08, m.y, m.y + (m.body?.h ?? 1));
+        const c = grabAt(m);
+        const t = m.model === 'grabber' ? meetsCylinder(A, B, c.x, c.z, GRAB.r, m.y + GRAB.y0, m.y + GRAB.y1)
+          : m.fixed ? meetsSphere(A, B, headOf(m), 0.35) : meetsCylinder(A, B, m.x, m.z, m.r + 0.08, m.y, m.y + (m.body?.h ?? 1));
         if (t === null || t >= bt) continue;
         const P = mix(A, B, t);
         if (ray(sim, F.p, P) < 1) continue; // behind something
@@ -282,10 +289,12 @@ function knock(sim: Sim, w: WeaponStats, m: Mutant, A: V3, B: V3, F: Frame, hx =
 function landOn(sim: Sim, w: WeaponStats, m: Mutant, A: V3, B: V3, at: V3): void {
   const b = sim.player.body, L = sim.hands.line ?? sim.player, fx = -Math.sin(L.yaw), fz = -Math.cos(L.yaw);
   const you = b.vx * fx + b.vz * fz, it = m.fixed ? 0 : -((m.x - m.px) * fx + (m.z - m.pz) * fz) / dt;
-  let hx = B.x - A.x, hz = B.z - A.z;
-  const hl = Math.hypot(hx, hz);
-  if (hl > 1e-6) { hx /= hl; hz /= hl; } else { hx = fx; hz = fz; }
-  const dx = fx + hx, dz = fz + hz, dl = Math.hypot(dx, dz) || 1;
+  /* the head's way across the floor counts by how much of its going is across the floor: a chop coming down (or, low,
+     back toward you) shoves along the line, not off it. (Each made a unit on its own, a chop landing below your eye
+     summed to almost nothing, and the shove went whichever way what was left of it pointed) */
+  const hl = Math.hypot(B.x - A.x, B.y - A.y, B.z - A.z) || 1;
+  let dx = fx + (B.x - A.x) / hl, dz = fz + (B.z - A.z) / hl, dl = Math.hypot(dx, dz);
+  if (dl < 0.1) { dx = fx; dz = fz; dl = 1; }
   hitMutant(sim, m, { dmg: w.dmg, poise: swingFor(w).poise, shove: SHOVE.you * (w.mass + SHOVE.arm), dir: { x: dx / dl, z: dz / dl }, by: sim.game.weapon ?? 'fists', at, way: { x: B.x - A.x, y: B.y - A.y, z: B.z - A.z } }, closing(you + it));
   makeNoise(sim.game, 10);
   landed(sim, 1);
@@ -315,7 +324,8 @@ function fire(sim: Sim, w: WeaponStats): void {
     if (m.dead) continue;
     const dx = m.x - A.ex, dz = m.z - A.ez, d = Math.hypot(dx, dz);
     if (d > range) continue;
-    const ty = m.fixed ? headOf(m).y : m.y + Math.min(0.9, (m.body?.h ?? 1) * 0.6), hy = ty - A.ey;
+    /* a grabber is aimed at where your line crosses it, as high as it hangs */
+    const ty = m.model === 'grabber' ? clamp(A.ey + (A.fy / (Math.hypot(A.fx, A.fz) || 1)) * d, m.y + GRAB.y0, m.y + GRAB.y1) : m.fixed ? headOf(m).y : m.y + Math.min(0.9, (m.body?.h ?? 1) * 0.6), hy = ty - A.ey;
     const dot = (dx * A.fx + hy * A.fy + dz * A.fz) / Math.hypot(dx, hy, dz);
     if (dot < (w.cone ?? 0.98) && d > m.r + 0.8) continue;
     if (sim.world.raycast(A.ex, A.ey, A.ez, m.x, ty, m.z, seeThrough) < 1) continue;

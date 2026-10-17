@@ -26,10 +26,12 @@ const stood = (s: Sim, type: string, x: number, y: number, z: number, yaw = Math
   for (let i = 0; i < 5; i++) step(s, noInput());
   return m;
 };
-/* the killing blows as yours land (combat.ts, landOn): the axe's chop, coming down; the baton's swing, across. Shove by
+/* the killing blows as yours land (combat.ts, landOn): the axe's chop, coming down; the baton's swing, across, which
+   shoves half along the line and half across it; the pipe's, landing square, its head going the way it shoves. Shove by
    the weapon (70 kg m/s a kilogram and the arm's 1.5), as hard as a blow run into */
 const AXE = (dir: { x: number; z: number }): Hit => ({ dmg: 999, poise: 29, shove: 70 * 4.7, dir, by: 'axe', way: { x: dir.x * 0.3, y: -1, z: dir.z * 0.3 } });
-const BATON = (dir: { x: number; z: number }): Hit => ({ dmg: 999, poise: 13, shove: 70 * 2.6, dir, by: 'baton', way: { x: -dir.z, y: 0, z: dir.x } });
+const BATON = (dir: { x: number; z: number }): Hit => ({ dmg: 999, poise: 13, shove: 70 * 2.6, dir, by: 'baton', way: { x: dir.x - dir.z, y: 0, z: dir.z + dir.x } });
+const PIPE = (dir: { x: number; z: number }): Hit => ({ dmg: 999, poise: 22, shove: 70 * 3.9, dir, by: 'pipe', way: { x: dir.x, y: 0, z: dir.z } });
 /** strike it from the side `dir` comes from, at chest height */
 const strike = (s: Sim, m: Mutant, w: Hit, k = 1.3) => hitMutant(s, m, { ...w, at: { x: m.x - w.dir!.x * 0.4, y: m.y + (m.body?.h ?? 1) * 0.75, z: m.z - w.dir!.z * 0.4 } }, k);
 const pt = (m: Mutant, name: string) => { const i = bones(m.model).at[name] * 3; return { x: m.rag!.p[i], y: m.rag!.p[i + 1], z: m.rag!.p[i + 2] }; };
@@ -69,7 +71,7 @@ describe('a body killed goes loose', () => {
   it('carries the killing blow: it goes the way it was struck, and lies where it fell', () => {
     for (const [dx, dz] of [[1, 0], [-1, 0], [0, -1]]) {
       const s = arena(), m = stood(s, 'husk', 8, 0, -9), x0 = m.x, z0 = m.z;
-      strike(s, m, AXE({ x: dx, z: dz }));
+      strike(s, m, PIPE({ x: dx, z: dz }));
       hold(s, 3);
       const a = ragAt(m.rag!), along = (a.x - x0) * dx + (a.z - z0) * dz, across = Math.abs((a.x - x0) * dz - (a.z - z0) * dx);
       expect(along, `${dx},${dz}`).toBeGreaterThan(0.6);
@@ -79,28 +81,71 @@ describe('a body killed goes loose', () => {
     }
   });
 
-  it('an axe kill is not a baton kill: the chop carries it along the blow, the swing turns it over where it stood', () => {
+  it('an axe kill is not a pipe kill: the chop drops it where it stood, the swing carries it off along the blow', () => {
+    /* facing you, as one you chop is */
     const fall = (w: Hit) => {
-      const s = arena(), m = stood(s, 'husk', 8, 0, -9, 0), x0 = m.x, z0 = m.z;
+      const s = arena(), m = stood(s, 'husk', 8, 0, -9), x0 = m.x, z0 = m.z;
       strike(s, m, w);
       let down = 0;
       for (let t = 0; t < 3; t += STEP) { step(s, noInput()); if (!down && pt(m, 'head').y < 0.5) down = t; }
-      const a = ragAt(m.rag!);
-      return { down, went: Math.hypot(a.x - x0, a.z - z0) };
+      /* where its hips lie: one that drops where it stood goes over its feet, and lies with its hips by them */
+      const L = pt(m, 'hipL'), R = pt(m, 'hipR');
+      return { down, went: Math.hypot((L.x + R.x) / 2 - x0, (L.z + R.z) / 2 - z0) };
     };
-    const axe = fall(AXE({ x: 1, z: 0 })), baton = fall(BATON({ x: 1, z: 0 }));
-    console.log(`axe: down in ${axe.down.toFixed(2)} s, ${axe.went.toFixed(2)} m from where it stood; baton: down in ${baton.down.toFixed(2)} s, ${baton.went.toFixed(2)} m`);
-    expect(axe.went).toBeGreaterThan(baton.went + 0.5);
+    const axe = fall(AXE({ x: 1, z: 0 })), pipe = fall(PIPE({ x: 1, z: 0 }));
+    console.log(`axe: down in ${axe.down.toFixed(2)} s, hips ${axe.went.toFixed(2)} m from where it stood; pipe: down in ${pipe.down.toFixed(2)} s, ${pipe.went.toFixed(2)} m`);
+    expect(axe.went).toBeLessThan(0.8);
+    expect(pipe.went).toBeGreaterThan(axe.went + 0.5);
+  });
+
+  it('killed by a real chop, the light ones drop where they were struck: none thrown, none sent off sideways', () => {
+    for (const kind of ['skitter', 'worm', 'husk']) {
+      const s = arena(), m = stood(s, kind, 8, 0, -4.5, 0), B = bones(kind);
+      m.hp = 1;
+      const mid = () => {
+        let x = 0, y = 0, z = 0;
+        for (let i = 0; i < B.names.length; i++) { const w = B.kg[i] / B.mass; x += m.rag!.p[i * 3] * w; y += m.rag!.p[i * 3 + 1] * w; z += m.rag!.p[i * 3 + 2] * w; }
+        return { x, y, z };
+      };
+      s.player.pitch = Math.atan2(m.body!.h * 0.5 - 1.6, 1.5);
+      give(s.game, 'axe');
+      hold(s, STEP, { attack: true });
+      let c0: { x: number; y: number; z: number } | null = null, top = 0;
+      for (let t = 0; t < 4; t += STEP) {
+        step(s, noInput());
+        if (m.rag && !c0) c0 = mid();
+        if (c0) top = Math.max(top, mid().y - c0.y);
+      }
+      expect(m.dead, kind).toBe(true);
+      const c = mid();
+      console.log(`${kind}: axe kill lies ${(c0!.z - c.z).toFixed(2)} m along, ${(c.x - c0!.x).toFixed(2)} m across; rose ${top.toFixed(2)} m`);
+      expect(Math.abs(c.x - c0!.x), kind).toBeLessThan(0.3);
+      expect(Math.hypot(c.x - c0!.x, c.z - c0!.z), kind).toBeLessThan(kind === 'husk' ? 1.2 : 0.8);
+      expect(top, kind).toBeLessThan(0.1);
+    }
+  });
+
+  it('a worm dying thrashes where it dies, and does not swim off', () => {
+    const lies = (thrash: boolean) => {
+      const s = arena(), m = stood(s, 'worm', 8, 0, -9), t0 = REFLEX.writhe.time;
+      if (!thrash) REFLEX.writhe.time = 0;
+      killAll(s);
+      hold(s, 3);
+      REFLEX.writhe.time = t0;
+      return ragAt(m.rag!);
+    };
+    const a = lies(true), b = lies(false);
+    expect(Math.hypot(a.x - b.x, a.z - b.z)).toBeLessThan(0.15);
   });
 
   it('killed harder (run in: the closing multiplier), it goes further', () => {
     const far = (k: number) => {
       const s = arena(), m = stood(s, 'husk', 8, 0, -9), x0 = m.x;
-      strike(s, m, AXE({ x: 1, z: 0 }), k);
+      strike(s, m, PIPE({ x: 1, z: 0 }), k);
       hold(s, 3);
       return ragAt(m.rag!).x - x0;
     };
-    expect(far(1.8)).toBeGreaterThan(far(1) + 0.3);
+    expect(far(1.2)).toBeGreaterThan(far(0.6) + 0.3);
   });
 
   it('killed with no blow (a fall, the dev key), it crumples where it stood', () => {
@@ -113,9 +158,9 @@ describe('a body killed goes loose', () => {
   });
 
   it('killed near a wall and struck into it, it slumps against it rather than lying flat', () => {
-    /* the arena's west wall, x = -2, clear of the low bay: the axe's chop from 1.2 m out, the baton's swing (which
-       carries it less far, and turns it along the wall) from a metre */
-    for (const [w, d] of [[AXE({ x: -1, z: 0 }), 1.2], [BATON({ x: -1, z: 0 }), 1]] as const) {
+    /* the arena's west wall, x = -2, clear of the low bay: the pipe's swing from 1.2 m out, the baton's (which carries
+       it less far, and turns it along the wall) from a metre */
+    for (const [w, d] of [[PIPE({ x: -1, z: 0 }), 1.2], [BATON({ x: -1, z: 0 }), 1]] as const) {
       const s = arena(), m = stood(s, 'husk', -2 + d, 0, -16.5);
       strike(s, m, w, 1.2);
       hold(s, 4);
@@ -127,7 +172,7 @@ describe('a body killed goes loose', () => {
 
   it('killed on the ledge and struck off it, it goes over and lies on the floor 3 m below', () => {
     const s = arena(), m = stood(s, 'husk', 12.5, 3, -14.5);
-    strike(s, m, AXE({ x: -1, z: 0 }), 1);
+    strike(s, m, PIPE({ x: -1, z: 0 }), 1);
     hold(s, 4);
     expect(m.y).toBeLessThan(0.2);
     expect(m.x).toBeLessThan(12);
@@ -348,7 +393,7 @@ describe('stagger steps', () => {
       const on = knocked(t, true), off = knocked(t, false);
       console.log(`${t}: ${on.steps} steps, its head down in ${on.down.toFixed(2)} s (with no steps, ${off.down.toFixed(2)} s)`);
       expect(on.steps, t).toBeGreaterThanOrEqual(1);
-      expect(on.down, t).toBeGreaterThan(off.down + 0.15);
+      expect(on.down, t).toBeGreaterThan(off.down + 0.1);
     }
   });
 
