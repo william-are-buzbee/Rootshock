@@ -743,11 +743,12 @@ down, so a knock reads as a stumble and then a fall (`STAGGER` and `stagger` in 
 - **How it measured, and why it is fragile.** Without the trunk held up, the steps were for show: the body fell in the
   same 0.28 s whether or not its feet moved. With it held, when it goes down swings with small changes: across three
   facings and three knocks, the thresher's head got below half its height anywhere from 0.45 s to never in 1.6 s (held
-  at 0.08 without the fade), the husk's from 0.6 to 1.35 s. The fade over its time to try and the knees giving at the
-  end keep every case down before it rises (the latest, a husk knocked lightly, at 1.1 s; with no steps one of those
-  cases never got below half its height either, sitting propped on a hand, REFLEX.brace). A body can still be sitting
-  up when the fight has it down; the drawing and the rule (blows land 1.5 times as hard) agree that it is down, if not
-  flat.
+  at 0.08 without the fade), the husk's from 0.6 to 1.35 s. With the fade over its time to try and the knees giving
+  at the end, every case gets down, but not every case before it begins to rise (1 s after the blow): the latest, a
+  husk knocked hard from the side, at 1.3 s, and one knocked lightly from the front at 1.1 s. With no steps, two of the
+  eighteen cases were as late or later, sitting propped on a hand (REFLEX.brace). So a body can still be sitting up,
+  or only just going over, when the fight has it down: the drawing says down, if not flat, while the rule (blows land
+  1.5 times as hard) holds. Worth watching when you play.
 - **Not built**: a reel (a stagger short of a knockdown) that stumbles. A reeling body is not loose: it is the model's
   animation, and stepping it would mean a body loose while it is still on its feet and fighting, every reel.
 - **Tests**: `test/ragdoll.test.ts`, *stagger steps*: steps taken, and its head down later than with none; the dying
