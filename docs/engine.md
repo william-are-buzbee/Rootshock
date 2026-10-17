@@ -745,8 +745,9 @@ down, so a knock reads as a stumble and then a fall (`STAGGER` and `stagger` in 
   facings and three knocks, the thresher's head got below half its height anywhere from 0.45 s to never in 1.6 s (held
   at 0.08 without the fade), the husk's from 0.6 to 1.35 s. With the fade over its time to try and the knees giving
   at the end, every case gets down, but not every case before it begins to rise (1 s after the blow): the latest, a
-  husk knocked hard from the side, at 1.3 s, and one knocked lightly from the front at 1.1 s. With no steps, two of the
-  eighteen cases were as late or later, sitting propped on a hand (REFLEX.brace). So a body can still be sitting up,
+  husk knocked hard from the side, at 1.3 s, and one knocked lightly from the front at 1.1 s. With no steps, three of the
+  eighteen were as late or later (1.18 s, 1.43 s, and one that never got there, sitting propped on a hand:
+  REFLEX.brace). So a body can still be sitting up,
   or only just going over, when the fight has it down: the drawing says down, if not flat, while the rule (blows land
   1.5 times as hard) holds. Worth watching when you play.
 - **Not built**: a reel (a stagger short of a knockdown) that stumbles. A reeling body is not loose: it is the model's
