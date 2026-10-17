@@ -6,7 +6,8 @@ import { bones, type Rag } from '../../sim/ragdoll';
    bone: from one point to another, turned from its parent as little as takes it there, so it does not twist on its own.
    Each part is fixed to its frame as the model stands idle, so a body lying still is the model's own shape laid down.
    What is not tied to a frame (a thresher's ribs, a hand's fingers) stays as it was at the moment of death, on its
-   parent. Death itself is not a cut: the model goes from where it was drawn to where its points are over BLEND. */
+   parent. Going loose is not a cut: the model goes from where it was drawn to where its points are over BLEND; and
+   one knocked down comes back out of its points into its animation as it gets up. */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export type Model = { g: THREE.Group; [k: string]: any };
@@ -102,7 +103,7 @@ interface Compiled {
 
 const _a = new THREE.Vector3(), _b = new THREE.Vector3(), _c = new THREE.Vector3(), _x = new THREE.Vector3(), _y = new THREE.Vector3(), _z = new THREE.Vector3();
 const _m = new THREE.Matrix4(), _n = new THREE.Matrix4(), _q = new THREE.Quaternion(), _s = new THREE.Vector3(1, 1, 1), _p = new THREE.Vector3();
-const ID = new THREE.Matrix4(), _qi = new THREE.Quaternion();
+const _qi = new THREE.Quaternion();
 
 /** the middle of some points: of the rest pose (model frame), or of a rag `alpha` of the way through its step */
 function mid(out: THREE.Vector3, ix: number[], at: (i: number, k: number) => number): THREE.Vector3 {
@@ -121,6 +122,16 @@ export class Rigged {
   /** where each was drawn at death, and how far it has gone from that */
   private from: THREE.Matrix4[] | null = null;
   private t = 0;
+  /** the body it was last drawn from: a new one (a knockdown, then death) blends in afresh */
+  private last: Rag | null = null;
+  /** each part as it stands idle, in its parent's frame: put back before the animation runs again (it sets only the
+   *  turns it moves) */
+  private idle: { p: THREE.Vector3; q: THREE.Quaternion; s: THREE.Vector3 }[];
+
+  /** each part put back as it stands, for the animation to take it from there */
+  restore(): void {
+    this.bound.forEach((b, i) => { b.obj.position.copy(this.idle[i].p); b.obj.quaternion.copy(this.idle[i].q); b.obj.scale.copy(this.idle[i].s); });
+  }
   private W: THREE.Matrix4[];
 
   /** `M` is to stand as it does idle when this is made (castView.ts poses it so) */
@@ -149,24 +160,43 @@ export class Rigged {
     /* what hangs on the model itself but is no part of it (a thresher's hips, a worm's hand) goes with its body */
     const tied = new Set(this.bound.map(b => b.obj));
     for (const o of M.g.children) if (!tied.has(o)) this.bound.push({ obj: o, part: spec.rest ?? 0, P0: o.matrixWorld.clone() });
+    this.idle = this.bound.map(b => ({ p: b.obj.position.clone(), q: b.obj.quaternion.clone(), s: b.obj.scale.clone() }));
     this.G = this.parts.map(() => new THREE.Quaternion());
     this.O = this.parts.map(() => new THREE.Vector3());
     this.W = this.bound.map(() => new THREE.Matrix4());
   }
 
-  /** forget the moment of death: the next pose blends from wherever the model is drawn then */
-  reset(): void { this.from = null; }
-
-  /** draw it as its points lie, `alpha` of the way through the step, `dt` seconds since the last frame */
+  /** draw it as its points lie, `alpha` of the way through the step, `dt` seconds since the last frame; blended in
+   *  from where it was drawn when it went loose */
   pose(R: Rag, alpha: number, dt: number): void {
-    const M = this.M, g = M.g;
+    const g = this.M.g;
+    if (R !== this.last) { this.last = R; this.from = null; }
     if (!this.from) {
       g.updateMatrixWorld(true);
       this.from = this.bound.map(b => b.obj.matrixWorld.clone());
       this.t = 0;
     }
     this.t = Math.min(BLEND, this.t + dt);
-    const at = (i: number, k: number) => R.o[i * 3 + k] + (R.p[i * 3 + k] - R.o[i * 3 + k]) * alpha;
+    g.position.set(0, 0, 0); g.rotation.set(0, 0, 0); g.scale.set(1, 1, 1);
+    g.updateMatrix(); g.updateMatrixWorld(true);
+    const k = this.t / BLEND;
+    this.lay(R, alpha, this.from, k * k * (3 - 2 * k));
+  }
+
+  /** getting up (sim/cast.ts, `rise`): the model as its animation has it this frame, `e` (0..1) of the way there from
+   *  as its points lie. The animation has been run, and the model placed where the sim has it */
+  rise(R: Rag, alpha: number, e: number): void {
+    const g = this.M.g;
+    g.updateMatrixWorld(true);
+    const to = this.bound.map(b => b.obj.matrixWorld.clone()), s = Math.min(1, Math.max(0, e));
+    this.lay(R, alpha, to, 1 - s * s * (3 - 2 * s));
+    this.from = null;
+  }
+
+  /** each part where its points put it, blended `e` of the way from `other` (1: all the points'), then into its
+   *  parent's frame */
+  private lay(R: Rag, alpha: number, other: THREE.Matrix4[], e: number): void {
+    const g = this.M.g, at = (i: number, k: number) => R.o[i * 3 + k] + (R.p[i * 3 + k] - R.o[i * 3 + k]) * alpha;
     this.parts.forEach((c, j) => {
       const G = this.G[j];
       if (c.frame) basis(c.frame, at, G).multiply(c.R0i);
@@ -179,20 +209,17 @@ export class Rigged {
       }
       mid(this.O[j], c.o, at);
     });
-    g.position.set(0, 0, 0); g.rotation.set(0, 0, 0); g.scale.set(1, 1, 1);
-    g.updateMatrix();
-    const k = this.t / BLEND, e = k * k * (3 - 2 * k);
     const byObj = new Map<THREE.Object3D, THREE.Matrix4>();
     this.bound.forEach((b, i) => {
       const c = this.parts[b.part], W = this.W[i];
       /* W = T(origin) · G · T(-origin as it stands) · as it stands */
       W.makeTranslation(-c.o0.x, -c.o0.y, -c.o0.z).premultiply(_m.makeRotationFromQuaternion(this.G[b.part])).premultiply(_n.makeTranslation(this.O[b.part].x, this.O[b.part].y, this.O[b.part].z)).multiply(b.P0);
-      if (e < 1) blend(this.from![i], W, e, W);
+      if (e < 1) blend(other[i], W, e, W);
       byObj.set(b.obj, W);
     });
-    /* each into its parent's frame: a parent tied to a frame is where it was just put; the model itself is at rest */
+    /* each into its parent's frame: a parent tied to a frame is where it was just put */
     for (const b of this.bound) {
-      const W = byObj.get(b.obj)!, par = b.obj.parent, PW = par === g ? ID : byObj.get(par!) ?? par!.matrixWorld;
+      const W = byObj.get(b.obj)!, par = b.obj.parent!, PW = byObj.get(par) ?? par.matrixWorld;
       _m.copy(PW).invert().multiply(W).decompose(b.obj.position, b.obj.quaternion, b.obj.scale);
     }
     g.updateMatrixWorld(true);

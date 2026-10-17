@@ -12,7 +12,7 @@ import { eyeHeight } from './player';
 import { closing, DOWN, FALL, LAUNCH, MOVES, POISE, react, regain, RISE, SHOVE, SLAM, type Move } from './moves';
 import { simLighting, type Sim } from './sim';
 import { blinded, manned, soundZone } from './eyes';
-import { makeRag, type Killing, type Rag } from './ragdoll';
+import { knockRag, makeRag, RAG, type Killing, type Rag } from './ragdoll';
 import type { V3 } from './sweep';
 
 /* The cast (engine.md §7, §8): what lives in the station, ported from the first engine's behaviours. Each is a body that
@@ -136,7 +136,7 @@ export interface Mutant {
   dead: boolean;
   /** 0..1 of its fall when it dies, for those that only fold where they are (a bloat, what grows on a wall) */
   gone: number;
-  /** its body gone loose, once it is dead (sim/ragdoll.ts) */
+  /** its body gone loose: once it is dead, or while it is knocked down (sim/ragdoll.ts) */
   rag: Rag | null;
   /** dev (the arena's clear): taken out of the world altogether */
   away: boolean;
@@ -1019,6 +1019,8 @@ export function updateCast(sim: Sim): void {
     /* on the floor, then getting up */
     if (m.down > 0) { m.down = Math.max(0, m.down - dt); if (m.down === 0) m.rise = DOWN.rise; }
     else if (m.rise > 0) m.rise = Math.max(0, m.rise - dt);
+    /* up again: its body is its own once more */
+    if (m.rag && !m.dead && m.down === 0 && m.rise === 0) m.rag = null;
     if (m.dead) { if (m.gone < 1) m.gone = Math.min(1, m.gone + dt * 2.5); continue; }
     const mb = m.body, resting = !!mb && m.still > 2 && mb.ground && mb.vy === 0 && !mb.on, ox = mb?.x, oz = mb?.z;
     if (mb) {
@@ -1088,14 +1090,19 @@ export function hitMutant(sim: Sim, m: Mutant, w: Hit, k = 1): void {
   }
   const said = (r: string) => log(g, `${w.by ?? 'blow'} → ${m.type}  ${(w.dmg * k * (open ? OPEN.dmg : 1)).toFixed(0)} dmg  ×${k.toFixed(2)}${open ? ' open' : ''}  shove ${v.toFixed(1)} m/s  → ${r}`);
   if (m.hp <= 0) { kill(sim, m, { ux, uz, v, at: w.at, way: w.way }); said('dead'); return; }
-  if (m.down > 0) { said('down already'); return; }
+  if (m.down > 0) {
+    /* the body on the floor takes the blow where it landed (sim/ragdoll.ts) */
+    if (m.rag && m.body && w.at && v > 0) knockRag(m.rag, w.at, w.way ?? { x: ux, y: 0, z: uz }, v * m.body.mass, sim.tick);
+    said('down already');
+    return;
+  }
   /* the ladder (sim/moves.ts): the part of its blow it is in may shrug it off; getting up, it has better footing */
   const K = blowKind(m), armour = !K ? 0 : ph === 'wind' ? K.armour.wind : ph === 'strike' ? K.armour.strike : 0;
   const hitPoise = Math.max(0, w.poise * k * (open ? OPEN.poise : 1) - (m.rise > 0 ? RISE.guard : 0));
   const R = react(m.poise, m.pmax, hitPoise, armour), hold = open ? OPEN.poise : 1;
   m.poise = R.left; m.calm = 0;
   if (R.r === 'stagger' && v >= LAUNCH.dv && m.body) { m.body.vy += LAUNCH.up * v; m.body.ground = false; }
-  if (R.r === 'stagger' && v >= DOWN.dv && upright(m)) floored(sim, m);
+  if (R.r === 'stagger' && v >= DOWN.dv && upright(m)) floored(sim, m, { ux, uz, v, at: w.at, way: w.way });
   else if (R.r === 'stagger') { m.blow = null; m.reel = HOLD.stagger * hold; m.stun = Math.max(m.stun, m.reel); }
   /* a flinch loses a blow on its way; one already thrown, it is still recovering from */
   else if (R.r === 'flinch') { if (!open) m.blow = null; m.stun = Math.max(m.stun, HOLD.flinch * hold); }
@@ -1119,8 +1126,11 @@ export function hitMutant(sim: Sim, m: Mutant, w: Hit, k = 1): void {
  *  nothing moves */
 const upright = (m: Mutant): boolean => !!m.body && !m.low && !m.swim && Number.isFinite(m.body.mass);
 
-/** knocked off its feet: down a while, then getting up; nothing it was doing goes on (sim/moves.ts, DOWN) */
-function floored(sim: Sim, m: Mutant): void {
+/** knocked off its feet: down a while, then getting up; nothing it was doing goes on (sim/moves.ts, DOWN). Its body goes
+ *  down loose, carrying what floored it, held to where its feet are (sim/ragdoll.ts); it is drawn coming back up out of
+ *  that as it rises */
+function floored(sim: Sim, m: Mutant, blow: Killing | null = null): void {
+  if (RAG.floored) { m.rag = makeRag(m, blow, true); if (m.rag) m.rag.woke = sim.tick; }
   m.blow = null; m.reel = 0;
   m.down = DOWN.time; m.rise = 0;
   m.stun = Math.max(m.stun, DOWN.time + DOWN.rise);
@@ -1160,8 +1170,10 @@ export function killAll(sim: Sim): void {
 
 function kill(sim: Sim, m: Mutant, blow: Killing | null = null): void {
   m.dead = true;
-  /* what has a body goes loose, carrying what killed it (sim/ragdoll.ts); the rest folds where it is */
-  m.rag = makeRag(m, blow);
+  /* what has a body goes loose, carrying what killed it (sim/ragdoll.ts); the rest folds where it is. One already
+     down is loose already, and takes the blow where it lies */
+  if (m.rag && m.body && blow?.at && blow.v > 0) knockRag(m.rag, blow.at, blow.way ?? { x: blow.ux, y: 0, z: blow.uz }, blow.v * m.body.mass, sim.tick);
+  else if (!m.rag) m.rag = makeRag(m, blow);
   if (m.rag) m.rag.woke = sim.tick;
   m.gone = 0;
   m.blow = null;
