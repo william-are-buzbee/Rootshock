@@ -558,16 +558,17 @@ fall loose; corpses stay in the world (knocked about, saved); knockdowns as ragd
 - **The killing blow is in it.** A blow that kills now says where it landed and the way the striking thing was going
   (`Hit.at`, `Hit.way`: the head's path in `combat.ts`, `landOn`; a shot's line). The body goes loose moving as it was,
   shove and all (so the closing multiplier is in it), with the shove laid on by height (`RAG.tip`, 1.8: its feet take
-  0.1 of it and its head 1.9; struck about the chest, a body goes over its feet rather than off them), and 0.55 of it
-  (`RAG.local`) given instead to the points within 0.6 m of where it landed, along the way the striking thing was
+  0.1 of it and its head 1.9; struck about the chest, a body goes over its feet rather than off them; since, 1.2), and
+  0.55 of it (`RAG.local`; since, 0.35) given instead to the points within 0.6 m of where it landed, along the way the striking thing was
   going, at most 8 m/s a point. So the axe's chop drives a husk down and back, and the baton's swing turns it as it
   goes. A blow that would throw the living (7 m/s) throws the dead (0.45 of it upward). Killed by no blow (a fall, a
   slam, the dev key), it slumps back off its heels (1.1 m/s at its top, the other way at its feet).
-- **How it moves.** Each point keeps its speed (where it is less where it was), falls at the station's 20 m/s², and
+- **How it moves.** Each point keeps its speed (where it is less where it was), falls at the station's 20 m/s² (since,
+  the earth's: *Muscle tone, as built*), and
   is held to its sticks eight times a step, the floor under it each time; what it does apart from the body as a
   whole is let die a little each step (`RAG.joint`, 0.97: a joint is not frictionless). Then the world, point by point,
   as a body walks: down or up first, then each way on the plan; a way that meets something keeps no speed along it.
-  The floor drags a point by how hard it is pressed on it (Coulomb, 0.6), and a wall holds one along it by how hard it
+  The floor drags a point by how hard it is pressed on it (Coulomb, 0.6; since, inside the passes: below), and a wall holds one along it by how hard it
   is pressed into it (1.2), but never by more than twice its own weight (`RAG.cling`). Under water it is slowed (3 a
   second) and weighs an eighth. Heard landing: a point coming down faster than 3.5 m/s thuds, at most every 0.3 s.
 - **Asleep** once its weight, on the whole, moves slower than 0.12 m/s for half a second (a twitching hand does not
@@ -639,6 +640,54 @@ fall loose; corpses stay in the world (knocked about, saved); knockdowns as ragd
   floor (there is no body of yours to go loose: `selfView` is drawn by the camera).
 - **Saved**: the knocked down's loose body too; a run saved with one on the floor plays on exactly.
 - **Tests**: `test/ragdoll.test.ts`.
+
+### Muscle tone, as built
+
+Playing the corpses found them goofy, for three reasons: nobody goes limp in no time at all; they fell at the station's
+20 m/s², twice the earth's, which suits a jump and yanks a body down as if on a string; and the blow's shove was laid on
+like a cartoon's (the head at 1.9 times it). The first of three tiers toward bodies that react (Euphoria's, in GTA and
+Red Dead, are muscles on a ragdoll: every joint driven toward a pose, and behaviours choosing the poses); the next two
+are reflexes and stagger steps.
+
+- **Muscle tone** (`RAG.tone`, `tone` in `sim/ragdoll.ts`). For the first moments after a body goes loose, each point is
+  pulled toward where it is as it stands, in the frame its trunk has now (three points of the trunk, `SKEL.core`): the
+  body keeps its shape a moment while it goes over as a whole, then lets go. A pull on where a point is, so it is a
+  speed, damped by the joints as any swing is. It starts at 0.12 of the way each step and falls away to nothing over
+  0.45 s (`start`, `last`), by each point's share (`SKEL.tone`: a husk's knees and feet half, its hands 0.6, its trunk
+  and head all), so its knees still go first. Knocked down and alive, a body keeps a little (0.06, `alive`). Its clock
+  is `Rag.age`, the seconds it has been loose and awake, so a kick that wakes a corpse later does not bring its tone
+  back. A worm has no trunk to hold to, and none.
+- **The earth's gravity** for what goes loose (`RAG.gravity`, 10 m/s²); the station's 20 stays for everything that
+  walks. Killed with no blow, a husk's head is down in 1.0 s (0.7 s at 20).
+- **Gentler blows.** The shove is laid on by height at 1.2, not 1.8 (its feet take 0.4 of it, its head 1.6), and a
+  third of it, not half, goes to the part struck (`RAG.local`, 0.35).
+- **Friction, done again.** At half the gravity a point pressed on the floor presses half as hard, so the drag was
+  doubled (`RAG.friction`, 1.2: the same 12 m/s² on a body lying still). That showed the drag was on the wrong thing: a
+  point dragged alone, after the bones were solved, so a 3 kg foot was held and the 77 kg behind it hauled it along; a
+  husk felled by the axe skated two metres on its knees. Now the floor holds a point where it stood inside the passes
+  over the bones, so the rest of the body turns about a foot the floor holds; and it holds it by a budget for the step,
+  what the floor has pushed it up by times 1.2, spent across the passes, so a body's weight counts once, not once a
+  pass. (Tried and set aside on the way: a drag on the whole body's speed by the weight it bears. It held the feet,
+  and held the body upright with them: a body toppling has a moving middle over feet that do not slide, and that drag
+  stopped the middle. Dead husks knelt for two seconds.)
+- **What it looks like.** Killed with no blow, a husk's knees go: it sinks, sits back on its heels, and tips over,
+  most of a second, where before it dropped. Chopped with the axe it goes over composed, its knees giving as it goes,
+  and is carried 2.6 m along the blow; the baton's swing knocks it straight over in a third of a second, 0.9 m. A
+  quarter second after the axe, its limbs are 6 cm out of the shape it stands in (with no tone, 35 cm). Chopped toward
+  a wall from 0.8 to 1.4 m out (the baton's swing, from 1 to 1.4 m), it slides down it and ends sitting against it, head
+  0.7 to 1 m up; over every distance from 0.4 to 1.4 m and three strengths of blow, 23 of 48 sit (with no tone, 26). A light blow on the ledge's edge can leave it draped over it; the axe sends it over. A body lying on the
+  floor is harder to move than before: the pipe's swing shoves one 0.4 m, the axe's chop pins it where it is, a round
+  fired down at it 8 cm.
+- **Measured**: no cost to see. The same machine, the same test, this and before it, back to back three times: sixteen
+  falling 1.5 to 2.5 ms a step either way, forty in a heap 2.6 to 3.1. (The machine was slower that day than for the
+  figures above.)
+- **Tried and set aside**: tone at 0.2 over 0.6 s, with legs at a quarter: bodies dropped to their knees and skated,
+  and a leg folded under one sprang up a second after it lay down, the joint limits fighting it out of a pose tone had
+  put it in; and so strong a hold took the slump out of a body killed by a wall (with the friction as it then was, 4 of 32
+  sat, against 13 with none).
+- **Tests**: `test/ragdoll.test.ts`, *muscle tone*; the earlier ones moved with it (the axe and the baton compared by
+  how fast and how far, not which way they lie; the wall from 1.2 m and a metre; the ledge with the axe; a lying body
+  pinned by the axe's chop rather than shoved).
 
 ---
 
