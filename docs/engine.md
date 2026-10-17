@@ -561,7 +561,8 @@ fall loose; corpses stay in the world (knocked about, saved); knockdowns as ragd
   0.1 of it and its head 1.9; struck about the chest, a body goes over its feet rather than off them; since, 1.2), and
   0.55 of it (`RAG.local`; since, 0.35) given instead to the points within 0.6 m of where it landed, along the way the striking thing was
   going, at most 8 m/s a point. So the axe's chop drives a husk down and back, and the baton's swing turns it as it
-  goes. A blow that would throw the living (7 m/s) throws the dead (0.45 of it upward). Killed by no blow (a fall, a
+  goes. A blow that would throw the living (7 m/s) throws the dead (0.45 of it upward; since, not at all, and the dead
+  take of the shove only what the blow was going their way across the floor: *After play, as built*). Killed by no blow (a fall, a
   slam, the dev key), it slumps back off its heels (1.1 m/s at its top, the other way at its feet).
 - **How it moves.** Each point keeps its speed (where it is less where it was), falls at the station's 20 m/s² (since,
   the earth's: *Muscle tone, as built*), and
@@ -707,7 +708,8 @@ faster than a hand moves (4 m/s), and nothing is quicker than 0.08 s (`REFLEX` i
   husk killed by the axe lies with an arm across its chest. A dying thresher's nearer hand comes within 0.38 m of the
   wound (0.54 m with none).
 - **Curl** (dying). The hand's four draw in under it as it sinks.
-- **Writhe** (a worm dying). A wave down it, side to side, 0.12 m at 2.5 a second, dying away over 1.6 s.
+- **Writhe** (a worm dying). A wave down it, side to side, 0.12 m at 2.5 a second, dying away over 1.6 s. (Since, a
+  standing bend and not a wave: the wave swam it 2 m along the floor. *After play, as built*.)
 - **Tried and set aside**:
   - *Bracing the dying.* Dying bodies do not catch themselves, and a husk's arm is one bone: braced on the floor it is
     a strut, and the corpse lay propped on it like a tent.
@@ -732,7 +734,8 @@ down, so a knock reads as a stumble and then a fall (`STAGGER` and `stagger` in 
 - **The step.** Where its weight is going is its middle carried on by its speed for as long as a body that tall takes
   to fall (the capture point). Past 0.12 m from between its feet, it swings the foot further from there to it, lifted
   0.12 m, over 0.22 s, no further from its hip than 0.55 of its leg. While it tries, its trunk is held over its feet
-  (`upright`, 0.06 of the way each step, fading to nothing over its time). It tries for 0.45 s and two steps; then its
+  (`upright`, 0.06 of the way each step, fading to nothing over its time; since, all of it by height, at 0.045: held
+  by its trunk's three frame points, it turned on its feet like a top. *After play, as built*). It tries for 0.45 s and two steps; then its
   knees are sent forward (`give`, 1.5 m/s), so one balanced on the feet it stepped to does not stand there while the
   fight has it on the floor. The step under way is the loose body's (`Rag.stride`, `Rag.steps`): saved, plain numbers.
 - **Only the knocked down, and only those on two legs** (a husk, a thresher). The dying do not step: a step taken
@@ -754,6 +757,48 @@ down, so a knock reads as a stumble and then a fall (`STAGGER` and `stagger` in 
   animation, and stepping it would mean a body loose while it is still on its feet and fighting, every reel.
 - **Tests**: `test/ragdoll.test.ts`, *stagger steps*: steps taken, and its head down later than with none; the dying
   take none.
+
+### After play, as built
+
+Four things found playing the three tiers, each traced headless before it was touched (`test/probes/`: probes, not
+tests; README there).
+
+- **The chop's shove went sideways.** `landOn` adds the line you face to the way the head was going on the plan, each
+  made a unit first. Below your eye a chop's head is coming back toward you as it lands (its arc passes under the
+  line), so the two summed to almost nothing, and the shove went whichever way the rounding left: a skitter or worm
+  killed by the axe was sent off left or right at 7 m/s, and a husk floored low the same. Now the head's way counts by
+  how much of its going is across the floor: a chop shoves along your line. Same shove, same poise; only its way.
+- **The dead flew.** A corpse took the whole of the shove the fight gives the living (up to 7 m/s for a light one),
+  laid on by height, and a blow of 7 threw it up as well. Now a corpse takes of the shove only what the blow was going
+  its way across the floor (a chop, coming down, little or none), and no more than 4 m/s (`RAG.shove`), and none is
+  thrown up. Killed by a real swing from 1.5 m, its middle lies (along your line, across it): a husk 0.75 m and 0.15 m
+  (was 1.55 and 0.02), a skitter 0.3 m toward you (was 0.6, rising 0.2 m), a worm 0.46 and 0.06 (was 1.18 and 0.9
+  across); the pipe's swing still carries them, a worm 1.1 m (was 4.2). A husk chopped facing you drops with its hips
+  0.4 m from its feet; the pipe's swing puts them 1.6 m off.
+- **The worm swam.** Its dying thrash was a wave down it, and a wave against a floor that drags is how a snake goes:
+  killed by nothing, it went 2.2 m. Now it bends one way and the other, its ends against its middle, and what that would
+  move the whole of it by is taken out: it thrashes where it dies (within 0.15 m of lying still).
+- **The knocked-down husk spun.** The stagger's hold on the trunk pulled its three frame points (both hips and the
+  left shoulder) over its feet, not the right shoulder, and the rigid trunk turned to follow, every step: struck
+  square, a husk turned three quarters of a turn on its feet in half a second and went down sideways. Held now by all
+  of it, by how high each point is over its feet (a tip about them, with no turn in it), at 0.045 (0.06 on every point
+  held it up a second). Across eighteen floorings by the axe, its shoulders turn 118° in all while it is down (was
+  230°; some of it is lying and rolling), and it goes over backward, away from the blow. Head down: a husk 0.73 s, a
+  thresher 0.77 s (0.28 and 0.62 with no steps).
+- **The grabber could not be found.** Only a ball 0.35 m about its head, 2 m up, could be hit; what is drawn is a sac,
+  a head and five tentacles hanging to your knee, 0.84 m across. Now the whole of it, as an upright column 0.42 m about
+  a point 0.12 m off its wall, 0.35 to 2.55 m up (`GRAB` in `combat.ts`); a shot is aimed at where your line crosses
+  it. A side swing from 1 to 1.5 m, aimed low to high at it, landed once in twelve; now every time. The overseer still
+  has the ball (it is a mound 1.6 m high, and the ball is above it): left alone, not having been asked about.
+- **The axe's aim: measured, not changed.** A chop meets the first thing its arc comes down on, which is the top of
+  anything tall: on a husk 1 m off, 22 to 43° above the crosshair wherever you aim at it; on a thresher, 43°. On the
+  low ones (skitter, worm) within 12° of it. And its reach is a radius from your eye: nothing 2.5 m off is reached,
+  aimed anywhere. So the axe lands where it should, as a chop, and not where the crosshair is. Making it land at the
+  crosshair (the arc started lower, or the thing under the crosshair met where the arc crosses it) changes when a
+  blow lands and what it can reach: how combat plays, so asked about first (handoff).
+- **Tests**: `test/sweep.test.ts` (the chop shoves along your line, low and high; the grabber struck through its
+  tentacles, and shot there), `test/ragdoll.test.ts` (killed by a real chop, the light ones drop where they were
+  struck; the worm thrashes where it dies). The kill tests that carried a body with the axe now use the pipe.
 
 ---
 

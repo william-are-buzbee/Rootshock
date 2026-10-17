@@ -267,6 +267,8 @@ export const RAG = {
   cling: 2,
   /** the fastest a blow sends any one point (m/s) */
   most: 8,
+  /** the hardest a killing blow sends the whole of a corpse (m/s): the fight shoves a light one at up to 7 */
+  shove: 4,
   /** how much more of a blow its top takes than its feet: 1.2 sends its feet at 0.4 of the shove and its head at 1.6 */
   tip: 1.2,
   /** the legs going: the top of it is sent the way it falls and its feet the other, at this (m/s) */
@@ -343,21 +345,23 @@ function loose(m: Mutant, B: Bones, p: number[], v: number[], kill: Killing | nu
   let ux = kill && kill.v > 0 ? kill.ux : -Math.sin(m.yaw), uz = kill && kill.v > 0 ? kill.uz : -Math.cos(m.yaw);
   const ul = Math.hypot(ux, uz) || 1;
   ux /= ul; uz /= ul;
-  /* what the blow put into the part it struck is taken from what it put into the whole; a blow that would throw one of
-     the living throws the dead (the living, cast.ts has thrown already) */
-  const local = kill && kill.at && kill.v > 0 ? RAG.local : 0, vy = b.vy + (!alive && kill && kill.v >= 7 ? 0.45 * kill.v : 0);
+  /* what the blow put into the part it struck is taken from what it put into the whole */
+  const local = kill && kill.at && kill.v > 0 ? RAG.local : 0, vy = b.vy;
   let ly = b.y;
   for (let i = 0; i < n; i++) ly = Math.min(ly, p[i * 3 + 1] - B.r[i]);
   /* the shove is taken out of how it was moving and put back by height: struck about the chest, a body goes over its
-     feet rather than off them */
+     feet rather than off them. Dead, it is put back only as much as the blow was going its way across the floor, and
+     no harder than RAG.shove: a chop comes down, and drops what it kills where it stood (the fight shoves the living
+     along the line whatever the swing, and a light one at full tilt; a corpse sent so went flying) */
+  const w = kill?.way ?? { x: ux, y: 0, z: uz }, wl = Math.hypot(w.x, w.y, w.z) || 1;
   const kv = kill?.v ?? 0, bx = b.vx - ux * kv, bz = b.vz - uz * kv;
+  const sv = alive ? kv : Math.min(RAG.shove, kv * Math.max(0, (w.x * ux + w.z * uz) / wl));
   for (let i = 0; i < n; i++) {
-    const h = (p[i * 3 + 1] - ly) / B.ht - 0.5, s = (down ? 0 : RAG.slump * h) + kv * (1 - local) * (1 + (down ? 0 : RAG.tip * h));
+    const h = (p[i * 3 + 1] - ly) / B.ht - 0.5, s = (down ? 0 : RAG.slump * h) + sv * (1 - local) * (1 + (down ? 0 : RAG.tip * h));
     v.push(bx + ux * s, vy, bz + uz * s);
   }
   if (local && kill?.at) {
-    const A = kill.at, w = kill.way ?? { x: ux, y: 0, z: uz }, wl = Math.hypot(w.x, w.y, w.z) || 1;
-    const J = kill.v * b.mass * local, f: number[] = [];
+    const A = kill.at, J = (alive ? kv : Math.min(RAG.shove, kv)) * b.mass * local, f: number[] = [];
     let near = 0, nd = Infinity, sum = 0;
     for (let i = 0; i < n; i++) {
       const d = Math.hypot(p[i * 3] - A.x, p[i * 3 + 1] - A.y, p[i * 3 + 2] - A.z);
@@ -790,7 +794,7 @@ function reflexes(sim: Sim, R: Rag, B: Bones, m: Mutant): void {
  *  and falls: its knees are sent forward at `give` m/s, so one balanced on the feet it has stepped to does not stand
  *  there while the fight has it on the floor. The dying do not step: a dying step toward a wall took the slump from a
  *  body killed against it */
-export const STAGGER = { slack: 0.12, lift: 0.12, time: 0.22, reach: 0.55, upright: 0.06, alive: 0.45, steps: 2, give: 1.5 };
+export const STAGGER = { slack: 0.12, lift: 0.12, time: 0.22, reach: 0.55, upright: 0.045, alive: 0.45, steps: 2, give: 1.5 };
 
 function stagger(sim: Sim, R: Rag, B: Bones, m: Mutant): void {
   const X = STAGGER, age = R.age ?? 99, { p } = R;
@@ -817,10 +821,12 @@ function stagger(sim: Sim, R: Rag, B: Bones, m: Mutant): void {
   const fx = feet.reduce((a, f) => a + f[0], 0) / feet.length, fz = feet.reduce((a, f) => a + f[2], 0) / feet.length;
   const fy = Math.min(...feet.map(f => f[1])), hc = Math.max(0.2, cy - fy), k = Math.sqrt(hc / RAG.gravity);
   const px = cx + vx * k, pz = cz + vz * k;
-  /* its trunk held over its feet while it is still trying, less as it gives up */
+  /* its trunk held over its feet while it is still trying, less as it gives up: all of it, by how high it is over its
+     feet, which tips it about them. (Held by the three points of its trunk's frame, as first built, one shoulder was
+     pulled and not the other, and the trunk turned on its feet like a top, three quarters of a turn in half a second) */
   const hold = X.upright * (1 - age / X.alive);
-  if (B.core) for (const i of B.core) {
-    const j = i * 3, lean = (p[j + 1] - fy) / hc;
+  for (let i = 0; i < B.names.length; i++) {
+    const j = i * 3, lean = Math.max(0, (p[j + 1] - fy) / hc);
     p[j] += (fx - cx) * hold * lean; p[j + 2] += (fz - cz) * hold * lean;
   }
   if (!R.stride && taken < most && Math.hypot(px - fx, pz - fz) > X.slack) {
@@ -842,16 +848,22 @@ function stagger(sim: Sim, R: Rag, B: Bones, m: Mutant): void {
   if (S.s >= 1) { R.stride = null; R.steps = taken + 1; }
 }
 
-/** a worm dying thrashes: a wave down it, side to side across its length, dying away */
+/** a worm dying thrashes: bent one way and the other across its length, its ends against its middle, dying away. A
+ *  wave that ran down it, as first built, swam it along the floor as a snake goes, two metres and more; this one
+ *  stands, and what it would move the whole worm by is taken out, so it thrashes where it dies */
 function writhe(R: Rag, B: Bones, age: number): void {
   const X = REFLEX.writhe, { p } = R, n = B.names.length, fade = 1 - age / X.time, w = X.hz * Math.PI * 2;
+  const d: number[] = [];
+  let mx = 0, mz = 0;
   for (let i = 0; i < n; i++) {
-    const a = Math.max(0, i - 1) * 3, b = Math.min(n - 1, i + 1) * 3, tx = p[b] - p[a], tz = p[b + 2] - p[a + 2], tl = Math.hypot(tx, tz);
-    if (tl < 1e-6) continue;
+    const a = Math.max(0, i - 1) * 3, b = Math.min(n - 1, i + 1) * 3, tx = p[b] - p[a], tz = p[b + 2] - p[a + 2], tl = Math.hypot(tx, tz) || 1;
     /* across it, on the plan; a speed, as all of it is */
-    const v = X.amp * w * Math.cos(w * age - i * 0.9) * fade * dt;
-    p[i * 3] += (-tz / tl) * v; p[i * 3 + 2] += (tx / tl) * v;
+    const v = X.amp * w * Math.cos(w * age) * Math.cos((Math.PI * i) / (n - 1)) * fade * dt;
+    d.push((-tz / tl) * v, (tx / tl) * v);
+    mx += d[i * 2] * B.kg[i]; mz += d[i * 2 + 1] * B.kg[i];
   }
+  mx /= B.mass; mz /= B.mass;
+  for (let i = 0; i < n; i++) { p[i * 3] += d[i * 2] - mx; p[i * 3 + 2] += d[i * 2 + 1] - mz; }
 }
 
 /** the second half: the world, point by point (what it ran into stops it there); the floor's drag; asleep if still */

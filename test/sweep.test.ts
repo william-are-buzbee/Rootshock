@@ -89,6 +89,35 @@ describe('a swing meets the cast', () => {
     expect(m.z - z).toBeLessThan(-0.1); // north: your left
   });
 
+  it('the axe\'s chop shoves what it lands on straight along your line, low as well as high', () => {
+    /* below your eye the chop's head is coming back toward you as it lands; the shove went whichever way was left */
+    for (const [kind, x] of [['skitter', 11.5], ['worm', 11.3], ['husk', 11.6]] as const) {
+      const s = room(12, 4, (b, z) => b.mutant(kind, x, 0, z));
+      const m = s.cast[0];
+      s.player.pitch = Math.atan2(m.body!.h * 0.5 - 1.6, x - 10);
+      give(s.game, 'axe');
+      hold(s, STEP, { attack: true });
+      let v: { x: number; z: number } | null = null;
+      for (let t = 0; t < 2; t += STEP) { step(s, noInput()); if (!v && m.hp < m.max) v = { x: m.body!.vx, z: m.body!.vz }; }
+      expect(v, kind).not.toBe(null);
+      expect(v!.x, kind).toBeGreaterThan(0);
+      expect(Math.abs(v!.z), kind).toBeLessThan(0.15 * v!.x);
+    }
+  });
+
+  it('a grabber is struck anywhere it hangs: a side swing through its tentacles lands, and so does a shot at them', () => {
+    const s = room(12, 4, (b, z) => b.mutant('grabber', 11.3, 0, z));
+    const m = s.cast[0];
+    s.player.pitch = Math.atan2(1 - 1.6, 1.3); // at its tentacles, a metre up
+    swing(s, 'pipe');
+    expect(m.hp).toBeLessThan(m.max);
+    const hp = m.hp;
+    give(s.game, 'pistol'); give(s.game, 'ammo9'); s.game.weapon = 'pistol';
+    hold(s, STEP, { attack: true });
+    hold(s, 0.2);
+    expect(m.hp).toBeLessThan(hp);
+  });
+
   it('a thresher\'s wide blow in a corridor glances off its walls and leaves it reeling and open; in the open it lands', () => {
     const blow = (w: number) => {
       const s = room(w, 4, (b, z) => b.mutant('thresher', 11.2, 0, z)), m = s.cast[0] as Mutant;
