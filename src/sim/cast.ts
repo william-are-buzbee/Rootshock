@@ -9,7 +9,7 @@ import { hurtBy, power, sayOnce, sfx } from './game';
 import { exposed, struck } from './combat';
 import { sendPlatform, type Door } from './movers';
 import { eyeHeight } from './player';
-import { closing, FALL, MOVES, POISE, react, regain, SHOVE, SLAM, type Move } from './moves';
+import { closing, DOWN, FALL, LAUNCH, MOVES, POISE, react, regain, RISE, SHOVE, SLAM, type Move } from './moves';
 import { simLighting, type Sim } from './sim';
 import { blinded, manned, soundZone } from './eyes';
 
@@ -123,6 +123,8 @@ export interface Mutant {
   poise: number; pmax: number; calm: number; reel: number;
   /** seconds it has held off, waiting for its turn at you (a husk while another is at you) */
   pat: number;
+  /** knocked down (sim/moves.ts, DOWN): seconds left on the floor, then seconds left getting up */
+  down: number; rise: number;
   /** time, for its animation */
   ph: number;
   dead: boolean;
@@ -150,7 +152,7 @@ export function makeCast(sim: Sim, defs: MutantDef[]): Mutant[] {
       post: !!o.post, sit: !!o.sit, holt: !!o.holt, big: !!o.big, zone: (def.opts.zone as string | undefined) ?? null, screens: (def.opts.screens as string | undefined) ?? null, hx: def.x, hz: def.z, room,
       wt: rnd(1, 5), wm: 0, wx: 0, wz: 0, tk: 0, lost: 0, bt: 0, burst: false, flee: 0, ct: rnd(6, 14), cdir: 0, tgt: false,
       grab: 0, tense: 0, riled: false, blow: null, dest: -1, F: null, stk: 0, fled: false, side: 0, ride: null, spot: -1,
-      mv: 0, d: 99, dp: 99, dy: 0, los: false, losAt: -99, hit: 0, poise: poiseOf(def.type, S.ai, !!o.big), pmax: poiseOf(def.type, S.ai, !!o.big), calm: 99, reel: 0, pat: 0, ph: rnd(9), dead: false, gone: 0, still: 0,
+      mv: 0, d: 99, dp: 99, dy: 0, los: false, losAt: -99, hit: 0, poise: poiseOf(def.type, S.ai, !!o.big), pmax: poiseOf(def.type, S.ai, !!o.big), calm: 99, reel: 0, pat: 0, down: 0, rise: 0, ph: rnd(9), dead: false, gone: 0, still: 0,
     };
     return m;
   });
@@ -442,15 +444,16 @@ function roam(sim: Sim, m: Mutant, spd: number): void {
 /* ---- hurting you */
 
 /** it lands on you: what it takes of you and of your poise (sim/combat.ts, struck), and the shove it gives you
- *  (kg m/s). Run into it and it lands harder; back off and softer (sim/moves.ts, closing) */
-function strikes(sim: Sim, m: Mutant, dmg: number, poise: number, shove = 0): void {
+ *  (kg m/s), or for one that throws you, how fast (m/s). Run into it and it lands harder; back off and softer
+ *  (sim/moves.ts, closing); down, harder still */
+function strikes(sim: Sim, m: Mutant, dmg: number, poise: number, shove = 0, throws = 0): void {
   const b = sim.player.body;
   /* you are on something well above it: it cannot reach */
   if (!m.fixed && b.y - m.y > 1.4) return;
   const dx = b.x - m.x, dz = b.z - m.z, d = Math.hypot(dx, dz) || 1, ux = dx / d, uz = dz / d;
-  const k = closing(-(b.vx * ux + b.vz * uz));
+  const k = closing(-(b.vx * ux + b.vz * uz)) * (sim.hands.down > 0 ? DOWN.more : 1);
   hurtBy(sim.game, dmg * k, DEATH[m.ai], { x: m.x, z: m.z });
-  struck(sim, poise * k, { x: m.x, z: m.z });
+  struck(sim, poise * k, { x: m.x, z: m.z }, throws || (shove * k) / b.mass);
   if (shove) impulse(b, ux * shove * k, uz * shove * k);
 }
 
@@ -775,7 +778,7 @@ const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
         m.st -= dt;
         if ((m.tk -= dt) < 0) { m.tk = 0.16; step_(sim, m, 'hstep', true); }
         if (m.dp < m.r + 0.55 && Math.abs(m.dy) < 1.4) {
-          strikes(sim, m, 45, 60);
+          strikes(sim, m, 45, 60, 0, 9);
           /* it throws you: 9 m/s along its charge, whatever you were doing */
           p.body.vx = 0; p.body.vz = 0; push(p.body, Math.sin(m.cdir) * 9, Math.cos(m.cdir) * 9);
           m.state = 'recover'; m.st = 1.6;
@@ -957,6 +960,9 @@ export function updateCast(sim: Sim): void {
     m.calm += dt;
     m.poise = regain(m.poise, m.pmax, m.calm, dt);
     if (m.reel > 0) m.reel = Math.max(0, m.reel - dt);
+    /* on the floor, then getting up */
+    if (m.down > 0) { m.down = Math.max(0, m.down - dt); if (m.down === 0) m.rise = DOWN.rise; }
+    else if (m.rise > 0) m.rise = Math.max(0, m.rise - dt);
     if (m.dead) { if (m.gone < 1) m.gone = Math.min(1, m.gone + dt * 2.5); continue; }
     const mb = m.body, resting = !!mb && m.still > 2 && mb.ground && mb.vy === 0 && !mb.on, ox = mb?.x, oz = mb?.z;
     if (mb) {
@@ -1013,20 +1019,28 @@ export interface Hit { dmg: number; poise: number; shove?: number; dir?: { x: nu
  *  moved at all. */
 export function hitMutant(sim: Sim, m: Mutant, w: Hit, k = 1): void {
   const g = sim.game, p = sim.player.body, ph = m.blow?.ph, open = ph === 'after';
+  /* on the floor, it takes a blow harder, and has no footing left to lose */
+  if (m.down > 0) k *= DOWN.more;
   m.hp -= w.dmg * k * (open ? OPEN.dmg : 1);
   m.hit = Math.max(m.hit, Math.min(1, k));
   sfx(g, 'hit');
+  let v = 0, ux = 0, uz = 0;
   if (m.body && w.shove) {
-    const dx = m.x - p.x, dz = m.z - p.z, d = Math.hypot(dx, dz) || 1, v = Math.min(SHOVE.most, (w.shove * k) / m.body.mass);
-    const ux = w.dir ? w.dir.x : dx / d, uz = w.dir ? w.dir.z : dz / d;
+    const dx = m.x - p.x, dz = m.z - p.z, d = Math.hypot(dx, dz) || 1;
+    v = Math.min(SHOVE.most, (w.shove * k) / m.body.mass);
+    ux = w.dir ? w.dir.x : dx / d; uz = w.dir ? w.dir.z : dz / d;
     if (v > 0) { m.body.vx += ux * v; m.body.vz += uz * v; }
   }
   if (m.hp <= 0) { kill(sim, m); return; }
-  /* the ladder (sim/moves.ts): the part of its blow it is in may shrug it off */
+  if (m.down > 0) return;
+  /* the ladder (sim/moves.ts): the part of its blow it is in may shrug it off; getting up, it has better footing */
   const K = blowKind(m), armour = !K ? 0 : ph === 'wind' ? K.armour.wind : ph === 'strike' ? K.armour.strike : 0;
-  const R = react(m.poise, m.pmax, w.poise * k * (open ? OPEN.poise : 1), armour), hold = open ? OPEN.poise : 1;
+  const hitPoise = Math.max(0, w.poise * k * (open ? OPEN.poise : 1) - (m.rise > 0 ? RISE.guard : 0));
+  const R = react(m.poise, m.pmax, hitPoise, armour), hold = open ? OPEN.poise : 1;
   m.poise = R.left; m.calm = 0;
-  if (R.r === 'stagger') { m.blow = null; m.reel = HOLD.stagger * hold; m.stun = Math.max(m.stun, m.reel); }
+  if (R.r === 'stagger' && v >= LAUNCH.dv && m.body) { m.body.vy += LAUNCH.up * v; m.body.ground = false; }
+  if (R.r === 'stagger' && v >= DOWN.dv && upright(m)) floored(sim, m);
+  else if (R.r === 'stagger') { m.blow = null; m.reel = HOLD.stagger * hold; m.stun = Math.max(m.stun, m.reel); }
   /* a flinch loses a blow on its way; one already thrown, it is still recovering from */
   else if (R.r === 'flinch') { if (!open) m.blow = null; m.stun = Math.max(m.stun, HOLD.flinch * hold); }
   switch (m.ai) {
@@ -1044,17 +1058,32 @@ export function hitMutant(sim: Sim, m: Mutant, w: Hit, k = 1): void {
   }
 }
 
+/** it stands on its feet, so it can be knocked off them: not the low ones (on the floor already), the fixed, or what
+ *  nothing moves */
+const upright = (m: Mutant): boolean => !!m.body && !m.low && !m.swim && Number.isFinite(m.body.mass);
+
+/** knocked off its feet: down a while, then getting up; nothing it was doing goes on (sim/moves.ts, DOWN) */
+function floored(sim: Sim, m: Mutant): void {
+  m.blow = null; m.reel = 0;
+  m.down = DOWN.time; m.rise = 0;
+  m.stun = Math.max(m.stun, DOWN.time + DOWN.rise);
+  step_(sim, m, 'thud', true);
+}
+
 /** thrown into something solid, or fallen: `over` m/s past what does no harm, and the harm and poise of each (a
- *  slam or a fall, sim/moves.ts) */
+ *  slam or a fall, sim/moves.ts). A fall that breaks its poise puts it on the floor */
 function battered(sim: Sim, m: Mutant, over: number, r: { dmg: number; poise: number }): void {
   if (m.dead) return;
+  if (m.down > 0) over *= DOWN.more;
   m.hp -= over * r.dmg;
   m.hit = Math.max(m.hit, 0.6);
   step_(sim, m, 'thud', m.big || m.mass > 2);
   if (m.hp <= 0) { kill(sim, m); return; }
-  const R = react(m.poise, m.pmax, over * r.poise, 0);
+  if (m.down > 0) return;
+  const R = react(m.poise, m.pmax, Math.max(0, over * r.poise - (m.rise > 0 ? RISE.guard : 0)), 0);
   m.poise = R.left; m.calm = 0;
-  if (R.r === 'stagger') { m.blow = null; m.reel = HOLD.stagger; m.stun = Math.max(m.stun, m.reel); }
+  if (R.r === 'stagger' && r === FALL && upright(m)) floored(sim, m);
+  else if (R.r === 'stagger') { m.blow = null; m.reel = HOLD.stagger; m.stun = Math.max(m.stun, m.reel); }
   else if (R.r === 'flinch') { m.blow = null; m.stun = Math.max(m.stun, HOLD.flinch); }
 }
 

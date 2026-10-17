@@ -1,8 +1,8 @@
 /* Everything that can be carried, as the first engine had it. A weapon carries its handling (w); stackable things count
    (stack, and per: how many come in one find); a tool is a light; worn things go on; a key is not carried but known. */
 
-/** the way a swung thing travels (engine.md §6, F3b): side to side, right to left; a chop, from up and right to down
- *  and left; or straight out, a thrust */
+/** the way a swung thing travels (engine.md §6, F3b): side to side, right to left; a chop, straight down from over
+ *  your head; or straight out, a thrust */
 export type Shape = 'side' | 'chop' | 'thrust';
 
 export interface WeaponDef {

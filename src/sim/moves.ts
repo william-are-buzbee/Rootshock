@@ -8,8 +8,7 @@
    - flinch: a wind-up or strike is lost; a moment's pause.
    - stagger: its poise is broken. It reels, open, for a while, and its poise comes back whole.
 
-   Knocked down and thrown (the rungs past stagger) come with the knockdowns (§6). Your own blows are never stopped
-   (engine.md §6, F2 as built): the ladder only ever makes you reel. */
+   Past stagger: knocked down, and thrown (below). Your own blows are never stopped (engine.md §6, F2 as built). */
 
 export interface Move {
   /** seconds of each motion; recovery after a blow that landed, and after one that met nothing; a rest after that */
@@ -45,7 +44,7 @@ export const MOVES = {
   skitter: { wind: 0.5, strike: 0.1, rec: 0.4, miss: 0.7, cd: 0.45, turn: 6, lock: 0.6, creep: 0, start: 0.75, reach: 0.75, arc: deg(35), lunge: 0.5, dmg: 22, poise: 18, shove: 120, armour: { wind: 10, strike: 14 }, tell: 'skit' },
   bigSkitter: { wind: 0.7, strike: 0.15, rec: 0.7, miss: 1.1, cd: 0.6, turn: 5, lock: 0.6, creep: 0, start: 1.1, reach: 1.1, arc: deg(45), lunge: 0.6, dmg: 45, poise: 34, shove: 220, armour: { wind: 18, strike: 28 }, tell: 'skit', big: true },
   /* both arms, side to side: hard to get round, hard to stop, but a long time open after */
-  thresher: { wind: 0.6, strike: 0.15, rec: 0.9, miss: 1.3, cd: 0.4, turn: 6, lock: 0.65, creep: 1.0, start: 0.7, reach: 0.9, arc: deg(70), lunge: 0.25, dmg: 45, poise: 45, shove: 300, armour: { wind: 30, strike: 60 }, tell: 'growl', big: true, wide: true },
+  thresher: { wind: 0.6, strike: 0.15, rec: 0.9, miss: 1.3, cd: 0.4, turn: 6, lock: 0.65, creep: 1.0, start: 0.7, reach: 0.9, arc: deg(70), lunge: 0.25, dmg: 45, poise: 45, shove: 360, armour: { wind: 30, strike: 60 }, tell: 'growl', big: true, wide: true },
   /* a worm's or a swimmer's is hardly a blow: a short rasp, the head lifted and the hand drawn back, then a grab. Quick
      to see, quick to be over: a step back as it lifts is enough */
   worm: { wind: 0.3, strike: 0.08, rec: 0.25, miss: 0.4, cd: 1.0, turn: 8, lock: 0.5, creep: 0, start: 0.7, reach: 0.75, arc: deg(60), lunge: 0.15, dmg: 12, poise: 8, shove: 30, armour: { wind: 0, strike: 0 }, tell: 'rasp' },
@@ -98,6 +97,24 @@ export const SHOVE = { you: 70, arm: 1.5, most: 7 };
  *  `poise` for each m/s over. Your own feet never slam you: only being thrown does */
 export const SLAM = { min: 3, dmg: 4, poise: 6 };
 export const FALL = { min: 10, dmg: 6, poise: 8 };
+
+/* ---- knocked down and thrown (engine.md §6, knockdowns)
+
+   A hit that breaks a body's poise and shoves it at DOWN.dv or more knocks it off its feet, if it stands on them (you,
+   a husk, a thresher, the hand; not the low ones, a worm, a skitter, which are on the floor already); at LAUNCH.dv or
+   more it is thrown, some of the shove turned upward, and comes down after. Down, it does nothing for a while; then it
+   gets up, and while it does a hit has to get past RISE.guard of poise before it counts: a moment of better footing,
+   not immunity, so one knockdown cannot chain into the next. A blow on something down lands DOWN.more times as hard.
+   A fall that breaks its poise puts it down too. Thresholds, as the rest of the ladder: the same blow does the same
+   thing every time. A husk stood still and struck with the axe (4.1 m/s) reels; run in, and it goes down (6.2). */
+
+/** the shove (m/s) that floors, how long a body stays down, how long it takes to get up (s), and how much harder a
+ *  blow on something down lands */
+export const DOWN = { dv: 4.5, time: 1.0, rise: 0.6, more: 1.5 };
+/** the shove (m/s) that throws, and the share of it that goes upward */
+export const LAUNCH = { dv: 7, up: 0.45 };
+/** the poise a hit has to get past while its target is getting up */
+export const RISE = { guard: 25 };
 
 /** a blow of yours that glances off the world comes back at you with this share of the poise it would have taken
  *  (sim/combat.ts, sweep): a full blow of the axe or the pipe knocks the wind out of you, the baton's does not */

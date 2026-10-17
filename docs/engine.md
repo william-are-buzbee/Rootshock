@@ -403,8 +403,9 @@ corpse worth throwing.
 ### F3b, as built
 
 - **Shapes** (`content/items.ts`, `shape`): the pipe, the baton and the wrenches swing **side** to side, right to left
-  across the way you face (40° each side of it); the axe **chops**, from up and right (55°) down to the left (35°), in
-  a plane tilted 45°; fists and the knife **thrust** straight out. The path is laid on the line the blow was thrown
+  across the way you face (40° each side of it); the axe **chops** straight down, in the upright plane of the way you
+  face, from 50° above it to 40° below (at first it came from up and right to down and left, which read as a curve;
+  playing set it straight); fists and the knife **thrust** straight out. The path is laid on the line the blow was thrown
   along, pitch and all: look down at a worm and the swing goes low. Its reach across the floor is the weapon's, at any
   pitch (you lean into a low blow).
 - **Swept, not tested at an instant** (`sim/sweep.ts`; `combat.ts`, `sweep`): the part of a swing from a fifth to
@@ -418,22 +419,51 @@ corpse worth throwing.
   back as from a blow at nothing. The floor does not stop a blow: one aimed low scrapes along it.
 - **Shoved the way the blow went**: half along the line, half the way the head was moving. A side swing sends a worm
   off to your left.
-- **Where it glances** (measured over every place to stand on two levels, facing every way with 1.6 m clear ahead):
-  the pipe and the baton in 7% of them on the upper station and 10% on the main level; the axe in 10% and 16% (its chop
-  starts high and catches door heads and low ceilings); a thresher in 11% and 16%.
+- **A blow stops in what it hits.** It goes on through nothing behind it, and it is drawn stopped there, rocked back a
+  little off it, rather than following through as one that met nothing does (`swing.struck`).
+- **Where it glances** (measured over every place to stand, facing every way with 1.6 m clear ahead): the pipe and
+  the baton in 7% of them on the upper station, 10% on the main level, 11% in the plant, 6% in the sump, 1% in the
+  cave; the axe's straight chop in 3%, 6%, 1%, 0% and 2%, nearly all of it the blow coming down onto something in front
+  of you (a rail, a gallery's edge), not lifting it: it clears the corridors, and only the cave's low spring branch
+  catches it overhead. A thresher glances in 11% and 16% (upper, main).
 - **The thresher's blow is wide** (`MOVES.thresher.wide`): if a wall stands within its arc (70° each side, at a metre
   up, out to most of its reach) as it comes to strike, it glances: nothing lands, it is heard to hit the wall, and it
   reels 0.6 s before the 1.3 s recovery of a blow that met nothing. A corridor is the place to fight one; it still
   charges.
 - **Seen**: the swing is drawn as the sim swings it. A side swing is drawn back to the right as it loads, brought
-  across the middle of the view in the part that can land and on to the left; the axe is raised up and right and
-  brought down to the left; fists and the knife go straight out. A glance jumps back the way it came and shakes. The
-  dev overlay (O) draws the path your blow's head will take, in white.
+  across the middle of the view in the part that can land and on to the left; fists and the knife go straight out. A glance jumps back the way it came and shakes. The
+  dev overlay (O) draws the path your blow's head will take, in white. The axe is held up at rest, lifted straight
+  up over your head as it loads, and brought straight down: one upright plane from first to last.
 - **What it plays like** (the duels): one husk is beaten untouched with the axe or the pipe; the baton's fighter no
   longer kills one in time. Two husks still leave the axe and the pipe unhurt (with fewer kills: a traced swing has to
   reach); the baton dies to two in front of it. Not yet done: a heavy blow carrying through a light thing into the
   next (cleaving).
 - **Tests**: `test/sweep.test.ts`. No change to saves.
+
+### Knockdowns, as built
+
+- **The rungs past stagger** (`sim/moves.ts`, `DOWN`, `LAUNCH`, `RISE`). A hit that breaks a body's poise and shoves
+  it at 4.5 m/s or more knocks it off its feet, if it stands on them: you, a husk, a thresher, the hand. Not a worm or
+  a skitter, which are on the floor already, nor a bloat, which nothing moves. At 7 m/s or more it is thrown as well,
+  0.45 of the shove turned upward, and comes down where it lands. A fall that breaks an upright body's poise puts it
+  down too. Thresholds, as the rest of the ladder.
+- **What does it.** Your axe, stood still, sends a husk back at 4.1 m/s: it reels. Run in, 6.2: it goes down. The pipe
+  run in, 5.1: down. A worm or a skitter struck with the axe is thrown (7 m/s, the most a blow sends anything). A
+  husk's blow shoves you at 1.5 m/s: two of them stagger you but never floor you. A thresher's swipe (its shove raised
+  from 300 to 360 kg m/s so it does: 4.8 m/s) puts you on the floor; its charge (9 m/s) throws you.
+- **Down** for a second, then **getting up** for 0.6 s. Down, nothing is done: no blows, no steps, no turn of its own
+  (the cast's AI waits; you cannot move or start a load); a blow on whatever is down lands 1.5 times as hard and takes
+  no more footing from it. Getting up, a hit's poise counts only past 25: a moment of better footing, not immunity,
+  so a knockdown cannot chain into another (a pipe blow that would stagger a husk on its feet does not as it rises).
+  Your own blows are still never stopped: one already thrown, or held loaded, goes on.
+- **You, down**: as low as crouching (and standing again only where there is room); the view drops to the floor,
+  tipped over the way you went and looking up, and comes back up as you rise; the arm is flung down out of the way.
+  Heard: the wind knocked out of you and the floor coming up.
+- **The cast, down**: drawn over backward onto the floor, and back up as they rise.
+- **Not built**: a husk that goes for whoever is down (they do go on striking, and land harder, but have no stomp of
+  their own); rolling to get up; corpses that fall loose.
+- **Tests**: `test/down.test.ts`. Saves carry the cast's `down` and `rise` (still version 5: a save without them loads
+  with nobody down).
 
 ---
 

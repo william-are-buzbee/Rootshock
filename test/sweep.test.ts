@@ -66,6 +66,19 @@ describe('a swing meets the world', () => {
 });
 
 describe('a swing meets the cast', () => {
+  it('a blow stops in what it hits: the swing is over there, and goes on through nothing behind it', () => {
+    const s = room(12, 4, (b, z) => { b.mutant('worm', 11.0, 0, z + 0.45); b.mutant('worm', 11.4, 0, z - 0.45); });
+    const [right, left] = s.cast;
+    give(s.game, 'pipe');
+    s.player.pitch = -0.7;
+    hold(s, STEP, { attack: true });
+    let struck: number | undefined;
+    for (let t = 0; t < 2; t += STEP) { step(s, noInput()); struck ??= s.hands.swing?.struck; }
+    expect(struck).toBeGreaterThan(0);
+    expect(right.hp).toBeLessThan(right.max);
+    expect(left.hp).toBe(left.max);
+  });
+
   it('a side swing sends what it hits off to your left, the way the swing was going', () => {
     const s = room(12, 4, (b, z) => b.mutant('worm', 11.3, 0, z));
     const m = s.cast[0], x = m.x, z = m.z;

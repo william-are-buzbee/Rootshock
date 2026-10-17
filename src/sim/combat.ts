@@ -5,7 +5,7 @@ import type { Dyn } from '../world/world';
 import { hitMutant, type Mutant } from './cast';
 import { consume, makeNoise, say, sfx } from './game';
 import { push } from './body';
-import { closing, GLANCE, POISE, react, REEL, regain, SHOVE, swingOf, type Swing } from './moves';
+import { closing, DOWN, GLANCE, LAUNCH, POISE, react, REEL, regain, RISE, SHOVE, swingOf, type Swing } from './moves';
 import { ACTIVE, across, along, frame, meetsCylinder, meetsSphere, type Frame, type V3 } from './sweep';
 import type { Input } from './input';
 import { eyeHeight } from './player';
@@ -32,8 +32,8 @@ export interface Hands {
   go: boolean;
   /** a swing under way: how far through it is and how long it takes; how far across the part that can land it has
    *  been traced (sim/sweep.ts); whether that part is over, and whether it ended meeting nothing but the world; and
-   *  how far through it was when it glanced off something, if it did */
-  swing: { t: number; dur: number; a: number; done: boolean; missed?: boolean; glance?: number } | null;
+   *  how far through it was when it glanced off something, or when it met one of the cast and stopped in it, if it did */
+  swing: { t: number; dur: number; a: number; done: boolean; missed?: boolean; glance?: number; struck?: number } | null;
   /** the line a thrown blow goes along, fixed as you let it go */
   line: { yaw: number; pitch: number } | null;
   /** after a blow that met nothing, the arm coming back: no new swing until it is in */
@@ -53,11 +53,16 @@ export interface Hands {
   poise: number;
   calm: number;
   stag: number;
+  /** knocked down (sim/moves.ts, DOWN): seconds left on the floor, then seconds left getting up; and which way you
+   *  went over (1 to your right, -1 to your left), for the view */
+  down: number;
+  rise: number;
+  side: number;
 }
 
 export const makeHands = (): Hands => ({
   chg: -1, full: false, go: false, swing: null, line: null, rec: 0, stop: 0, gcd: 0, kick: 0, muzzle: 0, held: false, buf: 0,
-  poise: POISE.you, calm: 99, stag: 0,
+  poise: POISE.you, calm: 99, stag: 0, down: 0, rise: 0, side: 1,
 });
 
 /** how long a press is kept while you are busy (s) */
@@ -74,8 +79,15 @@ export const exposed = (sim: Sim): boolean => {
   return h.rec > 0 || h.stag > 0 || !!h.swing?.done;
 };
 
-/** your pace as a share of it: a third while you reel (sim/moves.ts, REEL); loading and swinging do not slow you */
-export const pace = (sim: Sim): number => (sim.hands.stag > 0 ? REEL.pace : 1);
+/** your pace as a share of it: none on the floor, a third while you reel or get up (sim/moves.ts, REEL, DOWN); loading
+ *  and swinging do not slow you */
+export const pace = (sim: Sim): number => {
+  const h = sim.hands;
+  return h.down > 0 ? 0 : h.stag > 0 || h.rise > 0 ? REEL.pace : 1;
+};
+
+/** you are on the floor, or getting up from it */
+export const floored = (sim: Sim): boolean => sim.hands.down > 0 || sim.hands.rise > 0;
 
 export function updateHands(sim: Sim, input: Input): void {
   const h = sim.hands, g = sim.game, w = wstats(g.weapon), S = swingFor(w);
@@ -84,13 +96,15 @@ export function updateHands(sim: Sim, input: Input): void {
   if (h.muzzle > 0) h.muzzle -= dt;
   if (h.rec > 0) h.rec -= dt;
   if (h.stag > 0) h.stag = Math.max(0, h.stag - dt);
+  if (h.down > 0) { h.down = Math.max(0, h.down - dt); if (h.down === 0) h.rise = DOWN.rise; }
+  else if (h.rise > 0) h.rise = Math.max(0, h.rise - dt);
   if (h.buf > 0) h.buf -= dt;
   h.calm += dt;
   h.poise = regain(h.poise, POISE.you, h.calm, dt);
   const press = input.attack && !h.held, release = !input.attack && h.held;
   h.held = input.attack;
-  if (w.gun) { h.chg = -1; h.swing = null; if (press && h.stag <= 0) fire(sim, w); return; }
-  const free = !h.swing && h.chg < 0 && h.rec <= 0 && h.stag <= 0;
+  if (w.gun) { h.chg = -1; h.swing = null; if (press && h.stag <= 0 && !floored(sim)) fire(sim, w); return; }
+  const free = !h.swing && h.chg < 0 && h.rec <= 0 && h.stag <= 0 && !floored(sim);
   if (press && !free) h.buf = BUF;
   /* a buffered press starts the load whether or not it is still held: let go already, it is a click */
   if (free && (press || h.buf > 0)) { h.chg = 0; h.full = false; h.go = !input.attack; h.buf = 0; }
@@ -120,6 +134,8 @@ export function updateHands(sim: Sim, input: Input): void {
         s.done = true;
         s.missed = met !== 'hit';
         if (met === 'glance') s.glance = q;
+        /* it stops in what it hit: it does not go on through it */
+        if (met === 'hit') s.struck = q;
         lunge(sim, S);
       }
     }
@@ -137,18 +153,31 @@ function lunge(sim: Sim, S: Swing): void {
   push(sim.player.body, -Math.sin(L.yaw) * S.lunge, -Math.cos(L.yaw) * S.lunge);
 }
 
-/** a blow lands on you, with `poise` behind it: the ladder (sim/moves.ts). It takes no load and no blow from you; if
- *  it breaks your poise, you reel: thrown back from it, slowed, and no new load until you have your feet. */
-export function struck(sim: Sim, poise: number, from?: { x: number; z: number }): void {
-  const h = sim.hands, g = sim.game;
+/** a blow lands on you, with `poise` behind it and shoving you at `dv` m/s: the ladder (sim/moves.ts). It takes no load
+ *  and no blow from you. If it breaks your poise you reel: thrown back from it, slowed, no new load until you have
+ *  your feet. If it breaks your poise and shoves you hard enough (DOWN.dv), you go down; harder still (LAUNCH.dv), you
+ *  are thrown, and land down. Down, a hit takes no more footing from you; getting up, it has to get past RISE.guard. */
+export function struck(sim: Sim, poise: number, from?: { x: number; z: number }, dv = 0): void {
+  const h = sim.hands, g = sim.game, b = sim.player.body;
   if (g.ended) return;
-  const R = react(h.poise, POISE.you, poise, 0);
-  h.poise = R.left; h.calm = 0;
+  h.calm = 0;
+  if (h.down > 0) return;
+  const R = react(h.poise, POISE.you, Math.max(0, poise - (h.rise > 0 ? RISE.guard : 0)), 0);
+  h.poise = R.left;
   if (R.r !== 'stagger') return;
+  if (dv >= DOWN.dv) {
+    /* off your feet: over the way the blow sent you, and, hard enough, up and over */
+    h.down = DOWN.time; h.rise = 0; h.stag = 0;
+    if (from) { const r = { x: Math.cos(sim.player.yaw), z: -Math.sin(sim.player.yaw) }; h.side = (b.x - from.x) * r.x + (b.z - from.z) * r.z >= 0 ? 1 : -1; }
+    if (dv >= LAUNCH.dv) push(b, 0, 0, LAUNCH.up * dv);
+    sfx(g, 'reel');
+    sfx(g, 'land', undefined, false, 0, 1);
+    g.events.push({ type: 'shake', k: 0.6 });
+    return;
+  }
   h.stag = REEL.you;
   sfx(g, 'reel');
   g.events.push({ type: 'shake', k: 0.35 });
-  const b = sim.player.body;
   if (from) { const dx = b.x - from.x, dz = b.z - from.z, d = Math.hypot(dx, dz) || 1; push(b, (dx / d) * REEL.push, (dz / d) * REEL.push); }
 }
 
