@@ -2,7 +2,7 @@ import { STEP } from '../core/loop';
 import { rect } from '../world/shapes';
 import type { Box } from '../world/shapes';
 import type { Dyn, World } from '../world/world';
-import { GRAVITY, type Body } from './body';
+import type { Body } from './body';
 import type { Mutant } from './cast';
 import type { Sim } from './sim';
 import { sfx } from './game';
@@ -37,6 +37,10 @@ export interface Skel {
   hinge?: [string, string, string, string, string, 1 | -1][];
   /** the middle of these is where it is said to be (its x and z) */
   mid: string[];
+  /** three points of its trunk, not in a line, that its frame is reckoned from: what its muscles hold the rest to */
+  core?: [string, string, string];
+  /** how much of its muscles' hold each point has, where not all (1): legs give first, the neck last */
+  tone?: Record<string, number>;
 }
 
 /* The skeletons, from the models in castView.ts and security.ts (test/ragdoll.test.ts holds them to each other). A
@@ -61,6 +65,8 @@ export const SKEL: Record<string, Skel> = {
       ['kneeL', 'kneeR', 0.6], ['footL', 'footR', 0.6], ['handL', 'belly', 0.4], ['handR', 'belly', 0.3]],
     hinge: [['hipL', 'kneeL', 'footL', 'hipL', 'hipR', -1], ['hipR', 'kneeR', 'footR', 'hipL', 'hipR', -1]],
     mid: ['hipL', 'hipR', 'belly'],
+    core: ['hipL', 'hipR', 'shL'],
+    tone: { kneeL: 0.5, kneeR: 0.5, footL: 0.5, footR: 0.5, handL: 0.6, handR: 0.6 },
   },
   thresher: {
     pts: {
@@ -80,6 +86,8 @@ export const SKEL: Record<string, Skel> = {
     hinge: [['hipL', 'kneeL', 'footL', 'hipL', 'hipR', -1], ['hipR', 'kneeR', 'footR', 'hipL', 'hipR', -1],
       ['shL', 'elbL', 'handL', 'shL', 'shR', 1], ['shR', 'elbR', 'handR', 'shL', 'shR', 1]],
     mid: ['hipL', 'hipR', 'back'],
+    core: ['hipL', 'hipR', 'shL'],
+    tone: { kneeL: 0.5, kneeR: 0.5, footL: 0.5, footR: 0.5, elbL: 0.6, elbR: 0.6, handL: 0.5, handR: 0.5 },
   },
   skitter: {
     pts: {
@@ -95,6 +103,8 @@ export const SKEL: Record<string, Skel> = {
     apart: [['f0', 'top', 0.75], ['f1', 'top', 0.75], ['f2', 'top', 0.75], ['f3', 'top', 0.75], ['f4', 'top', 0.75], ['f5', 'top', 0.75],
       ['f0', 'f1', 0.5], ['f1', 'f2', 0.5], ['f3', 'f4', 0.5], ['f4', 'f5', 0.5]],
     mid: ['fl', 'fr', 'bl', 'br'],
+    core: ['fl', 'fr', 'bl'],
+    tone: { f0: 0.8, f1: 0.8, f2: 0.8, f3: 0.8, f4: 0.8, f5: 0.8 },
   },
   worm: {
     pts: {
@@ -134,6 +144,12 @@ export const SKEL: Record<string, Skel> = {
       ['tip0', 'top', 0.7], ['tip1', 'top', 0.7], ['tip2', 'top', 0.7], ['tip3', 'top', 0.7],
       ['t0', 't2', 0.75], ['t1', 't3', 0.75], ['aL', 'handL', 0.45], ['aR', 'handR', 0.45]],
     mid: ['lf', 'rf', 'lb', 'rb'],
+    core: ['lf', 'rf', 'lb'],
+    tone: {
+      kneeLF: 0.4, footLF: 0.4, kneeLB: 0.4, footLB: 0.4, kneeRF: 0.4, footRF: 0.4, kneeRB: 0.4, footRB: 0.4,
+      tip0: 0.6, tip1: 0.6, tip2: 0.6, tip3: 0.6, t1: 0.8, t2: 0.8, t3: 0.8, t4: 0.8, hd: 0.8, aL: 0.8, aR: 0.8,
+      elbL: 0.6, elbR: 0.6, handL: 0.6, handR: 0.6,
+    },
   },
 };
 
@@ -153,6 +169,11 @@ export interface Bones {
   /** a, b, c, side from, side to, way, for each hinge */
   hinge: number[];
   mid: number[];
+  /** its trunk's three points, and their frame as it stands (columns) and middle; each point's share of its tone */
+  core: number[] | null;
+  frame0: number[];
+  c0: number[];
+  tone: number[];
   /** how tall it stands: for the slump, which turns its top one way and its feet the other */
   ht: number;
 }
@@ -178,7 +199,12 @@ export function bones(kind: string): Bones {
   let lo = Infinity, hi = -Infinity;
   for (let i = 0; i < names.length; i++) { lo = Math.min(lo, rest[i * 3 + 1] - r[i]); hi = Math.max(hi, rest[i * 3 + 1] + r[i]); }
   const hinge = (S.hinge ?? []).flatMap(([a, b, c, s0, s1, way]) => [at[a], at[b], at[c], at[s0], at[s1], way]);
-  B = { names, at, rest, r, kg, w: kg.map(k => 1 / k), mass: kg.reduce((a, b) => a + b, 0), sticks, apart, hinge, mid: S.mid.map(n => at[n]), ht: hi - lo };
+  const core = S.core ? S.core.map(n => at[n]) : null;
+  const c0 = core ? [0, 1, 2].map(k => (rest[core[0] * 3 + k] + rest[core[1] * 3 + k] + rest[core[2] * 3 + k]) / 3) : [0, 0, 0];
+  B = {
+    names, at, rest, r, kg, w: kg.map(k => 1 / k), mass: kg.reduce((a, b) => a + b, 0), sticks, apart, hinge, mid: S.mid.map(n => at[n]), ht: hi - lo,
+    core, frame0: core ? frameOf(rest, core) : [], c0, tone: names.map(n => S.tone?.[n] ?? 1),
+  };
   ready.set(kind, B);
   return B;
 }
@@ -187,13 +213,20 @@ export function bones(kind: string): Bones {
 export const RAG = {
   /** passes over the sticks each step: more holds a body stiffer */
   iters: 8,
+  /** what a body gone loose falls at (m/s²): the earth's, not the station's 20 (body.ts), which suits a jump and
+   *  yanks a body down as if on a string */
+  gravity: 10,
+  /** muscle tone: nobody goes limp at once. For `last` seconds after it goes loose a body holds its shape, each point
+   *  pulled `start` of the way (each step, falling away to nothing) toward where it is as it stands in its trunk's
+   *  frame, by its share (SKEL.tone: its legs least, so its knees still go); knocked down and alive, it keeps `alive` */
+  tone: { start: 0.12, last: 0.45, alive: 0.06 },
   /** what the air takes of its speed each step */
   air: 0.999,
   /** what a step leaves of each point's speed apart from the whole body's: its joints are not frictionless */
   joint: 0.97,
-  /** what the floor takes of the speed of a point on it, as a share of how hard it is pressed on it: 0.6 stops a body
+  /** what the floor takes of the speed of a point on it, as a share of how hard it is pressed on it: 1.2 stops a body
    *  lying on it at 12 m/s², and one thrown along it slides a metre or two */
-  friction: 0.6,
+  friction: 1.2,
   /** asleep once it has moved, on the whole (its points by their weight), slower than `speed` (m/s) for `after`
    *  seconds; and asleep anyway after `most`
    *  seconds awake, if it is on the floor, so one that cannot settle does not cost for ever */
@@ -203,15 +236,15 @@ export const RAG = {
   budget: 16, down: 1,
   /** the share of a killing blow felt in the part it struck rather than the whole body, and how far from where it
    *  landed it is felt (m): a head struck turns the body about it */
-  local: 0.55, spread: 0.6,
+  local: 0.35, spread: 0.6,
   /** what a wall holds of a point pressed against it, as a share of how hard it is pressed (friction) */
   grip: 1.2,
   /** and the most a wall holds a point, as a share of its own weight */
   cling: 2,
   /** the fastest a blow sends any one point (m/s) */
   most: 8,
-  /** how much more of a blow its top takes than its feet: 1.8 sends its feet at 0.1 of the shove and its head at 1.9 */
-  tip: 1.8,
+  /** how much more of a blow its top takes than its feet: 1.2 sends its feet at 0.4 of the shove and its head at 1.6 */
+  tip: 1.2,
   /** the legs going: the top of it is sent the way it falls and its feet the other, at this (m/s) */
   slump: 1.1,
   /** under water: what it takes of a point's speed each second, and the share of its weight left */
@@ -236,6 +269,9 @@ export interface Rag {
   awake: boolean;
   /** seconds it has been still; seconds it has been awake; the tick it woke, for the budget; seconds since a thud */
   still: number; t: number; woke: number; heard: number;
+  /** seconds it has been loose and awake, which its tone goes by (a kick wakes it, but does not bring its tone back);
+   *  none in a save from before tone */
+  age?: number;
 }
 
 /** what struck the blow that killed it: the way it was shoved (on the plan) and how hard (m/s, as the body was
@@ -266,7 +302,7 @@ export function layRag(m: Mutant): Rag | null {
   if (!m.body || !SKEL[m.model] || !Number.isFinite(m.body.mass)) return null;
   const B = bones(m.model), p: number[] = [];
   for (let i = 0; i < B.names.length; i++) p.push(...place(B.rest[i * 3], B.rest[i * 3 + 1], B.rest[i * 3 + 2], m.yaw, m.x, m.y, m.z, true));
-  return { kind: m.model, p, q: p.slice(), o: p.slice(), awake: false, still: 0, t: 0, woke: 0, heard: 99 };
+  return { kind: m.model, p, q: p.slice(), o: p.slice(), awake: false, still: 0, t: 0, woke: 0, heard: 99, age: 99 };
 }
 
 function loose(m: Mutant, B: Bones, p: number[], v: number[], kill: Killing | null, down: boolean, alive: boolean): Rag {
@@ -306,7 +342,7 @@ function loose(m: Mutant, B: Bones, p: number[], v: number[], kill: Killing | nu
     }
   }
   const q = p.map((c, k) => c - v[k] * STEP);
-  return { kind: m.model, p, q, o: p.slice(), awake: true, still: 0, t: 0, woke: 0, heard: 99 };
+  return { kind: m.model, p, q, o: p.slice(), awake: true, still: 0, t: 0, woke: 0, heard: 99, age: 0 };
 }
 
 /** what a corpse's points pass through: the living (they are kept apart from it otherwise) */
@@ -512,19 +548,19 @@ export function ragOnLine(R: Rag, a: V3, b: V3, pad = 0): { t: number; at: V3 } 
   return best;
 }
 
-const dt = STEP, g = GRAVITY * dt * dt;
+const dt = STEP;
 /** what a step of one body needs between its halves: per point, the floor under it as the step began, whether it is
  *  under water, how far the floor has pushed it up (how hard it is pressed on it, for friction), and how fast it was
  *  coming down (for a landing). Made again each step; never saved */
-interface Scratch { floor: Float64Array; wet: Uint8Array; press: Float64Array; sink: Float64Array; moved: Uint8Array }
+interface Scratch { floor: Float64Array; wet: Uint8Array; press: Float64Array; rubbed: Float64Array; sink: Float64Array; moved: Uint8Array }
 const scratch = new WeakMap<Rag, Scratch>();
 
 /** the first half of a step: on by its speed, down by its weight, held to its bones */
 function begin(sim: Sim, R: Rag, m: Mutant): void {
   const w = sim.world, B = bones(R.kind), n = B.names.length, { p, q, o } = R;
   let S = scratch.get(R);
-  if (!S) scratch.set(R, (S = { floor: new Float64Array(n), wet: new Uint8Array(n), press: new Float64Array(n), sink: new Float64Array(n), moved: new Uint8Array(n) }));
-  const { floor, wet, press, sink } = S;
+  if (!S) scratch.set(R, (S = { floor: new Float64Array(n), wet: new Uint8Array(n), press: new Float64Array(n), rubbed: new Float64Array(n), sink: new Float64Array(n), moved: new Uint8Array(n) }));
+  const { floor, wet, press, rubbed, sink } = S;
   S.moved.fill(0);
   /* where each is now, and the floor under it */
   for (let i = 0; i < n; i++) {
@@ -535,6 +571,7 @@ function begin(sim: Sim, R: Rag, m: Mutant): void {
   }
   /* on by their speed, down by their weight; what each does apart from the whole body dies away, as a limb's swing
      does in its joint */
+  const g = RAG.gravity * dt * dt;
   let Vx = 0, Vy = 0, Vz = 0;
   for (let i = 0; i < n; i++) { const k = i * 3, c = B.kg[i] / B.mass; Vx += (p[k] - q[k]) * c; Vy += (p[k + 1] - q[k + 1]) * c; Vz += (p[k + 2] - q[k + 2]) * c; }
   for (let i = 0; i < n; i++) {
@@ -542,7 +579,7 @@ function begin(sim: Sim, R: Rag, m: Mutant): void {
     const vx = (Vx + (p[k] - q[k] - Vx) * J) * keep, vy = (Vy + (p[k + 1] - q[k + 1] - Vy) * J) * keep, vz = (Vz + (p[k + 2] - q[k + 2] - Vz) * J) * keep;
     q[k] = p[k]; q[k + 1] = p[k + 1]; q[k + 2] = p[k + 2];
     p[k] += vx; p[k + 1] += vy - g * (wet[i] ? RAG.water.weight : 1); p[k + 2] += vz;
-    press[i] = 0; sink[i] = -vy / dt;
+    press[i] = 0; rubbed[i] = 0; sink[i] = -vy / dt;
   }
   /* knocked down, not dead: drawn after its feet, which the fight moves (a share of the way each step, as a speed, so
      the world still stops it) */
@@ -552,13 +589,57 @@ function begin(sim: Sim, R: Rag, m: Mutant): void {
     const dx = (m.body.x - mx / B.mid.length) * RAG.held, dz = (m.body.z - mz / B.mid.length) * RAG.held;
     for (let i = 0; i < n; i++) { p[i * 3] += dx; p[i * 3 + 2] += dz; }
   }
+  tone(R, B, !m.dead);
   /* the sticks, a few times over; the floor each time, so they cannot push a point through it */
   const St = B.sticks, A = B.apart, H = B.hinge, W = B.w;
   for (let it = 0; it < RAG.iters; it++) {
     for (let s = 0; s < St.length; s += 3) hold(p, W, St[s], St[s + 1], St[s + 2], false);
     for (let s = 0; s < A.length; s += 3) hold(p, W, A[s], A[s + 1], A[s + 2], true);
     for (let s = 0; s < H.length; s += 6) bend(p, W, H[s], H[s + 1], H[s + 2], H[s + 3], H[s + 4], H[s + 5]);
-    for (let i = 0; i < n; i++) { const lo = floor[i] + B.r[i]; if (p[i * 3 + 1] < lo) { press[i] += lo - p[i * 3 + 1]; p[i * 3 + 1] = lo; } }
+    for (let i = 0; i < n; i++) {
+      const j = i * 3, lo = floor[i] + B.r[i];
+      if (p[j + 1] >= lo) continue;
+      /* pushed up out of the floor, and held where it stood on it by how hard: inside the passes, so the rest of the
+         body turns about a foot the floor holds rather than dragging it along */
+      const d = lo - p[j + 1], tx = p[j] - o[j], tz = p[j + 2] - o[j + 2], t = Math.sqrt(tx * tx + tz * tz);
+      press[i] += d; p[j + 1] = lo;
+      /* by what the floor has held it up this step, less what that has held it from already (a budget, not a drag
+         each pass: one weight, not eight) */
+      const c = Math.min(t, RAG.friction * press[i] - rubbed[i]);
+      if (t > 0 && c > 0) { p[j] -= (tx / t) * c; p[j + 2] -= (tz / t) * c; rubbed[i] += c; }
+    }
+  }
+}
+
+/** the frame of three points (a, b, c): the way a to b, then square to it toward c, then square to both; as the nine
+ *  numbers of a turn, by columns */
+function frameOf(p: number[], [a, b, c]: number[]): number[] {
+  let ex = p[b * 3] - p[a * 3], ey = p[b * 3 + 1] - p[a * 3 + 1], ez = p[b * 3 + 2] - p[a * 3 + 2];
+  const el = Math.sqrt(ex * ex + ey * ey + ez * ez) || 1;
+  ex /= el; ey /= el; ez /= el;
+  const fx = p[c * 3] - p[a * 3], fy = p[c * 3 + 1] - p[a * 3 + 1], fz = p[c * 3 + 2] - p[a * 3 + 2];
+  let nx = ey * fz - ez * fy, ny = ez * fx - ex * fz, nz = ex * fy - ey * fx;
+  const nl = Math.sqrt(nx * nx + ny * ny + nz * nz) || 1;
+  nx /= nl; ny /= nl; nz /= nl;
+  return [ex, ey, ez, ny * ez - nz * ey, nz * ex - nx * ez, nx * ey - ny * ex, nx, ny, nz];
+}
+
+/** muscle tone (RAG.tone): each point pulled a share of the way toward where it is as it stands, in the frame its
+ *  trunk has now. A pull on where it is, not on where it was, so it is a speed: the body keeps its shape a moment as
+ *  it goes over, then lets go */
+function tone(R: Rag, B: Bones, alive: boolean): void {
+  if (!B.core) return;
+  const T = RAG.tone, age = R.age ?? 99, left = Math.max(0, 1 - age / T.last), k = Math.max(T.start * left * left, alive ? T.alive : 0);
+  if (k <= 0) return;
+  const { p } = R, F = frameOf(p, B.core), F0 = B.frame0, c = [0, 1, 2].map(j => (p[B.core![0] * 3 + j] + p[B.core![1] * 3 + j] + p[B.core![2] * 3 + j]) / 3);
+  for (let i = 0; i < B.names.length; i++) {
+    /* where it stands, in the trunk's own frame (F0 turned back), then in the trunk's frame now (F) */
+    const rx = B.rest[i * 3] - B.c0[0], ry = B.rest[i * 3 + 1] - B.c0[1], rz = B.rest[i * 3 + 2] - B.c0[2];
+    const u = rx * F0[0] + ry * F0[1] + rz * F0[2], v = rx * F0[3] + ry * F0[4] + rz * F0[5], w = rx * F0[6] + ry * F0[7] + rz * F0[8];
+    const s = k * B.tone[i], j = i * 3;
+    p[j] += (c[0] + u * F[0] + v * F[3] + w * F[6] - p[j]) * s;
+    p[j + 1] += (c[1] + u * F[1] + v * F[4] + w * F[7] - p[j + 1]) * s;
+    p[j + 2] += (c[2] + u * F[2] + v * F[5] + w * F[8] - p[j + 2]) * s;
   }
 }
 
@@ -566,21 +647,25 @@ function begin(sim: Sim, R: Rag, m: Mutant): void {
 function finish(sim: Sim, R: Rag, living: boolean): void {
   const w = sim.world, B = bones(R.kind), n = B.names.length, { p, q, o } = R, S = scratch.get(R)!;
   let moving = 0, landed = 0, lx = 0, ly = 0, lz = 0;
+  const floored: number[] = [];
   for (let i = 0; i < n; i++) {
     const k = i * 3, fall = S.sink[i];
-    const onFloor = collide(w, p, o, i, B.r[i], S);
-    if (onFloor) {
+    if (collide(w, p, o, i, B.r[i], S)) {
       if (fall > landed) { landed = fall; lx = p[k]; ly = p[k + 1]; lz = p[k + 2]; }
-      /* the floor holds it up (it keeps no speed into it, nor any it was pushed up by), and drags it along by how
-         hard it is pressed on it: the weight on it, not merely its own */
+      /* the floor holds it up: it keeps no speed into it, nor any it was pushed up by */
       q[k + 1] = p[k + 1];
-      const vx = p[k] - q[k], vz = p[k + 2] - q[k + 2], v = Math.hypot(vx, vz), keep = v > 0 ? Math.max(0, 1 - (RAG.friction * S.press[i]) / v) : 0;
-      q[k] = p[k] - vx * keep; q[k + 2] = p[k + 2] - vz * keep;
+      floored.push(i);
     }
     moving += B.kg[i] * ((p[k] - o[k]) ** 2 + (p[k + 1] - o[k + 1]) ** 2 + (p[k + 2] - o[k + 2]) ** 2);
   }
+  /* what met the floor only now, on its way across it, is dragged by what is left of how hard it met it */
+  for (const i of floored) {
+    const k = i * 3, vx = p[k] - q[k], vz = p[k + 2] - q[k + 2], v = Math.hypot(vx, vz);
+    const keep = v > 0 ? Math.max(0, 1 - Math.max(0, RAG.friction * S.press[i] - S.rubbed[i]) / v) : 0;
+    q[k] = p[k] - vx * keep; q[k + 2] = p[k + 2] - vz * keep;
+  }
   scratch.delete(R);
-  R.t += dt; R.heard += dt;
+  R.t += dt; R.heard += dt; R.age = (R.age ?? 99) + dt;
   if (landed > RAG.thud && R.heard > RAG.gap) { R.heard = 0; sfx(sim.game, 'thud', { x: lx, y: ly, z: lz }, B.mass > 150); }
   /* still: its weight, on the whole, hardly moving (a hand twitching under it does not keep it awake) */
   R.still = Math.sqrt(moving / B.mass) / dt < RAG.sleep.speed ? R.still + dt : 0;
@@ -642,7 +727,7 @@ function collide(w: World, p: number[], o: number[], i: number, r: number, S: Sc
   if (into > 0 && !onFloor) {
     const ty = y - o[k + 1], tx = wx ? 0 : x - x0, tz = wz ? 0 : z - z0, t = Math.hypot(tx, ty, tz);
     if (t > 0) {
-      const keep = Math.max(0, 1 - Math.min(RAG.grip * into, RAG.cling * g) / t);
+      const keep = Math.max(0, 1 - Math.min(RAG.grip * into, RAG.cling * RAG.gravity * dt * dt) / t);
       y = o[k + 1] + ty * keep; x = x0 + tx * keep; z = z0 + tz * keep;
     }
   }
