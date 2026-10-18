@@ -265,7 +265,7 @@ upgrades; and whether the player mutates at all, and what it changes, is open wi
 - **Political levers that already exist in the station:** the distribution panel (Gen-1 routing), the sump pumps, the generator hall,
   the surface lift, and the water (below).
 
-### Time and sleep (proposed)
+### Time and sleep (agreed)
 
 - **Time passes when you sleep, or wait.** Sleep in a safe room: you heal, the game saves, and the world moves on (things
   grow, rounds change, the sleepless go a stage further: §10). Awake, time runs in real time, agonisingly slowly; waiting on
@@ -274,7 +274,7 @@ upgrades; and whether the player mutates at all, and what it changes, is open wi
 - **Dale's graft costs you sleep.** A few nights you cannot use a bed (no rest, no healing by it), with his line's symptoms
   (a microsleep as a half-second blackout, things at the edge of sight); then immunity, and the sleepless keep off your smell.
 
-### The water (proposed)
+### The water (agreed)
 
 - **Why it is clean on day one.** The mutagen came out of the aquifer core (§10), and the company knows exactly what is in its
   source water, because it harvests it. So the treatment plant is the most serious protection on the station: filtration, UV,
@@ -289,7 +289,8 @@ upgrades; and whether the player mutates at all, and what it changes, is open wi
   any sex), your line plugged into whatever takes the world. A selfish play, and probably not only yours to think of.
 - **Small effects, stacking.** It changes the developmental story, not the plot, the ending or the mechanics. What shows: the
   fluid-colour tells (§10, *Tells*) in what changes afterwards, mixed by what went in; a little in how lines treat you; the
-  epilogue's account of the world. Each ingredient has one plain contribution, so any mixture is readable.
+  epilogue's account of the world; perhaps the water's own colour. Each ingredient has one plain contribution, so any mixture
+  is readable.
 - **Open:** how tissue is carried (a sample kit, an offered wrist, cut from the dead); whether wastewater is the other way in
   (everything flushed goes toward the sump, the green's side); whether Holt's raw water belongs in the list at all (it would make
   everyone more plainly plant, and changes little else).
@@ -413,8 +414,7 @@ wins; the older text stays only because it describes what is built, until the le
 - **Alarm fatigue (agreed).** The cameras have false-alarmed for weeks (anything fast, a flickering tube), so the changed no
   longer run to a klaxon. One alarm: perhaps one of them walks over, slowly, in its own time. Alarms again in the same zone
   soon after: they notice the pattern, and more come, with purpose. Seen once costs little; seen twice in one place is the
-  trouble. *Open:* whether the vaccinator answers it differently (below: it does), and whether a hall whose own tubes set its
-  cameras off has a klaxon that means nothing.
+  trouble. The vaccinator answers it differently (below).
 - **The changed (agreed).** No longer husks: the word says empty, and they are not. Pia's line (§10): **intelligent, but
   sedated.** They think, slowly, and without much caring. They notice and come to look (a breaker thrown means someone threw
   it; a door left open is noticed), they use cards (a card door is safe from them no longer, only from you), and they are slow
@@ -426,7 +426,7 @@ wins; the older text stays only because it describes what is built, until the le
 - **One tool per room (agreed).** Each space teaches one thing before a later one asks for all of them: the flashlight; a
   sound before a sight; the night round's beam far off; one camera and one speaker with two of the changed in earshot, a safe
   failure (be seen, hide, watch one come and go); a small board, and one of them walking over to throw it back on; a card;
-  then the big room that asks for everything; then out.
+  then the big dark section that asks for everything; then out.
 - **The night round (agreed).** One of the changed still walks the night shift's round with a flashlight. Its beam is the most
   legible threat in the game, seen down a corridor long before it arrives; it smokes out the dark; and **its beam lights you
   for the cameras.** It carries a card. It is the one that tries the doors in the opening (below), so you have watched it
@@ -441,20 +441,25 @@ wins; the older text stays only because it describes what is built, until the le
   - *Seen first through glass:* a guard held down, the offered wrist, and that guard restless for a while afterwards. What
     being caught means, shown without a word.
   - *Caught,* for now, you are hurt badly. The graft waits for the player grafting (§10).
-- **The mass (proposed).** The operations room is grown shut: its glass sweating from inside, something pressed flat against
-  it, a face or a hand now and then. The changed end their rounds at its door and feed there, as the Commons tap Pia: likely a
-  late child of Pia's, sessile, the one that touched Security's staff. Never a fight on the first pass; a door you want opened.
-  Proposed: its sap has got into the switchgear, and that is why the big hall flickers: physical, and findable.
-- **The flicker hall (proposed).** The muster hall reworked, about 80 by 30 m (wider than today by a third or more, so you see
-  further and a pocket of dark can be made). Seen first from above. Its lights in **banks**, each on its own breaker and in its
-  own state: on, dead, flickering, or a bank that surges on for two seconds in ten. Light is where the cameras and the changed
-  are; the board lets you make the dark, until one of them comes to the board. *Needs:* lights grouped into banks with their
-  own circuits, the one engine change (today a room is lit whole, flickering or not; fittings already exist as points).
-  Floated, not taken up: figures that move only in the dark (mid-change Pias, half stalk, folding like leaves at night).
-- **Smaller pieces (proposed).** Break-glass call points: sound a zone yourself, to pull the changed off a door. Lockdown in
-  place of the bolts: an alarm seals that zone's powered doors, heard and seen (bolts, red lights), protocol, no hand on a
-  board. Load on the backup set: too many branches on and everything browns out and flickers, Gen-1's capacity (§4) taught
-  small. The Security elevator's chime: loud, and it brings things to the doors.
+- **Power is on or off (agreed).** For clarity, a thing has power or it does not: the generator's dim backup light, and
+  later single appliances broken, powered or not. Nothing in between that the mechanics depend on.
+- **Flickering lights: a horror trope, not a system (agreed).** Used for tension early, while you are weak, scared and new to
+  the place: a failing tube in a corridor, a room that stutters. Dressing over the power rule, never a state you have to
+  read. (Built: a room's `flick`.) The formal flicker hall (lights in banks, each its own breaker and state) is dropped, and
+  with it the figures that moved only in the dark.
+- **The big dark section (agreed).** What the flicker hall was for, simply: a larger section of Security, dark, that the night
+  round's beam sweeps through. Wider than the muster hall today (by a quarter to a half), so you see further and the beam
+  carries.
+- **Call points (agreed).** Break-glass call points, as in any building: sound a zone yourself, to pull the changed off a door
+  or out of a room. (The vaccinator comes to it too.)
+- **Lockdown (agreed),** in place of the bolts: an alarm seals that zone's powered doors, heard and seen (the bolts, the red
+  lights). Protocol, no hand on a board.
+- **Load on the backup set (agreed, provisional).** Too many branches on and everything browns out, Gen-1's capacity (§4)
+  taught small. Kept for now because it is interesting; it may go.
+- **No alarm on the way out (agreed).** Leaving the level is not where the alarm is: the Security elevator rings no chime that
+  calls anything.
+- **The mass: not Security's (moved).** A room grown shut on something you never see whole belongs wherever Pia's people have
+  been longest, the Commons likely; Security is just an area of the game. The operations room needs a new answer (open).
 - **Threats, in rising order:** the night round (light), the cameras (speed), the vaccinator (both, and a purpose). Skitters
   and eggs go back to Cargo's nest: four kinds of threat on the first level is one too many.
 
@@ -732,10 +737,10 @@ whether or not the wing is mended.
   hand), caves of any outline (for the nest's organic shapes), backup sets and the power rules, the progression checker (to prove
   the level, and every way of spending power in it, can still be finished).
 - **For the second pass** (above): cameras that weigh your speed; the changed made intelligent (investigating, using cards);
-  the night round and its beam; the vaccinator; lights in banks; the opening (the pump, the other patient, the card at each
-  door, the medical hold); Cargo as an L. To be put in order before any of it is built.
+  the night round and its beam; the vaccinator; call points and lockdown; load on the backup set; the big dark section; the
+  opening (the pump, the other patient, the card at each door, the medical hold); Cargo as an L. To be put in order before any of it is built.
 
-### Production (proposed)
+### Production (agreed)
 
 The station grows the crop (Horticulture) and ships it (Cargo), and had nothing between: a real operation needs a production
 floor. Drying, **curing**, the extraction labs, the packing line.
@@ -946,7 +951,7 @@ Nobody expected worse than a bad night.
   down, it is past it. *The tub as a hazard:* every mutant sleeps (rule 7), so any mutant that gets enough of it goes
   sleepless too.
 
-  *The sleepless (proposed).* Not rabid: sleep loss does not make an animal of you. It kills (rats kept awake die in two or
+  *The sleepless (agreed).* Not rabid: sleep loss does not make an animal of you. It kills (rats kept awake die in two or
   three weeks, eating more and wasting anyway, their heat failing, their skin in sores; fatal familial insomnia kills people
   the same slow way), and before it kills it unravels you. So the line is mostly dying, with rare survivors, and they suffer.
   In stages, one a night or so, so that what you met yesterday is something else today:
@@ -1044,7 +1049,10 @@ The player is never told any of this; they read it.
 
 - Holt: what marks her work, and how she can be hurt.
 - Is the founder the thresher? What do the young gods look like?
-- Where Ines paints. (Dale: the curing hall, proposed: §8, *Production*.)
+- Where Ines paints. (Dale: the curing hall: §8, *Production*.)
+- **The mass (proposed, moved from Security).** A room grown shut, its glass sweating, something pressed flat against it that
+  you never see whole, the changed feeding at its door: a late child of Pia's, sessile, in the Commons or wherever her people
+  have been longest. A door you want opened, not a fight.
 - The antidote child: a name, and where it went.
 - Holt's lab journal (`src/content/notes.ts`) has her cutting out her own fear; that is dropped, and the note is to be
   rewritten with the levels. So is the resident's diary, whose Pia has an arm that reaches for the lamp on its own: the arm has
