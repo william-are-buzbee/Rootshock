@@ -422,8 +422,8 @@ wins; the older text stays only because it describes what is built, until the le
 - **Answering an alarm (agreed; alarm fatigue is dropped).** A klaxon means something is loose, and every one of the changed
   that hears it hurries to the speaker, faster than its rounds, and faster again when it sees another already hurrying: one
   starts and the rest catch it. They go to the speaker, not to you, look about a while, and go back. Nothing cleverer for
-  now. (Built: alarm fatigue, `FATIGUE` and `Sim.sounded`, goes. Before it every one in earshot came, but at its rounds'
-  pace, 1.4 m/s: the hurry is new.)
+  now. (Built: alarm fatigue, `FATIGUE` and `Sim.sounded`, goes, and the answer's pace goes back to the hurry it had before
+  fatigue slowed it to its rounds' 1.4 m/s. Faster again behind another is new.)
 - **The camera wall is yours (agreed).** Cameras are for whoever looks at them, and the one who takes the seat is you. The
   operations room (its open answer, below) is the reward: get in and take it, and its screens show every live camera on
   the level, the changed on their rounds, the night round's beam, which armed places are lit, where the vaccinator is. A
