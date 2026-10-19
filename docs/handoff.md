@@ -9,7 +9,8 @@ end: its asks, tools and open items still stand.
 All in `docs/world.md`. Read these first, in this order:
 
 - §8, *Security*, **The second pass**: what goes (the overseer, the hand, the knock, the bolts, and their names), the
-  cameras that watch themselves and trip on speed, alarm fatigue, the changed (intelligent but sedated; the plant growing
+  cameras that guard armed places (not speed), running heard, the alarm answered in a hurry (alarm fatigue dropped), the
+  camera wall in the operations room, the changed (intelligent but sedated; the plant growing
   out of them), one tool per room, the night round, the vaccinator, power on or off, flickering as a trope, the big dark
   section, call points, lockdown, load on the backup set, no alarm on the way out.
 - §8, **The opening**: the six beats, from the IV pump's alarm to the fail-safe release.
@@ -27,9 +28,10 @@ Each step its own PR, playable on its own.
 1. **Take out the overseer and the hand.** Their cast entries, models, the knock, the bolts, the overseer's own sight
    and seat, `manned()`, their saves and tests. The level must still play and finish without them (the progression
    checker says so). The operations room stays a room for now (§8: its new answer is open).
-2. **Cameras that weigh speed.** A camera takes you only if you move fast in its light; creeping does not trip it; the
-   changed never do. Then alarm fatigue: one alarm brings perhaps one of them, slowly; a second in the same zone soon
-   after brings more, with purpose. Then lockdown in place of the bolts (an alarm seals that zone's powered doors, heard
+2. **Cameras that guard places.** Lockdown arms restricted places; a camera on one takes you moving at any pace, and
+   elsewhere only records; the changed keep out of them. Shown by floor paint and signs. Speed moves to the ears (tune
+   the running noise). Take out alarm fatigue: every one in earshot hurries to the speaker, faster when it sees another
+   hurrying. Then lockdown in place of the bolts (an alarm seals that zone's powered doors, heard
    and seen) and break-glass call points.
 3. **The changed.** Rename the husk's role in the text and the UI (no "husk" said in the game); then the intelligence:
    they notice a thrown breaker and come to look for who threw it, notice a door left open, and use cards. Slow and
@@ -46,8 +48,10 @@ Each step its own PR, playable on its own.
 
 ## Where things are now
 
-Step 2's first half is done: cameras weigh your speed (`SPEED`, `holdRate`), and alarm fatigue (`FATIGUE`,
-`Sim.sounded`; one perhaps, then all), both in `sim/eyes.ts`. Lockdown and the call points are next.
+Step 2's first half was built and is now superseded: cameras weigh your speed (`SPEED`, `holdRate`), and alarm fatigue
+(`FATIGUE`, `Sim.sounded`; one perhaps, then all), both in `sim/eyes.ts`. Both go: armed places in place of speed, and
+a hurried answer from all in earshot in place of fatigue (world.md §8, *The second pass*). Then lockdown and the call
+points. The camera wall waits on a way into the operations room.
 
 Step 1 is done: the overseer, the hand, the knock and the bolts are out of the code and of world.md §8 (old saves do not
 load: save version 6). §10's lineage still names the overseer in three places (rules 1 and 8, *Security's first*): left

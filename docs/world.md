@@ -406,16 +406,36 @@ wins; the older text stays only because it describes what is built, until the le
   called the overseer or the hand again. The critical feed's reason (an overseer that could not be blinded) goes with them;
   whether the feed stays is open. **Kept:** cameras, zones and speakers, the boards and their breakers, cards, the survivors'
   cut, the power-failure drill (now a choice: below).
-- **The cameras watch themselves (agreed).** Ordinary motion-detection CCTV on a lockdown protocol, nobody behind the screens:
-  no seat to take. A camera trips on fast movement in light. The changed move too slowly to trip one, and so do you, creeping;
-  running trips it at once. Dark is still blind. The level's lesson is to move like them. (Built cameras already see by the
-  light you are in and take you after a second and a half held; what changes is that speed counts.) **Built** (walking
-  is fast too, a second and a half held; running, under half a second): below, *Being found*.
-- **Alarm fatigue (agreed).** The cameras have false-alarmed for weeks (anything fast, a flickering tube), so the changed no
-  longer run to a klaxon. One alarm: perhaps one of them walks over, slowly, in its own time. Alarms again in the same zone
-  soon after: they notice the pattern, and more come, with purpose. Seen once costs little; seen twice in one place is the
-  trouble. The vaccinator answers it differently (below). **Built** (soon after is a minute; perhaps is even odds, the
-  nearest that hears it; with purpose is more of them, not faster): below, *Being found*.
+- **The cameras guard places, not paces (agreed; supersedes cameras that weigh speed).** Ordinary CCTV on a lockdown
+  protocol, as any facility runs it, with nobody behind the screens. Lockdown arms the restricted places: the board, the
+  Armory, Operations, the wing's thresholds, wherever Security kept people out. A live camera on an armed place takes anyone
+  moving in it, at any pace, as far as the light lets it see; stand stock still and it loses you, as motion detection does.
+  Anywhere else a camera only records. The changed never trip one: they were staff, and from habit they still keep out of
+  where they were never cleared to go. So the lesson is knowing where the lines are, and the lines are shown: hazard paint
+  on the floor, ALARMED AREA at the door, and the camera's light, green while it watches and red while it holds you, so
+  there is still a moment to step back out. Dark is still blind. (Built cameras weigh your speed, `SPEED` and `holdRate` in
+  `sim/eyes.ts`: that goes, and an armed place takes its place. The cone, the light, the hold of about a second and a half,
+  the zones and their speakers stay.)
+- **Running is heard (agreed).** Speed belongs to the ears, not the cameras. Running is loud and carries; walking carries a
+  little; creeping is silent. The changed hear a runner and come to look. Moving like them is still the lesson, taught by
+  sound. (Your steps already carry: 9 m running, 4 walking, nothing creeping. Tuning, not a new system.)
+- **Answering an alarm (agreed; alarm fatigue is dropped).** A klaxon means something is loose, and every one of the changed
+  that hears it hurries to the speaker, faster than its rounds, and faster again when it sees another already hurrying: one
+  starts and the rest catch it. They go to the speaker, not to you, look about a while, and go back. Nothing cleverer for
+  now. (Built: alarm fatigue, `FATIGUE` and `Sim.sounded`, goes. Before it every one in earshot came, but at its rounds'
+  pace, 1.4 m/s: the hurry is new.)
+- **The camera wall is yours (agreed).** Cameras are for whoever looks at them, and the one who takes the seat is you. The
+  operations room (its open answer, below) is the reward: get in and take it, and its screens show every live camera on
+  the level, the changed on their rounds, the night round's beam, which armed places are lit, where the vaccinator is. A
+  room to plan the rest of Security from, and to come back to. A camera with no power shows black, so cutting a branch
+  blinds you too. How you get in and take it is open (the door grown shut with bodies; what is grown to its screens).
+  - *The station's feeds.* The wall also carries cameras from elsewhere on the station: the Commons, Horticulture, Cargo's
+    bay, places you have not been. They are the level's creep, deliberately hard to make out: low light, a few frames a
+    second, static, a feed that drops whenever something crosses it, a shape in one frame and not the next, a screen that is
+    black until you notice it is not. Never explained on the screen; understood, if at all, when you get there. Dread, not
+    danger: nothing on a station feed can reach you here.
+  - *Security control's wall (open).* Its 33 screens are in the dead wing. Whether they are dressing, or a lesser wall that
+    wakes with the mend and shows only Security, is open; the operations room should stay the one worth taking.
 - **The changed (agreed).** No longer husks: the word says empty, and they are not. Pia's line (§10): **intelligent, but
   sedated.** They think, slowly, and without much caring. They notice and come to look (a breaker thrown means someone threw
   it; a door left open is noticed), they use cards (a card door is safe from them no longer, only from you), and they are slow
@@ -425,8 +445,8 @@ wins; the older text stays only because it describes what is built, until the le
   (Supersedes *drills, not instructions* and *how much wit the staff have*, below. The power-failure drill stays as something
   one of them chooses: someone goes to the board, slowly, and looks about for who threw it.)
 - **One tool per room (agreed).** Each space teaches one thing before a later one asks for all of them: the flashlight; a
-  sound before a sight; the night round's beam far off; one camera and one speaker with two of the changed in earshot, a safe
-  failure (be seen, hide, watch one come and go); a small board, and one of them walking over to throw it back on; a card;
+  sound before a sight; the night round's beam far off; one armed place under one camera, its speaker with two of the changed
+  in earshot, a safe failure (step over the line, hide, watch them come and go); a small board, and one of them walking over to throw it back on; a card;
   then the big dark section that asks for everything; then out.
 - **The night round (agreed).** One of the changed still walks the night shift's round with a flashlight. Its beam is the most
   legible threat in the game, seen down a corridor long before it arrives; it smokes out the dark; and **its beam lights you
@@ -437,8 +457,8 @@ wins; the older text stays only because it describes what is built, until the le
   any other. Old enough to have recovered: intelligent in one thing, which it does with ritual care; ask anything else of it
   and nothing is there.
   - *The changed flee it:* its graft is nights of torment, and they know its smell. A lit room emptying is its tell.
-  - *It comes to the klaxon:* a camera tripping means something fast is loose, and the fast are what it is for. Run, and you
-    are what it is looking for.
+  - *It comes to the klaxon, and to running:* it listens for the fast, and the fast are what it is for. Run, and you are what
+    it is looking for.
   - *Seen first through glass:* a guard held down, the offered wrist, and that guard restless for a while afterwards. What
     being caught means, shown without a word.
   - *Caught,* for now, you are hurt badly. The graft waits for the player grafting (§10).
@@ -461,7 +481,7 @@ wins; the older text stays only because it describes what is built, until the le
   calls anything.
 - **The mass: not Security's (moved).** A room grown shut on something you never see whole belongs wherever Pia's people have
   been longest, the Commons likely; Security is just an area of the game. The operations room needs a new answer (open).
-- **Threats, in rising order:** the night round (light), the cameras (speed), the vaccinator (both, and a purpose). Skitters
+- **Threats, in rising order:** the night round (light), the cameras (place), the vaccinator (light and speed, and a purpose). Skitters
   and eggs go back to Cargo's nest: four kinds of threat on the first level is one too many.
 
 **The opening (agreed).** Replaces beats 1 and 2 below, and the dark start: starting in pitch black asks for fear before the
@@ -569,7 +589,7 @@ should be added. Below it, production (below).
 - **The operations room, behind glass (agreed; built).** Control rooms overlook what they run, as Cargo control does the bay.
   The operations room is on the second floor, over the hall's south side, its north wall eight panes of armoured glass onto
   the court: every crossing is under it. From the hall you see into it, lit by its room's emergency light and by a sick glow
-  that needs no power; what is left of its staff are grown to its screens. (Its new answer is open: *The second pass*.) Its stair climbs from the east bays to a landing where the door is grown shut with bodies:
+  that needs no power; what is left of its staff are grown to its screens. (Its new answer: the camera wall, *The second pass*.) Its stair climbs from the east bays to a landing where the door is grown shut with bodies:
   no way in on the first pass. A way in comes later, once there are other places worth going first; the level should become
   non-linear then, not now. Eggs and a floor dragged red thicken toward the stair.
 - **The electrical room's board (agreed; built).** Not a room for one switch: a panel board breaking Ops' feed out to
@@ -686,7 +706,8 @@ whether or not the wing is mended.
 - **Already there:** patrols (the cast keep rounds), vents (loose panels; crawling under), grabbing and dragging (a start for the
   hand), caves of any outline (for the nest's organic shapes), backup sets and the power rules, the progression checker (to prove
   the level, and every way of spending power in it, can still be finished).
-- **For the second pass** (above): cameras that weigh your speed; the changed made intelligent (investigating, using cards);
+- **For the second pass** (above): cameras that guard armed places; running heard; the alarm answered in a hurry; the
+  camera wall; the changed made intelligent (investigating, using cards);
   the night round and its beam; the vaccinator; call points and lockdown; load on the backup set; the big dark section; the
   opening (the pump, the other patient, the card at each door, the medical hold); Cargo as an L. To be put in order before any of it is built.
 
