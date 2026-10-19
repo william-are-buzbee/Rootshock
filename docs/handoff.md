@@ -10,6 +10,8 @@ All in `docs/world.md`. Read these first, in this order:
 
 - §8, *Security*, **The second pass**: what goes (the overseer, the hand, the knock, the bolts, and their names), the
   cameras that guard armed places (not speed), running heard, the alarm answered in a hurry (alarm fatigue dropped), the
+  lobby (a grand stair down from the checkpoint), one control room (the operations room, beside the head end on
+  critical power; cameras on their branches' comms cupboards; spot monitors in the booth and the duty office), the
   camera wall in the operations room, the changed (intelligent but sedated; the plant growing
   out of them), one tool per room, the night round, the vaccinator, power on or off, flickering as a trope, the big dark
   section, call points, lockdown, load on the backup set, no alarm on the way out.
@@ -33,17 +35,26 @@ Each step its own PR, playable on its own.
    the running noise). Take out alarm fatigue: every one in earshot hurries to the speaker, faster when it sees another
    hurrying. Then lockdown in place of the bolts (an alarm seals that zone's powered doors, heard
    and seen) and break-glass call points.
-3. **The changed.** Rename the husk's role in the text and the UI (no "husk" said in the game); then the intelligence:
+3. **The lobby, and the screens.** A re-layout, so before the steps that place things in the wing: the grand lobby
+   between the shaft and the wing (about 40 by 30 m, 12 to 14 m tall), the wing and everything east of it pushed east.
+   The surface cage lands on the second floor (+5), its hallway runs to the checkpoint, and the checkpoint opens onto
+   the head of the grand stair; the hoist stays at the ground-floor shaft station with the hazard store. The statue, the
+   lounge, the bar, the luminous ceiling; all on SEC, dark until the mend. The progression checker must still pass both
+   routes. Then the first screens: the checkpoint booth shows the lobby, the shaft's landings and the checkpoint (on SEC,
+   so it wakes with the mend), which is the camera-viewing mechanic the operations room's wall later grows from. The
+   wing's control room becomes the briefing room in the same pass (its 33 screens go). The owner will playtest the way
+   in from above.
+4. **The changed.** Rename the husk's role in the text and the UI (no "husk" said in the game); then the intelligence:
    they notice a thrown breaker and come to look for who threw it, notice a door left open, and use cards. Slow and
    readable throughout. Their look (tobacco leaf in shelves out of neck and shoulders) is a model job; ask before
    spending long on it.
-4. **The night round.** One of the changed walking a round with a flashlight that lights what it points at (so cameras see
+5. **The night round.** One of the changed walking a round with a flashlight that lights what it points at (so cameras see
    you in its beam), carrying a card you can take.
-5. **The opening.** The suite on a night setting; the IV pump; the other patient (awake, tally marks, banging); the night
+6. **The opening.** The suite on a night setting; the IV pump; the other patient (awake, tally marks, banging); the night
    round brought by the noise, trying each door with its card (reader beeps), the medical hold on yours, the scene
    started when you first look out (a timer behind it); the survivors' cut a minute on; the fail-safe release into
    emergency light. Moves the cut from before the game into it.
-6. **The vaccinator**, then the big dark section and the one-tool-per-room ordering of the level, then load on the backup
+7. **The vaccinator**, then the big dark section and the one-tool-per-room ordering of the level, then load on the backup
    set. Then Cargo as an L.
 
 ## Where things are now

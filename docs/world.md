@@ -469,7 +469,8 @@ wins; the older text stays only because it describes what is built, until the le
     hallway; at its end, the checkpoint (the bag scanner, the arch, the turnstiles, the booth behind glass); through it,
     the head of a grand staircase, and the whole lobby below you at once. The descent is the dazzle.
   - *On the floor:* a statue in the middle, a lounge, a bar, all the soft furnishings a station 40 m down did not need.
-    The statue is of the family that built the place (not called "the founder": that name belongs to the flesh, §10).
+    The statue is of the family that built the place for now (not called "the founder": that name belongs to the
+    flesh, §10); a placeholder, to be retooled once the lore is down, likely the corporate logo or a gardening motif.
     A luminous ceiling, backlit panels made to pass for daylight, because the family wanted a sky down here.
   - *Its power:* on the wing's feed (SEC), so dark at the start. A black void overhead, the statue's face in your beam,
     the bar's bottles catching the emergency light; the survivors' half, and they raided the bar. Mending the cut lights
