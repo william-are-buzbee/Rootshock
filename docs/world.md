@@ -404,7 +404,7 @@ wins; the older text stays only because it describes what is built, until the le
 
 - **What goes (agreed).** The overseer, the hand, the knock and the overseer's bolts, and their names: nothing in the game is
   called the overseer or the hand again. The critical feed's reason (an overseer that could not be blinded) goes with them;
-  whether the feed stays is open. **Kept:** cameras, zones and speakers, the boards and their breakers, cards, the survivors'
+  the feed stays, for the head end and the PA (*One control room*, below). **Kept:** cameras, zones and speakers, the boards and their breakers, cards, the survivors'
   cut, the power-failure drill (now a choice: below).
 - **The cameras guard places, not paces (agreed; supersedes cameras that weigh speed).** Ordinary CCTV on a lockdown
   protocol, as any facility runs it, with nobody behind the screens. Lockdown arms the restricted places: the board, the
@@ -425,7 +425,7 @@ wins; the older text stays only because it describes what is built, until the le
   now. (Built: alarm fatigue, `FATIGUE` and `Sim.sounded`, goes, and the answer's pace goes back to the hurry it had before
   fatigue slowed it to its rounds' 1.4 m/s. Faster again behind another is new.)
 - **The camera wall is yours (agreed).** Cameras are for whoever looks at them, and the one who takes the seat is you. The
-  operations room (its open answer, below) is the reward: get in and take it, and its screens show every live camera on
+  operations room (the control room: *One control room*, below) is the reward: get in and take it, and its screens show every live camera on
   the level, the changed on their rounds, the night round's beam, which armed places are lit, where the vaccinator is. A
   room to plan the rest of Security from, and to come back to. A camera with no power shows black, so cutting a branch
   blinds you too. How you get in and take it is open (the door grown shut with bodies; what is grown to its screens).
@@ -434,8 +434,55 @@ wins; the older text stays only because it describes what is built, until the le
     second, static, a feed that drops whenever something crosses it, a shape in one frame and not the next, a screen that is
     black until you notice it is not. Never explained on the screen; understood, if at all, when you get there. Dread, not
     danger: nothing on a station feed can reach you here.
-  - *Security control's wall (open).* Its 33 screens are in the dead wing. Whether they are dressing, or a lesser wall that
-    wakes with the mend and shows only Security, is open; the operations room should stay the one worth taking.
+  - *Smaller screens first (agreed).* Real buildings have one control room and a few spot monitors where a desk needs
+    to see its own doors. Here, two, each a taste of the wall before the wall: the checkpoint booth (the lobby, the
+    shaft's landings and the checkpoint itself) and the duty office (one screen, cycling the hall's cameras). Each
+    console shows only its own area's cameras, as a booth's login would.
+- **One control room, wired as a real one (agreed; supersedes Security control's wall).** Every camera feeds recorders and
+  a core switch, the head end, and the control room sits beside the head end on protected power. Here:
+  - *The operations room is Security's control room,* the only full wall. Its nine screens are large displays, each
+    split into tiles, as a modern room is: the founders' showpiece, oversized behind armoured glass over the muster hall,
+    two rows of consoles for a room that usually seated one bored operator. Built to impress visitors more than to catch
+    anyone; nobody was worried.
+  - *The head end is in the UPS room behind it,* on the critical feed (CRIT) and its battery: the recorders, the core
+    switch, the PA's amplifiers. That is the critical feed's reason now (the overseer's is gone): the security system
+    itself and the PA, which is life-safety equipment, as real buildings protect them. The feed stays.
+  - *The cameras are not on critical power.* Each area's cameras draw their power down their own cables from a comms
+    cupboard (a network switch in a closet), and each cupboard is on its area's branch: the founders put a battery on
+    the head end and none on the cupboards. So cutting a branch blinds that branch's cameras (as built), and the wall
+    shows black tiles for them: it shows what has power, and nothing else. The wing's cupboard is on SEC, which is why
+    the survivors' cut blinded the wing, on the wall as well as in the corridor.
+  - *Spot monitors run on their own area's power:* the booth on SEC, so it wakes with the mend, when the changed start
+    walking the lit wing and the lobby and there is something worth watching; the duty office on Ops, its tiles black
+    for any branch you have cut.
+  - *The station's feeds* come over the backbone from each area's own head end, so a feed is live only while its area
+    has power: the wall's station tiles wake as the station does (Gen-1, a backup set), a quiet clock of progress.
+  - *The wing's control room stops being one.* The 14 by 10 m room behind the atrium's north wall becomes the response
+    team's briefing room: the plan table, a projection screen, the station's maps on the walls, chairs in rows. Still
+    the survivors' last room and still behind the officer's card, as built; the 33 screens go.
+- **The lobby (agreed).** A well-funded station, built when nobody was worried, puts its money where visitors see it
+  first. The checkpoint is the small, functional part; past it, the place opens up. Prey's lobby is the model, and Alien:
+  Isolation's grand rooms at twice the size each way: call it 40 by 30 m and 12 to 14 m to the ceiling, a starting figure
+  to tune in the build. The tallest room in Security (the atrium gives that up; it stays the threshold). Proposed:
+  - *The way in is from above.* The surface cage lands on the second floor (+5); the hoist, freight, stays at the
+    ground-floor shaft station with the hazard store, so goods never crossed the lobby. Off the surface landing, a
+    hallway; at its end, the checkpoint (the bag scanner, the arch, the turnstiles, the booth behind glass); through it,
+    the head of a grand staircase, and the whole lobby below you at once. The descent is the dazzle.
+  - *On the floor:* a statue in the middle, a lounge, a bar, all the soft furnishings a station 40 m down did not need.
+    The statue is of the family that built the place (not called "the founder": that name belongs to the flesh, §10).
+    A luminous ceiling, backlit panels made to pass for daylight, because the family wanted a sky down here.
+  - *Its power:* on the wing's feed (SEC), so dark at the start. A black void overhead, the statue's face in your beam,
+    the bar's bottles catching the emergency light; the survivors' half, and they raided the bar. Mending the cut lights
+    it end to end, ceiling and all: the dazzle the family meant, arriving when it costs you, since a lit lobby is one the
+    changed walk.
+  - *It is the way out too.* The surface lift is the game's last door, so the last room you cross is the first one a
+    visitor saw, and the last climb is the grand stair. Whether the surface hallway is an armed place is open (*No
+    alarm on the way out*, below).
+  - *Its cameras* only record: a public room is not armed. The checkpoint and the surface hallway are where the lines
+    are. Its upper volume meets Security's second floor somewhere, a vent or a service walkway behind the ceiling
+    panels (open).
+  - *Where it goes:* between the shaft and the wing, where the checkpoint is now (16 by 20 m today), which pushes the
+    wing and everything east of it further east. A re-layout, not a room added; worth it.
 - **The changed (agreed).** No longer husks: the word says empty, and they are not. Pia's line (§10): **intelligent, but
   sedated.** They think, slowly, and without much caring. They notice and come to look (a breaker thrown means someone threw
   it; a door left open is noticed), they use cards (a card door is safe from them no longer, only from you), and they are slow
@@ -582,7 +629,7 @@ should be added. Below it, production (below).
   operations room's glass. Flat, long and lit, about 58 by 24 m: a
   promenade round a sunken court, mall-like rather than industrial. The court is 1.25 m down, with steps the length of both
   long sides (the team sat on them for the muster) and glass balustrades at the ends; the ceiling over it lifts from 4.5 m to
-  8.5, the drill clock hanging in the middle, and the operations room looks down on it. The atrium stays the tallest space. Pillars, crowd barriers, benches
+  8.5, the drill clock hanging in the middle, and the operations room looks down on it. The lobby is now the tallest space (*The second pass*). Pillars, crowd barriers, benches
   and shield racks break the sight lines. Every room off it has a door, and how far apart the doors are is how hard the crossing is: the electrical room at the west end, the locker room and
   the Armory on the north side, the range, the duty office (a window on the hall) and the operations stair on the south,
   Maintenance at the east end.
@@ -601,18 +648,19 @@ should be added. Below it, production (below).
   board: its power is protected, its panel and battery backup in a locked room inside its own perimeter. The operations room
   (its screens, its board, its lights) and Security's PA are on their own critical feed (CRIT) straight off Ops' set, panelled
   in the UPS room behind the operations room. The electrical room's schedule says so, in red. So no zone can be silenced
-  but by smashing its speaker. (Its first reason, an overseer that could not be blinded, is gone; whether the feed stays is
-  open.) A seed for later: control rooms sit on raised floors,
+  but by smashing its speaker. (Its first reason, an overseer that could not be blinded, is gone; it stays for the head end and
+  the PA: *One control room*, *The second pass*.) A seed for later: control rooms sit on raised floors,
   a cable void under the tiles; a crawl from a service hatch up into the UPS room would be a believable way in that is not
   through the bodies at its door. This is the pattern for power elsewhere (proposed): a board
   per area, a few labelled breakers that each feed a handful of rooms, never a switch per room. A switch per room would be
   a switch for the threat, and real buildings are wired by panel, not by room. Doors stay safe to cut: exits let go without
   power, and readers keep their lock only against coming in.
 - **Rooms built to the new standard (agreed).** Wider, longer, taller, with a landmark or a flourish; no utilitarian boxes.
-  The range is 28 m of lanes, not a closet. The lobby is a checkpoint: everyone off the shaft came through it (the bag scanner,
-  the arch, turnstiles, a booth behind glass). The wing's row of doors is broken by the locker room, the survivors' back way into
+  The range is 28 m of lanes, not a closet. The checkpoint: everyone off the shaft came through it (the bag scanner, the arch,
+  turnstiles, a booth behind glass); it becomes the small part before the lobby (*The second pass*). The wing's row of doors is broken by the locker room, the survivors' back way into
   the hall. Security control is a vestibule (the plan table, a window on the corridor) opening into a 14 by 10 m control room
-  behind the atrium's north wall: a camera wall of 33 screens, a few dead, and two rows of consoles facing it. The infirmary is
+  behind the atrium's north wall: a camera wall of 33 screens, a few dead, and two rows of consoles facing it (as built; it
+  becomes the briefing room, *One control room*, *The second pass*). The infirmary is
   a 16 by 8 m ward of four curtained beds, with a treatment bay behind glass and a chair pulled up to the last bed. The hazard
   store moves off the checkpoint, where things came off the hoist (same gate: Gen-1). Still to do: the wing's corridor could
   widen where its rooms branch off (a trunk, not a straight pipe).
