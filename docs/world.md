@@ -94,11 +94,11 @@ The testers and those they turned, centred on Horticulture.
 
 - **Origin.** Security watched the Commons turn, on Security's own cameras, and walled itself off. It was not enough: some small
   amount got through anyway, and Security's own staff began to change. They are the youngest branch of the flesh.
-- **Character.** The most technologically able of the flesh. They kept the station's systems and grew into them: their overseer
-  runs the cameras and the security controls, and does not need to see you to have you hunted (see §8).
+- **Character.** The most technologically able of the flesh. They kept the station's systems running from habit; the cameras
+  watch for them on a lockdown protocol, with nobody behind the screens (see §8).
 - **The survivors.** A smaller group of Security's staff, still human, sectioned themselves off from the changed ones. The changed
   held the controls for the way out, and the surface lift is close by; they locked it away to protect themselves, and damaged it.
-  Knowing the cameras fed the overseer, the survivors cut the service connection to their own wing and lived in the dark (§8).
+  To blind the cameras on their side, the survivors cut the service connection to their own wing and lived in the dark (§8).
   The survivors killed themselves, or made a run for an exit and were killed or stopped by something on the way. None of them
   made it.
 - **Why they hold the way out (open).** Not a scanner (the clean-body scan is dropped: §6, question 10). A working idea: the flesh
@@ -108,8 +108,7 @@ The testers and those they turned, centred on Horticulture.
 - **Towards you:** for now, they want you dead. (Whether they would rather take you, and how, is open: §6.)
 - **Towards the Commons:** kinship and threat at once, as the plants and the flesh are to each other.
 - **Territory:** Security and the Cargo cavern.
-- **Rank and file:** the patrols (changed staff, still nearly human, some in uniform), skitters and their eggs; the overseer's hand
-  (§8).
+- **Rank and file:** the patrols (changed staff, still nearly human, some in uniform), skitters and their eggs (§8).
 
 ### Between them
 
@@ -181,8 +180,8 @@ accessions and transfers: the chief of security's, the keeper's, Holt's memorand
 - **No soft-locks.** Non-linear routes plus spendable resources make soft-locks likely. The progression checker (below) must prove
   every save can still finish.
 - **Nothing was built for this (proposed).** Nobody who built or runs the station could know an outbreak like this was possible.
-  Every defence in it is ordinary equipment doing a job it was never meant for: Security's cameras, fail-safe cell doors, a desk
-  the overseer grew into. A lock or a gate that only makes sense if someone saw this coming does not belong.
+  Every defence in it is ordinary equipment doing a job it was never meant for: Security's cameras, fail-safe cell doors, a panel
+  board. A lock or a gate that only makes sense if someone saw this coming does not belong.
 
 ### Doors and locks (agreed)
 
@@ -507,25 +506,22 @@ should be added. Below it, production (below).
    safe is clear and physical: a threshold you choose to cross (a door, a change in the colour of the light, eggs starting at a
    doorframe), not a gradient. The safe half is the part the survivors held, which is why it is quiet: they are dead. The
    threshold is the power line: their half lit and watched, yours dark and blind. Stepping into the amber is stepping into view.
-4. **Climax: getting out (agreed).** The overseer is seen early and is not the climax: it watches every crossing of the muster
-   hall from behind its glass (below), and on most first passes it is still alive when you leave. The climax is the way out:
-   the nest in Cargo and ladderway B, or the run for the Security elevator once the wing is mended and its cameras wake.
-5. **Release: leaving.** Off the level, down. The overseer stays where it is, with every camera it can see. Killing it, later,
-   is a choice with a payoff (its seat: the cameras and the alarm board, below), never a gate: anyone who can leave without
-   it is free to.
+4. **Climax: getting out (agreed).** The way out: the nest in Cargo and ladderway B, or the run for the Security elevator once
+   the wing is mended and its cameras wake.
+5. **Release: leaving.** Off the level, down.
 
 **Power: two halves (agreed)**
 
 - **Their half is lit.** The changed live in Ops and want to see: their side runs on the OPS backup set, with its cameras live
   from the start.
-- **Your half is dead, and the survivors did it.** Knowing the cameras fed the overseer, they cut the service connection to their
-  own wing to blind it, and lived and died in the dark. One of the tutorial bodies lies by the cut (below).
+- **Your half is dead, and the survivors did it.** They cut the service connection to their own wing to blind its cameras, and
+  lived and died in the dark. One of the tutorial bodies lies by the cut (below).
 - **Mending it is optional.** One repair kit mends the cut: the first kit decision, now or save it for Cargo. Security can be
   finished without it, and the checker proves both routes.
 - **What mending buys:** the wing relights; the Security elevator runs again (down to the main level, §4); its light and button
   doors and card readers wake. **What it costs:** the wing's cameras wake too, you are easier to see in the light, and the patrols'
-  rounds now take in the wing (below). The overseer sees the circuit come live on its board and sounds that zone at once, so the
-  first thing the mended feed brings is the patrols, to the cut.
+  rounds now take in the wing (below). The circuit comes live on Security's board and the board sounds that zone at once, so the
+  first thing the mended feed brings is someone to the cut.
 - **Timing:** the game starts as the power goes out, and the isolation suite's doors, fail-safe, let go (see Holding, below). No
   battery holds them first.
 - **The surface lift (proposed):** what mends it is one unique part, not a kit. Count its locks before adding any: Gen-1, a
@@ -559,33 +555,32 @@ should be added. Below it, production (below).
 - **The bend is the landmark, and the threshold.** A 90° turn into a two-storey atrium where the dark half meets the lit one. Its
   stair climbs to a gallery round the atrium, which branches off into the second floor rather than shadowing the highway. (A round
   room with a structure in the middle is the alternative; it waits on curved built walls.) A well-funded facility can afford it.
-- **The muster hall: the hand's ground (agreed; built).** The second leg leaves the atrium south and opens into the hall where
-  the response team drilled, the room the hand was made in and keeps. It has to be crossed, and crossed back: the deputy
-  director's card (Cargo's) is at its far, west end, under the overseer's glass. Flat, long and lit, about 58 by 24 m: a
+- **The muster hall (agreed; built).** The second leg leaves the atrium south and opens into the hall where the response team
+  drilled. It has to be crossed, and crossed back: the deputy director's card (Cargo's) is at its far, west end, under the
+  operations room's glass. Flat, long and lit, about 58 by 24 m: a
   promenade round a sunken court, mall-like rather than industrial. The court is 1.25 m down, with steps the length of both
   long sides (the team sat on them for the muster) and glass balustrades at the ends; the ceiling over it lifts from 4.5 m to
   8.5, the drill clock hanging in the middle, and the operations room looks down on it. The atrium stays the tallest space. Pillars, crowd barriers, benches
-  and shield racks break the sight lines without stopping the hand. Every room off it has a door, so every room off it is a
-  refuge, and how far apart the doors are is how hard the crossing is: the electrical room at the west end, the locker room and
+  and shield racks break the sight lines. Every room off it has a door, and how far apart the doors are is how hard the crossing is: the electrical room at the west end, the locker room and
   the Armory on the north side, the range, the duty office (a window on the hall) and the operations stair on the south,
   Maintenance at the east end.
 - **The operations room, behind glass (agreed; built).** Control rooms overlook what they run, as Cargo control does the bay.
   The operations room is on the second floor, over the hall's south side, its north wall eight panes of armoured glass onto
-  the court: every crossing is under it. From the hall you see it in there, lit by its room's emergency light and by its own
-  sick glow, which needs no power. Its stair climbs from the east bays to a landing where the door is grown shut with bodies:
+  the court: every crossing is under it. From the hall you see into it, lit by its room's emergency light and by a sick glow
+  that needs no power; what is left of its staff are grown to its screens. (Its new answer is open: *The second pass*.) Its stair climbs from the east bays to a landing where the door is grown shut with bodies:
   no way in on the first pass. A way in comes later, once there are other places worth going first; the level should become
   non-linear then, not now. Eggs and a floor dragged red thicken toward the stair.
 - **The electrical room's board (agreed; built).** Not a room for one switch: a panel board breaking Ops' feed out to
   branches, side by side, each a trade. *Muster hall west* (HALL): the hall's lights west of the east bays, the court and its four
   cameras; cut, the hall goes black, its eyes with it, and its husks go looking for light. *Muster hall east* (EAST):
   their lights, the operations stair and their two cameras. A third way is spare. A lamp over the cabinet shows each live.
-  Cutting a branch blinds the cameras on it, never the overseer: you can blind an area, not it.
+  Cutting a branch blinds the cameras on it.
 - **Critical operations power (agreed; built).** As in real buildings, the room that runs security is not on a general
   board: its power is protected, its panel and battery backup in a locked room inside its own perimeter. The operations room
   (its screens, its board, its lights) and Security's PA are on their own critical feed (CRIT) straight off Ops' set, panelled
-  in the UPS room behind the operations room. The electrical room's schedule says so, in red. So the overseer cannot be
-  blinded from outside its walls, and no zone can be silenced but by smashing its speaker. Blinding it means getting inside
-  its perimeter: the same problem as killing it, and postponed with it. A seed for later: control rooms sit on raised floors,
+  in the UPS room behind the operations room. The electrical room's schedule says so, in red. So no zone can be silenced
+  but by smashing its speaker. (Its first reason, an overseer that could not be blinded, is gone; whether the feed stays is
+  open.) A seed for later: control rooms sit on raised floors,
   a cable void under the tiles; a crawl from a service hatch up into the UPS room would be a believable way in that is not
   through the bodies at its door. This is the pattern for power elsewhere (proposed): a board
   per area, a few labelled breakers that each feed a handful of rooms, never a switch per room. A switch per room would be
@@ -605,85 +600,29 @@ should be added. Below it, production (below).
   than the cavern's far end (about 120 m today). The glass works both ways: the bay can see you. A view only, not a door; at
   Tier 1's height a door would skip the platforms. A shortcut, if any, is a door barred from the bay side.
 
-**The overseer (superseded by *The second pass*, above; kept while it is built)**
+**Being found (as built; the cameras' speed, alarm fatigue, lockdown and the changed's wit are *The second pass*, to come)**
 
-- **Flesh, not machine (agreed).** The mutagen warps living things, never technology: nothing grows into a cable, a screen
-  or a lock. The overseer is the operations staff, grown into one body at their posts: at each screen what is left of one of
-  them, pared down to a stationary watcher, a hunched trunk with one swollen eye at the glass and a hand on the desk, each
-  half blended into its neighbours and joined by a cord of meat to the body. The body is several of them fused, and each is
-  still there to see: one lies face down and flat under the rest, its cheek to the floor and its eyes shut, its long arms out
-  of the sides and its legs out behind under the cords; a back with its spine showing, shoulders; and the first sits up out
-  of the middle, its head on its shoulders with one great eye in it, and works the two clubbed arms in front, fists on the
-  floor. A smaller pair braces it behind, fists dug in. A human turned into a tool, still attached to the other tools. It
-  does everything physically: it sees the cameras with an eye on each lit screen, and sounds a zone or draws a bolt with a
-  hand on its board. So all of it needs power at its own room, which is critical power (above). Its own light needs none:
-  pustules come up through the floor around it, the colour of a healing burn.
-- **The great eye (agreed; built).** The overseer's head and the hand's are each one eye, nearly the whole face, with a
-  pupil like a yolk that works as a real one: the light falling on it sets it (the room's, and your flashlight's, by how near
-  and how squarely), fear opens it, looking at something close narrows it, and it closes quickly and opens slowly. The two
-  read as one stock. The overseer's watches the hall through the glass, following whatever moves there, and stares at you
-  once it has you.
-- **Eyes:** the cameras, across the level, through its screens; and its own, through its glass onto the hall. Its sill hides
-  the floor right under the window: hug that wall and it cannot see you.
-- **Voice: the zone alarm.** The overseer gives no orders; the building does the work. A camera sees you, and the overseer sounds
-  that camera's zone. The precision is in the board (each zone its own speaker, the board a human officer used), not in any
-  husk's head.
-- **Not a boss, a seat (agreed).** It holds the cameras: if you want them, you take them. It need not be killed to leave, and
-  on most first passes it is not. Alive, every powered camera it can see stays its eye, so turning the power on later (Gen-1)
-  costs more. Killed, its seat is yours (proposed): the screens show you the cameras, and the alarm board is a lure, since the
-  staff answer a drill whoever sounds it.
-- **Why they come: drills, not instructions.** The changed were Security's staff. For years a zone alarm meant "respond there",
-  and what is left of them still does. It is conditioning, not command.
-- **Hand (agreed; built):** what is left of the response team, made one thing, the level's thresher. Three of them: one on
-  all fours is the body, walking on its arms and legs; four legs hang from its front, knees up and feet curled down, its
-  mouthparts and what it strikes with; and one grows feet first out of its back as a tail, with a great-eyed head and long
-  arms of its own. It has no face at the front. Low, roaming, the tail lies along the floor with its hands walking beside the
-  head and its eye rolled back, and it reads as a tail; raised, it curls up over the back, the eye open, the arms held as a
-  person's, and it takes no part in the strike.
-- **Voice to the hand: the knock (agreed; built).** The hand does not answer the klaxon; the overseer tells it. When you are
-  seen, it knocks that zone's code into the floor of its room with its fists: the zone's count, a pause, the count again (the
-  wing one, the atrium two, Operations three, the muster hall four). It carries through the slab: the hand, wherever it is,
-  stops and listens, then goes. You hear it too. One code at a time. Smashing a speaker silences the husks' drill, not the
-  knock. When the overseer dies nothing knocks: the hand roams its hall with its head hanging and leaves you be until you
-  strike it. (Later, perhaps: knock the code yourself.)
-- **Power is the trade.** Security needs power for things you want (card readers, the Cargo platforms, the fan door on ladderway
-  B), but power wakes the cameras. Switching on is what makes you visible: the same bargain as Gen-1 and the rib freak, in another
-  shape.
-
-**Three layers of being found (as built; the overseer, the hand, the knock and the bolts are superseded by *The second pass*)**
-
-- **Cameras → the zone alarm and the knock → any patrol in earshot, and the hand.** The klaxon starting is the tell, and you
-  have a few seconds to answer it: leave the zone, break its speaker or the camera (loud: a cost, per §4), or cut the power.
-  The hand does not track you; it goes where the overseer knocks for, once the code is done. **Built** (`sim/eyes.ts`), but for the hand and the overseer: a live camera sees
+- **Cameras → the zone alarm → any patrol in earshot.** The klaxon starting is the tell, and you have a few seconds to answer
+  it: leave the zone, break its speaker or the camera (loud: a cost, per §4), or cut the power. **Built** (`sim/eyes.ts`),
+  with nobody behind the screens: a live camera sees
   along its cone as far as the light you are in lets it, as the cast do. Its light is green while it watches and turns red,
   with a servo's whir, as it takes you; held about a second and a half, you sound its zone. The speaker's beacon turns and the
   klaxon goes round for twelve seconds (again from the start if you are seen again), and each time it goes round, any husk
   that hears it and is not already after you leaves its rounds or its post and hurries to the speaker. There it stands and
   looks about a while, then goes back to its rounds; it finds you only if it sees or hears you on the way. A camera can be
-  smashed with something in your hand: loud. So can a zone's speaker, and that zone has no voice: seen there, the doors
-  about you are still bolted (they are the overseer's, not the alarm's), but no klaxon sounds and no husk hears it or comes
-  (the overseer still knocks for the hand).
+  smashed with something in your hand: loud. So can a zone's speaker, and that zone has no voice: seen there, no klaxon
+  sounds and no husk hears it or comes.
   Speakers are wired from the PA, not from the rooms they hang in, and the PA is critical power: no breaker quiets a zone.
   The wing's and the muster hall's hang in a ceiling you can reach; the atrium's hangs high in the well, in reach only leaning
-  out from the east gallery's rail. Four zones: the wing, the atrium, the muster hall's west end ('muster'), and the overseer's
-  own ('ops': the Operations corridor and the hall's east bays, its speaker in the corridor). Cameras, nine: one down
+  out from the east gallery's rail. Four zones: the wing, the atrium, the muster hall's west end ('muster'), and Operations
+  ('ops': the Operations corridor and the hall's east bays, its speaker in the corridor). Cameras, nine: one down
   the wing's corridor, dead until the cut is mended; one on the atrium's threshold; one down the Operations corridor; and six
   in the muster hall: on the hall's breaker its two west corners, the north wall over the court and one high in the court's
   ceiling out of reach, and on the east bays' own breaker (EAST), one in the north-east corner and one by the operations stair. Mending the wing sounds
   it (its circuit comes live on the board).
-- **The overseer and its hand: built.** The overseer is grown into the operations room, a watcher at each of its screens
-  and the body facing the glass. It sees you itself through the glass (and sounds the Operations zone, its speaker in the
-  Operations corridor, and knocks for the hand), and lashes what comes near, with a grabber's tell. Killed, the camera lights go out up and down the level for good, the klaxon
-  dies mid-note, and no alarm sounds again. The hand is a thresher made of Security's staff (220 to the rib freak's 150): it
-  keeps the muster hall, roaming it low; feels every knock wherever it is, and when the code is done goes at a run by the
-  halls; too big for any door frame, open or shut, so every side room is a refuge from it. On its way it hunts you only if it
-  meets you. Once there it keeps the place. When the overseer dies the hand is sent no more, and fights only if struck.
-- **The overseer's bolts: built.** Seen (by a camera, or by the overseer itself), every door within nine metres of you that
-  has power is bolted: you hear each bolt being drawn for a second before it goes home, time to get through, and it holds
-  while the alarm sounds. A dead door cannot be bolted, and cutting a bolted door's power lets its bolt go. Card and keypad
-  doors keep their own locks. With its room's breaker open it draws no bolts at all: its hands are on a dead board.
-- **Patrols → their own senses.** Sight, light and sound, as everywhere else. They do not know where you are because the overseer
-  does; they come to an alarm they can hear, not to the overseer.
+- **Why they come: drills, not instructions.** The changed were Security's staff. For years a zone alarm meant "respond there",
+  and what is left of them still does. It is conditioning, not command.
+- **Patrols → their own senses.** Sight, light and sound, as everywhere else. They come to an alarm they can hear, not to you.
 - **Patrols walk lit rooms only (agreed: every husk, everywhere).** Husks hunt by sight, so they keep their rounds where they
   can see, and go to the light if they can. That is why the dead wing is quiet, and why mending the cut brings them into it
   with no orders at all: lit, it is theirs to walk. One standing in the dark makes for the nearest light it can reach; with
@@ -701,15 +640,17 @@ should be added. Below it, production (below).
   to its speaker, go to the board when the lights go, slide a door, throw a switch. They do not reason: they do not hunt
   whoever cut the power, cannot use a card or a code, cannot cut or mend a cable, and forget what they were doing once they
   are back in the light. Anything new they do should be a drill they once had, not a thought.
+- **Power is the trade.** Security needs power for things you want (card readers, the Cargo platforms, the fan door on ladderway
+  B), but power wakes the cameras. Switching on is what makes you visible: the same bargain as Gen-1 and the rib freak, in another
+  shape.
 
-Every one of the overseer's moves should be seen or heard before it lands (a camera's light, the bolt), and have an answer.
+Every threat should be seen or heard before it lands (a camera's light, the klaxon), and have an answer.
 
 **The survivors are the tutorial (proposed).** Each body on an escape route was stopped by one particular thing: one at a card
 reader with no card, one at a heavy door with no power, one under a camera, one by the cut with the cutters still in hand, one
 who stayed in Holding and gave up. Each teaches an obstacle before you meet it, without a word; the body with the flashlight is
 the first. No survivor's body is only dressing. (The officer at the checkpoint already reads this way: "Whatever opened him did
-it from behind." So does Reyes, a step short of the electrical room in the muster hall, whom the note in the locker room sent
-to blind the overseer at a breaker that, the board's schedule says, was never on it.)
+it from behind." So does Reyes, a step short of the electrical room in the muster hall.)
 
 **The way out (proposed).** The surface lift needs more than Gen-1: it was damaged, and needs mending (one unique part, not a
 kit; see Power, above): that is why you are kept in. The other ways
@@ -728,8 +669,8 @@ whether or not the wing is mended.
 
 **What the game needs for it**
 
-- **New:** nothing for now. (Cameras, the zone alarm and its speakers, the overseer, its hand, its bolts and its keep, the
-  window's glass and the sunken court are built: above.)
+- **New:** nothing for now. (Cameras, the zone alarm and its speakers, the operations room behind glass, the window's glass and
+  the sunken court are built: above.)
 - **Content:** done. The window is three bays of glass in Cargo control's east wall (`DoorDef.glass`: a sealed pane that stops
   bodies and lets sight through). In the dark the bay is black but for the nest's own glow: pustules among the eggs on the
   rungs, and its edge, creeping west over the floor below the window toward the door, a sick red.
@@ -814,7 +755,7 @@ from the fittings over you. Not yet: the cast's shadows from fittings, a swimmin
 
 - **The station's clock (liked; will be used).** The facility keeps time: messages, chimes and routine announcements from the
   speakers on a schedule, timers, sump pumps cycling on their float switches, Horticulture's irrigation. The building's routine
-  going on without its people. It suits the overseer's staff, who answer alarms from habit (§8).
+  going on without its people. It suits Security's staff, who answer alarms from habit (§8).
 - **Scent on the air.** The cast smell you downwind, so the ventilation is played, not only seen.
 - **Brownouts.** A big motor starting (a pump) dips every light on its network: power reads as one system, and something
   else switching on is heard and seen.

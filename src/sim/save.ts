@@ -4,7 +4,7 @@ import { Rng } from '../core/rng';
 import { syncBody } from './body';
 import { restoreRoute } from './cast';
 import { layRag } from './ragdoll';
-import { bigWay, restoreAlarms } from './eyes';
+import { restoreAlarms } from './eyes';
 import type { Game } from './game';
 import { makeHands } from './combat';
 import { buildUsables, type WorldItem } from './interact';
@@ -20,8 +20,9 @@ import { makeSim, type Sim, type SimOpts } from './sim';
  *  3: again (the muster hall, and the operations room behind glass), with the staff's power-failure drills
  *  4: bodies keep their velocity on the plan (engine.md §6, F1); the shoves that were kept beside it are gone
  *  5: poise, and blows that commit (engine.md §6, F2); since, the cast's knockdowns and corpses (each loads from a save
- *  without them: nobody down, the dead laid where they lay) */
-export const SAVE_VERSION = 5;
+ *  without them: nobody down, the dead laid where they lay)
+ *  6: the overseer and its hand gone, with their knocks and bolts; the level's cast is two fewer */
+export const SAVE_VERSION = 6;
 
 /** copy the named fields of an object */
 const pick = <T extends object, K extends keyof T>(o: T, keys: readonly K[]): Pick<T, K> => {
@@ -36,12 +37,12 @@ const GAME = ['inv', 'cap', 'tools', 'keys', 'worn', 'weapon', 'read', 'code', '
 const PLAYER = ['yaw', 'pitch', 'crouch', 'wantStand', 'moved', 'impact', 'water', 'air', 'airMax', 'under', 'slow', 'load', 'slam',
   'running', 'jumped', 'stepD', 'fly'] as const;
 const BODY = ['x', 'y', 'z', 'vx', 'vz', 'vy', 'h', 'ground'] as const;
-const DOOR = ['t', 'open', 'unlocked', 'hold', 'bolt', 'bolting'] as const;
+const DOOR = ['t', 'open', 'unlocked', 'hold'] as const;
 const PLATFORM = ['y', 'target', 'wait', 'moving', 'armed'] as const;
 const LOOSE = ['x', 'y', 'z', 'vx', 'vy', 'vz', 'awake', 'ground', 'still', 'woke'] as const;
 const MUTANT = ['x', 'y', 'z', 'px', 'py', 'pz', 'yaw', 'state', 'st', 'cd', 'stun', 'hp', 'post', 'wt', 'wm', 'wx', 'wz', 'tk',
   'lost', 'bt', 'burst', 'flee', 'ct', 'cdir', 'tgt', 'grab', 'tense', 'stk', 'fled', 'side', 'spot', 'mv',
-  'hit', 'poise', 'calm', 'reel', 'pat', 'down', 'rise', 'ph', 'dead', 'gone', 'away', 'dest', 'los', 'losAt', 'still', 'riled'] as const;
+  'hit', 'poise', 'calm', 'reel', 'pat', 'down', 'rise', 'ph', 'dead', 'gone', 'away', 'dest', 'los', 'losAt', 'still'] as const;
 
 /** what a rider stands on, by the moving thing's id */
 const onId = (r: { on: { id: number } | null }) => r.on?.id ?? 0;
@@ -69,8 +70,6 @@ export interface Save {
   alarms?: { zone: string; t: number; spot: number; next: number }[];
   /** the zones whose speaker is smashed */
   mute?: string[];
-  /** the overseer's knock codes under way (none in a save from before them) */
-  knocks?: Sim['knocks'];
   /** breakers opened by hand, and who may go to throw them back */
   drills?: Sim['drills'];
   /** the fields over the nav graph as they stood (they are made in turn, so cannot be made again exactly) */
@@ -112,7 +111,6 @@ export function save(sim: Sim): Save {
     alarms: sim.alarms.map(a => ({ zone: a.zone, t: a.t, spot: a.spot, next: a.next })),
     drills: structuredClone(sim.drills),
     mute: [...sim.mute],
-    knocks: structuredClone(sim.knocks),
     fields: sim.fields && {
       from: sim.fields.from, turn: sim.fields.turn, made: { ...sim.fields.made },
       crawl: pack(sim.fields.crawl), hands: pack(sim.fields.hands), big: pack(sim.fields.big), sound: pack(sim.fields.sound),
@@ -173,9 +171,6 @@ export function load(level: LevelDef, data: Save, o: SimOpts = {}): Sim {
   sim.mute = [...(data.mute ?? [])];
   sim.drills = structuredClone(data.drills ?? []);
   restoreAlarms(sim, data.alarms ?? []);
-  sim.knocks = structuredClone(data.knocks ?? []);
-  /* the hand on its way to where it was knocked for goes by the halls alone, as it was sent */
-  for (const m of sim.cast) if (m.type === 'hand' && m.state === 'go' && m.dest >= 0 && sim.fields) m.F = bigWay(sim, m.dest);
   const byId = new Map(sim.world.dyn.map(d => [d.id, d]));
   [sim.player.body, ...sim.loose.all, ...sim.cast.map(m => m.body)].forEach((r, i) => { if (r) r.on = byId.get(data.on[i]) ?? null; });
   return sim;

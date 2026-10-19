@@ -8,7 +8,7 @@ import { noInput, type Input } from '../src/sim/input';
 import { bones, RAG, ragAt, REFLEX, SKEL, STAGGER } from '../src/sim/ragdoll';
 import { load, save } from '../src/sim/save';
 import { makeSim, simLighting, step, type Sim } from '../src/sim/sim';
-import { ANIM, BUILD, CastView } from '../src/present/render/castView';
+import { BUILD, CastView } from '../src/present/render/castView';
 import { RIG, Rigged } from '../src/present/render/rig';
 
 /* Corpses that fall loose (engine.md §6, bodies with physics). */
@@ -45,9 +45,7 @@ describe('the skeletons', () => {
     const mat = new THREE.MeshBasicMaterial(), v = new THREE.Vector3();
     for (const kind of Object.keys(RIG)) {
       const s = arena(), m = stood(s, kind, 8, 0, -8), M = BUILD[kind](mat, m), B = bones(kind);
-      /* as built; the hand is built with its limbs straight out, and stands as it goes about */
-      const idle = { ...m, state: 'idle', mv: 0, blow: null, ph: 0 } as Mutant;
-      if (kind === 'hand') for (let k = 0; k < 300; k++) ANIM.hand(idle, M, { sim: s, dt: 1 / 60, L: { atPoint: () => [0.3, 0.3, 0.3] } as never });
+      /* as built */
       M.g.updateMatrixWorld(true);
       for (const P of RIG[kind].parts) {
         if (!P.bone) continue;
@@ -63,9 +61,9 @@ describe('the skeletons', () => {
 describe('a body killed goes loose', () => {
   it('only what has a body and moves: a bloat and what grows on a wall fold where they are', () => {
     const s = arena();
-    for (const t of ['husk', 'skitter', 'thresher', 'worm', 'hand', 'bloat', 'grabber']) spawn(s, t, 8, 0, -8);
+    for (const t of ['husk', 'skitter', 'thresher', 'worm', 'bloat', 'grabber']) spawn(s, t, 8, 0, -8);
     killAll(s);
-    expect(s.cast.map(m => !!m.rag)).toEqual([true, true, true, true, true, false, false]);
+    expect(s.cast.map(m => !!m.rag)).toEqual([true, true, true, true, false, false]);
   });
 
   it('carries the killing blow: it goes the way it was struck, and lies where it fell', () => {
@@ -179,7 +177,7 @@ describe('a body killed goes loose', () => {
   });
 
   it('every kind settles and goes to sleep within a few seconds, and then lies still', () => {
-    for (const t of ['husk', 'skitter', 'thresher', 'worm', 'hand']) {
+    for (const t of ['husk', 'skitter', 'thresher', 'worm']) {
       const s = arena(), m = stood(s, t, 8, 0, -9);
       strike(s, m, AXE({ x: 1, z: 0 }));
       hold(s, 3);
@@ -191,7 +189,7 @@ describe('a body killed goes loose', () => {
   });
 
   it('holds together: no bone stretched or squashed by more than a few centimetres once it lies still', () => {
-    for (const t of ['husk', 'skitter', 'thresher', 'worm', 'hand']) {
+    for (const t of ['husk', 'skitter', 'thresher', 'worm']) {
       const s = arena(), m = stood(s, t, 8, 0, -9), B = bones(t);
       strike(s, m, BATON({ x: 1, z: 0 }));
       hold(s, 3);
@@ -297,7 +295,7 @@ describe('reflexes', () => {
   /** run with the reflexes as they are, or with none */
   const without = <T>(on: boolean, f: () => T): T => {
     const keep = structuredClone(REFLEX);
-    if (!on) { REFLEX.brace.pull = 0; REFLEX.clutch.pull = 0; REFLEX.guard.pull = 0; REFLEX.curl.pull = 0; REFLEX.writhe.amp = 0; }
+    if (!on) { REFLEX.brace.pull = 0; REFLEX.clutch.pull = 0; REFLEX.guard.pull = 0; REFLEX.writhe.amp = 0; }
     try { return f(); } finally { Object.assign(REFLEX, keep); }
   };
   const dist = (a: { x: number; y: number; z: number }, b: { x: number; y: number; z: number }) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
@@ -351,7 +349,7 @@ describe('reflexes', () => {
     expect(on).toBeLessThan(off - 0.1);
   });
 
-  it('a worm dying thrashes, and the hand\'s legs draw in under it', () => {
+  it('a worm dying thrashes', () => {
     const thrash = (on: boolean) => without(on, () => {
       const s = arena(), m = stood(s, 'worm', 8, 0, -9, 0);
       killAll(s);
@@ -360,14 +358,6 @@ describe('reflexes', () => {
       return side;
     });
     expect(thrash(true)).toBeGreaterThan(thrash(false) * 2);
-    const drawn = (on: boolean) => without(on, () => {
-      const s = arena(), m = stood(s, 'hand', 8, 0, -9, 0);
-      killAll(s);
-      hold(s, 1.5);
-      const mid = ragAt(m.rag!);
-      return ['footLF', 'footRF', 'footLB', 'footRB'].reduce((a, n) => { const f = pt(m, n); return a + Math.hypot(f.x - mid.x, f.z - mid.z); }, 0) / 4;
-    });
-    expect(drawn(true)).toBeLessThan(drawn(false) - 0.05);
   });
 });
 
@@ -602,7 +592,7 @@ describe('knocked down, loose', () => {
   const floor = (s: Sim, m: Mutant) => hitMutant(s, m, { dmg: 10, poise: 29, shove: 70 * 4.7, dir: { x: 0, z: -1 }, by: 'axe', at: { x: m.x, y: m.y + 1.35, z: m.z + 0.4 }, way: { x: 0, y: -1, z: -0.3 } }, 1.5);
 
   it('goes down loose, lies, and is its own body again once up', () => {
-    for (const t of ['husk', 'thresher', 'hand']) {
+    for (const t of ['husk', 'thresher']) {
       const s = arena(), m = stood(s, t, 8, 0, -8, 0);
       m.stun = 0; s.game.god = true;
       hitMutant(s, m, { dmg: 10, poise: 500, shove: 1500, dir: { x: 0, z: -1 }, at: { x: m.x, y: m.y + m.body!.h * 0.75, z: m.z + 0.4 }, way: { x: 0, y: -1, z: -0.3 } }, 1);

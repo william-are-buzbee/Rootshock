@@ -7,7 +7,7 @@ import { consume, log, makeNoise, say, sfx } from './game';
 import { push } from './body';
 import { knockRag, ragOnLine } from './ragdoll';
 import { closing, DOWN, GLANCE, LAUNCH, POISE, react, REEL, regain, RISE, SHOVE, swingOf, type Swing } from './moves';
-import { ACTIVE, across, along, frame, meetsCylinder, meetsSphere, type Frame, type V3 } from './sweep';
+import { ACTIVE, across, along, frame, meetsCylinder, type Frame, type V3 } from './sweep';
 import type { Input } from './input';
 import { eyeHeight } from './player';
 import type { Sim } from './sim';
@@ -196,8 +196,6 @@ function aim(sim: Sim) {
  *  the floor. (Its head alone, as first built, was a ball above your eye, and you could not tell where it was) */
 const GRAB = { out: 0.12, r: 0.42, y0: 0.35, y1: 2.55 };
 const grabAt = (m: Mutant) => ({ x: m.x + Math.sin(m.yaw) * GRAB.out, z: m.z + Math.cos(m.yaw) * GRAB.out });
-/** the rest of the fixed (the overseer): a ball where a grabber's head would be */
-const headOf = (m: Mutant) => ({ x: m.x + Math.sin(m.yaw) * 0.22, y: m.y + 2.02, z: m.z + Math.cos(m.yaw) * 0.22 });
 
 /** the frame of the blow under way: your eye, and the line it was thrown along */
 function blowFrame(sim: Sim): Frame {
@@ -240,7 +238,7 @@ function sweep(sim: Sim, w: WeaponStats, a0: number, a1: number): 'none' | 'hit'
         if (m.dead) continue;
         const c = grabAt(m);
         const t = m.model === 'grabber' ? meetsCylinder(A, B, c.x, c.z, GRAB.r, m.y + GRAB.y0, m.y + GRAB.y1)
-          : m.fixed ? meetsSphere(A, B, headOf(m), 0.35) : meetsCylinder(A, B, m.x, m.z, m.r + 0.08, m.y, m.y + (m.body?.h ?? 1));
+          : meetsCylinder(A, B, m.x, m.z, m.r + 0.08, m.y, m.y + (m.body?.h ?? 1));
         if (t === null || t >= bt) continue;
         const P = mix(A, B, t);
         if (ray(sim, F.p, P) < 1) continue; // behind something
@@ -325,7 +323,7 @@ function fire(sim: Sim, w: WeaponStats): void {
     const dx = m.x - A.ex, dz = m.z - A.ez, d = Math.hypot(dx, dz);
     if (d > range) continue;
     /* a grabber is aimed at where your line crosses it, as high as it hangs */
-    const ty = m.model === 'grabber' ? clamp(A.ey + (A.fy / (Math.hypot(A.fx, A.fz) || 1)) * d, m.y + GRAB.y0, m.y + GRAB.y1) : m.fixed ? headOf(m).y : m.y + Math.min(0.9, (m.body?.h ?? 1) * 0.6), hy = ty - A.ey;
+    const ty = m.model === 'grabber' ? clamp(A.ey + (A.fy / (Math.hypot(A.fx, A.fz) || 1)) * d, m.y + GRAB.y0, m.y + GRAB.y1) : m.y + Math.min(0.9, (m.body?.h ?? 1) * 0.6), hy = ty - A.ey;
     const dot = (dx * A.fx + hy * A.fy + dz * A.fz) / Math.hypot(dx, hy, dz);
     if (dot < (w.cone ?? 0.98) && d > m.r + 0.8) continue;
     if (sim.world.raycast(A.ex, A.ey, A.ez, m.x, ty, m.z, seeThrough) < 1) continue;

@@ -5,12 +5,11 @@ import { makeSim, step, type Sim } from '../src/sim/sim';
 import { noInput } from '../src/sim/input';
 import { STEP } from '../src/core/loop';
 import { give, power } from '../src/sim/game';
-import { EYES, KNOCK, camLive, codeTimes, knocksFor, manned, soundZone } from '../src/sim/eyes';
-import { hitMutant } from '../src/sim/cast';
-import { doorAct, doorLabel, findUsable } from '../src/sim/interact';
+import { EYES, soundZone } from '../src/sim/eyes';
+import { doorAct, findUsable } from '../src/sim/interact';
 import { load, save } from '../src/sim/save';
 
-/* The overseer's eyes and voice (sim/eyes.ts), on the upper station: cameras that hold you sound their zone, and the
+/* Security's eyes and voice (sim/eyes.ts), on the upper station: cameras that hold you sound their zone, and the
    husks that hear it come to it. */
 
 const level = buildUpper(STATION.ladders);
@@ -125,207 +124,14 @@ describe('the zone alarm', () => {
   });
 });
 
-describe('the overseer and its hand', () => {
-  const hand = (s: Sim) => s.cast.find(m => m.type === 'hand')!;
-  const overseer = (s: Sim) => s.cast.find(m => m.ai === 'overseer')!;
-  const putM = (m: Sim['cast'][number], x: number, y: number, z: number) => { const b = m.body!; b.x = m.x = x; b.y = m.y = y; b.z = m.z = z; b.sync(); };
-
-  /** how long the overseer takes to knock out a zone's code, and for the hand to go */
-  const code = (s: Sim, zone: string) => codeTimes(knocksFor(s, zone)).at(-1)! + KNOCK.settle;
-
-  it('seen, the overseer knocks the zone\'s code into the floor: the hand stops to listen, then goes by the halls, at a run', () => {
-    const s = fresh(), h = hand(s);
-    for (const q of s.cast) if (q !== h) q.stun = 1e9;
-    place(s, 30, -4.5, -25); // you, a storey down, out of it
-    hold(s, 0.3);
-    s.game.events.length = 0;
-    soundZone(s, 'atrium', true); // as a camera does when it has held you
-    hold(s, 0.1);
-    expect(sounded(s, 'slab')).toBe(true); // the first knock
-    expect(h.state).toBe('listen'); // it stops where it is
-    const knocks = () => s.game.events.filter(e => e.type === 'sfx' && e.name === 'slab').length;
-    hold(s, code(s, 'atrium'));
-    expect(knocks()).toBe(2 * knocksFor(s, 'atrium')); // the atrium's count, and the count again
-    expect(h.state).toBe('go');
-    const sp = level.speakers!.find(q => q.zone === 'atrium')!;
-    let nearest = Infinity;
-    for (let t = 0; t < 24; t += STEP) { step(s, noInput()); nearest = Math.min(nearest, Math.hypot(h.x - sp.x, h.z - sp.z)); } // from the muster hall
-    expect(nearest).toBeLessThan(3); // there, it keeps the place
-  });
-
-  it('the klaxon alone does not send it: only the overseer does', () => {
-    const s = fresh(), h = hand(s);
-    for (const q of s.cast) if (q !== h) q.stun = 1e9;
-    place(s, 30, -4.5, -25);
-    hold(s, 0.3);
-    s.game.events.length = 0;
-    soundZone(s, 'atrium'); // sounded, but nobody was seen
-    hold(s, code(s, 'atrium') + 1);
-    expect(sounded(s, 'slab')).toBe(false);
-    expect(h.state).not.toBe('go');
-  });
-
-  it('a save made with the hand listening, or on its way, plays on the same', () => {
-    for (const wait of [1, code(fresh(), 'atrium') + 1.5]) {
-      const s = fresh();
-      for (const q of s.cast) if (q.type !== 'hand') q.stun = 1e9;
-      place(s, 30, -4.5, -25);
-      hold(s, 0.3);
-      soundZone(s, 'atrium', true);
-      hold(s, wait);
-      expect(hand(s).state).toBe(wait < 2 ? 'listen' : 'go');
-      const a = load(level, JSON.parse(JSON.stringify(save(s))), { seed: 7, station: STATION });
-      hold(s, 3); hold(a, 3);
-      expect(JSON.stringify(save(a))).toBe(JSON.stringify(save(s)));
-    }
-  });
-
-  it('it is too big for a door: a zone it cannot reach by the halls leaves it where it is', () => {
-    const s = fresh(), h = hand(s);
-    for (const q of s.cast) if (q !== h) q.stun = 1e9;
-    place(s, 30, -4.5, -25);
-    putM(h, 24, 0, 2); // in the lobby, behind its door
-    hold(s, 0.3);
-    soundZone(s, 'atrium', true);
-    hold(s, code(s, 'atrium') + 1);
-    expect(h.state).not.toBe('go');
-  });
-
-  it('with the overseer dead, nothing sends it, and it leaves you be until you strike it', () => {
-    const s = fresh(), h = hand(s), o = overseer(s);
-    for (const q of s.cast) if (q !== h) q.stun = 1e9;
-    hitMutant(s, o, { dmg: 10000, poise: 0 }, 1);
-    hold(s, 0.2);
-    place(s, h.x, h.y, h.z - 6); // in plain sight in its lit hall
-    hold(s, 2);
-    expect(['idle', 'patrol']).toContain(h.state);
-    hitMutant(s, h, { dmg: 1, poise: 0 }, 1);
-    expect(h.state).toBe('wind'); // now it fights
-  });
-
-  it('the overseer sees you itself and sounds its zone, and lashes what comes near', () => {
-    const s = fresh(), o = overseer(s);
-    for (const q of s.cast) if (q !== o) q.stun = 1e9;
-    place(s, o.x, o.y, o.z - 3.4);
-    hold(s, 0.5);
-    expect(s.alarms.map(a => a.zone)).toContain('ops');
-    const hp = s.game.hp;
-    place(s, o.x, o.y, o.z - 1.9);
-    hold(s, 1.5);
-    expect(s.game.hp).toBeLessThan(hp);
-  });
-
-  it('killed, the cameras go dark for good, the alarm dies, and none sounds again', () => {
-    const s = fresh(), o = overseer(s), c = threshold(s);
-    still(s);
-    soundZone(s, 'atrium');
-    hold(s, 0.5);
-    hitMutant(s, o, { dmg: 10000, poise: 0 }, 1);
-    s.game.events.length = 0;
-    hold(s, 0.2);
-    expect(o.dead).toBe(true);
-    expect(s.alarms).toEqual([]);
-    expect(s.game.events.some(e => e.type === 'say' && /camera lights go out/.test(e.text))).toBe(true);
-    inView(s);
-    hold(s, 3);
-    expect(c.hold).toBe(0);
-    expect(s.alarms).toEqual([]);
-    soundZone(s, 'wing');
-    expect(s.alarms).toEqual([]);
-  });
-});
-
-describe('the overseer\'s bolts', () => {
-  /** in the Operations corridor, in view of its north camera, between the operations office and maintenance */
-  const setUp = () => {
-    const s = fresh();
-    still(s);
-    place(s, 77, 0, 20);
-    const near = (x: number, z: number) => s.doors.find(d => Math.abs((d.def.x0 + d.def.x1) / 2 - x) < 1 && Math.abs((d.def.z0 + d.def.z1) / 2 - z) < 1)!;
-    return { s, office: near(73, 17), maint: near(81, 27) };
-  };
-
-  it('seen, the doors about you that have power are bolted: heard being drawn first, then shut and held', () => {
-    const { s, office, maint } = setUp();
-    s.game.events.length = 0;
-    hold(s, EYES.hold + 0.2);
-    expect(s.alarms.map(a => a.zone)).toContain('ops');
-    expect(office.bolting).toBeGreaterThan(0); // the tell: you can still get through
-    expect(maint.bolting).toBeGreaterThan(0);
-    expect(sounded(s, 'bolt-draw')).toBe(true);
-    hold(s, EYES.draw + 1);
-    for (const d of [office, maint]) {
-      expect(d.bolt).toBeGreaterThan(0);
-      expect(doorLabel(s, d)).toBe('Bolted');
-    }
-    hold(s, 1);
-    expect(office.t).toBeLessThan(0.05); // open at the start; bolted, it shut
-    s.game.events.length = 0;
-    doorAct(s, maint);
-    expect(s.game.events.some(e => e.type === 'say' && /Bolted/.test(e.text))).toBe(true);
-  });
-
-  it('a bolt holds only with power behind it, and lets go when the alarm ends', () => {
-    const { s, office, maint } = setUp();
-    hold(s, EYES.hold + EYES.draw + 0.5);
-    expect(maint.bolt).toBeGreaterThan(0);
-    s.game.station!.circuits.OPS.back = false; s.lighting = null; // cut the power: the bolts go
-    hold(s, 0.1);
-    expect(maint.bolt).toBe(0);
-    expect(office.bolt).toBe(0);
-    const t = setUp();
-    hold(t.s, EYES.hold + EYES.draw + 0.5);
-    expect(t.maint.bolt).toBeGreaterThan(0);
-    place(t.s, 30, -4.5, -25); // gone from its sight: the alarm runs down
-    hold(t.s, EYES.sound + 1);
-    expect(t.s.alarms).toEqual([]);
-    expect(t.maint.bolt).toBe(0);
-  });
-});
-
-describe('the overseer is flesh: an eye at each of its screens, a hand on its board', () => {
-  const brk = (s: Sim, name: string) => s.usables.find(u => new RegExp('Breaker, ' + name).test(u.label() ?? ''))!;
-  const overseer = (s: Sim) => s.cast.find(m => m.ai === 'overseer')!;
-  /** on the court's floor, out from under its glass: right under it, its sill hides you */
-  const underGlass = (s: Sim) => { const o = overseer(s); place(s, o.x, -1.25, o.z - 14); };
-
-  it('it watches the hall through its glass with its own eyes, and sounds its zone when it sees you', () => {
-    const s = fresh(), o = overseer(s);
-    for (const q of s.cast) if (q !== o) q.stun = 1e9;
-    underGlass(s);
-    hold(s, 0.5);
-    expect(s.alarms.map(a => a.zone)).toContain('ops');
-  });
-
-  it('no breaker outside its walls reaches it: open the board and it still sees; only its critical feed would blind it', () => {
-    const s = fresh();
-    still(s);
-    brk(s, 'Muster hall west').act(); brk(s, 'Muster hall east').act();
-    expect(manned(s)).toBe(true);
-    inView(s);
-    hold(s, EYES.hold + 0.3);
-    expect(s.alarms.map(a => a.zone)).toContain('atrium');
-    /* its own panel, inside its walls (none of it built yet): cut there, its screens and board are dead */
-    const t = fresh(), o = overseer(t);
-    still(t);
-    t.game.station!.circuits.CRIT.on = false; t.lighting = null;
-    expect(manned(t)).toBe(false);
-    expect(camLive(t, threshold(t))).toBe(false); // the camera has its own power: it is the eye at the screen that is in the dark
-    o.stun = 0; // awake, and looking
-    underGlass(t);
-    hold(t, 1);
-    expect(t.alarms).toEqual([]);
-    expect(o.dead).toBe(false); // alive; only blind and handless
-  });
-
+describe('the operations room', () => {
   it('its door is grown shut: no way in on the first pass', () => {
-    const s = fresh(), o = overseer(s);
+    const s = fresh();
     const d = s.doors.find(q => q.def.seal && !q.def.glass && Math.abs(q.def.y0 - 5) < 0.1)!;
     expect(d).toBeTruthy();
     s.game.events.length = 0;
     doorAct(s, d);
     expect(s.game.events.some(e => e.type === 'say' && /Bodies/.test(e.text))).toBe(true);
-    expect(s.world.roomAt(o.x, o.y + 1, o.z)?.name).toBe('Operations room');
   });
 });
 
@@ -370,7 +176,6 @@ describe('the power-failure drill', () => {
     expect(back).toBe(true);
     expect(sounded(s, 'clang')).toBe(true);
     expect(s.drills).toEqual([]);
-    expect(manned(s)).toBe(true);
   });
 
   it('one who reaches the light has stopped noticing: the breaker stays open', () => {
@@ -475,21 +280,17 @@ describe('a smashed speaker', () => {
     expect(u.label()).toBeNull();
   });
 
-  it('the zone has no voice: seen there, the doors are still bolted, no klaxon sounds and no husk comes; the overseer still knocks', () => {
-    const s = fresh(), h = s.cast.find(m => m.type === 'hand')!, m = s.cast[1];
-    for (const q of s.cast) if (q !== h && q !== m) q.stun = 1e9;
+  it('the zone has no voice: seen there, no alarm sounds and no husk comes', () => {
+    const s = fresh(), m = s.cast[1];
+    for (const q of s.cast) if (q !== m) q.stun = 1e9;
     s.mute.push('ops');
     place(s, 77, 0, 20); // in view of the corridor's north camera
     s.game.events.length = 0;
-    hold(s, EYES.hold + 0.3);
-    expect(s.alarms.map(a => a.zone)).toEqual(['ops']); // it saw you
-    expect(s.doors.some(d => d.bolting > 0 || d.bolt > 0)).toBe(true); // and its bolts are its own
-    hold(s, 2);
+    hold(s, EYES.hold + 2.3);
+    expect(s.cams.some(c => c.hold > EYES.hold)).toBe(true); // it saw you
+    expect(s.alarms).toEqual([]);
     expect(sounded(s, 'klaxon')).toBe(false);
     expect(m.state).not.toBe('answer');
-    expect(sounded(s, 'slab')).toBe(true); // its fists are not on the PA
-    hold(s, 4);
-    expect(h.state).toBe('go'); // so the hand comes all the same
     /* sounded any other way, it does not sound at all */
     const t = fresh();
     t.mute.push('wing');

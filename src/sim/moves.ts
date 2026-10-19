@@ -55,7 +55,7 @@ export const MOVES = {
 
 /** how much a body can take before it reels; what it gets back once left alone, and after how long */
 export const POISE = {
-  you: 30, husk: 25, skitter: 20, bigSkitter: 40, worm: 12, swimmer: 12, thresher: 70, hand: 90, bloat: 1e9, other: 30,
+  you: 30, husk: 25, skitter: 20, bigSkitter: 40, worm: 12, swimmer: 12, thresher: 70, bloat: 1e9, other: 30,
   /** seconds without a hit before it comes back, and how much of the whole a second */
   calm: 1.0, regain: 0.5,
 };
@@ -101,7 +101,7 @@ export const FALL = { min: 10, dmg: 6, poise: 8 };
 /* ---- knocked down and thrown (engine.md §6, knockdowns)
 
    A hit that breaks a body's poise and shoves it at DOWN.dv or more knocks it off its feet, if it stands on them (you,
-   a husk, a thresher, the hand; not the low ones, a worm, a skitter, which are on the floor already); at LAUNCH.dv or
+   a husk, a thresher; not the low ones, a worm, a skitter, which are on the floor already); at LAUNCH.dv or
    more it is thrown, some of the shove turned upward, and comes down after. Down, it does nothing for a while; then it
    gets up, and while it does a hit has to get past RISE.guard of poise before it counts: a moment of better footing,
    not immunity, so one knockdown cannot chain into the next. A blow on something down lands DOWN.more times as hard.

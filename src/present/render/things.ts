@@ -181,8 +181,8 @@ export class Things {
       const D = p.def;
       this.add(parts(platformParts(D.x1 - D.x0, D.z1 - D.z0), matId(D.mat)), m => m.position.set((D.x0 + D.x1) / 2, p.y, (D.z0 + D.z1) / 2));
     }
-    /* the overseer's eyes: a light that is green while one watches, red while it holds you, and none when it is dead; a
-       smashed one hangs askew. Its zones' speakers, with a beacon that turns while the zone sounds. */
+    /* the cameras: a light that is green while one watches, red while it holds you, and none without power; a smashed
+       one hangs askew. Its zones' speakers, with a beacon that turns while the zone sounds. */
     for (const c of sim.cams) {
       const C = c.def, live = () => camLive(sim, c);
       const place = (m: THREE.Object3D) => { m.position.set(C.x, C.y, C.z); m.rotation.set(c.broken ? 0.7 : 0, C.yaw, c.broken ? 0.4 : 0); };

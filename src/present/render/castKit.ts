@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { Colour } from '../../core/math';
 import { parts } from './things';
 
-/* What the cast are made of, shared by everyone who draws them (castView.ts, security.ts): their colours, and a part
+/* What the cast are made of, shared by everyone who draws them (castView.ts): their colours, and a part
    of one shape and colour put on a parent, each shape and colour and size made once. */
 
 export const FLESH = 0xb08572, RAW = 0x8c4a44, GOREC = 0x4e1616, PALE = 0xcdbfae, BONE = 0xddd6c0, DARK = 0x140c0d, ORANGE = 0xb5541c;

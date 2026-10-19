@@ -5,7 +5,7 @@ import { bones, type Rag } from '../../sim/ragdoll';
    model rides the points of its joint. A torso is a frame: an origin, an up and a side, from its points. A limb is a
    bone: from one point to another, turned from its parent as little as takes it there, so it does not twist on its own.
    Each part is fixed to its frame as the model stands idle, so a body lying still is the model's own shape laid down.
-   What is not tied to a frame (a thresher's ribs, a hand's fingers) stays as it was at the moment of death, on its
+   What is not tied to a frame (a thresher's ribs) stays as it was at the moment of death, on its
    parent. Going loose is not a cut: the model goes from where it was drawn to where its points are over BLEND; and
    one knocked down comes back out of its points into its animation as it gets up. */
 
@@ -26,7 +26,6 @@ interface Part {
 /** seconds from the pose it was drawn in to the pose of its points */
 export const BLEND = 0.15;
 
-const L = (k: number) => (k < 2 ? 'L' : 'R');
 export const RIG: Record<string, { parts: Part[]; rest?: number }> = {
   husk: {
     parts: [
@@ -64,27 +63,6 @@ export const RIG: Record<string, { parts: Part[]; rest?: number }> = {
     parts: [
       { at: M => M.hd, bone: ['s0', 'head'], o: 'head' },
       ...[0, 1, 2, 3, 4, 5].map((k): Part => ({ at: M => M.segs[k], bone: [k ? 's' + (k - 1) : 'head', k < 5 ? 's' + (k + 1) : 's5'], o: 's' + k })),
-    ],
-  },
-  hand: {
-    parts: [
-      { at: M => M.body, frame: [['lf', 'rf', 'lb', 'rb'], ['lf', 'rf', 'lb', 'rb'], 'top', ['lf', 'lb'], ['rf', 'rb']] },
-      /* its four: the arms in front and the legs behind, on each side (security.ts makes them in that order) */
-      ...[0, 1, 2, 3].flatMap((k): Part[] => {
-        const end = (k % 2 ? 'B' : 'F'), root = (k < 2 ? 'l' : 'r') + end.toLowerCase(), knee = 'knee' + L(k) + end, foot = 'foot' + L(k) + end;
-        return [{ at: M => M.legs[k].h, bone: [root, knee], parent: 0 }, { at: M => M.legs[k].k, bone: [knee, foot], parent: 1 + k * 2 }];
-      }),
-      ...[0, 1, 2, 3].map((k): Part => ({ at: M => M.fingers[k].h, bone: ['g' + k, 'tip' + k], parent: 0 })),
-      /* the tail, root to head: parts 13 to 17 */
-      { at: M => M.tail[0], bone: ['t0', 't1'], parent: 0 },
-      { at: M => M.tail[1], bone: ['t1', 't2'], parent: 13 },
-      { at: M => M.tail[2], bone: ['t2', 't3'], parent: 14 },
-      { at: M => M.tail[3], bone: ['t3', 't4'], parent: 15 },
-      { at: M => M.tail[4], bone: ['t4', 'hd'], parent: 16 },
-      { at: M => M.arms[0].h, bone: ['aL', 'elbL'], parent: 17 },
-      { at: M => M.arms[0].k, bone: ['elbL', 'handL'], parent: 18 },
-      { at: M => M.arms[1].h, bone: ['aR', 'elbR'], parent: 17 },
-      { at: M => M.arms[1].k, bone: ['elbR', 'handR'], parent: 20 },
     ],
   },
 };

@@ -113,7 +113,7 @@ describe('their rounds', () => {
     s.game.station!.circuits.SEC.broken = false; s.lighting = null; // the wing mended
     expect(names().has('Checkpoint')).toBe(true);
     s.game.station!.circuits.OPS.back = false; s.lighting = null; // and Ops' set stopped: nothing to see by but the flesh's own glow
-    expect([...names()].every(n => /^Tier|^Operations room$/.test(n))).toBe(true); // the nest's, and the overseer's
+    expect([...names()].every(n => /^Tier|^Operations room$/.test(n))).toBe(true); // the nest's, and the operations room's
   });
 
   it('one standing in the dark makes for the nearest light it can get to', () => {
