@@ -658,11 +658,17 @@ function notices(sim: Sim, m: Mutant): boolean {
   return true;
 }
 
+/** one of the staff that would answer an alarm: a husk on its rounds or its post, or on its way to one already */
+export const free = (m: Mutant): boolean => !m.dead && m.ai === 'husk' && (m.state === 'idle' || m.state === 'lurk' || m.state === 'answer') && m.spot >= 0;
+
+/** the pace they go to an alarm at (m/s): in their own time, no faster than their rounds; one more false alarm */
+const ANSWER = 1.4;
+
 /** a zone alarm it hears (sim/eyes.ts): a husk not already after you leaves its rounds, or its post, and goes to the
- *  speaker, as Security's staff were drilled to. The way there is the alarm's, copied: a round makes its next route in
- *  the one it has. */
+ *  speaker, as Security's staff were drilled to, slowly. The way there is the alarm's, copied: a round makes its next
+ *  route in the one it has. */
 export function answer(sim: Sim, m: Mutant, spot: number, route: Float32Array): void {
-  if (m.dead || m.ai !== 'husk' || (m.state !== 'idle' && m.state !== 'lurk' && m.state !== 'answer') || m.spot < 0) return;
+  if (!free(m)) return;
   if (m.state === 'answer' && m.dest === spot) return;
   if (!(route[m.spot] > 2.5)) return; // there already, or no way there
   step_(sim, m, 'mutter');
@@ -679,10 +685,10 @@ const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
         break;
       }
       case 'answer': {
-        /* to the alarm, at a hurry; there, it stands and looks about a while before its rounds again */
+        /* to the alarm, in its own time; there, it stands and looks about a while before its rounds again */
         if (notices(sim, m)) break;
         if (!m.F || m.dest < 0 || m.spot === m.dest || m.F[m.spot] < 1.5) { m.state = 'idle'; m.dest = -1; m.wt = rnd(sim, 6, 12); break; }
-        if (follow(sim, m, m.F, 2.6, false)) m.stk = 0;
+        if (follow(sim, m, m.F, ANSWER, false)) m.stk = 0;
         else if ((m.stk += dt) > 3) { m.stk = 0; m.state = 'idle'; m.dest = -1; m.wt = rnd(sim, 2, 4); }
         break;
       }

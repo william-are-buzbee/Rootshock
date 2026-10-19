@@ -4,7 +4,7 @@ import { Rng } from '../core/rng';
 import { syncBody } from './body';
 import { restoreRoute } from './cast';
 import { layRag } from './ragdoll';
-import { restoreAlarms } from './eyes';
+import { restoreAlarms, saveAlarm, type SavedAlarm } from './eyes';
 import type { Game } from './game';
 import { makeHands } from './combat';
 import { buildUsables, type WorldItem } from './interact';
@@ -21,7 +21,8 @@ import { makeSim, type Sim, type SimOpts } from './sim';
  *  4: bodies keep their velocity on the plan (engine.md §6, F1); the shoves that were kept beside it are gone
  *  5: poise, and blows that commit (engine.md §6, F2); since, the cast's knockdowns and corpses (each loads from a save
  *  without them: nobody down, the dead laid where they lay)
- *  6: the overseer and its hand gone, with their knocks and bolts; the level's cast is two fewer */
+ *  6: the overseer and its hand gone, with their knocks and bolts; the level's cast is two fewer. Since, cameras that
+ *  weigh your speed and alarm fatigue (each loads from a save without them: nothing tripped, no zone sounded) */
 export const SAVE_VERSION = 6;
 
 /** copy the named fields of an object */
@@ -65,9 +66,11 @@ export interface Save {
   hands: Sim['hands'];
   /** what each rider stands on (by id): the player, the loose things, the cast, in that order */
   on: number[];
-  /** the cameras (smashed, and how long each has held you) and the alarms sounding; none in a save from before them */
-  cams?: { broken: boolean; hold: number }[];
-  alarms?: { zone: string; t: number; spot: number; next: number }[];
+  /** the cameras (smashed, how long each has held you, and whether it has sounded for you), the alarms sounding, and when
+   *  each zone last sounded; none in a save from before them */
+  cams?: { broken: boolean; hold: number; tripped: boolean }[];
+  alarms?: SavedAlarm[];
+  sounded?: Record<string, number>;
   /** the zones whose speaker is smashed */
   mute?: string[];
   /** breakers opened by hand, and who may go to throw them back */
@@ -107,8 +110,9 @@ export function save(sim: Sim): Save {
     cast: sim.cast.map(m => ({ ...pick(m, MUTANT), ride: structuredClone(m.ride), blow: structuredClone(m.blow), rag: structuredClone(m.rag), body: m.body ? pick(m.body, BODY) : null })),
     hands: structuredClone(sim.hands),
     on: [sim.player.body, ...sim.loose.all, ...sim.cast.map(m => m.body)].map(r => (r ? onId(r) : 0)),
-    cams: sim.cams.map(c => ({ broken: c.broken, hold: c.hold })),
-    alarms: sim.alarms.map(a => ({ zone: a.zone, t: a.t, spot: a.spot, next: a.next })),
+    cams: sim.cams.map(c => ({ broken: c.broken, hold: c.hold, tripped: c.tripped })),
+    alarms: sim.alarms.map(saveAlarm),
+    sounded: { ...sim.sounded },
     drills: structuredClone(sim.drills),
     mute: [...sim.mute],
     fields: sim.fields && {
@@ -167,7 +171,8 @@ export function load(level: LevelDef, data: Save, o: SimOpts = {}): Sim {
     unpack(d.crawl, F.crawl); unpack(d.hands, F.hands); unpack(d.big, F.big); unpack(d.sound, F.sound);
   }
   for (const m of sim.cast) restoreRoute(sim, m);
-  sim.cams.forEach((c, i) => { const s = data.cams?.[i]; if (s) { c.broken = s.broken; c.hold = s.hold; } });
+  sim.cams.forEach((c, i) => { const s = data.cams?.[i]; if (s) { c.broken = s.broken; c.hold = s.hold; c.tripped = s.tripped; } });
+  sim.sounded = { ...(data.sounded ?? {}) };
   sim.mute = [...(data.mute ?? [])];
   sim.drills = structuredClone(data.drills ?? []);
   restoreAlarms(sim, data.alarms ?? []);
