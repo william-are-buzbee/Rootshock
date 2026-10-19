@@ -462,11 +462,11 @@ function nearestIn(sim: Sim, m: Mutant, rooms: number[]): number {
 }
 
 const roamCache = new WeakMap<object, number[]>();
-/** rooms worth a walk: not a refuge, not marked off, not a doorway, not a cupboard */
+/** rooms worth a walk: not a refuge, not marked off, not armed, not a doorway, not a cupboard */
 function roamRooms(sim: Sim): number[] {
   let r = roamCache.get(sim.world);
   if (!r) {
-    r = sim.world.rooms.filter(R => !R.safe && !R.noroam && !R.doorway && (R.x1 - R.x0) * (R.z1 - R.z0) >= 16).map(R => R.id);
+    r = sim.world.rooms.filter(R => !R.safe && !R.noroam && !R.armed && !R.doorway && (R.x1 - R.x0) * (R.z1 - R.z0) >= 16).map(R => R.id);
     roamCache.set(sim.world, r);
   }
   return r;
@@ -661,18 +661,30 @@ function notices(sim: Sim, m: Mutant): boolean {
 /** one of the staff that would answer an alarm: a husk on its rounds or its post, or on its way to one already */
 export const free = (m: Mutant): boolean => !m.dead && m.ai === 'husk' && (m.state === 'idle' || m.state === 'lurk' || m.state === 'answer') && m.spot >= 0;
 
-/** the pace they go to an alarm at (m/s): in their own time, no faster than their rounds; one more false alarm */
-const ANSWER = 1.4;
+/** the pace they go to an alarm at (m/s): a hurry; faster again with another of them in sight hurrying too, within
+ *  `see` metres: one starts and the rest catch it */
+const ANSWER = { pace: 2.6, caught: 3.4, see: 16 };
 
-/** a zone alarm it hears (sim/eyes.ts): a husk not already after you leaves its rounds, or its post, and goes to the
- *  speaker, as Security's staff were drilled to, slowly. The way there is the alarm's, copied: a round makes its next
- *  route in the one it has. */
+/** a zone alarm it hears (sim/eyes.ts): a husk not already after you leaves its rounds, or its post, and hurries to the
+ *  speaker, as Security's staff were drilled to. The way there is the alarm's, copied: a round makes its next route in
+ *  the one it has. */
 export function answer(sim: Sim, m: Mutant, spot: number, route: Float32Array): void {
   if (!free(m)) return;
   if (m.state === 'answer' && m.dest === spot) return;
   if (!(route[m.spot] > 2.5)) return; // there already, or no way there
   step_(sim, m, 'mutter');
   m.state = 'answer'; m.post = false; m.dest = spot; m.F = Float32Array.from(route); m.wt = 0; m.stk = 0;
+}
+
+/** another of them hurrying to an alarm is in its sight: on its way, and going at a hurry's pace */
+function hurried(sim: Sim, m: Mutant): boolean {
+  const eye = Math.min(1.6, (m.body?.h ?? 1) * 0.85);
+  for (const o of sim.cast) {
+    if (o === m || o.dead || o.state !== 'answer' || !o.body || Math.hypot(o.body.vx, o.body.vz) < ANSWER.pace * 0.8) continue;
+    if (Math.hypot(o.x - m.x, o.z - m.z) > ANSWER.see) continue;
+    if (sim.world.raycast(m.x, m.y + eye, m.z, o.x, o.y + eye, o.z, seeThrough) >= 1) return true;
+  }
+  return false;
 }
 
 const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
@@ -685,10 +697,10 @@ const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
         break;
       }
       case 'answer': {
-        /* to the alarm, in its own time; there, it stands and looks about a while before its rounds again */
+        /* to the alarm, in a hurry; there, it stands and looks about a while before its rounds again */
         if (notices(sim, m)) break;
         if (!m.F || m.dest < 0 || m.spot === m.dest || m.F[m.spot] < 1.5) { m.state = 'idle'; m.dest = -1; m.wt = rnd(sim, 6, 12); break; }
-        if (follow(sim, m, m.F, ANSWER, false)) m.stk = 0;
+        if (follow(sim, m, m.F, hurried(sim, m) ? ANSWER.caught : ANSWER.pace, false)) m.stk = 0;
         else if ((m.stk += dt) > 3) { m.stk = 0; m.state = 'idle'; m.dest = -1; m.wt = rnd(sim, 2, 4); }
         break;
       }

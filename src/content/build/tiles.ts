@@ -40,6 +40,8 @@ export interface TRoomOpts {
   /** its floor this far over the deck's (under it, if negative): a sunken court. Its ceiling rides on its floor */
   dy?: number;
   nolamp?: number | boolean; noroam?: number | boolean; safe?: number | boolean;
+  /** armed by the lockdown (RoomDef.armed): hazard paint inside each door into it, and its signs read ALARMED AREA */
+  armed?: number | boolean;
 }
 
 export interface TRoom {
@@ -47,7 +49,7 @@ export interface TRoom {
   ht: number; dy: number; fl: number; wl: number; st: number;
   lit: LitRule; lc: Colour; em: boolean; c: string; flick: boolean;
   open: boolean; hole: string | null; cave: boolean; air: boolean; sky?: number; motes?: Motes; mat: RoomMats;
-  nolamp: boolean; noroam: boolean; safe: boolean;
+  nolamp: boolean; noroam: boolean; safe: boolean; armed: boolean;
   /** a cave of any outline (caveShape): its tiles are the deck's tiles marked with its id, and x, y, w, h bound them */
   shaped?: boolean;
 }
@@ -144,7 +146,7 @@ export function room(D: Deck, name: string, x: number, y: number, w: number, h: 
     lit: o.lit ?? 'main', lc: o.lc ?? WHITE, em: !!o.em, c: o.c ?? D.c, flick: !!o.flick,
     open: !!o.open, hole: o.hole ? String(o.hole) : null, cave: !!o.cave, air: !!o.air, ...(o.sky !== undefined ? { sky: o.sky } : {}), ...(o.motes ? { motes: o.motes } : {}),
     mat: { ...(o.cave ? CAVERN : o.open ? WALKWAY : o.sky !== undefined ? STREET : FITTED), ...o.mat },
-    nolamp: !!o.nolamp, noroam: !!o.noroam, safe: !!o.safe,
+    nolamp: !!o.nolamp, noroam: !!o.noroam, safe: !!o.safe, armed: !!o.armed,
   };
   D.rooms.push(r);
   for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) { D.g[j * D.W + i] = 1; D.rm[j * D.W + i] = r.id; }
@@ -384,7 +386,7 @@ export function finishLevel(start?: [number, number, number]) {
       if (R.hole || R.shaped) continue;
       const opts = {
         pal: { fl: R.fl, wl: R.wl, st: R.st } as Palette, lit: R.lit, lc: R.lc, em: R.em, circuit: R.c, flick: R.flick,
-        nolamp: true, plain: R.open || R.cave, safe: R.safe, noroam: R.noroam, ...(R.sky !== undefined ? { sky: R.sky } : {}), motes: R.motes,
+        nolamp: true, plain: R.open || R.cave, safe: R.safe, noroam: R.noroam, armed: R.armed, ...(R.sky !== undefined ? { sky: R.sky } : {}), motes: R.motes,
         mat: R.mat,
       };
       const x0 = X(D, R.x), z0 = Z(D, R.y), x1 = X(D, R.x + R.w), z1 = Z(D, R.y + R.h);
@@ -421,12 +423,23 @@ export function finishLevel(start?: [number, number, number]) {
       });
       b.level.doors[b.level.doors.length - 1].y0 = y0;
       b.level.doors[b.level.doors.length - 1].y1 = y0 + 2.4;
+      /* a sign names the room it is read toward; one into an armed room says so */
+      const toward = { w: k + 1, e: k - 1, n: k + D.W, s: k - D.W };
       for (const [text, dir] of d.sg ?? []) {
-        const y = y0 + 2.74;
-        if (dir === 'w') b.sign(text, x0 - 0.03, y, cz, -PI / 2, circuit);
-        else if (dir === 'e') b.sign(text, x0 + T + 0.03, y, cz, PI / 2, circuit);
-        else if (dir === 'n') b.sign(text, cx, y, z0 - 0.03, PI, circuit);
-        else b.sign(text, cx, y, z0 + T + 0.03, 0, circuit);
+        const y = y0 + 2.74, warn = !!roomAtTile(D, toward[dir])?.armed;
+        if (dir === 'w') b.sign(text, x0 - 0.03, y, cz, -PI / 2, circuit, warn);
+        else if (dir === 'e') b.sign(text, x0 + T + 0.03, y, cz, PI / 2, circuit, warn);
+        else if (dir === 'n') b.sign(text, cx, y, z0 - 0.03, PI, circuit, warn);
+        else b.sign(text, cx, y, z0 + T + 0.03, 0, circuit, warn);
+      }
+      /* the line: hazard paint across the floor just inside an armed room, the door's width, yellow and black */
+      for (const o of ns ? [-D.W, D.W] : [-1, 1]) {
+        if (!roomAtTile(D, k + o)?.armed || roomAtTile(D, k - o)?.armed) continue;
+        const into = o === D.W || o === 1 ? 1.15 : -0.15;
+        for (let s = 0; s < 6; s++) {
+          const along = d.x + (s + 0.5) / 6, across = d.y + into;
+          bx(D, ns ? along : d.x + into, ns ? across : d.y + (s + 0.5) / 6, ns ? 0.33 : 0.3, 0.01, ns ? 0.3 : 0.33, s % 2 ? 0x1d1f21 : 0xc9a227, { y: 0.013, c: 0 });
+        }
       }
     }
     /* floors under an upper deck: a slab under every tile that is not a hole (or air over a room below that reaches up
@@ -606,7 +619,7 @@ function shapedCaves(b: LevelBuilder, D: Deck): void {
     const x0 = D.org[0] + R.x * T, z0 = D.org[1] + R.y * T;
     const r = b.room(R.name, x0, z0, x0 + lw * T, z0 + lz * T, {
       pal: { fl: R.fl, wl: R.wl, st: R.st }, lit: R.lit, lc: R.lc, em: R.em, circuit: R.c, flick: R.flick,
-      nolamp: true, plain: true, safe: R.safe, noroam: R.noroam, y0: ylo, ht: yhi - ylo, motes: R.motes, mat: R.mat,
+      nolamp: true, plain: true, safe: R.safe, noroam: R.noroam, armed: R.armed, y0: ylo, ht: yhi - ylo, motes: R.motes, mat: R.mat,
     });
     r.cells = { res: T, nx: lw, nz: lz, lo: clo, hi: chi };
   }

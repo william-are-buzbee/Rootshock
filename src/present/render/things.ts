@@ -128,19 +128,27 @@ function platformParts(w: number, h: number): Part[] {
 }
 
 /** a sign plate: dark, a hazard bar, the name in capitals */
-function signMesh(text: string): THREE.Mesh {
-  const c = document.createElement('canvas');
-  c.width = 256; c.height = 56;
+/** a door's sign; one into an armed room (warn) has a red band under its name, ALARMED AREA, and hangs down further */
+function signMesh(text: string, warn = false): THREE.Mesh {
+  const c = document.createElement('canvas'), h = warn ? 84 : 56;
+  c.width = 256; c.height = h;
   const x = c.getContext('2d')!;
-  x.fillStyle = '#14171a'; x.fillRect(0, 0, 256, 56);
-  x.fillStyle = '#c9a227'; x.fillRect(0, 0, 8, 56);
+  x.fillStyle = '#14171a'; x.fillRect(0, 0, 256, h);
+  x.fillStyle = warn ? '#b3261e' : '#c9a227'; x.fillRect(0, 0, 8, h);
   x.fillStyle = '#d9d4c3';
   x.font = '600 27px "Barlow Condensed","Arial Narrow",Arial,sans-serif';
   x.textAlign = 'center'; x.textBaseline = 'middle';
   x.fillText(text.toUpperCase(), 132, 30, 236);
+  if (warn) {
+    x.fillStyle = '#b3261e'; x.fillRect(8, 56, 248, 28);
+    x.fillStyle = '#f2ede0'; x.font = '700 19px "Barlow Condensed","Arial Narrow",Arial,sans-serif';
+    x.fillText('ALARMED AREA', 132, 71, 236);
+  }
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
-  return new THREE.Mesh(new THREE.PlaneGeometry(1.7, 0.37), new THREE.MeshBasicMaterial({ map: tex }));
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 0.37 * h / 56), new THREE.MeshBasicMaterial({ map: tex }));
+  if (warn) m.geometry.translate(0, -0.37 * 14 / 56, 0); // its name stays where any other sign's is
+  return m;
 }
 
 function coloured(src: Float32Array, c: Colour, mat = 0): THREE.BufferGeometry {
@@ -181,14 +189,14 @@ export class Things {
       const D = p.def;
       this.add(parts(platformParts(D.x1 - D.x0, D.z1 - D.z0), matId(D.mat)), m => m.position.set((D.x0 + D.x1) / 2, p.y, (D.z0 + D.z1) / 2));
     }
-    /* the cameras: a light that is green while one watches, red while it holds you, and none without power; a smashed
-       one hangs askew. Its zones' speakers, with a beacon that turns while the zone sounds. */
+    /* the cameras: one guarding an armed room has a light, green while it watches and red while it holds you, and none
+       without power; one that only records has none. A smashed one hangs askew. Its zones' speakers, with a beacon that turns while the zone sounds. */
     for (const c of sim.cams) {
       const C = c.def, live = () => camLive(sim, c);
       const place = (m: THREE.Object3D) => { m.position.set(C.x, C.y, C.z); m.rotation.set(c.broken ? 0.7 : 0, C.yaw, c.broken ? 0.4 : 0); };
       this.add(parts(CAM), place);
-      this.add(parts([['box', [0.4, 2.6, 0.7], 0.045, 0.045, 0.045, 0, 0.1, 0]]), m => { place(m); m.visible = live() && c.hold === 0; });
-      this.add(parts([['box', [2.9, 0.35, 0.3], 0.05, 0.05, 0.05, 0, 0.1, 0]]), m => { place(m); m.visible = live() && c.hold > 0; });
+      this.add(parts([['box', [0.4, 2.6, 0.7], 0.045, 0.045, 0.045, 0, 0.1, 0]]), m => { place(m); m.visible = c.guard && live() && c.hold === 0; });
+      this.add(parts([['box', [2.9, 0.35, 0.3], 0.05, 0.05, 0.05, 0, 0.1, 0]]), m => { place(m); m.visible = c.guard && live() && c.hold > 0; });
     }
     for (const S of w.def.speakers ?? []) {
       /* it hangs from the ceiling: lit by the room under it, not by what is above */
@@ -204,7 +212,7 @@ export class Things {
       });
     }
     for (const s of w.def.signs) {
-      const m = signMesh(s.text);
+      const m = signMesh(s.text, s.warn);
       m.position.set(s.x, s.y, s.z);
       m.rotation.y = s.yaw;
       scene.add(m);
