@@ -879,14 +879,19 @@ components, not code threaded through the frame loop:
   `findInt`.
 - **Cameras and zone alarms** (`sim/eyes.ts`, `world.md` §8): `LevelDef.cameras` (a lens, a yaw, a cone, a range, a circuit,
   a zone) and `LevelDef.speakers` (one a zone: the floor under it). A live camera sees you as the cast do (range times how
-  visible you are, the cone, a clear line); held `EYES.hold` it sounds its zone. An alarm keeps a route to its speaker and how
-  far its sound carries (both made once, when it starts, and again on load); each time the klaxon goes round, a husk in earshot
-  that is not hunting takes the state `answer` and walks the route (its own copy). Nobody is behind the screens: a camera
+  visible you are, the cone, a clear line), and holds you only moving faster than a creep (`SPEED`, `holdRate`: a walker
+  at one second of hold a second, a runner at up to 3.5; standing or creeping in view, it drains); held `EYES.hold` it
+  sounds its zone, once a sighting (`Cam.tripped`), and keeps it sounding while it still sees you moving. Alarm fatigue
+  (`FATIGUE`): `Sim.sounded` keeps when each zone last sounded; sounded again within a minute, the alarm is a pattern
+  (`Alarm.all`) and every husk in earshot answers it, else it picks the nearest free one at even odds (`Alarm.pick`, gone
+  after `Alarm.due`). They answer at 1.4 m/s (`ANSWER` in `sim/cast.ts`). An alarm keeps a route to its speaker and how
+  far its sound carries (both made once, when it starts, and again on load); each time the klaxon goes round, a husk that
+  answers it takes the state `answer` and walks the route (its own copy). Nobody is behind the screens: a camera
   needs only its power and to be whole. A smashed speaker mutes its zone (`Sim.mute`): nothing sounds there at all. (The
   overseer, its hand, its knock codes and its bolts were built here and taken out in Security's second pass.) A speaker is used from below only, and hangs in its room's ceiling. It is wired from its PA (`SpeakerDef.pa`, a
   circuit), not from its room, and sounds only while that has power (`heard` in `sim/eyes.ts`); Security's is critical
-  power, which nothing you can reach switches. Saves keep each camera's state, the muted zones
-  and the alarms; the routes are made again.
+  power, which nothing you can reach switches. Saves keep each camera's state, the muted zones,
+  when each zone last sounded, and the alarms; the routes are made again.
 
 **As built in step 4.** The game's state is plain data in the sim (`sim/game.ts`): circuits and Gen-1, keys, what you
 carry (ten slots), lights and battery, what you wear, papers read, health, the run's keypad codes. What happens comes out

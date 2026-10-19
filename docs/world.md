@@ -409,11 +409,13 @@ wins; the older text stays only because it describes what is built, until the le
 - **The cameras watch themselves (agreed).** Ordinary motion-detection CCTV on a lockdown protocol, nobody behind the screens:
   no seat to take. A camera trips on fast movement in light. The changed move too slowly to trip one, and so do you, creeping;
   running trips it at once. Dark is still blind. The level's lesson is to move like them. (Built cameras already see by the
-  light you are in and take you after a second and a half held; what changes is that speed counts.)
+  light you are in and take you after a second and a half held; what changes is that speed counts.) **Built** (walking
+  is fast too, a second and a half held; running, under half a second): below, *Being found*.
 - **Alarm fatigue (agreed).** The cameras have false-alarmed for weeks (anything fast, a flickering tube), so the changed no
   longer run to a klaxon. One alarm: perhaps one of them walks over, slowly, in its own time. Alarms again in the same zone
   soon after: they notice the pattern, and more come, with purpose. Seen once costs little; seen twice in one place is the
-  trouble. The vaccinator answers it differently (below).
+  trouble. The vaccinator answers it differently (below). **Built** (soon after is a minute; perhaps is even odds, the
+  nearest that hears it; with purpose is more of them, not faster): below, *Being found*.
 - **The changed (agreed).** No longer husks: the word says empty, and they are not. Pia's line (§10): **intelligent, but
   sedated.** They think, slowly, and without much caring. They notice and come to look (a breaker thrown means someone threw
   it; a door left open is noticed), they use cards (a card door is safe from them no longer, only from you), and they are slow
@@ -600,16 +602,23 @@ should be added. Below it, production (below).
   than the cavern's far end (about 120 m today). The glass works both ways: the bay can see you. A view only, not a door; at
   Tier 1's height a door would skip the platforms. A shortcut, if any, is a door barred from the bay side.
 
-**Being found (as built; the cameras' speed, alarm fatigue, lockdown and the changed's wit are *The second pass*, to come)**
+**Being found (as built; lockdown, call points and the changed's wit are *The second pass*, to come)**
 
 - **Cameras → the zone alarm → any patrol in earshot.** The klaxon starting is the tell, and you have a few seconds to answer
   it: leave the zone, break its speaker or the camera (loud: a cost, per §4), or cut the power. **Built** (`sim/eyes.ts`),
   with nobody behind the screens: a live camera sees
-  along its cone as far as the light you are in lets it, as the cast do. Its light is green while it watches and turns red,
-  with a servo's whir, as it takes you; held about a second and a half, you sound its zone. The speaker's beacon turns and the
-  klaxon goes round for twelve seconds (again from the start if you are seen again), and each time it goes round, any husk
-  that hears it and is not already after you leaves its rounds or its post and hurries to the speaker. There it stands and
-  looks about a while, then goes back to its rounds; it finds you only if it sees or hears you on the way. A camera can be
+  along its cone as far as the light you are in lets it, as the cast do, and it is movement it is looking for. Creeping
+  (crouched, 1.6 m/s; anything 2 m/s or under) and standing still it lets be. Moving faster, its light turns from green to
+  red with a servo's whir as it takes you; walking, held about a second and a half, you sound its zone; running, in under
+  half a second. Slow down in its view and it lets go a little at a time (it forgets a full hold in about three seconds);
+  step out of its view and it lets go at once. It sounds once for a sighting, and keeps the zone sounding while it still
+  sees you moving; to sound it again it must have let you go. The speaker's beacon turns and the klaxon goes round for
+  twelve seconds. **Alarm fatigue:** the first time a zone sounds, the nearest of the changed that hears it comes, at even
+  odds, two to six seconds after it starts, and no other. A zone sounded again within a minute of the last time (seen
+  twice, or seen while it still sounds) is a pattern: each time the klaxon goes round, any that hears it and is not
+  already after you leaves its rounds or its post and comes. Either way they come slowly (1.4 m/s, their rounds' pace) and
+  to the speaker, not to you. There one stands and looks about a while, then goes back to its rounds; it finds you only if
+  it sees or hears you on the way. A camera can be
   smashed with something in your hand: loud. So can a zone's speaker, and that zone has no voice: seen there, no klaxon
   sounds and no husk hears it or comes.
   Speakers are wired from the PA, not from the rooms they hang in, and the PA is critical power: no breaker quiets a zone.

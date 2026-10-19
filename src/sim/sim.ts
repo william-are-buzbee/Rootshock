@@ -47,6 +47,8 @@ export interface Sim {
   /** Security's cameras, and the zone alarms sounding (sim/eyes.ts) */
   cams: Cam[];
   alarms: Alarm[];
+  /** when each zone last sounded (game time), for alarm fatigue (sim/eyes.ts, FATIGUE) */
+  sounded: Record<string, number>;
   /** the zones whose speaker is smashed: their alarms sound no more */
   mute: string[];
   /** breakers opened by hand, and the staff caught in the dark who may go to throw them back (sim/cast.ts) */
@@ -105,7 +107,7 @@ export function makeSim(level: LevelDef, o: SimOpts = {}): Sim {
     doors: level.doors.map(d => makeDoor(world, d)),
     platforms: level.platforms.map(p => makePlatform(world, p)),
     items: level.items.map(it => ({ ...it, taken: false })),
-    usables: [], focus: null, cast: [], fields: null, hands: makeHands(), wormN: 0, front: -1, lighting: null, cams: [], alarms: [], mute: [], drills: [],
+    usables: [], focus: null, cast: [], fields: null, hands: makeHands(), wormN: 0, front: -1, lighting: null, cams: [], alarms: [], sounded: {}, mute: [], drills: [],
   };
   sim.cams = makeCams(sim);
   sim.usables = buildUsables(sim);

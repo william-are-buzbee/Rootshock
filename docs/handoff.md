@@ -46,6 +46,9 @@ Each step its own PR, playable on its own.
 
 ## Where things are now
 
+Step 2's first half is done: cameras weigh your speed (`SPEED`, `holdRate`), and alarm fatigue (`FATIGUE`,
+`Sim.sounded`; one perhaps, then all), both in `sim/eyes.ts`. Lockdown and the call points are next.
+
 Step 1 is done: the overseer, the hand, the knock and the bolts are out of the code and of world.md §8 (old saves do not
 load: save version 6). §10's lineage still names the overseer in three places (rules 1 and 8, *Security's first*): left
 for the owner, since they are cosmology, not the level.
