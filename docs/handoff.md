@@ -1,10 +1,78 @@
-# Handoff: bodies with physics
+# Handoff: Security, second pass
 
-For whoever picks this up in a new session. What was built, where it is, how it was measured, and what is still open.
-The record of each piece is engine.md §6 (*Bodies with physics*, *Muscle tone*, *Reflexes*, *Stagger steps*, *After
-play*, each "as built"); this is the map to it.
+For whoever picks this up in a new session. The design was settled in conversation and written into `docs/world.md`; this
+is the map from it to the code, and the order to build it in. The previous handoff (bodies with physics) is kept at the
+end: its asks, tools and open items still stand.
 
-## Where it stands
+## The design, and where it is
+
+All in `docs/world.md`. Read these first, in this order:
+
+- §8, *Security*, **The second pass**: what goes (the overseer, the hand, the knock, the bolts, and their names), the
+  cameras that watch themselves and trip on speed, alarm fatigue, the changed (intelligent but sedated; the plant growing
+  out of them), one tool per room, the night round, the vaccinator, power on or off, flickering as a trope, the big dark
+  section, call points, lockdown, load on the backup set, no alarm on the way out.
+- §8, **The opening**: the six beats, from the IV pump's alarm to the fail-safe release.
+- §3, *Who you are* and *The timeline*: sedated weeks on a false alarm; you start clean; the cut now happens at the start.
+- §8, **Cargo, made larger**, and **Production** (later steps; not this one).
+- §4, *Time and sleep* and *The water*; §10, *The sleepless* (later; not this one).
+
+The old Security text in §8 is marked superseded but kept, because it describes what is built. When a piece is rebuilt,
+rewrite or remove the old text for it in the same PR.
+
+## The order (proposed; put it to the owner if it should change)
+
+Each step its own PR, playable on its own.
+
+1. **Take out the overseer and the hand.** Their cast entries, models, the knock, the bolts, the overseer's own sight
+   and seat, `manned()`, their saves and tests. The level must still play and finish without them (the progression
+   checker says so). The operations room stays a room for now (§8: its new answer is open).
+2. **Cameras that weigh speed.** A camera takes you only if you move fast in its light; creeping does not trip it; the
+   changed never do. Then alarm fatigue: one alarm brings perhaps one of them, slowly; a second in the same zone soon
+   after brings more, with purpose. Then lockdown in place of the bolts (an alarm seals that zone's powered doors, heard
+   and seen) and break-glass call points.
+3. **The changed.** Rename the husk's role in the text and the UI (no "husk" said in the game); then the intelligence:
+   they notice a thrown breaker and come to look for who threw it, notice a door left open, and use cards. Slow and
+   readable throughout. Their look (tobacco leaf in shelves out of neck and shoulders) is a model job; ask before
+   spending long on it.
+4. **The night round.** One of the changed walking a round with a flashlight that lights what it points at (so cameras see
+   you in its beam), carrying a card you can take.
+5. **The opening.** The suite on a night setting; the IV pump; the other patient (awake, tally marks, banging); the night
+   round brought by the noise, trying each door with its card (reader beeps), the medical hold on yours, the scene
+   started when you first look out (a timer behind it); the survivors' cut a minute on; the fail-safe release into
+   emergency light. Moves the cut from before the game into it.
+6. **The vaccinator**, then the big dark section and the one-tool-per-room ordering of the level, then load on the backup
+   set. Then Cargo as an L.
+
+## Where things are now
+
+- `src/sim/eyes.ts`: cameras (`makeCams`, `camSees`), zones and speakers (`soundZone`, `heard`), the overseer's part
+  (`manned`, `knockFor`, `updateKnocks`, `boltAbout`, `updateBolts`), alarms (`makeAlarm`, `restoreAlarms`), and
+  `updateEyes`, which runs it all. Tests: `test/eyes.test.ts`.
+- `src/sim/cast.ts`: the cast. `Ai` (line ~23) and the kinds table (`overseer`, `hand` at ~51); answering an alarm (~674);
+  the hand's errands (~694); the power-failure drill (`drill`, ~931 on). Tests: `test/cast.test.ts`.
+- `src/sim/movers.ts`: doors; `locked` includes the overseer's bolt. `src/sim/interact.ts`: card readers and keypads (~261).
+- `src/content/levels/upper.ts`: the level. The isolation suite is near the top (~60: rooms round a common hall, the
+  patient, the guard's dropped light at ~86); the start is `finishLevel` at the end (room 1, facing its door). The muster
+  hall, the operations room and the overseer's keep are in the middle; Cargo is `buildCargo`. Tests: `test/upper.test.ts`,
+  `test/progress.test.ts` (the checker).
+- `src/present/render/security.ts`: cameras, speakers, the overseer's drawing. `src/present/render/castView.ts`: models
+  (`BUILD`, `ANIM`), the overseer's and the hand's included. `src/present/audio.ts`, `soundscape.ts`: the klaxon, the knock.
+- `src/sim/save.ts`: saves carry alarms, knocks and bolts; old saves need not load once the shape changes, but say so.
+- Searching `overseer|knock|hand|bolt` finds the rest (about 25 files).
+
+## Asks for this step
+
+- Discussion first when something is not in world.md: the owner likes to talk a design through before it is built.
+- Clarity over cleverness: power is on or off; every threat seen or heard before it lands, and with an answer.
+- No new speech for the cast. No alarm on leaving the level.
+- The combat asks below still hold (ask before anything that changes how combat plays).
+
+---
+
+# The previous handoff: bodies with physics
+
+### Where it stands
 
 - Merged: corpses loose (#68), corpses kept (#69), knockdowns loose (#70), muscle tone and corpse gravity (#71),
   reflexes (#72), stagger steps (#73).
@@ -13,7 +81,7 @@ play*, each "as built"); this is the map to it.
   floored husk spun on its feet (`stagger`'s upright hold); the grabber could only be hit at its head (combat.ts,
   `GRAB`). engine.md §6, *After play, as built*, has the numbers.
 
-## The asks that stand
+### The asks that stand
 
 - `src/sim/` and `src/world/` never import three.js or touch the page; the sim runs headless (vitest).
 - Determinism: seeded randomness only; two identical runs end identically. Saves are plain data (`sim/save.ts`; the
@@ -26,7 +94,7 @@ play*, each "as built"); this is the map to it.
   tables, each with a comment. Commit: a short title, a prose body saying why. A PR per step: what changed, what was
   measured, what is not built. Record what was built and measured, and what was tried and set aside, in engine.md §6.
 
-## Where things are
+### Where things are
 
 - `src/sim/ragdoll.ts`: all of it. `SKEL` (each kind's points, rigid cluster, sticks, joint limits, hinges, tone,
   hands, legs), `RAG` (the solver and how blows land on a body), `REFLEX`, `STAGGER`. `makeRag`/`loose` turn a body
@@ -38,7 +106,7 @@ play*, each "as built"); this is the map to it.
 - `src/present/render/rig.ts`: draws a loose body with the model's own boxes (`RIG` per model), blends in and out.
 - `src/present/render/castView.ts`: the models (`BUILD`, `ANIM`); the husk's and thresher's legs have knees for it.
 
-## How to see what it does
+### How to see what it does
 
 - In the game: `npm run dev`, then `/?dev&level=testbed`, north into the arena. Keys 1 to 6 put down the cast, 0
   kills them all (again: clears the dead), T slow motion, Y your weapon, U freezes them, O the colliders. The hit log
@@ -60,7 +128,7 @@ play*, each "as built"); this is the map to it.
 
   One 404 on load is the favicon, and is not a page error.
 
-## Open
+### Open
 
 1. **The axe's aim** (asked about, not changed). The owner: "you'd think to just place the crosshair and swing; it
    doesn't land where you'd expect". Measured (`aim` probe): a chop meets the first thing its arc comes down on, so
@@ -81,7 +149,7 @@ play*, each "as built"); this is the map to it.
    "fragile"). The test for it allows the thresher's steps only 0.1 s over none (0.77 s against 0.62).
 5. Not built, and never asked for: a reel that stumbles (a reel is the model's animation); corpses that block.
 
-## What was learned
+### What was learned
 
 - Measure before touching: each fault here had an obvious suspect that was not it. The spin was not the local
   impulse, the tip, the anchor, or the steps (each off alone, it still spun); it was a pull on three of a rigid body's
