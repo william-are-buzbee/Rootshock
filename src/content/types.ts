@@ -227,7 +227,7 @@ export interface LevelDef {
   vents?: VentDef[];
   /** blood on the floor, wet enough to walk out of with it on your soles (present/render/prints.ts) */
   stains?: StainDef[];
-  /** the overseer's eyes, and the speakers its alarms sound from (sim/eyes.ts) */
+  /** Security's cameras, and the speakers their alarms sound from (sim/eyes.ts) */
   cameras?: CameraDef[];
   speakers?: SpeakerDef[];
   signs: SignDef[];

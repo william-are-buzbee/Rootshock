@@ -11,7 +11,6 @@ import { sendPlatform, type Door } from './movers';
 import { eyeHeight } from './player';
 import { closing, DOWN, FALL, LAUNCH, MOVES, POISE, react, regain, RISE, SHOVE, SLAM, type Move } from './moves';
 import { simLighting, type Sim } from './sim';
-import { blinded, manned, soundZone } from './eyes';
 import { knockRag, makeRag, RAG, REFLEX, type Killing, type Rag } from './ragdoll';
 import type { V3 } from './sweep';
 
@@ -20,7 +19,7 @@ import type { V3 } from './sweep';
    and you. They find their way over the nav graph's fields, see along lines of sight scaled by the light you stand in,
    and hear what you do as far as the sound of it carries through the rooms between. */
 
-export type Ai = 'husk' | 'skitter' | 'bloat' | 'thresher' | 'worm' | 'swimmer' | 'grabber' | 'overseer';
+export type Ai = 'husk' | 'skitter' | 'bloat' | 'thresher' | 'worm' | 'swimmer' | 'grabber';
 
 interface Stats {
   ai?: Ai; model?: string; green?: boolean;
@@ -45,11 +44,6 @@ export const MT: Record<string, Stats> = {
   swimmer: { ai: 'swimmer', model: 'worm', hp: 40, r: 0.35, cr: 0.3, mass: 1, kg: 25, acc: 10, h: 0.6, swim: true },
   grabber: { hp: 30, r: 0.4, cr: 0, mass: 1, kg: Infinity, acc: 0, h: 0, fixed: true },
   vine: { ai: 'grabber', model: 'grabber', green: true, hp: 30, r: 0.4, cr: 0, mass: 1, kg: Infinity, acc: 0, h: 0, fixed: true },
-  /* Security's (world.md §8): the growth that was the operations centre, which sees through the cameras; and its hand,
-     made of Security's response team, which goes wherever the overseer knocks for it. It fights as a thresher does. Too
-     big for a door frame, it keeps to the halls. */
-  overseer: { ai: 'overseer', model: 'overseer', hp: 260, r: 1.1, cr: 0, mass: 8, kg: Infinity, acc: 0, h: 0, fixed: true },
-  hand: { ai: 'thresher', model: 'hand', hp: 220, r: 0.65, cr: 0.52, mass: 3, kg: 300, acc: 8, h: 2.2, solid: true, noDoors: true },
 };
 
 export const DEATH: Record<Ai, string> = {
@@ -60,7 +54,6 @@ export const DEATH: Record<Ai, string> = {
   swimmer: 'The water closed over the last of the light.',
   grabber: 'The doorway closed its hands.',
   bloat: 'It sat on you. It did not seem to notice.',
-  overseer: 'It had watched you the whole way here.',
 };
 
 /** a ride on a platform: which, which way, and the spot to step off to */
@@ -91,9 +84,6 @@ export interface Mutant {
   opens: boolean; low: boolean; noDoors: boolean; fixed: boolean; swim: boolean; solid: boolean;
   /** a guard that keeps its post until it notices you; one sitting down; one grown over; a big one */
   post: boolean; sit: boolean; holt: boolean; big: boolean;
-  /** the overseer's: the zone it sounds when it sees you itself, and the circuit its screens and board are on */
-  zone: string | null;
-  screens: string | null;
   /** where it started, which it keeps near */
   hx: number; hz: number;
   room: number;
@@ -102,8 +92,6 @@ export interface Mutant {
   wt: number; wm: number; wx: number; wz: number;
   tk: number; lost: number; bt: number; burst: boolean; flee: number; ct: number; cdir: number; tgt: boolean;
   grab: number; tense: number;
-  /** struck by you: a thresher that was left alone fights now (the hand, with no overseer to send it) */
-  riled: boolean;
   /** a blow under way, or null */
   blow: Blow | null;
   /** a roam: the spot it is making for, and the field to it */
@@ -164,9 +152,9 @@ function makeMutant(sim: Sim, def: MutantDef, id: number): Mutant {
       hp: S.hp, max: S.hp, mass: S.mass, r: S.r,
       walker: S.noDoors ? 'big' : S.opens ? 'hands' : 'crawl',
       opens: !!S.opens, low: !!S.low, noDoors: !!S.noDoors, fixed: !!S.fixed, swim: !!S.swim, solid: !!S.solid,
-      post: !!o.post, sit: !!o.sit, holt: !!o.holt, big: !!o.big, zone: (def.opts.zone as string | undefined) ?? null, screens: (def.opts.screens as string | undefined) ?? null, hx: def.x, hz: def.z, room,
+      post: !!o.post, sit: !!o.sit, holt: !!o.holt, big: !!o.big, hx: def.x, hz: def.z, room,
       wt: rnd(1, 5), wm: 0, wx: 0, wz: 0, tk: 0, lost: 0, bt: 0, burst: false, flee: 0, ct: rnd(6, 14), cdir: 0, tgt: false,
-      grab: 0, tense: 0, riled: false, blow: null, dest: -1, F: null, stk: 0, fled: false, side: 0, ride: null, spot: -1,
+      grab: 0, tense: 0, blow: null, dest: -1, F: null, stk: 0, fled: false, side: 0, ride: null, spot: -1,
       mv: 0, d: 99, dp: 99, dy: 0, los: false, losAt: -99, hit: 0, poise: poiseOf(def.type, S.ai, !!o.big), pmax: poiseOf(def.type, S.ai, !!o.big), calm: 99, reel: 0, pat: 0, down: 0, rise: 0, acc: S.acc, drove: false, ph: rnd(9), dead: false, gone: 0, rag: null, away: false, still: 0,
     };
     return m;
@@ -182,7 +170,7 @@ export function spawn(sim: Sim, type: string, x: number, y: number, z: number, o
   sim.cast.push(m);
   if (!sim.fields) { sim.fields = makeFields(sim); refreshFields(sim, sim.fields); }
   if (m.ai === 'husk' || m.ai === 'skitter') { m.state = 'hunt'; m.lost = 0; }
-  else if (m.ai === 'thresher') { m.state = 'pursue'; m.st = 1e9; m.riled = true; }
+  else if (m.ai === 'thresher') { m.state = 'pursue'; m.st = 1e9; }
   return m;
 }
 
@@ -681,23 +669,6 @@ export function answer(sim: Sim, m: Mutant, spot: number, route: Float32Array): 
   m.state = 'answer'; m.post = false; m.dest = spot; m.F = Float32Array.from(route); m.wt = 0; m.stk = 0;
 }
 
-/** a knock, for the overseer's hand: felt through the floor wherever it is. Not after you, it stops where it is and
- *  listens for the rest of the code */
-export function listen(m: Mutant): void {
-  if (m.dead || !['idle', 'patrol', 'listen'].includes(m.state)) return;
-  m.state = 'listen'; m.st = 3;
-}
-
-/** the code knocked out, for the overseer's hand: it goes, at a run, by the way its size allows (no doors). Not while it
- *  is already after you. */
-export function summon(sim: Sim, m: Mutant, spot: number, route: Float32Array): void {
-  if (m.dead || m.type !== 'hand' || !['idle', 'patrol', 'listen', 'pursue', 'go'].includes(m.state) || m.spot < 0) return;
-  if (m.state === 'go' && m.dest === spot) return;
-  if (!(route[m.spot] > 2.5) || !Number.isFinite(route[m.spot])) return;
-  step_(sim, m, 'roar', true);
-  m.state = 'go'; m.dest = spot; m.F = Float32Array.from(route); m.stk = 0; m.st = Infinity;
-}
-
 const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
   husk(sim, m) {
     const F = sim.fields?.hands, d = m.d;
@@ -791,39 +762,18 @@ const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
   },
 
   thresher(sim, m) {
-    const p = sim.player, b = p.body, d = m.d, hand = m.type === 'hand';
-    /* the hand with no overseer to send it goes about its hall and leaves you be, unless you strike it */
-    const wary = !hand || m.riled || !blinded(sim);
+    const p = sim.player, b = p.body, d = m.d;
     switch (m.state) {
       case 'idle': case 'patrol':
-        if (wary && (seeP(sim, m, 16) || (hears(sim, m) && sight(sim, m)))) { m.state = 'wind'; m.st = 0.75; step_(sim, m, 'roar'); break; }
-        /* a thresher charges about its room now and then; the hand only roams, low, feeling the floor */
-        if (!hand) {
-          m.ct -= dt;
-          if (m.ct < 0) { m.ct = rnd(sim, 7, 15); m.cdir = rnd(sim, TAU); m.tgt = false; m.state = 'charge'; m.st = rnd(sim, 1, 2.2); step_(sim, m, 'roar', true); break; }
-        }
+        if (seeP(sim, m, 16) || (hears(sim, m) && sight(sim, m))) { m.state = 'wind'; m.st = 0.75; step_(sim, m, 'roar'); break; }
+        /* it charges about its room now and then */
+        m.ct -= dt;
+        if (m.ct < 0) { m.ct = rnd(sim, 7, 15); m.cdir = rnd(sim, TAU); m.tgt = false; m.state = 'charge'; m.st = rnd(sim, 1, 2.2); step_(sim, m, 'roar', true); break; }
         m.wt -= dt;
         if (m.wt < 0) { m.wt = rnd(sim, 4, 9); roomWp(sim, m); }
-        go(sim, m, m.wx, m.wz, hand ? 0.7 : 1.2);
-        if (m.mv && (m.tk -= dt) < 0) { m.tk = hand ? 0.9 : 0.62; step_(sim, m, 'hstep', true); }
+        go(sim, m, m.wx, m.wz, 1.2);
+        if (m.mv && (m.tk -= dt) < 0) { m.tk = 0.62; step_(sim, m, 'hstep', true); }
         break;
-      case 'listen':
-        /* the hand, stopped, feeling the overseer's knocks through the floor; it goes when the code is done
-           (sim/eyes.ts). Seen meanwhile, it comes for you; the code never finished, it goes back to its rounds */
-        if (wary && seeP(sim, m, 16)) { m.state = 'wind'; m.st = 0.75; step_(sim, m, 'roar'); break; }
-        if ((m.st -= dt) < 0) { m.state = 'patrol'; m.wt = 0; }
-        break;
-      case 'go': {
-        /* the hand, to where it was knocked for: it hunts you if it meets you on the way; there, it keeps the place */
-        if (wary && seeP(sim, m, 16)) { m.state = 'wind'; m.st = 0.75; m.dest = -1; step_(sim, m, 'roar'); break; }
-        if (!m.F || m.dest < 0 || m.spot === m.dest || m.F[m.spot] < 2) { m.state = 'patrol'; m.dest = -1; m.wt = 0; m.ct = rnd(sim, 7, 15); break; }
-        /* it gives up where it gets no nearer for a while: somewhere it does not fit */
-        const near = m.F[m.spot];
-        if (near < m.st - 0.5) { m.st = near; m.stk = 0; }
-        if (follow(sim, m, m.F, 3.2, false) && m.mv && (m.tk -= dt) < 0) { m.tk = 0.4; step_(sim, m, 'hstep', true); }
-        if ((m.stk += dt) > 3) { m.stk = 0; m.state = 'patrol'; m.dest = -1; }
-        break;
-      }
       case 'wind':
         turnTo(sim, m, 6);
         m.st -= dt;
@@ -848,7 +798,7 @@ const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
       case 'recover':
         m.st -= dt;
         if (m.st < 0) {
-          if (wary && seeP(sim, m, 18)) { m.state = 'wind'; m.st = 0.5; step_(sim, m, 'roar'); }
+          if (seeP(sim, m, 18)) { m.state = 'wind'; m.st = 0.5; step_(sim, m, 'roar'); }
           else { m.state = 'pursue'; m.st = m.tgt ? 7 : 0; }
         }
         break;
@@ -856,7 +806,7 @@ const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
         if (blowStep(sim, m)) break;
         m.st -= dt;
         if (m.st < 0) { m.state = 'patrol'; break; }
-        if (wary && seeP(sim, m, 18) && d > 3.5) { m.state = 'wind'; m.st = 0.5; step_(sim, m, 'roar'); break; }
+        if (seeP(sim, m, 18) && d > 3.5) { m.state = 'wind'; m.st = 0.5; step_(sim, m, 'roar'); break; }
         if (inStart(m, MOVES.thresher)) { turnTo(sim, m, 4); if (m.cd <= 0) beginBlow(sim, m, MOVES.thresher); }
         else if (sim.fields) chase(sim, m, 2.6, sim.fields.big);
         break;
@@ -901,18 +851,6 @@ const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
   },
 
   /* the arms are bait. the thing is the head on the wall above them. */
-  /* the operations centre's staff grown into one body at its screens: it watches the hall through its glass with its own
-     eyes, and sounds its zone when it sees you, if its board has power under its hands; what comes near, it lashes, with
-     the tell of a grabber */
-  overseer(sim, m) {
-    if (m.zone && seeP(sim, m, 30) && manned(sim)) soundZone(sim, m.zone, true);
-    if (m.dp < 2.2 && Math.abs(m.dy) < 2.5 && sight(sim, m)) {
-      if (m.tense === 0) step_(sim, m, 'growl');
-      m.tense += dt;
-      if (m.tense > 0.9 && m.cd <= 0) { m.cd = 2; m.tense = 0.01; strikes(sim, m, 22, 15); }
-    } else m.tense = Math.max(0, m.tense - dt * 2);
-  },
-
   grabber(sim, m) {
     if (m.grab > 0) m.grab -= dt;
     if (m.dp < 1.5 && Math.abs(m.dy) < 2 && sight(sim, m)) {
@@ -1118,7 +1056,7 @@ export function hitMutant(sim: Sim, m: Mutant, w: Hit, k = 1): void {
     case 'worm': m.flee = 5; m.blow = null; break;
     case 'swimmer': m.flee = 3.5; m.blow = null; break;
     case 'skitter': if (m.state === 'idle') { m.state = 'hunt'; m.lost = 0; } break;
-    case 'thresher': m.riled = true; if (['idle', 'patrol', 'listen', 'go'].includes(m.state)) { m.state = 'wind'; m.st = 0.5; m.dest = -1; } break;
+    case 'thresher': if (['idle', 'patrol'].includes(m.state)) { m.state = 'wind'; m.st = 0.5; m.dest = -1; } break;
     case 'bloat': sayOnce(g, 'bloat', 'It does not seem to notice.'); break;
     default: break;
   }

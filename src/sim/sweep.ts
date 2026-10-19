@@ -75,14 +75,3 @@ export function meetsCylinder(a: V3, b: V3, cx: number, cz: number, r: number, y
   return y >= y0 && y <= y1 ? t : null;
 }
 
-/** how far along a moving point (a to b) it first comes within `r` of a point; null if it does not */
-export function meetsSphere(a: V3, b: V3, c: V3, r: number): number | null {
-  const d = { x: b.x - a.x, y: b.y - a.y, z: b.z - a.z }, o = { x: a.x - c.x, y: a.y - c.y, z: a.z - c.z };
-  const A = d.x * d.x + d.y * d.y + d.z * d.z, B = 2 * (o.x * d.x + o.y * d.y + o.z * d.z), C = o.x * o.x + o.y * o.y + o.z * o.z - r * r;
-  if (C <= 0) return 0;
-  if (A < 1e-12) return null;
-  const disc = B * B - 4 * A * C;
-  if (disc < 0) return null;
-  const t = (-B - Math.sqrt(disc)) / (2 * A);
-  return t >= 0 && t <= 1 ? t : null;
-}

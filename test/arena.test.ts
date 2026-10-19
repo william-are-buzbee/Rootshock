@@ -45,7 +45,7 @@ describe('the cast put down by hand', () => {
 
   it('each kind can be put down, and all of them cleared at once', () => {
     const s = arena();
-    for (const t of ['husk', 'skitter', 'thresher', 'worm', 'hand']) expect(spawn(s, t, 8, 0, -13)).not.toBe(null);
+    for (const t of ['husk', 'skitter', 'thresher', 'worm']) expect(spawn(s, t, 8, 0, -13)).not.toBe(null);
     expect(spawn(s, 'nothing', 8, 0, -13)).toBe(null);
     killAll(s);
     expect(s.cast.every(m => m.dead)).toBe(true);

@@ -32,7 +32,7 @@ describe('the upper station', () => {
     const r = reach(sim);
     const named = new Set(level.rooms.map(R => R.name).filter(Boolean));
     const missing = [...named].filter(n => !r.rooms.has(n)).sort();
-    expect(missing).toEqual(['Operations room', 'Phase 2']); // the overseer's, its door grown shut
+    expect(missing).toEqual(['Operations room', 'Phase 2']); // the operations room, its door grown shut
   });
 
   it('lights in two halves: the wing dead behind its cut, Ops on its backup set, Cargo dark', () => {
@@ -106,7 +106,7 @@ describe('the upper station', () => {
     expect(court.y0 + court.ht).toBeCloseTo(8.5);
     expect(hall.length).toBe(4);
     for (const H of hall) expect(H.y0 + H.ht).toBeCloseTo(4.5);
-    const mx = (court.x0 + court.x1) / 2 + 6, mz = (court.z0 + court.z1) / 2, w = sim.world; // clear of the hand, which stands in the middle
+    const mx = (court.x0 + court.x1) / 2 + 6, mz = (court.z0 + court.z1) / 2, w = sim.world; // clear of the middle
     expect(w.groundBelow(circle(mx, mz, 0.3), 1)).toBeCloseTo(-1.25); // the court's floor
     expect(w.groundBelow(circle(mx, court.z0 + 2, 0.3), 1)).toBeGreaterThan(-1.25); // part way up its steps
     /* the nav graph walks the steps both ways: from the court's floor to the promenade and back, no drop */
@@ -114,12 +114,7 @@ describe('the upper station', () => {
     expect(a).toBeGreaterThanOrEqual(0);
     expect(b).toBeGreaterThanOrEqual(0);
     const F = field(nav, b, rulesFor(sim, makeFields(sim), 'big'));
-    expect(F[a]).toBeLessThan(20); // the hand comes down into it as easily as you do
-  });
-
-  it('starts the hand at home in the muster hall, out of every side room\'s door', () => {
-    const h = level.mutants.find(m => m.type === 'hand')!;
-    expect(sim.world.roomAt(h.x, h.y + 1, h.z)?.name).toBe('Muster court');
+    expect(F[a]).toBeLessThan(20); // what fits through no door comes down into it as easily as you do
   });
 
   it('measures: chunks, memory, mesh', () => {

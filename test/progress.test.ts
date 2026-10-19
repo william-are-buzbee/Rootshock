@@ -18,7 +18,7 @@ describe('the upper station', () => {
 
   it('can be left two ways, neither at once: the elevator with the wing mended, or ladder B through Cargo', () => {
     expect(r.goals['elevator to Main level']).toEqual(['take splice kit', 'mend the SEC connection with a kit']);
-    /* Cargo is behind the deputy director's card, and she is at the far end of the muster hall, under the overseer's glass */
+    /* Cargo is behind the deputy director's card, and she is at the far end of the muster hall, under the operations room's glass */
     expect(r.goals['ladder B1 to Main level']).toEqual(['search the manager', 'use the card at door 26', 'start the CARGO backup set']);
     expect(r.goals['the surface']).toBeUndefined(); // that wants Gen-1, five floors down
   });

@@ -108,14 +108,14 @@ const fade = document.getElementById('fade')!;
 const controls = new Controls(canvas, () => { if (mode === 'play') setMode('pause'); }, text => panels.say(text));
 const panels = new Panels(c => sim.game.commands.push(c), () => sim.game, () => { if (mode === 'panel') { setMode('play'); controls.lock(); } });
 /* ?dev keys, as the first engine had them: V fly, G god, B bright; O for the collider overlay; P for the tracker. And for
-   working on the fight (engine.md §6, F4; the arena is in the test bed, north of the hall): 1 to 6 put one of the cast
-   down in front of you, awake and after you (a husk, a skitter, a thresher, a worm, a big skitter, the hand), 0 kills
+   working on the fight (engine.md §6, F4; the arena is in the test bed, north of the hall): 1 to 5 put one of the cast
+   down in front of you, awake and after you (a husk, a skitter, a thresher, a worm, a big skitter), 0 kills
    them all (and, with none left alive, takes the dead away); T slows time (a quarter, a tenth, and back); Y changes what is in your hand; H puts you right (whole,
    standing, your poise back); U holds the cast still, or lets them go. The readout shows how you stand and the last
    few blows, in numbers. */
 const devFlags = { bright: false, track: false, slow: 1, frozen: false };
 const hitLog: string[] = [];
-const SPAWN: [string, Record<string, unknown>][] = [['husk', {}], ['skitter', {}], ['thresher', {}], ['worm', {}], ['skitter', { big: 1 }], ['hand', {}]];
+const SPAWN: [string, Record<string, unknown>][] = [['husk', {}], ['skitter', {}], ['thresher', {}], ['worm', {}], ['skitter', { big: 1 }]];
 const ARMS: (string | null)[] = [null, 'baton', 'pipe', 'wrench', 'axe', 'knife'];
 if (DEV) {
   SPAWN.forEach(([type, opts], i) => controls.onKey.set('Digit' + (i + 1), () => {
@@ -228,7 +228,7 @@ window.addEventListener('keydown', e => {
 function fightLine(): string {
   const h = sim.hands, g = sim.game, b = sim.player.body, state = h.down > 0 ? 'down' : h.rise > 0 ? 'getting up' : h.stag > 0 ? 'reeling' : '';
   const you = `you  hp ${Math.max(0, g.hp).toFixed(0)}  poise ${h.poise.toFixed(0)}/30  ${Math.hypot(b.vx, b.vz).toFixed(1)} m/s  ${g.weapon ?? 'fists'}  ${state}${devFlags.slow < 1 ? `  time ×${devFlags.slow}` : ''}${devFlags.frozen ? '  cast held' : ''}`;
-  return `${you}\n1-6 put down husk skitter thresher worm big-skitter hand  0 clear  T slow  Y weapon  H heal  U hold\n${hitLog.join('\n')}`;
+  return `${you}\n1-5 put down husk skitter thresher worm big-skitter  0 clear  T slow  Y weapon  H heal  U hold\n${hitLog.join('\n')}`;
 }
 
 /** a power change being seen to come on, or null */

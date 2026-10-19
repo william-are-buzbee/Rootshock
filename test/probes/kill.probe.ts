@@ -9,7 +9,7 @@ import { facing, swingAt } from './swing';
 it('kill', () => {
   set({ RAG, REFLEX, STAGGER });
   begin('kill', process.env.SET ? ` (${process.env.SET})` : '');
-  for (const kind of (process.env.KINDS ?? 'husk,skitter,worm,thresher,hand').split(',')) for (const weapon of ['axe', 'pipe']) {
+  for (const kind of (process.env.KINDS ?? 'husk,skitter,worm,thresher').split(',')) for (const weapon of ['axe', 'pipe']) {
     const { s, m } = facing(kind, kind === 'thresher' ? 1.8 : 1.5, 0, 1);
     const B = bones(kind), mid = () => {
       let x = 0, y = 0, z = 0;

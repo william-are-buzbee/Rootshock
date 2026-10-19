@@ -872,27 +872,18 @@ components, not code threaded through the frame loop:
   Collision, pathing and sight learn a door's state from its mover, never from a special case. A window is a door too: sealed,
   and glass (`DoorDef.glass`), so it stops what moves while every sight check (the cast's, the cameras', your flashlight's)
   looks through it; it is drawn as a tinted pane.
-- **The overseer's room and the staff's drill** (`world.md` §8): the overseer works through flesh, so its cameras, its zone
-  alarms and its bolts all want power at its own room (`opts.screens`, `manned` in `sim/eyes.ts`); its own eyes see through
-  its glass regardless. A breaker opened by hand starts a drill (`drill` in `sim/cast.ts`): each husk it leaves in the dark is
-  given a time to go (a quarter at once, the rest between 30 s and 180 s, later more likely), and goes to the board to throw
-  it back if it is still in the dark then (state `fix`). Saves keep the drills.
+- **The staff's drill** (`world.md` §8): a breaker opened by hand starts a drill (`drill` in `sim/cast.ts`): each husk it
+  leaves in the dark is given a time to go (a quarter at once, the rest between 30 s and 180 s, later more likely), and goes
+  to the board to throw it back if it is still in the dark then (state `fix`). Saves keep the drills.
 - **Interaction**: anything with `interactable` is found by one query (in reach, in view, unobstructed), as today's
   `findInt`.
 - **Cameras and zone alarms** (`sim/eyes.ts`, `world.md` §8): `LevelDef.cameras` (a lens, a yaw, a cone, a range, a circuit,
   a zone) and `LevelDef.speakers` (one a zone: the floor under it). A live camera sees you as the cast do (range times how
   visible you are, the cone, a clear line); held `EYES.hold` it sounds its zone. An alarm keeps a route to its speaker and how
   far its sound carries (both made once, when it starts, and again on load); each time the klaxon goes round, a husk in earshot
-  that is not hunting takes the state `answer` and walks the route (its own copy). The overseer's hand (`hand`: it fights
-  as a thresher, and is drawn as itself) does not answer the klaxon. When you are seen (a camera, or the overseer itself),
-  the overseer knocks the zone's code (`Sim.knocks`, `KNOCK`): the zone's place in `LevelDef.speakers` in knocks, a pause,
-  and again, each heard through the building (`slab`). On each knock the hand, if it is not after anything, stops
-  (`listen`); when the code is done it is summoned, by a way made with the door rules for its size (it passes no door, so
-  that way never changes, and is made again on load), and gives up where it gets no nearer for three seconds. One code at a
-  time: a zone seen meanwhile is knocked next. With the overseer dead nothing sends it, and it fights only once struck
-  (`Mutant.riled`). On a level with an overseer the cameras see for it: dead, they are dark and no alarm sounds. A smashed
-  speaker mutes its zone (`Sim.mute`): an alarm there still runs, so the bolts hold, but its klaxon never goes round, so no
-  husk answers it (the overseer still knocks); one sounded otherwise than by being seen does not start. A speaker is used from below only, and hangs in its room's ceiling. It is wired from its PA (`SpeakerDef.pa`, a
+  that is not hunting takes the state `answer` and walks the route (its own copy). Nobody is behind the screens: a camera
+  needs only its power and to be whole. A smashed speaker mutes its zone (`Sim.mute`): nothing sounds there at all. (The
+  overseer, its hand, its knock codes and its bolts were built here and taken out in Security's second pass.) A speaker is used from below only, and hangs in its room's ceiling. It is wired from its PA (`SpeakerDef.pa`, a
   circuit), not from its room, and sounds only while that has power (`heard` in `sim/eyes.ts`); Security's is critical
   power, which nothing you can reach switches. Saves keep each camera's state, the muted zones
   and the alarms; the routes are made again.

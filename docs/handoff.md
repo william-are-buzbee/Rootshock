@@ -46,20 +46,22 @@ Each step its own PR, playable on its own.
 
 ## Where things are now
 
-- `src/sim/eyes.ts`: cameras (`makeCams`, `camSees`), zones and speakers (`soundZone`, `heard`), the overseer's part
-  (`manned`, `knockFor`, `updateKnocks`, `boltAbout`, `updateBolts`), alarms (`makeAlarm`, `restoreAlarms`), and
-  `updateEyes`, which runs it all. Tests: `test/eyes.test.ts`.
-- `src/sim/cast.ts`: the cast. `Ai` (line ~23) and the kinds table (`overseer`, `hand` at ~51); answering an alarm (~674);
-  the hand's errands (~694); the power-failure drill (`drill`, ~931 on). Tests: `test/cast.test.ts`.
-- `src/sim/movers.ts`: doors; `locked` includes the overseer's bolt. `src/sim/interact.ts`: card readers and keypads (~261).
-- `src/content/levels/upper.ts`: the level. The isolation suite is near the top (~60: rooms round a common hall, the
-  patient, the guard's dropped light at ~86); the start is `finishLevel` at the end (room 1, facing its door). The muster
-  hall, the operations room and the overseer's keep are in the middle; Cargo is `buildCargo`. Tests: `test/upper.test.ts`,
-  `test/progress.test.ts` (the checker).
-- `src/present/render/security.ts`: cameras, speakers, the overseer's drawing. `src/present/render/castView.ts`: models
-  (`BUILD`, `ANIM`), the overseer's and the hand's included. `src/present/audio.ts`, `soundscape.ts`: the klaxon, the knock.
-- `src/sim/save.ts`: saves carry alarms, knocks and bolts; old saves need not load once the shape changes, but say so.
-- Searching `overseer|knock|hand|bolt` finds the rest (about 25 files).
+Step 1 is done: the overseer, the hand, the knock and the bolts are out of the code and of world.md §8 (old saves do not
+load: save version 6). §10's lineage still names the overseer in three places (rules 1 and 8, *Security's first*): left
+for the owner, since they are cosmology, not the level.
+
+- `src/sim/eyes.ts`: cameras (`makeCams`, `camLive`, `camSees`), zones and speakers (`soundZone`, `heard`), alarms
+  (`makeAlarm`, `restoreAlarms`), and `updateEyes`, which runs them. Tests: `test/eyes.test.ts`.
+- `src/sim/cast.ts`: the cast. `Ai` and the kinds table near the top; answering an alarm (`answer`); the power-failure
+  drill (`drill`). Tests: `test/cast.test.ts`.
+- `src/sim/movers.ts`: doors (`locked`). `src/sim/interact.ts`: card readers and keypads (`doorLabel`, `doorAct`).
+- `src/content/levels/upper.ts`: the level. The isolation suite is near the top (rooms round a common hall, the patient,
+  the guard's dropped light); the start is `finishLevel` at the end (room 1, facing its door). The muster hall and the
+  operations room (behind glass, its staff grown to its screens as dressing, its door grown shut) are in the middle; Cargo
+  is `buildCargo`. Tests: `test/upper.test.ts`, `test/progress.test.ts` (the checker).
+- `src/present/render/things.ts`: cameras and speakers drawn. `src/present/render/castView.ts`: models (`BUILD`, `ANIM`).
+  `src/present/audio.ts`: the klaxon, the camera's servo.
+- `src/sim/save.ts`: saves carry cameras, alarms and smashed speakers.
 
 ## Asks for this step
 

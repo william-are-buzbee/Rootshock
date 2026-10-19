@@ -42,18 +42,16 @@ export interface Skel {
   /** how much of its muscles' hold each point has, where not all (1): legs give first, the neck last */
   tone?: Record<string, number>;
   /** its reflexes (REFLEX): its hands, each with the shoulder it reaches from, for bracing a fall, clutching a wound and
-   *  guarding its face; where its legs curl to as it dies, in its own frame as it stands; and whether it writhes */
+   *  guarding its face; and whether it writhes */
   hands?: [string, string][];
-  curl?: Record<string, [number, number, number]>;
   writhe?: boolean;
   /** its legs, hip, knee and foot, for stepping to catch itself (STAGGER) */
   legs?: [string, string, string][];
 }
 
-/* The skeletons, from the models in castView.ts and security.ts (test/ragdoll.test.ts holds them to each other). A
-   husk's legs and arms are one box each, so one bone each; a thresher's arms bend at the elbow; a skitter's six legs
-   are each one bent piece; a worm is a chain; the hand is the body of one of them on all fours with the rest grown
-   on. */
+/* The skeletons, from the models in castView.ts (test/ragdoll.test.ts holds them to each other). A husk's legs and
+   arms are one box each, so one bone each; a thresher's arms bend at the elbow; a skitter's six legs are each one bent
+   piece; a worm is a chain. */
 export const SKEL: Record<string, Skel> = {
   husk: {
     pts: {
@@ -128,44 +126,6 @@ export const SKEL: Record<string, Skel> = {
     mid: ['s1', 's2'],
     writhe: true,
   },
-  /* the hand as it goes about, low: its four on the floor, the tail along it (security.ts, animHand) */
-  hand: {
-    pts: {
-      lf: [-0.3, 0.336, 0.3, 0.2, 30], rf: [0.3, 0.336, 0.3, 0.2, 30], lb: [-0.28, 0.374, -0.42, 0.2, 30], top: [0, 0.56, -0.05, 0.2, 24],
-      rb: [0.28, 0.374, -0.42, 0.2, 30], t0: [0, 0.508, -0.59, 0.25, 20],
-      g0: [-0.2, 0.302, 0.718, 0.1, 4], g1: [-0.067, 0.302, 0.718, 0.1, 4], g2: [0.067, 0.302, 0.718, 0.1, 4], g3: [0.2, 0.302, 0.718, 0.1, 4],
-      kneeLF: [-0.729, 0.575, 0.548, 0.08, 6], footLF: [-0.95, 0.08, 0.62, 0.08, 4],
-      kneeLB: [-0.758, 0.645, -0.66, 0.08, 6], footLB: [-0.92, 0.08, -0.8, 0.08, 4],
-      kneeRF: [0.729, 0.575, 0.548, 0.08, 6], footRF: [0.95, 0.08, 0.62, 0.08, 4],
-      kneeRB: [0.758, 0.645, -0.66, 0.08, 6], footRB: [0.92, 0.08, -0.8, 0.08, 4],
-      /* the four in front, each to its tip */
-      tip0: [-0.25, 0.06, 1.02, 0.06, 2], tip1: [-0.084, 0.06, 1.008, 0.06, 2], tip2: [0.084, 0.06, 1.043, 0.06, 2], tip3: [0.25, 0.06, 0.989, 0.06, 2],
-      t1: [0, 0.292, -0.95, 0.25, 14], t2: [0, 0.271, -1.4, 0.19, 10], t3: [0, 0.295, -1.779, 0.15, 8], t4: [0, 0.334, -2.117, 0.13, 8],
-      hd: [0, 0.36, -2.6, 0.3, 14],
-      aL: [-0.24, 0.367, -2.234, 0.08, 3], aR: [0.24, 0.367, -2.234, 0.08, 3],
-      elbL: [-0.742, 0.56, -2.12, 0.07, 3], elbR: [0.742, 0.56, -2.12, 0.07, 3],
-      handL: [-0.55, 0.07, -2.216, 0.07, 3], handR: [0.55, 0.07, -2.216, 0.07, 3],
-    },
-    rigid: [['lf', 'rf', 'lb', 'top', 'rb', 't0', 'g0', 'g1', 'g2', 'g3'], ['t3', 't4', 'hd', 'aL', 'aR']],
-    sticks: [['lf', 'kneeLF'], ['kneeLF', 'footLF'], ['lb', 'kneeLB'], ['kneeLB', 'footLB'], ['rf', 'kneeRF'], ['kneeRF', 'footRF'], ['rb', 'kneeRB'], ['kneeRB', 'footRB'],
-      ['g0', 'tip0'], ['g1', 'tip1'], ['g2', 'tip2'], ['g3', 'tip3'],
-      ['t0', 't1'], ['t1', 't2'], ['t2', 't3'],
-      ['aL', 'elbL'], ['elbL', 'handL'], ['aR', 'elbR'], ['elbR', 'handR']],
-    apart: [['lf', 'footLF', 0.5], ['lb', 'footLB', 0.5], ['rf', 'footRF', 0.5], ['rb', 'footRB', 0.5],
-      ['footLF', 'top', 0.7], ['footLB', 'top', 0.7], ['footRF', 'top', 0.7], ['footRB', 'top', 0.7],
-      ['tip0', 'top', 0.7], ['tip1', 'top', 0.7], ['tip2', 'top', 0.7], ['tip3', 'top', 0.7],
-      ['t0', 't2', 0.75], ['t1', 't3', 0.75], ['aL', 'handL', 0.45], ['aR', 'handR', 0.45]],
-    mid: ['lf', 'rf', 'lb', 'rb'],
-    core: ['lf', 'rf', 'lb'],
-    tone: {
-      kneeLF: 0.4, footLF: 0.4, kneeLB: 0.4, footLB: 0.4, kneeRF: 0.4, footRF: 0.4, kneeRB: 0.4, footRB: 0.4,
-      tip0: 0.6, tip1: 0.6, tip2: 0.6, tip3: 0.6, t1: 0.8, t2: 0.8, t3: 0.8, t4: 0.8, hd: 0.8, aL: 0.8, aR: 0.8,
-      elbL: 0.6, elbR: 0.6, handL: 0.6, handR: 0.6,
-    },
-    hands: [['handL', 'aL'], ['handR', 'aR']],
-    /* its four draw in toward it, as far as their knees let them */
-    curl: { footLF: [-0.65, 0.05, 0.3], footLB: [-0.62, 0.05, -0.45], footRF: [0.65, 0.05, 0.3], footRB: [0.62, 0.05, -0.45] },
-  },
 };
 
 /** a skeleton made ready: points by number, and its sticks with their lengths */
@@ -189,9 +149,8 @@ export interface Bones {
   frame0: number[];
   c0: number[];
   tone: number[];
-  /** its hands and their shoulders, and how far each reaches; its legs' curl, as (point, x, y, z) */
+  /** its hands and their shoulders, and how far each reaches */
   hands: { hand: number; from: number; reach: number }[];
-  curl: number[];
   writhe: boolean;
   /** its legs (hip, knee, foot) and how long each is */
   legs: { hip: number; knee: number; foot: number; len: number }[];
@@ -226,7 +185,7 @@ export function bones(kind: string): Bones {
     names, at, rest, r, kg, w: kg.map(k => 1 / k), mass: kg.reduce((a, b) => a + b, 0), sticks, apart, hinge, mid: S.mid.map(n => at[n]), ht: hi - lo,
     core, frame0: core ? frameOf(rest, core) : [], c0, tone: names.map(n => S.tone?.[n] ?? 1),
     hands: (S.hands ?? []).map(([h, f]) => ({ hand: at[h], from: at[f], reach: len(at[h], at[f]) })),
-    curl: Object.entries(S.curl ?? {}).flatMap(([n, xyz]) => [at[n], ...xyz]), writhe: !!S.writhe,
+    writhe: !!S.writhe,
     legs: (S.legs ?? []).map(([h, k, f]) => ({ hip: at[h], knee: at[k], foot: at[f], len: len(at[h], at[k]) + len(at[k], at[f]) })),
   };
   ready.set(kind, B);
@@ -709,15 +668,13 @@ function nearest(B: Bones, p: number[], at: V3): number {
  *  way it goes, to the floor or the wall they meet, for the `alive` seconds of its fall, fading (held longer, an arm
  *  of one bone braced on the floor props the body back up). `clutch`: dying, the hand
  *  nearest goes toward where it was struck (as far as its arm reaches), from `from` to `to` seconds. `guard`: struck while it is down, its hands come
- *  up to its face for `time` seconds. `curl`: dying, the hand's legs draw in under it, coming on over
- *  `over` seconds. `writhe`: a worm dying thrashes, `amp` metres side to side, `hz` a second, for `time` seconds. No
+ *  up to its face for `time` seconds. `writhe`: a worm dying thrashes, `amp` metres side to side, `hz` a second, for `time` seconds. No
  *  hand is moved faster than `most` (m/s) */
 export const REFLEX = {
   latency: 0.08,
   brace: { pull: 0.2, lean: 0.35, alive: 0.5 },
   clutch: { pull: 0.15, from: 0.1, to: 0.7 },
   guard: { pull: 0.25, time: 0.6 },
-  curl: { pull: 0.08, over: 0.6 },
   writhe: { amp: 0.12, hz: 2.5, time: 1.6 },
   most: 4,
 };
@@ -743,8 +700,7 @@ function reflexes(sim: Sim, R: Rag, B: Bones, m: Mutant): void {
   if (age < X.latency) return;
   if (B.writhe && !alive && age < X.writhe.time) writhe(R, B, age);
   if (!B.core) return;
-  const F = frameOf(p, B.core), F0 = B.frame0, core = B.core;
-  const c = [0, 1, 2].map(j => (p[core[0] * 3 + j] + p[core[1] * 3 + j] + p[core[2] * 3 + j]) / 3);
+  const F = frameOf(p, B.core), F0 = B.frame0;
   /* which way it stands now: its own up (and forward), as it stands, turned as its trunk is */
   const up = placed(B, F, F0, [0, 0, 0], B.c0[0], B.c0[1] + 1, B.c0[2]), fwd = placed(B, F, F0, [0, 0, 0], B.c0[0], B.c0[1], B.c0[2] + 1);
   const lean = Math.hypot(up[0], up[2]);
@@ -787,14 +743,6 @@ function reflexes(sim: Sim, R: Rag, B: Bones, m: Mutant): void {
       reach(p, h.hand, p[s] + (ex - p[s]) * t, p[s + 1] + (ey - p[s + 1]) * t, p[s + 2] + (ez - p[s + 2]) * t, X.brace.pull * fade);
     }
   });
-  /* dying, its legs fold in under it */
-  if (!alive && B.curl.length) {
-    const k = X.curl.pull * Math.min(1, age / X.curl.over);
-    for (let a = 0; a < B.curl.length; a += 4) {
-      const [x, y, z] = placed(B, F, F0, c, B.curl[a + 1], B.curl[a + 2], B.curl[a + 3]);
-      reach(p, B.curl[a], x, y, z, k);
-    }
-  }
 }
 
 /** stagger steps (engine.md §6, *Stagger steps, as built*): a body still trying to stand steps to catch itself before

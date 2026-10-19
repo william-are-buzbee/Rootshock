@@ -9,12 +9,14 @@ import type { Lighting } from '../../world/light';
 import { dynamicMaterial, lightMaterial } from './shader';
 import { parts } from './things';
 import { BONE, DARK, FLESH, GOREC, GR, ORANGE, PALE, RAW, grp, mk, seeded, type O3 } from './castKit';
-import { animHand, animOverseer, buildHand, buildOverseer, type Ctx } from './security';
 import { RIG, Rigged } from './rig';
 
 /* The cast, drawn: the first engine's models (BUILD) and their animation (ANIM), ported nearly line for line. Each is a
    tree of parts on one material, so it flashes when hit and is lit by the room it stands in. Looks only: the sim
    decides where each is and what it is doing; this only shows it. */
+
+/** what a model's animation is given: the run, the time since it was last drawn, and the light */
+export interface Ctx { sim: Sim; dt: number; L: Lighting }
 
 const PI = Math.PI;
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -263,11 +265,6 @@ export const ANIM: Record<string, (m: Mutant, M: Model, c: Ctx) => void> = {
   },
 };
 ANIM.swimmer = ANIM.worm;
-/* Security's (security.ts): drawn with working limbs and eyes */
-BUILD.hand = mat => buildHand(mat);
-BUILD.overseer = mat => buildOverseer(mat);
-ANIM.hand = (m, M, c) => animHand(m, M as ReturnType<typeof buildHand>, c);
-ANIM.overseer = (m, M, c) => animOverseer(m, M as ReturnType<typeof buildOverseer>, c);
 
 /** a corpse bleeds once it has been loose `after` seconds and is on the floor slower than `speed` (m/s); its pool
  *  starts at `from` of its size and comes to the whole of it over `spread` seconds, most of it in the first */
@@ -283,10 +280,9 @@ interface Shown {
 /** a model fixed to its skeleton's points for when it goes loose (rig.ts), stood as it stands idle to be fixed */
 function rigOf(m: Mutant, M: Model, c: Ctx): Rigged | null {
   if (!RIG[m.model] || !m.body) return null;
-  const idle = { ...m, state: 'idle', mv: 0, blow: null, reel: 0, ph: 0, down: 0, rise: 0, los: false, riled: false, hit: 0 } as Mutant;
+  const idle = { ...m, state: 'idle', mv: 0, blow: null, reel: 0, ph: 0, down: 0, rise: 0, los: false, hit: 0 } as Mutant;
   const A = ANIM[m.model] ?? ANIM[m.ai];
-  /* the hand eases into how it holds itself, so it is given a few seconds of standing about */
-  for (let k = 0, n = m.model === 'hand' ? 300 : 1; k < n; k++) A?.(idle, M, c);
+  A?.(idle, M, c);
   return new Rigged(M, m.model);
 }
 
@@ -369,7 +365,7 @@ export class CastView {
       /* knocked down, loose: lying as its points lie, until it gets up */
       if (m.rag && s.rig && m.down > 0) { s.rig.pose(m.rag, alpha, c.dt); s.loose = true; continue; }
       if (s.loose) { s.rig!.restore(); s.loose = false; }
-      /* by its model first: the hand fights as a thresher, and is drawn as itself */
+      /* by its model, or else by its kind */
       (ANIM[m.model] ?? ANIM[m.ai])?.(m, M, c);
       /* getting up: from as its points lie into how it stands, as it rises */
       if (m.rag && s.rig) { s.rig.rise(m.rag, alpha, 1 - m.rise / DOWN.rise); s.loose = true; }
