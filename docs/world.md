@@ -404,18 +404,86 @@ wins; the older text stays only because it describes what is built, until the le
 
 - **What goes (agreed).** The overseer, the hand, the knock and the overseer's bolts, and their names: nothing in the game is
   called the overseer or the hand again. The critical feed's reason (an overseer that could not be blinded) goes with them;
-  whether the feed stays is open. **Kept:** cameras, zones and speakers, the boards and their breakers, cards, the survivors'
+  the feed stays, for the head end and the PA (*One control room*, below). **Kept:** cameras, zones and speakers, the boards and their breakers, cards, the survivors'
   cut, the power-failure drill (now a choice: below).
-- **The cameras watch themselves (agreed).** Ordinary motion-detection CCTV on a lockdown protocol, nobody behind the screens:
-  no seat to take. A camera trips on fast movement in light. The changed move too slowly to trip one, and so do you, creeping;
-  running trips it at once. Dark is still blind. The level's lesson is to move like them. (Built cameras already see by the
-  light you are in and take you after a second and a half held; what changes is that speed counts.) **Built** (walking
-  is fast too, a second and a half held; running, under half a second): below, *Being found*.
-- **Alarm fatigue (agreed).** The cameras have false-alarmed for weeks (anything fast, a flickering tube), so the changed no
-  longer run to a klaxon. One alarm: perhaps one of them walks over, slowly, in its own time. Alarms again in the same zone
-  soon after: they notice the pattern, and more come, with purpose. Seen once costs little; seen twice in one place is the
-  trouble. The vaccinator answers it differently (below). **Built** (soon after is a minute; perhaps is even odds, the
-  nearest that hears it; with purpose is more of them, not faster): below, *Being found*.
+- **The cameras guard places, not paces (agreed; supersedes cameras that weigh speed).** Ordinary CCTV on a lockdown
+  protocol, as any facility runs it, with nobody behind the screens. Lockdown arms the restricted places: the board, the
+  Armory, Operations, the wing's thresholds, wherever Security kept people out. A live camera on an armed place takes anyone
+  moving in it, at any pace, as far as the light lets it see; stand stock still and it loses you, as motion detection does.
+  Anywhere else a camera only records. The changed never trip one: they were staff, and from habit they still keep out of
+  where they were never cleared to go. So the lesson is knowing where the lines are, and the lines are shown: hazard paint
+  on the floor, ALARMED AREA at the door, and the camera's light, green while it watches and red while it holds you, so
+  there is still a moment to step back out. Dark is still blind. (Built cameras weigh your speed, `SPEED` and `holdRate` in
+  `sim/eyes.ts`: that goes, and an armed place takes its place. The cone, the light, the hold of about a second and a half,
+  the zones and their speakers stay.)
+- **Running is heard (agreed).** Speed belongs to the ears, not the cameras. Running is loud and carries; walking carries a
+  little; creeping is silent. The changed hear a runner and come to look. Moving like them is still the lesson, taught by
+  sound. (Your steps already carry: 9 m running, 4 walking, nothing creeping. Tuning, not a new system.)
+- **Answering an alarm (agreed; alarm fatigue is dropped).** A klaxon means something is loose, and every one of the changed
+  that hears it hurries to the speaker, faster than its rounds, and faster again when it sees another already hurrying: one
+  starts and the rest catch it. They go to the speaker, not to you, look about a while, and go back. Nothing cleverer for
+  now. (Built: alarm fatigue, `FATIGUE` and `Sim.sounded`, goes, and the answer's pace goes back to the hurry it had before
+  fatigue slowed it to its rounds' 1.4 m/s. Faster again behind another is new.)
+- **The camera wall is yours (agreed).** Cameras are for whoever looks at them, and the one who takes the seat is you. The
+  operations room (the control room: *One control room*, below) is the reward: get in and take it, and its screens show every live camera on
+  the level, the changed on their rounds, the night round's beam, which armed places are lit, where the vaccinator is. A
+  room to plan the rest of Security from, and to come back to. A camera with no power shows black, so cutting a branch
+  blinds you too. How you get in and take it is open (the door grown shut with bodies; what is grown to its screens).
+  - *The station's feeds.* The wall also carries cameras from elsewhere on the station: the Commons, Horticulture, Cargo's
+    bay, places you have not been. They are the level's creep, deliberately hard to make out: low light, a few frames a
+    second, static, a feed that drops whenever something crosses it, a shape in one frame and not the next, a screen that is
+    black until you notice it is not. Never explained on the screen; understood, if at all, when you get there. Dread, not
+    danger: nothing on a station feed can reach you here.
+  - *Smaller screens first (agreed).* Real buildings have one control room and a few spot monitors where a desk needs
+    to see its own doors. Here, two, each a taste of the wall before the wall: the checkpoint booth (the lobby, the
+    shaft's landings and the checkpoint itself) and the duty office (one screen, cycling the hall's cameras). Each
+    console shows only its own area's cameras, as a booth's login would.
+- **One control room, wired as a real one (agreed; supersedes Security control's wall).** Every camera feeds recorders and
+  a core switch, the head end, and the control room sits beside the head end on protected power. Here:
+  - *The operations room is Security's control room,* the only full wall. Its nine screens are large displays, each
+    split into tiles, as a modern room is: the founders' showpiece, oversized behind armoured glass over the muster hall,
+    two rows of consoles for a room that usually seated one bored operator. Built to impress visitors more than to catch
+    anyone; nobody was worried.
+  - *The head end is in the UPS room behind it,* on the critical feed (CRIT) and its battery: the recorders, the core
+    switch, the PA's amplifiers. That is the critical feed's reason now (the overseer's is gone): the security system
+    itself and the PA, which is life-safety equipment, as real buildings protect them. The feed stays.
+  - *The cameras are not on critical power.* Each area's cameras draw their power down their own cables from a comms
+    cupboard (a network switch in a closet), and each cupboard is on its area's branch: the founders put a battery on
+    the head end and none on the cupboards. So cutting a branch blinds that branch's cameras (as built), and the wall
+    shows black tiles for them: it shows what has power, and nothing else. The wing's cupboard is on SEC, which is why
+    the survivors' cut blinded the wing, on the wall as well as in the corridor.
+  - *Spot monitors run on their own area's power:* the booth on SEC, so it wakes with the mend, when the changed start
+    walking the lit wing and the lobby and there is something worth watching; the duty office on Ops, its tiles black
+    for any branch you have cut.
+  - *The station's feeds* come over the backbone from each area's own head end, so a feed is live only while its area
+    has power: the wall's station tiles wake as the station does (Gen-1, a backup set), a quiet clock of progress.
+  - *The wing's control room stops being one.* The 14 by 10 m room behind the atrium's north wall becomes the response
+    team's briefing room: the plan table, a projection screen, the station's maps on the walls, chairs in rows. Still
+    the survivors' last room and still behind the officer's card, as built; the 33 screens go.
+- **The lobby (agreed).** A well-funded station, built when nobody was worried, puts its money where visitors see it
+  first. The checkpoint is the small, functional part; past it, the place opens up. Prey's lobby is the model, and Alien:
+  Isolation's grand rooms at twice the size each way: call it 40 by 30 m and 12 to 14 m to the ceiling, a starting figure
+  to tune in the build. The tallest room in Security (the atrium gives that up; it stays the threshold). Proposed:
+  - *The way in is from above.* The surface cage lands on the second floor (+5); the hoist, freight, stays at the
+    ground-floor shaft station with the hazard store, so goods never crossed the lobby. Off the surface landing, a
+    hallway; at its end, the checkpoint (the bag scanner, the arch, the turnstiles, the booth behind glass); through it,
+    the head of a grand staircase, and the whole lobby below you at once. The descent is the dazzle.
+  - *On the floor:* a statue in the middle, a lounge, a bar, all the soft furnishings a station 40 m down did not need.
+    The statue is of the family that built the place for now (not called "the founder": that name belongs to the
+    flesh, §10); a placeholder, to be retooled once the lore is down, likely the corporate logo or a gardening motif.
+    A luminous ceiling, backlit panels made to pass for daylight, because the family wanted a sky down here.
+  - *Its power:* on the wing's feed (SEC), so dark at the start. A black void overhead, the statue's face in your beam,
+    the bar's bottles catching the emergency light; the survivors' half, and they raided the bar. Mending the cut lights
+    it end to end, ceiling and all: the dazzle the family meant, arriving when it costs you, since a lit lobby is one the
+    changed walk.
+  - *It is the way out too.* The surface lift is the game's last door, so the last room you cross is the first one a
+    visitor saw, and the last climb is the grand stair. Whether the surface hallway is an armed place is open (*No
+    alarm on the way out*, below).
+  - *Its cameras* only record: a public room is not armed. The checkpoint and the surface hallway are where the lines
+    are. Its upper volume meets Security's second floor somewhere, a vent or a service walkway behind the ceiling
+    panels (open).
+  - *Where it goes:* between the shaft and the wing, where the checkpoint is now (16 by 20 m today), which pushes the
+    wing and everything east of it further east. A re-layout, not a room added; worth it.
 - **The changed (agreed).** No longer husks: the word says empty, and they are not. Pia's line (§10): **intelligent, but
   sedated.** They think, slowly, and without much caring. They notice and come to look (a breaker thrown means someone threw
   it; a door left open is noticed), they use cards (a card door is safe from them no longer, only from you), and they are slow
@@ -425,8 +493,8 @@ wins; the older text stays only because it describes what is built, until the le
   (Supersedes *drills, not instructions* and *how much wit the staff have*, below. The power-failure drill stays as something
   one of them chooses: someone goes to the board, slowly, and looks about for who threw it.)
 - **One tool per room (agreed).** Each space teaches one thing before a later one asks for all of them: the flashlight; a
-  sound before a sight; the night round's beam far off; one camera and one speaker with two of the changed in earshot, a safe
-  failure (be seen, hide, watch one come and go); a small board, and one of them walking over to throw it back on; a card;
+  sound before a sight; the night round's beam far off; one armed place under one camera, its speaker with two of the changed
+  in earshot, a safe failure (step over the line, hide, watch them come and go); a small board, and one of them walking over to throw it back on; a card;
   then the big dark section that asks for everything; then out.
 - **The night round (agreed).** One of the changed still walks the night shift's round with a flashlight. Its beam is the most
   legible threat in the game, seen down a corridor long before it arrives; it smokes out the dark; and **its beam lights you
@@ -437,8 +505,8 @@ wins; the older text stays only because it describes what is built, until the le
   any other. Old enough to have recovered: intelligent in one thing, which it does with ritual care; ask anything else of it
   and nothing is there.
   - *The changed flee it:* its graft is nights of torment, and they know its smell. A lit room emptying is its tell.
-  - *It comes to the klaxon:* a camera tripping means something fast is loose, and the fast are what it is for. Run, and you
-    are what it is looking for.
+  - *It comes to the klaxon, and to running:* it listens for the fast, and the fast are what it is for. Run, and you are what
+    it is looking for.
   - *Seen first through glass:* a guard held down, the offered wrist, and that guard restless for a while afterwards. What
     being caught means, shown without a word.
   - *Caught,* for now, you are hurt badly. The graft waits for the player grafting (§10).
@@ -461,7 +529,7 @@ wins; the older text stays only because it describes what is built, until the le
   calls anything.
 - **The mass: not Security's (moved).** A room grown shut on something you never see whole belongs wherever Pia's people have
   been longest, the Commons likely; Security is just an area of the game. The operations room needs a new answer (open).
-- **Threats, in rising order:** the night round (light), the cameras (speed), the vaccinator (both, and a purpose). Skitters
+- **Threats, in rising order:** the night round (light), the cameras (place), the vaccinator (light and speed, and a purpose). Skitters
   and eggs go back to Cargo's nest: four kinds of threat on the first level is one too many.
 
 **The opening (agreed).** Replaces beats 1 and 2 below, and the dark start: starting in pitch black asks for fear before the
@@ -562,14 +630,14 @@ should be added. Below it, production (below).
   operations room's glass. Flat, long and lit, about 58 by 24 m: a
   promenade round a sunken court, mall-like rather than industrial. The court is 1.25 m down, with steps the length of both
   long sides (the team sat on them for the muster) and glass balustrades at the ends; the ceiling over it lifts from 4.5 m to
-  8.5, the drill clock hanging in the middle, and the operations room looks down on it. The atrium stays the tallest space. Pillars, crowd barriers, benches
+  8.5, the drill clock hanging in the middle, and the operations room looks down on it. The lobby is now the tallest space (*The second pass*). Pillars, crowd barriers, benches
   and shield racks break the sight lines. Every room off it has a door, and how far apart the doors are is how hard the crossing is: the electrical room at the west end, the locker room and
   the Armory on the north side, the range, the duty office (a window on the hall) and the operations stair on the south,
   Maintenance at the east end.
 - **The operations room, behind glass (agreed; built).** Control rooms overlook what they run, as Cargo control does the bay.
   The operations room is on the second floor, over the hall's south side, its north wall eight panes of armoured glass onto
   the court: every crossing is under it. From the hall you see into it, lit by its room's emergency light and by a sick glow
-  that needs no power; what is left of its staff are grown to its screens. (Its new answer is open: *The second pass*.) Its stair climbs from the east bays to a landing where the door is grown shut with bodies:
+  that needs no power; what is left of its staff are grown to its screens. (Its new answer: the camera wall, *The second pass*.) Its stair climbs from the east bays to a landing where the door is grown shut with bodies:
   no way in on the first pass. A way in comes later, once there are other places worth going first; the level should become
   non-linear then, not now. Eggs and a floor dragged red thicken toward the stair.
 - **The electrical room's board (agreed; built).** Not a room for one switch: a panel board breaking Ops' feed out to
@@ -581,18 +649,19 @@ should be added. Below it, production (below).
   board: its power is protected, its panel and battery backup in a locked room inside its own perimeter. The operations room
   (its screens, its board, its lights) and Security's PA are on their own critical feed (CRIT) straight off Ops' set, panelled
   in the UPS room behind the operations room. The electrical room's schedule says so, in red. So no zone can be silenced
-  but by smashing its speaker. (Its first reason, an overseer that could not be blinded, is gone; whether the feed stays is
-  open.) A seed for later: control rooms sit on raised floors,
+  but by smashing its speaker. (Its first reason, an overseer that could not be blinded, is gone; it stays for the head end and
+  the PA: *One control room*, *The second pass*.) A seed for later: control rooms sit on raised floors,
   a cable void under the tiles; a crawl from a service hatch up into the UPS room would be a believable way in that is not
   through the bodies at its door. This is the pattern for power elsewhere (proposed): a board
   per area, a few labelled breakers that each feed a handful of rooms, never a switch per room. A switch per room would be
   a switch for the threat, and real buildings are wired by panel, not by room. Doors stay safe to cut: exits let go without
   power, and readers keep their lock only against coming in.
 - **Rooms built to the new standard (agreed).** Wider, longer, taller, with a landmark or a flourish; no utilitarian boxes.
-  The range is 28 m of lanes, not a closet. The lobby is a checkpoint: everyone off the shaft came through it (the bag scanner,
-  the arch, turnstiles, a booth behind glass). The wing's row of doors is broken by the locker room, the survivors' back way into
+  The range is 28 m of lanes, not a closet. The checkpoint: everyone off the shaft came through it (the bag scanner, the arch,
+  turnstiles, a booth behind glass); it becomes the small part before the lobby (*The second pass*). The wing's row of doors is broken by the locker room, the survivors' back way into
   the hall. Security control is a vestibule (the plan table, a window on the corridor) opening into a 14 by 10 m control room
-  behind the atrium's north wall: a camera wall of 33 screens, a few dead, and two rows of consoles facing it. The infirmary is
+  behind the atrium's north wall: a camera wall of 33 screens, a few dead, and two rows of consoles facing it (as built; it
+  becomes the briefing room, *One control room*, *The second pass*). The infirmary is
   a 16 by 8 m ward of four curtained beds, with a treatment bay behind glass and a chair pulled up to the last bed. The hazard
   store moves off the checkpoint, where things came off the hoist (same gate: Gen-1). Still to do: the wing's corridor could
   widen where its rooms branch off (a trunk, not a straight pipe).
@@ -686,7 +755,8 @@ whether or not the wing is mended.
 - **Already there:** patrols (the cast keep rounds), vents (loose panels; crawling under), grabbing and dragging (a start for the
   hand), caves of any outline (for the nest's organic shapes), backup sets and the power rules, the progression checker (to prove
   the level, and every way of spending power in it, can still be finished).
-- **For the second pass** (above): cameras that weigh your speed; the changed made intelligent (investigating, using cards);
+- **For the second pass** (above): cameras that guard armed places; running heard; the alarm answered in a hurry; the
+  camera wall; the changed made intelligent (investigating, using cards);
   the night round and its beam; the vaccinator; call points and lockdown; load on the backup set; the big dark section; the
   opening (the pump, the other patient, the card at each door, the medical hold); Cargo as an L. To be put in order before any of it is built.
 
