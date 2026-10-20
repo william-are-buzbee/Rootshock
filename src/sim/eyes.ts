@@ -2,6 +2,7 @@ import type { CameraDef, SpeakerDef } from '../content/types';
 import { STEP } from '../core/loop';
 import { field } from '../world/nav';
 import type { Dyn, World } from '../world/world';
+import type { Door } from './movers';
 import { answer } from './cast';
 import { routeRules, soundRules } from './fields';
 import { power, sfx } from './game';
@@ -15,9 +16,11 @@ import type { Sim } from './sim';
    view a moment; stand stock still and it loses you, as motion detection does. Anywhere else a camera only records,
    and shows no light. A guard's light is the tell: green while it watches, red while it holds you, so there is time
    to step back out or freeze. The alarm sounds from the zone's speaker for a while, and every one of the changed that
-   hears it hurries to the speaker, not to you (sim/cast.ts, 'answer'). The answers: keep out of the armed rooms or out
-   of the cone, freeze, cut its power, or smash it (loud); or smash the zone's speaker (as loud), and the zone has no
-   voice. */
+   hears it hurries to the speaker, not to you (sim/cast.ts, 'answer'). And the zone locks down, protocol with no hand
+   on it: each of its doors with power to move is bolted, heard being drawn for a second before it goes home (time to
+   get through), its light red, and it holds while the alarm sounds. A door without power cannot be bolted, and one that
+   loses its power lets its bolt go: exits fail safe. The answers: keep out of the armed rooms or out of the cone,
+   freeze, cut its power, or smash it (loud); or smash the zone's speaker (as loud), and the zone has no voice. */
 
 export interface Cam {
   def: CameraDef;
@@ -47,11 +50,54 @@ export interface Alarm {
  *  its view it lets go, `drain` seconds of hold a second; out of its view or out of the armed room, at once */
 export const EYES = { hold: 1.4, sound: 12, reach: 34, every: 1.3, still: 0.3, drain: 0.5 };
 
+/** a bolt is heard being drawn this long before it goes home */
+export const LOCKDOWN = { draw: 1.1 };
+
 /** what sight goes through: bodies, and glass */
 const seeThrough = (d: Dyn) => d.kind === 'body' || !!d.glass;
 
 export function makeCams(sim: Sim): Cam[] {
   return (sim.world.def.cameras ?? []).map(def => ({ def, guard: inArmed(sim.world, def.x, def.y - 1, def.z), broken: false, hold: 0, tripped: false }));
+}
+
+/** the zones a door is in: those of the rooms either side of it */
+const doorZoneCache = new WeakMap<Door, string[]>();
+export function doorZones(w: World, d: Door): string[] {
+  let z = doorZoneCache.get(d);
+  if (!z) {
+    const D = d.def, cx = (D.x0 + D.x1) / 2, cz = (D.z0 + D.z1) / 2, y = D.y0 + 0.5, o = 1.3;
+    const sides = D.alongX ? [w.roomAt(cx, y, cz - o), w.roomAt(cx, y, cz + o)] : [w.roomAt(cx - o, y, cz), w.roomAt(cx + o, y, cz)];
+    z = [...new Set(sides.map(R => R?.zone).filter((q): q is string => !!q))];
+    doorZoneCache.set(d, z);
+  }
+  return z;
+}
+
+/** a door the lockdown bolts: one that moves, with power enough to move it */
+const boltable = (sim: Sim, d: Door): boolean => {
+  const D = d.def;
+  return !(D.seal || D.vent || D.lift || D.stuck || D.glass) && power(sim.game, D.circuit) >= (D.kind === 'heavy' ? 2 : 1);
+};
+
+/** the zone locks down: each of its doors that can be bolted and is not is heard being drawn */
+function lockdown(sim: Sim, zone: string): void {
+  for (const d of sim.doors) {
+    if (d.down || d.drawing > 0 || !doorZones(sim.world, d).includes(zone) || !boltable(sim, d)) continue;
+    d.drawing = LOCKDOWN.draw;
+    sfx(sim.game, 'bolt-draw', doorAt(d));
+  }
+}
+
+const doorAt = (d: Door) => ({ x: (d.def.x0 + d.def.x1) / 2, y: d.def.y0 + 2, z: (d.def.z0 + d.def.z1) / 2 });
+
+/** a bolt being drawn goes home if its zone still sounds; a bolted door lets go when the alarm stops or its power goes */
+function updateLockdown(sim: Sim): void {
+  for (const d of sim.doors) {
+    if (!d.down && d.drawing <= 0) continue;
+    const sounding = doorZones(sim.world, d).some(z => sim.alarms.some(a => a.zone === z)), can = sounding && boltable(sim, d);
+    if (d.drawing > 0 && (d.drawing -= STEP) <= 0) { d.drawing = 0; if (can) { d.down = true; sfx(sim.game, 'bolt', doorAt(d)); } }
+    else if (d.down && !can) { d.down = false; sfx(sim.game, 'bolt-free', doorAt(d)); }
+  }
 }
 
 /** the spot is in an armed room */
@@ -133,12 +179,14 @@ export function updateEyes(sim: Sim): void {
   for (const a of sim.alarms) {
     a.t -= STEP;
     if ((a.next -= STEP) <= 0 && heard(sim, a.zone)) {
-      /* it goes round, and whatever hears it this time comes */
+      /* it goes round, and whatever hears it this time comes; the zone's doors lock down, any that came back since too */
       a.next = EYES.every;
       const sp = sim.world.def.speakers!.find(s => s.zone === a.zone)!;
       sfx(g, 'klaxon', { x: sp.x, y: sp.y + 2.6, z: sp.z }, true);
       for (const m of sim.cast) if (m.spot >= 0 && a.heard[m.spot] < EYES.reach) answer(sim, m, a.spot, a.route);
+      lockdown(sim, a.zone);
     }
   }
   sim.alarms = sim.alarms.filter(a => a.t > 0);
+  updateLockdown(sim);
 }

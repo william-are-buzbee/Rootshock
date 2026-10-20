@@ -184,6 +184,14 @@ export class Things {
       this.add(parts(body, matId(D.mat)), place, at, across);
       /* its lights show only with power enough to work it */
       if (lights.length) this.add(parts(lights), m => { place(m); m.visible = this.L.power(D.circuit) >= need && !D.vent; }, at, across);
+      /* locked down: a red lamp over it on both faces, flashing while its bolt is drawn and steady once it is home */
+      if (!(D.seal || D.vent || D.lift || D.stuck)) {
+        const f = (D.kind === 'heavy' ? 0.36 : 0.14) / 2 + 0.03;
+        this.add(parts([-1, 1].map(s => ['box', [2.9, 0.35, 0.3], 0.5, 0.12, 0.04, 0, 1.08, s * f] as Part)), m => {
+          m.position.set(at[0], D.y0 + 1.2, at[2]); m.rotation.y = D.alongX ? 0 : Math.PI / 2; m.scale.set(long / 2, 1, 1);
+          m.visible = d.down || (d.drawing > 0 && Math.floor(performance.now() / 150) % 2 === 0);
+        }, at, across);
+      }
     }
     for (const p of sim.platforms) {
       const D = p.def;

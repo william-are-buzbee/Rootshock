@@ -292,6 +292,16 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   }
   /* and two of the staff on their rounds of the hall */
   mut(D, 'husk', 20.5, 29); mut(D, 'husk', 38.5, 37);
+  /* Security's alarm zones, room by room: an alarm locks down the doors of its zone (sim/eyes.ts). The hall's east bays
+     are Operations', with their own breaker; the suite below, the shaft and Cargo are in none */
+  const ZONES: Record<string, string> = {
+    Checkpoint: 'wing', 'Hazardous storage': 'wing', 'Security corridor': 'wing', "Nurses' station": 'wing', 'Security control': 'wing',
+    'Locker room': 'wing', Infirmary: 'wing',
+    Atrium: 'atrium', 'Security elevator': 'atrium', Gallery: 'atrium',
+    'Muster hall': 'muster', 'Muster court': 'muster', 'Electrical room': 'muster', Armory: 'muster', 'Firing range': 'muster', 'Duty office': 'muster',
+    'Operations corridor': 'ops', 'Office: operations': 'ops', 'Office: chief of security': 'ops', Maintenance: 'ops', 'Operations stair': 'ops',
+  };
+  for (const R of [...D.rooms, ...T1.rooms]) if (ZONES[R.name]) R.zone = R.name === 'Muster hall' && R.c === 'EAST' ? 'ops' : ZONES[R.name];
   return finishLevel([20.3, 2.5, -PI / 2]); // in isolation room 1, facing its door
 }
 

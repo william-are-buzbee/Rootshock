@@ -5,8 +5,8 @@ import { makeSim, step, type Sim } from '../src/sim/sim';
 import { noInput } from '../src/sim/input';
 import { STEP } from '../src/core/loop';
 import { give, power } from '../src/sim/game';
-import { EYES, soundZone } from '../src/sim/eyes';
-import { doorAct, findUsable } from '../src/sim/interact';
+import { EYES, LOCKDOWN, doorZones, soundZone } from '../src/sim/eyes';
+import { doorAct, doorLabel, findUsable } from '../src/sim/interact';
 import { load, save } from '../src/sim/save';
 import { free } from '../src/sim/cast';
 
@@ -279,6 +279,103 @@ describe('the zone alarm', () => {
     const a = load(level, JSON.parse(JSON.stringify(save(s))), { seed: 7, station: STATION });
     hold(s, 3); hold(a, 3);
     expect(JSON.stringify(save(a))).toBe(JSON.stringify(save(s)));
+  });
+});
+
+describe('lockdown', () => {
+  /** a zone's doors, by the room on the far side from the hall or corridor */
+  const doorTo = (s: Sim, room: string) => s.doors.find(d => {
+    const D = d.def, cx = (D.x0 + D.x1) / 2, cz = (D.z0 + D.z1) / 2, y = D.y0 + 0.5;
+    return [[1.3, 0], [-1.3, 0], [0, 1.3], [0, -1.3]].some(([dx, dz]) => s.world.roomAt(cx + dx, y, cz + dz)?.name === room) && !D.seal && !D.glass;
+  })!;
+  const brk = (s: Sim, name: string) => s.usables.find(u => new RegExp('Breaker, ' + name).test(u.label() ?? ''))!;
+  const zoneDoors = (s: Sim, zone: string) => s.doors.filter(d => doorZones(s.world, d).includes(zone));
+
+  it('an alarm bolts its zone\'s doors that have power to move: heard being drawn, home a moment later', () => {
+    const s = fresh();
+    still(s);
+    place(s, 30, -4.5, -25);
+    s.game.events.length = 0;
+    soundZone(s, 'muster');
+    hold(s, 0.1);
+    const drawn = zoneDoors(s, 'muster').filter(d => d.drawing > 0);
+    expect(drawn.map(d => d.def.circuit).sort()).toEqual(['HALL', 'HALL', 'OPS']); // the electrical room's, the range's, the duty office's
+    expect(sounded(s, 'bolt-draw')).toBe(true);
+    expect(drawn.some(d => d.down)).toBe(false); // time to get through
+    hold(s, LOCKDOWN.draw);
+    for (const d of drawn) expect(d.down).toBe(true);
+    expect(sounded(s, 'bolt')).toBe(true);
+    expect(doorTo(s, 'Armory').down).toBe(false); // heavy, and the backup set cannot move it: nothing to bolt
+    for (const d of zoneDoors(s, 'ops')) expect(d.down || d.drawing > 0).toBe(false); // another zone's
+  });
+
+  it('a bolted door will not open, for you or anything else, and says why', () => {
+    const s = fresh(), d = doorTo(s, 'Firing range');
+    still(s);
+    soundZone(s, 'muster');
+    hold(s, LOCKDOWN.draw + 0.2);
+    expect(doorLabel(s, d)).toBe('Locked down');
+    s.game.events.length = 0;
+    doorAct(s, d);
+    expect(d.open).toBe(false);
+    expect(s.game.events.some(e => e.type === 'say' && /Locked down/.test(e.text))).toBe(true);
+    const D = d.def;
+    place(s, (D.x0 + D.x1) / 2, 0, (D.z0 + D.z1) / 2 - 1.5); // right at it, on the hall's side
+    hold(s, 0.5);
+    expect(d.t).toBeLessThan(0.1);
+  });
+
+  it('it holds while the alarm sounds, and lets go when it stops', () => {
+    const s = fresh(), d = doorTo(s, 'Electrical room');
+    still(s);
+    soundZone(s, 'muster');
+    hold(s, EYES.sound - 1);
+    expect(d.down).toBe(true);
+    s.game.events.length = 0;
+    hold(s, 1.5);
+    expect(s.alarms).toEqual([]);
+    expect(d.down).toBe(false);
+    expect(sounded(s, 'bolt-free')).toBe(true);
+  });
+
+  it('a door without power is not bolted, and one that loses its power lets go: exits fail safe', () => {
+    const s = fresh();
+    still(s);
+    soundZone(s, 'wing'); // the wing is cut: its doors are dead
+    hold(s, LOCKDOWN.draw + 0.2);
+    for (const d of zoneDoors(s, 'wing')) expect(d.down, d.def.circuit).toBe(false);
+    const t = fresh(), range = doorTo(t, 'Firing range'), elec = doorTo(t, 'Electrical room');
+    still(t);
+    soundZone(t, 'muster');
+    hold(t, LOCKDOWN.draw + 0.2);
+    expect(range.down && elec.down).toBe(true);
+    brk(t, 'Muster hall west').act(); // the hall's branch, which the range's door is on
+    hold(t, 0.1);
+    expect(range.down).toBe(false);
+    expect(elec.down).toBe(true); // on Ops' own bus
+  });
+
+  it('taken in the electrical room, you are bolted in with it: the door goes while you get your bearings', () => {
+    const s = fresh(), c = board(s), d = doorTo(s, 'Electrical room');
+    still(s);
+    inside(s);
+    until(s, c);
+    pace(s, EYES.hold + 0.1);
+    expect(s.alarms.map(a => a.zone)).toEqual(['muster']);
+    expect(d.drawing).toBeGreaterThan(0);
+    hold(s, LOCKDOWN.draw);
+    expect(d.down).toBe(true);
+  });
+
+  it('a save made while the bolts are drawn and home plays on the same', () => {
+    const s = fresh();
+    still(s);
+    soundZone(s, 'muster');
+    hold(s, 0.5);
+    const a = load(level, JSON.parse(JSON.stringify(save(s))), { seed: 7, station: STATION });
+    hold(s, 2); hold(a, 2);
+    expect(JSON.stringify(save(a))).toBe(JSON.stringify(save(s)));
+    expect(a.doors.some(d => d.down)).toBe(true);
   });
 });
 

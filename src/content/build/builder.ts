@@ -41,6 +41,7 @@ export interface RoomOpts {
   safe?: boolean;
   noroam?: boolean;
   armed?: boolean;
+  zone?: string;
 }
 
 /** a door's rules, beyond where it is (see DoorDef) */
@@ -93,7 +94,7 @@ export class LevelBuilder {
       floor: hex(p.fl), wall: hex(p.wl), stripe: hex(p.st), mat: { ...FITTED, ...o.mat },
       lit: o.lit ?? (fixed ? (dark ? 'none' : 'always') : 'always'),
       lc: o.lc ?? (fixed ? o.light! : WHITE),
-      em: !!o.em, circuit: o.circuit ?? this.def.circuit, flick: !!o.flick, doorway: !!o.doorway, safe: !!o.safe, noroam: !!o.noroam, armed: !!o.armed,
+      em: !!o.em, circuit: o.circuit ?? this.def.circuit, flick: !!o.flick, doorway: !!o.doorway, safe: !!o.safe, noroam: !!o.noroam, armed: !!o.armed, ...(o.zone ? { zone: o.zone } : {}),
       ...(o.sky !== undefined ? { sky: hex(o.sky) } : {}), ...(o.motes && o.motes !== 'dust' ? { motes: o.motes } : {}),
     };
     this.def.rooms.push(r);

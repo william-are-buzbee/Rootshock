@@ -39,6 +39,8 @@ export interface RoomDef {
   /** armed by Security's lockdown: a live camera here takes anyone moving in it (sim/eyes.ts), and the cast keep out of
    *  it on their rounds, as staff kept out of where they were never cleared to go */
   armed: boolean;
+  /** the alarm zone it is in (a speaker's zone): its alarm locks its doors down (sim/eyes.ts) */
+  zone?: string;
   /** what hangs in its air, if not dust: the green's spores, or the flesh's flecks (present/render/motes.ts) */
   motes?: Motes;
   /** a cavern's roof painted as sky: its ceiling is this colour, and no fittings hang from it */

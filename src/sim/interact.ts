@@ -258,6 +258,7 @@ export function doorLabel(sim: Sim, d: Door): string | null {
   if (D.lift) return 'Call the surface lift';
   if (D.seal) return 'Jammed shut';
   if (D.stuck) return sim.player.crouch ? null : 'Jammed half open';
+  if (d.down) return 'Locked down';
   const L = power(g, D.circuit), rd = D.card ? 'Card reader' : 'Keypad';
   if (D.kind === 'heavy') {
     if (L < 2) return 'Heavy door: no power';
@@ -284,6 +285,7 @@ export function doorAct(sim: Sim, d: Door): void {
   if (D.seal) { say(g, D.msg ?? 'It does not move. Something on the other side shifts its weight.'); sfx(g, 'deny'); return; }
   if (D.stuck) { say(g, 'Jammed at waist height. You could get under it. Not everything could.'); return; }
   if (D.vent) { d.open = true; sfx(g, 'clang', at); makeNoise(g, 7); say(g, 'The panel comes away in your hands. There is a way through.'); return; }
+  if (d.down) { say(g, 'Locked down. The bolt is home and the light over it is red: it holds while the alarm sounds.'); sfx(g, 'deny'); return; }
   const L = power(g, D.circuit), heavy = D.kind === 'heavy';
   if (heavy && L < 2) { say(g, L ? 'The backup set cannot move a door this size.' : 'A door this heavy does not move without power.'); sfx(g, 'deny'); return; }
   if (locked(d)) {

@@ -887,12 +887,15 @@ components, not code threaded through the frame loop:
   from the room's flag (`content/build/tiles.ts`); the cast leave armed rooms out of their rounds. An alarm keeps a route
   to its speaker and how far its sound carries (both made once, when it starts, and again on load); each time the
   klaxon goes round, every husk in earshot that is not hunting takes the state `answer` and hurries the route (its own
-  copy) at 2.6 m/s, 3.4 with another in sight hurrying too (`ANSWER` in `sim/cast.ts`). Nobody is behind the screens: a camera
+  copy) at 2.6 m/s, 3.4 with another in sight hurrying too (`ANSWER` in `sim/cast.ts`). Each round also locks the zone
+  down: a door is in the zones of the rooms either side of it (`RoomDef.zone`, `doorZones`), and each in the zone that
+  can move with the power it has is drawn (`Door.drawing`, `LOCKDOWN.draw`) and then bolted (`Door.down`, which
+  `locked` counts, so it blocks the cast's ways too) while an alarm in one of its zones sounds and it keeps its power. Nobody is behind the screens: a camera
   needs only its power and to be whole. A smashed speaker mutes its zone (`Sim.mute`): nothing sounds there at all. (The
   overseer, its hand, its knock codes and its bolts were built here and taken out in Security's second pass.) A speaker is used from below only, and hangs in its room's ceiling. It is wired from its PA (`SpeakerDef.pa`, a
   circuit), not from its room, and sounds only while that has power (`heard` in `sim/eyes.ts`); Security's is critical
   power, which nothing you can reach switches. Saves keep each camera's state, the muted zones and the alarms; the
-  routes are made again.
+  routes are made again. Doors keep their bolts.
 
 **As built in step 4.** The game's state is plain data in the sim (`sim/game.ts`): circuits and Gen-1, keys, what you
 carry (ten slots), lights and battery, what you wear, papers read, health, the run's keypad codes. What happens comes out

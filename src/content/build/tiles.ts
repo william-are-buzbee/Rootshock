@@ -42,6 +42,8 @@ export interface TRoomOpts {
   nolamp?: number | boolean; noroam?: number | boolean; safe?: number | boolean;
   /** armed by the lockdown (RoomDef.armed): hazard paint inside each door into it, and its signs read ALARMED AREA */
   armed?: number | boolean;
+  /** the alarm zone it is in (RoomDef.zone) */
+  zone?: string;
 }
 
 export interface TRoom {
@@ -49,7 +51,7 @@ export interface TRoom {
   ht: number; dy: number; fl: number; wl: number; st: number;
   lit: LitRule; lc: Colour; em: boolean; c: string; flick: boolean;
   open: boolean; hole: string | null; cave: boolean; air: boolean; sky?: number; motes?: Motes; mat: RoomMats;
-  nolamp: boolean; noroam: boolean; safe: boolean; armed: boolean;
+  nolamp: boolean; noroam: boolean; safe: boolean; armed: boolean; zone?: string;
   /** a cave of any outline (caveShape): its tiles are the deck's tiles marked with its id, and x, y, w, h bound them */
   shaped?: boolean;
 }
@@ -146,7 +148,7 @@ export function room(D: Deck, name: string, x: number, y: number, w: number, h: 
     lit: o.lit ?? 'main', lc: o.lc ?? WHITE, em: !!o.em, c: o.c ?? D.c, flick: !!o.flick,
     open: !!o.open, hole: o.hole ? String(o.hole) : null, cave: !!o.cave, air: !!o.air, ...(o.sky !== undefined ? { sky: o.sky } : {}), ...(o.motes ? { motes: o.motes } : {}),
     mat: { ...(o.cave ? CAVERN : o.open ? WALKWAY : o.sky !== undefined ? STREET : FITTED), ...o.mat },
-    nolamp: !!o.nolamp, noroam: !!o.noroam, safe: !!o.safe, armed: !!o.armed,
+    nolamp: !!o.nolamp, noroam: !!o.noroam, safe: !!o.safe, armed: !!o.armed, ...(o.zone ? { zone: o.zone } : {}),
   };
   D.rooms.push(r);
   for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) { D.g[j * D.W + i] = 1; D.rm[j * D.W + i] = r.id; }
@@ -386,7 +388,7 @@ export function finishLevel(start?: [number, number, number]) {
       if (R.hole || R.shaped) continue;
       const opts = {
         pal: { fl: R.fl, wl: R.wl, st: R.st } as Palette, lit: R.lit, lc: R.lc, em: R.em, circuit: R.c, flick: R.flick,
-        nolamp: true, plain: R.open || R.cave, safe: R.safe, noroam: R.noroam, armed: R.armed, ...(R.sky !== undefined ? { sky: R.sky } : {}), motes: R.motes,
+        nolamp: true, plain: R.open || R.cave, safe: R.safe, noroam: R.noroam, armed: R.armed, zone: R.zone, ...(R.sky !== undefined ? { sky: R.sky } : {}), motes: R.motes,
         mat: R.mat,
       };
       const x0 = X(D, R.x), z0 = Z(D, R.y), x1 = X(D, R.x + R.w), z1 = Z(D, R.y + R.h);
@@ -619,7 +621,7 @@ function shapedCaves(b: LevelBuilder, D: Deck): void {
     const x0 = D.org[0] + R.x * T, z0 = D.org[1] + R.y * T;
     const r = b.room(R.name, x0, z0, x0 + lw * T, z0 + lz * T, {
       pal: { fl: R.fl, wl: R.wl, st: R.st }, lit: R.lit, lc: R.lc, em: R.em, circuit: R.c, flick: R.flick,
-      nolamp: true, plain: true, safe: R.safe, noroam: R.noroam, armed: R.armed, y0: ylo, ht: yhi - ylo, motes: R.motes, mat: R.mat,
+      nolamp: true, plain: true, safe: R.safe, noroam: R.noroam, armed: R.armed, zone: R.zone, y0: ylo, ht: yhi - ylo, motes: R.motes, mat: R.mat,
     });
     r.cells = { res: T, nx: lw, nz: lz, lo: clo, hi: chi };
   }

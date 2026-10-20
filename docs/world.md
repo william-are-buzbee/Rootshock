@@ -524,7 +524,7 @@ wins; the older text stays only because it describes what is built, until the le
 - **Call points (agreed).** Break-glass call points, as in any building: sound a zone yourself, to pull the changed off a door
   or out of a room. (The vaccinator comes to it too.)
 - **Lockdown (agreed),** in place of the bolts: an alarm seals that zone's powered doors, heard and seen (the bolts, the red
-  lights). Protocol, no hand on a board.
+  lights). Protocol, no hand on a board. **Built:** below, *Being found*.
 - **Load on the backup set (agreed, provisional).** Too many branches on and everything browns out, Gen-1's capacity (§4)
   taught small. Kept for now because it is interesting; it may go.
 - **No alarm on the way out (agreed).** Leaving the level is not where the alarm is: the Security elevator rings no chime that
@@ -673,7 +673,7 @@ should be added. Below it, production (below).
   than the cavern's far end (about 120 m today). The glass works both ways: the bay can see you. A view only, not a door; at
   Tier 1's height a door would skip the platforms. A shortcut, if any, is a door barred from the bay side.
 
-**Being found (as built; lockdown, call points and the changed's wit are *The second pass*, to come)**
+**Being found (as built; call points and the changed's wit are *The second pass*, to come)**
 
 - **Cameras → the zone alarm → any patrol in earshot.** The klaxon starting is the tell, and you have a few seconds to answer
   it: leave the zone, break its speaker or the camera (loud: a cost, per §4), or cut the power. **Built** (`sim/eyes.ts`),
@@ -700,6 +700,15 @@ should be added. Below it, production (below).
   looks down it from the checkpoint end, dead until the cut is mended; the electrical room's, the Armory's and the
   range's are on the hall's breaker (HALL) and sound the muster hall; the operations stair's (on EAST) and the chief's
   office's (on Ops' bus) sound Operations. Mending the wing sounds it (its circuit comes live on the board).
+- **Lockdown.** Every room in Security belongs to one of the four zones (the hall's east bays are Operations'), and a door
+  to the zones of the rooms either side of it. Each time a zone's klaxon goes round, every door in the zone with power to
+  move is bolted: you hear the bolt drawn for about a second before it goes home, time to get through, and a red lamp
+  over the door flashes, then holds. A bolted door opens for nothing, you or the changed, and says so; it holds while the
+  alarm sounds and lets go when it stops. A door without power cannot be bolted, and one that loses its power lets its
+  bolt go: exits fail safe. So a light door on a branch you can open is a way out of a lockdown, a heavy door the backup
+  set cannot move is never bolted, and the dead wing's doors stay as they are until the cut is mended (when the wing
+  sounds at once, and bolts slam down its length). Taken by the electrical room's camera, you are bolted in with it
+  until the alarm dies.
 - **Why they come: drills, not instructions.** The changed were Security's staff. For years a zone alarm meant "respond there",
   and what is left of them still does. It is conditioning, not command.
 - **Patrols → their own senses.** Sight, light and sound, as everywhere else. They come to an alarm they can hear, not to you.
