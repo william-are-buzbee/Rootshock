@@ -19,8 +19,8 @@ export const SEC: TRoomOpts = { fl: 0x4e555e, wl: 0x70747a, st: 0x39485a, mat: {
 export const OPS: TRoomOpts = { fl: 0x847c70, wl: 0x8c887e, st: 0x8a7a4a, mat: { floor: 'terrazzo', wall: 'block', ceiling: 'tiles' } };
 /** an office, refitted: plasterboard, carpet tile, a suspended ceiling */
 export const OFF: TRoomOpts = { fl: 0x4a4f58, wl: 0x9a968c, st: 0x5a6a7a, mat: { floor: 'carpet', wall: 'board', ceiling: 'tiles' } };
-/** where the family's visitors walked: limestone, terrazzo, a plastered ceiling, a bronze band for the stripe */
-export const FAM: TRoomOpts = { fl: 0x8a8070, wl: 0xa3967e, st: 0x7a5a30, mat: { floor: 'terrazzo', wall: 'stone', ceiling: 'plaster' } };
+/** where the family's visitors walked: terrazzo, limestone to 4 m and plaster over it, a plastered ceiling */
+export const FAM: TRoomOpts = { fl: 0x8a8070, wl: 0xa3967e, st: 0x7a5a30, mat: { floor: 'terrazzo', wall: 'stone', ceiling: 'plaster', upper: 'plaster' } };
 /** Horticulture: the green's own, and its air is full of spores */
 export const HRT: TRoomOpts = { fl: 0x3d4a30, wl: 0x5a6a4c, st: 0x2f5a34, motes: 'spores', mat: { floor: 'epoxy', wall: 'glazed' } };
 export const BAY: TRoomOpts = { fl: 0x4a4c4e, wl: 0x5e6164, st: 0xb89b2e, ht: 8, em: 1, mat: { ...DUG, floor: 'epoxy' } };

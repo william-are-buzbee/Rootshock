@@ -55,8 +55,8 @@ describe('a blow on a wall', () => {
   it('is heard where it lands, from what the wall is made of', () => {
     const up = sim('upper'), w = up.world;
     const R = w.def.rooms.find(r => r.name === 'Security corridor')!, y = R.y0 + 1.2, z = (R.z0 + R.z1) / 2;
-    /* from the middle of the corridor to its west wall: painted block */
-    expect(w.solidMat(R.x0, y, z, R.x0 + 2, y, z)).toBe('block');
+    /* from the middle of the corridor to its west wall: block, skim-coated */
+    expect(w.solidMat(R.x0, y, z, R.x0 + 2, y, z)).toBe('plaster');
     /* onto a container's side: steel */
     const box = w.def.props.find(p => p.mat === 'steel' && p.solid && p.sx > 5)!;
     expect(w.solidMat(box.x, box.y + 1, box.z - box.sz / 2, box.x, box.y + 1, box.z - box.sz / 2 - 1)).toBe('steel');
@@ -169,7 +169,8 @@ describe('how the station looks', () => {
     const up = levelDef(STATION, 'upper');
     const room = (n: string) => up.rooms.find(r => r.name === n)!;
     expect(room('Infirmary').mat).toMatchObject({ wall: 'glazed', ceiling: 'tiles' });
-    expect(room('Security corridor').mat.wall).toBe('block');
+    expect(room('Locker room').mat.wall).toBe('block');
+    expect(room('Security corridor').mat.wall).toBe('plaster'); // skim-coated
     /* a pipe is a steel cylinder lying on its side, just under a ceiling */
     const pipesIn = (n: string) => {
       const R = room(n);

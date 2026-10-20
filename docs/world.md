@@ -445,9 +445,9 @@ wins; the older text stays only because it describes what is built, until the le
   Armory, Operations, the wing's thresholds, wherever Security kept people out. A live camera on an armed place takes anyone
   moving in it, at any pace, as far as the light lets it see; stand stock still and it loses you, as motion detection does.
   Anywhere else a camera only records. The changed never trip one: they were staff, and from habit they still keep out of
-  where they were never cleared to go. So the lesson is knowing where the lines are, and the lines are shown: hazard paint
-  on the floor, ALARMED AREA at the door, and the camera's light, green while it watches and red while it holds you, so
-  there is still a moment to step back out. Dark is still blind. (Built cameras weigh your speed, `SPEED` and `holdRate` in
+  where they were never cleared to go. So the lesson is knowing where the lines are, and the line is the camera: one
+  hangs in every armed room in plain view from each way in (no hazard paint, no ALARMED AREA: the owner's call), and its
+  light is green while it watches and red while it holds you, so there is still a moment to step back out. Dark is still blind. (Built cameras weigh your speed, `SPEED` and `holdRate` in
   `sim/eyes.ts`: that goes, and an armed place takes its place. The cone, the light, the hold of about a second and a half,
   the zones and their speakers stay.) **Built,** with the wing's threshold as its corridor (the changed's own checkpoint
   post stays theirs, and on their rounds once the wing is lit): below, *Being found*.
@@ -752,8 +752,8 @@ should be added. Below it, production (below).
   from green to red with a servo's whir, and held about a second and a half, you sound its zone. Stand still in its view
   and it lets go a little at a time (it forgets a full hold in about three seconds); step out of its view or out of the
   room and it lets go at once. It sounds once for a sighting, and keeps the zone sounding while it still sees you
-  moving; to sound it again it must have let you go. The way in is marked: the door's sign is red, ALARMED AREA under
-  its name, and hazard paint runs across the floor just inside. The speaker's beacon turns and the klaxon goes round
+  moving; to sound it again it must have let you go. The way in is not marked; its camera is seen from it (tested).
+  The speaker's beacon turns and the klaxon goes round
   for twelve seconds; each time it goes round, any of the changed that hears it and is not already after you leaves its
   rounds or its post and hurries to the speaker (2.6 m/s; 3.4 with another in sight hurrying too), not to you. There
   one stands and looks about a while, then goes back to its rounds; it finds you only if it sees or hears you on the

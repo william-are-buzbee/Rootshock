@@ -883,8 +883,8 @@ components, not code threaded through the frame loop:
   the rest only record, and have no light. A guard holds you while you are in an armed room and moving at any pace (over
   `EYES.still`), a second of hold a second; standing in view it drains; out of view or out of the room it lets go at
   once. Held `EYES.hold` it sounds its zone, once a sighting (`Cam.tripped`), and keeps it sounding while it still sees
-  you moving. An armed room's door signs are drawn red (`SignDef.warn`) and the floor inside each door is painted, both
-  from the room's flag (`content/build/tiles.ts`); the cast leave armed rooms out of their rounds. An alarm keeps a route
+  you moving. An armed room is not marked (its red signs and hazard paint are gone): its guard is in plain view from
+  every way in, which `test/eyes.test.ts` checks; the cast leave armed rooms out of their rounds. An alarm keeps a route
   to its speaker and how far its sound carries (both made once, when it starts, and again on load); each time the
   klaxon goes round, every husk in earshot that is not hunting takes the state `answer` and hurries the route (its own
   copy) at 2.6 m/s, 3.4 with another in sight hurrying too (`ANSWER` in `sim/cast.ts`). Each round also locks the zone
@@ -1405,6 +1405,12 @@ halls are terrazzo; medical floors vinyl; homes carpeted; the lobby, its gallery
 so are poured, not dug; its kitchen, canteen, laundry and gym are vinyl. Services hang under a sprayed crown as under a
 poured one. The 2 m checker the first engine drew on floors, walls and the painted sky is gone (it read as a
 checkerboard); each material draws its own joints, and a wall's or floor's faces merge whole. The start room is vinyl underfoot, so the first step sounds of it.
+
+Then, from play: the lobby's limestone, laid half a panel along as masonry is, read as brick, and the block's dark
+joints read as brickwork too. The stone is hung as cladding now (1.5 by 0.75 m, stacked joint over joint, hairline
+joints) to 4 m, plaster over it (`RoomMats.upper` above `datum`); the paint fills the block's joints, so its coursing shows
+faintly; the wing's two corridors are skim-coated (plaster over the block). The painted dado and stripe are drawn on
+painted block only, and nowhere else.
 
 Not done: decay (world.md, proposed); a bronze or brushed metal of its own (steel's pattern is riveted plate); glossy
 floors catching the tubes, which terrazzo and the coated floors now most want.

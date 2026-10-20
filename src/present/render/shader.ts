@@ -189,9 +189,10 @@ void surface(int pat, vec3 p, vec3 n, float up, float det, out float alb, out fl
     float row = floor(uv.y / 0.2), x = uv.x + 0.2 * mod(row, 2.0);
     float m = max(grid(uv.y, 0.2, 0.005), grid(x, 0.4, 0.005));
     float tone = hash(vec2(floor(x / 0.4), row)), pore = n3(p * 26.0);
-    alb = (1.0 + 0.07 * (tone - 0.5) + 0.07 * (pore - 0.5) * det) * (1.0 - 0.22 * m);
-    h = 0.0006 * pore - 0.003 * m;
-    gm = 1.0 - 0.8 * m;
+    /* the paint fills the joints, so the coursing shows only faintly */
+    alb = (1.0 + 0.05 * (tone - 0.5) + 0.07 * (pore - 0.5) * det) * (1.0 - 0.07 * m);
+    h = 0.0006 * pore - 0.0012 * m;
+    gm = 1.0 - 0.3 * m;
   } else if (pat == ${P('plaster')}) {
     float b = n3(p * 1.1), pe = n3(p * 42.0);
     alb = 1.0 + 0.05 * (b - 0.5) + 0.03 * (pe - 0.5) * det;
@@ -306,13 +307,13 @@ void surface(int pat, vec3 p, vec3 n, float up, float det, out float alb, out fl
     h = 0.0002 * (c2 - c1) * big + 0.0004 * strip;
     gm = 1.0 + 1.5 * strip;
   } else if (pat == ${P('stone')}) {
-    /* honed limestone in panels 1.2 m long and 0.6 high, each course set half a panel along; fine joints; its bedding
-       planes, and pits where a fossil fell out */
-    float row = floor(uv.y / 0.6), x = uv.x + 0.6 * mod(row, 2.0);
-    float j = max(grid(uv.y, 0.6, 0.0015), grid(x, 1.2, 0.0015));
-    float tone = hash(vec2(floor(x / 1.2), row)), bed = n3(vec3(x * 1.5, uv.y * 14.0, tone * 40.0));
+    /* honed limestone hung as cladding: panels 1.5 m long and 0.75 high stacked joint over joint (set half a panel
+       along, as masonry is, it reads as brick), hairline joints; its bedding planes, and pits where a fossil fell out */
+    float row = floor(uv.y / 0.75), x = uv.x;
+    float j = max(grid(uv.y, 0.75, 0.001), grid(x, 1.5, 0.001));
+    float tone = hash(vec2(floor(x / 1.5), row)), bed = n3(vec3(x * 1.5, uv.y * 14.0, tone * 40.0));
     float pit = smoothstep(0.73, 0.78, n3(p * 45.0)) * fine;
-    alb = (1.0 + 0.1 * (tone - 0.5) + 0.08 * (bed - 0.5) * det - 0.12 * pit) * (1.0 - 0.12 * j);
+    alb = (1.0 + 0.06 * (tone - 0.5) + 0.08 * (bed - 0.5) * det - 0.12 * pit) * (1.0 - 0.1 * j);
     h = -0.001 * j - 0.0004 * pit;
     gm = 1.0 - 0.9 * j;
   }

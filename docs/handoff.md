@@ -60,7 +60,8 @@ Each step its own PR, playable on its own.
 ## Where things are now
 
 Step 2's first half is done: cameras guard the armed rooms they hang in (`RoomDef.armed`, `Cam.guard`, `EYES.still`;
-the rest only record), the way into each is marked (red door signs, `SignDef.warn`; hazard paint, `content/build/tiles.ts`),
+the rest only record), the way into each was marked (red door signs and hazard paint; since taken out, the camera in view
+from each way in being the tell),
 the cast keep armed rooms out of their rounds, alarm fatigue is out, and every husk in earshot hurries to the speaker,
 faster with another in sight hurrying (`ANSWER` in `sim/cast.ts`). Running noise is left as it is until played.
 Lockdown is done too: rooms carry their alarm zone (`RoomDef.zone`, set from a table at the end of `buildUpper`), and

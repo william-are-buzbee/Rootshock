@@ -87,8 +87,9 @@ export const MATS: Record<Mat, MatDef> = {
 /** every material in a fixed order: the renderer numbers them from 1 by it (0 is a thing that says nothing of itself) */
 export const MAT_ORDER = Object.keys(MATS) as Mat[];
 
-/** what a room's floor, walls and ceiling are */
-export interface RoomMats { floor: Mat; wall: Mat; ceiling: Mat }
+/** what a room's floor, walls and ceiling are; and if its walls change above a height (its datum, metres over its
+ *  floor; 4 unless it says), what they are above it */
+export interface RoomMats { floor: Mat; wall: Mat; ceiling: Mat; upper?: Mat; datum?: number }
 
 /** the usual rooms: fitted ones are concrete; a walkway is grating over open air; a cave is rock all round; the
  *  Commons' street is paved, between the blocks' plastered fronts, under rock painted as sky. A doorway is its steel

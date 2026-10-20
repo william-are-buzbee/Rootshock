@@ -118,8 +118,6 @@ export interface SignDef {
   x: number; y: number; z: number;
   yaw: number;
   circuit: string;
-  /** it marks the way into an armed room: drawn red, ALARMED AREA under its name */
-  warn?: boolean;
 }
 
 /** a sloped or uneven surface: a ramp, a cave's floor or ceiling. Heights are given on a lattice of `res` metres

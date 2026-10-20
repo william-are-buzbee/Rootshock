@@ -210,8 +210,8 @@ export class LevelBuilder {
   lamp(x: number, y: number, z: number, r: number, c: Colour): void {
     this.def.lamps.push({ x, y, z, r, colour: c });
   }
-  sign(text: string, x: number, y: number, z: number, yaw: number, circuit = this.def.circuit, warn = false): void {
-    this.def.signs.push({ text, x, y, z, yaw, circuit, ...(warn ? { warn } : {}) });
+  sign(text: string, x: number, y: number, z: number, yaw: number, circuit = this.def.circuit): void {
+    this.def.signs.push({ text, x, y, z, yaw, circuit });
   }
   item(id: string, x: number, y: number, z: number, n = 1, on?: Aim): void { this.def.items.push({ id, x, y, z, n, ...(on ? { on } : {}) }); }
   note(key: string, x: number, y: number, z: number): void { this.def.notes.push({ key, x, y, z }); }

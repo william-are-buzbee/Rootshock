@@ -156,16 +156,20 @@ export function buildLevelMesh(w: World, L: Lighting): LevelMesh {
       else put(a, s, u0, u1, v0, v1, room, scale3(R.wall, 0.6), 0.8, matId(R.mat.ceiling));
       return;
     }
-    /* a wall. On plane x the axes are (y, z); on plane z, (x, y). High up a tall room, walls are darker (as before). */
+    /* a wall. On plane x the axes are (y, z); on plane z, (x, y). High up a tall room, walls are darker (as before).
+       Painted block takes a darker dado and the stripe over it; nothing else is painted so. A room can be one thing
+       below its datum and another above it (the lobby's stone, plaster over it). */
     const yAxisFirst = a === 0;
     const [y0, y1] = yAxisFirst ? [u0, u1] : [v0, v1], [h0, h1] = yAxisFirst ? [v0, v1] : [u0, u1];
-    const f = R.y0, wm = matId(R.mat.wall);
-    for (const [ya, yb] of cuts(y0, y1, R.plain ? [f + 3.2] : [f + 0.9, f + 1.05, f + 3.2])) {
+    const f = R.y0, wm = matId(R.mat.wall), painted = !R.plain && R.mat.wall === 'block';
+    const up = R.mat.upper ? f + (R.mat.datum ?? 4) : Infinity;
+    for (const [ya, yb] of cuts(y0, y1, [f + 3.2, ...(painted ? [f + 0.9, f + 1.05] : []), ...(R.mat.upper ? [up] : [])])) {
       const high = ya >= f + 3.2 - 1e-6;
-      const band = R.plain || high ? 2 : yb <= f + 0.9 + 1e-6 ? 0 : yb <= f + 1.05 + 1e-6 ? 1 : 2;
+      const band = !painted || high ? 2 : yb <= f + 0.9 + 1e-6 ? 0 : yb <= f + 1.05 + 1e-6 ? 1 : 2;
       const c = band === 0 ? scale3(R.wall, 0.78) : band === 1 ? R.stripe : R.wall;
-      if (yAxisFirst) put(a, s, ya, yb, h0, h1, room, c, high ? 0.6 : 1, wm);
-      else put(a, s, h0, h1, ya, yb, room, c, high ? 0.6 : 1, wm);
+      const m = ya >= up - 1e-6 ? matId(R.mat.upper) : wm;
+      if (yAxisFirst) put(a, s, ya, yb, h0, h1, room, c, high ? 0.6 : 1, m);
+      else put(a, s, h0, h1, ya, yb, room, c, high ? 0.6 : 1, m);
     }
   };
 

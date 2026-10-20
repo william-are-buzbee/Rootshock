@@ -128,26 +128,20 @@ function platformParts(w: number, h: number): Part[] {
 }
 
 /** a sign plate: dark, a hazard bar, the name in capitals */
-/** a door's sign; one into an armed room (warn) has a red band under its name, ALARMED AREA, and hangs down further */
-function signMesh(text: string, warn = false): THREE.Mesh {
-  const c = document.createElement('canvas'), h = warn ? 84 : 56;
+/** a door's sign */
+function signMesh(text: string): THREE.Mesh {
+  const c = document.createElement('canvas'), h = 56;
   c.width = 256; c.height = h;
   const x = c.getContext('2d')!;
   x.fillStyle = '#14171a'; x.fillRect(0, 0, 256, h);
-  x.fillStyle = warn ? '#b3261e' : '#c9a227'; x.fillRect(0, 0, 8, h);
+  x.fillStyle = '#c9a227'; x.fillRect(0, 0, 8, h);
   x.fillStyle = '#d9d4c3';
   x.font = '600 27px "Barlow Condensed","Arial Narrow",Arial,sans-serif';
   x.textAlign = 'center'; x.textBaseline = 'middle';
   x.fillText(text.toUpperCase(), 132, 30, 236);
-  if (warn) {
-    x.fillStyle = '#b3261e'; x.fillRect(8, 56, 248, 28);
-    x.fillStyle = '#f2ede0'; x.font = '700 19px "Barlow Condensed","Arial Narrow",Arial,sans-serif';
-    x.fillText('ALARMED AREA', 132, 71, 236);
-  }
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
   const m = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 0.37 * h / 56), new THREE.MeshBasicMaterial({ map: tex }));
-  if (warn) m.geometry.translate(0, -0.37 * 14 / 56, 0); // its name stays where any other sign's is
   return m;
 }
 
@@ -229,7 +223,7 @@ export class Things {
       });
     }
     for (const s of w.def.signs) {
-      const m = signMesh(s.text, s.warn);
+      const m = signMesh(s.text);
       m.position.set(s.x, s.y, s.z);
       m.rotation.y = s.yaw;
       scene.add(m);

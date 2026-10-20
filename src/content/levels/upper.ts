@@ -7,6 +7,9 @@ import {
   BAY, FAM, MED, OFF, OPS, SEC, UTIL, WALK, blood, callPoint, camera, container, corpse, crates, desk, droppedLight, eggs, exitSign, forklift, genset, gore, grandStair, liftRoom, medbed, monitors, panel, shelf, speaker, tbl,
 } from '../build/fittings';
 
+/** the block skim-coated smooth: the corridors the wing's people walked every day */
+const SKIM = (o: TRoomOpts): TRoomOpts['mat'] => ({ ...o.mat, wall: 'plaster' });
+
 /* Upper station, 400 m down. Off the main shaft, the Security wing (x 14 to 66) and Operations (x 64 to 110, south to
    z 54), with a two-storey atrium where they meet; the Cargo cavern (x 110 to 240); the exhaust shaft (x 260). Start here.
    Ported from the first engine (archive/first-engine.html, buildUpper and buildCargo2) on the tile adapter, in tile
@@ -73,7 +76,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   /* its south-east reaches a row further, to the corridor's door; the west keeps a wall's width off the shaft's doors */
   room(D, 'Lobby', 1, 1, 19, 12, LB); room(D, 'Lobby', 12, 13, 8, 1, LB);
   door(D, 20, 13, { sg: [['Security', 'w'], ['Lobby', 'e']] });
-  const LG: TRoomOpts = { ...WALK, ht: 8, c: 'SEC', fl: FAM.fl, wl: FAM.wl, mat: { floor: 'terrazzo', wall: 'stone' } };
+  const LG: TRoomOpts = { ...WALK, ht: 8, c: 'SEC', fl: FAM.fl, wl: FAM.wl, mat: { floor: 'terrazzo', wall: 'stone', upper: 'plaster', datum: 3.2 } };
   room(T1, 'Lobby gallery', 1, 12, 19, 1, LG); room(T1, 'Lobby gallery', 12, 13, 8, 1, LG);
   grandStair(D, T1, 9, 6, 4, 6, 's');
   bx(D, 10.5, 7, 37, 0.06, 25, [0.1, 0.1, 0.1], { y: 12.9, c: 0, pw: [[0.08, 0.08, 0.09], [2.85, 2.82, 2.72]], pc: 'SEC' }); // the false sky: emitting (2 + its colour), with power
@@ -105,7 +108,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   for (let k = 0; k < 3; k++) bx(D, 14.6 + k * 0.6, 21.08, 0.5, 1.5, 0.12, 0xc9a227, { y: 0.4, c: 0 }); // hazmat suits on their pegs
   shelf(D, 17.7, 23.6, 0.5, 2.2, { cols: [0xc9a227, 0x3d4042] }); bx(D, 15.4, 25.4, 0.8, 0.6, 0.6, 0x3a4030);
   item(D, 'rebreather', 15.4, 25.4, 0.6); item(D, 'kit', 17.65, 23.3, 1.06);
-  room(D, 'Security corridor', 21, 13, 18, 3, { ...SEC, c: 'SEC', ht: 4.5, em: 1, safe: 1, armed: 1 });
+  room(D, 'Security corridor', 21, 13, 18, 3, { ...SEC, c: 'SEC', ht: 4.5, em: 1, safe: 1, armed: 1, mat: SKIM(SEC) });
   /* the cut, near the wing's end: the cabinet left open, the cable through, and the one who did it */
   panel(D, 'SEC', 37.4, 13.06, 's', { cut: 1, zone: 'wing' }); // mended, it comes live on Security's board, and the wing sounds bx(D, 37.4, 13.04, 0.12, 2.6, 0.08, 0x2a2c2e, { y: 1.8, c: 0 });
   P(D, 'cyl', 37.15, 13.16, 0.07, 0.6, 0.07, 0x1d1f21, { y: 1.15, rz: 0.35, c: 0 }); P(D, 'cyl', 37.65, 13.16, 0.07, 0.45, 0.07, 0x1d1f21, { y: 1.3, rz: -0.3, c: 0 });
@@ -212,7 +215,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   /* where the light changes, it starts: eggs at the threshold, on their side */
   eggs(D, 39.4, 13.4, 2); eggs(D, 39.3, 15.6, 3); blood(D, 46.3, 19.3, 1.4);
   /* the second leg: south from the atrium between the offices, and out into the muster hall */
-  room(D, 'Operations corridor', 42, 21, 3, 6, { ...OPS, ht: 4.5, em: 1 });
+  room(D, 'Operations corridor', 42, 21, 3, 6, { ...OPS, ht: 4.5, em: 1, mat: SKIM(OPS) });
   /* the Operations zone sounds here: the corridor, and the hall's east bays */
   speaker(D, 'ops', 43.5, 25, 'CRIT'); mut(D, 'husk', 43.5, 24); mut(D, 'husk', 41, 18.5); blood(D, 43, 22.7, 1.2);
   /* the chief's office is armed, its camera in the far corner on the door */

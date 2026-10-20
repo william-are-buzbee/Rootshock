@@ -425,23 +425,13 @@ export function finishLevel(start?: [number, number, number]) {
       });
       b.level.doors[b.level.doors.length - 1].y0 = y0;
       b.level.doors[b.level.doors.length - 1].y1 = y0 + 2.4;
-      /* a sign names the room it is read toward; one into an armed room says so */
-      const toward = { w: k + 1, e: k - 1, n: k + D.W, s: k - D.W };
+      /* a sign names the room it is read toward. An armed room is not marked: its camera, by the door, is the tell */
       for (const [text, dir] of d.sg ?? []) {
-        const y = y0 + 2.74, warn = !!roomAtTile(D, toward[dir])?.armed;
-        if (dir === 'w') b.sign(text, x0 - 0.03, y, cz, -PI / 2, circuit, warn);
-        else if (dir === 'e') b.sign(text, x0 + T + 0.03, y, cz, PI / 2, circuit, warn);
-        else if (dir === 'n') b.sign(text, cx, y, z0 - 0.03, PI, circuit, warn);
-        else b.sign(text, cx, y, z0 + T + 0.03, 0, circuit, warn);
-      }
-      /* the line: hazard paint across the floor just inside an armed room, the door's width, yellow and black */
-      for (const o of ns ? [-D.W, D.W] : [-1, 1]) {
-        if (!roomAtTile(D, k + o)?.armed || roomAtTile(D, k - o)?.armed) continue;
-        const into = o === D.W || o === 1 ? 1.15 : -0.15;
-        for (let s = 0; s < 6; s++) {
-          const along = d.x + (s + 0.5) / 6, across = d.y + into;
-          bx(D, ns ? along : d.x + into, ns ? across : d.y + (s + 0.5) / 6, ns ? 0.33 : 0.3, 0.01, ns ? 0.3 : 0.33, s % 2 ? 0x1d1f21 : 0xc9a227, { y: 0.013, c: 0 });
-        }
+        const y = y0 + 2.74;
+        if (dir === 'w') b.sign(text, x0 - 0.03, y, cz, -PI / 2, circuit);
+        else if (dir === 'e') b.sign(text, x0 + T + 0.03, y, cz, PI / 2, circuit);
+        else if (dir === 'n') b.sign(text, cx, y, z0 - 0.03, PI, circuit);
+        else b.sign(text, cx, y, z0 + T + 0.03, 0, circuit);
       }
     }
     /* floors under an upper deck: a slab under every tile that is not a hole (or air over a room below that reaches up
