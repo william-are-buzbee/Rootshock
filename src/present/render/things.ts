@@ -9,6 +9,7 @@ import type { Lighting } from '../../world/light';
 import { apart, propVerts } from './levelMesh';
 import { TEMPLATES } from './templates';
 import { dynamicMaterial, glassMaterial, lightMaterial, matId } from './shader';
+import { SignView } from './signs';
 
 /* What moves, drawn where the sim says it is: doors, platforms, loose crates. And the water, which does not move but
    is see-through, so it is drawn on its own. Each moving thing is lit by the room it is in. */
@@ -127,24 +128,6 @@ function platformParts(w: number, h: number): Part[] {
   return out;
 }
 
-/** a sign plate: dark, a hazard bar, the name in capitals */
-/** a door's sign */
-function signMesh(text: string): THREE.Mesh {
-  const c = document.createElement('canvas'), h = 56;
-  c.width = 256; c.height = h;
-  const x = c.getContext('2d')!;
-  x.fillStyle = '#14171a'; x.fillRect(0, 0, 256, h);
-  x.fillStyle = '#c9a227'; x.fillRect(0, 0, 8, h);
-  x.fillStyle = '#d9d4c3';
-  x.font = '600 27px "Barlow Condensed","Arial Narrow",Arial,sans-serif';
-  x.textAlign = 'center'; x.textBaseline = 'middle';
-  x.fillText(text.toUpperCase(), 132, 30, 236);
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  const m = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 0.37 * h / 56), new THREE.MeshBasicMaterial({ map: tex }));
-  return m;
-}
-
 function coloured(src: Float32Array, c: Colour, mat = 0): THREE.BufferGeometry {
   const g = new THREE.BufferGeometry(), n = src.length / 3, col = new Float32Array(n * 3);
   for (let i = 0; i < n; i++) col.set(c, i * 3);
@@ -155,12 +138,12 @@ function coloured(src: Float32Array, c: Colour, mat = 0): THREE.BufferGeometry {
 
 export class Things {
   private list: Moving[] = [];
-  private signs: { mat: THREE.MeshBasicMaterial; circuit: string }[] = [];
+  private signs: SignView;
 
-  /** the power changed: signs dim or brighten (door lights follow in update) */
+  /** the power changed: signs take the light where they hang (door lights follow in update) */
   setLighting(L: Lighting): void {
     this.L = L;
-    for (const s of this.signs) s.mat.color.setScalar(L.power(s.circuit) ? 1 : 0.3);
+    this.signs?.setLighting(L);
   }
 
   constructor(private scene: THREE.Object3D, private sim: Sim, private L: Lighting) {
@@ -222,13 +205,7 @@ export class Things {
         m.visible = heard(sim, S.zone) && sim.alarms.some(a => a.zone === S.zone) && Math.floor(performance.now() / 300) % 2 === 0;
       });
     }
-    for (const s of w.def.signs) {
-      const m = signMesh(s.text);
-      m.position.set(s.x, s.y, s.z);
-      m.rotation.y = s.yaw;
-      scene.add(m);
-      this.signs.push({ mat: m.material as THREE.MeshBasicMaterial, circuit: s.circuit });
-    }
+    this.signs = new SignView(scene, w, L);
     this.setLighting(L);
     sim.loose.all.forEach((o, k) => {
       /* a hair larger than it is, so a crate on the floor or on another does not fight it (levelMesh's apart) */

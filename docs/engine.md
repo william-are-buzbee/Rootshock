@@ -1056,6 +1056,12 @@ sequence of inputs. The door rules, the labels and the answers are the first eng
   its post, a box on a shelf or the floor, a crate on a crate) showed through each other as you moved. Each prop and
   each part of a thing is drawn 1 to 7 mm larger than it is, different for neighbours (`apart` in `levelMesh.ts`). A
   grid floor or ceiling that a sloped surface covers (a cave flat at its room's floor) is not drawn at all.
+- **Signs** (since; `present/render/signs.ts`): lit as any surface is, not from within (a black plate shone in a dark
+  room): the room's light where each hangs, and the lights you carry. What is pale on them is retroreflective, as real
+  room signs often are, so under your beam the letters flare and the plate stays dark. Each takes its look from the wall
+  it hangs on: bronze letters straight on the family's limestone; a small dark plate with a bar of the room's stripe
+  colour on block, plaster and board; a white plate with a coloured band on glazed tile; the name stencilled in worn
+  paint on concrete and shotcrete. Drawn at 420 px a metre and sized to their words, so short names have short plates.
 - **UI** stays in HTML over the canvas, with the current type and colours (Barlow Condensed, Newsreader, bone, ash,
   hazard).
 - **Dev tools** carry over (`?dev`, fly, god, level select, map), plus overlays for colliders, nav graph and noise.
