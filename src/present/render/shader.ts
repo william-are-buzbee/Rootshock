@@ -185,14 +185,12 @@ void surface(int pat, vec3 p, vec3 n, float up, float det, out float alb, out fl
       h -= 0.002 * seam + 0.008 * tie;
     }
   } else if (pat == ${P('block')}) {
-    /* 400 by 200 mm block in running bond, coursed up from the floor */
-    float row = floor(uv.y / 0.2), x = uv.x + 0.2 * mod(row, 2.0);
-    float m = max(grid(uv.y, 0.2, 0.005), grid(x, 0.4, 0.005));
-    float tone = hash(vec2(floor(x / 0.4), row)), pore = n3(p * 26.0);
-    /* the paint fills the joints, so the coursing shows only faintly */
-    alb = (1.0 + 0.05 * (tone - 0.5) + 0.07 * (pore - 0.5) * det) * (1.0 - 0.07 * m);
-    h = 0.0006 * pore - 0.0012 * m;
-    gm = 1.0 - 0.3 * m;
+    /* block filled and painted smooth, as an institution paints it: no coursing (drawn, it read as brick), a roller's
+       stipple, the paint a little uneven, and a control joint every 6 m */
+    float m = n3(p * 0.7), st = mix(0.5, n3(p * 55.0), fine), j = grid(uv.x, 6.0, 0.004);
+    alb = (1.0 + 0.05 * (m - 0.5) + 0.05 * (st - 0.5) * det) * (1.0 - 0.15 * j);
+    h = 0.0003 * st - 0.002 * j;
+    gm = 1.0 - 0.6 * j;
   } else if (pat == ${P('plaster')}) {
     float b = n3(p * 1.1), pe = n3(p * 42.0);
     alb = 1.0 + 0.05 * (b - 0.5) + 0.03 * (pe - 0.5) * det;
@@ -214,11 +212,13 @@ void surface(int pat, vec3 p, vec3 n, float up, float det, out float alb, out fl
     h = 0.0012 * ((tone - 0.5) * f.x + (tilt - 0.5) * f.y) - 0.002 * g;
     gm = 1.0 - 0.95 * g;
   } else if (pat == ${P('flags')}) {
-    float row = floor(uv.y / 0.5), x = uv.x + 0.25 * mod(row, 2.0);
-    float j = max(grid(uv.y, 0.5, 0.006), grid(x, 0.5, 0.006));
-    float tone = hash(vec2(floor(x / 0.5), row)), grit = n3(p * 18.0);
-    alb = (1.0 + 0.16 * (tone - 0.5) + 0.1 * (grit - 0.5) * det) * (1.0 - 0.4 * j);
-    h = 0.0012 * grit - 0.004 * j;
+    /* the street: large square flags, joint to joint (laid half a flag along, small and contrasting, they read as a
+       brick pavement), each a little different in tone */
+    vec2 cell = floor(uv / 0.9);
+    float j = max(grid(uv.x, 0.9, 0.003), grid(uv.y, 0.9, 0.003));
+    float tone = hash(cell), grit = n3(p * 18.0);
+    alb = (1.0 + 0.06 * (tone - 0.5) + 0.08 * (grit - 0.5) * det) * (1.0 - 0.2 * j);
+    h = 0.0012 * grit - 0.003 * j;
   } else if (pat == ${P('mesh')} && horiz) {
     /* bearing bars every 30 mm one way, cross bars every 100 mm the other, and the dark showing through between */
     float bar = max(grid(p.x, 0.03, 0.0025), grid(p.z, 0.1, 0.003));

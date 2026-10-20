@@ -4,7 +4,7 @@ import {
   arch, beginLevel, bx, cave, door, elev, finishLevel, flight, item, ladder, mkDeck, mut, note, P, partition, roughen, room, stack, stairs, use, type Deck, type LevelInfo, type TRoomOpts,
 } from '../build/tiles';
 import {
-  BAY, FAM, MED, OFF, OPS, SEC, UTIL, WALK, blood, callPoint, camera, container, corpse, crates, desk, droppedLight, eggs, exitSign, forklift, genset, gore, grandStair, liftRoom, medbed, monitors, panel, shelf, speaker, tbl,
+  BAY, FAM, MED, OFF, OPS, SEC, UTIL, WALK, blood, callPoint, camera, container, corpse, desk, droppedLight, eggs, exitSign, forklift, genset, gore, grandStair, liftRoom, medbed, monitors, panel, shelf, speaker, tbl,
 } from '../build/fittings';
 
 /** the block skim-coated smooth: the corridors the wing's people walked every day */
@@ -37,7 +37,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
      it. */
   /* where freight came in: off the hoist, through to the hazard store and the corridor, never across the lobby */
   room(D, 'Goods inward', 12, 14, 8, 6, { ...UTIL, c: 'SEC', ht: 4, em: 1 }); door(D, 20, 15, { sg: [['Security', 'w'], ['Goods inward', 'e']] });
-  crates(D, 18.6, 18.6, 3); bx(D, 13, 15, 1.2, 0.15, 1.2, 0x5b4a36); crates(D, 13, 15, 2); bx(D, 16, 19.4, 3.6, 0.9, 0.7, 0x4a4f55);
+  bx(D, 16, 19.4, 3.6, 0.9, 0.7, 0x4a4f55);
   mut(D, 'husk', 14, 18.4, { post: 1, yaw: PI / 2 });
 
   /* People came up the shaft to the second floor: off the surface cage, a landing, and the checkpoint (world.md §8,
@@ -117,7 +117,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
      looks down it from the lobby end. Mended, the way along the wing is watched */
   speaker(D, 'wing', 30, 14.5, 'CRIT'); camera(D, 21.4, 13.3, 3.9, PI / 2, 'SEC', 'wing');
   /* what was left of a barricade across the mouth of the wing */
-  bx(D, 38.4, 13.7, 1.8, 0.75, 0.7, 0x5b5d5f, { ry: 0.5 }); crates(D, 38.3, 15.3, 2);
+  bx(D, 38.4, 13.7, 1.8, 0.75, 0.7, 0x5b5d5f, { ry: 0.5 });
   /* North, a storey down: the medical isolation suite (world.md §8). Rooms round a tall common hall, and over its south
      end, at the wing's own level, the nurses' station that the stair climbs to. It is dark with the wing: the only light
      is a flashlight dropped still on at the stair's foot, and the exit signs on their own batteries. You wake in room 1,
@@ -393,14 +393,14 @@ function buildCargo(D: Deck, T1: Deck, T2: Deck, T3: Deck): void {
   for (const z of [8.2, 21.8]) bx(D, 92.5, z, 128, 0.5, 0.4, 0x5a5d60, { y: 17.4, c: 0 });
   bx(D, 90, 15, 1, 0.8, 27.4, 0xc9a227, { y: 17.6, c: 0 }); bx(D, 90, 16.5, 1.4, 0.6, 1.4, 0x2a2c2e, { y: 17, c: 0 }); bx(D, 90, 16.5, 0.05, 8.6, 0.05, 0x2a2c2e, { y: 8.4, c: 0 }); bx(D, 90, 16.5, 0.5, 0.4, 0.5, 0x8a7a2a, { y: 8, c: 0 });
   /* the floor: receiving at the west end, containers and forklifts, the nest at the east end */
-  crates(D, 62, 18, 2); blood(D, 64, 16, 1.4); crates(D, 66, 10, 2);
+  blood(D, 64, 16, 1.4);
   container(D, 72, 20, false, 2); container(D, 80, 20, false, 3); container(D, 95, 20.2, false, 2); container(D, 104, 19.4, true, 1); container(D, 84, 10, false, 1); container(D, 98, 9.6, false, 1);
-  container(D, 88, 17.4, true, 2); container(D, 110, 17.6, true, 3); crates(D, 92, 12, 2); crates(D, 106, 11, 2); forklift(D, 76, 16.5, true); forklift(D, 101, 16.8, false);
+  container(D, 88, 17.4, true, 2); container(D, 110, 17.6, true, 3); forklift(D, 76, 16.5, true); forklift(D, 101, 16.8, false);
   mut(D, 'husk', 80, 14.6); mut(D, 'husk', 96, 15.4);
   for (const [x, z, n] of [[114, 12, 4], [117, 18, 5], [119, 10, 3], [121, 15, 5], [123, 20, 4], [116, 14.6, 3]]) eggs(D, x, z, n); gore(D, 118, 15.5, 4); blood(D, 120, 13, 2);
   mut(D, 'worm', 117, 16); mut(D, 'worm', 118, 17); mut(D, 'worm', 116.5, 17.4); mut(D, 'skitter', 121, 12); mut(D, 'husk', 112, 19, { post: 1, yaw: -PI / 2 });
   /* the tiers: thicker with every one */
-  crates(T1, 80, 9.5, 2); container(T1, 92, 9.6, false, 1); for (const [x, z] of [[85, 10], [99, 9], [108, 11]]) eggs(T1, x, z, 4); mut(T1, 'skitter', 88, 11); mut(T1, 'skitter', 104, 10);
+  container(T1, 92, 9.6, false, 1); for (const [x, z] of [[85, 10], [99, 9], [108, 11]]) eggs(T1, x, z, 4); mut(T1, 'skitter', 88, 11); mut(T1, 'skitter', 104, 10);
   for (const [x, z] of [[76, 9], [84, 11], [90, 9], [96, 10.6], [103, 9.4], [108, 10]]) eggs(T2, x, z, 5); gore(T2, 93, 10, 4); mut(T2, 'skitter', 86, 10); mut(T2, 'skitter', 97, 11); mut(T2, 'skitter', 105, 9.6);
   mut(T2, 'grabber', 90, 8.12, { yaw: 0 });
   for (const [x, z] of [[77, 9], [80, 11], [83, 9.4], [86, 10.8], [89, 9], [92, 11], [95, 9.6], [98, 10.6]]) eggs(T3, x, z, 6); gore(T3, 88, 10, 5); gore(T3, 94, 9.6, 4);
@@ -416,7 +416,7 @@ function buildCargo(D: Deck, T1: Deck, T2: Deck, T3: Deck): void {
   room(D, 'Cargo office', 62, 23, 4, 4, { ...OFF, c: 'CARGO' }); door(D, 63, 22, { sg: [['Cargo office', 'n']] });
   desk(D, 63.4, 26.3, 1.8, 0.7); note(D, 'manifest', 63.1, 26.25, 0.78); item(D, 'batt', 63.75, 26.3, 0.78); genset(D, 'CARGO', 65.3, 23.7, 64.7, 24.3); item(D, 'bandage', 62.4, 23.5, 0.02);
   room(D, 'Vehicle bay', 68, 23, 6, 4, { ...UTIL, c: 'CARGO' }); door(D, 70, 22, { sg: [['Vehicles', 'n']] });
-  forklift(D, 69, 25.3, true); forklift(D, 72.4, 25.2, true); crates(D, 70.6, 23.8, 1); item(D, 'batt', 73.4, 23.5, 0.02); item(D, 'pipe', 71, 26.6, 0.02);
+  forklift(D, 69, 25.3, true); forklift(D, 72.4, 25.2, true); item(D, 'batt', 73.4, 23.5, 0.02); item(D, 'pipe', 71, 26.6, 0.02);
   /* east: the link to the exhaust shaft, and the top of ladderway B */
   door(D, 125, 14, { sg: [['Exhaust shaft', 'w']] }); room(D, 'Exhaust link', 126, 14, 6, 2, { ...UTIL, c: 'CARGO', em: 1 }); mut(D, 'grabber', 128.5, 14.12, { yaw: 0 });
   door(D, 132, 14, { sg: [['Fan station', 'w']] }); room(D, 'Fan station', 133, 12, 5, 6, { ...UTIL, c: 'CARGO', ht: 6, em: 1 });

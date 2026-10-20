@@ -6,7 +6,7 @@ import {
   type Deck, type LevelInfo, type TDoorOpts, type TRoom, type TRoomOpts,
 } from '../build/tiles';
 import {
-  GR, HAB, HRT, MED, SEC, UTIL, WALK, bed, blood, body, column, corpse, crates, desk, eggs, genset, gore, liftRoom, medbed, overgrow, shelf, tbl, tree,
+  GR, HAB, HRT, MED, SEC, UTIL, WALK, bed, blood, body, column, corpse, desk, eggs, genset, gore, liftRoom, medbed, overgrow, shelf, tbl, tree,
 } from '../build/fittings';
 
 /* The main level, 450 m down: the Commons (a street of residences under a cavern roof, three storeys of flats on
@@ -129,7 +129,7 @@ function buildSquare(G: Deck, S2: Deck, HB: TRoomOpts, GW: TRoomOpts, CM: TRoomO
   shop('Kiosk', 67, 8, 3, 3, 70, 10, 'e', (x, y) => { bx(G, x + 2.2, y + 1.5, 0.6, 1, 2.4, 0x6b5a48); item(G, 'peaches', x + 2.2, y + 1, 1.02); shelf(G, x + 0.3, y + 1.5, 0.5, 2.4, { cols: [0xc9a227, 0x7a4a34] }); });
   shop('Florist', 67, 19, 3, 3, 70, 19, 'e', (x, y) => { for (let q = 0; q < 4; q++) P(G, 'cyl', x + 0.6 + (q % 2) * 1.2, y + 0.8 + Math.floor(q / 2) * 1.4, 0.5, 0.5, 0.5, 0x6b5a48); overgrow(G, { x, y, w: 3, h: 3, ht: 3.2 } as TRoom, 0.6, true); });
   shop('Transit office', 86, 8, 3, 5, 85, 11, 'w', (x, y) => { desk(G, x + 1.6, y + 0.6, 1.8, 0.7); item(G, 'batt', x + 1.6, y + 0.6, 0.78); shelf(G, x + 2.7, y + 3, 0.5, 2.4); });
-  shop('Lost property', 86, 17, 3, 5, 85, 18, 'w', (x, y) => { shelf(G, x + 2.7, y + 2.4, 0.5, 3, { cols: [0x4d5a66, 0x6b5a3c, 0x8a7a6a] }); crates(G, x + 1, y + 3.6, 1); item(G, 'bandage', x + 1.2, y + 1.4, 0.02); });
+  shop('Lost property', 86, 17, 3, 5, 85, 18, 'w', (x, y) => { shelf(G, x + 2.7, y + 2.4, 0.5, 3, { cols: [0x4d5a66, 0x6b5a3c, 0x8a7a6a] }); item(G, 'bandage', x + 1.2, y + 1.4, 0.02); });
   const CV: [number, number, number, number, number, number, string, Flat][] = [
     [67, 4, 7, 3, 71, 7, 'C1', [{}, 'clean', 'peaches']], [74, 4, 7, 3, 79, 7, 'C2', [{ card: 'C2' }, 'nest', 'medkit']], [81, 4, 7, 3, 84, 7, 'C3', [{ open: true }, 'body', 'bandage', 'N4.3']],
     [67, 23, 7, 3, 71, 22, 'C4', [{ open: true }, 'clean', 'ration']], [74, 23, 7, 3, 79, 22, 'C5', [{ open: true }, 'worm', 'peaches']], [81, 23, 7, 3, 84, 22, 'C6', [{}, 'worm', 'batt']],
@@ -177,7 +177,7 @@ function groundFloor(D: Deck, x0: number, north: boolean, k: number, HB: TRoomOp
     case 0: R('Gymnasium', { mat: VINYL }); bx(D, x0 + 2, mid, 3, 0.08, 2, 0x3a4a5a, { c: 0 }); for (let q = 0; q < 3; q++) P(D, 'cyl', x0 + 5 + q * 0.6, back, 0.4, 0.4, 0.4, 0x2a2c2e); mut(D, 'husk', x0 + 3.5, mid, { post: 1, yaw: 0 }); break;
     case 1: R('School room'); for (let q = 0; q < 3; q++) for (const dz of [-0.5, 0.5]) tbl(D, x0 + 1.6 + q * 1.8, mid + dz, 1, 0.6, 0x8a7a5a); bx(D, x0 + 3.5, back, 3, 1.2, 0.06, 0x2a3a2c, { y: 1, c: 0 }); eggs(D, x0 + 6, front, 3); mut(D, 'skitter', x0 + 5.5, mid); break;
     case 2: R('Library', { lit: 'none' }); for (let q = 0; q < 3; q++) shelf(D, x0 + 1.2 + q * 2.3, back - 0.1, 1.8, 0.5); shelf(D, x0 + 3.5, mid + 0.2, 3, 0.5); break;
-    case 3: R('Stores', { ...UTIL, c: 'RES', mat: FITTED }, { kind: 'heavy' }); crates(D, x0 + 1.5, mid, 2); crates(D, x0 + 5.5, mid, 2); item(D, 'ration', x0 + 3.5, back, 0.02, 2); item(D, 'batt', x0 + 3.5, mid, 0.02); break;
+    case 3: R('Stores', { ...UTIL, c: 'RES', mat: FITTED }, { kind: 'heavy' }); shelf(D, x0 + 1.5, back + 0.1, 2.4, 0.5); shelf(D, x0 + 5.5, back + 0.1, 2.4, 0.5); item(D, 'ration', x0 + 3.5, back, 0.02, 2); item(D, 'batt', x0 + 3.5, mid, 0.02); break;
     case 4: R('Trauma centre', { ...MED, c: 'RES' }, { kind: 'heavy' }); for (let q = 0; q < 4; q++) medbed(D, x0 + 0.6 + q * 1.5, y0 + 1.9);
       shelf(D, x0 + 6.7, mid, 0.5, 2.6, { cols: [0xd4d8d4, 0xb9c4bd, 0x8c2f24, 0xa8b4c0] }); for (const z of [y0 + 0.6, mid, y0 + 2.4]) item(D, 'medkit', x0 + 6.65, z, 1.06); item(D, 'bandage', x0 + 6.65, mid + 0.5, 0.61, 2);
       tbl(D, x0 + 5.4, front, 0.8, 0.7, 0xb4b8ba); note(D, 'clinic', x0 + 5.4, front, 0.78); break;

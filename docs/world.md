@@ -38,7 +38,8 @@ What the walls are, and why, before what colour they are. Plausibility first; th
   alike (the haul, the labour), so the good finish costs proportionally less down here. A rich owner finishes nicely
   wherever people work, not only where visitors look.
 - **Built in the late 70s or 80s, refitted since: two layers to read.** The family's own fabric is where people
-  walked: terrazzo underfoot (the halls, the atrium, the muster hall), painted block in Security, glazed tile where
+  walked: terrazzo underfoot (the halls, the atrium, the muster hall), block filled and painted smooth in Security (no
+  brick to be seen anywhere: the owner's call), glazed tile where
   things are washed down, plaster in homes, limestone and a bronze band where visitors came (the surface landing, the
   lobby and its gallery). The refit laid its own over it: coated floors in Security and Horticulture, sheet vinyl in
   medical rooms and kitchens, plasterboard and carpet tile in the offices. A room dug and left as dug (utility rooms,

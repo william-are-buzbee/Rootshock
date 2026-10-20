@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { STATION } from '../src/content/station';
 import { levelDef } from '../src/sim/run';
+import { testbed } from '../src/content/levels/testbed';
 import { makeSim, step, type Sim } from '../src/sim/sim';
 import { noInput, type Input } from '../src/sim/input';
 import { STEP } from '../src/core/loop';
@@ -12,6 +13,8 @@ import { flickerAt } from '../src/present/flicker';
    synthesis itself needs a browser; where a sound is does not. */
 
 const sim = (id: string) => makeSim(levelDef(STATION, id), { seed: 7, station: STATION });
+/** a crate: the station has none lying about now; the testbed's arena keeps them */
+const bed = () => makeSim(testbed(), { seed: 7, station: STATION }), crate = () => bed().loose.all[0];
 const hold = (s: Sim, secs: number, inp: Partial<Input> = {}) => { for (let t = 0; t < secs; t += STEP) step(s, { ...noInput(), ...inp }); };
 const sounds = (s: Sim, name: string) => s.game.events.filter(e => e.type === 'sfx' && e.name === name) as { k?: number }[];
 
@@ -28,15 +31,15 @@ describe('feet', () => {
   it('ring on a platform and knock on a crate', () => {
     const up = sim('upper'), b = up.player.body;
     expect(underfoot(up.world, b.x, b.y, b.z, up.platforms[0].dyn)).toBe('steel');
-    expect(underfoot(up.world, b.x, b.y, b.z, up.loose.all[0].dyn)).toBe('wood');
+    expect(underfoot(up.world, b.x, b.y, b.z, crate().dyn)).toBe('wood');
   });
 
   it('know what they stand on without being told: a container is steel, a crate wood, a bay its floor round its boulders', () => {
     const up = sim('upper'), w = up.world;
     const box = w.def.props.find(p => p.mat === 'steel' && p.solid && p.sx > 5)!;
     expect(underfoot(w, box.x, box.y + box.sy, box.z)).toBe('steel');
-    const c = up.loose.all[0].dyn;
-    expect(underfoot(w, (c.x0 + c.x1) / 2, c.y1, (c.z0 + c.z1) / 2)).toBe('wood');
+    const tb = bed(), c = tb.loose.all[0].dyn;
+    expect(underfoot(tb.world, (c.x0 + c.x1) / 2, c.y1, (c.z0 + c.z1) / 2)).toBe('wood');
     /* the cargo cavern is dug: sprayed rock over a coated floor; a step onto something in it that says nothing of
        itself is its floor, not grating */
     const R = w.def.rooms.find(r => r.name === 'Cargo cavern')!;
@@ -47,7 +50,7 @@ describe('feet', () => {
     const up = sim('upper'), b = up.player.body;
     expect(legacyFloor(up.world, b.x, b.y, b.z)).toBe('concrete');
     expect(legacyFloor(up.world, b.x, b.y, b.z, up.platforms[0].dyn)).toBe('metal');
-    expect(legacyFloor(up.world, b.x, b.y, b.z, up.loose.all[0].dyn)).toBe('wood');
+    expect(legacyFloor(up.world, b.x, b.y, b.z, crate().dyn)).toBe('wood');
   });
 });
 
