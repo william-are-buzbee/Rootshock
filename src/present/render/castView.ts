@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { blowAt, type Mutant } from '../../sim/cast';
+import { blowAt, torchRay, TORCH, type Mutant } from '../../sim/cast';
 import { DOWN } from '../../sim/moves';
 import { ragSpeed } from '../../sim/ragdoll';
 import { STEP } from '../../core/loop';
@@ -41,7 +41,16 @@ export const BUILD: Record<string, (mat: THREE.Material, m: Mutant) => Model> = 
     const arms: O3[] = [];
     let a = grp(b, -0.27, 0.56, 0); mk(a, mat, 'box', cl, 0.11, 0.36, 0.12, 0, -0.18, 0); mk(a, mat, 'box', PALE, 0.08, 0.34, 0.08, 0, -0.52, 0); arms.push(a);
     a = grp(b, 0.3, 0.58, 0); mk(a, mat, 'box', RAW, 0.14, 0.4, 0.14, 0, -0.2, 0); mk(a, mat, 'box', FLESH, 0.1, 0.52, 0.1, 0, -0.64, 0); mk(a, mat, 'box', BONE, 0.05, 0.16, 0.05, 0, -0.97, 0.02); arms.push(a);
-    return { g, b, hd, legs, shins, arms };
+    /* the night round's flashlight, in the hand that is still a hand, along the arm; its lens lit while it lives */
+    let lens: THREE.Mesh | null = null;
+    if (m.torch) {
+      const h = arms[0];
+      mk(h, mat, 'cyl', 0x2a2c2e, 0.055, 0.26, 0.055, 0, -TORCH.arm + 0.17, 0.03); mk(h, mat, 'cyl', 0x3a3d40, 0.075, 0.06, 0.075, 0, -TORCH.arm + 0.03, 0.03);
+      lens = new THREE.Mesh(parts([['cyl', 0xfff4dc, 0.06, 0.012, 0.06, 0, 0, 0]]), new THREE.MeshBasicMaterial({ vertexColors: false, color: 0xfff1d6 }));
+      lens.position.set(0, -TORCH.arm, 0.03);
+      h.add(lens);
+    }
+    return { g, b, hd, legs, shins, arms, lens };
   },
   skitter(mat) {
     const g = new THREE.Group(), b = grp(g, 0, 0.55, 0);
@@ -139,7 +148,7 @@ const r = (a: number, b: number) => a + Math.random() * (b - a);
 const ease = (t: number) => t * t * (3 - 2 * t);
 
 export const ANIM: Record<string, (m: Mutant, M: Model, c: Ctx) => void> = {
-  husk(m, M) {
+  husk(m, M, c) {
     const mv = m.mv > 0, hunt = m.state === 'hunt', f = hunt ? 11 : 5;
     for (let k = 0; k < 2; k++) M.legs[k].rotation.x = mv ? Math.sin(m.ph * f + k * PI) * (hunt ? 0.7 : 0.35) : 0;
     M.arms[0].rotation.x = hunt ? -1.1 + Math.sin(m.ph * f) * 0.2 : mv ? Math.sin(m.ph * f + PI) * 0.25 : 0;
@@ -178,6 +187,8 @@ export const ANIM: Record<string, (m: Mutant, M: Model, c: Ctx) => void> = {
     M.b.rotation.z = Math.sin(m.ph * (mv ? f : 0.8)) * 0.04;
     M.hd.rotation.z = 0.25 + Math.sin(m.ph * 0.7) * 0.1 + (Math.random() < 0.015 ? r(-0.5, 0.5) : 0);
     M.hd.rotation.y = Math.sin(m.ph * 0.5) * 0.25;
+    /* the flashlight held out along its beam, whatever the other arm is doing (sim/cast.ts, torchRay) */
+    if (M.lens) M.arms[0].rotation.x = torchRay(c.sim, m).pitch - PI / 2;
   },
   skitter(m, M) {
     const mv = m.mv > 0, q = m.state === 'idle' ? 0.4 : 1;
@@ -327,6 +338,7 @@ export class CastView {
       if (s.baked && (m.away || !m.rag)) this.unbake(s);
       g.visible = !m.away && !s.baked;
       if (m.away) continue;
+      if (M.lens) M.lens.visible = !m.dead;
       const x = m.px + (m.x - m.px) * alpha, z = m.pz + (m.z - m.pz) * alpha;
       let y = m.py + (m.y - m.py) * alpha;
       /* a swimmer rides just under the surface of shallow water, and a little off the floor of deep (as before) */

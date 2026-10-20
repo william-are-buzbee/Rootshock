@@ -1,4 +1,4 @@
-import type { MutantDef } from '../content/types';
+import type { MutantDef, RoundStop } from '../content/types';
 import { angLerp, clamp, PI, TAU } from '../core/math';
 import { STEP } from '../core/loop';
 import { Edge, edgeCost, field as fieldFrom } from '../world/nav';
@@ -31,10 +31,14 @@ interface Stats {
   /** its body's height */
   h: number;
   opens?: boolean; low?: boolean; noDoors?: boolean; solid?: boolean; fixed?: boolean; swim?: boolean;
+  /** it carries a flashlight, on: a beam it sees by, and that lights you for everyone else (world.md §8, the night round) */
+  torch?: boolean;
 }
 
 export const MT: Record<string, Stats> = {
   husk: { hp: 75, r: 0.38, cr: 0.34, mass: 1.2, kg: 80, acc: 18, h: 1.8, opens: true },
+  /* one of the changed still walking the night shift's round, its flashlight on (world.md §8, the night round) */
+  nightround: { ai: 'husk', model: 'husk', hp: 75, r: 0.38, cr: 0.34, mass: 1.2, kg: 80, acc: 14, h: 1.8, opens: true, torch: true },
   skitter: { hp: 60, r: 0.5, cr: 0.4, mass: 1, kg: 45, acc: 40, h: 0.9, low: true },
   bloat: { hp: 600, r: 1, cr: 0.9, mass: 8, kg: Infinity, acc: 3, h: 2.4, noDoors: true, solid: true },
   thresher: { hp: 150, r: 0.6, cr: 0.5, mass: 2.5, kg: 220, acc: 10, h: 2.1, solid: true, noDoors: true },
@@ -88,6 +92,11 @@ export interface Mutant {
   cards: boolean;
   /** the door it is going to shut, one it saw left open (an index into Sim.doors), or -1 */
   door: number;
+  /** a guard's round: its stops, in order, kept to for good (null for the rest); the stop it is making for */
+  round: RoundStop[] | null;
+  beat: number;
+  /** its flashlight is on in its hand */
+  torch: boolean;
   /** where it started, which it keeps near */
   hx: number; hz: number;
   room: number;
@@ -158,6 +167,7 @@ function makeMutant(sim: Sim, def: MutantDef, id: number): Mutant {
       opens: !!S.opens, low: !!S.low, noDoors: !!S.noDoors, fixed: !!S.fixed, swim: !!S.swim, solid: !!S.solid,
       post: !!o.post, sit: !!o.sit, holt: !!o.holt, big: !!o.big, hx: def.x, hz: def.z, room,
       cards: !!sim.world.def.cards && !!S.opens && !!sim.world.rooms[room]?.zone, door: -1,
+      round: (def.opts.round as RoundStop[] | undefined) ?? null, beat: 0, torch: !!S.torch,
       wt: rnd(1, 5), wm: 0, wx: 0, wz: 0, tk: 0, lost: 0, bt: 0, burst: false, flee: 0, ct: rnd(6, 14), cdir: 0, tgt: false,
       grab: 0, tense: 0, blow: null, dest: -1, F: null, stk: 0, fled: false, side: 0, ride: null, spot: -1,
       mv: 0, d: 99, dp: 99, dy: 0, los: false, losAt: -99, hit: 0, poise: poiseOf(def.type, S.ai, !!o.big), pmax: poiseOf(def.type, S.ai, !!o.big), calm: 99, reel: 0, pat: 0, down: 0, rise: 0, acc: S.acc, drove: false, ph: rnd(9), dead: false, gone: 0, rag: null, away: false, still: 0,
@@ -680,9 +690,9 @@ const SEARCH = { time: [14, 20] as const, reach: 6, pace: 1.2, see: 18, look: [1
 
 /** a door left open: one that does not shut itself (slid open by hand with no power to it, or a heavy one left open), was
  *  shut when the place was new, and is open now. One of the staff on its rounds that sees one goes to it, looks through,
- *  and shuts it (world.md §8, the changed). It sees one this far, in front of it, lit, and in plain view; and looks for one
- *  every so often, not every step */
-const LEFT = { see: 14, every: 30, look: 2, pace: 1.4 };
+ *  and shuts it (world.md §8, the changed). It sees one this far, in front of it, lit, and in plain view, if it is not at
+ *  it already; and looks for one every so often, not every step */
+const LEFT = { see: 14, near: 2.5, every: 30, look: 2, pace: 1.4 };
 
 const doorMid = (d: Door) => ({ x: (d.def.x0 + d.def.x1) / 2, y: d.def.y0 + 1.2, z: (d.def.z0 + d.def.z1) / 2 });
 
@@ -700,7 +710,8 @@ function noticesDoor(sim: Sim, m: Mutant): boolean {
     const d = sim.doors[k];
     if (!leftOpen(sim, d) || sim.cast.some(q => q.door === k && q.state === 'shut' && !q.dead)) continue;
     const at = doorMid(d), dx = at.x - m.x, dz = at.z - m.z, dp = Math.hypot(dx, dz);
-    if (dp > LEFT.see || Math.abs(at.y - 1.2 - m.y) > 2.5 || (dx * Math.sin(m.yaw) + dz * Math.cos(m.yaw)) / (dp || 1) < 0.35) continue;
+    /* not one it is at: that one it has just opened to go through */
+    if (dp < LEFT.near || dp > LEFT.see || Math.abs(at.y - 1.2 - m.y) > 2.5 || (dx * Math.sin(m.yaw) + dz * Math.cos(m.yaw)) / (dp || 1) < 0.35) continue;
     if (!lit(sim, at.x, at.y, at.z) || sim.world.raycast(m.x, m.y + eye, m.z, at.x, at.y, at.z, seeThrough) < 0.97) continue;
     /* to its near side, a step back from the doorway */
     const o = 1.3, D = d.def, s = D.alongX ? Math.sign(m.z - at.z) || 1 : Math.sign(m.x - at.x) || 1;
@@ -725,7 +736,7 @@ function searchSpot(sim: Sim, m: Mutant): number {
 }
 
 /** one of the staff that would answer an alarm: a husk on its rounds or its post, or on its way to one already */
-export const free = (m: Mutant): boolean => !m.dead && m.ai === 'husk' && (m.state === 'idle' || m.state === 'lurk' || m.state === 'answer') && m.spot >= 0;
+export const free = (m: Mutant): boolean => !m.dead && m.ai === 'husk' && (m.state === 'idle' || m.state === 'round' || m.state === 'lurk' || m.state === 'answer') && m.spot >= 0;
 
 /** the pace they go to an alarm at (m/s): a hurry; faster again with another of them in sight hurrying too, within
  *  `see` metres: one starts and the rest catch it */
@@ -753,13 +764,113 @@ function hurried(sim: Sim, m: Mutant): boolean {
   return false;
 }
 
+/* ---- the night round (world.md §8): one of the changed still walking the night shift's round, a stop at a time, its
+   flashlight on. It is the one that walks the dark: its beam is what it sees by, so it keeps to its round lit or not. At
+   a stop it stands and plays its beam about; at a door on its round it tries the reader with its card, which beeps green
+   or red. Taken off its round (it saw you, an alarm, a breaker), it comes back to it where it left off. */
+
+/** its pace on the round (m/s), slow: it is sedated as they all are; after you, slower than the rest; at a stop, how long
+ *  it looks about if the stop does not say, how far its beam swings either way (radians) and how fast; between tries at a
+ *  reader; and how far below level it holds the beam walking */
+export const ROUND = { pace: 1.0, hunt: 3.0, look: 2.5, sweep: 0.55, swing: 1.1, beep: 1.2, pitch: 0.14 };
+
+/** the door a stop tries: the nearest within reach of it, or -1 */
+function stopDoor(sim: Sim, P: RoundStop): number {
+  let best = -1, bd = 2.6;
+  sim.doors.forEach((d, k) => {
+    const at = doorMid(d), dd = Math.hypot(at.x - P.x, at.z - P.z);
+    if (dd < bd && Math.abs(d.def.y0 - P.y) < 1) { bd = dd; best = k; }
+  });
+  return best;
+}
+
+/** it shows the door its card. A dark reader does nothing; a live one beeps, green if the card opens it (and the door
+ *  lets it through, as any of the staff's), red if not. True if it opened */
+function tryDoor(sim: Sim, m: Mutant, k: number): boolean {
+  const d = sim.doors[k], at = doorMid(d);
+  if (!d.def.card || power(sim.game, d.def.circuit) <= 0) return false;
+  const ok = m.cards && carded(sim, d);
+  d.beep = READER; d.beepOk = ok;
+  sfx(sim.game, ok ? 'take' : 'deny', at);
+  if (ok) { d.open = true; d.pass = Math.max(d.pass, 2.5); }
+  return ok;
+}
+/** how long a reader shows green or red after a card (s) */
+export const READER = 0.8;
+
+/** a step of its round: to the next stop, then a while there, looking about or at a reader */
+function walkRound(sim: Sim, m: Mutant): void {
+  const R = m.round!, Fs = sim.fields;
+  if (!Fs || m.spot < 0 || !R.length) return;
+  const P = R[m.beat % R.length];
+  const next = () => { m.beat = (m.beat + 1) % R.length; m.dest = -1; m.wt = 0; m.st = 0; };
+  /* stopped: the beam about, or held on the reader; then the card, as many times as the stop says */
+  if (m.wt > 0) {
+    const k = P.tries ? stopDoor(sim, P) : -1;
+    if (k >= 0) { const at = doorMid(sim.doors[k]); m.yaw = angLerp(m.yaw, Math.atan2(at.x - m.x, at.z - m.z), Math.min(1, dt * 4)); }
+    else m.yaw = angLerp(m.yaw, m.wm + Math.sin(m.ph * ROUND.swing) * ROUND.sweep, Math.min(1, dt * 3));
+    if ((m.wt -= dt) > 0) return;
+    if (m.st > 0 && k >= 0) {
+      m.st--;
+      if (tryDoor(sim, m, k)) m.st = 0;
+      m.wt = ROUND.beep;
+      return;
+    }
+    next();
+    return;
+  }
+  if (m.dest < 0) {
+    const k = Fs.nav.locate(P.x, P.y, P.z);
+    if (k < 0) { next(); return; }
+    /* one new route a step at most, across the whole cast */
+    if (picked.get(sim) === sim.tick) return;
+    picked.set(sim, sim.tick);
+    m.F = fieldTo(sim, m, k);
+    if (!Number.isFinite(m.F[m.spot])) { next(); return; }
+    m.dest = k; m.stk = 0;
+  }
+  if (m.spot === m.dest || m.F![m.spot] < 0.9) {
+    /* there: it stops, and looks about (or at the reader) */
+    m.dest = -1; m.wm = m.yaw; m.st = P.tries ?? 0;
+    m.wt = P.tries ? ROUND.beep : P.wait ?? ROUND.look;
+    if (m.wt <= 0) next();
+    return;
+  }
+  if (follow(sim, m, m.F!, ROUND.pace, false)) m.stk = 0;
+  else if ((m.stk += dt) > 4) next(); // it cannot get there as things stand: on to the next
+}
+
+/** its flashlight: from its lens, in its left hand held out before it, along where it looks. Walking it holds the beam
+ *  a little down the way ahead; after you, on you. Drawn (castView.ts) from the same numbers */
+export const TORCH = { shoulder: [-0.27, 1.46] as const, arm: 0.66, lead: 0.06 };
+export function torchRay(sim: Sim, m: Mutant): { x: number; y: number; z: number; dx: number; dy: number; dz: number; pitch: number } {
+  const b = sim.player.body;
+  let pitch = ROUND.pitch;
+  if (m.state === 'hunt') {
+    const d = Math.max(0.5, m.dp);
+    pitch = clamp(Math.atan2(m.y + TORCH.shoulder[1] - (b.y + 1.1), d), -0.6, 0.9);
+  }
+  const s = Math.sin(m.yaw), c = Math.cos(m.yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
+  const [ox, oy] = TORCH.shoulder, L = TORCH.arm + TORCH.lead; // the beam from just past the lens
+  /* its own right is (cos, -sin) of where it faces (sin, cos); the shoulder to its left, the hand out along the beam */
+  const x = m.x + ox * c + s * cp * L, z = m.z - ox * s + c * cp * L, y = m.y + oy - sp * L;
+  return { x, y, z, dx: s * cp, dy: -sp, dz: c * cp, pitch };
+}
+
 const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
   husk(sim, m) {
     const F = sim.fields?.hands, d = m.d;
     switch (m.state) {
       case 'idle': {
         if (notices(sim, m) || noticesDoor(sim, m)) break;
+        /* one with a round goes back to it, where it left off */
+        if (m.round) { m.state = 'round'; m.dest = -1; m.wt = 0; m.st = 0; break; }
         if (!m.post) roam(sim, m, 1.3);
+        break;
+      }
+      case 'round': {
+        if (notices(sim, m) || noticesDoor(sim, m)) break;
+        walkRound(sim, m);
         break;
       }
       case 'answer': {
@@ -833,7 +944,7 @@ const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
         if (m.lost > 8) { m.state = 'idle'; m.dest = -1; m.wt = rnd(sim, 2, 5); break; }
         if (inStart(m, MOVES.husk)) { turnTo(sim, m, 10); if (m.cd <= 0) { beginBlow(sim, m, MOVES.husk); m.pat = 0; } }
         else if (waits(sim, m)) { m.pat += dt; hover(sim, m, WAIT.ring); }
-        else if (F) chase(sim, m, 3.5, F);
+        else if (F) chase(sim, m, m.round ? ROUND.hunt : 3.5, F);
         break;
       case 'flee':
         m.st -= dt;

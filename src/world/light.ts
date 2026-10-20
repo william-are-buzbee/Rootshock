@@ -204,7 +204,8 @@ export class Lighting {
     const now = new Map(list.map(L => [L.key, L]));
     for (const [key, g] of this.loose) {
       const L = now.get(key);
-      if (L && same(L, g.L)) { now.delete(key); continue; }
+      /* moved only a little (a beam in a hand): the beam is where it is now, and what it throws back stays as it was */
+      if (L && (same(L, g.L) || near(L, g.L))) { g.L = L; now.delete(key); continue; }
       if (this.col) this.add(g.pts, g.val, g.c, -1, false);
       this.loose.delete(key);
     }
@@ -299,5 +300,9 @@ export class Lighting {
   }
 }
 
+/** how far a light may move, and turn, before what it throws back is worked out again (m; the cosine) */
+const DRIFT = { move: 0.25, turn: 0.99 };
+const near = (a: Loose, b: Loose) =>
+  a.kind === b.kind && a.k === b.k && Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z) < DRIFT.move && a.dx * b.dx + a.dy * b.dy + a.dz * b.dz > DRIFT.turn;
 const same = (a: Loose, b: Loose) =>
   a.kind === b.kind && a.k === b.k && a.x === b.x && a.y === b.y && a.z === b.z && a.dx === b.dx && a.dy === b.dy && a.dz === b.dz;

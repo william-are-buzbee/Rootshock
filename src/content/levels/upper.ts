@@ -380,6 +380,13 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
     'Operations corridor': 'ops', 'Office: operations': 'ops', 'Office: chief of security': 'ops', Maintenance: 'ops', 'Operations stair': 'ops',
   };
   for (const R of [...D.rooms, ...T1.rooms]) if (ZONES[R.name]) R.zone = R.name === 'Muster hall' && R.c === 'EAST' ? 'ops' : ZONES[R.name];
+  /* the night round (world.md §8): one of the changed still walking the night shift's round, flashlight on. The wing is
+     dark and it walks it anyway, by its beam: along the corridor to the briefing room's reader and the cut, back past the
+     nurses' station, and out round the lobby. Last of the cast, so the rest keep their places in it */
+  mut(D, 'nightround', 24, 14.5, { yaw: -PI / 2, round: [
+    { D, x: 36.5, z: 13.6, tries: 1 }, { D, x: 37.2, z: 14.4, wait: 4 }, { D, x: 28.5, z: 13.4, wait: 3 },
+    { D, x: 18.5, z: 11.5, wait: 2 }, { D, x: 13, z: 6.5, wait: 4 }, { D, x: 16.5, z: 3, wait: 3 }, { D, x: 22, z: 14.5, wait: 2 },
+  ] });
   return finishLevel([20.3, 2.5, -PI / 2]); // in isolation room 1, facing its door
 }
 

@@ -199,6 +199,9 @@ export interface ItemDef {
 export interface Aim { yaw: number; pitch: number }
 export interface NoteDef { key: string; x: number; y: number; z: number }
 export interface MutantDef { type: string; x: number; y: number; z: number; opts: Record<string, unknown> }
+/** a stop on a guard's round (world.md §8, the night round), in plan metres: how long it stands there looking about, and
+ *  how many times it tries the door beside it with its card */
+export interface RoundStop { x: number; y: number; z: number; wait?: number; tries?: number }
 /** something to use: a corpse to search, a panel, a backup set, a ladder, the lift */
 export interface UseDef { kind: string; x: number; y: number; z: number; opts: Record<string, unknown> }
 

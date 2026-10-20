@@ -260,6 +260,19 @@ export class Things {
         this.add(parts(body, matId(D.mat)), m => place(m), at, across);
         if (lights.length) this.add(parts(lights), m => { place(m); m.visible = lit(); }, at, across);
       }
+      /* its reader, just shown a card by one of the staff (sim/cast.ts, the night round): green, or red, a moment */
+      if (D.card) {
+        const flash = (ok: boolean) => (m: THREE.Object3D) => { m.visible = d.beep > 0 && d.beepOk === ok && lit(); };
+        for (const [c, ok] of [[[0.3, 2.8, 0.5], true], [[2.9, 0.3, 0.25], false]] as [Colour, boolean][]) {
+          if (D.look) {
+            const kd = 2 / long, wx = (D.side ?? 1) * (long / 2 + 0.32) * kd, face = (D.depth ?? 2) / 2 + 0.03;
+            this.add(parts([-1, 1].map(s => ['box', c, 0.085 * kd, 0.045, 0.05, wx, 0.01, s * face] as Part)), m => { still(m); flash(ok)(m); }, at, across);
+          } else {
+            const f = D.kind === 'heavy' ? 0.17 : 0.07;
+            this.add(parts([-1, 1].map(s => ['box', c, 0.105, 0.055, 0.05, 0.72, 0.16, s * (f + 0.02)] as Part)), m => { place(m); flash(ok)(m); }, at, across);
+          }
+        }
+      }
       /* locked down: a red lamp on the wall beside it, on both faces, flashing while its bolt is drawn and steady once
          it is home */
       if (!(D.seal || D.vent || D.lift || D.stuck)) {
