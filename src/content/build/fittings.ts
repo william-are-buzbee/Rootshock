@@ -44,12 +44,18 @@ export function shelf(D: Deck, x: number, z: number, w: number, d: number, o: { 
   const ns = d > w, L = ns ? d : w;
   for (const y of [0.1, 0.55, 1, 1.45, 1.86]) bx(D, x, z, w, 0.04, d, 0x4a4d50, { y, c: 0 });
   for (const s of [-1, 1]) bx(D, x + (ns ? 0 : (s * (w / 2 - 0.02)) / T), z + (ns ? (s * (d / 2 - 0.02)) / T : 0), ns ? w : 0.04, 1.9, ns ? 0.04 : d, 0x3a3d40, { c: 0 });
+  /* what is on it: each board in slots along it, one thing a slot, so nothing stands in anything else; some slots
+     empty. As tall as the gap to the board over it allows */
   if (!o.empty)
-    for (const y of [0.14, 0.59, 1.04, 1.49])
-      for (let k = 0; k < (L > 2 ? 3 : 2); k++) {
-        const t = rnd(-L / 2 + 0.3, L / 2 - 0.3) / T, s = rnd(0.15, 0.3);
-        P(D, o.jars ? 'cyl' : 'box', x + (ns ? 0 : t), z + (ns ? t : 0), s, rnd(0.14, 0.3), s, pick(o.cols ?? [0x6b5a3c, 0x4d5a66, 0x7a4a34, 0x5c6b4a]), { y, c: 0 });
+    for (const y of [0.14, 0.59, 1.04, 1.49]) {
+      const n = L > 2 ? 4 : 3, slot = (L - 0.2) / n;
+      for (let k = 0; k < n; k++) {
+        if (rnd(0, 1) < 0.3) continue;
+        const t = (-L / 2 + 0.1 + slot * (k + 0.5) + rnd(-0.05, 0.05) * slot) / T, s = Math.min(rnd(0.15, 0.3), slot * 0.8);
+        const deep = Math.min(s, (ns ? w : d) - 0.08);
+        P(D, o.jars ? 'cyl' : 'box', x + (ns ? 0 : t), z + (ns ? t : 0), ns ? deep : s, rnd(0.14, 0.34), ns ? s : deep, pick(o.cols ?? [0x6b5a3c, 0x4d5a66, 0x7a4a34, 0x5c6b4a]), { y, c: 0 });
       }
+    }
   colT(D, x, z, w, d, 1.9);
 }
 export function desk(D: Deck, x: number, z: number, w: number, d: number, o: { c?: number; bare?: number } = {}): void {

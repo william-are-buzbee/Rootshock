@@ -435,6 +435,26 @@ function frame(D: Deck, d: { x: number; y: number }, ns: boolean, look: DoorLook
   }
 }
 
+/** a partition's face on side s of wall tile k has moved d metres into the tile from where the tile's edge put it:
+ *  move what stands within 0.6 m of the old face, along that stretch of wall, by as much (deck-local; props, items,
+ *  notes, lamps and blood in metres, uses, cameras and the cast in tiles) */
+function followFace(D: Deck, k: number, across: 'x' | 'z', s: -1 | 1, d: number): void {
+  const i = k % D.W, j = Math.floor(k / D.W), ax = across === 'x';
+  const face = (ax ? (s < 0 ? i : i + 1) : (s < 0 ? j : j + 1)) * T, lo = (ax ? j : i) * T, hi = lo + T;
+  /* the room is on side s of the wall, past its old face; what is within 0.6 m of that face moves back toward the
+     wall (-s) with it */
+  const move = (x: number, z: number): [number, number] => {
+    const n = ax ? x : z, t = ax ? z : x, off = (n - face) * s;
+    if (off < -0.01 || off > 0.6 || t < lo || t >= hi) return [x, z];
+    return ax ? [x - s * d, z] : [x, z - s * d];
+  };
+  const m = (o: { x: number; z: number }) => { [o.x, o.z] = move(o.x, o.z); };
+  const t = (o: { x: number; z: number }) => { const [x, z] = move(o.x * T, o.z * T); o.x = x / T; o.z = z / T; };
+  D.props.forEach(m); D.items.forEach(m); D.notes.forEach(m); D.lamps.forEach(m); D.stains.forEach(m);
+  D.uses.forEach(t); D.cams.forEach(t); D.muts.forEach(t);
+  for (const c of D.cols) { const [x0, z0] = move((c[0] + c[2]) / 2, (c[1] + c[3]) / 2), dx = x0 - (c[0] + c[2]) / 2, dz = z0 - (c[1] + c[3]) / 2; c[0] += dx; c[2] += dx; c[1] += dz; c[3] += dz; }
+}
+
 /* ---- compile: every deck of the level, into the builder */
 /** what the builder is told of a room */
 const roomOpts = (R: TRoom) => ({
@@ -490,6 +510,8 @@ export function finishLevel(start?: [number, number, number]) {
           R = RL; y0 = D.y0; ht = Math.min(L.y0 + RL.dy + RL.ht, D.y0 + (near?.ht ?? 3.2)) - D.y0;
         }
         const a = s < 0 ? 0 : T - half, e = s < 0 ? half : T;
+        /* what was fixed to that face of the wall (a panel, a call point, a shelf and what is on it) goes with it */
+        if (roomAtTile(D, k + s * step) === R) followFace(D, k, across, s, half);
         b.room(R.name, across === 'x' ? x0 + a : x0, across === 'x' ? z0 : z0 + a, across === 'x' ? x0 + e : x0 + T, across === 'x' ? z0 + T : z0 + e, {
           ...roomOpts(R), y0, ht, part: true,
         });
