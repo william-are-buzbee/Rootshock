@@ -518,6 +518,10 @@ wins; the older text stays only because it describes what is built, until the le
     door with power opens for one of them, the reader beeping, and shuts after, still locked to you; while it is held
     open you can slip through behind. A dark reader reads no card, and an alarm's bolt beats one. Cargo's workers carry
     none, so Cargo's still wait in their dark behind Operations' card; nor does anything on the other levels.
+  - *The breaker searched for (built).* The one that goes to the board goes slowly now (1.6 m/s), and once the breaker
+    is back on, it turns from the board and looks about for whoever threw it: a quarter of a minute or so about the
+    board, a few metres at most, walking a spot at a time (1.2 m/s) and stopping to look round. Looking, it sees farther
+    than on its rounds (18 m by the light you are in) and all round, not only the way it faces. Then back to its rounds.
 - **One tool per room (agreed).** Each space teaches one thing before a later one asks for all of them: the flashlight; a
   sound before a sight; the night round's beam far off; one armed place under one camera, its speaker with two of the changed
   in earshot, a safe failure (step over the line, hide, watch them come and go); a small board, and one of them walking over to throw it back on; a card;

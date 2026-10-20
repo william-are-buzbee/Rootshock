@@ -87,3 +87,63 @@ describe('they carry their cards', () => {
     expect(carded(s, d)).toBe(false);
   });
 });
+
+describe('a breaker thrown means someone threw it', () => {
+  const brk = (s: Sim, name: string) => s.usables.find(u => new RegExp('Breaker, ' + name).test(u.label() ?? ''))!;
+  /** one of the staff in the east bays, which have their own breaker, sent at once to throw it back; you out of it all */
+  const setUp = () => {
+    const s = fresh(), m = s.cast.find(q => q.ai === 'husk' && !q.post && q.cards)!;
+    only(s, [m]);
+    place(s, 'player', 30, -4.5, -25);
+    place(s, m, 70, 0, 36);
+    hold(s, 0.2);
+    brk(s, 'Muster hall east').act();
+    for (const e of s.drills[0].due) e.at = e.id === m.id ? 0.3 : 1e9;
+    for (let t = 0; t < 120 && !s.game.station!.circuits.EAST.on; t += STEP) step(s, noInput());
+    expect(s.game.station!.circuits.EAST.on).toBe(true);
+    return { s, m, board: { x: m.x, z: m.z } };
+  };
+
+  it('back on, it looks about the board a while for who threw it, slowly, then goes back to its rounds', () => {
+    const { s, m, board } = setUp();
+    expect(m.state).toBe('search');
+    let far = 0, fastest = 0, t = 0;
+    for (; t < 30 && m.state === 'search'; t += STEP) {
+      step(s, noInput());
+      far = Math.max(far, Math.hypot(m.x - board.x, m.z - board.z));
+      fastest = Math.max(fastest, Math.hypot(m.body!.vx, m.body!.vz));
+    }
+    expect(t).toBeGreaterThan(12);
+    expect(far).toBeGreaterThan(1.5); // it moves about
+    expect(far).toBeLessThan(8); // about the board
+    expect(fastest).toBeLessThan(1.5); // slowly
+    expect(m.state).toBe('idle');
+  });
+
+  it('looking, it sees all round: behind it, where on its rounds it would not', () => {
+    const { s, m } = setUp();
+    const behind = (q: Mutant) => { const b = s.player.body; place(s, 'player', q.x - Math.sin(q.yaw) * 3.5, q.y, q.z - Math.cos(q.yaw) * 3.5); b.vx = b.vz = 0; };
+    s.game.lightOn = true; s.game.batt = 100;
+    m.wt = 5; // stopped, looking the other way
+    behind(m);
+    expect(s.world.roomAt(s.player.body.x, s.player.body.y + 0.5, s.player.body.z)?.name).toBe(s.world.roomAt(m.x, m.y + 0.5, m.z)?.name);
+    hold(s, 0.3);
+    expect(m.state).toBe('hunt');
+    /* the same, but on its rounds, standing: it does not turn round for you */
+    const t = setUp(), q = t.m;
+    q.state = 'idle'; q.dest = -1; q.wt = 5;
+    t.s.game.lightOn = true; t.s.game.batt = 100;
+    const b = t.s.player.body; place(t.s, 'player', q.x - Math.sin(q.yaw) * 3.5, q.y, q.z - Math.cos(q.yaw) * 3.5); b.vx = b.vz = 0;
+    hold(t.s, 0.3);
+    expect(q.state).toBe('idle');
+  });
+
+  it('a save made while it searches plays on the same', async () => {
+    const { s } = setUp();
+    hold(s, 3);
+    const { load, save } = await import('../src/sim/save');
+    const a = load(level, JSON.parse(JSON.stringify(save(s))), { seed: 7, station: STATION });
+    hold(s, 6); hold(a, 6);
+    expect(JSON.stringify(save(a))).toBe(JSON.stringify(save(s)));
+  });
+});

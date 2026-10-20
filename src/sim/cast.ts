@@ -663,8 +663,26 @@ const rnd = (sim: Sim, a: number, b?: number) => sim.rng.range(a, b);
 function notices(sim: Sim, m: Mutant): boolean {
   const p = sim.player.body, facing = m.d < 2.5 || ((p.x - m.x) * Math.sin(m.yaw) + (p.z - m.z) * Math.cos(m.yaw)) / (m.dp || 1) > -0.2;
   if (!((facing && seeP(sim, m, 15)) || hears(sim, m))) return false;
+  return hunt(sim, m);
+}
+
+/** it has you */
+function hunt(sim: Sim, m: Mutant): boolean {
   m.state = 'hunt'; m.lost = 0; m.post = false; m.dest = -1; step_(sim, m, 'moan');
   return true;
+}
+
+/** looking for whoever threw the breaker: a while about the board, slowly, a spot at a time, stopping to look round.
+ *  It sees farther than on its rounds, and all round: it is looking (world.md §8, the changed) */
+const SEARCH = { time: [14, 20] as const, reach: 6, pace: 1.2, see: 18, look: [1.5, 3] as const };
+
+/** somewhere near where it is searching (wx, wz), on its floor, to walk to next */
+function searchSpot(sim: Sim, m: Mutant): number {
+  const nav = sim.fields!.nav, near: number[] = [];
+  for (let i = 0; i < nav.n; i++) {
+    if (Math.abs(nav.y[i] - m.y) < 1 && Math.hypot(nav.x[i] - m.wx, nav.z[i] - m.wz) < SEARCH.reach && Math.hypot(nav.x[i] - m.x, nav.z[i] - m.z) > 1.5) near.push(i);
+  }
+  return near.length ? near[Math.floor(sim.rng.range(0, near.length))] : -1;
 }
 
 /** one of the staff that would answer an alarm: a husk on its rounds or its post, or on its way to one already */
@@ -720,12 +738,34 @@ const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
         if (!D || !m.F || m.dest < 0 || !Number.isFinite(m.F[m.spot])) { m.state = 'idle'; m.dest = -1; m.wt = rnd(sim, 2, 4); break; }
         if (m.spot === m.dest || m.F[m.spot] < 1.5) {
           turnTo(sim, m, 6);
-          if ((m.st -= dt) <= 0) { restore(sim, D); m.state = 'idle'; m.dest = -1; m.wt = rnd(sim, 4, 8); }
+          if ((m.st -= dt) <= 0) {
+            /* back on; and someone threw it. It turns from the board and looks about for who */
+            restore(sim, D);
+            m.state = 'search'; m.st = rnd(sim, SEARCH.time[0], SEARCH.time[1]); m.dest = -1; m.wx = m.x; m.wz = m.z;
+            m.wt = rnd(sim, SEARCH.look[0], SEARCH.look[1]); m.wm = m.yaw + Math.PI;
+          }
           break;
         }
         m.st = 1.2;
-        if (follow(sim, m, m.F, 2.2, false)) m.stk = 0;
+        if (follow(sim, m, m.F, 1.6, false)) m.stk = 0; // to the board, slowly
         else if ((m.stk += dt) > 4) { m.stk = 0; m.state = 'idle'; m.dest = -1; m.wt = rnd(sim, 2, 4); }
+        break;
+      }
+      case 'search': {
+        if (notices(sim, m) || (seeP(sim, m, SEARCH.see) && hunt(sim, m))) break;
+        if ((m.st -= dt) <= 0) { m.state = 'idle'; m.dest = -1; m.wt = rnd(sim, 2, 4); break; }
+        /* stopped, looking round: it turns to look one way, slowly */
+        if (m.wt > 0) { m.wt -= dt; m.yaw = angLerp(m.yaw, m.wm, Math.min(1, dt * 1.6)); break; }
+        if (m.dest < 0 || !m.F) {
+          const k = searchSpot(sim, m);
+          if (k < 0) { m.wt = 1; break; }
+          m.F = fieldTo(sim, m, k);
+          if (!Number.isFinite(m.F[m.spot])) { m.F = null; m.wt = 1; break; }
+          m.dest = k;
+        }
+        if (m.spot === m.dest || m.F[m.spot] < 1.2) { m.dest = -1; m.wt = rnd(sim, SEARCH.look[0], SEARCH.look[1]); m.wm = m.yaw + rnd(sim, -2.2, 2.2); break; }
+        if (follow(sim, m, m.F, SEARCH.pace, false)) m.stk = 0;
+        else if ((m.stk += dt) > 2) { m.stk = 0; m.dest = -1; m.wt = 1; }
         break;
       }
       case 'hunt':
