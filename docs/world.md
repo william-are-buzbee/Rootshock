@@ -484,8 +484,15 @@ wins; the older text stays only because it describes what is built, until the le
   - *Its cameras* only record: a public room is not armed. The checkpoint and the surface hallway are where the lines
     are. Its upper volume meets Security's second floor somewhere, a vent or a service walkway behind the ceiling
     panels (open).
-  - *Where it goes:* between the shaft and the wing, where the checkpoint is now (16 by 20 m today), which pushes the
-    wing and everything east of it further east. A re-layout, not a room added; worth it.
+  - *Where it goes:* north of the shaft, west of the wing, where the old checkpoint and open ground were. **Built**
+    there without moving the wing: shifting it east would have moved Cargo, the exhaust shaft and ladderway B off their
+    lines to the levels above and below. 38 by 24 m and 13 m tall (a little under the 40 by 30 aimed at; a strip along
+    its south-east reaches the corridor's door). The grand stair is four tiles wide down the middle, rising south to a
+    gallery along the south wall; the checkpoint, its booth and its line are on the second floor behind the gallery,
+    and the surface landing and cage west of that, over the shaft. On the ground floor, freight comes off the hoist
+    into *Goods inward*, through to the hazard store and the corridor. The bar is under the gallery's west end, the
+    lounge east of the stair; the false sky is an emitting panel under the ceiling, lit with the wing's power. Its
+    camera, high in the north-east corner, only records.
 - **The changed (agreed).** No longer husks: the word says empty, and they are not. Pia's line (§10): **intelligent, but
   sedated.** They think, slowly, and without much caring. They notice and come to look (a breaker thrown means someone threw
   it; a door left open is noticed), they use cards (a card door is safe from them no longer, only from you), and they are slow
@@ -659,8 +666,8 @@ should be added. Below it, production (below).
   a switch for the threat, and real buildings are wired by panel, not by room. Doors stay safe to cut: exits let go without
   power, and readers keep their lock only against coming in.
 - **Rooms built to the new standard (agreed).** Wider, longer, taller, with a landmark or a flourish; no utilitarian boxes.
-  The range is 28 m of lanes, not a closet. The checkpoint: everyone off the shaft came through it (the bag scanner, the arch,
-  turnstiles, a booth behind glass); it becomes the small part before the lobby (*The second pass*). The wing's row of doors is broken by the locker room, the survivors' back way into
+  The range is 28 m of lanes, not a closet. The checkpoint: everyone off the surface came through it (the bag scanner, the
+  arch, turnstiles, a booth behind glass), on the second floor before the lobby's stair (*The second pass*). The wing's row of doors is broken by the locker room, the survivors' back way into
   the hall. Security control is a vestibule (the plan table, a window on the corridor) opening into a 14 by 10 m control room
   behind the atrium's north wall: a camera wall of 33 screens, a few dead, and two rows of consoles facing it (as built; it
   becomes the briefing room, *One control room*, *The second pass*). The infirmary is
@@ -754,7 +761,7 @@ Security: the main shaft carries only the hoist (Gen-1) and the surface cage.
 **Built so far.** The wing is a branch circuit (SEC) off Ops, cut at the start, with its splice panel near the
 threshold and the guard who cut it; a kit in Maintenance, on Ops' side, mends it (the hazard store's stays behind Gen-1).
 Mended, the wing lights amber, Security control's reader wakes, and the Security elevator runs, down to the main level's
-shaft station and back (ladderway A is gone). The highway runs east from the checkpoint
+shaft station and back (ladderway A is gone). The highway runs east from the lobby
 through the dark wing and opens without a door into the atrium; the second leg runs south past the offices into the muster
 hall, with Maintenance (the Ops backup set) off its east end and the operations room over its south side, behind glass. The gallery climbs the core's east side to +5 and branches east to
 Cargo control, whose east wall is the window: three bays of glass over the bay. Cargo is behind Operations' card (the deputy director, at

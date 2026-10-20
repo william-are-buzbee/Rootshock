@@ -66,8 +66,12 @@ faster with another in sight hurrying (`ANSWER` in `sim/cast.ts`). Running noise
 Lockdown is done too: rooms carry their alarm zone (`RoomDef.zone`, set from a table at the end of `buildUpper`), and
 each klaxon round bolts the zone's doors that have power to move (`Door.down`, `Door.drawing`, `LOCKDOWN` in
 `sim/eyes.ts`), with the old bolt sounds and a red lamp over the door. And the call points, one a zone (`callPoint`, a
-use of kind `call`). Step 2 is done; step 3, the lobby and the screens, is next. The camera wall waits on a way into
-the operations room.
+use of kind `call`). Step 2 is done.
+
+Step 3's first half is done: the lobby (world.md §8, *The lobby*, *Where it goes*, for what was built and why the wing
+did not move), the second-floor checkpoint and surface landing, the surface cage moved up to +5, Goods inward for the
+hoist, and `grandStair` (`content/build/fittings.ts`). The booth's screens are next, then the wing's control room as the
+briefing room. The camera wall waits on a way into the operations room.
 
 Step 1 is done: the overseer, the hand, the knock and the bolts are out of the code and of world.md §8 (old saves do not
 load: save version 6). §10's lineage still names the overseer in three places (rules 1 and 8, *Security's first*): left

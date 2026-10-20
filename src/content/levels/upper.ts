@@ -4,7 +4,7 @@ import {
   arch, beginLevel, bx, cave, door, elev, finishLevel, flight, item, ladder, mkDeck, mut, note, P, roughen, room, stack, stairs, use, type Deck, type LevelInfo, type TRoomOpts,
 } from '../build/tiles';
 import {
-  BAY, MED, OPS, SEC, UTIL, WALK, blood, callPoint, camera, container, corpse, crates, desk, droppedLight, eggs, exitSign, forklift, genset, gore, liftRoom, medbed, panel, shelf, speaker, tbl,
+  BAY, MED, OPS, SEC, UTIL, WALK, blood, callPoint, camera, container, corpse, crates, desk, droppedLight, eggs, exitSign, forklift, genset, gore, grandStair, liftRoom, medbed, panel, shelf, speaker, tbl,
 } from '../build/fittings';
 
 /* Upper station, 40 m down. Off the main shaft, the Security wing (x 14 to 66) and Operations (x 64 to 110, south to
@@ -22,32 +22,75 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   /* the rungs over the ground floor at +5, +10 and +15: Tier 1 also carries the second floor over Ops */
   const tier = (y0: number, li: number) => mkDeck(lv, 140, 48, { y0, li }), T1 = tier(5, 1), T2 = tier(10, 2), T3 = tier(15, 3);
   stack(B, D); stack(D, T1); stack(T1, T2); stack(T2, T3);
-  /* the main shaft: the hoist cage (runs on Gen-1) and the surface cage. No ladderway down it: the way down from
-     Security is its own elevator, in the atrium (below) */
+  /* the main shaft: the hoist cage (runs on Gen-1) at the ground floor, where freight came off, and over it on the second
+     floor the surface cage, where people did. No ladderway down it: the way down from Security is its own elevator, in
+     the atrium (below) */
   liftRoom(D, 5, 14, 7, 14);
-  room(D, 'Shaft station', 8, 14, 3, 3, { ...UTIL, c: 'SEC', em: 1, safe: 1 }); door(D, 11, 14, { sg: [['Checkpoint', 'w'], ['Shaft station', 'e']] });
-  room(D, 'Surface cage', 8, 11, 2, 2, { ...OPS, c: 'LIFT', nolamp: 1, noroam: 1, safe: 1 }); door(D, 8, 13, { kind: 'heavy', c: 'LIFT', lift: true, sg: [['Surface', 's']] });
+  room(D, 'Shaft station', 8, 14, 3, 3, { ...UTIL, c: 'SEC', em: 1, safe: 1 }); door(D, 11, 14, { sg: [['Goods inward', 'w'], ['Shaft station', 'e']] });
+  room(T1, 'Surface cage', 5, 14, 2, 2, { ...OPS, c: 'LIFT', nolamp: 1, noroam: 1, safe: 1 }); door(T1, 7, 14, { kind: 'heavy', c: 'LIFT', lift: true, sg: [['Surface', 'e']] });
 
-  /* The Security wing: the checkpoint at the shaft, the first leg of the highway, and the rooms off it. Its feed hangs
-     off Ops, and the survivors cut it to blind the cameras on their side (world.md §8): dark at the start, and a kit
-     mends it. */
-  room(D, 'Checkpoint', 12, 10, 8, 10, { ...OPS, c: 'SEC', ht: 5, em: 1 }); door(D, 20, 14, { sg: [['Security', 'w'], ['Checkpoint', 'e']] });
-  /* everyone off the shaft came through here: the bag scanner and its belt, the arch, the turnstiles, and the booth
-     behind glass that watched them do it */
-  bx(D, 16, 11.5, 0.9, 0.95, 6, 0x5f6266); bx(D, 16, 12, 1.1, 1, 1.6, 0x3a3d40, { y: 0.95 }); bx(D, 16, 11.2, 0.7, 0.04, 0.5, 0x4a3a2c, { y: 0.95, c: 0 });
-  for (const z of [13, 14.1]) bx(D, 16, z, 0.25, 2.3, 0.25, 0x8a8e8c); bx(D, 16, 13.55, 0.35, 0.25, 2.45, 0x8a8e8c, { y: 2.3, c: 0 });
-  for (const z of [15, 15.9]) { bx(D, 16, z, 0.9, 1, 0.3, 0x5f6266); bx(D, 16.25, z + 0.3, 0.05, 0.05, 0.9, 0x8a8e8c, { y: 0.9, ry: 0.5, c: 0 }); }
-  bx(D, 17.6, 16.85, 3.4, 2.4, 0.06, [0.42, 0.52, 0.55]); bx(D, 16.05, 18.4, 0.06, 2.4, 3.1, [0.42, 0.52, 0.55]); // the booth's glass
-  desk(D, 17.6, 18.6, 2.4, 0.7, { bare: 1 }); bx(D, 17.6, 18.8, 1.2, 0.36, 0.06, 0x22262a, { y: 0.76, c: 0 }); bx(D, 17.6, 19.4, 0.45, 0.45, 0.45, 0x2c2f33);
-  bx(D, 18.6, 10.4, 1.8, 0.42, 0.45, 0x5f6266); bx(D, 12.4, 12, 0.45, 0.42, 1.4, 0x5f6266); bx(D, 12.15, 17.2, 0.5, 1.8, 3, 0x56636e);
-  /* off the checkpoint, where things came off the hoist: hazardous storage, its suits on the wall and its rebreathers.
+  /* The Security wing: the lobby off the shaft, the first leg of the highway, and the rooms off it. Its feed hangs off
+     Ops, and the survivors cut it to blind the cameras on their side (world.md §8): dark at the start, and a kit mends
+     it. */
+  /* where freight came in: off the hoist, through to the hazard store and the corridor, never across the lobby */
+  room(D, 'Goods inward', 12, 14, 8, 6, { ...UTIL, c: 'SEC', ht: 4, em: 1 }); door(D, 20, 15, { sg: [['Security', 'w'], ['Goods inward', 'e']] });
+  crates(D, 18.6, 18.6, 3); bx(D, 13, 15, 1.2, 0.15, 1.2, 0x5b4a36); crates(D, 13, 15, 2); bx(D, 16, 19.4, 3.6, 0.9, 0.7, 0x4a4f55);
+  mut(D, 'husk', 14, 18.4, { post: 1, yaw: PI / 2 });
+
+  /* People came up the shaft to the second floor: off the surface cage, a landing, and the checkpoint (world.md §8,
+     The lobby). Everyone off the surface came through here: the bag scanner and its belt, the arch, the turnstiles, and
+     the booth behind glass that watched them do it. Through it, the head of the grand stair, and the lobby below */
+  room(T1, 'Surface landing', 8, 14, 3, 3, { ...SEC, c: 'SEC', ht: 3.6, em: 1 }); door(T1, 11, 15, { sg: [['Checkpoint', 'w'], ['Surface', 'e']] });
+  room(T1, 'Checkpoint', 12, 15, 8, 6, { ...OPS, c: 'SEC', ht: 4, em: 1 }); door(T1, 17, 14, { sg: [['Surface lift', 'n'], ['Lobby', 's']] });
+  bx(T1, 15, 16.6, 0.9, 0.95, 4, 0x5f6266); bx(T1, 15, 17, 1.1, 1, 1.6, 0x3a3d40, { y: 0.95 }); bx(T1, 15, 16.2, 0.7, 0.04, 0.5, 0x4a3a2c, { y: 0.95, c: 0 });
+  bx(T1, 15, 15.3, 0.1, 1, 1.2, 0x8a8e8c); // the rail that closes the line at the wall
+  for (const z of [18, 19.1]) bx(T1, 15, z, 0.25, 2.3, 0.25, 0x8a8e8c); bx(T1, 15, 18.55, 0.35, 0.25, 2.45, 0x8a8e8c, { y: 2.3, c: 0 });
+  for (const z of [19.8, 20.6]) { bx(T1, 15, z, 0.9, 1, 0.3, 0x5f6266); bx(T1, 15.25, z + 0.3, 0.05, 0.05, 0.9, 0x8a8e8c, { y: 0.9, ry: 0.5, c: 0 }); }
+  bx(T1, 17.5, 19.5, 0.06, 2.4, 6, [0.42, 0.52, 0.55]); bx(T1, 18.45, 18, 3.8, 2.4, 0.06, [0.42, 0.52, 0.55]); // the booth's glass, its way in at the east end
+  desk(T1, 18.8, 20.3, 2.4, 0.7, { bare: 1 }); bx(T1, 18.8, 20.5, 1.2, 0.36, 0.06, 0x22262a, { y: 0.76, c: 0 }); bx(T1, 18.8, 19.7, 0.45, 0.45, 0.45, 0x2c2f33);
+  bx(T1, 12.4, 17.5, 0.45, 0.42, 2.6, 0x5f6266); bx(T1, 12.15, 20.2, 0.5, 1.8, 1.4, 0x56636e);
+  corpse(T1, 16.4, 17.2, 0x2c3440, true, { label: 'Search the officer', say: 'A security officer. Whatever opened him did it from behind.', keys: ['s'] });
+
+  /* The lobby: where the money shows (world.md §8, The lobby). A hall 38 by 24 m and 13 m to a luminous ceiling,
+     backlit panels made to pass for daylight 40 m down. Down the grand stair from the checkpoint's gallery: the statue
+     in the middle (the family that built the place; a placeholder, the logo or a gardening motif later), a lounge to the
+     east, a bar under the gallery to the west. On the wing's feed: dark at the start, and the survivors raided the bar;
+     mended, it lights end to end */
+  const LB: TRoomOpts = { ...SEC, c: 'SEC', ht: 13, em: 1, lc: [0.92, 0.86, 0.74], fl: 0x6e6a62, wl: 0x7d786e, st: 0x8a6a3a };
+  /* its south-east reaches a row further, to the corridor's door; the west keeps a wall's width off the shaft's doors */
+  room(D, 'Lobby', 1, 1, 19, 12, LB); room(D, 'Lobby', 12, 13, 8, 1, LB);
+  door(D, 20, 13, { sg: [['Security', 'w'], ['Lobby', 'e']] });
+  room(T1, 'Lobby gallery', 1, 12, 19, 1, { ...WALK, ht: 8, c: 'SEC' }); room(T1, 'Lobby gallery', 12, 13, 8, 1, { ...WALK, ht: 8, c: 'SEC' });
+  grandStair(D, T1, 9, 6, 4, 6, 's');
+  bx(D, 10.5, 7, 37, 0.06, 25, [0.1, 0.1, 0.1], { y: 12.9, c: 0, pw: [[0.08, 0.08, 0.09], [2.85, 2.82, 2.72]], pc: 'SEC' }); // the false sky: emitting (2 + its colour), with power
+  /* the statue: a plinth, and a figure in bronze looking up at the false sky */
+  bx(D, 11, 3.2, 3.4, 1.1, 3.4, 0x9a9384); bx(D, 11, 3.2, 3.6, 0.12, 3.6, 0x7d776a, { y: 1.1, c: 0 });
+  for (const dx of [-0.25, 0.25]) bx(D, 11 + dx / 2, 3.2, 0.42, 2.1, 0.5, 0x6b5a3a, { y: 1.22 });
+  bx(D, 11, 3.2, 1.2, 1.7, 0.6, 0x6b5a3a, { y: 3.3, c: 0 }); bx(D, 11, 3.15, 0.55, 0.6, 0.55, 0x6b5a3a, { y: 5.0, rz: 0.15, c: 0 });
+  bx(D, 11.4, 3.2, 0.3, 1.5, 0.3, 0x6b5a3a, { y: 4.5, rz: -0.5, c: 0 }); bx(D, 10.6, 3.2, 0.3, 1.3, 0.3, 0x6b5a3a, { y: 3.4, rz: 0.2, c: 0 });
+  /* the lounge, east: sofas round low tables, and planters gone to stalks */
+  for (const [x, z] of [[15.5, 4], [15.5, 8.5]] as const) {
+    bx(D, x, z, 1.8, 0.42, 1, 0x3a3226);
+    for (const [ox, oz, w, d] of [[0, -1.25, 3.2, 0.9], [0, 1.25, 3.2, 0.9], [1.45, 0, 0.9, 2.6]] as const) { bx(D, x + ox, z + oz, w, 0.45, d, 0x5a3e34); bx(D, x + ox + (ox ? 0.17 : 0), z + oz + (oz > 0 ? 0.17 : oz < 0 ? -0.17 : 0), ox ? 0.25 : w, 0.9, ox ? d : 0.25, 0x4e352c, { c: 0 }); }
+  }
+  for (const [x, z] of [[2.2, 1.6], [7, 1.6], [18.6, 1.6], [18.6, 11]] as const) { bx(D, x, z, 1.2, 0.8, 1.2, 0x6e6a62); for (let k = 0; k < 4; k++) P(D, 'ico', x + Math.cos(k * 1.7) * 0.15, z + Math.sin(k * 1.7) * 0.15, 0.2, 0.9 + k * 0.2, 0.2, 0x5a4a2e, { y: 0.8, c: 0 }); }
+  /* the bar, under the gallery to the west: a counter, stools, and the bottles on the back wall that caught the
+     emergency light; the survivors took what they could carry */
+  bx(D, 4.5, 11.3, 10, 1.0, 0.7, 0x4a3226); bx(D, 4.5, 11.3, 10.3, 0.16, 0.85, 0x2a2c2e, { y: 1.0, c: 0 }); // a heavy top on a solid counter
+  bx(D, 4.5, 12.85, 10, 2.4, 0.3, 0x3a2a20, { y: 0.2 }); for (const y of [1.1, 1.7]) bx(D, 4.5, 12.7, 10, 0.04, 0.35, 0x2a2c2e, { y, c: 0 });
+  for (let k = 0; k < 22; k++) if ((k * 7) % 5 !== 0) P(D, 'cyl', 2.2 + k * 0.22, 12.72, 0.08, 0.3, 0.08, [[0.35, 0.55, 0.3], [0.6, 0.35, 0.15], [0.7, 0.68, 0.6], [0.3, 0.2, 0.15]][k % 4] as [number, number, number], { y: 1.14 + (k % 2) * 0.6, c: 0 });
+  for (let k = 0; k < 6; k++) P(D, 'cyl', 2.4 + k * 0.8, 10.4, 0.4, 0.75, 0.4, 0x2c2f33); // the stools
+  bx(D, 3.1, 10.2, 0.4, 0.05, 0.25, 0x5a6a50, { y: 0.01, ry: 0.6, c: 0 }); P(D, 'cyl', 6.3, 10.1, 0.08, 0.3, 0.08, 0x355530, { y: 0.04, rz: 1.5, c: 0 }); // a bottle, dropped
+  /* its eye: one high in the north-east corner, over the lounge; the lobby is a public room, not armed, so it records */
+  camera(D, 19.6, 1.4, 9, -2.4, 'SEC', 'wing');
+
+  /* off goods inward, where things came off the hoist: hazardous storage, its suits on the wall and its rebreathers.
      Its heavy door runs off Ops' own bus, not the wing's: it waits on Gen-1 either way, cut or mended */
   room(D, 'Hazardous storage', 12, 21, 6, 5, { ...UTIL, c: 'SEC' }); door(D, 13, 20, { kind: 'heavy', c: 'OPS', sg: [['Hazard store', 'n']] });
   for (const [x, z] of [[12.6, 25.4], [13.3, 25.5], [12.6, 24.7], [17.4, 21.4], [16.8, 21.4]]) P(D, 'cyl', x, z, 0.6, 0.9, 0.6, 0xc9a227);
   for (let k = 0; k < 3; k++) bx(D, 14.6 + k * 0.6, 21.08, 0.5, 1.5, 0.12, 0xc9a227, { y: 0.4, c: 0 }); // hazmat suits on their pegs
   shelf(D, 17.7, 23.6, 0.5, 2.2, { cols: [0xc9a227, 0x3d4042] }); bx(D, 15.4, 25.4, 0.8, 0.6, 0.6, 0x3a4030);
   item(D, 'rebreather', 15.4, 25.4, 0.6); item(D, 'kit', 17.65, 23.3, 1.06);
-  corpse(D, 17.5, 12.5, 0x2c3440, true, { label: 'Search the officer', say: 'A security officer. Whatever opened him did it from behind.', keys: ['s'] }); mut(D, 'husk', 14, 18.4, { post: 1, yaw: PI / 2 });
   room(D, 'Security corridor', 21, 13, 18, 3, { ...SEC, c: 'SEC', ht: 4.5, em: 1, safe: 1, armed: 1 });
   /* the cut, near the wing's end: the cabinet left open, the cable through, and the one who did it */
   panel(D, 'SEC', 37.4, 13.06, 's', { cut: 1, zone: 'wing' }); // mended, it comes live on Security's board, and the wing sounds bx(D, 37.4, 13.04, 0.12, 2.6, 0.08, 0x2a2c2e, { y: 1.8, c: 0 });
@@ -298,7 +341,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   /* Security's alarm zones, room by room: an alarm locks down the doors of its zone (sim/eyes.ts). The hall's east bays
      are Operations', with their own breaker; the suite below, the shaft and Cargo are in none */
   const ZONES: Record<string, string> = {
-    Checkpoint: 'wing', 'Hazardous storage': 'wing', 'Security corridor': 'wing', "Nurses' station": 'wing', 'Security control': 'wing',
+    Checkpoint: 'wing', Lobby: 'wing', 'Lobby gallery': 'wing', 'Goods inward': 'wing', 'Surface landing': 'wing', 'Hazardous storage': 'wing', 'Security corridor': 'wing', "Nurses' station": 'wing', 'Security control': 'wing',
     'Locker room': 'wing', Infirmary: 'wing',
     Atrium: 'atrium', 'Security elevator': 'atrium', Gallery: 'atrium',
     'Muster hall': 'muster', 'Muster court': 'muster', 'Electrical room': 'muster', Armory: 'muster', 'Firing range': 'muster', 'Duty office': 'muster',

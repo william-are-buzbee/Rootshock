@@ -53,12 +53,12 @@ describe('the armed rooms', () => {
   it('each has a camera that guards it; the rest only record', () => {
     const s = fresh();
     for (const R of new Set(s.world.rooms.filter(q => q.armed).map(q => q.name))) expect(camIn(s, R)?.guard, R).toBe(true);
-    expect(s.cams.filter(c => !c.guard).length).toBe(3); // the atrium's threshold, the court's, the east bays'
+    expect(s.cams.filter(c => !c.guard).length).toBe(4); // the lobby's, the atrium's threshold, the court's, the east bays'
     expect(threshold(s).guard).toBe(false);
   });
 
   it('the way in is marked: its door signs read ALARMED AREA, and the floor inside each door is painted', () => {
-    expect(level.signs.filter(q => q.warn).map(q => q.text).sort()).toEqual(['Armory', 'Chief of security', 'Electrical', 'Operations', 'Range', 'Security']);
+    expect(level.signs.filter(q => q.warn).map(q => q.text).sort()).toEqual(['Armory', 'Chief of security', 'Electrical', 'Operations', 'Range', 'Security', 'Security']);
     expect(level.signs.find(q => q.text === 'Lockers')?.warn).toBeFalsy();
   });
 
