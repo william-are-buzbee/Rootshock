@@ -512,6 +512,12 @@ wins; the older text stays only because it describes what is built, until the le
   grows from a stump; glassy eyes. Plants growing through and out of people is the level's disgust, more than raw flesh.
   (Supersedes *drills, not instructions* and *how much wit the staff have*, below. The power-failure drill stays as something
   one of them chooses: someone goes to the board, slowly, and looks about for who threw it.)
+  - *The word.* "Husk" is never said in the game (it was only ever a name in the code, which keeps it, and in the dev
+    tools, which say "changed" now).
+  - *Cards (built).* Security's own staff carry their cards: those that start in one of Security's alarm zones. A card
+    door with power opens for one of them, the reader beeping, and shuts after, still locked to you; while it is held
+    open you can slip through behind. A dark reader reads no card, and an alarm's bolt beats one. Cargo's workers carry
+    none, so Cargo's still wait in their dark behind Operations' card; nor does anything on the other levels.
 - **One tool per room (agreed).** Each space teaches one thing before a later one asks for all of them: the flashlight; a
   sound before a sight; the night round's beam far off; one armed place under one camera, its speaker with two of the changed
   in earshot, a safe failure (step over the line, hide, watch them come and go); a small board, and one of them walking over to throw it back on; a card;

@@ -33,8 +33,8 @@ export interface Fields {
   low: Record<Walker, Uint8Array>;
   /** the spots in each door */
   doorSpots: number[][];
-  /** the rules each kind walks by, made once a step at most */
-  rules: Record<Walker | 'sound', { tick: number; R: Rules }>;
+  /** the rules each kind walks by, made once a step at most; 'staff' are hands that carry their cards */
+  rules: Record<Walker | 'sound' | 'staff', { tick: number; R: Rules }>;
   /** what each field was last made from */
   made: Record<string, string>;
 }
@@ -61,7 +61,7 @@ export function makeFields(sim: Sim): Fields {
   return {
     nav, crawl: inf(), hands: inf(), big: inf(), sound: inf(), onLift, from: -1, turn: 0,
     low: { crawl: lowFor(HEAD.crawl), hands: lowFor(HEAD.hands), big: lowFor(HEAD.big) }, doorSpots,
-    rules: { crawl: rules(false), hands: rules(false), big: rules(false), sound: rules(true) }, made: {},
+    rules: { crawl: rules(false), hands: rules(false), big: rules(false), sound: rules(true), staff: rules(false) }, made: {},
   };
 }
 
@@ -77,12 +77,21 @@ export const doorShut = (d: Door) => {
   return D.seal || D.vent || D.lift || D.stuck || D.kind === 'heavy' || locked(d);
 };
 
-/** may a body of this kind enter the door it is walking into? */
-export function doorPasses(sim: Sim, d: Door, who: Walker): boolean {
+/** a card door the staff can show their card to: on a level whose staff carry them, with power enough to move it, and
+ *  not locked down (an alarm's bolt beats a card) */
+export const carded = (sim: Sim, d: Door): boolean => {
+  const D = d.def;
+  return !!sim.world.def.cards && !!D.card && !D.code && !d.down && !(D.seal || D.vent || D.lift || D.stuck)
+    && power(sim.game, D.circuit) >= (D.kind === 'heavy' ? 2 : 1);
+};
+
+/** may a body of this kind enter the door it is walking into? One that carries its card, a card door it can show it to */
+export function doorPasses(sim: Sim, d: Door, who: Walker, cards = false): boolean {
   if (who === 'big') return false;
   if (isOpen(d)) return true;
   const pw = power(sim.game, d.def.circuit);
   if (opensItself(d, pw)) return true;
+  if (cards && who === 'hands' && carded(sim, d)) return true;
   return who === 'crawl' ? d.def.stuck : !doorShut(d);
 }
 
@@ -93,12 +102,12 @@ export function liftPasses(sim: Sim, p: Platform, who: Walker): boolean {
 }
 
 /** the rules for one kind of body as the doors and platforms stand now: made once a step at most, and shared */
-export function rulesFor(sim: Sim, F: Fields, who: Walker): Rules {
-  const c = F.rules[who];
+export function rulesFor(sim: Sim, F: Fields, who: Walker, cards = false): Rules {
+  const staff = cards && who === 'hands', c = F.rules[staff ? 'staff' : who];
   if (c.tick === sim.tick) return c.R;
   const R = c.R;
   R.blocked.set(F.low[who]);
-  sim.doors.forEach((d, k) => { if (!doorPasses(sim, d, who)) for (const i of F.doorSpots[k]) R.blocked[i] = 1; });
+  sim.doors.forEach((d, k) => { if (!doorPasses(sim, d, who, staff)) for (const i of F.doorSpots[k]) R.blocked[i] = 1; });
   sim.platforms.forEach((p, k) => { R.lifts[k] = liftPasses(sim, p, who) ? 1 : 0; });
   c.tick = sim.tick;
   return R;

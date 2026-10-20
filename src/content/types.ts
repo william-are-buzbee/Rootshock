@@ -220,6 +220,9 @@ export interface Start { x: number; y: number; z: number; yaw: number }
 export interface LevelDef {
   id: string;
   name: string;
+  /** its staff carry their cards: a card door with power opens for those of the cast that work doors and started in one of
+   *  its alarm zones (sim/cast.ts), and is safe only from you (Security's: world.md §8, the changed) */
+  cards?: boolean;
   seed: string;
   rooms: RoomDef[];
   blocks: BlockDef[];

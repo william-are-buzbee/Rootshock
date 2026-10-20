@@ -31,6 +31,8 @@ export interface Door {
   /** locked down by its zone's alarm (sim/eyes.ts), and the seconds left before a bolt being drawn goes home */
   down: boolean;
   drawing: number;
+  /** a card shown to its reader by one of the staff (sim/cast.ts): seconds it is held open for them; it stays locked */
+  pass: number;
 }
 
 export interface Platform {
@@ -54,7 +56,7 @@ const THICK = 0.2;
 export function makeDoor(w: World, def: DoorDef): Door {
   const dyn: Dyn = { kind: 'mover', id: w.newId(), x0: def.x0, y0: def.y0, z0: def.z0, x1: def.x1, y1: def.y1, z1: def.z1, mat: def.mat, ...(def.glass ? { glass: true } : {}) };
   w.dyn.push(dyn);
-  const d: Door = { def, dyn, t: def.stuck ? STUCK : def.open ? 1 : 0, open: def.open, unlocked: false, hold: 0, down: false, drawing: 0 };
+  const d: Door = { def, dyn, t: def.stuck ? STUCK : def.open ? 1 : 0, open: def.open, unlocked: false, hold: 0, down: false, drawing: 0, pass: 0 };
   Object.assign(d.dyn, doorBox(d, d.t));
   return d;
 }
@@ -101,12 +103,16 @@ export function occupied(d: Door, riders: Rider[]): boolean {
 export function updateDoor(d: Door, riders: Rider[], movers: { x: number; y: number; z: number }[], power: number, dt: number): boolean {
   const D = d.def;
   let moved = false;
+  /* a card the staff showed it holds it open a while; then, still locked, it shuts once its way is clear */
+  if (d.pass > 0 && (d.pass -= dt) <= 0) {
+    if (d.open && locked(d) && D.kind === 'heavy') { if (occupied(d, riders)) d.pass = 0.2; else { d.open = false; moved = true; } }
+  }
   if (!(D.stuck || D.vent || D.seal || D.lift)) {
     if (D.kind === 'heavy') {
       if (power < 2 && d.open && !occupied(d, riders)) { d.open = false; moved = true; }
     } else if (power > 0) {
       if (locked(d)) {
-        if (d.open && !occupied(d, riders)) { d.open = false; moved = true; }
+        if (d.open && d.pass <= 0 && !occupied(d, riders)) { d.open = false; moved = true; }
       } else {
         const cx = (D.x0 + D.x1) / 2, cz = (D.z0 + D.z1) / 2;
         const near = movers.some(m => Math.hypot(m.x - cx, m.z - cz) < DOOR_NEAR && m.y < D.y1 && m.y > D.y0 - 1);

@@ -73,9 +73,9 @@ export class LevelBuilder {
   private def: LevelDef;
   private nolamp = new Set<number>();
 
-  constructor(id: string, name: string, o: { seed?: string; circuit?: string } = {}) {
+  constructor(id: string, name: string, o: { seed?: string; circuit?: string; cards?: boolean } = {}) {
     this.def = {
-      id, name, seed: o.seed ?? id, circuit: o.circuit ?? 'MAIN',
+      id, name, seed: o.seed ?? id, circuit: o.circuit ?? 'MAIN', ...(o.cards ? { cards: true } : {}),
       rooms: [], blocks: [], props: [], colliders: [], surfaces: [], water: [], doors: [], platforms: [],
       lamps: [], signs: [], items: [], notes: [], mutants: [], uses: [], marks: {},
       start: { x: 0, y: 0, z: 0, yaw: 0 },

@@ -4,7 +4,7 @@ import { STEP } from '../core/loop';
 import { Edge, edgeCost, field as fieldFrom } from '../world/nav';
 import type { Dyn } from '../world/world';
 import { fall, impulse, makeBody, push, settle, shove, slide, steer, walk, type Body, type Slid } from './body';
-import { doorShut, makeFields, opensItself, refreshFields, routeRules, rulesFor, type Fields, type Walker } from './fields';
+import { carded, doorShut, makeFields, opensItself, refreshFields, routeRules, rulesFor, type Fields, type Walker } from './fields';
 import { hurtBy, log, power, sayOnce, sfx } from './game';
 import { exposed, struck } from './combat';
 import { sendPlatform, type Door } from './movers';
@@ -84,6 +84,8 @@ export interface Mutant {
   opens: boolean; low: boolean; noDoors: boolean; fixed: boolean; swim: boolean; solid: boolean;
   /** a guard that keeps its post until it notices you; one sitting down; one grown over; a big one */
   post: boolean; sit: boolean; holt: boolean; big: boolean;
+  /** one of Security's staff, who carries its card (LevelDef.cards; it started in one of Security's zones) */
+  cards: boolean;
   /** where it started, which it keeps near */
   hx: number; hz: number;
   room: number;
@@ -153,6 +155,7 @@ function makeMutant(sim: Sim, def: MutantDef, id: number): Mutant {
       walker: S.noDoors ? 'big' : S.opens ? 'hands' : 'crawl',
       opens: !!S.opens, low: !!S.low, noDoors: !!S.noDoors, fixed: !!S.fixed, swim: !!S.swim, solid: !!S.solid,
       post: !!o.post, sit: !!o.sit, holt: !!o.holt, big: !!o.big, hx: def.x, hz: def.z, room,
+      cards: !!sim.world.def.cards && !!S.opens && !!sim.world.rooms[room]?.zone,
       wt: rnd(1, 5), wm: 0, wx: 0, wz: 0, tk: 0, lost: 0, bt: 0, burst: false, flee: 0, ct: rnd(6, 14), cdir: 0, tgt: false,
       grab: 0, tense: 0, blow: null, dest: -1, F: null, stk: 0, fled: false, side: 0, ride: null, spot: -1,
       mv: 0, d: 99, dp: 99, dy: 0, los: false, losAt: -99, hit: 0, poise: poiseOf(def.type, S.ai, !!o.big), pmax: poiseOf(def.type, S.ai, !!o.big), calm: 99, reel: 0, pat: 0, down: 0, rise: 0, acc: S.acc, drove: false, ph: rnd(9), dead: false, gone: 0, rag: null, away: false, still: 0,
@@ -279,6 +282,12 @@ function doorAhead(sim: Sim, m: Mutant, d: Door): 'go' | 'wait' | 'no' {
   if (m.walker === 'crawl' && d.def.stuck) return 'go';
   const pw = power(sim.game, d.def.circuit);
   if (opensItself(d, pw)) return 'wait'; // it is opening for us
+  /* a card door: it shows the reader its card, which beeps, and the door lets it through and shuts after */
+  if (m.cards && carded(sim, d)) {
+    if (!d.open) { d.open = true; sfx(sim.game, 'take', { x: (d.def.x0 + d.def.x1) / 2, y: d.def.y0 + 1.2, z: (d.def.z0 + d.def.z1) / 2 }); }
+    d.pass = Math.max(d.pass, 2.5);
+    return 'wait';
+  }
   if (m.opens && !doorShut(d)) {
     if (!d.open) {
       d.open = true; d.hold = 3;
@@ -296,7 +305,7 @@ function follow(sim: Sim, m: Mutant, F: Float32Array, spd: number, away: boolean
   if (m.ride) return ride(sim, m, Fs);
   const nav = Fs.nav, i = m.spot;
   if (i < 0) return false;
-  const R = rulesFor(sim, Fs, m.walker);
+  const R = rulesFor(sim, Fs, m.walker, m.cards);
   /* downhill: the cheapest way on (the field is float32, so compare scores with each other, not with F[i]);
      uphill (away): the farthest neighbour that is farther than here */
   let bv = away ? F[i] : Infinity, best = -1, be = -1;
@@ -455,7 +464,7 @@ export function rounds(sim: Sim): number[] {
 /** of these rooms, the spot nearest it can get to as the doors stand now (a locked door bars it), or -1. Only the choice
  *  needs the doors; the route there is made as any round's is, and a save keeps the choice. */
 function nearestIn(sim: Sim, m: Mutant, rooms: number[]): number {
-  const Fs = sim.fields!, from = fieldFrom(Fs.nav, m.spot, rulesFor(sim, Fs, m.walker));
+  const Fs = sim.fields!, from = fieldFrom(Fs.nav, m.spot, rulesFor(sim, Fs, m.walker, m.cards));
   let best = -1;
   for (const R of rooms) for (const k of Fs.nav.byRoom.get(R) ?? []) if (from[k] < (best < 0 ? Infinity : from[best])) best = k;
   return best;
