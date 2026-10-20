@@ -46,7 +46,7 @@ const look = (pattern: Pattern, gloss: number, tight: number, metal: number, bum
 export const MATS: Record<Mat, MatDef> = {
   /** poured: blotched, with the formwork's seams and tie holes on walls and ceilings */
   concrete: { n: 'Concrete', ring: ring(110, [[1, 1, 0.07], [2.1, 0.35, 0.04]], 700, 0.05, 'solid'), look: look('cast', 0.04, 8, 0, 0.35, 1, 1) },
-  /** concrete block, painted: courses and mortar, a little sheen to the paint */
+  /** concrete block, filled and painted smooth: the paint's sheen, and no coursing to be seen */
   block: { n: 'Painted block', ring: ring(150, [[1, 1, 0.06], [2.4, 0.3, 0.03]], 900, 0.04, 'solid'), look: look('block', 0.12, 14, 0, 0.5) },
   /** smooth painted plaster: an eggshell sheen and almost nothing else */
   plaster: { n: 'Painted plaster', ring: ring(130, [[1, 1, 0.05]], 600, 0.04, 'solid'), look: look('plaster', 0.2, 12, 0, 0.12) },

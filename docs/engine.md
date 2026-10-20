@@ -1465,6 +1465,14 @@ balcony on the main level, up a stair off the cross passage and along a passage 
 along the top of the locker room's wall on the Security corridor. The progression tests find door numbers by the sign
 over the door, so windows added before a door no longer break them.
 
+**Then, from play.** Painted block, even with its joints faint, read as brick wherever it was (Security, Operations,
+the atrium, the checkpoint); it is drawn now as block filled and painted smooth, a roller's stipple and a control joint
+every 6 m, no coursing. The Commons' paving, small flags half a flag along, read as a brick pavement; it is large square
+flags, joint to joint, quiet in tone. A partition's room reaches 0.75 m into the wall tile, which left what was fixed to
+the old face in the air (the wing's cut SEC connection, a call point, the infirmary's shelf): what stands within 0.6 m of
+the old face moves with it (`followFace` in `content/build/tiles.ts`). The loose crates are gone from the station (the
+testbed keeps its own for the tests that push them); a shelf's contents are laid in slots along each board, one a slot.
+
 Not done: decay (world.md, proposed); a bronze or brushed metal of its own (steel's pattern is riveted plate); glossy
 floors catching the tubes, which terrazzo and the coated floors now most want.
 
