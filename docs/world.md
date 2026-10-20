@@ -466,7 +466,10 @@ wins; the older text stays only because it describes what is built, until the le
     has power: the wall's station tiles wake as the station does (Gen-1, a backup set), a quiet clock of progress.
   - *The wing's control room stops being one.* The 14 by 10 m room behind the atrium's north wall becomes the response
     team's briefing room: the plan table, a projection screen, the station's maps on the walls, chairs in rows. Still
-    the survivors' last room and still behind the officer's card, as built; the 33 screens go.
+    the survivors' last room and still behind the officer's card, as built; the 33 screens go. **Built:** the screen
+    across the north wall and a projector over the aisle (lit with the wing's power), the lectern with the shift note
+    on it, three rows of chairs (two knocked over), the station's plans on the walls, and the survivors' bedrolls and
+    cans along the back wall.
 - **The lobby (agreed).** A well-funded station, built when nobody was worried, puts its money where visitors see it
   first. The checkpoint is the small, functional part; past it, the place opens up. Prey's lobby is the model, and Alien:
   Isolation's grand rooms at twice the size each way: call it 40 by 30 m and 12 to 14 m to the ceiling, a starting figure
@@ -673,9 +676,9 @@ should be added. Below it, production (below).
 - **Rooms built to the new standard (agreed).** Wider, longer, taller, with a landmark or a flourish; no utilitarian boxes.
   The range is 28 m of lanes, not a closet. The checkpoint: everyone off the surface came through it (the bag scanner, the
   arch, turnstiles, a booth behind glass), on the second floor before the lobby's stair (*The second pass*). The wing's row of doors is broken by the locker room, the survivors' back way into
-  the hall. Security control is a vestibule (the plan table, a window on the corridor) opening into a 14 by 10 m control room
-  behind the atrium's north wall: a camera wall of 33 screens, a few dead, and two rows of consoles facing it (as built; it
-  becomes the briefing room, *One control room*, *The second pass*). The infirmary is
+  the hall. The briefing room is a vestibule (the plan table, a window on the corridor) opening into a 14 by 10 m room
+  behind the atrium's north wall: a projection screen, the lectern, chairs in rows (*One control room*, *The second
+  pass*). The infirmary is
   a 16 by 8 m ward of four curtained beds, with a treatment bay behind glass and a chair pulled up to the last bed. The hazard
   store moves off the checkpoint, where things came off the hoist (same gate: Gen-1). Still to do: the wing's corridor could
   widen where its rooms branch off (a trunk, not a straight pipe).
@@ -765,7 +768,7 @@ Security: the main shaft carries only the hoist (Gen-1) and the surface cage.
 
 **Built so far.** The wing is a branch circuit (SEC) off Ops, cut at the start, with its splice panel near the
 threshold and the guard who cut it; a kit in Maintenance, on Ops' side, mends it (the hazard store's stays behind Gen-1).
-Mended, the wing lights amber, Security control's reader wakes, and the Security elevator runs, down to the main level's
+Mended, the wing lights amber, the briefing room's reader wakes, and the Security elevator runs, down to the main level's
 shaft station and back (ladderway A is gone). The highway runs east from the lobby
 through the dark wing and opens without a door into the atrium; the second leg runs south past the offices into the muster
 hall, with Maintenance (the Ops backup set) off its east end and the operations room over its south side, behind glass. The gallery climbs the core's east side to +5 and branches east to

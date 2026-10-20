@@ -147,29 +147,35 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   desk(D, 25.5, 11.6, 1.8, 0.7, { bare: 1 }); bx(D, 25.5, 11.7, 0.5, 0.34, 0.06, 0x22262a, { y: 0.76, c: 0 }); bx(D, 25.5, 11.68, 0.44, 0.28, 0.02, [0.06, 0.12, 0.1], { y: 0.79, c: 0, pw: [[0.04, 0.05, 0.05], [2.2, 2.75, 2.5]], pc: 'SEC' });
   bx(D, 25.5, 11, 0.45, 0.45, 0.45, 0x2c2f33); bx(D, 30.5, 11.7, 1.6, 0.42, 0.4, 0x44484c);
   item(D, 'batt', 25.9, 11.6, 0.78); note(D, 'duty', 25.1, 11.55, 0.78); item(D, 'baton', 30.2, 11.7, 0.44); item(D, 'ration', 30.8, 11.7, 0.44);
-  /* Security control: the board a human officer ran, and the survivors' last room. A vestibule off the corridor, with the
-     plan table and a window onto the corridor they held, opens into the control room proper, which runs east behind the
-     atrium's north wall: the camera wall across its north side, two rows of consoles facing it. Behind the officer's
-     card, and dark with the wing. */
-  room(D, 'Security control', 35, 8, 3, 4, { ...SEC, c: 'SEC', ht: 4 }); door(D, 36, 12, { card: 's', sg: [['Control', 's']] });
-  room(D, 'Security control', 35, 3, 7, 5, { ...SEC, c: 'SEC', ht: 4 });
+  /* The briefing room (world.md §8, one control room): where the response team was told what the day held, and the
+     survivors' last room. A vestibule off the corridor, with the plan table and a window onto the corridor they held,
+     opens into the room proper, which runs east behind the atrium's north wall: a projection screen across its north
+     wall, the lectern, chairs in rows with an aisle down the middle, the station's plans on the walls. The survivors
+     slept at the back of it. Behind the officer's card, and dark with the wing. */
+  room(D, 'Briefing room', 35, 8, 3, 4, { ...SEC, c: 'SEC', ht: 4 }); door(D, 36, 12, { card: 's', sg: [['Briefing', 's']] });
+  room(D, 'Briefing room', 35, 3, 7, 5, { ...SEC, c: 'SEC', ht: 4 });
   door(D, 35, 12, { seal: true, glass: true });
-  for (let i = 0; i < 11; i++) for (let j = 0; j < 3; j++) { // the wall: a few of its screens never came back
-    const x = 35.6 + i * 0.6, y = 0.95 + j * 0.82;
-    bx(D, x, 3.04, 1.16, 0.74, 0.06, 0x22262a, { y, c: 0 });
-    if ((i * 3 + j * 5) % 7 !== 3) bx(D, x, 3.08, 1.06, 0.64, 0.02, [0.05, 0.07, 0.08], { y: y + 0.05, c: 0, pw: [[0.04, 0.05, 0.05], [2.3, 2.6, 2.75]], pc: 'SEC' });
-    else bx(D, x, 3.08, 1.06, 0.64, 0.02, [0.12, 0.12, 0.12], { y: y + 0.05, c: 0 });
+  bx(D, 38.5, 3.04, 10, 2.9, 0.04, 0xd8d4c4, { y: 0.9, c: 0 }); bx(D, 38.5, 3.06, 10.2, 0.12, 0.06, 0x2a2c2e, { y: 3.8, c: 0 }); // the screen
+  bx(D, 38.5, 6.2, 0.5, 0.25, 0.6, 0x2c2f33, { y: 3.4, c: 0 }); bx(D, 38.5, 6.2, 0.06, 0.4, 0.06, 0x2c2f33, { y: 3.65, c: 0 }); // the projector
+  bx(D, 38.5, 6.04, 0.16, 0.12, 0.04, [0.05, 0.05, 0.05], { y: 3.45, c: 0, pw: [[0.05, 0.05, 0.05], [2.9, 2.85, 2.7]], pc: 'SEC' });
+  bx(D, 36.2, 3.9, 0.6, 1.1, 0.5, 0x4a3a2c); bx(D, 36.2, 3.86, 0.7, 0.05, 0.6, 0x3a2c22, { y: 1.1, rz: 0.12, c: 0 }); // the lectern
+  /* the chairs, as the last briefing left them; a few knocked over since */
+  for (const [z, zi] of [[4.8, 0], [5.8, 1], [6.8, 2]] as const) for (const [x, xi] of [[36.3, 0], [37, 1], [37.7, 2], [39.3, 3], [40, 4]] as const) {
+    const k = zi * 5 + xi, down = k === 3 || k === 11;
+    if (down) { bx(D, x, z + 0.2, 0.45, 0.45, 0.45, 0x2c2f33, { ry: 0.4 + k * 0.2, rz: PI / 2 - 0.1 }); continue; }
+    bx(D, x, z, 0.45, 0.45, 0.45, 0x2c2f33, { ry: ((k * 7) % 5 - 2) * 0.05 }); bx(D, x, z + 0.21, 0.45, 0.5, 0.05, 0x2c2f33, { y: 0.45, c: 0 });
   }
-  for (const z of [4.8, 6.3]) {
-    tbl(D, 37.8, z, 9.6, 0.9, 0x3a3d40);
-    for (let k = 0; k < 7; k++) {
-      bx(D, 35.9 + k * 0.65, z - 0.1, 0.6, 0.36, 0.05, 0x22262a, { y: 0.76, ry: 0.12 * (k - 3), c: 0 });
-      if (k % 2 === 0) bx(D, 35.9 + k * 0.65, z + 0.62, 0.45, 0.45, 0.45, 0x2c2f33, { ry: 0.3 * (k - 3) });
-    }
+  /* the station's plans, on the walls: a floor to a sheet */
+  for (const [x, z, ew] of [[35.03, 4.3, true], [35.03, 6.4, true], [39.6, 7.96, false]] as const) {
+    bx(D, x, z, ew ? 0.03 : 2.2, 1.4, ew ? 2.2 : 0.03, 0xd8d4c4, { y: 1.2, c: 0 });
+    for (let k = 0; k < 4; k++) bx(D, x + (ew ? 0.01 : (k - 1.5) * 0.4), z + (ew ? (k - 1.5) * 0.4 : -0.01), ew ? 0.02 : 0.3, 0.6 + (k % 2) * 0.3, ew ? 0.3 : 0.02, [0x39485a, 0x8c2f24, 0x4a5a3a, 0x8a7a4a][k], { y: 1.45, c: 0 });
   }
+  /* where the survivors slept: bedrolls along the back wall, and what they ate */
+  for (const x of [39.9, 40.95]) bx(D, x, 7.55, 1.9, 0.14, 0.7, 0x4a5240, { c: 0 });
+  for (const [x, z] of [[39.2, 7.1], [39.35, 7.3], [41.6, 7.05]] as const) P(D, 'cyl', x, z, 0.08, 0.11, 0.08, 0x8a8e8c, { c: 0 });
   tbl(D, 36.5, 9.8, 2.6, 1.4, 0x4a3a2c); bx(D, 36.5, 9.8, 2.2, 0.01, 1.1, 0xd8d4c4, { y: 0.76, c: 0 }); // the plan of the floor, pinned out
   shelf(D, 41.7, 5, 0.5, 2.4, { cols: [0x4d5a66, 0x7a4a34, 0x8a7a4a] });
-  note(D, 'cams', 36.2, 4.8, 0.78); item(D, 'batt', 37.4, 6.3, 0.78, 2); item(D, 'ammo9', 35.5, 11.5, 0.02);
+  note(D, 'cams', 36.2, 3.88, 1.16); item(D, 'batt', 40.6, 7.55, 0.16, 2); item(D, 'ammo9', 35.5, 11.5, 0.02);
   /* South off the wing: the locker room, the survivors' back way into the muster hall (a door at each end), and the
      infirmary. */
   room(D, 'Locker room', 21, 17, 8, 9, { ...SEC, c: 'SEC', safe: 1 }); door(D, 24, 16, { sg: [['Lockers', 'n']] });
@@ -354,7 +360,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   /* Security's alarm zones, room by room: an alarm locks down the doors of its zone (sim/eyes.ts). The hall's east bays
      are Operations', with their own breaker; the suite below, the shaft and Cargo are in none */
   const ZONES: Record<string, string> = {
-    Checkpoint: 'wing', Lobby: 'wing', 'Lobby gallery': 'wing', 'Goods inward': 'wing', 'Surface landing': 'wing', 'Hazardous storage': 'wing', 'Security corridor': 'wing', "Nurses' station": 'wing', 'Security control': 'wing',
+    Checkpoint: 'wing', Lobby: 'wing', 'Lobby gallery': 'wing', 'Goods inward': 'wing', 'Surface landing': 'wing', 'Hazardous storage': 'wing', 'Security corridor': 'wing', "Nurses' station": 'wing', 'Briefing room': 'wing',
     'Locker room': 'wing', Infirmary: 'wing',
     Atrium: 'atrium', 'Security elevator': 'atrium', Gallery: 'atrium',
     'Muster hall': 'muster', 'Muster court': 'muster', 'Electrical room': 'muster', Armory: 'muster', 'Firing range': 'muster', 'Duty office': 'muster',

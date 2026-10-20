@@ -72,7 +72,7 @@ Step 3's first half is done: the lobby (world.md §8, *The lobby*, *Where it goe
 did not move), the second-floor checkpoint and surface landing, the surface cage moved up to +5, Goods inward for the
 hoist, and `grandStair` (`content/build/fittings.ts`). The booth's screens are done too: a console (`monitors`, a use of
 kind `watch`), `Sim.watch` and `watching` in `sim/eyes.ts`, and the view in `present/ui/feed.ts`; the four cameras it shows
-are named (`CameraDef.name`). The wing's control room as the briefing room is next, and the duty office's screen after.
+are named (`CameraDef.name`). The wing's control room is the briefing room now. The duty office's screen is next.
 The camera wall waits on a way into the operations room.
 
 Step 1 is done: the overseer, the hand, the knock and the bolts are out of the code and of world.md §8 (old saves do not
