@@ -29,14 +29,16 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
      floor the surface cage, where people did. No ladderway down it: the way down from Security is its own elevator, in
      the atrium (below) */
   liftRoom(D, 5, 14, 7, 14);
-  room(D, 'Shaft station', 8, 14, 3, 3, { ...UTIL, c: 'SEC', em: 1, safe: 1 }); door(D, 11, 14, { sg: [['Goods inward', 'w'], ['Shaft station', 'e']] });
+  room(D, 'Shaft station', 8, 14, 3, 3, { ...UTIL, c: 'SEC', em: 1, safe: 1 }); door(D, 11, 15, { sg: [['Goods inward', 'w'], ['Shaft station', 'e']] });
   room(T1, 'Surface cage', 5, 14, 2, 2, { ...OPS, c: 'LIFT', nolamp: 1, noroam: 1, safe: 1 }); door(T1, 7, 14, { kind: 'heavy', c: 'LIFT', lift: true, sg: [['Surface', 'e']] });
 
   /* The Security wing: the lobby off the shaft, the first leg of the highway, and the rooms off it. Its feed hangs off
      Ops, and the survivors cut it to blind the cameras on their side (world.md §8): dark at the start, and a kit mends
      it. */
-  /* where freight came in: off the hoist, through to the hazard store and the corridor, never across the lobby */
-  room(D, 'Goods inward', 12, 14, 8, 6, { ...UTIL, c: 'SEC', ht: 4, em: 1 }); door(D, 20, 15, { sg: [['Security', 'w'], ['Goods inward', 'e']] });
+  /* where freight came in: off the hoist, through to the hazard store and the corridor, never across the lobby. A
+     wall between them, the lobby's limestone on one face and the dock's sprayed rock on the other: they were one open
+     space, the stone meeting the shotcrete in one plane beside the lobby's door */
+  room(D, 'Goods inward', 12, 15, 8, 5, { ...UTIL, c: 'SEC', ht: 4, em: 1 }); partition(D, 12, 14, 8, 1); door(D, 20, 15, { sg: [['Security', 'w'], ['Goods inward', 'e']] });
   bx(D, 16, 19.4, 3.6, 0.9, 0.7, 0x4a4f55);
   mut(D, 'husk', 14, 18.4, { post: 1, yaw: PI / 2 });
 
