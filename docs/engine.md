@@ -899,6 +899,12 @@ components, not code threaded through the frame loop:
   circuit), not from its room, and sounds only while that has power (`heard` in `sim/eyes.ts`); Security's is critical
   power, which nothing you can reach switches. Saves keep each camera's state, the muted zones and the alarms; the
   routes are made again. Doors keep their bolts.
+  A console is a use of kind `watch` (`monitors` in `content/build/fittings.ts`: a circuit, and its cameras by
+  `CameraDef.name`, which validation checks are there). Sat at it, `Sim.watch` holds its feeds and the one on screen;
+  each step `watching` (`sim/eyes.ts`) takes the input for itself (strafe for the next feed, a press at a time; use, a
+  hurt, or the console's power going stands you up) and passes on none of it, and there is nothing to use. Saves do not
+  keep it. `present/ui/feed.ts` puts the view at the lens (yaw as the sim's, tilted down a little), greys and lines it,
+  hides the hands, shows the body's hidden parts, and shows no signal for a camera that is not `camLive`.
 
 **As built in step 4.** The game's state is plain data in the sim (`sim/game.ts`): circuits and Gen-1, keys, what you
 carry (ten slots), lights and battery, what you wear, papers read, health, the run's keypad codes. What happens comes out

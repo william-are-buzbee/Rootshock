@@ -64,6 +64,9 @@ export class HandsView {
 
   setLighting(L: Lighting): void { this.L = L; }
 
+  /** the hands are not drawn while you watch a console's feed */
+  set shown(on: boolean) { this.vm.visible = on; }
+
   update(bob: number, time: number): void {
     const sim = this.sim, g = sim.game, h = sim.hands, b = sim.player.body, vm = this.vm;
     if (this.id !== g.weapon) {

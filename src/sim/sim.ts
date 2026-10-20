@@ -5,7 +5,7 @@ import { World } from '../world/world';
 import { clamp } from '../core/math';
 import { Lighting, type Loose } from '../world/light';
 import { castBodies, castMovers, makeCast, shoved, updateCast, type Drill, type Mutant } from './cast';
-import { makeCams, updateEyes, type Alarm, type Cam } from './eyes';
+import { makeCams, updateEyes, watching, type Alarm, type Cam, type Watch } from './eyes';
 import { floored, makeHands, pace, struck, updateHands, wstats, type Hands } from './combat';
 import { SLAM } from './moves';
 import { shove } from './body';
@@ -51,6 +51,8 @@ export interface Sim {
   mute: string[];
   /** breakers opened by hand, and the staff caught in the dark who may go to throw them back (sim/cast.ts) */
   drills: Drill[];
+  /** sat at a console, watching its cameras' feeds (sim/eyes.ts); not kept by saves: a game goes on standing */
+  watch: Watch | null;
 }
 
 export interface SimOpts {
@@ -105,7 +107,7 @@ export function makeSim(level: LevelDef, o: SimOpts = {}): Sim {
     doors: level.doors.map(d => makeDoor(world, d)),
     platforms: level.platforms.map(p => makePlatform(world, p)),
     items: level.items.map(it => ({ ...it, taken: false })),
-    usables: [], focus: null, cast: [], fields: null, hands: makeHands(), wormN: 0, front: -1, lighting: null, cams: [], alarms: [], mute: [], drills: [],
+    usables: [], focus: null, cast: [], fields: null, hands: makeHands(), wormN: 0, front: -1, lighting: null, cams: [], alarms: [], mute: [], drills: [], watch: null,
   };
   sim.cams = makeCams(sim);
   sim.usables = buildUsables(sim);
@@ -178,6 +180,7 @@ export function step(sim: Sim, input: Input): void {
   const g = sim.game;
   applyCommands(sim);
   if (g.ended) return;
+  if (sim.watch) input = watching(sim, input);
   sim.tick++;
   g.time += STEP;
   const rs = riders(sim), b = sim.player.body, movers = [b, ...castMovers(sim)], n0 = g.events.length;
@@ -265,7 +268,7 @@ export function step(sim: Sim, input: Input): void {
   updateCorpses(sim);
   sim.loose.update(STEP, sim.tick, rs);
 
-  const f = findUsable(sim);
+  const f = sim.watch ? null : findUsable(sim);
   sim.focus = f ? { text: f.text } : null;
   if (input.use && f) f.act();
   /* the power changed: the light is made again; Gen-1 coming up is heard all over the floor and felt, anything less clunks */

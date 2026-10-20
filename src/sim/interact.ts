@@ -6,7 +6,7 @@ import { locked, occupied, sendPlatform, type Door, type Platform } from './move
 import { eyeHeight } from './player';
 import type { Sim } from './sim';
 import { riders } from './sim';
-import { heard, soundZone, speakerY } from './eyes';
+import { heard, sitAt, soundZone, speakerY } from './eyes';
 import { drill } from './cast';
 
 /* What you can use, and what using it does: E on whatever you are looking at. The labels and the answers are the first
@@ -208,6 +208,18 @@ export function buildUsables(sim: Sim): Usable[] {
       case 'look':
         out.push({ ...base, label: () => (o.label as string) ?? 'Look', act: () => say(g, o.text as string) });
         break;
+      case 'watch': {
+        /* a spot monitor's console: sit and watch its cameras; dark without its power */
+        const c = o.c as string, feeds = o.feeds as string[];
+        out.push({
+          ...base, r: 1.8, label: () => (power(g, c) >= 1 ? 'Watch the monitors' : 'Monitors: dark'),
+          act: () => {
+            if (power(g, c) < 1) { say(g, 'The screens are dark. The console has no power.'); sfx(g, 'deny'); return; }
+            sitAt(sim, c, feeds);
+          },
+        });
+        break;
+      }
       case 'call': {
         /* a break-glass call point: it sounds its zone, as a camera would, from the zone's PA; once, the glass gone */
         const zone = o.zone as string, at = { x: u.x, y: u.y, z: u.z };

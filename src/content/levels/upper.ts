@@ -4,7 +4,7 @@ import {
   arch, beginLevel, bx, cave, door, elev, finishLevel, flight, item, ladder, mkDeck, mut, note, P, roughen, room, stack, stairs, use, type Deck, type LevelInfo, type TRoomOpts,
 } from '../build/tiles';
 import {
-  BAY, MED, OPS, SEC, UTIL, WALK, blood, callPoint, camera, container, corpse, crates, desk, droppedLight, eggs, exitSign, forklift, genset, gore, grandStair, liftRoom, medbed, panel, shelf, speaker, tbl,
+  BAY, MED, OPS, SEC, UTIL, WALK, blood, callPoint, camera, container, corpse, crates, desk, droppedLight, eggs, exitSign, forklift, genset, gore, grandStair, liftRoom, medbed, monitors, panel, shelf, speaker, tbl,
 } from '../build/fittings';
 
 /* Upper station, 40 m down. Off the main shaft, the Security wing (x 14 to 66) and Operations (x 64 to 110, south to
@@ -47,7 +47,20 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   for (const z of [18, 19.1]) bx(T1, 15, z, 0.25, 2.3, 0.25, 0x8a8e8c); bx(T1, 15, 18.55, 0.35, 0.25, 2.45, 0x8a8e8c, { y: 2.3, c: 0 });
   for (const z of [19.8, 20.6]) { bx(T1, 15, z, 0.9, 1, 0.3, 0x5f6266); bx(T1, 15.25, z + 0.3, 0.05, 0.05, 0.9, 0x8a8e8c, { y: 0.9, ry: 0.5, c: 0 }); }
   bx(T1, 17.5, 19.5, 0.06, 2.4, 6, [0.42, 0.52, 0.55]); bx(T1, 18.45, 18, 3.8, 2.4, 0.06, [0.42, 0.52, 0.55]); // the booth's glass, its way in at the east end
-  desk(T1, 18.8, 20.3, 2.4, 0.7, { bare: 1 }); bx(T1, 18.8, 20.5, 1.2, 0.36, 0.06, 0x22262a, { y: 0.76, c: 0 }); bx(T1, 18.8, 19.7, 0.45, 0.45, 0.45, 0x2c2f33);
+  desk(T1, 18.8, 20.3, 2.4, 0.7, { bare: 1 }); bx(T1, 18.8, 19.7, 0.45, 0.45, 0.45, 0x2c2f33);
+  /* the booth's monitors: two screens on the desk, showing the checkpoint's own cameras (world.md §8, smaller screens
+     first): the lobby below, the checkpoint, the surface landing, the shaft station. On the wing's feed: dark until the
+     cut is mended, when the changed start walking the lit lobby and there is something worth watching */
+  for (const x of [18.45, 19.15]) {
+    bx(T1, x, 20.48, 0.6, 0.44, 0.08, 0x22262a, { y: 0.8, c: 0 });
+    bx(T1, x, 20.43, 0.52, 0.36, 0.02, [0.04, 0.05, 0.05], { y: 0.84, c: 0, pw: [[0.04, 0.05, 0.05], [2.3, 2.42, 2.38]], pc: 'SEC' });
+  }
+  monitors(T1, 18.8, 19.9, 1.1, 'SEC', ['Lobby', 'Checkpoint', 'Surface landing', 'Shaft station']);
+  /* and what they watch, recording: the line from the north-west corner, the landing from by the checkpoint's door, the
+     shaft station from over goods inward's */
+  camera(T1, 12.4, 15.4, 3.5, 0.79, 'SEC', 'wing', { name: 'Checkpoint' });
+  camera(T1, 10.6, 16.6, 3.1, -2.17, 'SEC', 'wing', { name: 'Surface landing' });
+  camera(D, 10.6, 14.4, 2.8, -1.17, 'SEC', 'wing', { name: 'Shaft station' });
   bx(T1, 12.4, 17.5, 0.45, 0.42, 2.6, 0x5f6266); bx(T1, 12.15, 20.2, 0.5, 1.8, 1.4, 0x56636e);
   corpse(T1, 16.4, 17.2, 0x2c3440, true, { label: 'Search the officer', say: 'A security officer. Whatever opened him did it from behind.', keys: ['s'] });
 
@@ -82,7 +95,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   for (let k = 0; k < 6; k++) P(D, 'cyl', 2.4 + k * 0.8, 10.4, 0.4, 0.75, 0.4, 0x2c2f33); // the stools
   bx(D, 3.1, 10.2, 0.4, 0.05, 0.25, 0x5a6a50, { y: 0.01, ry: 0.6, c: 0 }); P(D, 'cyl', 6.3, 10.1, 0.08, 0.3, 0.08, 0x355530, { y: 0.04, rz: 1.5, c: 0 }); // a bottle, dropped
   /* its eye: one high in the north-east corner, over the lounge; the lobby is a public room, not armed, so it records */
-  camera(D, 19.6, 1.4, 9, -2.4, 'SEC', 'wing');
+  camera(D, 19.6, 1.4, 9, -0.79, 'SEC', 'wing', { name: 'Lobby' }); // looking south-west, over the lounge to the stair
 
   /* off goods inward, where things came off the hoist: hazardous storage, its suits on the wall and its rebreathers.
      Its heavy door runs off Ops' own bus, not the wing's: it waits on Gen-1 either way, cut or mended */

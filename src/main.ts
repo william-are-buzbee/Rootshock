@@ -25,6 +25,7 @@ import { Cascade } from './present/cascade';
 import { U, setDetail } from './present/render/shader';
 import { Hud } from './present/ui/hud';
 import { Panels } from './present/ui/panels';
+import { Feed } from './present/ui/feed';
 import { Meter } from './present/perf';
 
 /* Boot: content -> world -> sim, and the page around it. The frame runs whole sim steps for the time that passed, then draws
@@ -95,6 +96,7 @@ let hurtFx = 0, hitFx = 0;
 const hitDir = document.getElementById('hitdir')!;
 
 const rig = new CameraRig();
+const feed = new Feed(canvas);
 const beams = new Beams();
 const prints = new Prints(view.scene, lighting);
 const drips = new Drips(view.scene, lighting, (x, y, z, water) => scape.dripAt(sim, x, y, z, water));
@@ -341,6 +343,7 @@ function frame(t: number): void {
   meter.add('sim', t1 - t0);
   if (!sim.tick) { const b = sim.player.body; prev.x = b.x; prev.y = b.y; prev.z = b.z; }
   rig.update(view.camera, sim, prev, mode === 'play' ? loop.alpha : 1, dt, controls.pending);
+  handsView.shown = !feed.update(sim, view.camera); // sat at a console, the view is its camera's
   /* a failing battery stutters */
   const g = sim.game;
   flick -= dt;
@@ -394,7 +397,7 @@ function frame(t: number): void {
   panels.status(g, p.air < p.airMax - 0.01 ? p.air / p.airMax : null, p.crouch, hurtFx);
 
   const b = sim.player.body, room = sim.world.roomAt(b.x, b.y + 0.5, b.z);
-  hud.setRoom(room?.name ?? '', sim.world.def.name, mode === 'title' ? 0 : dt); // the label waits for you to open your eyes
+  hud.setRoom(sim.watch ? '' : room?.name ?? '', sim.world.def.name, mode === 'title' ? 0 : dt); // the label waits for you to open your eyes
   if (dt > 0) fps += (1 / dt - fps) * 0.05;
   if (DEV) track(dt);
   hud.dev(DEV ? `${b.x.toFixed(2)} ${b.y.toFixed(2)} ${b.z.toFixed(2)}  ${room?.name ?? 'rock'}  ${b.ground ? 'ground' : 'air'}  ${Math.round(fps)} fps\n${sim.world.def.name}: ${sim.world.grid.chunkCount} chunks  mesh ${here.meshMs.toFixed(0)} ms  ${['fly', 'god', 'bright'].filter(k => k === 'fly' ? sim.player.fly : k === 'god' ? sim.game.god : devFlags.bright).join(' ')}\n${perfLine()}\nV fly  G god  B bright  O colliders  P tracker  M surface detail\n${fightLine()}` : null);

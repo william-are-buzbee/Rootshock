@@ -439,7 +439,12 @@ wins; the older text stays only because it describes what is built, until the le
   - *Smaller screens first (agreed).* Real buildings have one control room and a few spot monitors where a desk needs
     to see its own doors. Here, two, each a taste of the wall before the wall: the checkpoint booth (the lobby, the
     shaft's landings and the checkpoint itself) and the duty office (one screen, cycling the hall's cameras). Each
-    console shows only its own area's cameras, as a booth's login would.
+    console shows only its own area's cameras, as a booth's login would. **Built,** the booth's: sit at its desk and the
+    view is the camera's, from its lens, grey and lined as a monitor's, with the feed's name and a clock; strafe for the
+    next of its four (the lobby, the checkpoint, the surface landing, the shaft station); use, being hurt, or the screens
+    losing their power stands you up. While you watch the world goes on, and you are not looking at it. A camera with
+    no power or smashed shows no signal. The cameras see you too: from out there, all of you. The duty office's is to come,
+    and the operations room's wall grows from the same console.
 - **One control room, wired as a real one (agreed; supersedes Security control's wall).** Every camera feeds recorders and
   a core switch, the head end, and the control room sits beside the head end on protected power. Here:
   - *The operations room is Security's control room,* the only full wall. Its nine screens are large displays, each

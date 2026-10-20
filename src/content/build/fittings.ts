@@ -177,8 +177,13 @@ export function panel(D: Deck, c: string, x: number, z: number, face: 'n' | 's' 
 }
 /** a camera (sim/eyes.ts) at (x, z) in tiles, its lens h metres up, looking along yaw (0 south, a quarter turn east), on
  *  circuit c, sounding zone `zone`; drawn by present/render/things.ts */
-export function camera(D: Deck, x: number, z: number, h: number, yaw: number, c: string, zone: string, o: { fov?: number; range?: number } = {}): void {
-  D.cams.push({ x, z, h, yaw, fov: o.fov ?? 1.6, range: o.range ?? 18, c, zone });
+export function camera(D: Deck, x: number, z: number, h: number, yaw: number, c: string, zone: string, o: { fov?: number; range?: number; name?: string } = {}): void {
+  D.cams.push({ x, z, h, yaw, fov: o.fov ?? 1.6, range: o.range ?? 18, c, zone, ...(o.name ? { name: o.name } : {}) });
+}
+/** a spot monitor's console at (x, z), its seat y up: on circuit c, it shows the named cameras' feeds, one at a time
+ *  (sim/eyes.ts, watching) */
+export function monitors(D: Deck, x: number, z: number, y: number, c: string, feeds: string[]): void {
+  use(D, 'watch', x, z, y, { c, feeds });
 }
 /** a break-glass call point on a wall at (x, z), read from `face`: a red box at shoulder height with a pane over its
  *  button, wired to the zone's PA (sim/interact.ts, 'call'). The pane is drawn by present/render/things.ts, gone once
