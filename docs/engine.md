@@ -1473,6 +1473,13 @@ the old face in the air (the wing's cut SEC connection, a call point, the infirm
 the old face moves with it (`followFace` in `content/build/tiles.ts`). The loose crates are gone from the station (the
 testbed keeps its own for the tests that push them); a shelf's contents are laid in slots along each board, one a slot.
 
+A walkway's grating was a square grid of thin bright lines over black, the same from every side: it read as graph
+paper. It is bar grating now (`mesh`), galvanised: bearing bars 5 mm thick on 30 mm centres along z and 30 mm deep, so
+looked at across them their sides close the gaps (each bar drawn as wide as its top and the side of it you can see, from
+the angle you look at it) and it reads as a grey floor, and looked along them you see down the slots; cross rods every
+100 mm, which close the slots at a slant; panels a metre wide with a banding bar at each edge, each a shade apart. The
+gaps are the dim of what is under the walkway, not black. Duller than it was (gloss 0.25).
+
 Not done: decay (world.md, proposed); a bronze or brushed metal of its own (steel's pattern is riveted plate); glossy
 floors catching the tubes, which terrazzo and the coated floors now most want.
 

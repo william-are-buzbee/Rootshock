@@ -220,11 +220,23 @@ void surface(int pat, vec3 p, vec3 n, float up, float det, out float alb, out fl
     alb = (1.0 + 0.06 * (tone - 0.5) + 0.08 * (grit - 0.5) * det) * (1.0 - 0.2 * j);
     h = 0.0012 * grit - 0.003 * j;
   } else if (pat == ${P('mesh')} && horiz) {
-    /* bearing bars every 30 mm one way, cross bars every 100 mm the other, and the dark showing through between */
-    float bar = max(grid(p.x, 0.03, 0.0025), grid(p.z, 0.1, 0.003));
-    alb = mix(0.4, 1.15, bar);
-    h = 0.003 * bar;
-    gm = bar;
+    /* bar grating, galvanised: bearing bars 5 mm thick on 30 mm centres along z, 30 mm deep, so looked at across them
+       their sides close the gaps and it reads as a floor, and looked along them you see down through (drawn as a
+       square grid of thin lines, the same from every side, it read as graph paper); twisted cross rods every 100 mm,
+       flush with their tops; panels a metre wide, a banding bar at each edge, each a little different */
+    vec3 v = normalize(cameraPosition - p);
+    float tilt = 1.0 / max(abs(v.y), 0.05);
+    float top = grid(p.x, 0.03, 0.0025);
+    float bear = grid(p.x, 0.03, min(0.0025 + 0.015 * abs(v.x) * tilt, 0.015));
+    /* (a rod is 6 mm proud of the slot's floor of shadow: looking along the slots at a slant, the rods close them) */
+    float rod = grid(p.z, 0.1, min(0.0015 + 0.006 * abs(v.z) * tilt, 0.05));
+    float band = grid(p.x, 1.0, 0.004);
+    float pan = hash(vec2(floor(p.x), floor(p.z / 6.0))), grime = n3(p * 0.8);
+    float solid = max(max(bear, 0.85 * rod), band);
+    /* between the bars, the dim of what is under the walkway: not black */
+    alb = mix(0.3, mix(0.62, 1.0, max(top, band)) * (1.0 + 0.1 * (pan - 0.5) + 0.14 * (grime - 0.5)), solid);
+    h = 0.0015 * top + 0.003 * band;
+    gm = max(top, band);
   } else if (pat == ${P('plate')} || pat == ${P('mesh')}) {
     /* steel plate in panels a metre across and 1.2 m high, seamed and riveted; brushed along its length */
     vec2 per = vec2(1.0, 1.2), c = fract(uv / per) * per;
