@@ -23,8 +23,9 @@ import { makeSim, type Sim, type SimOpts } from './sim';
  *  without them: nobody down, the dead laid where they lay)
  *  6: the overseer and its hand gone, with their knocks and bolts; the level's cast is two fewer. Since, cameras that
  *  guard armed rooms (a save from before them loads: nothing tripped)
- *  7: the night round, one more of the level's cast, on its round with its flashlight */
-export const SAVE_VERSION = 7;
+ *  7: the night round, one more of the level's cast, on its round with its flashlight
+ *  8: the opening (sim/opening.ts): the suite laid out again, the other patient one more of the cast */
+export const SAVE_VERSION = 8;
 
 /** copy the named fields of an object */
 const pick = <T extends object, K extends keyof T>(o: T, keys: readonly K[]): Pick<T, K> => {
@@ -44,7 +45,7 @@ const PLATFORM = ['y', 'target', 'wait', 'moving', 'armed'] as const;
 const LOOSE = ['x', 'y', 'z', 'vx', 'vy', 'vz', 'awake', 'ground', 'still', 'woke'] as const;
 const MUTANT = ['x', 'y', 'z', 'px', 'py', 'pz', 'yaw', 'state', 'st', 'cd', 'stun', 'hp', 'post', 'wt', 'wm', 'wx', 'wz', 'tk',
   'lost', 'bt', 'burst', 'flee', 'ct', 'cdir', 'tgt', 'grab', 'tense', 'stk', 'fled', 'side', 'spot', 'mv',
-  'hit', 'poise', 'calm', 'reel', 'pat', 'down', 'rise', 'ph', 'dead', 'gone', 'away', 'dest', 'los', 'losAt', 'still', 'door', 'beat', 'torch'] as const;
+  'hit', 'poise', 'calm', 'reel', 'pat', 'down', 'rise', 'ph', 'dead', 'gone', 'away', 'dest', 'los', 'losAt', 'still', 'door', 'beat', 'lap', 'peered', 'torch'] as const;
 
 /** what a rider stands on, by the moving thing's id */
 const onId = (r: { on: { id: number } | null }) => r.on?.id ?? 0;
@@ -75,6 +76,8 @@ export interface Save {
   mute?: string[];
   /** breakers opened by hand, and who may go to throw them back */
   drills?: Sim['drills'];
+  /** the opening, while it lasts (sim/opening.ts) */
+  opening?: Sim['opening'];
   /** the fields over the nav graph as they stood (they are made in turn, so cannot be made again exactly) */
   fields: { from: number; turn: number; made: Record<string, string>; crawl: string; hands: string; big: string; sound: string } | null;
 }
@@ -113,6 +116,7 @@ export function save(sim: Sim): Save {
     cams: sim.cams.map(c => ({ broken: c.broken, hold: c.hold, tripped: c.tripped })),
     alarms: sim.alarms.map(saveAlarm),
     drills: structuredClone(sim.drills),
+    ...(sim.opening ? { opening: structuredClone(sim.opening) } : {}),
     mute: [...sim.mute],
     fields: sim.fields && {
       from: sim.fields.from, turn: sim.fields.turn, made: { ...sim.fields.made },
@@ -127,7 +131,8 @@ export function load(level: LevelDef, data: Save, o: SimOpts = {}): Sim {
   const shared = !!o.game;
   if (data.v !== SAVE_VERSION) throw new Error(`save version ${data.v}, expected ${SAVE_VERSION}`);
   if (data.level !== level.id) throw new Error(`save is of ${data.level}, not ${level.id}`);
-  const sim = makeSim(level, o), g = sim.game;
+  /* a save made in the opening is made again with it, and set as it was */
+  const sim = makeSim(level, { ...o, opening: !!data.opening }), g = sim.game;
   g.events.length = 0; // what it said as it began was said long ago
   sim.tick = data.tick;
   if (!shared) {
@@ -173,6 +178,7 @@ export function load(level: LevelDef, data: Save, o: SimOpts = {}): Sim {
   sim.cams.forEach((c, i) => { const s = data.cams?.[i]; if (s) { c.broken = s.broken; c.hold = s.hold; c.tripped = s.tripped; } });
   sim.mute = [...(data.mute ?? [])];
   sim.drills = structuredClone(data.drills ?? []);
+  sim.opening = data.opening ? structuredClone(data.opening) : null;
   restoreAlarms(sim, data.alarms ?? []);
   const byId = new Map(sim.world.dyn.map(d => [d.id, d]));
   [sim.player.body, ...sim.loose.all, ...sim.cast.map(m => m.body)].forEach((r, i) => { if (r) r.on = byId.get(data.on[i]) ?? null; });

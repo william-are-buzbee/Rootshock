@@ -29,6 +29,9 @@ export interface RoomDef {
   em: boolean;
   /** the circuit that powers it */
   circuit: string;
+  /** it has emergency lights on cells of their own, as life-safety code wants (the isolation suite): this colour when its
+   *  circuit is dead */
+  batt?: Colour;
   /** its lights stutter */
   flick: boolean;
   /** a doorway: lit by the rooms either side of it */
@@ -169,6 +172,8 @@ export interface DoorDef {
   glass?: boolean;
   card?: string;
   code?: number;
+  /** fail-safe (world.md §4): its lock lets go when its power dies, and stays let go (a cell's, the isolation suite's) */
+  failsafe?: boolean;
   circuit: string;
   /** what it says when it will not open */
   msg?: string;
@@ -200,8 +205,9 @@ export interface Aim { yaw: number; pitch: number }
 export interface NoteDef { key: string; x: number; y: number; z: number }
 export interface MutantDef { type: string; x: number; y: number; z: number; opts: Record<string, unknown> }
 /** a stop on a guard's round (world.md §8, the night round), in plan metres: how long it stands there looking about, and
- *  how many times it tries the door beside it with its card */
-export interface RoundStop { x: number; y: number; z: number; wait?: number; tries?: number }
+ *  how many times it tries the door beside it with its card. A stop may want a circuit live (it is passed by otherwise),
+ *  be kept on the first time round only, or be where it takes whoever is there (the opening's other patient) */
+export interface RoundStop { x: number; y: number; z: number; wait?: number; tries?: number; need?: string; once?: boolean; take?: boolean }
 /** something to use: a corpse to search, a panel, a backup set, a ladder, the lift */
 export interface UseDef { kind: string; x: number; y: number; z: number; opts: Record<string, unknown> }
 

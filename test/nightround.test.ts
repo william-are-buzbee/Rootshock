@@ -26,12 +26,19 @@ const setUp = () => {
   return { s, m };
 };
 const roomOf = (s: Sim, m: Mutant) => s.world.roomAt(m.x, m.y + 0.5, m.z)?.name;
+/** the first stop of its round in the wing: before it, the suite's, for the opening's night (and only while the wing has
+ *  power: sim/opening.ts) */
+const wingStop = (m: Mutant) => m.round!.findIndex(P => !P.once);
 const beeps = (s: Sim) => s.game.events.filter(e => e.type === 'sfx' && (e.name === 'take' || e.name === 'deny')).map(e => (e as { name: string }).name);
 
 describe('the night round', () => {
-  it('walks its round in the dark wing, stop to stop, where the rest of the changed will not go', () => {
+  it('walks its round in the dark wing, stop to stop, where the rest of the changed will not go; the suite\'s stops passed by', () => {
     const { s, m } = setUp();
     expect(m.round!.length).toBeGreaterThan(4);
+    const w = wingStop(m);
+    expect(w).toBeGreaterThan(0);
+    hold(s, 0.3);
+    expect(m.beat).toBe(w); // the suite's first-time stops, with the wing dead, passed by, a step each
     expect(m.cards).toBe(true);
     const wing = s.world.rooms.find(R => R.name === 'Security corridor')!;
     expect(Math.max(...s.lighting!.room(wing.id))).toBe(0); // cut: dark
@@ -42,8 +49,8 @@ describe('the night round', () => {
       const r = roomOf(s, m);
       if (r) rooms.add(r);
     }
-    expect(seen.slice(0, 5)).toEqual([0, 1, 2, 3, 4]); // in order
-    expect([...rooms].every(r => r === 'Security corridor' || r === 'Lobby')).toBe(true);
+    expect(seen.slice(0, 5)).toEqual([w, w + 1, w + 2, w + 3, w + 4]); // in order
+    expect([...rooms].every(r => r === 'Security corridor' || r === 'Lobby' || r === "Nurses' station")).toBe(true);
     expect(m.state).toBe('round');
   });
 
@@ -71,12 +78,13 @@ describe('the night round', () => {
       const { s, m } = setUp();
       if (mended) { s.game.station!.circuits.SEC.broken = false; s.lighting = null; }
       m.cards = cards;
-      place(s, m, 60, 0, -1); m.beat = 0; m.state = 'round'; m.dest = -1; m.wt = 0;
-      const d = s.doors.find(q => q.def.card === 's')!; // the briefing room's, its first stop
+      const w = wingStop(m);
+      place(s, m, 60, 0, -1); m.beat = w; m.state = 'round'; m.dest = -1; m.wt = 0;
+      const d = s.doors.find(q => q.def.card === 's' && !q.def.failsafe)!; // the briefing room's, its first stop in the wing
       s.game.events.length = 0;
       let lit = false, ok = false;
-      for (let t = 0; t < 20 && m.beat === 0; t += STEP) { step(s, noInput()); if (d.beep > 0) { lit = true; ok = d.beepOk; } }
-      return { heard: beeps(s), lit, ok, beat: m.beat };
+      for (let t = 0; t < 20 && m.beat === w; t += STEP) { step(s, noInput()); if (d.beep > 0) { lit = true; ok = d.beepOk; } }
+      return { heard: beeps(s), lit, ok, beat: m.beat - w };
     };
     const dark = at(false);
     expect(dark.heard).toEqual([]);
@@ -93,10 +101,11 @@ describe('the night round', () => {
 
   it('taken off its round, it comes back to it where it left off', () => {
     const { s, m } = setUp();
-    m.beat = 3; m.state = 'hunt'; m.lost = 7.5; // after you, and has lost you
+    const w = wingStop(m);
+    m.beat = w + 3; m.state = 'hunt'; m.lost = 7.5; // after you, and has lost you
     hold(s, 1);
     expect(m.state).toBe('round');
-    expect(m.beat).toBe(3);
+    expect(m.beat).toBe(w + 3);
   });
 
   it('dies, and its light with it', () => {

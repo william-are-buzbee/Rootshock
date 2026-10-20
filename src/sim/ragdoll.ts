@@ -127,6 +127,20 @@ export const SKEL: Record<string, Skel> = {
     writhe: true,
   },
 };
+/** points weighted, all of them in proportion, to come to `kg` */
+function weigh(kg: number, pts: Skel['pts']): Skel['pts'] {
+  const all = Object.values(pts).reduce((t, p) => t + p[4], 0);
+  return Object.fromEntries(Object.entries(pts).map(([k, p]) => [k, [p[0], p[1], p[2], p[3], (p[4] * kg) / all] as Pt]));
+}
+/* the other patient is built as the husk is (render/castView.ts) and goes loose as it does, on its own frame: its hips
+   and shoulders a little narrower, both arms a person's, and lighter all over (55 kg to the husk's 80) */
+SKEL.patient = { ...SKEL.husk, pts: weigh(55, {
+    ...SKEL.husk.pts,
+    hipL: [-0.1, 0.9, 0, 0.12, 10], hipR: [0.1, 0.9, 0, 0.12, 10], kneeL: [-0.1, 0.45, 0, 0.08, 5], kneeR: [0.1, 0.45, 0, 0.08, 5],
+    footL: [-0.1, 0.08, 0.04, 0.08, 3], footR: [0.1, 0.08, 0.04, 0.08, 3],
+    shL: [-0.25, 1.46, 0, 0.11, 8], shR: [0.25, 1.46, 0, 0.11, 8], head: [0, 1.66, 0, 0.13, 6],
+    handL: [-0.25, 0.78, 0, 0.05, 3], handR: [0.25, 0.78, 0, 0.05, 3],
+  }) };
 
 /** a skeleton made ready: points by number, and its sticks with their lengths */
 export interface Bones {

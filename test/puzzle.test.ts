@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { STATION } from '../src/content/station';
 import { buildUpper } from '../src/content/levels/upper';
-import { makeSim, simLighting, step, type Sim } from '../src/sim/sim';
+import { makeSim, step, type Sim } from '../src/sim/sim';
 import { noInput, type Input } from '../src/sim/input';
 import { power } from '../src/sim/game';
 import { eyeHeight } from '../src/sim/player';
@@ -75,17 +75,17 @@ describe('the upper station, played', () => {
     expect(power(s.game, 'SEC')).toBe(0);
   });
 
-  it('a flashlight lies at the stair\'s foot, still on; taken, it is still on in your hand, and the dark has an answer', () => {
+  it('a flashlight lies at the stair\'s foot, off; taken and switched on, the dark has an answer', () => {
     const s = fresh();
     hold(s, 0.1, { light: true });
     expect(s.game.lightOn).toBe(false); // nothing to switch on yet
-    const F = find(s, /Take flashlight/), it = s.items.find(i => i.id === 'flash')!, a = it.on!;
-    const lum = () => Math.max(...simLighting(s).seen(it.x - Math.sin(a.yaw) * 2, it.y + 0.3, it.z - Math.cos(a.yaw) * 2));
-    expect(lum()).toBeGreaterThan(0.2); // its beam
+    const F = find(s, /Take flashlight/), it = s.items.find(i => i.id === 'flash')!;
+    expect(it.on).toBeUndefined();
     use(s, F, [0, 1]);
     expect(s.game.tools).toContain('flash');
-    expect(s.game.lightOn).toBe(true); // in your hand now, and on
-    expect(lum()).toBe(0); // not lying there any more
+    expect(s.game.lightOn).toBe(false); // in your hand now, off
+    hold(s, 0.1, { light: true });
+    expect(s.game.lightOn).toBe(true);
     const before = s.game.batt;
     hold(s, 3);
     expect(s.game.batt).toBeLessThan(before);

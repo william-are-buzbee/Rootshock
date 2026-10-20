@@ -23,6 +23,8 @@ export interface TRoomOpts {
   ht?: number;
   fl?: number; wl?: number; st?: number;
   lit?: LitRule; lc?: Colour; em?: number | boolean; c?: string; flick?: number | boolean;
+  /** emergency lights on their own cells: this colour when its circuit is dead (RoomDef.batt) */
+  batt?: Colour;
   /** a walkway or rung over open air: a slab with rails at its open edges */
   open?: number | boolean;
   /** a hole in the deck for stairs ('st') or a platform ('el'): no floor */
@@ -49,7 +51,7 @@ export interface TRoomOpts {
 export interface TRoom {
   id: number; name: string; x: number; y: number; w: number; h: number;
   ht: number; dy: number; fl: number; wl: number; st: number;
-  lit: LitRule; lc: Colour; em: boolean; c: string; flick: boolean;
+  lit: LitRule; lc: Colour; em: boolean; batt?: Colour; c: string; flick: boolean;
   open: boolean; hole: string | null; cave: boolean; air: boolean; sky?: number; motes?: Motes; mat: RoomMats;
   nolamp: boolean; noroam: boolean; safe: boolean; armed: boolean; zone?: string;
   /** a cave of any outline (caveShape): its tiles are the deck's tiles marked with its id, and x, y, w, h bound them */
@@ -58,6 +60,8 @@ export interface TRoom {
 
 export interface TDoorOpts {
   kind?: 'light' | 'heavy'; open?: boolean; card?: string; code?: number; stuck?: boolean; seal?: boolean; vent?: boolean; lift?: boolean; glass?: boolean;
+  /** fail-safe: its lock lets go when its power dies (DoorDef.failsafe) */
+  failsafe?: boolean;
   /** a window's height in a partition (GLAZE): to the floor, at a desk's height, or a strip high up */
   glaze?: Glaze;
   c?: string; msg?: string;
@@ -149,7 +153,7 @@ export const WHITE: Colour = [0.8, 0.85, 0.9];
 export function room(D: Deck, name: string, x: number, y: number, w: number, h: number, o: TRoomOpts = {}): TRoom {
   const r: TRoom = {
     id: D.rooms.length, name, x, y, w, h, ht: o.ht ?? 3.2, dy: o.dy ?? 0, fl: o.fl ?? 0x6b6e6a, wl: o.wl ?? 0x7c7f7a, st: o.st ?? 0x555555,
-    lit: o.lit ?? 'main', lc: o.lc ?? WHITE, em: !!o.em, c: o.c ?? D.c, flick: !!o.flick,
+    lit: o.lit ?? 'main', lc: o.lc ?? WHITE, em: !!o.em, ...(o.batt ? { batt: o.batt } : {}), c: o.c ?? D.c, flick: !!o.flick,
     open: !!o.open, hole: o.hole ? String(o.hole) : null, cave: !!o.cave, air: !!o.air, ...(o.sky !== undefined ? { sky: o.sky } : {}), ...(o.motes ? { motes: o.motes } : {}),
     mat: { ...(o.cave ? CAVERN : o.open ? WALKWAY : o.sky !== undefined ? STREET : FITTED), ...o.mat },
     nolamp: !!o.nolamp, noroam: !!o.noroam, safe: !!o.safe, armed: !!o.armed, ...(o.zone ? { zone: o.zone } : {}),
@@ -169,13 +173,13 @@ export function partition(D: Deck, x: number, y: number, w: number, h: number): 
 }
 /** how thick a partition is (m): half a metre, block and its finish with services in it, and on the world's quarter
  *  metre grid either side of a tile's middle; and a window's sill and head in one over the floor: to the floor, at a
- *  desk's height, or a strip high up that only shares the light (a clerestory) */
+ *  desk's height, at a clinic's observation height, or a strip high up that only shares the light (a clerestory) */
 export const THIN = 0.5;
 /** a single door's opening (m): wide enough for anyone who uses doors; set against the end of its 2 m tile where its
  *  pocket is, so the nav graph's spot in the tile's half there stands clear in it */
 export const NARROW = 1.2;
-export type Glaze = 'full' | 'view' | 'high';
-const GLAZE: Record<Glaze, [number, number]> = { full: [0, 2.4], view: [0.9, 2.2], high: [2.2, 2.8] };
+export type Glaze = 'full' | 'view' | 'obs' | 'high';
+const GLAZE: Record<Glaze, [number, number]> = { full: [0, 2.4], view: [0.9, 2.2], obs: [1.2, 2.2], high: [2.2, 2.8] };
 
 /** two doors only (world.md §4): light, and heavy. Either may carry a card reader or a keypad, or be jammed or sealed. */
 export function door(D: Deck, x: number, y: number, o: TDoorOpts = {}): void {
@@ -213,8 +217,10 @@ export function item(D: Deck, id: string, x: number, z: number, y = 0, n = 1): D
 }
 export function note(D: Deck, key: string, x: number, z: number, y = 0): void { D.notes.push({ key, x: x * T, z: z * T, y }); }
 export function mut(D: Deck, type: string, x: number, z: number, o: Record<string, unknown> = {}): void { D.muts.push({ type, x, z, o }); }
-/** a stop on a guard's round (types.ts, RoundStop), in tiles on its deck; given to mut() as `round` */
-export interface TStop { D: Deck; x: number; z: number; wait?: number; tries?: number }
+/** a place for one of the cast, in tiles on its deck, as an option to mut(): a stop on a guard's round (types.ts,
+ *  RoundStop), given as `round`; a spot to hide in; or where it stands, if on another deck than the one it is listed on
+ *  (`at`) */
+export interface TStop { D: Deck; x: number; z: number; wait?: number; tries?: number; need?: string; once?: boolean; take?: boolean }
 export function use(D: Deck, kind: string, x: number, z: number, y: number, o: Record<string, unknown> = {}): void { D.uses.push({ kind, x, z, y, o }); }
 
 /* ---- terrain: values at tile corners. hf lifts a floor, cf a cave's ceiling */
@@ -460,7 +466,7 @@ function followFace(D: Deck, k: number, across: 'x' | 'z', s: -1 | 1, d: number)
 /* ---- compile: every deck of the level, into the builder */
 /** what the builder is told of a room */
 const roomOpts = (R: TRoom) => ({
-  pal: { fl: R.fl, wl: R.wl, st: R.st } as Palette, lit: R.lit, lc: R.lc, em: R.em, circuit: R.c, flick: R.flick,
+  pal: { fl: R.fl, wl: R.wl, st: R.st } as Palette, lit: R.lit, lc: R.lc, em: R.em, batt: R.batt, circuit: R.c, flick: R.flick,
   nolamp: true, plain: R.open || R.cave, safe: R.safe, noroam: R.noroam, armed: R.armed, zone: R.zone, ...(R.sky !== undefined ? { sky: R.sky } : {}), motes: R.motes,
   mat: R.mat,
 });
@@ -554,7 +560,7 @@ export function finishLevel(start?: [number, number, number]) {
       const y0 = floorY(D, (d.x + 0.5) * T, (d.y + 0.5) * T);
       b.door(ns ? ox0 : cx - th / 2, ns ? cz - th / 2 : oz0, ns ? ox1 : cx + th / 2, ns ? cz + th / 2 : oz1, 2.4, {
         kind: d.kind ?? 'light', alongX: ns, open: !!d.open, stuck: !!d.stuck, seal: !!d.seal, vent: !!d.vent, lift: !!d.lift,
-        card: d.card, code: d.code, circuit, msg: d.msg, ...(d.glass ? { glass: true } : {}), ...(look ? { look, side } : {}), ...(slides ? { slides } : {}),
+        card: d.card, code: d.code, ...(d.failsafe ? { failsafe: true } : {}), circuit, msg: d.msg, ...(d.glass ? { glass: true } : {}), ...(look ? { look, side } : {}), ...(slides ? { slides } : {}),
         ...(thin ? { depth: THIN } : {}),
       });
       if (look) frame(D, d, ns, look, dep, a0 / T, a1 / T);
@@ -703,9 +709,12 @@ export function finishLevel(start?: [number, number, number]) {
     for (const S of D.speakers) b.speaker(S.zone, X(D, S.x), floorY(D, S.x * T, S.z * T), Z(D, S.z), S.pa ? { pa: S.pa } : {});
     for (const nt of D.notes) b.note(nt.key, px(D, nt.x), floorY(D, nt.x, nt.z) + nt.y, pz(D, nt.z));
     for (const m of D.muts) {
-      /* a round's stops, each on its own deck */
-      const round = (m.o.round as TStop[] | undefined)?.map(({ D: S, x, z, ...o }) => ({ x: X(S, x), y: floorY(S, x * T, z * T), z: Z(S, z), ...o }));
-      b.mutant(m.type, X(D, m.x), floorY(D, m.x * T, m.z * T), Z(D, m.z), round ? { ...m.o, round } : m.o);
+      /* places in its options (a round's stops, a spot to hide in), each on its own deck, to plan metres */
+      const plan = ({ D: S, x, z, ...o }: TStop) => ({ x: X(S, x), y: floorY(S, x * T, z * T), z: Z(S, z), ...o });
+      const { at, ...o } = Object.fromEntries(Object.entries(m.o).map(([k, v]) => [k, Array.isArray(v) && (v[0] as TStop)?.D ? (v as TStop[]).map(plan) : (v as TStop)?.D ? plan(v as TStop) : v]));
+      /* one that stands on another deck says where (`at`): so it can be listed after the rest, keeping their order */
+      const p = (at as { x: number; y: number; z: number } | undefined) ?? { x: X(D, m.x), y: floorY(D, m.x * T, m.z * T), z: Z(D, m.z) };
+      b.mutant(m.type, p.x, p.y, p.z, o);
     }
     for (const u of D.uses) b.use(u.kind, X(D, u.x), floorY(D, u.x * T, u.z * T) + u.y, Z(D, u.z), u.o);
     for (const [name, [ax, az, yaw]] of Object.entries(D.marks)) b.mark(name, X(D, ax), floorY(D, ax * T, az * T), Z(D, az), yaw);

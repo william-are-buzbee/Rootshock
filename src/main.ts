@@ -58,7 +58,9 @@ const stored = saving ? readStore(SAVE_KEY) : null;
 let resumed: Run | null = null;
 if (stored) try { resumed = loadRun(STATION, JSON.parse(stored)); } catch { writeStore(SAVE_KEY, null); }
 const seed = (Math.random() * 2 ** 32) >>> 0;
-const run: Run = resumed ?? (inStation ? makeRun(STATION, { seed, start: want }) : soloRun(makeSim(testbed(), { seed })));
+/* a new game begins with the opening (sim/opening.ts); ?level= (the station's first level too) starts as it leaves things */
+const opening = !params.has('level') && params.get('power') !== 'full';
+const run: Run = resumed ?? (inStation ? makeRun(STATION, { seed, start: want, opening }) : soloRun(makeSim(testbed(), { seed })));
 let sim: Sim = run.here;
 let mode: 'title' | 'play' | 'pause' | 'panel' | 'end' = 'title';
 function suspend(): void {

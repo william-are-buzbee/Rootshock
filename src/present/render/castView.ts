@@ -86,7 +86,33 @@ function changed(mat: THREE.Material, m: Mutant): Model {
   return { g, b, hd, legs, shins, arms, lens: torch(mat, m, arms[0]) };
 }
 
+/* the other patient in the isolation suite (world.md §8, the opening): a gown, bare legs and feet, thin from days with
+   nothing to eat, the hair gone wild; built as the husk is, so it goes loose as the husk does */
+const GOWN = 0x8fa09b, SKIN = 0xc9b7a4, HAIR = 0x2a2420;
+function patientModel(mat: THREE.Material): Model {
+  const g = new THREE.Group(), legs: O3[] = [], shins: O3[] = [];
+  for (const s of [-1, 1]) {
+    const l = grp(g, s * 0.1, 0.9, 0), k = grp(l, 0, -0.45, 0);
+    mk(l, mat, 'box', SKIN, 0.11, 0.45, 0.12, 0, -0.225, 0); mk(k, mat, 'box', SKIN, 0.1, 0.45, 0.11, 0, -0.225, 0); mk(k, mat, 'box', SKIN, 0.1, 0.06, 0.22, 0, -0.43, 0.04);
+    legs.push(l); shins.push(k);
+  }
+  const b = grp(g, 0, 0.9, 0);
+  mk(b, mat, 'box', GOWN, 0.4, 0.6, 0.22, 0, 0.3, 0); mk(b, mat, 'box', GOWN, 0.44, 0.42, 0.25, 0, -0.18, 0); // the gown, to the knee
+  mk(b, mat, 'cyl', SKIN, 0.1, 0.12, 0.1, 0, 0.64, 0);
+  const hd = grp(b, 0, 0.76, 0);
+  mk(hd, mat, 'ico', SKIN, 0.21, 0.27, 0.23, 0, 0, 0); mk(hd, mat, 'ico', HAIR, 0.26, 0.17, 0.27, 0, 0.09, -0.03); mk(hd, mat, 'ico', HAIR, 0.2, 0.2, 0.12, 0, 0.0, -0.1);
+  for (const s of [-1, 1]) { mk(hd, mat, 'ico', 0x5a4038, 0.05, 0.035, 0.02, s * 0.05, 0.02, 0.105); mk(hd, mat, 'ico', DARK, 0.018, 0.018, 0.01, s * 0.05, 0.02, 0.113); }
+  mk(hd, mat, 'box', 0x5a3a34, 0.06, 0.03, 0.02, 0, -0.07, 0.108);
+  const arms: O3[] = [];
+  for (const s of [-1, 1]) {
+    const a = grp(b, s * 0.25, 0.56, 0); mk(a, mat, 'box', GOWN, 0.12, 0.16, 0.13, 0, -0.06, 0); mk(a, mat, 'box', SKIN, 0.07, 0.6, 0.07, 0, -0.38, 0);
+    arms.push(a);
+  }
+  return { g, b, hd, legs, shins, arms };
+}
+
 export const BUILD: Record<string, (mat: THREE.Material, m: Mutant) => Model> = {
+  patient: mat => patientModel(mat),
   /* staff, early in the Regimen: still a person's outline, one arm already something else. Security's own are the
      changed, and look it (changed(), below) */
   husk(mat, m) {
@@ -205,6 +231,30 @@ const r = (a: number, b: number) => a + Math.random() * (b - a);
 const ease = (t: number) => t * t * (3 - 2 * t);
 
 export const ANIM: Record<string, (m: Mutant, M: Model, c: Ctx) => void> = {
+  /* the other patient: slumped at its window, a hand on the glass; banging on it, both fists, each blow landing as the sim
+     has it (m.wt, the time to the next); backed into its corner, down, its arms over its head */
+  patient(m, M) {
+    const mv = m.mv > 0;
+    for (let k = 0; k < 2; k++) { M.legs[k].rotation.x = mv ? Math.sin(m.ph * 6 + k * PI) * 0.3 : 0; M.shins[k].rotation.x = 0; }
+    M.hd.rotation.set(0, 0, 0);
+    if (m.state === 'bang') {
+      const q = ease(1 - Math.min(1, m.wt / 0.5));
+      for (let k = 0; k < 2; k++) M.arms[k].rotation.x = -2.3 + q * 1.0 + k * 0.15;
+      M.b.rotation.x = 0.05 + q * 0.12;
+      M.hd.rotation.x = -0.1;
+    } else if (m.state === 'back') {
+      M.b.rotation.x = 0.45;
+      M.arms[0].rotation.x = M.arms[1].rotation.x = -2.6;
+      M.hd.rotation.x = 0.5;
+      /* crouched: the thighs up, the shins back, and the whole of it down so its feet are on the floor */
+      if (!mv) { for (let k = 0; k < 2; k++) { M.legs[k].rotation.x = -0.9; M.shins[k].rotation.x = 1.5; } M.g.position.y -= 0.22; }
+    } else {
+      M.b.rotation.x = 0.12;
+      M.arms[0].rotation.x = -1.35 + Math.sin(m.ph * 0.4) * 0.03; M.arms[1].rotation.x = 0.05;
+      M.hd.rotation.x = 0.35;
+      M.hd.rotation.z = 0.12;
+    }
+  },
   husk(m, M, c) {
     const mv = m.mv > 0, hunt = m.state === 'hunt', f = hunt ? 11 : 5;
     for (let k = 0; k < 2; k++) M.legs[k].rotation.x = mv ? Math.sin(m.ph * f + k * PI) * (hunt ? 0.7 : 0.35) : 0;

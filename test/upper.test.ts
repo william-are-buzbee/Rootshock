@@ -38,7 +38,9 @@ describe('the upper station', () => {
   it('lights in two halves: the wing dead behind its cut, Ops on its backup set, Cargo dark', () => {
     const at = (L: Lighting, name: string) => L.room(level.rooms.find(r => r.name === name)!.id);
     const L = new Lighting(sim.world, stationPower(STATION.circuits, STATION.main));
-    expect(at(L, 'Isolation room 2')[0]).toBe(0); // the suite is the wing's, and dark with it
+    /* the suite is the wing's, and with the feed cut has only its emergency cells: dim, not dark */
+    expect(at(L, 'Isolation room 1')[0]).toBeGreaterThan(0.03);
+    expect(at(L, 'Isolation room 1')[0]).toBeLessThan(0.1);
     expect(at(L, 'Security corridor')[0]).toBe(0); // the wing's feed is cut
     const em = at(L, 'Operations corridor');
     expect(em[0]).toBeGreaterThan(0.2); // emergency lights on the backup set
@@ -61,17 +63,17 @@ describe('the upper station', () => {
     expect(full.atPoint((R.x0 + R.x1) / 2, R.y0 + 1, (R.z0 + R.z1) / 2)[0]).toBeGreaterThan(0.5);
   });
 
-  it('lights the suite by a flashlight dropped still on, the beam you will carry, and by its exit signs', () => {
+  it('lights the suite, its feed cut, by its emergency cells and its exit signs; the guard\'s flashlight lies there, off', () => {
     const hall = level.rooms.find(r => r.name === 'Isolation suite')!, F = level.items.find(it => it.id === 'flash')!;
-    expect(F.on).toBeDefined(); // lying on, and aimed
-    const power = stationPower(STATION.circuits, STATION.main), on = new Lighting(sim.world, power, undefined, looseLights(sim)), off = new Lighting(sim.world, power);
-    const lum = (L: Lighting, x: number, z: number, y = hall.y0 + 0.3) => Math.max(...L.seen(x, y, z));
-    const ax = -Math.sin(F.on!.yaw), az = -Math.cos(F.on!.yaw), at = (d: number) => [F.x + ax * d, F.z + az * d] as const;
-    expect(lum(on, ...at(1.5))).toBeGreaterThan(0.3); // its beam, along the floor
-    expect(lum(on, ...at(-1.5))).toBeLessThan(lum(on, ...at(1.5)) * 0.1); // and not behind it
-    expect(lum(on, F.x, F.z, hall.y0 + hall.ht - 0.1)).toBeLessThan(0.05); // nor up: the ceiling over it stays dark
-    expect(lum(off, ...at(1.5))).toBe(0);
-    expect(lum(on, hall.x0 + 2, hall.z1 - 2)).toBeLessThan(0.02); // the far corner: black
+    expect(F.on).toBeUndefined(); // days dead, and his light with him
+    expect(sim.world.roomAt(F.x, F.y + 0.3, F.z)?.name).toBe('Isolation suite');
+    const power = stationPower(STATION.circuits, STATION.main), off = new Lighting(sim.world, power);
+    expect(looseLights(sim).filter(L => L.key.startsWith('item'))).toEqual([]); // none lying on (the night round's is in its hand)
+    /* dim, cool and even: enough to find your way to it by, not to see far */
+    const c = off.room(hall.id);
+    expect(Math.max(...c)).toBeGreaterThan(0.03);
+    expect(Math.max(...c)).toBeLessThan(0.1);
+    expect(c[2]).toBeGreaterThanOrEqual(c[0]);
     /* the exit signs: green, a little light each, whatever the power */
     const signs = level.lamps.filter(l => l.colour[1] > l.colour[0] * 3);
     expect(signs.length).toBe(2);
