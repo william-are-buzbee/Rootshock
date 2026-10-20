@@ -139,8 +139,8 @@ function doorLook(D: DoorDef): { leaves: Leaf[]; fixed: Part[]; lights: Part[] }
   }
   if (D.seal) paint([[`box`, 0x2a2c2e, 1.5, 0.1, 0.4, 0, -0.1, 0], ['box', 0x2a2c2e, 1.5, 0.1, 0.4, 0, 0.6, 0]]);
   /* on the wall beside it, at the pocket's side: a reader, a keypad, a heavy door's live lamp */
-  const wx = sd * 1.32;
-  for (const z of [-1.02, 1.02]) {
+  const wx = sd * 1.32, face = (D.depth ?? 2) / 2 + 0.02;
+  for (const z of [-face, face]) {
     if (D.card) { fixed.push(['box', 0x22262a, 0.12, 0.18, 0.04, wx, -0.05, z]); lights.push(['box', [2.25, 2.45, 2.85], 0.08, 0.04, 0.05, wx, 0.01, z]); }
     if (D.code) {
       fixed.push(['box', 0x22262a, 0.16, 0.24, 0.04, wx, -0.05, z]);
@@ -242,8 +242,8 @@ export class Things {
       /* locked down: a red lamp on the wall beside it, on both faces, flashing while its bolt is drawn and steady once
          it is home */
       if (!(D.seal || D.vent || D.lift || D.stuck)) {
-        const wx = (D.side ?? 1) * 1.32;
-        this.add(parts([-1, 1].map(s => ['box', [2.9, 0.35, 0.3], 0.14, 0.14, 0.05, wx, 0.75, s * 1.02] as Part)), m => {
+        const wx = (D.side ?? 1) * 1.32, face = (D.depth ?? 2) / 2 + 0.03;
+        this.add(parts([-1, 1].map(s => ['box', [2.9, 0.35, 0.3], 0.14, 0.14, 0.05, wx, 0.75, s * face] as Part)), m => {
           still(m);
           m.visible = d.down || (d.drawing > 0 && Math.floor(performance.now() / 150) % 2 === 0);
         }, at, across);
@@ -332,15 +332,17 @@ export class Things {
 
   /** a window's pane: faintly tinted glass in a dark frame, lit where it stands when the level is drawn */
   private pane(D: DoorDef): void {
-    const cx = (D.x0 + D.x1) / 2, cz = (D.z0 + D.z1) / 2, l = this.L.atPoint(cx, D.y0 + 1.2, cz), rot = D.alongX ? 0 : Math.PI / 2;
-    const g = parts([['box', [0.55, 0.66, 0.7], 2, 2.4, 0.03, 0, 0, 0]], matId(D.mat)), n = g.getAttribute('position').count, L = new Float32Array(n * 4);
+    const h = D.y1 - D.y0, w = Math.max(D.x1 - D.x0, D.z1 - D.z0), my = D.y0 + h / 2;
+    const cx = (D.x0 + D.x1) / 2, cz = (D.z0 + D.z1) / 2, l = this.L.atPoint(cx, my, cz), rot = D.alongX ? 0 : Math.PI / 2;
+    const g = parts([['box', [0.55, 0.66, 0.7], w, h, 0.03, 0, 0, 0]], matId(D.mat)), n = g.getAttribute('position').count, L = new Float32Array(n * 4);
     for (let i = 0; i < n; i++) L.set([0.02 + l[0], 0.025 + l[1], 0.03 + l[2], 0], i * 4); // in the dark it is all but gone
     g.setAttribute('aLight', new THREE.BufferAttribute(L, 4));
     const m = new THREE.Mesh(g, glassMaterial(0.18));
-    m.position.set(cx, D.y0 + 1.2, cz); m.rotation.y = rot; m.frustumCulled = false; m.renderOrder = 1;
+    m.position.set(cx, my, cz); m.rotation.y = rot; m.frustumCulled = false; m.renderOrder = 1;
     this.scene.add(m);
-    const frame: Part[] = [['box', 0x2a2c2e, 2, 0.08, 0.12, 0, 1.2, 0], ['box', 0x2a2c2e, 2, 0.08, 0.12, 0, -1.2, 0], ['box', 0x2a2c2e, 0.08, 2.4, 0.12, -0.96, 0, 0], ['box', 0x2a2c2e, 0.08, 2.4, 0.12, 0.96, 0, 0]];
-    this.add(parts(frame), f => { f.position.set(cx, D.y0 + 1.2, cz); f.rotation.y = rot; }, [cx, D.y0, cz]);
+    const e = w / 2 - 0.04, v = h / 2;
+    const frame: Part[] = [['box', 0x2a2c2e, w, 0.08, 0.12, 0, v, 0], ['box', 0x2a2c2e, w, 0.08, 0.12, 0, -v, 0], ['box', 0x2a2c2e, 0.08, h, 0.12, -e, 0, 0], ['box', 0x2a2c2e, 0.08, h, 0.12, e, 0, 0]];
+    this.add(parts(frame), f => { f.position.set(cx, my, cz); f.rotation.y = rot; }, [cx, D.y0, cz]);
   }
 
   private water(w: World): void {

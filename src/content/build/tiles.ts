@@ -58,6 +58,8 @@ export interface TRoom {
 
 export interface TDoorOpts {
   kind?: 'light' | 'heavy'; open?: boolean; card?: string; code?: number; stuck?: boolean; seal?: boolean; vent?: boolean; lift?: boolean; glass?: boolean;
+  /** a window's height in a partition (GLAZE): to the floor, at a desk's height, or a strip high up */
+  glaze?: Glaze;
   c?: string; msg?: string;
   /** signs over it: [text, which side of the doorway it is read from] */
   sg?: [string, 'n' | 's' | 'e' | 'w'][];
@@ -101,6 +103,8 @@ export interface Deck {
   conn: Set<string>;
   /** standing water of its own (a pool): tiles x0, z0 to x1, z1, its surface in metres over the deck's floor */
   water: [number, number, number, number, number][];
+  /** wall tiles built as a thin partition (partition()): the axis the wall is crossed along */
+  thin: Map<number, 'x' | 'z'>;
 }
 
 /* ---- the level being built: decks share a builder, a seeded rng, and the station's ladderways */
@@ -125,7 +129,7 @@ export function mkDeck(lv: LevelInfo, W: number, H: number, o: { y0?: number; li
     lv, name: lv.name, c: lv.c, W, H, org: lv.org ?? [0, 0], y0: o.y0 ?? 0, li: o.li ?? 0, wet: o.wet ?? 0, deep: o.deep ?? 0, ground: !!o.ground,
     g: new Uint8Array(W * H), rm: new Int16Array(W * H).fill(-1), nom: new Uint8Array(W * H),
     rooms: [], doors: new Map(), above: null, below: null, hf: null, cf: null, hset: null,
-    props: [], cols: [], lamps: [], cams: [], speakers: [], stains: [], elevs: [], stairs: [], flights: [], items: [], notes: [], muts: [], uses: [], marks: {}, conn: new Set(), water: [],
+    props: [], cols: [], lamps: [], cams: [], speakers: [], stains: [], elevs: [], stairs: [], flights: [], items: [], notes: [], muts: [], uses: [], marks: {}, conn: new Set(), water: [], thin: new Map(),
   };
   C().decks.push(D);
   return D;
@@ -154,6 +158,22 @@ export function room(D: Deck, name: string, x: number, y: number, w: number, h: 
   for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) { D.g[j * D.W + i] = 1; D.rm[j * D.W + i] = r.id; }
   return r;
 }
+/** a wall built as a partition, not left as rock (world.md §1, *Doors*): the wall tiles x..x+w by y..y+h, one tile
+ *  thick, between two rooms. Each room reaches into it, and a wall half a metre thick is left between them, faced on
+ *  each side with that room's own finish. Doors and windows in it (door(), with glass for a window) are in that thin
+ *  wall: a door's doorway is the wall's own thickness, and a window is a pane in it. */
+export function partition(D: Deck, x: number, y: number, w: number, h: number): void {
+  if (w !== 1 && h !== 1) throw new Error('partition: one tile thick');
+  const across = w === 1 && h > 1 ? 'x' : 'z';
+  for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) D.thin.set(j * D.W + i, across);
+}
+/** how thick a partition is (m): half a metre, block and its finish with services in it, and on the world's quarter
+ *  metre grid either side of a tile's middle; and a window's sill and head in one over the floor: to the floor, at a
+ *  desk's height, or a strip high up that only shares the light (a clerestory) */
+export const THIN = 0.5;
+export type Glaze = 'full' | 'view' | 'high';
+const GLAZE: Record<Glaze, [number, number]> = { full: [0, 2.4], view: [0.9, 2.2], high: [2.2, 2.8] };
+
 /** two doors only (world.md §4): light, and heavy. Either may carry a card reader or a keypad, or be jammed or sealed. */
 export function door(D: Deck, x: number, y: number, o: TDoorOpts = {}): void {
   const i = y * D.W + x;
@@ -395,24 +415,30 @@ const FRAME: Record<Exclude<DoorLook, 'shutter'>, [number, number, Mat]> = {
   office: [0x4e4a44, 0.06, 'steel'], clinic: [0x9aa0a4, 0.06, 'steel'],
 };
 /** the frame round both faces of a doorway (an architrave: two jambs and a head, standing 3 cm off the wall) */
-function frame(D: Deck, d: { x: number; y: number }, ns: boolean, look: DoorLook): void {
-  const o = { c: 0 as const };
+function frame(D: Deck, d: { x: number; y: number }, ns: boolean, look: DoorLook, depth = T): void {
+  const o = { c: 0 as const }, inset = (T - depth) / 2 / T;
   if (look === 'shutter') {
     for (const e of [0, 1]) {
-      const a = e ? 1 - 0.04 / T : 0.04 / T;
+      const a = e ? 1 - inset - 0.04 / T : inset + 0.04 / T;
       bx(D, ns ? d.x + a : d.x + 0.5, ns ? d.y + 0.5 : d.y + a, ns ? 0.08 : 0.24, 2.4, ns ? 0.24 : 0.08, 0x3a3d40, { ...o, mat: 'steel' });
     }
     return;
   }
   const [c, w, mat] = FRAME[look], u = w / T / 2, f = 0.03 / T / 2;
   for (const face of [0, 1]) {
-    const q = face ? 1 + f : -f;
+    const q = face ? 1 - inset + f : inset - f;
     for (const e of [-u, 1 + u]) bx(D, ns ? d.x + e : d.x + q, ns ? d.y + q : d.y + e, ns ? w : 0.03, 2.4 + w, ns ? 0.03 : w, c, { ...o, mat });
     bx(D, ns ? d.x + 0.5 : d.x + q, ns ? d.y + q : d.y + 0.5, ns ? T + 2 * w : 0.03, w, ns ? 0.03 : T + 2 * w, c, { ...o, y: 2.4, mat });
   }
 }
 
 /* ---- compile: every deck of the level, into the builder */
+/** what the builder is told of a room */
+const roomOpts = (R: TRoom) => ({
+  pal: { fl: R.fl, wl: R.wl, st: R.st } as Palette, lit: R.lit, lc: R.lc, em: R.em, circuit: R.c, flick: R.flick,
+  nolamp: true, plain: R.open || R.cave, safe: R.safe, noroam: R.noroam, armed: R.armed, zone: R.zone, ...(R.sky !== undefined ? { sky: R.sky } : {}), motes: R.motes,
+  mat: R.mat,
+});
 const DOORPAL = { fl: [0.2, 0.21, 0.22] as Colour, wl: [0.27, 0.28, 0.3] as Colour, st: [0.22, 0.23, 0.25] as Colour };
 const SLAB = 0.25;
 
@@ -434,11 +460,7 @@ export function finishLevel(start?: [number, number, number]) {
     /* rooms */
     for (const R of D.rooms) {
       if (R.hole || R.shaped) continue;
-      const opts = {
-        pal: { fl: R.fl, wl: R.wl, st: R.st } as Palette, lit: R.lit, lc: R.lc, em: R.em, circuit: R.c, flick: R.flick,
-        nolamp: true, plain: R.open || R.cave, safe: R.safe, noroam: R.noroam, armed: R.armed, zone: R.zone, ...(R.sky !== undefined ? { sky: R.sky } : {}), motes: R.motes,
-        mat: R.mat,
-      };
+      const opts = roomOpts(R);
       const x0 = X(D, R.x), z0 = Z(D, R.y), x1 = X(D, R.x + R.w), z1 = Z(D, R.y + R.h);
       if (R.cave) {
         b.cave(R.name, x0, z0, x1, z1, {
@@ -450,6 +472,18 @@ export function finishLevel(start?: [number, number, number]) {
       } else b.room(R.name, x0, z0, x1, z1, { ...opts, y0: D.y0 + R.dy, ht: R.ht });
     }
     shapedCaves(b, D);
+    /* partitions: each room either side reaches into the wall tile, a thin wall left between them */
+    for (const [k, across] of D.thin) {
+      const i = k % D.W, j = Math.floor(k / D.W), x0 = X(D, i), z0 = Z(D, j), half = (T - THIN) / 2;
+      for (const s of [-1, 1] as const) {
+        const R = roomAtTile(D, k + s * (across === 'x' ? 1 : D.W));
+        if (!R || R.hole || R.cave) continue;
+        const a = s < 0 ? 0 : T - half, e = s < 0 ? half : T;
+        b.room(R.name, across === 'x' ? x0 + a : x0, across === 'x' ? z0 : z0 + a, across === 'x' ? x0 + e : x0 + T, across === 'x' ? z0 + T : z0 + e, {
+          ...roomOpts(R), y0: D.y0 + R.dy, ht: R.ht, part: true,
+        });
+      }
+    }
     /* water: wading depth over every room and doorway, or every room flooded over its roof; and pools */
     if (D.wet || D.deep) {
       const top = D.y0 + (D.wet || Math.max(2.4, ...D.rooms.map(R => R.ht)) + 1);
@@ -462,9 +496,12 @@ export function finishLevel(start?: [number, number, number]) {
       const x0 = X(D, d.x), z0 = Z(D, d.y), cx = x0 + T / 2, cz = z0 + T / 2;
       const ns = !!(D.g[k - D.W] && D.g[k + D.W]), heavy = d.kind === 'heavy', th = heavy ? 0.36 : d.vent ? 0.12 : 0.14;
       const { look, side, slides, lining } = doorway(D, k, d, ns);
+      /* in a partition, the doorway is the wall's own thickness, and a window's pane sits between its sill and head */
+      const thin = D.thin.has(k), dep = thin ? THIN : T, [sill, head] = d.glass && thin ? GLAZE[d.glaze ?? 'view'] : [0, 2.4];
+      const [rx0, rz0, rx1, rz1] = !thin ? [x0, z0, x0 + T, z0 + T] : ns ? [x0, cz - THIN / 2, x0 + T, cz + THIN / 2] : [cx - THIN / 2, z0, cx + THIN / 2, z0 + T];
       /* the doorway: lined with the finish of the grander side (stone through the lobby's, plaster through a corridor's),
          or, for a shutter, bare steel and concrete as it always was */
-      b.room('', x0, z0, x0 + T, z0 + T, { pal: { fl: 0, wl: 0, st: 0 }, y0: D.y0, ht: 2.4, doorway: true, nolamp: true, lit: 'main', circuit: D.c,
+      b.room('', rx0, rz0, rx1, rz1, { pal: { fl: 0, wl: 0, st: 0 }, y0: D.y0 + sill, ht: head - sill, doorway: true, nolamp: true, lit: 'main', circuit: D.c, part: thin,
         mat: lining ? { floor: lining.mat.floor, wall: lining.mat.wall === 'block' ? 'plaster' : lining.mat.wall, ceiling: lining.mat.wall === 'block' ? 'plaster' : lining.mat.wall } : DOORWAY });
       const R = b.level.rooms[b.level.rooms.length - 1];
       if (lining) { R.floor = hex(lining.fl); R.wall = hex(lining.wl); R.stripe = R.wall; } else { R.floor = DOORPAL.fl; R.wall = DOORPAL.wl; R.stripe = DOORPAL.st; }
@@ -474,17 +511,19 @@ export function finishLevel(start?: [number, number, number]) {
       b.door(ns ? x0 : cx - th / 2, ns ? cz - th / 2 : z0, ns ? x0 + T : cx + th / 2, ns ? cz + th / 2 : z0 + T, 2.4, {
         kind: d.kind ?? 'light', alongX: ns, open: !!d.open, stuck: !!d.stuck, seal: !!d.seal, vent: !!d.vent, lift: !!d.lift,
         card: d.card, code: d.code, circuit, msg: d.msg, ...(d.glass ? { glass: true } : {}), ...(look ? { look, side } : {}), ...(slides ? { slides } : {}),
+        ...(thin ? { depth: THIN } : {}),
       });
-      if (look) frame(D, d, ns, look);
-      b.level.doors[b.level.doors.length - 1].y0 = y0;
-      b.level.doors[b.level.doors.length - 1].y1 = y0 + 2.4;
+      if (look) frame(D, d, ns, look, dep);
+      b.level.doors[b.level.doors.length - 1].y0 = y0 + sill;
+      b.level.doors[b.level.doors.length - 1].y1 = y0 + head;
       /* a sign names the room it is read toward. An armed room is not marked: its camera, by the door, is the tell */
+      const inset = (T - dep) / 2;
       for (const [text, dir] of d.sg ?? []) {
         const y = y0 + 2.74;
-        if (dir === 'w') b.sign(text, x0 - 0.03, y, cz, -PI / 2, circuit);
-        else if (dir === 'e') b.sign(text, x0 + T + 0.03, y, cz, PI / 2, circuit);
-        else if (dir === 'n') b.sign(text, cx, y, z0 - 0.03, PI, circuit);
-        else b.sign(text, cx, y, z0 + T + 0.03, 0, circuit);
+        if (dir === 'w') b.sign(text, x0 + inset - 0.03, y, cz, -PI / 2, circuit);
+        else if (dir === 'e') b.sign(text, x0 + T - inset + 0.03, y, cz, PI / 2, circuit);
+        else if (dir === 'n') b.sign(text, cx, y, z0 + inset - 0.03, PI, circuit);
+        else b.sign(text, cx, y, z0 + T - inset + 0.03, 0, circuit);
       }
     }
     /* floors under an upper deck: a slab under every tile that is not a hole (or air over a room below that reaches up

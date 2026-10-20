@@ -1,7 +1,7 @@
 import { PI } from '../../core/math';
 import type { LevelDef, LadderDef } from '../types';
 import {
-  arch, beginLevel, bx, cave, door, elev, finishLevel, flight, item, ladder, mkDeck, mut, note, P, roughen, room, stack, stairs, use, type Deck, type LevelInfo, type TRoomOpts,
+  arch, beginLevel, bx, cave, door, elev, finishLevel, flight, item, ladder, mkDeck, mut, note, P, partition, roughen, room, stack, stairs, use, type Deck, type LevelInfo, type TRoomOpts,
 } from '../build/tiles';
 import {
   BAY, FAM, MED, OFF, OPS, SEC, UTIL, WALK, blood, callPoint, camera, container, corpse, crates, desk, droppedLight, eggs, exitSign, forklift, genset, gore, grandStair, liftRoom, medbed, monitors, panel, shelf, speaker, tbl,
@@ -158,7 +158,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
      slept at the back of it. Behind the officer's card, and dark with the wing. */
   room(D, 'Briefing room', 35, 8, 3, 4, { ...OFF, c: 'SEC', ht: 4 }); door(D, 36, 12, { card: 's', sg: [['Briefing', 's']] });
   room(D, 'Briefing room', 35, 3, 7, 5, { ...OFF, c: 'SEC', ht: 4 });
-  door(D, 35, 12, { seal: true, glass: true });
+  door(D, 35, 12, { seal: true, glass: true }); partition(D, 35, 12, 3, 1); // the vestibule's wall on the corridor, a window in it
   bx(D, 38.5, 3.04, 10, 2.9, 0.04, 0xd8d4c4, { y: 0.9, c: 0 }); bx(D, 38.5, 3.06, 10.2, 0.12, 0.06, 0x2a2c2e, { y: 3.8, c: 0 }); // the screen
   bx(D, 38.5, 6.2, 0.5, 0.25, 0.6, 0x2c2f33, { y: 3.4, c: 0 }); bx(D, 38.5, 6.2, 0.06, 0.4, 0.06, 0x2c2f33, { y: 3.65, c: 0 }); // the projector
   bx(D, 38.5, 6.04, 0.16, 0.12, 0.04, [0.05, 0.05, 0.05], { y: 3.45, c: 0, pw: [[0.05, 0.05, 0.05], [2.9, 2.85, 2.7]], pc: 'SEC' });
@@ -190,6 +190,8 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   /* the infirmary: a ward of four beds behind curtains down the south wall, and at the east end a treatment bay behind
      glass, with its table and crash cart. They kept the hurt here, in the dark, and someone sat with the last of them */
   room(D, 'Infirmary', 30, 17, 8, 4, { ...MED, c: 'SEC', safe: 1, ht: 3.6 }); door(D, 33, 16, { sg: [['Infirmary', 'n']] });
+  /* the ward's wall on the corridor is a partition, windows either side of the door: the nurses could see who came */
+  partition(D, 30, 16, 8, 1); for (const x of [31, 35, 36]) door(D, x, 16, { seal: true, glass: true });
   for (const x of [30.6, 31.9, 33.2, 34.5]) medbed(D, x, 19.6);
   for (const x of [31.25, 32.55, 33.85]) bx(D, x, 19.6, 0.04, 1.9, 1.7, 0xb9c4bd, { y: 0.15, c: 0 }); // the curtains
   bx(D, 34.2, 18.7, 0.45, 0.45, 0.45, 0x5f6266); blood(D, 34.5, 19.6, 0.8); // the chair pulled up to the last bed
@@ -303,7 +305,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   bx(D, 29.85, 42, 0.3, 3.2, 8, 0x3a3226); for (const x of [21.5, 23.5, 25.5, 27.5]) bx(D, x, 42, 0.8, 0.05, 8, 0x5a5d60, { y: 2.6, rz: 0.5, c: 0 });
   item(D, 'ammo9', 19.6, 41, 1.02);
   room(D, 'Duty office', 31, 40, 4, 4, { ...OFF, c: 'OPS', lc: [0.85, 0.78, 0.62] }); door(D, 31, 39, { sg: [['Duty office', 'n']] });
-  for (const x of [33, 34]) door(D, x, 39, { seal: true, glass: true });
+  for (const x of [33, 34]) door(D, x, 39, { seal: true, glass: true }); partition(D, 31, 39, 4, 1); // its wall on the hall, the window in it
   desk(D, 33.5, 40.6, 1.8, 0.7, { c: 0x4a3a2c }); bx(D, 33.5, 41.3, 0.45, 0.45, 0.45, 0x2c2f33); shelf(D, 34.7, 42.6, 0.5, 1.8, { cols: [0x7a4a34, 0x4d5a66, 0x8a7a4a] });
   item(D, 'peaches', 33.1, 40.6, 0.78); item(D, 'bandage', 33.9, 40.55, 0.78); note(D, 'memo', 33.5, 40.6, 0.78);
   /* the desk's screen: the hall's cameras and the rooms off it, a sequencer stepping through them, on Ops' power

@@ -38,6 +38,9 @@ export interface RoomOpts {
   /** the roof painted as sky */
   sky?: number | Colour;
   doorway?: boolean;
+  /** a strip of a room reaching into a partition, or a partition's doorway or pane: too narrow for the nav graph to
+   *  stand a spot in, and one place with the room beside it */
+  part?: boolean;
   safe?: boolean;
   noroam?: boolean;
   armed?: boolean;
@@ -94,7 +97,7 @@ export class LevelBuilder {
       floor: hex(p.fl), wall: hex(p.wl), stripe: hex(p.st), mat: { ...FITTED, ...o.mat },
       lit: o.lit ?? (fixed ? (dark ? 'none' : 'always') : 'always'),
       lc: o.lc ?? (fixed ? o.light! : WHITE),
-      em: !!o.em, circuit: o.circuit ?? this.def.circuit, flick: !!o.flick, doorway: !!o.doorway, safe: !!o.safe, noroam: !!o.noroam, armed: !!o.armed, ...(o.zone ? { zone: o.zone } : {}),
+      em: !!o.em, circuit: o.circuit ?? this.def.circuit, flick: !!o.flick, doorway: !!o.doorway, ...(o.part ? { part: true } : {}), safe: !!o.safe, noroam: !!o.noroam, armed: !!o.armed, ...(o.zone ? { zone: o.zone } : {}),
       ...(o.sky !== undefined ? { sky: hex(o.sky) } : {}), ...(o.motes && o.motes !== 'dust' ? { motes: o.motes } : {}),
     };
     this.def.rooms.push(r);

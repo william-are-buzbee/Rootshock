@@ -188,7 +188,8 @@ describe('a tube that stutters', () => {
     const [x, y, z] = [(lab.x0 + lab.x1) / 2, lab.y0 + 1, (lab.z0 + lab.z1) / 2];
     expect(Math.max(...L.flickAt(x, y, z))).toBeCloseTo(Math.max(...L.atPoint(x, y, z)), 2); // in the lab, all of it
     /* in its doorway: some of the light there is the lab's */
-    const door = mw.neighbours(lab.id).map(n => mw.rooms[n]).find(R => R.doorway)!;
+    /* the lab and its strip in the partition on the gallery, which its doorway opens off */
+    const door = mw.rooms.filter(R => R.name === lab.name).flatMap(R => mw.neighbours(R.id)).map(n => mw.rooms[n]).find(R => R.doorway)!;
     const d = [(door.x0 + door.x1) / 2, door.y0 + 1, (door.z0 + door.z1) / 2] as const;
     expect(Math.max(...L.flickAt(...d))).toBeGreaterThan(0);
     /* and none of it in a room well away */

@@ -1432,6 +1432,19 @@ a shutter runs in guides instead. Readers, keypads, a heavy door's lamp and the 
 the door at its pocket side, so they stay when it slides. `test/doors.test.ts`: the looks land where meant, and on every
 level each sliding door's slab, open, is in rock.
 
+**Step 6 (built): partitions and glass.** Levels are laid out on 2 m tiles, so every wall was a tile of rock, 2 m
+thick: right where rooms were dug apart, wrong where a cavern was divided. `partition(D, x, y, w, h)` marks a run of
+wall tiles as built: each room either side reaches 0.75 m into the tile, leaving a wall 0.5 m thick (`THIN`; block and
+its finish, on the world's quarter-metre grid either side of the tile's middle), faced on each side with that room's
+own finish. A door in it has a doorway the wall's thickness (`DoorDef.depth`), its frame, sign, reader and lamps on the
+wall's faces; a window in it (a glass door, as before) is a pane between a sill and a head (`glaze`: `full` to the floor,
+`view` from 0.9 to 2.2 m, the default, or `high`, a clerestory from 2.2 to 2.8), framed to its size. The strips are
+`RoomDef.part`: too narrow for the nav graph to stand a spot in, one place with their room. Built: the infirmary's wall
+on the Security corridor (windows either side of its doors), the briefing room's vestibule and the duty office on
+their halls, and on the main level the tissue lab's glass wall onto the north grow gallery and a window from the
+director of research's office. Three new windows on the upper station renumber the doors after them, which the
+progression tests name; what they say is unchanged.
+
 Not done: decay (world.md, proposed); a bronze or brushed metal of its own (steel's pattern is riveted plate); glossy
 floors catching the tubes, which terrazzo and the coated floors now most want.
 

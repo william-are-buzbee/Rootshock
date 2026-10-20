@@ -2,7 +2,7 @@ import { PI, TAU, type Colour } from '../../core/math';
 import type { LadderDef, LevelDef } from '../types';
 import { FITTED } from '../materials';
 import {
-  beginLevel, bx, cave, door, finishLevel, hill, item, ladder, mkDeck, mut, note, P, pick, rnd, ROCKP, room, roughen, stack, stairs, T, use, vault,
+  beginLevel, bx, cave, door, finishLevel, hill, item, ladder, mkDeck, mut, note, P, partition, pick, rnd, ROCKP, room, roughen, stack, stairs, T, use, vault,
   type Deck, type LevelInfo, type TDoorOpts, type TRoom, type TRoomOpts,
 } from '../build/tiles';
 import {
@@ -208,6 +208,9 @@ function buildHorticulture(G: Deck): void {
   }
   /* north: the tissue lab and the director of research's office. South: the seed vault and the infirmary */
   const lab = room(G, 'Tissue lab', 106, 1, 6, 4, { ...H, fl: 0x7d8588, wl: 0x9aa89c, flick: 1 }); door(G, 108, 5, { sg: [['Tissue lab', 's']] });
+  /* the lab looks out over the north gallery through a glass wall, and the director's office through a window */
+  partition(G, 106, 5, 6, 1); for (const x of [106, 107, 109, 110, 111]) door(G, x, 5, { seal: true, glass: true, glaze: 'full' });
+  partition(G, 113, 5, 4, 1); for (const x of [115, 116]) door(G, x, 5, { seal: true, glass: true });
   tbl(G, 108, 2.4, 3, 0.8, 0xaab2b5); tbl(G, 111.4, 3, 0.8, 2, 0xaab2b5); for (const x of [106.6, 107.6]) P(G, 'cyl', x, 1.5, 0.8, 2.2, 0.8, [0.16, 0.3, 0.24] as Colour, { c: 1 }); note(G, 'journal', 108, 2.35, 0.78); item(G, 'batt', 107.5, 2.4, 0.78, 2);
   room(G, 'Director of research', 113, 1, 4, 4, { ...HAB, c: 'HORT', fl: 0x5e5248, lc: [0.85, 0.78, 0.62] }); door(G, 114, 5, { code: 2, sg: [['Dr. M. Holt', 's']] });
   desk(G, 115, 1.6, 2, 0.8, { c: 0x4a3a2c }); shelf(G, 113.3, 3, 0.5, 2.4, { cols: [0x7a4a34, 0x4d5a66, 0x8a7a4a] }); bed(G, 116.6, 3.4, true, 0x7a5a50); note(G, 'holt', 114.6, 1.55, 0.78); item(G, 'batt', 115.35, 1.6, 0.78, 2); item(G, 'medkit', 113.6, 4.6, 0.02);
