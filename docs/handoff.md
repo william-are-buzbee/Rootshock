@@ -78,7 +78,8 @@ console with a sequencer, `dwell`) is done. Step 3 is done.
 Step 4 has begun: Security's staff carry their cards (`Mutant.cards`, set from `LevelDef.cards` and the room they start in;
 `carded` and the 'staff' rules in `sim/fields.ts`; `Door.pass` in `sim/movers.ts`; tests in `test/changed.test.ts`). The
 code keeps the name `husk`; the dev tools say "changed". The breaker is searched for (the 'search' state and `SEARCH` in
-`sim/cast.ts`). Next: a door left open noticed.
+`sim/cast.ts`). A door left open is noticed and shut (the 'shut' state, `LEFT`, `Mutant.door`). What is left of
+step 4 is their look, a model job: ask the owner before spending long on it.
 The camera wall waits on a way into the operations room.
 
 Step 1 is done: the overseer, the hand, the knock and the bolts are out of the code and of world.md §8 (old saves do not

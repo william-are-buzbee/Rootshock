@@ -147,3 +147,52 @@ describe('a breaker thrown means someone threw it', () => {
     expect(JSON.stringify(save(a))).toBe(JSON.stringify(save(s)));
   });
 });
+
+describe('a door left open is noticed', () => {
+  /** the Armory's heavy door, off the muster hall: with Gen-1 up it opens to its button and stays as it was left */
+  const armory = (s: Sim) => s.doors.findIndex(d => d.def.kind === 'heavy' && d.def.code === 1);
+  /** two of the staff in the hall south of it, one facing it (north), one facing away; Gen-1 up; you out of it all */
+  const setUp = (yaw = Math.PI) => {
+    const s = fresh(), staff = s.cast.filter(q => q.ai === 'husk' && !q.post && q.cards).slice(0, 2), [m, n] = staff;
+    only(s, staff);
+    s.game.station!.main = true; s.lighting = null;
+    const k = armory(s), d = s.doors[k], cx = (d.def.x0 + d.def.x1) / 2, cz = (d.def.z0 + d.def.z1) / 2;
+    place(s, 'player', 30, -4.5, -25);
+    place(s, m, cx, 0, cz + 7); m.yaw = yaw; m.wt = 30; m.dest = -1; // standing, between rounds
+    place(s, n, cx - 3, 0, cz + 8); n.yaw = Math.PI; n.wt = 30; n.dest = -1;
+    hold(s, 0.2);
+    d.open = true; // left open
+    return { s, m, n, k, d };
+  };
+
+  it('one on its rounds that sees it walks over, looks through, and shuts it; only one goes', () => {
+    const { s, m, n, k, d } = setUp();
+    hold(s, 1.5);
+    const going = [m, n].filter(q => q.state === 'shut');
+    expect(going.length).toBe(1);
+    expect(going[0].door).toBe(k);
+    s.game.events.length = 0;
+    for (let t = 0; t < 20 && d.open; t += STEP) step(s, noInput());
+    expect(d.open).toBe(false);
+    expect(s.game.events.some(e => e.type === 'sfx' && e.name === 'door')).toBe(true);
+    hold(s, 0.5);
+    expect(going[0].state).toBe('idle');
+  });
+
+  it('not one at its back', () => {
+    const { s, m, n, d } = setUp(0);
+    n.stun = 1e9; // only the one facing away
+    hold(s, 3);
+    expect(m.state).toBe('idle');
+    expect(d.open).toBe(true);
+  });
+
+  it('a save made while one goes to it plays on the same', async () => {
+    const { s } = setUp();
+    hold(s, 2);
+    const { load, save } = await import('../src/sim/save');
+    const a = load(level, JSON.parse(JSON.stringify(save(s))), { seed: 7, station: STATION });
+    hold(s, 5); hold(a, 5);
+    expect(JSON.stringify(save(a))).toBe(JSON.stringify(save(s)));
+  });
+});

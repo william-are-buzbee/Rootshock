@@ -7,10 +7,10 @@ import { fall, impulse, makeBody, push, settle, shove, slide, steer, walk, type 
 import { carded, doorShut, makeFields, opensItself, refreshFields, routeRules, rulesFor, type Fields, type Walker } from './fields';
 import { hurtBy, log, power, sayOnce, sfx } from './game';
 import { exposed, struck } from './combat';
-import { sendPlatform, type Door } from './movers';
+import { occupied, sendPlatform, type Door } from './movers';
 import { eyeHeight } from './player';
 import { closing, DOWN, FALL, LAUNCH, MOVES, POISE, react, regain, RISE, SHOVE, SLAM, type Move } from './moves';
-import { simLighting, type Sim } from './sim';
+import { riders, simLighting, type Sim } from './sim';
 import { knockRag, makeRag, RAG, REFLEX, type Killing, type Rag } from './ragdoll';
 import type { V3 } from './sweep';
 
@@ -86,6 +86,8 @@ export interface Mutant {
   post: boolean; sit: boolean; holt: boolean; big: boolean;
   /** one of Security's staff, who carries its card (LevelDef.cards; it started in one of Security's zones) */
   cards: boolean;
+  /** the door it is going to shut, one it saw left open (an index into Sim.doors), or -1 */
+  door: number;
   /** where it started, which it keeps near */
   hx: number; hz: number;
   room: number;
@@ -155,7 +157,7 @@ function makeMutant(sim: Sim, def: MutantDef, id: number): Mutant {
       walker: S.noDoors ? 'big' : S.opens ? 'hands' : 'crawl',
       opens: !!S.opens, low: !!S.low, noDoors: !!S.noDoors, fixed: !!S.fixed, swim: !!S.swim, solid: !!S.solid,
       post: !!o.post, sit: !!o.sit, holt: !!o.holt, big: !!o.big, hx: def.x, hz: def.z, room,
-      cards: !!sim.world.def.cards && !!S.opens && !!sim.world.rooms[room]?.zone,
+      cards: !!sim.world.def.cards && !!S.opens && !!sim.world.rooms[room]?.zone, door: -1,
       wt: rnd(1, 5), wm: 0, wx: 0, wz: 0, tk: 0, lost: 0, bt: 0, burst: false, flee: 0, ct: rnd(6, 14), cdir: 0, tgt: false,
       grab: 0, tense: 0, blow: null, dest: -1, F: null, stk: 0, fled: false, side: 0, ride: null, spot: -1,
       mv: 0, d: 99, dp: 99, dy: 0, los: false, losAt: -99, hit: 0, poise: poiseOf(def.type, S.ai, !!o.big), pmax: poiseOf(def.type, S.ai, !!o.big), calm: 99, reel: 0, pat: 0, down: 0, rise: 0, acc: S.acc, drove: false, ph: rnd(9), dead: false, gone: 0, rag: null, away: false, still: 0,
@@ -676,6 +678,43 @@ function hunt(sim: Sim, m: Mutant): boolean {
  *  It sees farther than on its rounds, and all round: it is looking (world.md §8, the changed) */
 const SEARCH = { time: [14, 20] as const, reach: 6, pace: 1.2, see: 18, look: [1.5, 3] as const };
 
+/** a door left open: one that does not shut itself (slid open by hand with no power to it, or a heavy one left open), was
+ *  shut when the place was new, and is open now. One of the staff on its rounds that sees one goes to it, looks through,
+ *  and shuts it (world.md §8, the changed). It sees one this far, in front of it, lit, and in plain view; and looks for one
+ *  every so often, not every step */
+const LEFT = { see: 14, every: 30, look: 2, pace: 1.4 };
+
+const doorMid = (d: Door) => ({ x: (d.def.x0 + d.def.x1) / 2, y: d.def.y0 + 1.2, z: (d.def.z0 + d.def.z1) / 2 });
+
+function leftOpen(sim: Sim, d: Door): boolean {
+  const D = d.def;
+  if (!d.open || D.open || D.stuck || D.vent || D.seal || D.lift || D.glass || d.pass > 0) return false;
+  return D.kind === 'heavy' || power(sim.game, D.circuit) <= 0;
+}
+
+/** one on its rounds sees a door left open that nobody is seeing to, and goes to shut it */
+function noticesDoor(sim: Sim, m: Mutant): boolean {
+  if (!m.cards || m.post || m.spot < 0 || (sim.tick + m.id) % LEFT.every || !sim.fields) return false;
+  const eye = Math.min(1.6, (m.body?.h ?? 1) * 0.85);
+  for (let k = 0; k < sim.doors.length; k++) {
+    const d = sim.doors[k];
+    if (!leftOpen(sim, d) || sim.cast.some(q => q.door === k && q.state === 'shut' && !q.dead)) continue;
+    const at = doorMid(d), dx = at.x - m.x, dz = at.z - m.z, dp = Math.hypot(dx, dz);
+    if (dp > LEFT.see || Math.abs(at.y - 1.2 - m.y) > 2.5 || (dx * Math.sin(m.yaw) + dz * Math.cos(m.yaw)) / (dp || 1) < 0.35) continue;
+    if (!lit(sim, at.x, at.y, at.z) || sim.world.raycast(m.x, m.y + eye, m.z, at.x, at.y, at.z, seeThrough) < 0.97) continue;
+    /* to its near side, a step back from the doorway */
+    const o = 1.3, D = d.def, s = D.alongX ? Math.sign(m.z - at.z) || 1 : Math.sign(m.x - at.x) || 1;
+    const spot = sim.fields.nav.locate(at.x + (D.alongX ? 0 : s * o), at.y - 1.2, at.z + (D.alongX ? s * o : 0));
+    if (spot < 0) continue;
+    const F = fieldTo(sim, m, spot);
+    if (!Number.isFinite(F[m.spot])) continue;
+    m.state = 'shut'; m.door = k; m.dest = spot; m.F = F; m.st = LEFT.look; m.stk = 0;
+    step_(sim, m, 'mutter');
+    return true;
+  }
+  return false;
+}
+
 /** somewhere near where it is searching (wx, wz), on its floor, to walk to next */
 function searchSpot(sim: Sim, m: Mutant): number {
   const nav = sim.fields!.nav, near: number[] = [];
@@ -719,7 +758,7 @@ const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
     const F = sim.fields?.hands, d = m.d;
     switch (m.state) {
       case 'idle': {
-        if (notices(sim, m)) break;
+        if (notices(sim, m) || noticesDoor(sim, m)) break;
         if (!m.post) roam(sim, m, 1.3);
         break;
       }
@@ -749,6 +788,25 @@ const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
         m.st = 1.2;
         if (follow(sim, m, m.F, 1.6, false)) m.stk = 0; // to the board, slowly
         else if ((m.stk += dt) > 4) { m.stk = 0; m.state = 'idle'; m.dest = -1; m.wt = rnd(sim, 2, 4); }
+        break;
+      }
+      case 'shut': {
+        /* to a door it saw left open: there, it looks through a moment, then shuts it, if it still stands open */
+        if (notices(sim, m)) { m.door = -1; break; }
+        const d = sim.doors[m.door];
+        const done = (wt: number) => { m.state = 'idle'; m.door = -1; m.dest = -1; m.wt = wt; };
+        if (!d || !leftOpen(sim, d) || !m.F || m.dest < 0) { done(rnd(sim, 2, 4)); break; }
+        if (m.spot === m.dest || m.F[m.spot] < 1.2) {
+          const at = doorMid(d);
+          m.yaw = angLerp(m.yaw, Math.atan2(at.x - m.x, at.z - m.z), Math.min(1, dt * 4));
+          if ((m.st -= dt) > 0) break;
+          if (occupied(d, riders(sim))) { m.st = 0.5; break; }
+          if (d.def.kind !== 'heavy' || power(sim.game, d.def.circuit) >= 2) { d.open = false; sfx(sim.game, 'door', { ...at, y: d.def.y0 }); }
+          done(rnd(sim, 3, 6));
+          break;
+        }
+        if (follow(sim, m, m.F, LEFT.pace, false)) m.stk = 0;
+        else if ((m.stk += dt) > 3) done(rnd(sim, 2, 4));
         break;
       }
       case 'search': {
