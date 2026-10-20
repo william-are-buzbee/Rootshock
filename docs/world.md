@@ -563,6 +563,12 @@ wins; the older text stays only because it describes what is built, until the le
   grows from a stump; glassy eyes. Plants growing through and out of people is the level's disgust, more than raw flesh.
   (Supersedes *drills, not instructions* and *how much wit the staff have*, below. The power-failure drill stays as something
   one of them chooses: someone goes to the board, slowly, and looks about for who threw it.)
+  - *The look (built).* Security's staff (those that carry cards) are drawn as the changed; the husk's old look, an arm
+    gone to raw flesh, stays on the cast elsewhere. Still a person's outline, about two in three in uniform (navy shirt,
+    badge, epaulettes, a duty belt with a dead radio), the night round always. No raw flesh: tobacco leaf comes out of
+    the back of the neck and the right shoulder from woody knots, in tiers stacked like a bracket fungus, green going to
+    the curing barn's yellow; more on some than others, most on the night round, down the right of the back. Sallow
+    skin; the eyes glassy, wet and pale, the pupils pinned, the lids heavy, the rims red; the mouth slack.
   - *The word.* "Husk" is never said in the game (it was only ever a name in the code, which keeps it, and in the dev
     tools, which say "changed" now).
   - *Cards (built).* Security's own staff carry their cards: those that start in one of Security's alarm zones. A card

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { Colour } from '../../core/math';
 import { blowAt, torchRay, TORCH, type Mutant } from '../../sim/cast';
 import { DOWN } from '../../sim/moves';
 import { ragSpeed } from '../../sim/ragdoll';
@@ -8,7 +9,7 @@ import type { Sim } from '../../sim/sim';
 import type { Lighting } from '../../world/light';
 import { dynamicMaterial, lightMaterial } from './shader';
 import { parts } from './things';
-import { BONE, DARK, FLESH, GOREC, GR, ORANGE, PALE, RAW, grp, mk, seeded, type O3 } from './castKit';
+import { BONE, DARK, FLESH, GOREC, GR, ORANGE, PALE, RAW, grp, merged, mk, seeded, shelf, type O3 } from './castKit';
 import { RIG, Rigged } from './rig';
 
 /* The cast, drawn: the first engine's models (BUILD) and their animation (ANIM), ported nearly line for line. Each is a
@@ -22,9 +23,74 @@ const PI = Math.PI;
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Model = { g: THREE.Group; [k: string]: any };
 
+/** the night round's flashlight, in the hand that is still a hand (`h`, its left arm), along the arm; its lens lit while
+ *  it lives (sim/cast.ts, torchRay, from the same numbers). None for the rest */
+function torch(mat: THREE.Material, m: Mutant, h: O3): THREE.Mesh | null {
+  if (!m.torch) return null;
+  mk(h, mat, 'cyl', 0x2a2c2e, 0.055, 0.26, 0.055, 0, -TORCH.arm + 0.17, 0.03); mk(h, mat, 'cyl', 0x3a3d40, 0.075, 0.06, 0.075, 0, -TORCH.arm + 0.03, 0.03);
+  const lens = new THREE.Mesh(parts([['cyl', 0xfff4dc, 0.06, 0.012, 0.06, 0, 0, 0]]), new THREE.MeshBasicMaterial({ color: 0xfff1d6 }));
+  lens.position.set(0, -TORCH.arm, 0.03);
+  h.add(lens);
+  return lens;
+}
+
+/* Security's staff, changed (world.md §8, the changed): still a person's outline, and most of them still in uniform. No
+   raw flesh: the plant shows on them instead, tobacco leaf out of the neck and the right shoulder in shelves, stacked the
+   way a bracket fungus stacks out of a stump, and glassy eyes under heavy lids, the pupils pinned. Sedated, all of them.
+   The night round always in uniform, and the leaf thickest on it. Built as the husk is, part for part, so it moves and
+   goes loose as the husk does (rig.ts); the leaf is one mesh to a cluster */
+const UNIFORM = 0x2c3440, TROUSERS = 0x23262b, BELT = 0x15181b, SALLOW = 0xbfae8e, GLAZE: Colour = [1.1, 1.08, 0.98];
+function changed(mat: THREE.Material, m: Mutant): Model {
+  const R = seeded(m.id), g = new THREE.Group(), uni = m.torch || R.rnd(0, 1) < 0.65;
+  const cl = uni ? UNIFORM : R.pick([0xbfc3c0, 0x4a5560, 0x6b6f5a, 0x7a5a50]), tr = uni ? TROUSERS : 0x2b2e34;
+  const legs: O3[] = [], shins: O3[] = [];
+  for (const s of [-1, 1]) {
+    const l = grp(g, s * 0.11, 0.9, 0), k = grp(l, 0, -0.45, 0);
+    mk(l, mat, 'box', tr, 0.16, 0.45, 0.17, 0, -0.225, 0); mk(k, mat, 'box', tr, 0.16, 0.45, 0.17, 0, -0.225, 0); mk(k, mat, 'box', DARK, 0.17, 0.09, 0.28, 0, -0.42, 0.04);
+    legs.push(l); shins.push(k);
+  }
+  const b = grp(g, 0, 0.9, 0);
+  mk(b, mat, 'box', cl, 0.42, 0.6, 0.24, 0, 0.3, 0); mk(b, mat, 'box', BELT, 0.43, 0.08, 0.25, 0, 0.05, 0);
+  if (uni) {
+    /* the shirt's badge and epaulettes, the belt's buckle, and a radio on it gone quiet */
+    mk(b, mat, 'box', 0x9a8a50, 0.06, 0.07, 0.02, -0.12, 0.44, 0.125); mk(b, mat, 'box', 0x8a8e8c, 0.07, 0.05, 0.02, 0, 0.05, 0.13);
+    for (const s of [-1, 1]) mk(b, mat, 'box', 0x1f252e, 0.13, 0.025, 0.2, s * 0.15, 0.6, 0);
+    mk(b, mat, 'box', 0x1d1f21, 0.07, 0.13, 0.05, 0.2, 0.06, 0.06);
+  }
+  mk(b, mat, 'cyl', SALLOW, 0.13, 0.14, 0.13, -0.02, 0.64, 0); // the neck, where the leaf comes out
+  const hd = grp(b, -0.02, 0.76, 0);
+  mk(hd, mat, 'ico', SALLOW, 0.24, 0.28, 0.25, 0, 0, 0);
+  for (const s of [-1, 1]) {
+    /* the eyes: wet, the pupils pinned whatever the light, the lids half down over them; a glint where light finds them */
+    mk(hd, mat, 'ico', GLAZE, 0.058, 0.04, 0.03, s * 0.055, 0.025, 0.112); mk(hd, mat, 'ico', DARK, 0.01, 0.01, 0.01, s * 0.055, 0.024, 0.127);
+    mk(hd, mat, 'box', [1.45, 1.45, 1.4], 0.014, 0.012, 0.006, s * 0.055 + 0.013, 0.031, 0.129);
+    mk(hd, mat, 'box', 0xb8a684, 0.064, 0.016, 0.03, s * 0.055, 0.045, 0.117); mk(hd, mat, 'box', 0x9a5a4e, 0.05, 0.008, 0.03, s * 0.055, 0.004, 0.116);
+  }
+  mk(hd, mat, 'box', 0x3a2622, 0.08, 0.022, 0.03, 0, -0.075, 0.112); // the mouth, slack
+  hd.rotation.z = 0.25;
+  const arms: O3[] = [];
+  for (const [x, y] of [[-0.27, 0.56], [0.27, 0.56]] as const) {
+    const a = grp(b, x, y, 0); mk(a, mat, 'box', cl, 0.11, 0.36, 0.12, 0, -0.18, 0); mk(a, mat, 'box', SALLOW, 0.08, 0.34, 0.08, 0, -0.52, 0);
+    arms.push(a);
+  }
+  /* the leaf: out of the back of the neck, its right side, and the right shoulder through the shirt; how much, by the one */
+  const grown = m.torch ? 3 : 1 + Math.floor(R.rnd(0, 3));
+  merged(b, mat, G => {
+    /* up the back of the neck toward the skull, its right side under the jaw, out of the right shoulder, and on the most
+       grown down the right of the back */
+    shelf(G, mat, -0.03, 0.58, -0.1, PI + 0.3, 4, 0.3, R.rnd, { rise: 0.07, lean: 0.015, fan: 0.45 });
+    if (grown > 1) shelf(G, mat, 0.08, 0.6, 0.0, PI / 2 + 0.5, 3, 0.25, R.rnd, { rise: 0.065 });
+    shelf(G, mat, 0.2, 0.48, -0.02, PI / 2 + 0.15, grown > 2 ? 4 : 2, 0.3, R.rnd, { rise: 0.075, fan: 0.4 });
+    if (grown > 2) shelf(G, mat, 0.15, 0.24, -0.11, PI * 0.8, 3, 0.24, R.rnd, { rise: 0.065 });
+  });
+  return { g, b, hd, legs, shins, arms, lens: torch(mat, m, arms[0]) };
+}
+
 export const BUILD: Record<string, (mat: THREE.Material, m: Mutant) => Model> = {
-  /* staff, early in the Regimen: still a person's outline, one arm already something else */
+  /* staff, early in the Regimen: still a person's outline, one arm already something else. Security's own are the
+     changed, and look it (changed(), below) */
   husk(mat, m) {
+    if (m.cards) return changed(mat, m);
     const R = seeded(m.id), g = new THREE.Group(), cl = R.pick([0xbfc3c0, 0x4a5560, 0x39485a, 0x6b6f5a, 0x7a5a50]), tr = 0x2b2e34;
     /* each leg in two at the knee, which only a body gone loose bends (rig.ts) */
     const legs: O3[] = [], shins: O3[] = [];
@@ -41,16 +107,7 @@ export const BUILD: Record<string, (mat: THREE.Material, m: Mutant) => Model> = 
     const arms: O3[] = [];
     let a = grp(b, -0.27, 0.56, 0); mk(a, mat, 'box', cl, 0.11, 0.36, 0.12, 0, -0.18, 0); mk(a, mat, 'box', PALE, 0.08, 0.34, 0.08, 0, -0.52, 0); arms.push(a);
     a = grp(b, 0.3, 0.58, 0); mk(a, mat, 'box', RAW, 0.14, 0.4, 0.14, 0, -0.2, 0); mk(a, mat, 'box', FLESH, 0.1, 0.52, 0.1, 0, -0.64, 0); mk(a, mat, 'box', BONE, 0.05, 0.16, 0.05, 0, -0.97, 0.02); arms.push(a);
-    /* the night round's flashlight, in the hand that is still a hand, along the arm; its lens lit while it lives */
-    let lens: THREE.Mesh | null = null;
-    if (m.torch) {
-      const h = arms[0];
-      mk(h, mat, 'cyl', 0x2a2c2e, 0.055, 0.26, 0.055, 0, -TORCH.arm + 0.17, 0.03); mk(h, mat, 'cyl', 0x3a3d40, 0.075, 0.06, 0.075, 0, -TORCH.arm + 0.03, 0.03);
-      lens = new THREE.Mesh(parts([['cyl', 0xfff4dc, 0.06, 0.012, 0.06, 0, 0, 0]]), new THREE.MeshBasicMaterial({ vertexColors: false, color: 0xfff1d6 }));
-      lens.position.set(0, -TORCH.arm, 0.03);
-      h.add(lens);
-    }
-    return { g, b, hd, legs, shins, arms, lens };
+    return { g, b, hd, legs, shins, arms, lens: torch(mat, m, arms[0]) };
   },
   skitter(mat) {
     const g = new THREE.Group(), b = grp(g, 0, 0.55, 0);

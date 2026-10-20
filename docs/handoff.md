@@ -79,8 +79,9 @@ console with a sequencer, `dwell`) is done. Step 3 is done.
 Step 4 has begun: Security's staff carry their cards (`Mutant.cards`, set from `LevelDef.cards` and the room they start in;
 `carded` and the 'staff' rules in `sim/fields.ts`; `Door.pass` in `sim/movers.ts`; tests in `test/changed.test.ts`). The
 code keeps the name `husk`; the dev tools say "changed". The breaker is searched for (the 'search' state and `SEARCH` in
-`sim/cast.ts`). A door left open is noticed and shut (the 'shut' state, `LEFT`, `Mutant.door`). What is left of
-step 4 is their look, a model job: ask the owner before spending long on it.
+`sim/cast.ts`). A door left open is noticed and shut (the 'shut' state, `LEFT`, `Mutant.door`). Their look is done
+too (`changed()` in `render/castView.ts`, for a husk with `cards`; the leaf from `shelf()` in `render/castKit.ts`, each
+cluster merged into one mesh by `merged()`, so one draw call). Step 4 is done.
 The camera wall waits on a way into the operations room.
 
 Step 5 has begun: the night round walks (`nightround` in `MT`, `sim/cast.ts`: the 'round' state, `walkRound`,
@@ -89,11 +90,11 @@ lying on (`torchRay`, put among `looseLights` in `sim/sim.ts`), so it lights you
 `vis`; what a beam throws back is made again only once it has moved a quarter metre or turned (`DRIFT` in
 `world/light.ts`). At a stop with `tries` it shows the reader its card (`tryDoor`): `Door.beep` and `beepOk` show green
 or red on the reader (`render/things.ts`). Drawn on the husk's model with the flashlight in its left hand
-(`render/castView.ts`). Tests: `test/nightround.test.ts`. Save version 7. Next: its look (step 4's last part), then the
-opening (step 6), which brings it down into the suite.
+(`render/castView.ts`). Tests: `test/nightround.test.ts`. Save version 7. Next: the opening (step 6), which brings it
+down into the suite.
 
 **On the back burner** (the owner set Security aside here; pick these up with them, not unasked):
-- The changed's look (step 4's last part), then steps 5 to 7 above.
+- Step 7 above (the vaccinator, the big dark section, load on the backup set, Cargo as an L).
 - How you get into the operations room, which the camera wall waits on.
 - Call points as fire alarms instead (doors released, the changed sent to the muster hall), not lockdown: the owner's call.
   Releasing card doors would let you past the card progression, so it would want ordinary doors only.

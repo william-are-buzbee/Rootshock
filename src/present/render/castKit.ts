@@ -39,3 +39,59 @@ export function seeded(id: number) {
   const next = () => ((s = (Math.imul(s, 1664525) + 1013904223) >>> 0) / 4294967296);
   return { rnd: (a: number, b: number) => a + next() * (b - a), pick: <T>(a: T[]) => a[Math.floor(next() * a.length)] };
 }
+
+const _m = new THREE.Matrix4(), _p = new THREE.Vector3();
+/** parts built on a group of their own (`build` puts them there with mk), as one geometry on `parent`: a cluster of many
+ *  small parts in one draw call. Their geometries are shared and left as they are */
+export function merged(parent: O3, mat: THREE.Material, build: (g: THREE.Group) => void): THREE.Mesh {
+  const g = new THREE.Group(), shown: THREE.Mesh[] = [];
+  build(g);
+  g.updateMatrixWorld(true);
+  g.traverse(o => { if ((o as THREE.Mesh).isMesh) shown.push(o as THREE.Mesh); });
+  let n = 0;
+  for (const o of shown) n += o.geometry.getAttribute('position').count;
+  const P = new Float32Array(n * 3), Cc = new Float32Array(n * 3);
+  let at = 0;
+  for (const o of shown) {
+    const pos = o.geometry.getAttribute('position'), col = o.geometry.getAttribute('aCol');
+    _m.copy(o.matrixWorld);
+    for (let v = 0; v < pos.count; v++, at++) {
+      _p.fromBufferAttribute(pos, v).applyMatrix4(_m).toArray(P, at * 3);
+      Cc[at * 3] = col.getX(v); Cc[at * 3 + 1] = col.getY(v); Cc[at * 3 + 2] = col.getZ(v);
+    }
+  }
+  const out = new THREE.BufferGeometry();
+  out.setAttribute('position', new THREE.BufferAttribute(P, 3));
+  out.setAttribute('aCol', new THREE.BufferAttribute(Cc, 3));
+  const mesh = new THREE.Mesh(out, mat);
+  parent.add(mesh);
+  return mesh;
+}
+
+/* the plant on the changed (world.md §8): wild tobacco, Nicotiana rustica, its leaf broad and rounded on a short stalk,
+   green going yellow at the edges, the colour of the leaf in the curing barn; and where it comes out, a woody knot */
+export const LEAF = [0x4b5c2a, 0x5a6630, 0x6e6a2c, 0x7e7430], VEIN = 0x8a8c5a, LSTALK = 0x5e5a38, KNOT = 0x4e4028;
+/** a leaf, out along yaw from (x, y, z), `len` long, its tip drooping by `droop` */
+export function leaf(parent: O3, mat: THREE.Material, x: number, y: number, z: number, yaw: number, len: number, droop: number, c: number): void {
+  const g = grp(parent, x, y, z);
+  g.rotation.set(droop * 0.6, yaw, 0);
+  mk(g, mat, 'box', LSTALK, 0.08 * len, 0.07 * len, 0.26 * len, 0, 0, 0.13 * len);
+  mk(g, mat, 'ico', c, 0.7 * len, 0.09 * len, 0.62 * len, 0, 0, 0.5 * len);
+  mk(g, mat, 'box', VEIN, 0.03 * len, 0.095 * len, 0.5 * len, 0, 0.01 * len, 0.5 * len);
+  const o = grp(g, 0, 0, 0.72 * len);
+  o.rotation.x = droop;
+  mk(o, mat, 'ico', c, 0.62 * len, 0.08 * len, 0.6 * len, 0, 0, 0.22 * len);
+}
+/** a shelf of leaf out of the body along yaw, the way a bracket fungus stacks out of a stump: from a woody knot, tiers
+ *  climbing `rise` metres a tier (and leaning `lean` toward yaw as they climb), each a fan of nearly flat leaves `fan`
+ *  radians either side, the lowest the widest. `rnd` for the small differences, the same each time for the same one */
+export function shelf(parent: O3, mat: THREE.Material, x: number, y: number, z: number, yaw: number, tiers: number, len: number,
+  rnd: (a: number, b: number) => number, o: { rise?: number; lean?: number; fan?: number } = {}): void {
+  const rise = o.rise ?? len * 0.3, lean = o.lean ?? 0, fan = o.fan ?? 0.4, sx = Math.sin(yaw), sz = Math.cos(yaw);
+  mk(parent, mat, 'ico', KNOT, len * 0.45, rise * (tiers - 0.4), len * 0.4, x, y + rise * (tiers - 1) / 2, z);
+  for (let j = 0; j < tiers; j++)
+    for (let i = -1; i <= 1; i++) {
+      const k = 1 - j * (0.5 / tiers);
+      leaf(parent, mat, x + sx * lean * j, y + j * rise, z + sz * lean * j, yaw + i * fan + rnd(-0.12, 0.12), len * k * rnd(0.85, 1.1), rnd(-0.05, 0.14), LEAF[(i + j + 4) % 4]);
+    }
+}
