@@ -477,13 +477,20 @@ export function finishLevel(start?: [number, number, number]) {
     shapedCaves(b, D);
     /* partitions: each room either side reaches into the wall tile, a thin wall left between them */
     for (const [k, across] of D.thin) {
-      const i = k % D.W, j = Math.floor(k / D.W), x0 = X(D, i), z0 = Z(D, j), half = (T - THIN) / 2;
+      const i = k % D.W, j = Math.floor(k / D.W), x0 = X(D, i), z0 = Z(D, j), half = (T - THIN) / 2, step = across === 'x' ? 1 : D.W;
       for (const s of [-1, 1] as const) {
-        const R = roomAtTile(D, k + s * (across === 'x' ? 1 : D.W));
-        if (!R || R.hole || R.cave) continue;
+        /* the room on that side; or, with none on this deck, a tall room on a deck below reaching up past this one's
+           floor (a hall a control room looks down into), reaching into the wall as high as the room on this side */
+        let R = roomAtTile(D, k + s * step), y0 = R ? D.y0 + R.dy : 0, ht = R?.ht ?? 0;
+        if (!R) {
+          const L = dnAt(D, k + s * step), RL = L && roomAtTile(L, k + s * step), near = roomAtTile(D, k - s * step);
+          if (!L || !RL || L.y0 + RL.dy + RL.ht <= D.y0 + 0.5) continue;
+          R = RL; y0 = D.y0; ht = Math.min(L.y0 + RL.dy + RL.ht, D.y0 + (near?.ht ?? 3.2)) - D.y0;
+        }
+        if (R.hole || R.cave) continue;
         const a = s < 0 ? 0 : T - half, e = s < 0 ? half : T;
         b.room(R.name, across === 'x' ? x0 + a : x0, across === 'x' ? z0 : z0 + a, across === 'x' ? x0 + e : x0 + T, across === 'x' ? z0 + T : z0 + e, {
-          ...roomOpts(R), y0: D.y0 + R.dy, ht: R.ht, part: true,
+          ...roomOpts(R), y0, ht, part: true,
         });
       }
     }
@@ -497,7 +504,10 @@ export function finishLevel(start?: [number, number, number]) {
     /* doorways, and the doors in them */
     for (const [k, d] of D.doors) {
       const x0 = X(D, d.x), z0 = Z(D, d.y), cx = x0 + T / 2, cz = z0 + T / 2;
-      const ns = !!(D.g[k - D.W] && D.g[k + D.W]), heavy = d.kind === 'heavy', th = heavy ? 0.36 : d.vent ? 0.12 : 0.14;
+      /* its slab runs along x where there is open space north and south of it; a door or window there is not, being
+         the next in a run of them down the wall (a column of windows) */
+      const opn = (q: number) => !!D.g[q] && !D.doors.has(q);
+      const ns = opn(k - D.W) && opn(k + D.W), heavy = d.kind === 'heavy', th = heavy ? 0.36 : d.vent ? 0.12 : 0.14;
       const { look, side, slides, lining } = doorway(D, k, d, ns);
       /* in a partition, the doorway is the wall's own thickness, and a window's pane sits between its sill and head */
       const thin = D.thin.has(k), dep = thin ? THIN : T, [sill, head] = d.glass && thin ? GLAZE[d.glaze ?? 'view'] : [0, 2.4];

@@ -6,6 +6,7 @@ import { makeSim } from '../src/sim/sim';
 import { doorBox } from '../src/sim/movers';
 import { MT } from '../src/sim/cast';
 import { NARROW } from '../src/content/build/tiles';
+import { checkProgress } from '../src/sim/progress';
 
 /* Doors by where they are (world.md §1, *The station as built*; engine.md §15): what each looks like, and that a door
    sliding into its wall goes into rock, not into a room or another doorway. */
@@ -54,5 +55,16 @@ describe('doors', () => {
         for (const y of [b.y0 + 0.3, b.y0 + 1.2, b.y1 - 0.3]) expect(w.roomAt(x, y, z), `${id} door at ${(d.def.x0 + d.def.x1) / 2}, ${(d.def.z0 + d.def.z1) / 2}`).toBeNull();
       }
     }
+  });
+
+  it('Gen-1 control looks down into the generator hall through glass, and its stair reaches it', () => {
+    const s = makeSim(levelDef(STATION, 'plant'), { seed: 1, station: STATION }), w = s.world;
+    const C = w.rooms.find(R => R.name === 'Gen-1 control' && !R.part)!, H = w.rooms.find(R => R.name === 'Generator hall' && !R.part)!;
+    const eye = [C.x1 - 1, C.y0 + 1.5, (C.z0 + C.z1) / 2] as const, below = [H.x0 + 20, H.y0 + 1, (C.z0 + C.z1) / 2] as const; // (steeper, the sill under the glass is in the way)
+    const panes = s.doors.filter(d => d.def.glass && d.def.y0 >= C.y0 - 0.01 && Math.abs((d.def.x0 + d.def.x1) / 2 - C.x1 - 1) < 1.5);
+    expect(panes.length).toBe(4);
+    /* nothing but glass between: the cast see through it as you do */
+    expect(w.raycast(...eye, ...below, d => !!d.glass)).toBe(1);
+    expect(checkProgress(s, {}).rooms.never).toEqual([]);
   });
 });
