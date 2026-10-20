@@ -255,20 +255,19 @@ void surface(int pat, vec3 p, vec3 n, float up, float det, out float alb, out fl
     alb = 0.94 + 0.2 * (a - 0.5) + 0.12 * (b - 0.5) + (0.1 * (g - 0.5) + 0.06 * (sp - 0.5) * fine) * det;
     h = 0.07 * a + 0.025 * b + (0.002 * g + 0.0004 * sp * fine) * det;
     if (!horiz || overhead) {
-      /* the rock bolts: a plate 150 mm square every 1.5 m, rows staggered, the nut proud of it; under some on a
-         wall, rust run down from it */
+      /* the rock bolts: a plate 150 mm square every 1.5 m, rows staggered, sprayed over with the rest, so it shows as a
+         raised square and the nut through it; under one in four on a wall, a faint stain of rust run down from it */
       float row = floor(uv.y / 1.5);
       vec2 q = vec2(uv.x + 0.75 * mod(row, 2.0), uv.y), cell = floor(q / 1.5), c = fract(q / 1.5) * 1.5 - 0.75;
       float edge = 1.0 - smoothstep(0.02, 0.08, fw);
       float plate = (1.0 - smoothstep(0.075 - fw, 0.075 + fw, max(abs(c.x), abs(c.y)))) * edge + 0.01 * (1.0 - edge);
       float nut = dot1(length(c), 0.022, fw);
-      float tear = overhead ? 0.0 : step(0.45, hash(cell + 3.0)) * (1.0 - smoothstep(0.012, 0.045, abs(c.x + 0.01 * sin(c.y * 23.0))))
-        * smoothstep(-0.75, -0.1, c.y) * (1.0 - smoothstep(-0.09, -0.07, c.y)) * edge;
-      alb = mix(alb, 0.62 - 0.15 * nut, plate);
-      h += 0.006 * plate + 0.012 * nut;
-      gm = mix(gm, 3.0, plate);
-      tint = mix(mix(vec3(1.0), vec3(1.0, 0.86, 0.72), plate), vec3(1.3, 0.82, 0.52), 0.8 * tear);
-      alb *= 1.0 - 0.08 * tear;
+      float tear = overhead ? 0.0 : step(0.75, hash(cell + 3.0)) * (1.0 - smoothstep(0.02, 0.07, abs(c.x)))
+        * smoothstep(-0.5, -0.1, c.y) * (1.0 - smoothstep(-0.09, -0.07, c.y)) * edge;
+      alb *= 1.0 - 0.15 * nut;
+      h += 0.004 * plate + 0.006 * nut;
+      gm = mix(gm, 3.0, nut);
+      tint = mix(mix(vec3(1.0), vec3(1.0, 0.9, 0.8), nut), vec3(1.2, 0.9, 0.7), 0.45 * tear);
     }
   } else if (pat == ${P('epoxy')}) {
     /* a coated slab: the coat smooth and a little uneven in tone, saw cuts between 4 m bays, scuffs where wheels and

@@ -1387,8 +1387,9 @@ voice.
 **Step 4 (built): the station as built.** world.md §1, *The station as built*: mined at 400 m, the family's fabric
 from the 80s under a refit. Seven more materials: shotcrete (`shot`), plasterboard (`board`, which looks as plaster
 does and knocks hollow), a coated slab (`epoxy`), sheet vinyl, carpet tile, terrazzo, limestone (`stone`). Their
-patterns: shotcrete lumpy at the rock's scale under the spray's grain, rock bolts' plates every 1.5 m in staggered rows
-with the nut proud, and under some on a wall rust run down; a coated slab with saw cuts on 4 m bays and scuffs that take
+patterns: shotcrete lumpy at the rock's scale under the spray's grain, rock bolts every 1.5 m in staggered rows, their
+plates sprayed over (a raised square, the nut showing through), and under one in four on a wall a faint stain of rust
+(drawn plain and dark, with rust under every other one, they read as sockets leaking); a coated slab with saw cuts on 4 m bays and scuffs that take
 its shine; vinyl flecked, its welded seams a roll's width (2 m) apart; carpet tiles 500 mm, each a quarter turn from the
 next, the pile running across one and along the next; terrazzo's chips dark, pale and a few rust-red, an inch across so
 they read further off (they fade to their average where a pixel spans 12 to 40 mm, finer specks sooner), brass strips on
@@ -1402,8 +1403,8 @@ room, the operations room and Cargo's control room and office are `OFF` (board, 
 halls are terrazzo; medical floors vinyl; homes carpeted; the lobby, its gallery and the surface landing `FAM`
 (limestone, terrazzo, a plastered ceiling, a bronze band for the stripe). The Commons' utility rooms stand in its blocks,
 so are poured, not dug; its kitchen, canteen, laundry and gym are vinyl. Services hang under a sprayed crown as under a
-poured one. The 2 m checker the first engine drew on every floor is kept for a bare slab only (poured in bays); a laid
-finish draws its own joints. The start room is vinyl underfoot, so the first step sounds of it.
+poured one. The 2 m checker the first engine drew on floors, walls and the painted sky is gone (it read as a
+checkerboard); each material draws its own joints, and a wall's or floor's faces merge whole. The start room is vinyl underfoot, so the first step sounds of it.
 
 Not done: decay (world.md, proposed); a bronze or brushed metal of its own (steel's pattern is riveted plate); glossy
 floors catching the tubes, which terrazzo and the coated floors now most want.
