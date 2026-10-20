@@ -14,8 +14,42 @@ engine's `NEWSTATION` (archived in `archive/first-engine.html`, behind `?dev=new
 
 ## 1. Premise
 
-**Lowfield Station** is a deep underground facility built and paid for by a well-funded owner (**open**: corporation, government, or
-one rich individual). Its stated purpose is commercial.
+**Lowfield Station** is a deep underground facility built and paid for by a family (**agreed**), rich enough to want a sky
+down there. Its stated purpose is commercial.
+
+### The station as built (agreed)
+
+What the walls are, and why, before what colour they are. Plausibility first; then the family's money on top of it.
+
+- **Mined, about 400 m down.** Too deep to dig a pit and bury a building (that stops at 30 or 40 m): it was drilled and
+  blasted from shafts, as a mine is, and reached by the cage. The upper station is at 400 m, the main level 450, the plant
+  500, the sump 522; the cave is a limestone stream cave the builders found.
+- **Three layers, and every room shows one.** *The rock*: blasted, held with rock bolts (a square plate every 1.5 m),
+  sprayed with shotcrete, which is lumpy, follows the rock and has no formwork seams. *The box*: most rooms are buildings
+  stood inside the caverns, of block or studs and board, with their own roof under the rock; this is why rooms are boxes.
+  *The finish*: where the money shows.
+- **What being underground rules.** Fire first: no way out and nowhere for smoke to go, so the finishes are what does not
+  burn (stone, metal, glass, tile, terrazzo); wood and fabric are rare, and the lobby's bar and sofas are the family
+  breaking its own rules for comfort. Water always comes back: bare cement weeps white salts, bolts weep rust; paint
+  takes a brown tide mark. Everything came down the shaft, so what was poured or laid in place in small pieces wins:
+  terrazzo, tile, stone in panels. And the soft finishes (board, carpet, ceiling tile, veneer) last only while the
+  dehumidifiers run.
+- **The hole is the expense.** Excavation and support dwarf any finish, and depth doubles or trebles every finish's cost
+  alike (the haul, the labour), so the good finish costs proportionally less down here. A rich owner finishes nicely
+  wherever people work, not only where visitors look.
+- **Built in the late 70s or 80s, refitted since: two layers to read.** The family's own fabric is where people
+  walked: terrazzo underfoot (the halls, the atrium, the muster hall), painted block in Security, glazed tile where
+  things are washed down, plaster in homes, limestone and a bronze band where visitors came (the surface landing, the
+  lobby and its gallery). The refit laid its own over it: coated floors in Security and Horticulture, sheet vinyl in
+  medical rooms and kitchens, plasterboard and carpet tile in the offices. A room dug and left as dug (utility rooms,
+  the plant, the bays, the sump, the tunnels) is shotcrete on a poured floor, services on hangers under its crown.
+- **By money, from the bottom (for reference).** Exposed shotcrete and a sealed slab cost nothing past the support;
+  painted block and a coated floor are an institution; board, carpet and a suspended ceiling an office; glazed tile and
+  coved vinyl are hygiene (money buys stainless, not marble); terrazzo is old money; stone, brushed metal and bronze are
+  the lobby. Light is the finish too: expensive is concealed and warm, cheap is a bare tube.
+- **Decay (proposed, not built).** The money rots first when the power dies: ceiling tiles sag, board mottles with
+  mould, veneer swells, carpet goes sour; the shotcrete looks as it did. Ties the look to the power and the time since
+  the fall.
 
 ### The plant
 
@@ -481,7 +515,7 @@ wins; the older text stays only because it describes what is built, until the le
     ground-floor shaft station with the hazard store, so goods never crossed the lobby. Off the surface landing, a
     hallway; at its end, the checkpoint (the bag scanner, the arch, the turnstiles, the booth behind glass); through it,
     the head of a grand staircase, and the whole lobby below you at once. The descent is the dazzle.
-  - *On the floor:* a statue in the middle, a lounge, a bar, all the soft furnishings a station 40 m down did not need.
+  - *On the floor:* a statue in the middle, a lounge, a bar, all the soft furnishings a station 400 m down did not need.
     The statue is of the family that built the place for now (not called "the founder": that name belongs to the
     flesh, §10); a placeholder, to be retooled once the lore is down, likely the corporate logo or a gardening motif.
     A luminous ceiling, backlit panels made to pass for daylight, because the family wanted a sky down here.
