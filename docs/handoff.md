@@ -59,10 +59,15 @@ Each step its own PR, playable on its own.
 
 ## Where things are now
 
-Step 2's first half was built and is now superseded: cameras weigh your speed (`SPEED`, `holdRate`), and alarm fatigue
-(`FATIGUE`, `Sim.sounded`; one perhaps, then all), both in `sim/eyes.ts`. Both go: armed places in place of speed, and
-a hurried answer from all in earshot in place of fatigue (world.md §8, *The second pass*). Then lockdown and the call
-points. The camera wall waits on a way into the operations room.
+Step 2's first half is done: cameras guard the armed rooms they hang in (`RoomDef.armed`, `Cam.guard`, `EYES.still`;
+the rest only record), the way into each is marked (red door signs, `SignDef.warn`; hazard paint, `content/build/tiles.ts`),
+the cast keep armed rooms out of their rounds, alarm fatigue is out, and every husk in earshot hurries to the speaker,
+faster with another in sight hurrying (`ANSWER` in `sim/cast.ts`). Running noise is left as it is until played.
+Lockdown is done too: rooms carry their alarm zone (`RoomDef.zone`, set from a table at the end of `buildUpper`), and
+each klaxon round bolts the zone's doors that have power to move (`Door.down`, `Door.drawing`, `LOCKDOWN` in
+`sim/eyes.ts`), with the old bolt sounds and a red lamp over the door. And the call points, one a zone (`callPoint`, a
+use of kind `call`). Step 2 is done; step 3, the lobby and the screens, is next. The camera wall waits on a way into
+the operations room.
 
 Step 1 is done: the overseer, the hand, the knock and the bolts are out of the code and of world.md §8 (old saves do not
 load: save version 6). §10's lineage still names the overseer in three places (rules 1 and 8, *Security's first*): left

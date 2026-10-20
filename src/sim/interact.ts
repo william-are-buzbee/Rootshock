@@ -6,7 +6,7 @@ import { locked, occupied, sendPlatform, type Door, type Platform } from './move
 import { eyeHeight } from './player';
 import type { Sim } from './sim';
 import { riders } from './sim';
-import { soundZone, speakerY } from './eyes';
+import { heard, soundZone, speakerY } from './eyes';
 import { drill } from './cast';
 
 /* What you can use, and what using it does: E on whatever you are looking at. The labels and the answers are the first
@@ -208,6 +208,23 @@ export function buildUsables(sim: Sim): Usable[] {
       case 'look':
         out.push({ ...base, label: () => (o.label as string) ?? 'Look', act: () => say(g, o.text as string) });
         break;
+      case 'call': {
+        /* a break-glass call point: it sounds its zone, as a camera would, from the zone's PA; once, the glass gone */
+        const zone = o.zone as string, at = { x: u.x, y: u.y, z: u.z };
+        const call: Usable = {
+          ...base, r: 1.8, label: () => 'Break the glass',
+          act: () => {
+            call.off = true;
+            sfx(g, 'smash', at);
+            makeNoise(g, 6);
+            if (!heard(sim, zone)) { say(g, 'The glass goes and the button sinks under your thumb. Nothing sounds: whatever it calls has no voice.'); return; }
+            soundZone(sim, zone);
+            say(g, 'The glass goes and the button sinks under your thumb. The klaxon starts.');
+          },
+        };
+        out.push(call);
+        break;
+      }
     }
   });
   return out;
@@ -258,6 +275,7 @@ export function doorLabel(sim: Sim, d: Door): string | null {
   if (D.lift) return 'Call the surface lift';
   if (D.seal) return 'Jammed shut';
   if (D.stuck) return sim.player.crouch ? null : 'Jammed half open';
+  if (d.down) return 'Locked down';
   const L = power(g, D.circuit), rd = D.card ? 'Card reader' : 'Keypad';
   if (D.kind === 'heavy') {
     if (L < 2) return 'Heavy door: no power';
@@ -284,6 +302,7 @@ export function doorAct(sim: Sim, d: Door): void {
   if (D.seal) { say(g, D.msg ?? 'It does not move. Something on the other side shifts its weight.'); sfx(g, 'deny'); return; }
   if (D.stuck) { say(g, 'Jammed at waist height. You could get under it. Not everything could.'); return; }
   if (D.vent) { d.open = true; sfx(g, 'clang', at); makeNoise(g, 7); say(g, 'The panel comes away in your hands. There is a way through.'); return; }
+  if (d.down) { say(g, 'Locked down. The bolt is home and the light over it is red: it holds while the alarm sounds.'); sfx(g, 'deny'); return; }
   const L = power(g, D.circuit), heavy = D.kind === 'heavy';
   if (heavy && L < 2) { say(g, L ? 'The backup set cannot move a door this size.' : 'A door this heavy does not move without power.'); sfx(g, 'deny'); return; }
   if (locked(d)) {

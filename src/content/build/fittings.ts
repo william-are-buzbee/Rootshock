@@ -180,6 +180,15 @@ export function panel(D: Deck, c: string, x: number, z: number, face: 'n' | 's' 
 export function camera(D: Deck, x: number, z: number, h: number, yaw: number, c: string, zone: string, o: { fov?: number; range?: number } = {}): void {
   D.cams.push({ x, z, h, yaw, fov: o.fov ?? 1.6, range: o.range ?? 18, c, zone });
 }
+/** a break-glass call point on a wall at (x, z), read from `face`: a red box at shoulder height with a pane over its
+ *  button, wired to the zone's PA (sim/interact.ts, 'call'). The pane is drawn by present/render/things.ts, gone once
+ *  broken */
+export function callPoint(D: Deck, x: number, z: number, face: 'n' | 's' | 'e' | 'w', zone: string): void {
+  const ew = face === 'e' || face === 'w', o = face === 'e' || face === 's' ? 1 : -1;
+  bx(D, x, z, ew ? 0.1 : 0.17, 0.17, ew ? 0.17 : 0.1, 0xb3261e, { y: 1.32, c: 0 });
+  bx(D, x + (ew ? o * 0.026 : 0), z + (ew ? 0 : o * 0.026), ew ? 0.01 : 0.07, 0.07, ew ? 0.07 : 0.01, 0xe8e2d4, { y: 1.37, c: 0 });
+  use(D, 'call', x + (ew ? o * 0.09 : 0), z + (ew ? 0 : o * 0.09), 1.4, { zone, face });
+}
 /** a zone's speaker, in the ceiling over (x, z): where its alarm sounds and whatever answers it comes. It is wired from
  *  its PA system (`pa`, a circuit), not from the room it hangs in */
 export function speaker(D: Deck, zone: string, x: number, z: number, pa?: string): void {

@@ -415,15 +415,17 @@ wins; the older text stays only because it describes what is built, until the le
   on the floor, ALARMED AREA at the door, and the camera's light, green while it watches and red while it holds you, so
   there is still a moment to step back out. Dark is still blind. (Built cameras weigh your speed, `SPEED` and `holdRate` in
   `sim/eyes.ts`: that goes, and an armed place takes its place. The cone, the light, the hold of about a second and a half,
-  the zones and their speakers stay.)
+  the zones and their speakers stay.) **Built,** with the wing's threshold as its corridor (the changed's own checkpoint
+  post stays theirs, and on their rounds once the wing is lit): below, *Being found*.
 - **Running is heard (agreed).** Speed belongs to the ears, not the cameras. Running is loud and carries; walking carries a
   little; creeping is silent. The changed hear a runner and come to look. Moving like them is still the lesson, taught by
-  sound. (Your steps already carry: 9 m running, 4 walking, nothing creeping. Tuning, not a new system.)
+  sound. (Your steps already carry: 9 m running, 4 walking, nothing creeping. Tuning, not a new system: left as it is
+  until it is played.)
 - **Answering an alarm (agreed; alarm fatigue is dropped).** A klaxon means something is loose, and every one of the changed
   that hears it hurries to the speaker, faster than its rounds, and faster again when it sees another already hurrying: one
   starts and the rest catch it. They go to the speaker, not to you, look about a while, and go back. Nothing cleverer for
-  now. (Built: alarm fatigue, `FATIGUE` and `Sim.sounded`, goes, and the answer's pace goes back to the hurry it had before
-  fatigue slowed it to its rounds' 1.4 m/s. Faster again behind another is new.)
+  now. **Built:** alarm fatigue is out, the answer hurries again (2.6 m/s), and faster (3.4) with another in sight
+  hurrying.
 - **The camera wall is yours (agreed).** Cameras are for whoever looks at them, and the one who takes the seat is you. The
   operations room (the control room: *One control room*, below) is the reward: get in and take it, and its screens show every live camera on
   the level, the changed on their rounds, the night round's beam, which armed places are lit, where the vaccinator is. A
@@ -520,9 +522,9 @@ wins; the older text stays only because it describes what is built, until the le
   round's beam sweeps through. Wider than the muster hall today (by a quarter to a half), so you see further and the beam
   carries.
 - **Call points (agreed).** Break-glass call points, as in any building: sound a zone yourself, to pull the changed off a door
-  or out of a room. (The vaccinator comes to it too.)
+  or out of a room. (The vaccinator comes to it too.) **Built:** below, *Being found*.
 - **Lockdown (agreed),** in place of the bolts: an alarm seals that zone's powered doors, heard and seen (the bolts, the red
-  lights). Protocol, no hand on a board.
+  lights). Protocol, no hand on a board. **Built:** below, *Being found*.
 - **Load on the backup set (agreed, provisional).** Too many branches on and everything browns out, Gen-1's capacity (§4)
   taught small. Kept for now because it is interesting; it may go.
 - **No alarm on the way out (agreed).** Leaving the level is not where the alarm is: the Security elevator rings no chime that
@@ -671,33 +673,47 @@ should be added. Below it, production (below).
   than the cavern's far end (about 120 m today). The glass works both ways: the bay can see you. A view only, not a door; at
   Tier 1's height a door would skip the platforms. A shortcut, if any, is a door barred from the bay side.
 
-**Being found (as built; lockdown, call points and the changed's wit are *The second pass*, to come)**
+**Being found (as built; the changed's wit is *The second pass*, to come)**
 
 - **Cameras → the zone alarm → any patrol in earshot.** The klaxon starting is the tell, and you have a few seconds to answer
   it: leave the zone, break its speaker or the camera (loud: a cost, per §4), or cut the power. **Built** (`sim/eyes.ts`),
-  with nobody behind the screens: a live camera sees
-  along its cone as far as the light you are in lets it, as the cast do, and it is movement it is looking for. Creeping
-  (crouched, 1.6 m/s; anything 2 m/s or under) and standing still it lets be. Moving faster, its light turns from green to
-  red with a servo's whir as it takes you; walking, held about a second and a half, you sound its zone; running, in under
-  half a second. Slow down in its view and it lets go a little at a time (it forgets a full hold in about three seconds);
-  step out of its view and it lets go at once. It sounds once for a sighting, and keeps the zone sounding while it still
-  sees you moving; to sound it again it must have let you go. The speaker's beacon turns and the klaxon goes round for
-  twelve seconds. **Alarm fatigue:** the first time a zone sounds, the nearest of the changed that hears it comes, at even
-  odds, two to six seconds after it starts, and no other. A zone sounded again within a minute of the last time (seen
-  twice, or seen while it still sounds) is a pattern: each time the klaxon goes round, any that hears it and is not
-  already after you leaves its rounds or its post and comes. Either way they come slowly (1.4 m/s, their rounds' pace) and
-  to the speaker, not to you. There one stands and looks about a while, then goes back to its rounds; it finds you only if
-  it sees or hears you on the way. A camera can be
+  with nobody behind the screens. Lockdown arms six rooms: the wing's corridor, the electrical room, the Armory, the
+  range, the operations stair and the chief of security's office. Each has a camera inside that guards it; the other
+  three (the atrium's threshold, high in the court's ceiling, the east bays' north-east corner) only record, and have
+  no light. A guard sees along its cone as far as the light you are in lets it, as the cast do, so in a dark armed room
+  it sees you only near it, unless your flashlight is on. It takes you moving in its room at any pace: its light turns
+  from green to red with a servo's whir, and held about a second and a half, you sound its zone. Stand still in its view
+  and it lets go a little at a time (it forgets a full hold in about three seconds); step out of its view or out of the
+  room and it lets go at once. It sounds once for a sighting, and keeps the zone sounding while it still sees you
+  moving; to sound it again it must have let you go. The way in is marked: the door's sign is red, ALARMED AREA under
+  its name, and hazard paint runs across the floor just inside. The speaker's beacon turns and the klaxon goes round
+  for twelve seconds; each time it goes round, any of the changed that hears it and is not already after you leaves its
+  rounds or its post and hurries to the speaker (2.6 m/s; 3.4 with another in sight hurrying too), not to you. There
+  one stands and looks about a while, then goes back to its rounds; it finds you only if it sees or hears you on the
+  way. Their rounds never take in an armed room. A camera can be
   smashed with something in your hand: loud. So can a zone's speaker, and that zone has no voice: seen there, no klaxon
   sounds and no husk hears it or comes.
   Speakers are wired from the PA, not from the rooms they hang in, and the PA is critical power: no breaker quiets a zone.
   The wing's and the muster hall's hang in a ceiling you can reach; the atrium's hangs high in the well, in reach only leaning
   out from the east gallery's rail. Four zones: the wing, the atrium, the muster hall's west end ('muster'), and Operations
-  ('ops': the Operations corridor and the hall's east bays, its speaker in the corridor). Cameras, nine: one down
-  the wing's corridor, dead until the cut is mended; one on the atrium's threshold; one down the Operations corridor; and six
-  in the muster hall: on the hall's breaker its two west corners, the north wall over the court and one high in the court's
-  ceiling out of reach, and on the east bays' own breaker (EAST), one in the north-east corner and one by the operations stair. Mending the wing sounds
-  it (its circuit comes live on the board).
+  ('ops': the Operations corridor and the hall's east bays, its speaker in the corridor). The guards: the wing corridor's
+  looks down it from the checkpoint end, dead until the cut is mended; the electrical room's, the Armory's and the
+  range's are on the hall's breaker (HALL) and sound the muster hall; the operations stair's (on EAST) and the chief's
+  office's (on Ops' bus) sound Operations. Mending the wing sounds it (its circuit comes live on the board).
+- **Lockdown.** Every room in Security belongs to one of the four zones (the hall's east bays are Operations'), and a door
+  to the zones of the rooms either side of it. Each time a zone's klaxon goes round, every door in the zone with power to
+  move is bolted: you hear the bolt drawn for about a second before it goes home, time to get through, and a red lamp
+  over the door flashes, then holds. A bolted door opens for nothing, you or the changed, and says so; it holds while the
+  alarm sounds and lets go when it stops. A door without power cannot be bolted, and one that loses its power lets its
+  bolt go: exits fail safe. So a light door on a branch you can open is a way out of a lockdown, a heavy door the backup
+  set cannot move is never bolted, and the dead wing's doors stay as they are until the cut is mended (when the wing
+  sounds at once, and bolts slam down its length). Taken by the electrical room's camera, you are bolted in with it
+  until the alarm dies.
+- **Call points.** One a zone, red, at shoulder height by the zone's way out: the wing's in its corridor by the
+  checkpoint, the atrium's by the way south, the hall's at its west end by the electrical room and the range,
+  Operations' in its corridor by the speaker. Break the glass with your thumb (a little noise) and the zone sounds as if
+  a camera had you: the klaxon, the changed hurrying to the speaker, the lockdown. Once each: the glass stays broken.
+  Wired to the zone's PA, so the dead wing's still sounds, and a zone whose speaker is smashed has no voice here either.
 - **Why they come: drills, not instructions.** The changed were Security's staff. For years a zone alarm meant "respond there",
   and what is left of them still does. It is conditioning, not command.
 - **Patrols → their own senses.** Sight, light and sound, as everywhere else. They come to an alarm they can hear, not to you.

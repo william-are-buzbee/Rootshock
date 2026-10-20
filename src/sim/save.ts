@@ -22,7 +22,7 @@ import { makeSim, type Sim, type SimOpts } from './sim';
  *  5: poise, and blows that commit (engine.md §6, F2); since, the cast's knockdowns and corpses (each loads from a save
  *  without them: nobody down, the dead laid where they lay)
  *  6: the overseer and its hand gone, with their knocks and bolts; the level's cast is two fewer. Since, cameras that
- *  weigh your speed and alarm fatigue (each loads from a save without them: nothing tripped, no zone sounded) */
+ *  guard armed rooms (a save from before them loads: nothing tripped) */
 export const SAVE_VERSION = 6;
 
 /** copy the named fields of an object */
@@ -38,7 +38,7 @@ const GAME = ['inv', 'cap', 'tools', 'keys', 'worn', 'weapon', 'read', 'code', '
 const PLAYER = ['yaw', 'pitch', 'crouch', 'wantStand', 'moved', 'impact', 'water', 'air', 'airMax', 'under', 'slow', 'load', 'slam',
   'running', 'jumped', 'stepD', 'fly'] as const;
 const BODY = ['x', 'y', 'z', 'vx', 'vz', 'vy', 'h', 'ground'] as const;
-const DOOR = ['t', 'open', 'unlocked', 'hold'] as const;
+const DOOR = ['t', 'open', 'unlocked', 'hold', 'down', 'drawing'] as const;
 const PLATFORM = ['y', 'target', 'wait', 'moving', 'armed'] as const;
 const LOOSE = ['x', 'y', 'z', 'vx', 'vy', 'vz', 'awake', 'ground', 'still', 'woke'] as const;
 const MUTANT = ['x', 'y', 'z', 'px', 'py', 'pz', 'yaw', 'state', 'st', 'cd', 'stun', 'hp', 'post', 'wt', 'wm', 'wx', 'wz', 'tk',
@@ -66,11 +66,10 @@ export interface Save {
   hands: Sim['hands'];
   /** what each rider stands on (by id): the player, the loose things, the cast, in that order */
   on: number[];
-  /** the cameras (smashed, how long each has held you, and whether it has sounded for you), the alarms sounding, and when
-   *  each zone last sounded; none in a save from before them */
+  /** the cameras (smashed, how long each has held you, and whether it has sounded for you), and the alarms sounding;
+   *  none in a save from before them */
   cams?: { broken: boolean; hold: number; tripped: boolean }[];
   alarms?: SavedAlarm[];
-  sounded?: Record<string, number>;
   /** the zones whose speaker is smashed */
   mute?: string[];
   /** breakers opened by hand, and who may go to throw them back */
@@ -112,7 +111,6 @@ export function save(sim: Sim): Save {
     on: [sim.player.body, ...sim.loose.all, ...sim.cast.map(m => m.body)].map(r => (r ? onId(r) : 0)),
     cams: sim.cams.map(c => ({ broken: c.broken, hold: c.hold, tripped: c.tripped })),
     alarms: sim.alarms.map(saveAlarm),
-    sounded: { ...sim.sounded },
     drills: structuredClone(sim.drills),
     mute: [...sim.mute],
     fields: sim.fields && {
@@ -172,7 +170,6 @@ export function load(level: LevelDef, data: Save, o: SimOpts = {}): Sim {
   }
   for (const m of sim.cast) restoreRoute(sim, m);
   sim.cams.forEach((c, i) => { const s = data.cams?.[i]; if (s) { c.broken = s.broken; c.hold = s.hold; c.tripped = s.tripped; } });
-  sim.sounded = { ...(data.sounded ?? {}) };
   sim.mute = [...(data.mute ?? [])];
   sim.drills = structuredClone(data.drills ?? []);
   restoreAlarms(sim, data.alarms ?? []);

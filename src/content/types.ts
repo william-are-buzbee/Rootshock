@@ -36,6 +36,11 @@ export interface RoomDef {
   /** for the cast: a refuge they do not enter (safe), a room they do not wander into (noroam) */
   safe: boolean;
   noroam: boolean;
+  /** armed by Security's lockdown: a live camera here takes anyone moving in it (sim/eyes.ts), and the cast keep out of
+   *  it on their rounds, as staff kept out of where they were never cleared to go */
+  armed: boolean;
+  /** the alarm zone it is in (a speaker's zone): its alarm locks its doors down (sim/eyes.ts) */
+  zone?: string;
   /** what hangs in its air, if not dust: the green's spores, or the flesh's flecks (present/render/motes.ts) */
   motes?: Motes;
   /** a cavern's roof painted as sky: its ceiling is this colour, and no fittings hang from it */
@@ -113,6 +118,8 @@ export interface SignDef {
   x: number; y: number; z: number;
   yaw: number;
   circuit: string;
+  /** it marks the way into an armed room: drawn red, ALARMED AREA under its name */
+  warn?: boolean;
 }
 
 /** a sloped or uneven surface: a ramp, a cave's floor or ceiling. Heights are given on a lattice of `res` metres
