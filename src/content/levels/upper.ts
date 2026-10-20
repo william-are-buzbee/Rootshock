@@ -13,7 +13,7 @@ import {
    units; Security and Ops since laid out again around the highway and its bend (world.md §8).
    The frame: org [-10, -30], so tile i is plan x = 2i - 10 and tile j is plan z = 2j - 30. */
 
-export const UPPER: LevelInfo = { id: 'upper', name: 'Upper station', c: 'OPS', org: [-10, -30] };
+export const UPPER: LevelInfo = { id: 'upper', name: 'Upper station', c: 'OPS', org: [-10, -30], cards: true }; // Security's staff carry their cards
 
 export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   beginLevel(UPPER, ladders);

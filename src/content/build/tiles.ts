@@ -69,7 +69,7 @@ interface TProp {
 }
 
 /** a level as the first engine described it, before it is compiled */
-export interface LevelInfo { id: string; name: string; c: string; org?: [number, number] }
+export interface LevelInfo { id: string; name: string; c: string; org?: [number, number]; cards?: boolean }
 
 export interface Deck {
   lv: LevelInfo; name: string; c: string; W: number; H: number; org: [number, number]; y0: number; li: number;
@@ -108,7 +108,7 @@ let cur: { b: LevelBuilder; rng: Rng; ladders: Record<string, LadderDef>; decks:
 
 /** start a level: every deck made until finishLevel() belongs to it */
 export function beginLevel(lv: LevelInfo, ladders: Record<string, LadderDef>): void {
-  const b = new LevelBuilder(lv.id, lv.name, { circuit: lv.c });
+  const b = new LevelBuilder(lv.id, lv.name, { circuit: lv.c, cards: lv.cards });
   cur = { b, rng: b.rng, ladders, decks: [] };
 }
 const C = () => {

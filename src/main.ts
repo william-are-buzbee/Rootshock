@@ -230,7 +230,7 @@ window.addEventListener('keydown', e => {
 function fightLine(): string {
   const h = sim.hands, g = sim.game, b = sim.player.body, state = h.down > 0 ? 'down' : h.rise > 0 ? 'getting up' : h.stag > 0 ? 'reeling' : '';
   const you = `you  hp ${Math.max(0, g.hp).toFixed(0)}  poise ${h.poise.toFixed(0)}/30  ${Math.hypot(b.vx, b.vz).toFixed(1)} m/s  ${g.weapon ?? 'fists'}  ${state}${devFlags.slow < 1 ? `  time ×${devFlags.slow}` : ''}${devFlags.frozen ? '  cast held' : ''}`;
-  return `${you}\n1-5 put down husk skitter thresher worm big-skitter  0 clear  T slow  Y weapon  H heal  U hold\n${hitLog.join('\n')}`;
+  return `${you}\n1-5 put down changed skitter thresher worm big-skitter  0 clear  T slow  Y weapon  H heal  U hold\n${hitLog.join('\n')}`;
 }
 
 /** a power change being seen to come on, or null */

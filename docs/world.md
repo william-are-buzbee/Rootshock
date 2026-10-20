@@ -512,6 +512,21 @@ wins; the older text stays only because it describes what is built, until the le
   grows from a stump; glassy eyes. Plants growing through and out of people is the level's disgust, more than raw flesh.
   (Supersedes *drills, not instructions* and *how much wit the staff have*, below. The power-failure drill stays as something
   one of them chooses: someone goes to the board, slowly, and looks about for who threw it.)
+  - *The word.* "Husk" is never said in the game (it was only ever a name in the code, which keeps it, and in the dev
+    tools, which say "changed" now).
+  - *Cards (built).* Security's own staff carry their cards: those that start in one of Security's alarm zones. A card
+    door with power opens for one of them, the reader beeping, and shuts after, still locked to you; while it is held
+    open you can slip through behind. A dark reader reads no card, and an alarm's bolt beats one. Cargo's workers carry
+    none, so Cargo's still wait in their dark behind Operations' card; nor does anything on the other levels.
+  - *The breaker searched for (built).* The one that goes to the board goes slowly now (1.6 m/s), and once the breaker
+    is back on, it turns from the board and looks about for whoever threw it: a quarter of a minute or so about the
+    board, a few metres at most, walking a spot at a time (1.2 m/s) and stopping to look round. Looking, it sees farther
+    than on its rounds (18 m by the light you are in) and all round, not only the way it faces. Then back to its rounds.
+  - *A door left open (built).* A door that does not shut itself (one slid open by hand with no power to it, or a heavy
+    one left open by its button) and stands open when it was shut to begin with is noticed. One of the staff on its
+    rounds that sees it (within 14 m, in front of it, lit, in plain view) walks over at its rounds' pace to its near
+    side, looks through a moment, and shuts it, if it can: a heavy one only with power enough to move it. Only one goes
+    to a door. Leave a door open behind you, and it tells them someone came through.
 - **One tool per room (agreed).** Each space teaches one thing before a later one asks for all of them: the flashlight; a
   sound before a sight; the night round's beam far off; one armed place under one camera, its speaker with two of the changed
   in earshot, a safe failure (step over the line, hide, watch them come and go); a small board, and one of them walking over to throw it back on; a card;
