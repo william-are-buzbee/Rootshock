@@ -31,11 +31,11 @@ describe('the upper station', () => {
     expect(r.deadEnds).toEqual([]);
   });
 
-  it('opens Security control only through the wing\'s cut, mended with the kit from Ops\' side', () => {
-    expect(r.rooms.reached).toContain('Security control');
+  it('opens the briefing room only through the wing\'s cut, mended with the kit from Ops\' side', () => {
+    expect(r.rooms.reached).toContain('Briefing room');
     const a = makeSim(upper, { seed: 7, station: STATION });
     a.items.forEach(it => { if (it.id === 'kit') it.taken = true; }); // no kit to be had
-    expect(checkProgress(a).rooms.never).toContain('Security control');
+    expect(checkProgress(a).rooms.never).toContain('Briefing room');
   });
 
   it('with Gen-1 running and the Armory code known (both from below), everything is in reach and the surface is open', () => {

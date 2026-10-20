@@ -93,7 +93,7 @@ describe('the upper station, played', () => {
     expect(s.game.lightOn).toBe(false);
   });
 
-  it('Security control\'s reader is dark while the wing is; mended, it wants the officer\'s card, and takes it', () => {
+  it('The briefing room\'s reader is dark while the wing is; mended, it wants the officer\'s card, and takes it', () => {
     const s = fresh();
     const [cx, cz] = tile(36, 12), d = doorAt(s, cx, cz);
     use(s, find(s, /Card reader: dark/, [cx, cz]), [0, 1]);

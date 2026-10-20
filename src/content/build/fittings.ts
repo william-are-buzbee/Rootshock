@@ -1,5 +1,5 @@
 import { PI, TAU } from '../../core/math';
-import { P, T, bx, colT, door, item, pick, rnd, room, stain, use, type Deck, type TRoom, type TRoomOpts } from './tiles';
+import { P, T, bx, colT, door, item, pick, rnd, room, stain, stairs, use, type Deck, type TRoom, type TRoomOpts } from './tiles';
 
 /* The first engine's furniture, clutter and fittings, on the tile adapter. Ported as they were, so the station looks as
    it did; their randomness now comes from the level's own seed. */
@@ -177,8 +177,13 @@ export function panel(D: Deck, c: string, x: number, z: number, face: 'n' | 's' 
 }
 /** a camera (sim/eyes.ts) at (x, z) in tiles, its lens h metres up, looking along yaw (0 south, a quarter turn east), on
  *  circuit c, sounding zone `zone`; drawn by present/render/things.ts */
-export function camera(D: Deck, x: number, z: number, h: number, yaw: number, c: string, zone: string, o: { fov?: number; range?: number } = {}): void {
-  D.cams.push({ x, z, h, yaw, fov: o.fov ?? 1.6, range: o.range ?? 18, c, zone });
+export function camera(D: Deck, x: number, z: number, h: number, yaw: number, c: string, zone: string, o: { fov?: number; range?: number; name?: string } = {}): void {
+  D.cams.push({ x, z, h, yaw, fov: o.fov ?? 1.6, range: o.range ?? 18, c, zone, ...(o.name ? { name: o.name } : {}) });
+}
+/** a spot monitor's console at (x, z), its seat y up: on circuit c, it shows the named cameras' feeds, one at a time
+ *  (sim/eyes.ts, watching); with `dwell`, a sequencer steps it to the next every so many seconds by itself */
+export function monitors(D: Deck, x: number, z: number, y: number, c: string, feeds: string[], o: { dwell?: number } = {}): void {
+  use(D, 'watch', x, z, y, { c, feeds, ...(o.dwell ? { dwell: o.dwell } : {}) });
 }
 /** a break-glass call point on a wall at (x, z), read from `face`: a red box at shoulder height with a pane over its
  *  button, wired to the zone's PA (sim/interact.ts, 'call'). The pane is drawn by present/render/things.ts, gone once
@@ -221,5 +226,18 @@ export function liftRoom(D: Deck, x: number, y: number, dx: number, dy: number):
   bx(D, px, pz, dy < y || dy > y + 1 ? 0.5 : 0.08, 0.4, dy < y || dy > y + 1 ? 0.08 : 0.5, 0x2c2f33, { y: 1.1, c: 0 });
   use(D, 'lift', x + 1, y + 1, 1.3);
   D.marks.lift = [x + 1, y + 1, 0];
+}
+
+/** a grand stair from deck lo up to deck hi: w tiles wide and len long at (tx, tz), climbing toward dir (north or
+ *  south). Walked as w stairs side by side (tiles.ts, stairs: the way the cast find up it too), drawn as one: stone
+ *  treads the whole width over them, and a solid balustrade stepping up each side */
+export function grandStair(lo: Deck, hi: Deck, tx: number, tz: number, w: number, len: number, dir: 'n' | 's', c = 0xb3ab9c): void {
+  for (let k = 0; k < w; k++) stairs(lo, hi, tx + k, tz, len, dir);
+  const N = len * 4, rise = hi.y0 - lo.y0, d = (len * T) / N, rev = dir === 'n';
+  for (let q = 0; q < N; q++) {
+    const pos = rev ? 1 - (q + 0.5) / N : (q + 0.5) / N, z = tz + pos * len, sh = ((q + 1) / N) * rise;
+    bx(lo, tx + w / 2, z, w * T, sh + 0.01, d, q % 2 ? c : 0xa9a192, { c: 0 });
+    for (const x of [tx - 0.08, tx + w + 0.08]) bx(lo, x, z, 0.3, sh + 1.05, d, 0x8f877a);
+  }
 }
 

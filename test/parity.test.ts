@@ -15,7 +15,7 @@ const hold = (s: Sim, secs: number, inp: Partial<Input> = {}) => { for (let t = 
 const sounds = (s: Sim, name: string) => s.game.events.filter(e => e.type === 'sfx' && e.name === name) as { d?: number }[];
 /** the door from the Lobby into the wing's corridor, x 31: dead with the wing, so slid open by hand and left */
 function openLobbyDoor(s: Sim): void {
-  const d = s.doors.find(d => d.def.x0 > 29 && d.def.x1 < 33 && d.def.z0 > -3 && d.def.z1 < 1)!;
+  const d = s.doors.find(d => d.def.x0 > 29 && d.def.x1 < 33 && d.def.z0 > -5 && d.def.z1 < -1)!;
   d.open = true; d.hold = 1e9;
 }
 function place(s: Sim, who: Mutant | 'player', x: number, y: number, z: number): void {
@@ -34,17 +34,17 @@ describe('you', () => {
     const s = fresh();
     still(s);
     openLobbyDoor(s);
-    place(s, 'player', 26, 0, -1); s.player.yaw = -Math.PI / 2; // along the Lobby, east
+    place(s, 'player', 26, 0, -3); s.player.yaw = -Math.PI / 2; // along the Lobby, east
     s.game.events.length = 0;
     hold(s, 2, { forward: 1 });
     const walk = sounds(s, 'step');
     expect(walk.length).toBeGreaterThanOrEqual(3);
     expect(walk.every(e => e.d === 8)).toBe(true);
-    place(s, 'player', 26, 0, -1);
+    place(s, 'player', 26, 0, -3);
     s.game.events.length = 0;
     hold(s, 1.5, { forward: 1, run: true });
     expect(sounds(s, 'step').some(e => e.d === 0)).toBe(true);
-    place(s, 'player', 26, 0, -1);
+    place(s, 'player', 26, 0, -3);
     hold(s, 0.1, { crouch: true });
     s.game.events.length = 0;
     hold(s, 2, { forward: 1 });
@@ -74,8 +74,8 @@ describe('the cast, as the first engine had them', () => {
     const s = fresh(), m = s.cast[1];
     still(s);
     openLobbyDoor(s);
-    place(s, m, 30, 0, -1);
-    place(s, 'player', 27, 0, -1); s.player.yaw = -Math.PI / 2;
+    place(s, m, 30, 0, -3);
+    place(s, 'player', 27, 0, -3); s.player.yaw = -Math.PI / 2;
     hold(s, 1.5, { forward: 1 });
     /* no longer through it (engine.md §6, F1b): you are never past it, and it has been pushed on ahead of you */
     expect(s.player.body.x).toBeLessThan(m.x);

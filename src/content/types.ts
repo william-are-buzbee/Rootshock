@@ -206,6 +206,8 @@ export interface CameraDef {
   yaw: number; fov: number; range: number;
   circuit: string;
   zone: string;
+  /** what its feed is called on a monitor (sim/eyes.ts, watching) */
+  name?: string;
 }
 
 /** a zone's speaker, where its alarm sounds: (x, y, z) the floor under it, which is where whatever answers it comes to */

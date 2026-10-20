@@ -200,7 +200,7 @@ export class LevelBuilder {
   }
 
   /** a camera (sim/eyes.ts): its lens at (x, y, z), looking along yaw */
-  camera(x: number, y: number, z: number, yaw: number, o: { fov: number; range: number; circuit: string; zone: string }): void {
+  camera(x: number, y: number, z: number, yaw: number, o: { fov: number; range: number; circuit: string; zone: string; name?: string }): void {
     (this.def.cameras ??= []).push({ x, y, z, yaw, ...o });
   }
   /** a zone's speaker: (x, y, z) the floor under it */

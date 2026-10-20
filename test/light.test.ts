@@ -111,7 +111,11 @@ describe('light past a room', () => {
   });
 
   it('changes smoothly across a doorway: no step anywhere along the way through', () => {
-    for (const [A, D] of pairs().slice(0, 6)) {
+    /* a sample, by the rooms either side (the range's door, a dark room off a bright hall, steps 0.16: known) */
+    const sample = ['Main lift', 'Surface cage', 'Security elevator', 'Maintenance', 'Electrical room', 'Armory'];
+    const some = pairs().filter(([a, , b]) => sample.includes(w.rooms[a].name) || sample.includes(w.rooms[b].name));
+    expect(some.length).toBe(6);
+    for (const [A, D] of some) {
       const L = only([A]), a = mid(A, 1), d = mid(D, 1);
       let prev = lum(L, ...a), worst = 0;
       for (let k = 1; k <= 40; k++) {

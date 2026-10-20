@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { STATION } from '../src/content/station';
 import { buildUpper } from '../src/content/levels/upper';
 import { makeSim, step, type Sim } from '../src/sim/sim';
-import { noInput } from '../src/sim/input';
+import { noInput, type Input } from '../src/sim/input';
 import { STEP } from '../src/core/loop';
 import { give, power } from '../src/sim/game';
-import { EYES, LOCKDOWN, doorZones, soundZone } from '../src/sim/eyes';
+import { EYES, LOCKDOWN, doorZones, onScreen, soundZone } from '../src/sim/eyes';
 import { doorAct, doorLabel, findUsable } from '../src/sim/interact';
 import { load, save } from '../src/sim/save';
 import { free } from '../src/sim/cast';
@@ -53,12 +53,12 @@ describe('the armed rooms', () => {
   it('each has a camera that guards it; the rest only record', () => {
     const s = fresh();
     for (const R of new Set(s.world.rooms.filter(q => q.armed).map(q => q.name))) expect(camIn(s, R)?.guard, R).toBe(true);
-    expect(s.cams.filter(c => !c.guard).length).toBe(3); // the atrium's threshold, the court's, the east bays'
+    expect(s.cams.filter(c => !c.guard).length).toBe(7); // the booth's four, the atrium's threshold, the court's, the east bays'
     expect(threshold(s).guard).toBe(false);
   });
 
   it('the way in is marked: its door signs read ALARMED AREA, and the floor inside each door is painted', () => {
-    expect(level.signs.filter(q => q.warn).map(q => q.text).sort()).toEqual(['Armory', 'Chief of security', 'Electrical', 'Operations', 'Range', 'Security']);
+    expect(level.signs.filter(q => q.warn).map(q => q.text).sort()).toEqual(['Armory', 'Chief of security', 'Electrical', 'Operations', 'Range', 'Security', 'Security']);
     expect(level.signs.find(q => q.text === 'Lockers')?.warn).toBeFalsy();
   });
 
@@ -431,6 +431,111 @@ describe('call points', () => {
     expect(s.alarms.map(a => a.zone)).toEqual(['wing']);
     hold(s, LOCKDOWN.draw + 0.2);
     expect(s.doors.some(d => d.down)).toBe(false);
+  });
+});
+
+describe('the booth\'s monitors', () => {
+  const console_ = (s: Sim) => s.usables.find(u => u.key === 'use' + level.uses.findIndex(q => q.kind === 'watch' && q.opts.c === 'SEC'))!;
+  const mended = () => { const s = fresh(); still(s); s.game.station!.circuits.SEC.broken = false; s.lighting = null; hold(s, 0.1); return s; };
+  const press = (s: Sim, inp: Partial<Input>) => { step(s, { ...noInput(), ...inp }); step(s, noInput()); };
+
+  it('dark until the wing is mended', () => {
+    const s = fresh(), u = console_(s);
+    still(s);
+    expect(u.label()).toBe('Monitors: dark');
+    u.act();
+    expect(s.watch).toBeNull();
+  });
+
+  it('sat at them, you see the lobby, the checkpoint, the surface landing and the shaft station, a feed a press', () => {
+    const s = mended(), u = console_(s);
+    expect(u.label()).toBe('Watch the monitors');
+    u.act();
+    expect(s.watch).not.toBeNull();
+    const names = () => onScreen(s)!.cam.def.name;
+    expect(names()).toBe('Lobby');
+    expect(onScreen(s)!.live).toBe(true);
+    const seen = [names()];
+    for (let k = 0; k < 3; k++) { press(s, { strafe: 1 }); seen.push(names()!); }
+    expect(seen).toEqual(['Lobby', 'Checkpoint', 'Surface landing', 'Shaft station']);
+    press(s, { strafe: 1 });
+    expect(names()).toBe('Lobby'); // round again
+    press(s, { strafe: -1 });
+    expect(names()).toBe('Shaft station');
+    for (let k = 0; k < 30; k++) step(s, { ...noInput(), strafe: 1 }); // held, it is one press
+    expect(names()).toBe('Lobby');
+  });
+
+  it('while you watch you do nothing else, and there is nothing to use', () => {
+    const s = mended();
+    console_(s).act();
+    const b = s.player.body, x = b.x, z = b.z;
+    hold(s, 0.5); for (let t = 0; t < 1; t += STEP) step(s, { ...noInput(), forward: 1, run: true });
+    expect(Math.hypot(b.x - x, b.z - z)).toBeLessThan(0.05);
+    expect(s.focus).toBeNull();
+  });
+
+  it('use stands you up; so does being hurt, or the screens losing their power', () => {
+    const s = mended();
+    console_(s).act();
+    press(s, { use: true });
+    expect(s.watch).toBeNull();
+    console_(s).act();
+    s.game.hp -= 5;
+    step(s, noInput());
+    expect(s.watch).toBeNull();
+    console_(s).act();
+    s.game.station!.circuits.SEC.broken = true; s.lighting = null;
+    step(s, noInput());
+    expect(s.watch).toBeNull();
+  });
+
+  it('a camera smashed sends nothing', () => {
+    const s = mended();
+    s.cams.find(c => c.def.name === 'Lobby')!.broken = true;
+    console_(s).act();
+    expect(onScreen(s)!.live).toBe(false);
+  });
+});
+
+describe('the duty office\'s screen', () => {
+  const console_ = (s: Sim) => s.usables.find(u => u.key === 'use' + level.uses.findIndex(q => q.kind === 'watch' && q.opts.c === 'OPS'))!;
+  const name = (s: Sim) => onScreen(s)!.cam.def.name;
+  const brk = (s: Sim, n: string) => s.usables.find(u => new RegExp('Breaker, ' + n).test(u.label() ?? ''))!;
+
+  it('on Ops\' power from the start: the hall\'s cameras and the rooms off it, a sequencer stepping through them', () => {
+    const s = fresh(), u = console_(s);
+    still(s);
+    expect(u.label()).toBe('Watch the monitors');
+    u.act();
+    const seen = [name(s)];
+    for (let k = 0; k < 5; k++) { hold(s, 5.05); seen.push(name(s)!); }
+    expect(seen).toEqual(['Muster court', 'East bays', 'Electrical room', 'Armory', 'Firing range', 'Operations stair']);
+    hold(s, 5.05);
+    expect(name(s)).toBe('Muster court'); // round again
+  });
+
+  it('a press steps it at once, and the sequencer waits its full time after', () => {
+    const s = fresh();
+    still(s);
+    console_(s).act();
+    hold(s, 4);
+    step(s, { ...noInput(), strafe: 1 }); step(s, noInput());
+    expect(name(s)).toBe('East bays');
+    hold(s, 4);
+    expect(name(s)).toBe('East bays');
+    hold(s, 1.2);
+    expect(name(s)).toBe('Electrical room');
+  });
+
+  it('a branch you have opened is black on it', () => {
+    const s = fresh();
+    still(s);
+    brk(s, 'Muster hall west').act();
+    console_(s).act();
+    const live: Record<string, boolean> = {};
+    for (let k = 0; k < 6; k++) { live[name(s)!] = onScreen(s)!.live; step(s, { ...noInput(), strafe: 1 }); step(s, noInput()); }
+    expect(live).toEqual({ 'Muster court': false, 'East bays': true, 'Electrical room': false, Armory: false, 'Firing range': false, 'Operations stair': true });
   });
 });
 
