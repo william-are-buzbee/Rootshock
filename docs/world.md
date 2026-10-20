@@ -522,7 +522,7 @@ wins; the older text stays only because it describes what is built, until the le
   round's beam sweeps through. Wider than the muster hall today (by a quarter to a half), so you see further and the beam
   carries.
 - **Call points (agreed).** Break-glass call points, as in any building: sound a zone yourself, to pull the changed off a door
-  or out of a room. (The vaccinator comes to it too.)
+  or out of a room. (The vaccinator comes to it too.) **Built:** below, *Being found*.
 - **Lockdown (agreed),** in place of the bolts: an alarm seals that zone's powered doors, heard and seen (the bolts, the red
   lights). Protocol, no hand on a board. **Built:** below, *Being found*.
 - **Load on the backup set (agreed, provisional).** Too many branches on and everything browns out, Gen-1's capacity (§4)
@@ -673,7 +673,7 @@ should be added. Below it, production (below).
   than the cavern's far end (about 120 m today). The glass works both ways: the bay can see you. A view only, not a door; at
   Tier 1's height a door would skip the platforms. A shortcut, if any, is a door barred from the bay side.
 
-**Being found (as built; call points and the changed's wit are *The second pass*, to come)**
+**Being found (as built; the changed's wit is *The second pass*, to come)**
 
 - **Cameras → the zone alarm → any patrol in earshot.** The klaxon starting is the tell, and you have a few seconds to answer
   it: leave the zone, break its speaker or the camera (loud: a cost, per §4), or cut the power. **Built** (`sim/eyes.ts`),
@@ -709,6 +709,11 @@ should be added. Below it, production (below).
   set cannot move is never bolted, and the dead wing's doors stay as they are until the cut is mended (when the wing
   sounds at once, and bolts slam down its length). Taken by the electrical room's camera, you are bolted in with it
   until the alarm dies.
+- **Call points.** One a zone, red, at shoulder height by the zone's way out: the wing's in its corridor by the
+  checkpoint, the atrium's by the way south, the hall's at its west end by the electrical room and the range,
+  Operations' in its corridor by the speaker. Break the glass with your thumb (a little noise) and the zone sounds as if
+  a camera had you: the klaxon, the changed hurrying to the speaker, the lockdown. Once each: the glass stays broken.
+  Wired to the zone's PA, so the dead wing's still sounds, and a zone whose speaker is smashed has no voice here either.
 - **Why they come: drills, not instructions.** The changed were Security's staff. For years a zone alarm meant "respond there",
   and what is left of them still does. It is conditioning, not command.
 - **Patrols → their own senses.** Sight, light and sound, as everywhere else. They come to an alarm they can hear, not to you.

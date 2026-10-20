@@ -890,7 +890,10 @@ components, not code threaded through the frame loop:
   copy) at 2.6 m/s, 3.4 with another in sight hurrying too (`ANSWER` in `sim/cast.ts`). Each round also locks the zone
   down: a door is in the zones of the rooms either side of it (`RoomDef.zone`, `doorZones`), and each in the zone that
   can move with the power it has is drawn (`Door.drawing`, `LOCKDOWN.draw`) and then bolted (`Door.down`, which
-  `locked` counts, so it blocks the cast's ways too) while an alarm in one of its zones sounds and it keeps its power. Nobody is behind the screens: a camera
+  `locked` counts, so it blocks the cast's ways too) while an alarm in one of its zones sounds and it keeps its power.
+  A call point is a use of kind `call` (`content/build/fittings.ts`, `callPoint`; its zone in its opts, which validation
+  checks has a speaker): used, it is spent (`Usable.off`, kept by saves as any spent use) and sounds its zone if the zone
+  is `heard`; its pane is drawn until it is spent. Nobody is behind the screens: a camera
   needs only its power and to be whole. A smashed speaker mutes its zone (`Sim.mute`): nothing sounds there at all. (The
   overseer, its hand, its knock codes and its bolts were built here and taken out in Security's second pass.) A speaker is used from below only, and hangs in its room's ceiling. It is wired from its PA (`SpeakerDef.pa`, a
   circuit), not from its room, and sounds only while that has power (`heard` in `sim/eyes.ts`); Security's is critical

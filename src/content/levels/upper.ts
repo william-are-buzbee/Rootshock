@@ -4,7 +4,7 @@ import {
   arch, beginLevel, bx, cave, door, elev, finishLevel, flight, item, ladder, mkDeck, mut, note, P, roughen, room, stack, stairs, use, type Deck, type LevelInfo, type TRoomOpts,
 } from '../build/tiles';
 import {
-  BAY, MED, OPS, SEC, UTIL, WALK, blood, camera, container, corpse, crates, desk, droppedLight, eggs, exitSign, forklift, genset, gore, liftRoom, medbed, panel, shelf, speaker, tbl,
+  BAY, MED, OPS, SEC, UTIL, WALK, blood, callPoint, camera, container, corpse, crates, desk, droppedLight, eggs, exitSign, forklift, genset, gore, liftRoom, medbed, panel, shelf, speaker, tbl,
 } from '../build/fittings';
 
 /* Upper station, 40 m down. Off the main shaft, the Security wing (x 14 to 66) and Operations (x 64 to 110, south to
@@ -292,6 +292,9 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   }
   /* and two of the staff on their rounds of the hall */
   mut(D, 'husk', 20.5, 29); mut(D, 'husk', 38.5, 37);
+  /* break-glass call points, one a zone, by its way out: the wing's by the checkpoint, the atrium's by the way south,
+     the hall's at its west end by the electrical room and the range, Operations' in its corridor by the speaker */
+  callPoint(D, 22.5, 16, 'n', 'wing'); callPoint(D, 40.5, 21, 'n', 'atrium'); callPoint(D, 16, 36, 'e', 'muster'); callPoint(D, 42, 25.5, 'e', 'ops');
   /* Security's alarm zones, room by room: an alarm locks down the doors of its zone (sim/eyes.ts). The hall's east bays
      are Operations', with their own breaker; the suite below, the shaft and Cargo are in none */
   const ZONES: Record<string, string> = {

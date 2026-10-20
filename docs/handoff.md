@@ -65,8 +65,9 @@ the cast keep armed rooms out of their rounds, alarm fatigue is out, and every h
 faster with another in sight hurrying (`ANSWER` in `sim/cast.ts`). Running noise is left as it is until played.
 Lockdown is done too: rooms carry their alarm zone (`RoomDef.zone`, set from a table at the end of `buildUpper`), and
 each klaxon round bolts the zone's doors that have power to move (`Door.down`, `Door.drawing`, `LOCKDOWN` in
-`sim/eyes.ts`), with the old bolt sounds and a red lamp over the door. The call points are next. The camera wall
-waits on a way into the operations room.
+`sim/eyes.ts`), with the old bolt sounds and a red lamp over the door. And the call points, one a zone (`callPoint`, a
+use of kind `call`). Step 2 is done; step 3, the lobby and the screens, is next. The camera wall waits on a way into
+the operations room.
 
 Step 1 is done: the overseer, the hand, the knock and the bolts are out of the code and of world.md §8 (old saves do not
 load: save version 6). §10's lineage still names the overseer in three places (rules 1 and 8, *Security's first*): left

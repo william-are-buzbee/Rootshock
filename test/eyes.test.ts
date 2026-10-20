@@ -379,6 +379,61 @@ describe('lockdown', () => {
   });
 });
 
+describe('call points', () => {
+  const callIn = (s: Sim, zone: string) => {
+    const ui = level.uses.findIndex(u => u.kind === 'call' && u.opts.zone === zone);
+    return s.usables.find(u => u.key === 'use' + ui)!;
+  };
+
+  it('one a zone', () => {
+    expect(level.uses.filter(u => u.kind === 'call').map(u => u.opts.zone).sort()).toEqual(['atrium', 'muster', 'ops', 'wing']);
+  });
+
+  it('break the glass and its zone sounds, with all that follows: the changed hurry to it, and the zone locks down', () => {
+    const s = fresh(), u = callIn(s, 'muster');
+    for (const m of s.cast) if (m.ai !== 'husk' || m.post) m.stun = 1e9;
+    place(s, 30, -4.5, -25);
+    hold(s, 0.2);
+    expect(u.label()).toBe('Break the glass');
+    s.game.noiseI = 0;
+    u.act(); // bare hands: it is made for a thumb
+    expect(s.alarms.map(a => a.zone)).toEqual(['muster']);
+    expect(s.game.noiseI).toBeGreaterThan(0);
+    hold(s, 0.1);
+    expect(s.cast.some(m => m.state === 'answer')).toBe(true);
+    hold(s, LOCKDOWN.draw);
+    expect(s.doors.some(d => d.down && doorZones(s.world, d).includes('muster'))).toBe(true);
+  });
+
+  it('once: the glass is gone, and a save keeps it gone', () => {
+    const s = fresh(), u = callIn(s, 'ops');
+    still(s);
+    u.act();
+    expect(u.off).toBe(true);
+    const t = load(level, JSON.parse(JSON.stringify(save(s))), { station: STATION });
+    expect(callIn(t, 'ops').off).toBe(true);
+    expect(callIn(t, 'wing').off).toBeFalsy();
+  });
+
+  it('a zone with its speaker smashed has no voice: the glass goes and nothing sounds', () => {
+    const s = fresh(), u = callIn(s, 'atrium');
+    still(s);
+    s.mute.push('atrium');
+    u.act();
+    expect(u.off).toBe(true);
+    expect(s.alarms).toEqual([]);
+  });
+
+  it('the dead wing\'s still sounds: its PA is critical power, though its doors have none to bolt', () => {
+    const s = fresh(), u = callIn(s, 'wing');
+    still(s);
+    u.act();
+    expect(s.alarms.map(a => a.zone)).toEqual(['wing']);
+    hold(s, LOCKDOWN.draw + 0.2);
+    expect(s.doors.some(d => d.down)).toBe(false);
+  });
+});
+
 describe('the operations room', () => {
   it('its door is grown shut: no way in on the first pass', () => {
     const s = fresh();

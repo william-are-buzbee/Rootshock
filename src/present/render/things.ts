@@ -206,6 +206,15 @@ export class Things {
       this.add(parts([['box', [0.4, 2.6, 0.7], 0.045, 0.045, 0.045, 0, 0.1, 0]]), m => { place(m); m.visible = c.guard && live() && c.hold === 0; });
       this.add(parts([['box', [2.9, 0.35, 0.3], 0.05, 0.05, 0.05, 0, 0.1, 0]]), m => { place(m); m.visible = c.guard && live() && c.hold > 0; });
     }
+    /* a call point's pane, until it is broken */
+    w.def.uses.forEach((u, ui) => {
+      if (u.kind !== 'call') return;
+      const face = u.opts.face as string, ew = face === 'e' || face === 'w', o = face === 'e' || face === 's' ? -1 : 1;
+      const use = sim.usables.find(q => q.key === 'use' + ui);
+      this.add(parts([['box', [0.75, 0.82, 0.86], ew ? 0.01 : 0.13, 0.13, ew ? 0.13 : 0.01, 0, 0, 0]]), m => {
+        m.position.set(u.x + (ew ? o * 0.12 : 0), u.y - 0.03, u.z + (ew ? 0 : o * 0.12)); m.visible = !use?.off; // over the button, against the box
+      });
+    });
     for (const S of w.def.speakers ?? []) {
       /* it hangs from the ceiling: lit by the room under it, not by what is above */
       const y = speakerY(w, S), dead = () => !voiced(sim, S.zone), at: [number, number, number] = [S.x, y - 1, S.z];

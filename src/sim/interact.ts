@@ -6,7 +6,7 @@ import { locked, occupied, sendPlatform, type Door, type Platform } from './move
 import { eyeHeight } from './player';
 import type { Sim } from './sim';
 import { riders } from './sim';
-import { soundZone, speakerY } from './eyes';
+import { heard, soundZone, speakerY } from './eyes';
 import { drill } from './cast';
 
 /* What you can use, and what using it does: E on whatever you are looking at. The labels and the answers are the first
@@ -208,6 +208,23 @@ export function buildUsables(sim: Sim): Usable[] {
       case 'look':
         out.push({ ...base, label: () => (o.label as string) ?? 'Look', act: () => say(g, o.text as string) });
         break;
+      case 'call': {
+        /* a break-glass call point: it sounds its zone, as a camera would, from the zone's PA; once, the glass gone */
+        const zone = o.zone as string, at = { x: u.x, y: u.y, z: u.z };
+        const call: Usable = {
+          ...base, r: 1.8, label: () => 'Break the glass',
+          act: () => {
+            call.off = true;
+            sfx(g, 'smash', at);
+            makeNoise(g, 6);
+            if (!heard(sim, zone)) { say(g, 'The glass goes and the button sinks under your thumb. Nothing sounds: whatever it calls has no voice.'); return; }
+            soundZone(sim, zone);
+            say(g, 'The glass goes and the button sinks under your thumb. The klaxon starts.');
+          },
+        };
+        out.push(call);
+        break;
+      }
     }
   });
   return out;
