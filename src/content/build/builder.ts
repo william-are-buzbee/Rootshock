@@ -25,6 +25,8 @@ export interface RoomOpts {
   lit?: LitRule;
   lc?: Colour;
   em?: boolean;
+  /** emergency lights on their own cells: this colour when its circuit is dead (RoomDef.batt) */
+  batt?: Colour;
   circuit?: string;
   flick?: boolean;
   /** no ceiling fittings */
@@ -97,7 +99,7 @@ export class LevelBuilder {
       floor: hex(p.fl), wall: hex(p.wl), stripe: hex(p.st), mat: { ...FITTED, ...o.mat },
       lit: o.lit ?? (fixed ? (dark ? 'none' : 'always') : 'always'),
       lc: o.lc ?? (fixed ? o.light! : WHITE),
-      em: !!o.em, circuit: o.circuit ?? this.def.circuit, flick: !!o.flick, doorway: !!o.doorway, ...(o.part ? { part: true } : {}), safe: !!o.safe, noroam: !!o.noroam, armed: !!o.armed, ...(o.zone ? { zone: o.zone } : {}),
+      em: !!o.em, ...(o.batt ? { batt: o.batt } : {}), circuit: o.circuit ?? this.def.circuit, flick: !!o.flick, doorway: !!o.doorway, ...(o.part ? { part: true } : {}), safe: !!o.safe, noroam: !!o.noroam, armed: !!o.armed, ...(o.zone ? { zone: o.zone } : {}),
       ...(o.sky !== undefined ? { sky: hex(o.sky) } : {}), ...(o.motes && o.motes !== 'dust' ? { motes: o.motes } : {}),
     };
     this.def.rooms.push(r);

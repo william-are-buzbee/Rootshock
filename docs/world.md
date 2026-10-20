@@ -252,8 +252,12 @@ Two independent questions per door.
 
 **Exceptions and alternatives**
 
-- **Fail-safe doors**, few and visibly marked (life-safety signage): they release when power dies. The holding cells are one, which
-  is why your cell opened when Gen-1 dropped.
+- **Fail-safe doors**, few and visibly marked (life-safety signage): they release when power dies, and stay released. The
+  isolation suite's rooms are two (§8, *The opening*): that is why your door let go when the survivors cut the wing's feed.
+  **Built** (`DoorDef.failsafe`).
+- **Cards whose holders are gone (built).** The medical staff's card and a physician's override for a medical hold: no guard's
+  card opens their doors (the reader reads red to it), and nothing in the game gives one. A clinical door on one stays shut
+  for good; your door, under a medical hold, opens only because it is also fail-safe.
 - **Brute force (proposed):** break a lock or pry a door, at a cost: loud, slow, weapon wear, or a repair kit.
 
 ### Power
@@ -659,6 +663,29 @@ The scene starts when you first look out of the window (a timer behind it), and 
 before the game to its first minutes: the survivors die on the far side of it, some of them just now (the one by the cut has
 the cutters still in hand, and the blood is fresh). The flashlight on the guard is still the next beat, in dim light now.
 
+**Built** (`sim/opening.ts` times it; the rest is the station's own rules). A new game only: `?level=` starts the level as the
+opening leaves it.
+- *Waking.* The wing's feed whole and on Ops' backup set: the suite at its night setting, warm amber pools. You wake by the bed
+  turned to the pump, its empty-bag alarm going (silence it: its screen gives the date, 14 NOV). The bag's label, hung 10/11;
+  the whiteboard at the station, sedation orders dated 26/9; the intercom, static. Weak for a minute and a half: slow at first,
+  coming back; no running (try, and your legs go from under you a moment).
+- *The other patient* stands at room 3's window, across the hall (about 24 m, window to window: the windows face each other,
+  sills at 1.2 m). When you first look out (or after 30 s) they see you and bang on the glass: a sound that carries 40 m.
+- *The night round* starts on the station's balcony, its beam on the hall, and stays until something draws it: the banging. It
+  comes down the stair and goes through the suite on stops it keeps only that first night, while the wing has power. Its card
+  opens room 3: green. The other patient backs into the corner the window does not show; it follows, and they are taken
+  there: heard (a scuffle, a cry cut short, a body against the wall), not seen. **Changed from the beats above:** the reds come
+  after the green, not before: the noise brings it to the other patient first, and the reds follow as it crosses toward you,
+  the doctor's office, the treatment room, then yours, twice (a medical hold). Each red one step nearer.
+- *Seen at your glass,* where it cannot get in, it comes to the window and looks in a few seconds, its face lit by your room;
+  crouched under the sill against the wall, or in your washroom (new, behind room 1), it never sees you. Then it goes back up.
+- *The release,* 30 s after it has gone up: the survivors' cut, a clang far off, the wing dark, the suite's fail-safe locks let
+  go, and its emergency lights come up on their own cells (`RoomDef.batt`): dimmer, cooler, not dark. By the cut, the guard
+  with the bolt cutters, wet blood, and the note. The flashlight at the stair's foot lies off (its guard days dead, gone down
+  to change the bags); you switch it on.
+- *About two and a half minutes* from looking out to the cut, most of it the night round walking; to tune when played. At
+  24 m the other patient reads as a small lit figure banging, more heard than seen.
+
 **Cargo, made larger (agreed).** The best-looking place in the game, and too small for what it has to hold. An L, not an I: one
 arm the bay (Pia's eggs, the nest Security tends, porous and organic), the other the warehouse; at the corner a new lift
 system (a freight hoist; or, as a bigger idea, a gantry crane spanning the warehouse that you ride or move to bridge a gap,
@@ -695,8 +722,8 @@ should be added. Below it, production (below).
   doors and card readers wake. **What it costs:** the wing's cameras wake too, you are easier to see in the light, and the patrols'
   rounds now take in the wing (below). The circuit comes live on Security's board and the board sounds that zone at once, so the
   first thing the mended feed brings is someone to the cut.
-- **Timing:** the game starts as the power goes out, and the isolation suite's doors, fail-safe, let go (see Holding, below). No
-  battery holds them first.
+- **Timing:** superseded by *The opening*, above: the game starts with the wing's feed whole, and the survivors cut it in the
+  first minutes; the suite's fail-safe doors let go then.
 - **The surface lift (proposed):** what mends it is one unique part, not a kit. Count its locks before adding any: Gen-1, a
   credential and the mend are three.
 
@@ -712,13 +739,14 @@ should be added. Below it, production (below).
 - **The light.** None of its own. The flashlight on the floor at the foot of the station's stair, on the guard who dropped it,
   lights itself and a little round it, and goes out when you take it. Exit signs over the stair glow green on their own
   batteries (as the code requires), a second, quieter light to follow. Nothing hunts you here.
-- **Built.** A storey down (-4.5 m), under the wing's north side: a double-height hall (22 by 20 m) with a kitchenette, a
-  table, a sofa before a dead screen and plants nobody watered; three isolation rooms off it, room 3 with its own washroom;
-  and over the hall's south end, at the wing's level, the nurses' station, a balcony with the station's desk, which a double
-  stair up the east wall climbs to, and which opens onto the Security corridor. You wake in room 1, whose door looks across
-  the hall at the stair's foot: a guard face down there, his flashlight still on beside him, and an exit sign. A patient lies
-  in room 2. The old cells and guard post are gone. The suite and the station are refuges, and dark with the wing; mended,
-  they light amber like the rest of it.
+- **Built** (as *The opening* left it). A storey down (-4.5 m), under the wing's north side: a double-height hall (22 by 20 m)
+  with a kitchenette, a table, a sofa before a dead screen and plants nobody watered. Off it, west: room 1 (yours) with a
+  washroom behind it, and the treatment room; east: room 3 (the other patient's) with its washroom; south, under the
+  station: the doctor's office. Rooms 1 and 3 face each other, each a door and an observation window in a partition. Over
+  the hall's south end, at the wing's level, the nurses' station, a balcony with the station's desk and whiteboard, which
+  a double stair up the east wall climbs to, and which opens onto the Security corridor. At the stair's foot a guard face
+  down, days dead, his flashlight off beside him, and an exit sign. Room 2 and its dead patient are gone. The suite and the
+  station are refuges; with the wing cut, the suite has its emergency cells; mended, it lights amber like the rest.
 
 **The layout (proposed)**
 

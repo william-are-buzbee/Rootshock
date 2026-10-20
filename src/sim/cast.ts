@@ -4,14 +4,14 @@ import { STEP } from '../core/loop';
 import { Edge, edgeCost, field as fieldFrom } from '../world/nav';
 import type { Dyn } from '../world/world';
 import { fall, impulse, makeBody, push, settle, shove, slide, steer, walk, type Body, type Slid } from './body';
-import { carded, doorShut, makeFields, opensItself, refreshFields, routeRules, rulesFor, type Fields, type Walker } from './fields';
+import { carded, doorShut, makeFields, opensItself, refreshFields, routeRules, rulesFor, soundRules, type Fields, type Walker } from './fields';
 import { hurtBy, log, power, sayOnce, sfx } from './game';
 import { exposed, struck } from './combat';
 import { occupied, sendPlatform, type Door } from './movers';
 import { eyeHeight } from './player';
 import { closing, DOWN, FALL, LAUNCH, MOVES, POISE, react, regain, RISE, SHOVE, SLAM, type Move } from './moves';
 import { riders, simLighting, type Sim } from './sim';
-import { knockRag, makeRag, RAG, REFLEX, type Killing, type Rag } from './ragdoll';
+import { knockRag, layRag, makeRag, RAG, REFLEX, type Killing, type Rag } from './ragdoll';
 import type { V3 } from './sweep';
 
 /* The cast (engine.md §7, §8): what lives in the station, ported from the first engine's behaviours. Each is a body that
@@ -19,7 +19,7 @@ import type { V3 } from './sweep';
    and you. They find their way over the nav graph's fields, see along lines of sight scaled by the light you stand in,
    and hear what you do as far as the sound of it carries through the rooms between. */
 
-export type Ai = 'husk' | 'skitter' | 'bloat' | 'thresher' | 'worm' | 'swimmer' | 'grabber';
+export type Ai = 'husk' | 'skitter' | 'bloat' | 'thresher' | 'worm' | 'swimmer' | 'grabber' | 'patient';
 
 interface Stats {
   ai?: Ai; model?: string; green?: boolean;
@@ -47,6 +47,8 @@ export const MT: Record<string, Stats> = {
   rootworm: { ai: 'worm', model: 'worm', green: true, hp: 40, r: 0.35, cr: 0.3, mass: 1, kg: 25, acc: 8, h: 0.6, low: true },
   swimmer: { ai: 'swimmer', model: 'worm', hp: 40, r: 0.35, cr: 0.3, mass: 1, kg: 25, acc: 10, h: 0.6, swim: true },
   grabber: { hp: 30, r: 0.4, cr: 0, mass: 1, kg: Infinity, acc: 0, h: 0, fixed: true },
+  /* the other patient in the isolation suite (world.md §8, the opening): awake for days, weak, and no danger to anyone */
+  patient: { hp: 20, r: 0.3, cr: 0.28, mass: 1, kg: 55, acc: 6, h: 1.75 },
   vine: { ai: 'grabber', model: 'grabber', green: true, hp: 30, r: 0.4, cr: 0, mass: 1, kg: Infinity, acc: 0, h: 0, fixed: true },
 };
 
@@ -58,6 +60,7 @@ export const DEATH: Record<Ai, string> = {
   swimmer: 'The water closed over the last of the light.',
   grabber: 'The doorway closed its hands.',
   bloat: 'It sat on you. It did not seem to notice.',
+  patient: '',
 };
 
 /** a ride on a platform: which, which way, and the spot to step off to */
@@ -95,6 +98,10 @@ export interface Mutant {
   /** a guard's round: its stops, in order, kept to for good (null for the rest); the stop it is making for */
   round: RoundStop[] | null;
   beat: number;
+  /** how many times it has been all the way round; seconds since it last stood at the glass looking in at you */
+  lap: number; peered: number;
+  /** where it backs away to, out of sight of its window, if anyone comes in (the other patient) */
+  hide: { x: number; z: number } | null;
   /** its flashlight is on in its hand */
   torch: boolean;
   /** where it started, which it keeps near */
@@ -161,13 +168,14 @@ function makeMutant(sim: Sim, def: MutantDef, id: number): Mutant {
     const room = sim.world.roomAt(def.x, def.y + 0.5, def.z)?.id ?? -1;
     const m: Mutant = {
       id, type: def.type, ai: S.ai ?? (def.type as Ai), model: S.model ?? def.type, green: !!S.green, body,
-      x: def.x, y: def.y, z: def.z, px: def.x, py: def.y, pz: def.z, yaw: o.yaw ?? rnd(TAU), state: 'idle', st: 0, cd: 0, stun: 0,
+      x: def.x, y: def.y, z: def.z, px: def.x, py: def.y, pz: def.z, yaw: o.yaw ?? rnd(TAU), state: (def.opts.state as string | undefined) ?? 'idle', st: 0, cd: 0, stun: 0,
       hp: S.hp, max: S.hp, mass: S.mass, r: S.r,
       walker: S.noDoors ? 'big' : S.opens ? 'hands' : 'crawl',
       opens: !!S.opens, low: !!S.low, noDoors: !!S.noDoors, fixed: !!S.fixed, swim: !!S.swim, solid: !!S.solid,
       post: !!o.post, sit: !!o.sit, holt: !!o.holt, big: !!o.big, hx: def.x, hz: def.z, room,
       cards: !!sim.world.def.cards && !!S.opens && !!sim.world.rooms[room]?.zone, door: -1,
-      round: (def.opts.round as RoundStop[] | undefined) ?? null, beat: 0, torch: !!S.torch,
+      round: (def.opts.round as RoundStop[] | undefined) ?? null, beat: 0, lap: 0, peered: 99, torch: !!S.torch,
+      hide: (def.opts.hide as { x: number; z: number } | undefined) ?? null,
       wt: rnd(1, 5), wm: 0, wx: 0, wz: 0, tk: 0, lost: 0, bt: 0, burst: false, flee: 0, ct: rnd(6, 14), cdir: 0, tgt: false,
       grab: 0, tense: 0, blow: null, dest: -1, F: null, stk: 0, fled: false, side: 0, ride: null, spot: -1,
       mv: 0, d: 99, dp: 99, dy: 0, los: false, losAt: -99, hit: 0, poise: poiseOf(def.type, S.ai, !!o.big), pmax: poiseOf(def.type, S.ai, !!o.big), calm: 99, reel: 0, pat: 0, down: 0, rise: 0, acc: S.acc, drove: false, ph: rnd(9), dead: false, gone: 0, rag: null, away: false, still: 0,
@@ -680,6 +688,15 @@ function notices(sim: Sim, m: Mutant): boolean {
 
 /** it has you */
 function hunt(sim: Sim, m: Mutant): boolean {
+  /* the night round, seeing you where it cannot get to you: to the glass, to look in (PEER); once in a while, and not
+     before it has tried the reader it is on its way to, as many times as it was going to */
+  if (m.round && !reaches(sim, m)) {
+    const P = m.round[m.beat % m.round.length];
+    if (m.peered < PEER.again || (m.state === 'round' && P.tries && (m.dest >= 0 || m.st > 0))) return false;
+    const at = glassSpot(sim, m);
+    m.state = 'peer'; m.st = PEER.look; m.wx = at.x; m.wz = at.z; m.peered = 0; m.wt = 0;
+    return true;
+  }
   m.state = 'hunt'; m.lost = 0; m.post = false; m.dest = -1; step_(sim, m, 'moan');
   return true;
 }
@@ -774,10 +791,11 @@ function hurried(sim: Sim, m: Mutant): boolean {
  *  reader; and how far below level it holds the beam walking */
 export const ROUND = { pace: 1.0, hunt: 3.0, look: 2.5, sweep: 0.55, swing: 1.1, beep: 1.2, pitch: 0.14 };
 
-/** the door a stop tries: the nearest within reach of it, or -1 */
+/** the door a stop tries: the nearest within reach of it (not a pane of glass), or -1 */
 function stopDoor(sim: Sim, P: RoundStop): number {
   let best = -1, bd = 2.6;
   sim.doors.forEach((d, k) => {
+    if (d.def.glass) return;
     const at = doorMid(d), dd = Math.hypot(at.x - P.x, at.z - P.z);
     if (dd < bd && Math.abs(d.def.y0 - P.y) < 1) { bd = dd; best = k; }
   });
@@ -798,12 +816,16 @@ function tryDoor(sim: Sim, m: Mutant, k: number): boolean {
 /** how long a reader shows green or red after a card (s) */
 export const READER = 0.8;
 
-/** a step of its round: to the next stop, then a while there, looking about or at a reader */
+/** a stop it keeps now: one wanting a circuit live is passed by while it is dead, and one for the first time round only
+ *  after that */
+const keeps = (sim: Sim, m: Mutant, P: RoundStop) => (!P.need || power(sim.game, P.need) > 0) && (!P.once || m.lap === 0);
+
+/** a step of its round: to the next stop it keeps, then a while there, looking about or at a reader */
 function walkRound(sim: Sim, m: Mutant): void {
   const R = m.round!, Fs = sim.fields;
   if (!Fs || m.spot < 0 || !R.length) return;
   const P = R[m.beat % R.length];
-  const next = () => { m.beat = (m.beat + 1) % R.length; m.dest = -1; m.wt = 0; m.st = 0; };
+  const next = () => { m.beat = (m.beat + 1) % R.length; if (m.beat === 0) m.lap++; m.dest = -1; m.wt = 0; m.st = 0; };
   /* stopped: the beam about, or held on the reader; then the card, as many times as the stop says */
   if (m.wt > 0) {
     const k = P.tries ? stopDoor(sim, P) : -1;
@@ -820,6 +842,7 @@ function walkRound(sim: Sim, m: Mutant): void {
     return;
   }
   if (m.dest < 0) {
+    if (!keeps(sim, m, P)) { next(); return; }
     const k = Fs.nav.locate(P.x, P.y, P.z);
     if (k < 0) { next(); return; }
     /* one new route a step at most, across the whole cast */
@@ -830,9 +853,10 @@ function walkRound(sim: Sim, m: Mutant): void {
     m.dest = k; m.stk = 0;
   }
   if (m.spot === m.dest || m.F![m.spot] < 0.9) {
-    /* there: it stops, and looks about (or at the reader) */
+    /* there: it stops, and looks about (or at the reader); and takes whoever is there to be taken */
     m.dest = -1; m.wm = m.yaw; m.st = P.tries ?? 0;
     m.wt = P.tries ? ROUND.beep : P.wait ?? ROUND.look;
+    if (P.take) take(sim, m);
     if (m.wt <= 0) next();
     return;
   }
@@ -840,13 +864,105 @@ function walkRound(sim: Sim, m: Mutant): void {
   else if ((m.stk += dt) > 4) next(); // it cannot get there as things stand: on to the next
 }
 
+/** the other patient, where it stops: taken, out of sight of the window it was banging on. What is done is heard, not
+ *  seen (world.md §8, the opening) */
+function take(sim: Sim, m: Mutant): void {
+  for (const q of sim.cast) {
+    if (q.dead || q.ai !== 'patient' || Math.hypot(q.x - m.x, q.z - m.z) > 4 || Math.abs(q.y - m.y) > 1) continue;
+    m.yaw = Math.atan2(q.x - m.x, q.z - m.z); m.wm = m.yaw;
+    sfx(sim.game, 'taken', { x: q.x, y: q.y + 1, z: q.z });
+    kill(sim, q, null, false);
+  }
+}
+
+/** the other patient (world.md §8, the opening): at its window, still, until it sees you wake; then banging on the glass
+ *  to you, which carries; and, when its door opens or anyone comes in, backing away into the corner it cannot be seen in
+ *  from across the hall. `BANG`: how often it strikes the glass (s), and how far the sound carries (m) */
+export const BANG = { every: [0.55, 0.95] as const, loud: 40 };
+function patient(sim: Sim, m: Mutant): void {
+  const R = sim.world.roomAt(m.x, m.y + 0.5, m.z), b = sim.player.body;
+  const came = R && (sim.cast.some(q => q !== m && !q.dead && q.ai === 'husk' && sim.world.roomAt(q.x, q.y + 0.5, q.z) === R)
+    || sim.doors.some(d => d.t > 0.3 && !d.def.glass && !d.def.open && Math.hypot((d.def.x0 + d.def.x1) / 2 - m.x, (d.def.z0 + d.def.z1) / 2 - m.z) < 5));
+  if (came && m.state !== 'back') { m.state = 'back'; m.st = 0; }
+  switch (m.state) {
+    case 'bang': {
+      /* at the glass, toward you: struck, and struck again */
+      m.yaw = angLerp(m.yaw, Math.atan2(b.x - m.x, b.z - m.z), Math.min(1, dt * 3));
+      if ((m.wt -= dt) <= 0) {
+        m.wt = sim.rng.range(BANG.every[0], BANG.every[1]);
+        const at = { x: m.x + Math.sin(m.yaw) * 0.5, y: m.y + 1.4, z: m.z + Math.cos(m.yaw) * 0.5 };
+        sfx(sim.game, 'bang', at);
+        noiseAt(sim, at.x, m.y, at.z, BANG.loud);
+      }
+      break;
+    }
+    case 'back': {
+      /* away into its corner, and there, turned to the door, as small as it can make itself */
+      const H = m.hide;
+      if (H && Math.hypot(H.x - m.x, H.z - m.z) > 0.3) { go(sim, m, H.x, H.z, 1.4); m.mv = 1.4; }
+      else m.yaw = angLerp(m.yaw, m.wm, Math.min(1, dt * 2));
+      if (!m.st) { m.st = 1; m.wm = m.yaw + PI; }
+      break;
+    }
+  }
+}
+
+/** a sound made somewhere, not by you (the other patient banging): heard by each of the cast it carries to as the air goes
+ *  (shut doors muffle it), within `loud` metres. One on its round at a stop cuts the stop short and goes on with its round;
+ *  one at rest, on the same floor, goes over to look (world.md §8: noise draws them) */
+export function noiseAt(sim: Sim, x: number, y: number, z: number, loud: number): void {
+  const Fs = sim.fields;
+  if (!Fs) return;
+  const spot = Fs.nav.locate(x, y, z);
+  if (spot < 0) return;
+  const heard = fieldFrom(Fs.nav, spot, soundRules(sim, Fs), undefined, loud);
+  for (const m of sim.cast) {
+    if (m.dead || m.stun > 0 || m.spot < 0 || m.ai !== 'husk' || !(heard[m.spot] < loud)) continue;
+    if (m.state === 'round' && m.wt > 0 && m.st <= 0) m.wt = Math.min(m.wt, 0.4);
+    else if (m.state === 'idle' && !m.round && Math.abs(y - m.y) < 1.5) {
+      step_(sim, m, 'mutter');
+      m.state = 'search'; m.st = rnd(sim, SEARCH.time[0], SEARCH.time[1]); m.dest = -1; m.wx = x; m.wz = z; m.wt = 0; m.post = false;
+    }
+  }
+}
+
+/** seen where it cannot get to you (behind the glass of a room whose door will not take its card): the night round comes
+ *  to the glass and looks in at you a while, then goes on with its round. `PEER`: how long it looks, how near the glass it
+ *  stands, and how long before it will do so again */
+export const PEER = { look: 5, off: 0.55, again: 25 };
+
+/** can it get to where you are, as the doors stand, with its card? */
+function reaches(sim: Sim, m: Mutant): boolean {
+  const Fs = sim.fields;
+  if (!Fs || m.spot < 0 || Fs.from < 0) return false;
+  if (Number.isFinite(Fs.hands[m.spot])) return true;
+  return Number.isFinite(fieldFrom(Fs.nav, Fs.from, rulesFor(sim, Fs, m.walker, m.cards), undefined, 90)[m.spot]);
+}
+
+/** the pane nearest it between it and you, and the spot on its own side of it to look in from; or where it stands */
+function glassSpot(sim: Sim, m: Mutant): { x: number; z: number } {
+  const b = sim.player.body;
+  let best: { x: number; z: number } | null = null, bd = 4;
+  for (const d of sim.doors) {
+    const D = d.def;
+    if (!D.glass || Math.abs(D.y0 - m.y) > 1.5) continue;
+    const cx = (D.x0 + D.x1) / 2, cz = (D.z0 + D.z1) / 2, dd = Math.hypot(cx - m.x, cz - m.z);
+    if (dd > bd) continue;
+    /* its side of the pane, toward you across it */
+    const nx = D.alongX ? 0 : Math.sign(m.x - cx) || 1, nz = D.alongX ? Math.sign(m.z - cz) || 1 : 0;
+    if ((b.x - cx) * nx + (b.z - cz) * nz > 0) continue; // you are on its side: no pane between
+    bd = dd; best = { x: cx + nx * PEER.off, z: cz + nz * PEER.off };
+  }
+  return best ?? { x: m.x, z: m.z };
+}
+
 /** its flashlight: from its lens, in its left hand held out before it, along where it looks. Walking it holds the beam
- *  a little down the way ahead; after you, on you. Drawn (castView.ts) from the same numbers */
+ *  a little down the way ahead; after you, or looking in at you, on you. Drawn (castView.ts) from the same numbers */
 export const TORCH = { shoulder: [-0.27, 1.46] as const, arm: 0.66, lead: 0.06 };
 export function torchRay(sim: Sim, m: Mutant): { x: number; y: number; z: number; dx: number; dy: number; dz: number; pitch: number } {
   const b = sim.player.body;
   let pitch = ROUND.pitch;
-  if (m.state === 'hunt') {
+  if (m.state === 'hunt' || m.state === 'peer') {
     const d = Math.max(0.5, m.dp);
     pitch = clamp(Math.atan2(m.y + TORCH.shoulder[1] - (b.y + 1.1), d), -0.6, 0.9);
   }
@@ -860,6 +976,7 @@ export function torchRay(sim: Sim, m: Mutant): { x: number; y: number; z: number
 const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
   husk(sim, m) {
     const F = sim.fields?.hands, d = m.d;
+    if (m.round) m.peered += dt;
     switch (m.state) {
       case 'idle': {
         if (notices(sim, m) || noticesDoor(sim, m)) break;
@@ -871,6 +988,17 @@ const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
       case 'round': {
         if (notices(sim, m) || noticesDoor(sim, m)) break;
         walkRound(sim, m);
+        break;
+      }
+      case 'peer': {
+        /* at the glass, its face to it, looking in at you; then on with its round, past the stop it was at */
+        m.peered = 0;
+        if (Math.hypot(m.wx - m.x, m.wz - m.z) > 0.15) go(sim, m, m.wx, m.wz, ROUND.pace);
+        else turnTo(sim, m, 3);
+        if ((m.st -= dt) > 0) break;
+        const R = m.round!, P = R[m.beat % R.length];
+        if (P.tries) { m.beat = (m.beat + 1) % R.length; if (m.beat === 0) m.lap++; }
+        m.state = 'round'; m.dest = -1; m.wt = 0; m.st = 0;
         break;
       }
       case 'answer': {
@@ -1100,6 +1228,7 @@ const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
       }
     } else m.tense = Math.max(0, m.tense - dt * 2);
   },
+  patient,
 };
 
 /* Power-failure drill (world.md §8). The staff were drilled for a dead circuit as for an alarm, and habit is what they have
@@ -1339,12 +1468,22 @@ export function shoved(sim: Sim, m: Mutant): void {
 }
 
 /** dev (the arena): every one of the cast dead at once; with none left alive, the dead taken away */
+/** one of the cast long dead, lying where it went to hide (a game that does not begin with the opening: the other
+ *  patient, in its corner) */
+export function gone(sim: Sim, m: Mutant): void {
+  if (m.dead) return;
+  if (m.hide && m.body) { const b = m.body; b.x = m.x = m.px = m.hide.x; b.z = m.z = m.pz = m.hide.z; b.sync(); }
+  m.dead = true; m.gone = 1;
+  m.rag = layRag(m);
+  if (m.body) { const k = sim.world.dyn.indexOf(m.body.dyn); if (k >= 0) sim.world.dyn.splice(k, 1); }
+}
+
 export function killAll(sim: Sim): void {
   if (sim.cast.some(m => !m.dead)) { for (const m of sim.cast) if (!m.dead) kill(sim, m); return; }
   for (const m of sim.cast) { m.rag = null; m.away = true; }
 }
 
-function kill(sim: Sim, m: Mutant, blow: Killing | null = null): void {
+function kill(sim: Sim, m: Mutant, blow: Killing | null = null, yours = true): void {
   m.dead = true;
   /* what has a body goes loose, carrying what killed it (sim/ragdoll.ts); the rest folds where it is. One already
      down is loose already, and takes the blow where it lies */
@@ -1354,7 +1493,7 @@ function kill(sim: Sim, m: Mutant, blow: Killing | null = null): void {
   m.gone = 0;
   m.blow = null;
   m.ride = null;
-  sim.game.kills++;
+  if (yours) sim.game.kills++;
   /* the body goes out of the world: what is left is not in anyone's way */
   if (m.body) {
     const k = sim.world.dyn.indexOf(m.body.dyn);

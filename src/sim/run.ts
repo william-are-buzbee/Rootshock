@@ -30,8 +30,9 @@ export function levelDef(station: StationDef, id: string): LevelDef {
   return L;
 }
 
-export function makeRun(station: StationDef, o: { seed?: number | string; start?: string } = {}): Run {
-  const id = o.start ?? station.start, sim = makeSim(levelDef(station, id), { seed: o.seed, station });
+/** a new run. `opening`: begin with it (sim/opening.ts), if starting on the station's first level */
+export function makeRun(station: StationDef, o: { seed?: number | string; start?: string; opening?: boolean } = {}): Run {
+  const id = o.start ?? station.start, sim = makeSim(levelDef(station, id), { seed: o.seed, station, opening: o.opening });
   return { station, sims: new Map([[id, sim]]), here: sim };
 }
 

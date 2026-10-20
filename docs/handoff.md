@@ -90,8 +90,20 @@ lying on (`torchRay`, put among `looseLights` in `sim/sim.ts`), so it lights you
 `vis`; what a beam throws back is made again only once it has moved a quarter metre or turned (`DRIFT` in
 `world/light.ts`). At a stop with `tries` it shows the reader its card (`tryDoor`): `Door.beep` and `beepOk` show green
 or red on the reader (`render/things.ts`). Drawn on the husk's model with the flashlight in its left hand
-(`render/castView.ts`). Tests: `test/nightround.test.ts`. Save version 7. Next: the opening (step 6), which brings it
-down into the suite.
+(`render/castView.ts`). Tests: `test/nightround.test.ts`. Save version 7. What step 5 still lacks is its card for you
+to take (talk it through with the owner first).
+
+Step 6 is done: the opening (world.md §8, *The opening*, **Built**, for what plays and where it differs from the beats).
+`sim/opening.ts` times it (`Opening`, `OPENING`: the look out, the cut after the night round has gone, the pump, being
+weak); a new game only (`SimOpts.opening`, `makeRun`'s `opening`, set in `main.ts` unless `?level=`). The rest is rules,
+general, in their places: fail-safe locks (`DoorDef.failsafe`, `failSafe` in `sim/movers.ts`, also at `makeSim`); cards
+whose holders are gone (`GONE` in `content/items.ts`: no guard's card opens them, and the validator lets them be);
+emergency cells (`RoomDef.batt`, in `roomLight`); a round's stops that want a circuit live, come once, or take the other
+patient (`RoundStop.need`, `once`, `take`); a sound made somewhere else drawing the cast (`noiseAt`); the night round coming to
+the glass to look in when it cannot reach you (the 'peer' state, `PEER`, `reaches`, `glassSpot`); the other patient (`MT.patient`,
+`patient()`, its model and skeleton). `mut()` takes places on other decks in its options (`TStop`; `at` for where it
+stands). Save version 8. Tests: `test/opening.test.ts`. Found on the way: the operations room was a round's destination
+(lit, grown shut, reached only up the armed stair); it is `noroam` now.
 
 **On the back burner** (the owner set Security aside here; pick these up with them, not unasked):
 - Step 7 above (the vaccinator, the big dark section, load on the backup set, Cargo as an L).

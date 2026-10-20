@@ -1,4 +1,5 @@
 import { buildNav, field, type Nav, type Rules } from '../world/nav';
+import { GONE } from '../content/items';
 import { power } from './game';
 import { locked, type Door, type Platform } from './movers';
 import type { Sim } from './sim';
@@ -77,11 +78,11 @@ export const doorShut = (d: Door) => {
   return D.seal || D.vent || D.lift || D.stuck || D.kind === 'heavy' || locked(d);
 };
 
-/** a card door the staff can show their card to: on a level whose staff carry them, with power enough to move it, and
- *  not locked down (an alarm's bolt beats a card) */
+/** a card door the staff can show their card to: on a level whose staff carry them, one their cards open (not the
+ *  medical staff's), with power enough to move it, and not locked down (an alarm's bolt beats a card) */
 export const carded = (sim: Sim, d: Door): boolean => {
   const D = d.def;
-  return !!sim.world.def.cards && !!D.card && !D.code && !d.down && !(D.seal || D.vent || D.lift || D.stuck)
+  return !!sim.world.def.cards && !!D.card && !GONE.has(D.card) && !D.code && !d.down && !(D.seal || D.vent || D.lift || D.stuck)
     && power(sim.game, D.circuit) >= (D.kind === 'heavy' ? 2 : 1);
 };
 

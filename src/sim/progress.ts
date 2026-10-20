@@ -366,8 +366,11 @@ function fromSim(sim: Sim, nav: Nav, o: CheckOpts): St {
   }
   sim.items.forEach((it, i) => { if (it.taken) have.add('i' + i); });
   for (const u of sim.usables) if (u.off && u.key) have.add('b' + u.key.slice(3));
-  sim.doors.forEach((d, k) => { if (d.unlocked) have.add('d' + k); });
+  /* in the opening, things as it leaves them: the wing's feed cut, and the suite's fail-safe locks let go */
+  const opening = !!sim.opening && sim.opening.phase !== 'done';
+  sim.doors.forEach((d, k) => { if (d.unlocked || (opening && d.def.failsafe)) have.add('d' + k); });
   const station: StationState = g.station ? structuredClone(g.station) : { circuits: {}, ladders: {}, main: true, fuseIn: true, names: {}, built: [] };
+  if (opening && station.circuits.SEC) station.circuits.SEC.broken = true;
   if (o.main !== undefined) station.main = o.main;
   /* a rebreather counts while you wear it: carried in a hand it does you no good until you put it on */
   if (g.worn.includes('rebreather') || o.rebreather) have.add('rebreather');

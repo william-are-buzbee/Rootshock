@@ -15,8 +15,9 @@ import type { Input } from './input';
 import { buildUsables, findUsable, itemUse, padKey, type Usable, type WorldItem } from './interact';
 import { LooseSet, makeLoose } from './loose';
 import { updateCorpses } from './ragdoll';
-import { makeDoor, makePlatform, updateDoor, updatePlatform, type Door, type Platform, type Rider } from './movers';
+import { failSafe, makeDoor, makePlatform, updateDoor, updatePlatform, type Door, type Platform, type Rider } from './movers';
 import { airFor, eyeHeight, makePlayer, MASS, updatePlayer, type Player } from './player';
+import { makeOpening, noOpening, updateOpening, weakened, type Opening } from './opening';
 
 /* The simulation: everything that is true about the game, advanced one fixed step at a time.
    Nothing here touches three.js or the page (engine.md §3). */
@@ -53,6 +54,8 @@ export interface Sim {
   drills: Drill[];
   /** sat at a console, watching its cameras' feeds (sim/eyes.ts); not kept by saves: a game goes on standing */
   watch: Watch | null;
+  /** a new game's first minutes, in the isolation suite (sim/opening.ts); null once a game is not beginning with it */
+  opening: Opening | null;
 }
 
 export interface SimOpts {
@@ -63,6 +66,9 @@ export interface SimOpts {
   /** another level of the same run: its game (what you carry and know, the power) and its draws of chance */
   game?: Game;
   rng?: Rng;
+  /** begin with the opening (sim/opening.ts): a new game on the station's first level. Without it the level is as the
+   *  opening leaves it */
+  opening?: boolean;
 }
 
 /** the level's light as things stand: the power, the doors, and the lights lying about */
@@ -113,13 +119,18 @@ export function makeSim(level: LevelDef, o: SimOpts = {}): Sim {
     doors: level.doors.map(d => makeDoor(world, d)),
     platforms: level.platforms.map(p => makePlatform(world, p)),
     items: level.items.map(it => ({ ...it, taken: false })),
-    usables: [], focus: null, cast: [], fields: null, hands: makeHands(), wormN: 0, front: -1, lighting: null, cams: [], alarms: [], mute: [], drills: [], watch: null,
+    usables: [], focus: null, cast: [], fields: null, hands: makeHands(), wormN: 0, front: -1, lighting: null, cams: [], alarms: [], mute: [], drills: [], watch: null, opening: null,
   };
+  /* a fail-safe door with no power to it has let go already */
+  for (const d of sim.doors) failSafe(d, power(sim.game, d.def.circuit));
   sim.cams = makeCams(sim);
   sim.usables = buildUsables(sim);
   sim.cast = makeCast(sim, level.mutants);
   if (sim.cast.length) { sim.fields = makeFields(sim); refreshFields(sim, sim.fields); }
-  if (!o.game && o.station && level.id === o.station.start && o.station.intro) say(sim.game, o.station.intro);
+  const first = !o.game && !!o.station && level.id === o.station.start;
+  if (first && o.opening) sim.opening = makeOpening(sim);
+  else noOpening(sim);
+  if (first && !sim.opening && o.station?.intro) say(sim.game, o.station.intro);
   return sim;
 }
 
@@ -191,7 +202,10 @@ export function step(sim: Sim, input: Input): void {
   g.time += STEP;
   const rs = riders(sim), b = sim.player.body, movers = [b, ...castMovers(sim)], n0 = g.events.length;
   for (const d of sim.doors) {
-    if (updateDoor(d, rs, movers, power(g, d.def.circuit), STEP)) sfx(g, 'door', { x: (d.def.x0 + d.def.x1) / 2, y: d.def.y0, z: (d.def.z0 + d.def.z1) / 2 });
+    const at = { x: (d.def.x0 + d.def.x1) / 2, y: d.def.y0, z: (d.def.z0 + d.def.z1) / 2 }, pw = power(g, d.def.circuit);
+    /* the power to a fail-safe lock gone: it lets go, heard */
+    if (failSafe(d, pw)) sfx(g, 'bolt-free', { ...at, y: at.y + 1.2 });
+    if (updateDoor(d, rs, movers, pw, STEP)) sfx(g, 'door', at);
   }
   /* light gets through a door as far as it stands open */
   sim.lighting?.follow(k => sim.doors[k].t);
@@ -210,6 +224,8 @@ export function step(sim: Sim, input: Input): void {
   b.mass = MASS + sim.player.load;
   /* reeling slows your feet; on the floor you lie low */
   sim.player.pace = pace(sim);
+  /* weak from the weeks under, in the opening's first minute and a half */
+  if (sim.opening) input = weakened(sim, input);
   sim.player.down = floored(sim);
   const { stride, hit } = updatePlayer(sim.world, sim.player, input, STEP);
   /* walking into something loose shoves it */
@@ -271,6 +287,7 @@ export function step(sim: Sim, input: Input): void {
   if (sim.fields) updateFields(sim, sim.fields);
   updateEyes(sim);
   updateCast(sim);
+  updateOpening(sim);
   updateCorpses(sim);
   sim.loose.update(STEP, sim.tick, rs);
 

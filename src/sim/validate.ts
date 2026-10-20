@@ -1,4 +1,4 @@
-import { ITEMS } from '../content/items';
+import { GONE, ITEMS } from '../content/items';
 import { NOTES } from '../content/notes';
 import type { LevelDef, StationDef } from '../content/types';
 import { MT } from './cast';
@@ -12,7 +12,7 @@ import { makeSim } from './sim';
 
 export interface Problem { level: string; what: string; later?: boolean }
 
-const KINDS = new Set(['body', 'backup', 'panel', 'fuse', 'breaker', 'lift', 'elev', 'ladder', 'stair', 'look', 'dive', 'call', 'watch']);
+const KINDS = new Set(['body', 'backup', 'panel', 'fuse', 'breaker', 'lift', 'elev', 'ladder', 'stair', 'look', 'dive', 'call', 'watch', 'pump']);
 
 export function validateStation(station: StationDef, levels: LevelDef[] = station.levels.map(l => l.build())): Problem[] {
   const out: Problem[] = [], notes = NOTES('\u0001', '\u0002'), built = new Set(station.levels.map(l => l.id));
@@ -44,7 +44,7 @@ export function validateStation(station: StationDef, levels: LevelDef[] = statio
     for (const m of L.mutants) if (!MT[m.type]) bad(`a mutant that does not exist: ${m.type}`);
     L.doors.forEach((D, k) => {
       circuit(D.circuit, `door ${k}`);
-      if (D.card && !keys.has(D.card)) {
+      if (D.card && !keys.has(D.card) && !GONE.has(D.card)) {
         /* a card that exists as a thing to carry may be lying on a level not yet ported */
         if (Object.values(ITEMS).some(it => it.key === D.card)) bad(`door ${k} wants card ${D.card}, found on no level ported yet`, true);
         else bad(`door ${k} wants card ${D.card}, which nobody carries and nothing gives`);

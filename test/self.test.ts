@@ -54,7 +54,7 @@ describe('a pose', () => {
 
 describe('its shadow', () => {
   it('is thrown by the fittings of the room you stand in when they are lit, and by none in the dark', () => {
-    const sim = makeSim(level, { seed: 1, station: STATION }), R = room('Isolation room 1');
+    const sim = makeSim(level, { seed: 1, station: STATION }), R = room('Briefing room'); // no emergency cells of its own
     const x = (R.x0 + R.x1) / 2, z = (R.z0 + R.z1) / 2;
     const lit = fittingsOver(sim, new Lighting(sim.world, fullPower), x, R.y0, z);
     expect(lit.room?.id).toBe(R.id);

@@ -24,7 +24,7 @@ function place(s: Sim, who: Mutant | 'player', x: number, y: number, z: number):
 const only = (s: Sim, keep: Mutant[]) => { for (const m of s.cast) if (!keep.includes(m)) m.stun = 1e9; };
 const roomOf = (s: Sim, m: Mutant) => s.world.roomAt(m.x, m.y + 0.5, m.z)?.name;
 /** the briefing room's card door, off the wing's corridor */
-const briefDoor = (s: Sim) => s.doors.find(d => d.def.card === 's')!;
+const briefDoor = (s: Sim) => s.doors.find(d => d.def.card === 's' && !d.def.failsafe)!; // (room 3's in the suite takes it too)
 /** send one of the staff to a spot, as an alarm would: the way there by the level's shape, doors met as they come */
 const sendTo = (s: Sim, m: Mutant, x: number, z: number) => {
   const F = s.fields!, spot = F.nav.locate(x, 0, z);

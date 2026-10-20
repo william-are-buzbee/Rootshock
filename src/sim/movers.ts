@@ -92,6 +92,13 @@ const overlaps = (a: Box, b: Box): boolean => a.x0 < b.x1 && a.x1 > b.x0 && a.y0
 /** locked: by its card or code, not given yet, or locked down by an alarm */
 export const locked = (d: Door): boolean => (!!(d.def.card || d.def.code) && !d.unlocked) || d.down;
 
+/** a fail-safe door whose power is gone lets its lock go, and it stays let go (world.md §4). True when it just did */
+export function failSafe(d: Door, power: number): boolean {
+  if (!d.def.failsafe || d.unlocked || power > 0) return false;
+  d.unlocked = true;
+  return true;
+}
+
 /** something in the doorway, which it must not close on */
 export function occupied(d: Door, riders: Rider[]): boolean {
   const box = doorBox(d, 0);
