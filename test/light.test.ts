@@ -208,7 +208,7 @@ describe('lights put down', () => {
     const R = s.world.rooms.find(r => r.name === 'Security corridor')!, b = s.player.body, along = R.x1 - R.x0 > R.z1 - R.z0;
     b.x = along ? R.x0 + 1.2 : (R.x0 + R.x1) / 2; b.z = along ? (R.z0 + R.z1) / 2 : R.z0 + 1.2; b.y = R.y0; b.sync();
     s.player.yaw = along ? -Math.PI / 2 : Math.PI;
-    for (const m of s.cast) m.stun = 1e9;
+    for (const m of s.cast) { m.stun = 1e9; m.torch = false; } // the night round's beam out of it too: it walks this corridor
     step(s, noInput());
     return s;
   };
@@ -236,9 +236,13 @@ describe('lights put down', () => {
   it('taken again, it is on in your hand; and a light lying about is counted once, however often it is told of', () => {
     const s = holding('flash');
     putDown(s, 'flash');
-    const it = s.items[s.items.length - 1], L = simLighting(s), before = [...L.colours];
+    const it = s.items[s.items.length - 1], L = simLighting(s), before = Float32Array.from(L.colours);
     L.lights(looseLights(s)); L.lights(looseLights(s));
-    expect([...L.colours]).toEqual(before);
+    /* the field unchanged, point for point (compared in a loop: the whole level's light is too big to diff quickly) */
+    const now = L.colours;
+    let moved = 0;
+    for (let k = 0; k < now.length; k++) if (now[k] !== before[k]) moved++;
+    expect(moved).toBe(0);
     s.usables.find(u => u.x === it.x && u.z === it.z)!.act();
     expect(it.taken).toBe(true);
     expect(s.game.lightOn).toBe(true);

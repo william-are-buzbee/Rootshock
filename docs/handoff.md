@@ -83,6 +83,15 @@ code keeps the name `husk`; the dev tools say "changed". The breaker is searched
 step 4 is their look, a model job: ask the owner before spending long on it.
 The camera wall waits on a way into the operations room.
 
+Step 5 has begun: the night round walks (`nightround` in `MT`, `sim/cast.ts`: the 'round' state, `walkRound`,
+`ROUND`; its stops are `RoundStop`s, given to `mut()` as `round` on any deck). Its flashlight is a loose light like one
+lying on (`torchRay`, put among `looseLights` in `sim/sim.ts`), so it lights you for it and for the cameras by the same
+`vis`; what a beam throws back is made again only once it has moved a quarter metre or turned (`DRIFT` in
+`world/light.ts`). At a stop with `tries` it shows the reader its card (`tryDoor`): `Door.beep` and `beepOk` show green
+or red on the reader (`render/things.ts`). Drawn on the husk's model with the flashlight in its left hand
+(`render/castView.ts`). Tests: `test/nightround.test.ts`. Save version 7. Next: its look (step 4's last part), then the
+opening (step 6), which brings it down into the suite.
+
 **On the back burner** (the owner set Security aside here; pick these up with them, not unasked):
 - The changed's look (step 4's last part), then steps 5 to 7 above.
 - How you get into the operations room, which the camera wall waits on.

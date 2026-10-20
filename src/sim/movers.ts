@@ -33,6 +33,10 @@ export interface Door {
   drawing: number;
   /** a card shown to its reader by one of the staff (sim/cast.ts): seconds it is held open for them; it stays locked */
   pass: number;
+  /** its reader just read a card that one of the staff tried (sim/cast.ts, the night round): seconds left showing, and
+   *  whether it showed green or red */
+  beep: number;
+  beepOk: boolean;
 }
 
 export interface Platform {
@@ -56,7 +60,7 @@ const THICK = 0.2;
 export function makeDoor(w: World, def: DoorDef): Door {
   const dyn: Dyn = { kind: 'mover', id: w.newId(), x0: def.x0, y0: def.y0, z0: def.z0, x1: def.x1, y1: def.y1, z1: def.z1, mat: def.mat, ...(def.glass ? { glass: true } : {}) };
   w.dyn.push(dyn);
-  const d: Door = { def, dyn, t: def.stuck ? STUCK : def.open ? 1 : 0, open: def.open, unlocked: false, hold: 0, down: false, drawing: 0, pass: 0 };
+  const d: Door = { def, dyn, t: def.stuck ? STUCK : def.open ? 1 : 0, open: def.open, unlocked: false, hold: 0, down: false, drawing: 0, pass: 0, beep: 0, beepOk: false };
   Object.assign(d.dyn, doorBox(d, d.t));
   return d;
 }
@@ -103,6 +107,7 @@ export function occupied(d: Door, riders: Rider[]): boolean {
 export function updateDoor(d: Door, riders: Rider[], movers: { x: number; y: number; z: number }[], power: number, dt: number): boolean {
   const D = d.def;
   let moved = false;
+  if (d.beep > 0) d.beep = Math.max(0, d.beep - dt);
   /* a card the staff showed it holds it open a while; then, still locked, it shuts once its way is clear */
   if (d.pass > 0 && (d.pass -= dt) <= 0) {
     if (d.open && locked(d) && D.kind === 'heavy') { if (occupied(d, riders)) d.pass = 0.2; else { d.open = false; moved = true; } }

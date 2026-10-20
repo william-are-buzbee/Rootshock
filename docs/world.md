@@ -586,6 +586,17 @@ wins; the older text stays only because it describes what is built, until the le
   legible threat in the game, seen down a corridor long before it arrives; it smokes out the dark; and **its beam lights you
   for the cameras.** It carries a card. It is the one that tries the doors in the opening (below), so you have watched it
   kill before you meet it, and its card is the one you take.
+  - *Built (its walk, its light, its card; its look is still the husk's).* It walks a fixed round, stop to stop, slowly
+    (1 m/s; after you 3, slower than the rest), and at each stop stands a while playing its beam about. It is the one of
+    the changed that walks the dark: its beam is what it sees by, so the cut wing is its round, along the corridor to the
+    briefing room's reader and the cut, back past the nurses' station, and round the lobby (about two and a half minutes
+    a lap). Its beam is a flashlight's, from its hand along where it looks (down the way ahead walking, on you hunting):
+    it lights what it points at, and you in it, for it and for the cameras alike, so crouched and still in the dark you
+    are passed by and in its beam you are not. At a door on its round it tries the reader with its card: a live reader
+    beeps green and lets it through, or red where the card does not open it; a dark one does nothing. Taken off its round
+    (it saw you, an alarm, a breaker) it comes back to it where it left off. It dies with its light. Its round takes in
+    the wing's corridor, which is armed: the rule that keeps the changed out of armed rooms is for their rounds picked at
+    random, not for a guard's fixed one.
 - **The vaccinator (agreed): Security's big one.** One of Dale's eldest (§10), big and wrong in its own way, come up into
   Security because the changed there are a fresh population, ungrafted. It vaccinates everyone, and to it you are staff like
   any other. Old enough to have recovered: intelligent in one thing, which it does with ritual care; ask anything else of it

@@ -22,8 +22,9 @@ import { makeSim, type Sim, type SimOpts } from './sim';
  *  5: poise, and blows that commit (engine.md §6, F2); since, the cast's knockdowns and corpses (each loads from a save
  *  without them: nobody down, the dead laid where they lay)
  *  6: the overseer and its hand gone, with their knocks and bolts; the level's cast is two fewer. Since, cameras that
- *  guard armed rooms (a save from before them loads: nothing tripped) */
-export const SAVE_VERSION = 6;
+ *  guard armed rooms (a save from before them loads: nothing tripped)
+ *  7: the night round, one more of the level's cast, on its round with its flashlight */
+export const SAVE_VERSION = 7;
 
 /** copy the named fields of an object */
 const pick = <T extends object, K extends keyof T>(o: T, keys: readonly K[]): Pick<T, K> => {
@@ -38,12 +39,12 @@ const GAME = ['inv', 'cap', 'tools', 'keys', 'worn', 'weapon', 'read', 'code', '
 const PLAYER = ['yaw', 'pitch', 'crouch', 'wantStand', 'moved', 'impact', 'water', 'air', 'airMax', 'under', 'slow', 'load', 'slam',
   'running', 'jumped', 'stepD', 'fly'] as const;
 const BODY = ['x', 'y', 'z', 'vx', 'vz', 'vy', 'h', 'ground'] as const;
-const DOOR = ['t', 'open', 'unlocked', 'hold', 'down', 'drawing', 'pass'] as const;
+const DOOR = ['t', 'open', 'unlocked', 'hold', 'down', 'drawing', 'pass', 'beep', 'beepOk'] as const;
 const PLATFORM = ['y', 'target', 'wait', 'moving', 'armed'] as const;
 const LOOSE = ['x', 'y', 'z', 'vx', 'vy', 'vz', 'awake', 'ground', 'still', 'woke'] as const;
 const MUTANT = ['x', 'y', 'z', 'px', 'py', 'pz', 'yaw', 'state', 'st', 'cd', 'stun', 'hp', 'post', 'wt', 'wm', 'wx', 'wz', 'tk',
   'lost', 'bt', 'burst', 'flee', 'ct', 'cdir', 'tgt', 'grab', 'tense', 'stk', 'fled', 'side', 'spot', 'mv',
-  'hit', 'poise', 'calm', 'reel', 'pat', 'down', 'rise', 'ph', 'dead', 'gone', 'away', 'dest', 'los', 'losAt', 'still', 'door'] as const;
+  'hit', 'poise', 'calm', 'reel', 'pat', 'down', 'rise', 'ph', 'dead', 'gone', 'away', 'dest', 'los', 'losAt', 'still', 'door', 'beat', 'torch'] as const;
 
 /** what a rider stands on, by the moving thing's id */
 const onId = (r: { on: { id: number } | null }) => r.on?.id ?? 0;

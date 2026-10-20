@@ -213,6 +213,8 @@ export function item(D: Deck, id: string, x: number, z: number, y = 0, n = 1): D
 }
 export function note(D: Deck, key: string, x: number, z: number, y = 0): void { D.notes.push({ key, x: x * T, z: z * T, y }); }
 export function mut(D: Deck, type: string, x: number, z: number, o: Record<string, unknown> = {}): void { D.muts.push({ type, x, z, o }); }
+/** a stop on a guard's round (types.ts, RoundStop), in tiles on its deck; given to mut() as `round` */
+export interface TStop { D: Deck; x: number; z: number; wait?: number; tries?: number }
 export function use(D: Deck, kind: string, x: number, z: number, y: number, o: Record<string, unknown> = {}): void { D.uses.push({ kind, x, z, y, o }); }
 
 /* ---- terrain: values at tile corners. hf lifts a floor, cf a cave's ceiling */
@@ -700,7 +702,11 @@ export function finishLevel(start?: [number, number, number]) {
     for (const C of D.cams) b.camera(X(D, C.x), floorY(D, C.x * T, C.z * T) + C.h, Z(D, C.z), C.yaw, { fov: C.fov, range: C.range, circuit: C.c, zone: C.zone, ...(C.name ? { name: C.name } : {}) });
     for (const S of D.speakers) b.speaker(S.zone, X(D, S.x), floorY(D, S.x * T, S.z * T), Z(D, S.z), S.pa ? { pa: S.pa } : {});
     for (const nt of D.notes) b.note(nt.key, px(D, nt.x), floorY(D, nt.x, nt.z) + nt.y, pz(D, nt.z));
-    for (const m of D.muts) b.mutant(m.type, X(D, m.x), floorY(D, m.x * T, m.z * T), Z(D, m.z), m.o);
+    for (const m of D.muts) {
+      /* a round's stops, each on its own deck */
+      const round = (m.o.round as TStop[] | undefined)?.map(({ D: S, x, z, ...o }) => ({ x: X(S, x), y: floorY(S, x * T, z * T), z: Z(S, z), ...o }));
+      b.mutant(m.type, X(D, m.x), floorY(D, m.x * T, m.z * T), Z(D, m.z), round ? { ...m.o, round } : m.o);
+    }
     for (const u of D.uses) b.use(u.kind, X(D, u.x), floorY(D, u.x * T, u.z * T) + u.y, Z(D, u.z), u.o);
     for (const [name, [ax, az, yaw]] of Object.entries(D.marks)) b.mark(name, X(D, ax), floorY(D, ax * T, az * T), Z(D, az), yaw);
   }

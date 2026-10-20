@@ -4,7 +4,7 @@ import { STEP } from '../core/loop';
 import { World } from '../world/world';
 import { clamp } from '../core/math';
 import { Lighting, type Loose } from '../world/light';
-import { castBodies, castMovers, makeCast, shoved, updateCast, type Drill, type Mutant } from './cast';
+import { castBodies, castMovers, makeCast, shoved, torchRay, updateCast, type Drill, type Mutant } from './cast';
 import { makeCams, updateEyes, watching, type Alarm, type Cam, type Watch } from './eyes';
 import { floored, makeHands, pace, struck, updateHands, wstats, type Hands } from './combat';
 import { SLAM } from './moves';
@@ -83,6 +83,12 @@ export function looseLights(sim: Sim): Loose[] {
     if (it.id === 'flash') out.push({ key, kind: 'flash', x: it.x + dx * 0.15, y: it.y + 0.04, z: it.z + dz * 0.15, dx, dy, dz, k: kk });
     else if (it.id === 'lantern') out.push({ key, kind: 'lantern', x: it.x, y: it.y + 0.2, z: it.z, dx: 0, dy: 1, dz: 0, k: kk });
   });
+  /* and the night round's, in its hand (sim/cast.ts, torchRay) */
+  for (const m of sim.cast) {
+    if (!m.torch || m.dead || m.away) continue;
+    const { x, y, z, dx, dy, dz } = torchRay(sim, m);
+    out.push({ key: 'torch' + m.id, kind: 'flash', x, y, z, dx, dy, dz, k: 1 });
+  }
   return out;
 }
 
