@@ -263,7 +263,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
      sounding the Operations zone. The speaker hangs low enough to reach; like every speaker on the level it is on the
      PA, which is on critical power: smashing it is the only answer */
   speaker(D, 'muster', 19.5, 33, 'CRIT');
-  camera(D, 24.1, 33, 7.6, PI / 2, 'HALL', 'muster'); camera(D, 44.7, 27.3, 4, -PI / 4, 'EAST', 'ops');
+  camera(D, 24.1, 33, 7.6, PI / 2, 'HALL', 'muster', { name: 'Muster court' }); camera(D, 44.7, 27.3, 4, -PI / 4, 'EAST', 'ops', { name: 'East bays' });
 
   /* west, off the hall's far end: the electrical room, and the one who came for it. Armed: its camera hangs over the
      door looking across at the board, so the way to the board is in its view. The board breaks Ops' feed out to the hall
@@ -272,7 +272,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
      critical operations power, panelled inside the operations room's own walls, and its schedule says so. A lamp over
      the cabinet for each branch, for the critical feed, and for Ops itself */
   room(D, 'Electrical room', 10, 31, 5, 4, { ...UTIL, c: 'OPS', safe: 1, armed: 1 }); door(D, 15, 32, { sg: [['Electrical', 'e']] });
-  camera(D, 14.6, 31.3, 2.8, -1.08, 'HALL', 'muster');
+  camera(D, 14.6, 31.3, 2.8, -1.08, 'HALL', 'muster', { name: 'Electrical room' });
   bx(D, 10.03, 32.5, 0.04, 1.7, 3.4, 0x3a3d40, { y: 0.55, c: 0 });
   for (const [c, z] of [['HALL', 31.6], ['EAST', 32.5]] as const) panel(D, c, 10.04, z, 'e', { brk: 1 });
   bx(D, 10.07, 33.4, 0.08, 0.5, 0.5, 0x2c2f33, { y: 1.1, c: 0 }); // the spare way, blanked
@@ -285,7 +285,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
 
   /* north, off the hall: the Armory, the response team's, where they kept what they drilled with. Armed, its camera
      in the north-west corner on the door */
-  room(D, 'Armory', 30, 22, 5, 4, { ...SEC, c: 'OPS', armed: 1 }); camera(D, 30.4, 22.4, 2.8, 0.53, 'HALL', 'muster'); door(D, 32, 26, { kind: 'heavy', code: 1, c: 'OPS', sg: [['Armory', 's']] });
+  room(D, 'Armory', 30, 22, 5, 4, { ...SEC, c: 'OPS', armed: 1 }); camera(D, 30.4, 22.4, 2.8, 0.53, 'HALL', 'muster', { name: 'Armory' }); door(D, 32, 26, { kind: 'heavy', code: 1, c: 'OPS', sg: [['Armory', 's']] });
   shelf(D, 30.3, 23.6, 0.5, 3, { empty: 1 }); shelf(D, 34.7, 23.6, 0.5, 3, { empty: 1 }); bx(D, 32.5, 22.5, 0.9, 0.7, 0.7, 0x3a4030);
   for (let k = 0; k < 6; k++) bx(D, 30.9 + k * 0.62, 24.6, 0.05, 2.4, 0.05, 0x2a2c2e, { c: 0 }); bx(D, 32.4, 24.6, 3.2, 0.05, 0.05, 0x2a2c2e, { y: 2.4, c: 0 }); // the cage
   item(D, 'pistol', 30.35, 22.9, 1.06); item(D, 'ammo9', 30.35, 23.5, 1.06, 2); item(D, 'shotgun', 30.35, 24.2, 1.06); item(D, 'shells', 34.65, 23, 1.06, 2); item(D, 'tacvest', 34.65, 24, 1.06); item(D, 'surf', 32.5, 22.5, 0.7);
@@ -293,7 +293,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   /* south, off the hall: the range (dark until Gen-1: it has no emergency lights), the duty office with its window on
      the hall, and the stair up to the operations room */
   room(D, 'Firing range', 16, 40, 14, 4, { ...SEC, c: 'OPS', ht: 3.4, armed: 1 }); door(D, 17, 39, { sg: [['Range', 'n']] });
-  camera(D, 16.4, 40.4, 3, 1.24, 'HALL', 'muster'); // armed, its camera by the door looking down the lanes: blind until Gen-1 lights them
+  camera(D, 16.4, 40.4, 3, 1.24, 'HALL', 'muster', { name: 'Firing range' }); // armed, its camera by the door looking down the lanes: blind until Gen-1 lights them
   bx(D, 19.6, 41.5, 0.5, 1, 6, 0x44484c); for (const z of [41, 42, 43]) bx(D, 20.05, z, 0.9, 1.8, 0.06, 0x5a5d60);
   for (const z of [40.5, 41.5, 42.5]) { bx(D, 24.8, z, 20, 0.06, 0.06, 0x2a2c2e, { y: 3.1, c: 0 }); bx(D, 29.3, z, 0.06, 1, 0.5, 0xc8c0a0, { y: 1, c: 0 }); bx(D, 29.3, z, 0.06, 0.06, 0.06, 0x2a2c2e, { y: 2, c: 0 }); }
   bx(D, 29.85, 42, 0.3, 3.2, 8, 0x3a3226); for (const x of [21.5, 23.5, 25.5, 27.5]) bx(D, x, 42, 0.8, 0.05, 8, 0x5a5d60, { y: 2.6, rz: 0.5, c: 0 });
@@ -302,6 +302,9 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   for (const x of [33, 34]) door(D, x, 39, { seal: true, glass: true });
   desk(D, 33.5, 40.6, 1.8, 0.7, { c: 0x4a3a2c }); bx(D, 33.5, 41.3, 0.45, 0.45, 0.45, 0x2c2f33); shelf(D, 34.7, 42.6, 0.5, 1.8, { cols: [0x7a4a34, 0x4d5a66, 0x8a7a4a] });
   item(D, 'peaches', 33.1, 40.6, 0.78); item(D, 'bandage', 33.9, 40.55, 0.78); note(D, 'memo', 33.5, 40.6, 0.78);
+  /* the desk's screen: the hall's cameras and the rooms off it, a sequencer stepping through them, on Ops' power
+     (world.md §8, smaller screens first). A branch you have opened is black on it */
+  monitors(D, 33.5, 41.0, 1.1, 'OPS', ['Muster court', 'East bays', 'Electrical room', 'Armory', 'Firing range', 'Operations stair'], { dwell: 5 });
   /* the deputy director, at the far end of the hall from Cargo's door, under the glass: she ran for the range */
   corpse(D, 16.8, 37.4, 0x4a4238, false, { label: 'Search the manager', say: 'DEPUTY DIRECTOR, OPERATIONS. She got as far as the range door. Her pass is still on its lanyard.', keys: ['o'] });
   /* the stair up to the operations room: a tall well off the east bays, and the landing at its head, where the door is
@@ -309,7 +312,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   room(D, 'Operations stair', 37, 40, 3, 6, { ...OPS, c: 'EAST', em: 1, ht: 9.5, armed: 1 }); door(D, 38, 39, { sg: [['Operations', 'n']] });
   stairs(D, T1, 38, 40, 6, 's');
   room(T1, 'Operations stair', 37, 46, 3, 2, { ...OPS, c: 'EAST', em: 1, ht: 3.2, armed: 1 });
-  camera(T1, 38.5, 47.6, 2.8, PI, 'EAST', 'ops'); // armed: from the landing, down the well to the door
+  camera(T1, 38.5, 47.6, 2.8, PI, 'EAST', 'ops', { name: 'Operations stair' }); // armed: from the landing, down the well to the door
   door(T1, 36, 46, { seal: true, msg: 'Bodies. Grown into the frame and into each other, floor to lintel, faces turned in. Something behind them is breathing.' });
   for (const z of [35.6, 36.8, 38]) blood(D, 38.4 + (z - 36) * 0.15, z, 1.1); eggs(D, 37.3, 38.3, 3); eggs(D, 39.6, 37.6, 2);
   for (const z of [41, 43, 44.6]) { eggs(D, 37.3, z, 2); eggs(D, 39.6, z + 0.5, 2); }

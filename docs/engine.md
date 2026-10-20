@@ -904,7 +904,9 @@ components, not code threaded through the frame loop:
   each step `watching` (`sim/eyes.ts`) takes the input for itself (strafe for the next feed, a press at a time; use, a
   hurt, or the console's power going stands you up) and passes on none of it, and there is nothing to use. Saves do not
   keep it. `present/ui/feed.ts` puts the view at the lens (yaw as the sim's, tilted down a little), greys and lines it,
-  hides the hands, shows the body's hidden parts, and shows no signal for a camera that is not `camLive`.
+  hides the hands, shows the body's hidden parts, and shows no signal for a camera that is not `camLive`. A console with
+  a `dwell` (`monitors`' option) has a sequencer: `Watch.t` counts up on a feed, and at the dwell it steps on; a press
+  steps it and starts the count again.
 
 **As built in step 4.** The game's state is plain data in the sim (`sim/game.ts`): circuits and Gen-1, keys, what you
 carry (ten slots), lights and battery, what you wear, papers read, health, the run's keypad codes. What happens comes out

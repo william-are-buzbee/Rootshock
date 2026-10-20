@@ -210,12 +210,12 @@ export function buildUsables(sim: Sim): Usable[] {
         break;
       case 'watch': {
         /* a spot monitor's console: sit and watch its cameras; dark without its power */
-        const c = o.c as string, feeds = o.feeds as string[];
+        const c = o.c as string, feeds = o.feeds as string[], dwell = (o.dwell as number | undefined) ?? 0;
         out.push({
           ...base, r: 1.8, label: () => (power(g, c) >= 1 ? 'Watch the monitors' : 'Monitors: dark'),
           act: () => {
             if (power(g, c) < 1) { say(g, 'The screens are dark. The console has no power.'); sfx(g, 'deny'); return; }
-            sitAt(sim, c, feeds);
+            sitAt(sim, c, feeds, dwell);
           },
         });
         break;

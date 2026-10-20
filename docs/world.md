@@ -443,8 +443,11 @@ wins; the older text stays only because it describes what is built, until the le
     view is the camera's, from its lens, grey and lined as a monitor's, with the feed's name and a clock; strafe for the
     next of its four (the lobby, the checkpoint, the surface landing, the shaft station); use, being hurt, or the screens
     losing their power stands you up. While you watch the world goes on, and you are not looking at it. A camera with
-    no power or smashed shows no signal. The cameras see you too: from out there, all of you. The duty office's is to come,
-    and the operations room's wall grows from the same console.
+    no power or smashed shows no signal. The cameras see you too: from out there, all of you. **Built,** the duty
+    office's too: the screen on its desk, on Ops' power from the start, shows the hall's two cameras and the four in the
+    rooms off it (the electrical room, the Armory, the range, the operations stair), a sequencer stepping through them
+    every five seconds; a press steps it at once. A branch you have opened is black on it. The operations room's wall
+    grows from the same console.
 - **One control room, wired as a real one (agreed; supersedes Security control's wall).** Every camera feeds recorders and
   a core switch, the head end, and the control room sits beside the head end on protected power. Here:
   - *The operations room is Security's control room,* the only full wall. Its nine screens are large displays, each

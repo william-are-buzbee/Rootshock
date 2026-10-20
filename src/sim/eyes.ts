@@ -192,8 +192,8 @@ export function updateEyes(sim: Sim): void {
   updateLockdown(sim);
 }
 
-/* Watching: sat at a console, you see through its cameras, one feed at a time (world.md §8, the camera wall). Strafe
-   left or right for the next feed; use stands you up, and so does being hurt, or the console losing its power. While
+/* Watching: sat at a console, you see through its cameras, one feed at a time (world.md §8, the camera wall). A
+   console with a sequencer steps through them by itself, as a spot monitor does; strafe left or right for the next feed; use stands you up, and so does being hurt, or the console losing its power. While
    you watch you do nothing else: the world goes on, and you are not looking at it. */
 export interface Watch {
   /** the console's circuit, and the cameras it shows (indices into Sim.cams), the one on screen */
@@ -203,13 +203,16 @@ export interface Watch {
   /** which way you last pressed (to step a feed a press), and your health when you sat down */
   side: number;
   hp: number;
+  /** a sequencer's: seconds on a feed before it steps on by itself (0: none), and how long this one has been up */
+  dwell: number;
+  t: number;
 }
 
-/** sit at a console: its feeds by name; a name it has no camera for is left out */
-export function sitAt(sim: Sim, c: string, names: string[]): void {
+/** sit at a console: its feeds by name (a name it has no camera for is left out), and its sequencer's dwell if it has one */
+export function sitAt(sim: Sim, c: string, names: string[], dwell = 0): void {
   const feeds = names.map(n => sim.cams.findIndex(q => q.def.name === n)).filter(i => i >= 0);
   if (!feeds.length) return;
-  sim.watch = { c, feeds, at: 0, side: 0, hp: sim.game.hp };
+  sim.watch = { c, feeds, at: 0, side: 0, hp: sim.game.hp, dwell, t: 0 };
 }
 
 /** the camera on screen, and whether it sends anything: whole, and with power */
@@ -224,8 +227,9 @@ export function onScreen(sim: Sim): { cam: Cam; live: boolean } | null {
 export function watching(sim: Sim, input: Input): Input {
   const w = sim.watch!;
   if (input.use || sim.game.hp < w.hp || power(sim.game, w.c) < 1) { sim.watch = null; return noInput(); }
-  const side = Math.sign(input.strafe);
-  if (side && side !== w.side) w.at = (w.at + side + w.feeds.length) % w.feeds.length;
+  const side = Math.sign(input.strafe), n = w.feeds.length;
+  if (side && side !== w.side) { w.at = (w.at + side + n) % n; w.t = 0; }
+  else if (w.dwell && (w.t += STEP) >= w.dwell) { w.at = (w.at + 1) % n; w.t = 0; } // the sequencer steps on
   w.side = side;
   return noInput();
 }

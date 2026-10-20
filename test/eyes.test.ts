@@ -435,7 +435,7 @@ describe('call points', () => {
 });
 
 describe('the booth\'s monitors', () => {
-  const console_ = (s: Sim) => s.usables.find(u => u.key === 'use' + level.uses.findIndex(q => q.kind === 'watch'))!;
+  const console_ = (s: Sim) => s.usables.find(u => u.key === 'use' + level.uses.findIndex(q => q.kind === 'watch' && q.opts.c === 'SEC'))!;
   const mended = () => { const s = fresh(); still(s); s.game.station!.circuits.SEC.broken = false; s.lighting = null; hold(s, 0.1); return s; };
   const press = (s: Sim, inp: Partial<Input>) => { step(s, { ...noInput(), ...inp }); step(s, noInput()); };
 
@@ -495,6 +495,47 @@ describe('the booth\'s monitors', () => {
     s.cams.find(c => c.def.name === 'Lobby')!.broken = true;
     console_(s).act();
     expect(onScreen(s)!.live).toBe(false);
+  });
+});
+
+describe('the duty office\'s screen', () => {
+  const console_ = (s: Sim) => s.usables.find(u => u.key === 'use' + level.uses.findIndex(q => q.kind === 'watch' && q.opts.c === 'OPS'))!;
+  const name = (s: Sim) => onScreen(s)!.cam.def.name;
+  const brk = (s: Sim, n: string) => s.usables.find(u => new RegExp('Breaker, ' + n).test(u.label() ?? ''))!;
+
+  it('on Ops\' power from the start: the hall\'s cameras and the rooms off it, a sequencer stepping through them', () => {
+    const s = fresh(), u = console_(s);
+    still(s);
+    expect(u.label()).toBe('Watch the monitors');
+    u.act();
+    const seen = [name(s)];
+    for (let k = 0; k < 5; k++) { hold(s, 5.05); seen.push(name(s)!); }
+    expect(seen).toEqual(['Muster court', 'East bays', 'Electrical room', 'Armory', 'Firing range', 'Operations stair']);
+    hold(s, 5.05);
+    expect(name(s)).toBe('Muster court'); // round again
+  });
+
+  it('a press steps it at once, and the sequencer waits its full time after', () => {
+    const s = fresh();
+    still(s);
+    console_(s).act();
+    hold(s, 4);
+    step(s, { ...noInput(), strafe: 1 }); step(s, noInput());
+    expect(name(s)).toBe('East bays');
+    hold(s, 4);
+    expect(name(s)).toBe('East bays');
+    hold(s, 1.2);
+    expect(name(s)).toBe('Electrical room');
+  });
+
+  it('a branch you have opened is black on it', () => {
+    const s = fresh();
+    still(s);
+    brk(s, 'Muster hall west').act();
+    console_(s).act();
+    const live: Record<string, boolean> = {};
+    for (let k = 0; k < 6; k++) { live[name(s)!] = onScreen(s)!.live; step(s, { ...noInput(), strafe: 1 }); step(s, noInput()); }
+    expect(live).toEqual({ 'Muster court': false, 'East bays': true, 'Electrical room': false, Armory: false, 'Firing range': false, 'Operations stair': true });
   });
 });
 
