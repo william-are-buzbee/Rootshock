@@ -56,8 +56,8 @@ export const MATS: Record<Mat, MatDef> = {
   glazed: { n: 'Glazed tile', ring: ring(900, [[1, 0.5, 0.05], [2.7, 0.3, 0.03]], 2600, 0.02, 'solid'), look: look('glazed', 0.75, 70, 0, 0.25) },
   /** the Commons' street: flags laid on the cavern floor, gritty underfoot */
   paving: { n: 'Paving', ring: ring(120, [[1, 1, 0.06], [2.6, 0.3, 0.03]], 900, 0.04, 'solid', 2), look: look('flags', 0.03, 8, 0, 0.45) },
-  /** a walkway's open steel mesh: it rings */
-  grating: { n: 'Steel grating', ring: ring(380, [[1, 1, 0.18], [2.76, 0.45, 0.12], [5.4, 0.25, 0.08], [8.93, 0.12, 0.05]], 1300, 0.05, 'grate'), look: look('mesh', 0.45, 40, 0.8, 0) },
+  /** a walkway's open steel bar grating, galvanised: it rings */
+  grating: { n: 'Steel grating', ring: ring(380, [[1, 1, 0.18], [2.76, 0.45, 0.12], [5.4, 0.25, 0.08], [8.93, 0.12, 0.05]], 1300, 0.05, 'grate'), look: look('mesh', 0.25, 18, 0.6, 0.3) },
   /** plate and section: a platform's deck, a door's slab, a container's skin */
   steel: { n: 'Steel', ring: ring(300, [[1, 1, 0.3], [2.76, 0.5, 0.2], [5.4, 0.3, 0.12]], 1500, 0.03, 'sheet'), look: look('plate', 0.45, 50, 0.85, 0.2) },
   rock: { n: 'Rock', ring: ring(90, [[1, 0.6, 0.05]], 1200, 0.02, 'solid', 4), look: look('rock', 0.05, 14, 0, 1, 0) },
