@@ -314,6 +314,7 @@ export class Things {
       this.add(coloured(new Float32Array(pts), o.prop.colour, matId(o.prop.mat)), m => m.position.set(o.x, o.y, o.z));
     });
     for (const n of w.def.notes) this.addFixed(parts(itemParts('note')), n.x, n.y, n.z, lie(n.x, n.z) * 0.3);
+    this.glazing(w);
     this.water(w);
   }
 
@@ -364,6 +365,27 @@ export class Things {
     const e = w / 2 - 0.04, v = h / 2;
     const frame: Part[] = [['box', 0x2a2c2e, w, 0.08, 0.12, 0, v, 0], ['box', 0x2a2c2e, w, 0.08, 0.12, 0, -v, 0], ['box', 0x2a2c2e, 0.08, h, 0.12, -e, 0, 0], ['box', 0x2a2c2e, 0.08, h, 0.12, e, 0, 0]];
     this.add(parts(frame), f => { f.position.set(cx, my, cz); f.rotation.y = rot; }, [cx, D.y0, cz]);
+  }
+
+  /** the level's glass that is not a window in a wall (a balustrade, a booth, a screen): every prop made of glass, as
+   *  one see-through mesh, each pane lit where it stands when the level is drawn */
+  private glazing(w: World): void {
+    const P: number[] = [], C: number[] = [], L: number[] = [], M: number[] = [], id = matId('glass');
+    for (const p of w.def.props) {
+      if (p.mat !== 'glass') continue;
+      const l = this.L.atPoint(p.x, p.y + p.sy / 2, p.z), n0 = P.length / 3;
+      propVerts(p, (x, y, z) => P.push(x, y, z));
+      for (let i = n0; i < P.length / 3; i++) { C.push(...p.colour); L.push(0.02 + l[0], 0.025 + l[1], 0.03 + l[2], 0); M.push(id); }
+    }
+    if (!P.length) return;
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(P), 3));
+    g.setAttribute('aCol', new THREE.BufferAttribute(new Float32Array(C), 3));
+    g.setAttribute('aLight', new THREE.BufferAttribute(new Float32Array(L), 4));
+    g.setAttribute('aMat', new THREE.BufferAttribute(new Float32Array(M), 1));
+    const m = new THREE.Mesh(g, glassMaterial(0.18));
+    m.frustumCulled = false; m.renderOrder = 1;
+    this.scene.add(m);
   }
 
   private water(w: World): void {

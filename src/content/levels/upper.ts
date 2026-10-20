@@ -49,7 +49,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   bx(T1, 15, 15.3, 0.1, 1, 1.2, 0x8a8e8c); // the rail that closes the line at the wall
   for (const z of [18, 19.1]) bx(T1, 15, z, 0.25, 2.3, 0.25, 0x8a8e8c); bx(T1, 15, 18.55, 0.35, 0.25, 2.45, 0x8a8e8c, { y: 2.3, c: 0 });
   for (const z of [19.8, 20.6]) { bx(T1, 15, z, 0.9, 1, 0.3, 0x5f6266); bx(T1, 15.25, z + 0.3, 0.05, 0.05, 0.9, 0x8a8e8c, { y: 0.9, ry: 0.5, c: 0 }); }
-  bx(T1, 17.5, 19.5, 0.06, 2.4, 6, [0.42, 0.52, 0.55]); bx(T1, 18.45, 18, 3.8, 2.4, 0.06, [0.42, 0.52, 0.55]); // the booth's glass, its way in at the east end
+  bx(T1, 17.5, 19.5, 0.06, 2.4, 6, [0.55, 0.66, 0.7], { mat: 'glass' }); bx(T1, 18.45, 18, 3.8, 2.4, 0.06, [0.55, 0.66, 0.7], { mat: 'glass' }); // the booth's glass, its way in at the east end
   desk(T1, 18.8, 20.3, 2.4, 0.7, { bare: 1 }); bx(T1, 18.8, 19.7, 0.45, 0.45, 0.45, 0x2c2f33);
   /* the booth's monitors: two screens on the desk, showing the checkpoint's own cameras (world.md §8, smaller screens
      first): the lobby below, the checkpoint, the surface landing, the shaft station. On the wing's feed: dark until the
@@ -195,7 +195,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   for (const x of [30.6, 31.9, 33.2, 34.5]) medbed(D, x, 19.6);
   for (const x of [31.25, 32.55, 33.85]) bx(D, x, 19.6, 0.04, 1.9, 1.7, 0xb9c4bd, { y: 0.15, c: 0 }); // the curtains
   bx(D, 34.2, 18.7, 0.45, 0.45, 0.45, 0x5f6266); blood(D, 34.5, 19.6, 0.8); // the chair pulled up to the last bed
-  bx(D, 35.25, 17.8, 0.05, 2.1, 3.2, [0.42, 0.52, 0.55]); // the treatment bay's glass
+  bx(D, 35.25, 17.8, 0.05, 2.1, 3.2, [0.55, 0.66, 0.7], { mat: 'glass' }); // the treatment bay's glass
   bx(D, 36.6, 18, 0.8, 0.9, 2, 0xb9c4bd); bx(D, 37.5, 19.2, 0.6, 0.95, 0.5, 0x8c2f24); bx(D, 30.35, 17.3, 0.6, 0.9, 0.5, 0xc8ccd0); // table, crash cart, sink
   shelf(D, 31.8, 17.3, 1.8, 0.5, { cols: [0xd4d8d4, 0xb9c4bd, 0x8c2f24] }); shelf(D, 37.6, 20.7, 1.8, 0.5, { cols: [0xd4d8d4, 0xb9c4bd, 0x8c2f24] });
   item(D, 'bandage', 37.3, 20.65, 1.06, 2); item(D, 'medkit', 37.9, 20.65, 1.06);
@@ -243,7 +243,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
      room looks down on it through its glass */
   room(D, 'Muster court', 24, 29, 12, 8, { ...MH, dy: -1.25, ht: 9.75 });
   flight(D, 24, 29, 12, 2, -1.25, 0, 'n', 5); flight(D, 24, 35, 12, 2, -1.25, 0, 's', 5);
-  for (const x of [23.96, 36.04]) { bx(D, x, 33, 0.06, 1, 16, [0.42, 0.52, 0.55]); bx(D, x, 33, 0.12, 0.06, 16.1, 0x5a5d60, { y: 1, c: 0 }); }
+  for (const x of [23.96, 36.04]) { bx(D, x, 33, 0.06, 1, 16, [0.55, 0.66, 0.7], { mat: 'glass' }); bx(D, x, 33, 0.12, 0.06, 16.1, 0x5a5d60, { y: 1, c: 0 }); }
   bx(D, 30, 33, 2.6, 1.1, 0.5, 0x22262a, { y: 6.2, c: 0 });
   for (const z of [32.86, 33.14]) bx(D, 30, z, 2.2, 0.7, 0.02, [0.05, 0.04, 0.04], { y: 6.4, c: 0, pw: [[0.05, 0.04, 0.04], [2.6, 0.5, 0.3]], pc: 'HALL' });
   for (const x of [29.5, 30.5]) bx(D, x, 33, 0.04, 0.9, 0.04, 0x2a2c2e, { y: 7.3, c: 0 });

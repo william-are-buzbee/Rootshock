@@ -549,14 +549,15 @@ export function finishLevel(start?: [number, number, number]) {
         if (!D.g[k] || (R && (R.hole || (R.air && through(k)))) || (D.ground && !dnAt(D, k))) return null;
         return R?.open ? R.fl : -1;
       };
-      /* a walkway's is grating, as its floor is; a room's is concrete */
+      /* a walkway's is what its floor is (grating, or the family's terrazzo); a room's is concrete */
+      const slabMat = (k: number): Mat => { const R = roomAtTile(D, k); return R?.open ? R.mat.floor : 'concrete'; };
       for (let j = 0; j < D.H; j++)
         for (let i = 0; i < D.W; ) {
-          const c = slabAt(j * D.W + i);
+          const c = slabAt(j * D.W + i), m = slabMat(j * D.W + i);
           if (c === null) { i++; continue; }
           let n = 1;
-          while (i + n < D.W && slabAt(j * D.W + i + n) === c) n++;
-          b.block(X(D, i), D.y0 - SLAB, Z(D, j), X(D, i + n), D.y0, Z(D, j + 1), (c >= 0 ? hex(c) : DOORPAL.fl) as Colour, c >= 0 ? 'grating' : 'concrete');
+          while (i + n < D.W && slabAt(j * D.W + i + n) === c && slabMat(j * D.W + i + n) === m) n++;
+          b.block(X(D, i), D.y0 - SLAB, Z(D, j), X(D, i + n), D.y0, Z(D, j + 1), (c >= 0 ? hex(c) : DOORPAL.fl) as Colour, m);
           i += n;
         }
     }
@@ -572,7 +573,13 @@ export function finishLevel(start?: [number, number, number]) {
           if (!air && !st) continue;
           const e = 0.1, lx0 = di ? (di > 0 ? (i + 1) * T - e : i * T) : i * T, lx1 = di ? (di > 0 ? (i + 1) * T : i * T + e) : (i + 1) * T;
           const lz0 = dj ? (dj > 0 ? (j + 1) * T - e : j * T) : j * T, lz1 = dj ? (dj > 0 ? (j + 1) * T : j * T + e) : (j + 1) * T;
-          b.box(px(D, (lx0 + lx1) / 2), pz(D, (lz0 + lz1) / 2), lx1 - lx0, 1, lz1 - lz0, [0.35, 0.33, 0.2], { y: D.y0, solid: true });
+          const rx = px(D, (lx0 + lx1) / 2), rz = pz(D, (lz0 + lz1) / 2), sx = lx1 - lx0, sz = lz1 - lz0;
+          if (R.mat.floor === 'terrazzo') {
+            /* where the family's visitors walked: a sheet of glass in a bronze shoe, a bronze handrail along its top */
+            b.box(rx, rz, sx, 1, sz, [0.55, 0.66, 0.7], { y: D.y0, solid: true, mat: 'glass' });
+            b.box(rx, rz, di ? 0.07 : sx, 0.07, dj ? 0.07 : sz, 0x5e4424, { y: D.y0 + 1, solid: false, mat: 'steel' });
+            b.box(rx, rz, di ? 0.14 : sx, 0.1, dj ? 0.14 : sz, 0x5a4226, { y: D.y0, solid: false, mat: 'steel' });
+          } else b.box(rx, rz, sx, 1, sz, [0.35, 0.33, 0.2], { y: D.y0, solid: true });
         }
       }
     /* ceiling fittings, every third tile, as before */

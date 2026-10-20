@@ -231,7 +231,8 @@ export function buildLevelMesh(w: World, L: Lighting): LevelMesh {
      Each is drawn a hair larger than it is (apart: see `apart`), so where two meet face to face, or one stands on the
      floor or a shelf, the faces are not in one plane and do not fight. */
   w.def.props.forEach((p, k) => {
-    if (p.loose) return;
+    /* glass is drawn see-through on its own (render/things.ts) */
+    if (p.loose || p.mat === 'glass') return;
     const R = w.roomAt(p.x, p.y + 0.05, p.z) ?? w.roomAt(p.x, p.y + p.sy / 2, p.z), src: Src = { room: R ? R.id : -1, m: p.glow, mat: matId(p.mat) };
     const to = p.services ? extra : o, first = to.count, e = apart(k);
     propVerts({ ...p, sx: p.sx + 2 * e, sy: p.sy + 2 * e, sz: p.sz + 2 * e, y: p.y - e }, (x, y, z) => to.vert(x, y, z, p.colour, src));
