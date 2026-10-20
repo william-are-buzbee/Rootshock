@@ -96,7 +96,7 @@ export function buildMain(ladders: Record<string, LadderDef>): LevelDef {
   door(G, 89, 14, { sg: [['Horticulture', 'w'], ['The Square', 'e']] }); room(G, 'Transit tunnel', 90, 14, 3, 2, { ...UTIL, c: 'RES', em: 1 });
   door(G, 93, 14, { sg: [['Airlock', 'w']] }); room(G, 'Airlock', 94, 14, 3, 2, { ...UTIL, c: 'HORT', em: 1 });
   door(G, 97, 14, { sg: [['Horticulture', 'w']] });
-  buildHorticulture(G);
+  buildHorticulture(G, S2);
   return finishLevel([9.6, 16.1, PI / 2]); // in the shaft station, for ?level=main
 }
 
@@ -191,7 +191,7 @@ function groundFloor(D: Deck, x0: number, north: boolean, k: number, HB: TRoomOp
    The post off the airlock; three parallel grow galleries on a cross passage, with the tissue lab and Holt's office north of them and the
    seed vault and infirmary south; the arboretum, a 16 m cavern with the cave bulkhead breached in its north wall; and east of it the
    exhaust shaft, where ladderway B passes. ===== */
-function buildHorticulture(G: Deck): void {
+function buildHorticulture(G: Deck, S2: Deck): void {
   const H: TRoomOpts = { ...HRT, c: 'HORT' };
   /* the post: the guard who kept his pass, the backup set that still runs, and the door into the labs */
   const post = room(G, 'Security post', 98, 12, 4, 6, { ...SEC, c: 'HORT', em: 1 }); desk(G, 100.6, 12.5, 1.8, 0.7); note(G, 'hsec', 100.2, 12.45, 0.78); genset(G, 'HORT', 101.3, 16.6, 100.7, 17.2);
@@ -225,6 +225,15 @@ function buildHorticulture(G: Deck): void {
   for (const [x, z, h] of [[121.5, 10, 7], [126, 15, 9], [123, 17.5, 6.5], [130, 11, 7.5], [129.5, 18, 6], [120.5, 13.6, 5.5]]) tree(G, x, z, h, 0, true);
   mut(G, 'bloat', 127.6, 13, { sit: 1, yaw: -PI / 2, holt: 1 }); note(G, 'last', 125.6, 13.6, 0.03);
   for (let k = 0; k < 8; k++) bx(G, 127.4 - rnd(0, 1.4), 13 + rnd(-0.6, 0.6), rnd(0.8, 2), 0.07, 0.07, pick([0x6e2b28, 0x3f6a3a]), { y: rnd(0.02, 0.5), c: 0, ry: rnd(-0.5, 0.5), rz: rnd(-0.2, 0.2) });
+  /* the overlook: a balcony out over the arboretum a storey up, where the family showed visitors the trees. A stair
+     climbs off the cross passage in the rock between the north and middle galleries, and a passage runs on to an
+     archway in the arboretum's wall; terrazzo underfoot, glass balustrades round it */
+  room(G, 'Overlook stair', 104, 11, 6, 1, { ...H, ht: STOREY + 3.2, em: 1 }); stairs(G, S2, 104, 11, 6, 'e');
+  const OV: TRoomOpts = { ...H, em: 1, lc: [0.86, 0.82, 0.72], fl: 0x8a8070, wl: 0x9aa89c, mat: { floor: 'terrazzo', wall: 'plaster', ceiling: 'plaster' } };
+  room(S2, 'Overlook passage', 110, 11, 8, 1, { ...OV, ht: 3.2 });
+  room(S2, 'Arboretum balcony', 118, 10, 3, 3, { ...OV, open: 1, ht: 4, nolamp: 1, mat: { floor: 'terrazzo', wall: 'shot', ceiling: 'shot' } });
+  for (const z of [10.6, 12.4]) bx(S2, 118.8, z, 1.6, 0.45, 0.45, 0x5a3e34); // benches, facing the trees
+
   /* the bulkhead to the cave, in the north wall: Horticulture drilled through it */
   room(G, 'Breach', 125, 3, 1, 2, { ...ROCKP, lit: 'none', nolamp: 1, noroam: 1 }); door(G, 125, 5, { stuck: true, sg: [['Cave', 's']] });
   ladder(G, 'CV', 125.5, 3.5, 125.5, 4.4, PI, false, { bare: true, label: 'Crawl through the breach' });

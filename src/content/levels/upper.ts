@@ -183,6 +183,8 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   /* South off the wing: the locker room, the survivors' back way into the muster hall (a door at each end), and the
      infirmary. */
   room(D, 'Locker room', 21, 17, 8, 9, { ...SEC, c: 'SEC', safe: 1 }); door(D, 24, 16, { sg: [['Lockers', 'n']] });
+  /* its wall on the corridor a partition, a strip of glass along its top sharing the corridor's light */
+  partition(D, 21, 16, 8, 1); for (const x of [21, 22, 26, 27, 28]) door(D, x, 16, { seal: true, glass: true, glaze: 'high' });
   for (const z of [19.5, 22.5]) for (const x of [22.4, 26.6]) { bx(D, x, z, 5.6, 2, 1, 0x4d5a66); bx(D, x, z, 5.64, 0.05, 1.04, 0x3a444c, { y: 2, c: 0 }); }
   for (const x of [22.4, 26.6]) for (const z of [18.2, 21, 23.8]) bx(D, x, z, 4.4, 0.45, 0.4, 0x6b5a48);
   for (const [x, z, ry] of [[23.5, 20.1, 0.9], [25.6, 22.9, -1.1], [21.8, 22.9, 1.3]] as const) bx(D, x, z, 0.5, 1.8, 0.03, 0x56636e, { y: 0.15, ry, c: 0 }); // doors left open

@@ -1453,6 +1453,18 @@ heavy doors, shutters and windows keep the whole 2 m. Its leaf, frame, sign, rea
 before); everything that does fits, a skitter, the widest, with 10 cm either side (`test/doors.test.ts`, which also
 checks that every door on every level still has a spot in it). The progression checker's answers are unchanged.
 
+**Step 8 (built): the rest of the glass.** Vision panels are holes in a door's leaf with glass in them, moving with it
+(`holed`, `Leaf.glass`, a see-through `dynamicMaterial`). Any prop made of glass is drawn see-through on its own
+(`glazing` in `render/things.ts`) and lets light through the light field; the court's balustrades, the checkpoint booth
+and the treatment bay were opaque boxes before. A walkway floored with terrazzo (the family's) gets glass balustrades in
+a bronze shoe with a bronze handrail, and its slab is the floor it says, not grating. A partition can face a tall room
+on a deck below (a hall a control room looks down into, or a cave), and a run of windows down a wall is laid as a wall.
+Built: Gen-1 control on the plant level, a storey up at the generator hall's west end, a stair to it beside the link
+and four panes of full-height glass onto the hall (`test/doors.test.ts` sees the hall through them); the arboretum's
+balcony on the main level, up a stair off the cross passage and along a passage in the rock to an archway; a clerestory
+along the top of the locker room's wall on the Security corridor. The progression tests find door numbers by the sign
+over the door, so windows added before a door no longer break them.
+
 Not done: decay (world.md, proposed); a bronze or brushed metal of its own (steel's pattern is riveted plate); glossy
 floors catching the tubes, which terrazzo and the coated floors now most want.
 

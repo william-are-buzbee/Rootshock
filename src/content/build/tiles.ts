@@ -482,12 +482,13 @@ export function finishLevel(start?: [number, number, number]) {
         /* the room on that side; or, with none on this deck, a tall room on a deck below reaching up past this one's
            floor (a hall a control room looks down into), reaching into the wall as high as the room on this side */
         let R = roomAtTile(D, k + s * step), y0 = R ? D.y0 + R.dy : 0, ht = R?.ht ?? 0;
+        if (R && (R.hole || R.cave)) continue;
         if (!R) {
+          /* (a cave too: the arboretum, under its own sky of rock) */
           const L = dnAt(D, k + s * step), RL = L && roomAtTile(L, k + s * step), near = roomAtTile(D, k - s * step);
-          if (!L || !RL || L.y0 + RL.dy + RL.ht <= D.y0 + 0.5) continue;
+          if (!L || !RL || RL.hole || L.y0 + RL.dy + RL.ht <= D.y0 + 0.5) continue;
           R = RL; y0 = D.y0; ht = Math.min(L.y0 + RL.dy + RL.ht, D.y0 + (near?.ht ?? 3.2)) - D.y0;
         }
-        if (R.hole || R.cave) continue;
         const a = s < 0 ? 0 : T - half, e = s < 0 ? half : T;
         b.room(R.name, across === 'x' ? x0 + a : x0, across === 'x' ? z0 : z0 + a, across === 'x' ? x0 + e : x0 + T, across === 'x' ? z0 + T : z0 + e, {
           ...roomOpts(R), y0, ht, part: true,

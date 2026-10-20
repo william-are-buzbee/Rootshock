@@ -54,8 +54,9 @@ What the walls are, and why, before what colour they are. Plausibility first; th
   the Armory and its like; and in dug places, roller shutters, which rise (as does anything jammed: you crouch under
   it). Where a cavern was divided into rooms, walls are half-metre partitions, and that is where glass goes: labs and
   wards onto their corridors, offices onto their halls (built: the infirmary, the briefing room, the duty office, the
-  tissue lab's glass wall, the director's window). Still to place: a control room over the generator hall, glass
-  balustrades on the lobby's gallery, a gallery over the arboretum, clerestories, vision panels in more doors.
+  tissue lab's glass wall, the director's window; Gen-1 control over the generator hall; the arboretum's balcony,
+  through an archway; the lobby gallery's glass balustrades; a clerestory from the locker room; see-through vision
+  panels in the doors). Glass is how the station shows you what is coming: every one is a look before you go.
   Single doors are 1.2 m (built); pairs, heavy doors and shutters keep 2 m. The big cast use only wide ways: the
   thresher and the bloat already use no doors at all, and the big skitter has a skitter's body, which a single door
   fits with 10 cm either side.
