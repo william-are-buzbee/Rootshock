@@ -47,6 +47,16 @@ What the walls are, and why, before what colour they are. Plausibility first; th
   painted block and a coated floor are an institution; board, carpet and a suspended ceiling an office; glazed tile and
   coved vinyl are hygiene (money buys stainless, not marble); terrazzo is old money; stone, brushed metal and bronze are
   the lobby. Light is the finish too: expensive is concealed and warm, cheap is a bare tube.
+- **Doors (agreed).** Where rooms were dug apart, the rock between them is metres thick and a doorway is a short
+  passage, lined with the finish of the grander side, its door in the middle sliding sideways into the rock. Each door
+  says where it is: the family's walnut pairs trimmed in bronze off the lobby; a clinic's pale pair with windows, wide
+  for a bed; a veneered office door with a strip of glass; Security's painted steel with a wired pane; heavy steel for
+  the Armory and its like; and in dug places, roller shutters, which rise (as does anything jammed: you crouch under
+  it). Where a cavern was divided into rooms, walls are thin partitions, and that is where glass goes (proposed, next).
+  Single doors are to narrow to about 1.2 m inside the 2 m opening; the big cast (the thresher, the big skitter) then
+  use only double doors, archways and shutters (agreed, not built).
+- **Signs and thresholds (agreed).** Signs are lit as everything is, retroreflective under a beam, and take the style
+  of their wall. Armed rooms are not marked on the floor or the sign: the camera is the tell.
 - **Decay (proposed, not built).** The money rots first when the power dies: ceiling tiles sag, board mottles with
   mould, veneer swells, carpet goes sour; the shotcrete looks as it did. Ties the look to the power and the time since
   the fall.

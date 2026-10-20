@@ -161,7 +161,7 @@ export function buildLevelMesh(w: World, L: Lighting): LevelMesh {
        below its datum and another above it (the lobby's stone, plaster over it). */
     const yAxisFirst = a === 0;
     const [y0, y1] = yAxisFirst ? [u0, u1] : [v0, v1], [h0, h1] = yAxisFirst ? [v0, v1] : [u0, u1];
-    const f = R.y0, wm = matId(R.mat.wall), painted = !R.plain && R.mat.wall === 'block';
+    const f = R.y0, wm = matId(R.mat.wall), painted = !R.plain && !R.doorway && R.mat.wall === 'block';
     const up = R.mat.upper ? f + (R.mat.datum ?? 4) : Infinity;
     for (const [ya, yb] of cuts(y0, y1, [f + 3.2, ...(painted ? [f + 0.9, f + 1.05] : []), ...(R.mat.upper ? [up] : [])])) {
       const high = ya >= f + 3.2 - 1e-6;

@@ -172,7 +172,19 @@ export interface DoorDef {
   msg?: string;
   /** what its slab is made of */
   mat: Mat;
+  /** the end along its length that has wall beside it (1: the far end of x or z, -1 the near): where its reader, its
+   *  lamps and, if it slides, its pocket are */
+  side?: -1 | 1;
+  /** it slides sideways into the wall at `side`; else it rises, as a shutter does */
+  slides?: boolean;
+  /** how it is drawn (content/build/tiles.ts says, from the rooms either side) */
+  look?: DoorLook;
 }
+
+/** what a door looks like: a roller shutter (dug places, and anything jammed); a heavy steel door; a painted steel door
+ *  with a wired vision panel (Security, and anywhere plain); an office's veneered door; a clinic's pair of pale leaves
+ *  with windows, wide for a bed; the family's pair of walnut leaves trimmed in bronze */
+export type DoorLook = 'shutter' | 'heavy' | 'steel' | 'office' | 'clinic' | 'grand';
 
 /** data the later steps use (engine.md §13): kept with the level now so the level is ported once */
 export interface ItemDef {

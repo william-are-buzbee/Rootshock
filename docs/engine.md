@@ -1418,6 +1418,20 @@ joints) to 4 m, plaster over it (`RoomMats.upper` above `datum`); the paint fill
 faintly; the wing's two corridors are skim-coated (plaster over the block). The painted dado and stripe are drawn on
 painted block only, and nowhere else.
 
+**Step 5 (built): doors.** Every door was a 2 m steel slab rising into a steel-lined tunnel. Now the kit says what
+each is (`doorway` in `content/build/tiles.ts`, from the rooms either side; `DoorDef.look`): a shutter between two dug
+places or a dug place and a plain one, and anything jammed; else heavy if it is heavy; else by the grander side, the
+family's pair (`grand`) off limestone, a clinic's pair off glazed tile, an office door off board or carpet, painted
+steel otherwise. All but shutters, jammed doors, welded ones, the lift's and loose panels slide sideways (`slides`) into
+the end of the doorway that is rock (`side`; a door with no rock at either end rises). `doorBox` moves a sliding door
+along its length by its width; a pair of leaves both slide into the wall at the pocket, the far leaf all the way and the
+near one half (`Leaf.f` in `render/things.ts`), so they block exactly what one slab would and the sim is unchanged. The
+doorway is lined with the grander room's finish (block lined as plaster), never painted with a dado; a shutter's is
+the old bare steel. An architrave frames both faces (`FRAME`: bronze 16 cm for the family's, painted steel otherwise),
+a shutter runs in guides instead. Readers, keypads, a heavy door's lamp and the lockdown lamp are on the wall beside
+the door at its pocket side, so they stay when it slides. `test/doors.test.ts`: the looks land where meant, and on every
+level each sliding door's slab, open, is in rock.
+
 Not done: decay (world.md, proposed); a bronze or brushed metal of its own (steel's pattern is riveted plate); glossy
 floors catching the tubes, which terrazzo and the coated floors now most want.
 

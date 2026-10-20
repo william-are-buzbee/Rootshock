@@ -4,6 +4,7 @@ import { hex } from '../../core/math';
 import type { Sim } from '../../sim/sim';
 import { camLive, heard, speakerY, voiced } from '../../sim/eyes';
 import type { DoorDef } from '../../content/types';
+import type { Mat } from '../../content/materials';
 import type { World } from '../../world/world';
 import type { Lighting } from '../../world/light';
 import { apart, propVerts } from './levelMesh';
@@ -89,8 +90,70 @@ function itemParts(id: string): Part[] {
 /** a turn for something lying on the floor that is the same every time (it used to be random) */
 const lie = (x: number, z: number) => (Math.sin(x * 12.9898 + z * 78.233) * 43758.5453) % 1 * Math.PI;
 
+/** a part of a door that moves: its parts, what they are made of, and how much of the door's travel it makes (a pair of
+ *  leaves going into the wall at one side: the far leaf all of it, the near one half, so they end stacked) */
+interface Leaf { body: Part[]; mat?: Mat; f: number }
+
+/** a door by its look (DoorDef.look), in its own frame: 2 m along x, centred 1.2 m up, its pocket (or its wall) toward
+ *  +x when `side` is 1. Its leaves; what is fixed to the wall beside it (a reader's housing); and the lights (an
+ *  indicator, a reader's, a keypad's), which show only with power enough to work it. The wall's faces are a metre
+ *  either side of the slab, the doorway being 2 m deep. */
+function doorLook(D: DoorDef): { leaves: Leaf[]; fixed: Part[]; lights: Part[] } {
+  const sd = D.side ?? 1, look = D.look!, leaves: Leaf[] = [], fixed: Part[] = [], lights: Part[] = [];
+  const paint = (body: Part[], f = 1): void => { leaves.push({ body, f }); };
+  const metal = (body: Part[], f = 1): void => { leaves.push({ body, mat: 'steel', f }); };
+  /* the leading edge is the one away from the pocket: the handle is there */
+  const lead = -sd;
+  const GLASS: Colour = [0.13, 0.16, 0.18];
+  if (look === 'shutter') {
+    const slats: Part[] = [['box', 0x666a6c, 2, 2.4, 0.07, 0, 0, 0]];
+    for (let y = -1.08; y < 1.15; y += 0.12) slats.push(['box', 0x55595b, 2, 0.025, 0.09, 0, y, 0]);
+    slats.push(['box', 0x2a2c2e, 2, 0.07, 0.11, 0, -1.165, 0], ['box', 0x8a8e90, 0.24, 0.05, 0.13, 0, -0.95, 0]);
+    metal(slats);
+  } else if (look === 'heavy') {
+    metal([['box', D.lift ? 0x596068 : 0x3b4046, 2, 2.4, 0.3, 0, 0, 0], ['box', 0x2a2d31, 0.14, 2.4, 0.36, 0, 0, 0]]);
+    const bands: Part[] = [['box', GLASS, 0.28, 0.28, 0.32, lead * 0.5, 0.35, 0]];
+    for (const z of [-1, 1]) bands.push(['box', 0xb89b2e, 1.9, 0.16, 0.02, 0, -0.95, z * 0.16], ['box', 0xb89b2e, 1.9, 0.16, 0.02, 0, 0.95, z * 0.16]);
+    paint(bands);
+  } else if (look === 'steel' || look === 'office') {
+    /* a single leaf: painted steel with a wired pane and a kick plate, or a veneered door with a strip of glass */
+    const office = look === 'office';
+    paint([['box', office ? 0x7a5c3e : 0x5a6168, 2, 2.4, 0.08, 0, 0, 0],
+      office ? ['box', GLASS, 0.14, 1.3, 0.085, lead * 0.62, 0.2, 0] : ['box', GLASS, 0.24, 0.62, 0.085, lead * 0.55, 0.32, 0]]);
+    metal([['box', 0x9a9ea2, 0.05, office ? 0.05 : 0.4, 0.14, lead * 0.86, -0.15, 0], ...(office ? [] : [['box', 0x8a8e92, 1.92, 0.22, 0.086, 0, -1.07, 0] as Part])]);
+  } else {
+    /* a pair of leaves that both slide into the wall at the pocket: the far one all the way, the near one half */
+    const grand = look === 'grand', leaf = grand ? 0x3a2618 : 0xc2c7c2, trim = grand ? 0x8a6a3a : 0x9aa0a4;
+    for (const [near, f, z] of [[false, 1, -0.035], [true, 0.5, 0.035]] as const) {
+      const x = (near ? sd : -sd) * 0.5;
+      if (grand) {
+        paint([['box', leaf, 1, 2.4, 0.06, x, 0, z]], f);
+        metal([['box', trim, 0.05, 2.4, 0.064, x - 0.475, 0, z], ['box', trim, 0.05, 2.4, 0.064, x + 0.475, 0, z],
+          ['box', trim, 1, 0.05, 0.064, x, 1.175, z], ['box', trim, 1, 0.22, 0.064, x, -1.09, z],
+          ['box', trim, 0.04, 1.2, 0.1, x + lead * 0.36, 0.05, z]], f);
+      } else {
+        paint([['box', leaf, 1, 2.4, 0.06, x, 0, z], ['box', GLASS, 0.36, 0.48, 0.064, x, 0.38, z]], f);
+        metal([['box', trim, 0.98, 0.18, 0.066, x, -0.3, z], ['box', trim, 0.98, 0.2, 0.066, x, -1.08, z]], f);
+      }
+    }
+  }
+  if (D.seal) paint([[`box`, 0x2a2c2e, 1.5, 0.1, 0.4, 0, -0.1, 0], ['box', 0x2a2c2e, 1.5, 0.1, 0.4, 0, 0.6, 0]]);
+  /* on the wall beside it, at the pocket's side: a reader, a keypad, a heavy door's live lamp */
+  const wx = sd * 1.32;
+  for (const z of [-1.02, 1.02]) {
+    if (D.card) { fixed.push(['box', 0x22262a, 0.12, 0.18, 0.04, wx, -0.05, z]); lights.push(['box', [2.25, 2.45, 2.85], 0.08, 0.04, 0.05, wx, 0.01, z]); }
+    if (D.code) {
+      fixed.push(['box', 0x22262a, 0.16, 0.24, 0.04, wx, -0.05, z]);
+      for (let q = 0; q < 9; q++) lights.push(['box', [2.5, 2.6, 2.5], 0.028, 0.028, 0.05, wx - 0.045 + (q % 3) * 0.045, -0.12 + Math.floor(q / 3) * 0.055, z]);
+    }
+    if (look === 'heavy') lights.push(['box', LIVE, 0.1, 0.1, 0.04, wx, 0.35, z]);
+  }
+  return { leaves, fixed, lights };
+}
+
 /** a door as the first engine drew it, in its own frame: 2 m along x, centred 1.2 m up. Returns the slab and the lights
- *  (indicators, reader, keypad), which show only with power enough to work it. */
+ *  (indicators, reader, keypad), which show only with power enough to work it. The lift's door and a loose panel are
+ *  still drawn so */
 function doorParts(D: DoorDef): { body: Part[]; lights: Part[] } {
   const heavy = D.kind === 'heavy', W = 2, body: Part[] = [], lights: Part[] = [];
   if (heavy) {
@@ -150,22 +213,38 @@ export class Things {
     const w = sim.world;
     for (const d of sim.doors) {
       if (d.def.glass) { this.pane(d.def); continue; }
-      const D = d.def, { body, lights } = doorParts(D), long = Math.max(D.x1 - D.x0, D.z1 - D.z0), need = D.kind === 'heavy' ? 2 : 1;
-      const place = (m: THREE.Object3D) => {
-        m.position.set((d.dyn.x0 + d.dyn.x1) / 2, d.dyn.y0 + 1.2, (d.dyn.z0 + d.dyn.z1) / 2);
-        m.rotation.y = D.alongX ? 0 : Math.PI / 2;
+      const D = d.def, long = Math.max(D.x1 - D.x0, D.z1 - D.z0), need = D.kind === 'heavy' ? 2 : 1;
+      const at: [number, number, number] = [(D.x0 + D.x1) / 2, D.y0, (D.z0 + D.z1) / 2], across: [number, number] = D.alongX ? [0, 0.6] : [0.6, 0];
+      const rot = D.alongX ? 0 : Math.PI / 2;
+      /* where it stands: a sliding leaf `f` of its slide along its length; anything else where its box is */
+      const place = (m: THREE.Object3D, f = 1) => {
+        if (D.slides) {
+          const s = (D.side ?? 1) * (long - 0.02) * d.t * f;
+          m.position.set(at[0] + (D.alongX ? s : 0), D.y0 + 1.2, at[2] + (D.alongX ? 0 : s));
+        } else m.position.set((d.dyn.x0 + d.dyn.x1) / 2, d.dyn.y0 + 1.2, (d.dyn.z0 + d.dyn.z1) / 2);
+        m.rotation.y = rot;
         m.scale.set(long / 2, 1, 1);
         if (D.vent) m.visible = d.t < 0.5;
       };
-      const at: [number, number, number] = [(D.x0 + D.x1) / 2, D.y0, (D.z0 + D.z1) / 2], across: [number, number] = D.alongX ? [0, 0.6] : [0.6, 0];
-      this.add(parts(body, matId(D.mat)), place, at, across);
+      const still = (m: THREE.Object3D) => { m.position.set(at[0], D.y0 + 1.2, at[2]); m.rotation.y = rot; m.scale.set(long / 2, 1, 1); };
       /* its lights show only with power enough to work it */
-      if (lights.length) this.add(parts(lights), m => { place(m); m.visible = this.L.power(D.circuit) >= need && !D.vent; }, at, across);
-      /* locked down: a red lamp over it on both faces, flashing while its bolt is drawn and steady once it is home */
+      const lit = () => this.L.power(D.circuit) >= need && !D.vent;
+      if (D.look) {
+        const { leaves, fixed, lights } = doorLook(D);
+        for (const L of leaves) this.add(parts(L.body, matId(L.mat)), m => place(m, L.f), at, across);
+        if (fixed.length) this.add(parts(fixed), still, at, across);
+        if (lights.length) this.add(parts(lights), m => { still(m); m.visible = lit(); }, at, across);
+      } else {
+        const { body, lights } = doorParts(D);
+        this.add(parts(body, matId(D.mat)), m => place(m), at, across);
+        if (lights.length) this.add(parts(lights), m => { place(m); m.visible = lit(); }, at, across);
+      }
+      /* locked down: a red lamp on the wall beside it, on both faces, flashing while its bolt is drawn and steady once
+         it is home */
       if (!(D.seal || D.vent || D.lift || D.stuck)) {
-        const f = (D.kind === 'heavy' ? 0.36 : 0.14) / 2 + 0.03;
-        this.add(parts([-1, 1].map(s => ['box', [2.9, 0.35, 0.3], 0.5, 0.12, 0.04, 0, 1.08, s * f] as Part)), m => {
-          m.position.set(at[0], D.y0 + 1.2, at[2]); m.rotation.y = D.alongX ? 0 : Math.PI / 2; m.scale.set(long / 2, 1, 1);
+        const wx = (D.side ?? 1) * 1.32;
+        this.add(parts([-1, 1].map(s => ['box', [2.9, 0.35, 0.3], 0.14, 0.14, 0.05, wx, 0.75, s * 1.02] as Part)), m => {
+          still(m);
           m.visible = d.down || (d.drawing > 0 && Math.floor(performance.now() / 150) % 2 === 0);
         }, at, across);
       }

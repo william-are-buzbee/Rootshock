@@ -106,7 +106,7 @@ void main(){
   gl_FragColor = vec4(lift(c * uExpo), 1.0);
 }`;
 
-interface Hung { mat: THREE.ShaderMaterial; at: [number, number, number]; draw: () => void; tex: THREE.CanvasTexture; mesh: THREE.Mesh }
+interface Hung { mat: THREE.ShaderMaterial; at: [number, number, number]; draw: () => void }
 
 export class SignView {
   private hung: Hung[] = [];
@@ -122,15 +122,17 @@ export class SignView {
     /* the room it is read from, half a metre out from the wall it hangs on */
     const nx = Math.sin(s.yaw), nz = Math.cos(s.yaw);
     const R = w.roomAt(s.x + nx * 0.5, s.y - 1, s.z + nz * 0.5), st = styleOf(R?.mat.wall), S = STYLE[st];
-    const c = document.createElement('canvas'), tex = new THREE.CanvasTexture(c);
-    tex.colorSpace = THREE.NoColorSpace;
-    tex.anisotropy = 4;
-    tex.premultiplyAlpha = true;
+    /* a texture a drawing: a canvas drawn again at another width cannot go into the old one's storage */
+    const texture = (c: HTMLCanvasElement) => {
+      const t = new THREE.CanvasTexture(c);
+      t.colorSpace = THREE.NoColorSpace; t.anisotropy = 4; t.premultiplyAlpha = true;
+      return t;
+    };
     const mat = new THREE.ShaderMaterial({
       vertexShader: VS, fragmentShader: FS,
       uniforms: {
         ...lightUniforms(), uFog: U.uFog, uExpo: U.uExpo, uBright: U.uBright,
-        uMap: { value: tex }, uL: { value: new THREE.Vector3() }, uN: { value: new THREE.Vector3(nx, 0, nz) },
+        uMap: { value: null as THREE.Texture | null }, uL: { value: new THREE.Vector3() }, uN: { value: new THREE.Vector3(nx, 0, nz) },
         uRetro: { value: S.retro }, uCut: { value: S.cut ? 1 : 0 },
       },
     });
@@ -140,10 +142,15 @@ export class SignView {
     mesh.position.set(s.x + nx * off, s.y, s.z + nz * off);
     mesh.rotation.y = s.yaw;
     const band: Colour = R ? R.stripe : [0.5, 0.5, 0.5];
-    const redraw = () => { mesh.scale.x = draw(c, s.text, st, band, k + 1); tex.needsUpdate = true; };
+    const redraw = () => {
+      const c = document.createElement('canvas');
+      mesh.scale.x = draw(c, s.text, st, band, k + 1);
+      (mat.uniforms.uMap.value as THREE.Texture | null)?.dispose();
+      mat.uniforms.uMap.value = texture(c);
+    };
     redraw();
     scene.add(mesh);
-    this.hung.push({ mat, at: [s.x + nx * 0.3, s.y - 0.4, s.z + nz * 0.3], draw: redraw, tex, mesh });
+    this.hung.push({ mat, at: [s.x + nx * 0.3, s.y - 0.4, s.z + nz * 0.3], draw: redraw });
   }
 
   /** the power changed: each sign takes the light where it hangs */
