@@ -507,11 +507,11 @@ export function finishLevel(start?: [number, number, number]) {
         b.vent(gx, gy - 0.05, gz);
       }
     }
-    /* services under a bare ceiling (a suspended or plastered one hides them): along a room's length, by one of its
+    /* services under a bare ceiling, poured or sprayed (a suspended or plastered one hides them): along a room's length, by one of its
        long walls, a cable tray and two pipes on hangers, a quarter metre down. Only in rooms tall enough that they
        clear the doors with room to spare, and not in the halls, whose ceilings are too far up to show them. */
     for (const R of D.rooms) {
-      if (R.open || R.hole || R.cave || R.shaped || R.air || R.sky !== undefined || R.mat.ceiling !== 'concrete' || R.ht < 3 || R.ht > 6 || Math.max(R.w, R.h) < 3) continue;
+      if (R.open || R.hole || R.cave || R.shaped || R.air || R.sky !== undefined || (R.mat.ceiling !== 'concrete' && R.mat.ceiling !== 'shot') || R.ht < 3 || R.ht > 6 || Math.max(R.w, R.h) < 3) continue;
       /* up among the light fittings they would take the full glare of them: they are lit as if a little shaded */
       const long = R.w >= R.h, side = R.id % 2, top = D.y0 + R.dy + R.ht, DIM = 0.5;
       /* a run's length, and where along and across the room it lies: `off` metres in from the wall on its side */

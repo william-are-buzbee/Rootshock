@@ -10,7 +10,7 @@ import { TEMPLATES } from './templates';
 /* The level's static mesh. Flat surfaces come from the grid: wherever open space meets solid, there is a face, coloured by
    the room on the open side and by what the solid is (rock takes the room's palette; a block, its own colour). Faces are
    merged into the largest flat rectangles that share a colour (within a chunk), then cut where the palette changes (the dado
-   and the stripe on walls, the 2 m checker on floors). Sloped surfaces (ramps, cave floors and ceilings) are drawn from their
+   and the stripe on walls, the 2 m checker on a bare slab). Sloped surfaces (ramps, cave floors and ceilings) are drawn from their
    own lattices. Fixed props are added from their shapes; loose ones are drawn elsewhere, since they move.
 
    The light itself is read by the shader from the level's light field, pixel by pixel (lightVolume.ts); a vertex says
@@ -156,7 +156,8 @@ export function buildLevelMesh(w: World, L: Lighting): LevelMesh {
     if (a === 1) {
       /* u is x, v is z */
       const fm = matId(R.mat.floor);
-      if (openUp && !R.plain) {
+      /* a bare slab is poured in 2 m bays, a shade apart; a finish laid over one draws its own joints */
+      if (openUp && !R.plain && R.mat.floor === 'concrete') {
         for (const [x0, x1] of cuts(u0, u1, tiles(u0, u1)))
           for (const [z0, z1] of cuts(v0, v1, tiles(v0, v1)))
             put(a, s, x0, x1, z0, z1, room, scale3(R.floor, odd(x0, z0) ? 1 : 0.92), 1, fm);

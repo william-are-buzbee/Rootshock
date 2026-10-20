@@ -16,9 +16,9 @@ const hold = (s: Sim, secs: number, inp: Partial<Input> = {}) => { for (let t = 
 const sounds = (s: Sim, name: string) => s.game.events.filter(e => e.type === 'sfx' && e.name === name) as { k?: number }[];
 
 describe('feet', () => {
-  it('fall on concrete in the station, rock in the cave, water where it stands', () => {
+  it('fall on what the room is floored with in the station, rock in the cave, water where it stands', () => {
     const up = sim('upper'), b = up.player.body;
-    expect(underfoot(up.world, b.x, b.y, b.z)).toBe('concrete');
+    expect(underfoot(up.world, b.x, b.y, b.z)).toBe('vinyl'); // the isolation room's
     const cave = sim('cave'), c = cave.player.body;
     expect(underfoot(cave.world, c.x, c.y, c.z)).toBe('rock');
     const sump = sim('sump'), W = sump.world.water[0];
@@ -31,15 +31,16 @@ describe('feet', () => {
     expect(underfoot(up.world, b.x, b.y, b.z, up.loose.all[0].dyn)).toBe('wood');
   });
 
-  it('know what they stand on without being told: a container is steel, a crate wood, a cave rock round its boulders', () => {
+  it('know what they stand on without being told: a container is steel, a crate wood, a bay its floor round its boulders', () => {
     const up = sim('upper'), w = up.world;
     const box = w.def.props.find(p => p.mat === 'steel' && p.solid && p.sx > 5)!;
     expect(underfoot(w, box.x, box.y + box.sy, box.z)).toBe('steel');
     const c = up.loose.all[0].dyn;
     expect(underfoot(w, (c.x0 + c.x1) / 2, c.y1, (c.z0 + c.z1) / 2)).toBe('wood');
-    /* the cargo cavern is rock; a step onto something in it that says nothing of itself is still rock, not grating */
+    /* the cargo cavern is dug: sprayed rock over a coated floor; a step onto something in it that says nothing of
+       itself is its floor, not grating */
     const R = w.def.rooms.find(r => r.name === 'Cargo cavern')!;
-    expect(R.mat.floor).toBe('rock');
+    expect(R.mat).toMatchObject({ floor: 'epoxy', wall: 'shot', ceiling: 'shot' });
   });
 
   it('with surface detail off, are guessed as they were before materials', () => {
@@ -164,7 +165,7 @@ describe('how the station looks', () => {
     for (const m of MAT_ORDER) expect(MATS[m].look.gloss).toBeGreaterThanOrEqual(0);
   });
 
-  it('dresses rooms by what they are: tiled infirmaries, block in Security, services under bare concrete only', () => {
+  it('dresses rooms by what they are: tiled infirmaries, block in Security, services under a bare ceiling only', () => {
     const up = levelDef(STATION, 'upper');
     const room = (n: string) => up.rooms.find(r => r.name === n)!;
     expect(room('Infirmary').mat).toMatchObject({ wall: 'glazed', ceiling: 'tiles' });
@@ -174,8 +175,22 @@ describe('how the station looks', () => {
       const R = room(n);
       return up.props.filter(p => p.shape === 'cyl' && p.mat === 'steel' && p.rz && p.x > R.x0 && p.x < R.x1 && p.z > R.z0 && p.z < R.z1).length;
     };
-    expect(room('Electrical room').mat.ceiling).toBe('concrete');
+    expect(room('Electrical room').mat.ceiling).toBe('shot');
     expect(pipesIn('Electrical room')).toBe(2);
     expect(pipesIn('Infirmary')).toBe(0);
+  });
+
+  it('is mined: dug rooms are shotcrete, where visitors walked stone and terrazzo, offices carpeted', () => {
+    const up = levelDef(STATION, 'upper');
+    const room = (n: string) => up.rooms.find(r => r.name === n)!;
+    expect(room('Goods inward').mat).toMatchObject({ wall: 'shot', ceiling: 'shot' });
+    expect(room('Lobby').mat).toMatchObject({ floor: 'terrazzo', wall: 'stone' });
+    expect(room('Security corridor').mat.floor).toBe('epoxy');
+    expect(room('Office: operations').mat).toMatchObject({ floor: 'carpet', wall: 'board' });
+    expect(room('Infirmary').mat.floor).toBe('vinyl');
+    /* the Commons' utility rooms stand inside its blocks: poured, not dug */
+    const main = levelDef(STATION, 'main');
+    expect(main.rooms.find(r => r.name === 'Workshop')!.mat.wall).toBe('concrete');
+    expect(main.rooms.find(r => r.name === 'Kitchen')!.mat).toMatchObject({ floor: 'vinyl', wall: 'glazed' });
   });
 });

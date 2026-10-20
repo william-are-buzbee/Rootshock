@@ -1384,10 +1384,34 @@ Surface detail off brings back the old sound with the old look: the soundscape s
 (`Soundscape.materials`), the floor is guessed from the room as before (`legacyFloor`), and every sound plays its old
 voice.
 
+**Step 4 (built): the station as built.** world.md §1, *The station as built*: mined at 400 m, the family's fabric
+from the 80s under a refit. Seven more materials: shotcrete (`shot`), plasterboard (`board`, which looks as plaster
+does and knocks hollow), a coated slab (`epoxy`), sheet vinyl, carpet tile, terrazzo, limestone (`stone`). Their
+patterns: shotcrete lumpy at the rock's scale under the spray's grain, rock bolts' plates every 1.5 m in staggered rows
+with the nut proud, and under some on a wall rust run down; a coated slab with saw cuts on 4 m bays and scuffs that take
+its shine; vinyl flecked, its welded seams a roll's width (2 m) apart; carpet tiles 500 mm, each a quarter turn from the
+next, the pile running across one and along the next; terrazzo's chips dark, pale and a few rust-red, an inch across so
+they read further off (they fade to their average where a pixel spans 12 to 40 mm, finer specks sooner), brass strips on
+1.5 m bays; limestone panels 1.2 by 0.6 m, coursed half a panel along, tight joints, bedding and pits. A pattern can now
+tint as well as shade (`surface`'s `tint`: rust, a chip, a strip). The wear's water run down a wall says what it left
+(`Look.salt`): on bare cement (poured or sprayed) white salts, on paint and tile the brown tide mark as before.
+
+The palettes (`content/build/fittings.ts`) say what rooms are made of: `UTIL` is dug (`DUG`: shotcrete walls and crown on
+a poured floor), and so are the bays, Cargo's tiers and the sump; Security's floors are coated; offices, the briefing
+room, the operations room and Cargo's control room and office are `OFF` (board, carpet, a suspended ceiling); `OPS`
+halls are terrazzo; medical floors vinyl; homes carpeted; the lobby, its gallery and the surface landing `FAM`
+(limestone, terrazzo, a plastered ceiling, a bronze band for the stripe). The Commons' utility rooms stand in its blocks,
+so are poured, not dug; its kitchen, canteen, laundry and gym are vinyl. Services hang under a sprayed crown as under a
+poured one. The 2 m checker the first engine drew on every floor is kept for a bare slab only (poured in bays); a laid
+finish draws its own joints. The start room is vinyl underfoot, so the first step sounds of it.
+
+Not done: decay (world.md, proposed); a bronze or brushed metal of its own (steel's pattern is riveted plate); glossy
+floors catching the tubes, which terrazzo and the coated floors now most want.
+
 **Next (proposed), in order:**
 
-1. **The look, further.** Glossy floors catching the ceiling's tubes; paint chipped to what is under it; the
-   tribes as finishes over a surface.
+1. **The look, further.** Glossy floors catching the ceiling's tubes; paint chipped to what is under it; the money
+   decaying once the dehumidifiers stop; the tribes as finishes over a surface.
 2. **The sound, further.** What a thing is built as, per thing rather than per material (a steel locker is hollow,
    a steel plate solid); weapons and items with materials of their own, so the striker is data and not a guess from
    the weapon; the thresher's charge into a wall; doors and the vent panel.

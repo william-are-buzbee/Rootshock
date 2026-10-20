@@ -1,9 +1,10 @@
 import { PI } from '../../core/math';
 import type { LadderDef, LevelDef } from '../types';
+import { DUG } from '../materials';
 import { beginLevel, bx, dive, door, finishLevel, item, ladder, lamp, mkDeck, mut, note, P, pick, rnd, room, use, type LevelInfo, type TRoomOpts } from '../build/tiles';
 import { column, corpse, liftRoom, shelf } from '../build/fittings';
 
-/* The sump, 162 m down. Everything drains here; with Gen-1 dead the pumps stopped and it flooded. A 6 m hall (tiles 12 to
+/* The sump, 522 m down. Everything drains here; with Gen-1 dead the pumps stopped and it flooded. A 6 m hall (tiles 12 to
    51) at wading depth, the pump station at its east end, and under it the drowned level: the intake gallery, where root
    mass chokes the pump intakes and the flooded link comes in from the cave. Sergeant Aldana went down there and did not
    come back. Ported from the first engine (archive/first-engine.html: buildSump, buildSumpDeep) on the tile adapter,
@@ -14,7 +15,7 @@ export const SUMPDEEP: LevelInfo = { id: 'sumpdeep', name: 'The sump, drowned', 
 
 export function buildSump(ladders: Record<string, LadderDef>): LevelDef {
   beginLevel(SUMP, ladders);
-  const D = mkDeck(SUMP, 140, 30, { wet: 0.9 }), WT: TRoomOpts = { fl: 0x2a2f30, wl: 0x4a5052, st: 0x4a5052, c: 'HYD' };
+  const D = mkDeck(SUMP, 140, 30, { wet: 0.9 }), WT: TRoomOpts = { fl: 0x2a2f30, wl: 0x4a5052, st: 0x4a5052, c: 'HYD', mat: DUG };
   liftRoom(D, 5, 14, 7, 14); room(D, 'Shaft station', 8, 14, 3, 3, { ...WT, em: 1, safe: 1, nolamp: 1 }); door(D, 11, 14, { sg: [['Sump', 'w'], ['Shaft station', 'e']] }); lamp(D, 10.4, 14.4, 6);
   ladder(D, 'A3', 10.5, 16.6, 9.6, 16.1, PI / 2, true);
   room(D, 'Sump', 12, 8, 40, 14, { ...WT, ht: 6, em: 1 });
@@ -38,7 +39,7 @@ export function buildSump(ladders: Record<string, LadderDef>): LevelDef {
 
 export function buildSumpDeep(ladders: Record<string, LadderDef>): LevelDef {
   beginLevel(SUMPDEEP, ladders);
-  const D = mkDeck(SUMPDEEP, 140, 30, { deep: 1 }), DW: TRoomOpts = { fl: 0x1e2628, wl: 0x38423f, st: 0x38423f, lit: 'none', nolamp: 1 };
+  const D = mkDeck(SUMPDEEP, 140, 30, { deep: 1 }), DW: TRoomOpts = { fl: 0x1e2628, wl: 0x38423f, st: 0x38423f, lit: 'none', nolamp: 1, mat: DUG };
   room(D, 'Intake gallery', 22, 3, 17, 4, { ...DW, ht: 3.6 }); room(D, 'Flooded link', 14, 4, 8, 2, { ...DW, ht: 2.6 }); room(D, 'Intake main', 39, 4, 13, 2, { ...DW, ht: 2.6 });
   for (let k = 0; k < 4; k++) {
     const x = 24.5 + k * 4;
