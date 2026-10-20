@@ -577,9 +577,11 @@ export function glassMaterial(alpha: number): THREE.ShaderMaterial {
   return material({ uniforms: { ...U, uHit: { value: 0 } }, defines: { BAKED: '', ALPHA: alpha.toFixed(3) }, transparent: true, depthWrite: false });
 }
 
-/** a material for one moving thing: its light (and the part of it that flickers) is set from where it stands */
-export function dynamicMaterial(): THREE.ShaderMaterial {
-  return material({ uniforms: { ...U, uHit: { value: 0 }, uLight: { value: new THREE.Vector3() }, uLightF: { value: new THREE.Vector3() } } });
+/** a material for one moving thing: its light (and the part of it that flickers) is set from where it stands. With
+ *  `alpha`, see-through, as a door's vision panel is */
+export function dynamicMaterial(alpha?: number): THREE.ShaderMaterial {
+  const uniforms = { ...U, uHit: { value: 0 }, uLight: { value: new THREE.Vector3() }, uLightF: { value: new THREE.Vector3() } };
+  return alpha === undefined ? material({ uniforms }) : material({ uniforms, defines: { ALPHA: alpha.toFixed(3) }, transparent: true, depthWrite: false });
 }
 
 /** the uniforms LIGHTS reads, shared: for a material of its own that includes LIGHTS */

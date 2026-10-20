@@ -92,7 +92,18 @@ const lie = (x: number, z: number) => (Math.sin(x * 12.9898 + z * 78.233) * 4375
 
 /** a part of a door that moves: its parts, what they are made of, and how much of the door's travel it makes (a pair of
  *  leaves going into the wall at one side: the far leaf all of it, the near one half, so they end stacked) */
-interface Leaf { body: Part[]; mat?: Mat; f: number }
+interface Leaf { body: Part[]; mat?: Mat; f: number; glass?: Part[] }
+
+/** a panel w by h by d at (x, y, z) with a hole hw by hh in it at (hx, hy) from its middle: four parts round the hole */
+function holed(c: number | Colour, w: number, h: number, d: number, x: number, y: number, z: number, hx: number, hy: number, hw: number, hh: number): Part[] {
+  const l = hx - hw / 2, r = hx + hw / 2, b = hy - hh / 2, t = hy + hh / 2;
+  return [
+    ['box', c, l + w / 2, h, d, x + (l - w / 2) / 2, y, z], ['box', c, w / 2 - r, h, d, x + (r + w / 2) / 2, y, z],
+    ['box', c, hw, b + h / 2, d, x + hx, y + (b - h / 2) / 2, z], ['box', c, hw, h / 2 - t, d, x + hx, y + (t + h / 2) / 2, z],
+  ];
+}
+/** the glass in a hole, faintly tinted */
+const PANE: Colour = [0.55, 0.66, 0.7];
 
 /** a door by its look (DoorDef.look), in its own frame: 2 m along x, centred 1.2 m up, its pocket (or its wall) toward
  *  +x when `side` is 1. Its leaves; what is fixed to the wall beside it (a reader's housing); and the lights (an
@@ -111,8 +122,10 @@ function doorLook(D: DoorDef): { leaves: Leaf[]; fixed: Part[]; lights: Part[] }
     slats.push(['box', 0x2a2c2e, 2, 0.07, 0.11, 0, -1.165, 0], ['box', 0x8a8e90, 0.24, 0.05, 0.13, 0, -0.95, 0]);
     metal(slats);
   } else if (look === 'heavy') {
-    metal([['box', D.lift ? 0x596068 : 0x3b4046, 2, 2.4, 0.3, 0, 0, 0], ['box', 0x2a2d31, 0.14, 2.4, 0.36, 0, 0, 0]]);
-    const bands: Part[] = [['box', GLASS, 0.28, 0.28, 0.32, lead * 0.5, 0.35, 0]];
+    /* a thick slab with a small port of armoured glass in it */
+    leaves.push({ body: [...holed(D.lift ? 0x596068 : 0x3b4046, 2, 2.4, 0.3, 0, 0, 0, lead * 0.5, 0.35, 0.26, 0.26), ['box', 0x2a2d31, 0.14, 2.4, 0.36, 0, 0, 0]],
+      mat: 'steel', f: 1, glass: [['box', PANE, 0.26, 0.26, 0.04, lead * 0.5, 0.35, 0]] });
+    const bands: Part[] = [];
     for (const z of [-1, 1]) bands.push(['box', 0xb89b2e, 1.9, 0.16, 0.02, 0, -0.95, z * 0.16], ['box', 0xb89b2e, 1.9, 0.16, 0.02, 0, 0.95, z * 0.16]);
     paint(bands);
   } else if (look === 'steel' || look === 'office') {
@@ -120,8 +133,10 @@ function doorLook(D: DoorDef): { leaves: Leaf[]; fixed: Part[]; lights: Part[] }
     const office = look === 'office';
     /* drawn to its own width, so the narrow single leaf is not a squeezed wide one */
     const W = Math.max(D.x1 - D.x0, D.z1 - D.z0), k = 2 / W, e = W / 2;
-    paint([['box', office ? 0x7a5c3e : 0x5a6168, 2, 2.4, 0.08, 0, 0, 0],
-      office ? ['box', GLASS, 0.14 * k, 1.3, 0.085, lead * (e - 0.3) * k, 0.2, 0] : ['box', GLASS, 0.24 * k, 0.62, 0.085, lead * (e - 0.4) * k, 0.32, 0]]);
+    const [hx, hy, hw, hh] = office ? [lead * (e - 0.3) * k, 0.2, 0.14 * k, 1.3] : [lead * (e - 0.4) * k, 0.32, 0.24 * k, 0.62];
+    leaves.push({ body: holed(office ? 0x7a5c3e : 0x5a6168, 2, 2.4, 0.08, 0, 0, 0, hx, hy, hw, hh), f: 1, glass: [['box', PANE, hw, hh, 0.02, hx, hy, 0]] });
+    /* a wired pane's wire, faint, in the glass */
+    if (!office) paint([['box', GLASS, 0.006, hh, 0.03, hx, hy, 0], ['box', GLASS, hw, 0.006, 0.03, hx, hy, 0]]);
     metal([['box', 0x9a9ea2, 0.05 * k, office ? 0.05 : 0.4, 0.14, lead * (e - 0.12) * k, -0.15, 0], ...(office ? [] : [['box', 0x8a8e92, 1.92, 0.22, 0.086, 0, -1.07, 0] as Part])]);
   } else {
     /* a pair of leaves that both slide into the wall at the pocket: the far one all the way, the near one half */
@@ -134,7 +149,7 @@ function doorLook(D: DoorDef): { leaves: Leaf[]; fixed: Part[]; lights: Part[] }
           ['box', trim, 1, 0.05, 0.064, x, 1.175, z], ['box', trim, 1, 0.22, 0.064, x, -1.09, z],
           ['box', trim, 0.04, 1.2, 0.1, x + lead * 0.36, 0.05, z]], f);
       } else {
-        paint([['box', leaf, 1, 2.4, 0.06, x, 0, z], ['box', GLASS, 0.36, 0.48, 0.064, x, 0.38, z]], f);
+        leaves.push({ body: holed(leaf, 1, 2.4, 0.06, x, 0, z, 0, 0.38, 0.36, 0.48), f, glass: [['box', PANE, 0.36, 0.48, 0.02, x, 0.38, z]] });
         metal([['box', trim, 0.98, 0.18, 0.066, x, -0.3, z], ['box', trim, 0.98, 0.2, 0.066, x, -1.08, z]], f);
       }
     }
@@ -234,7 +249,10 @@ export class Things {
       const lit = () => this.L.power(D.circuit) >= need && !D.vent;
       if (D.look) {
         const { leaves, fixed, lights } = doorLook(D);
-        for (const L of leaves) this.add(parts(L.body, matId(L.mat)), m => place(m, L.f), at, across);
+        for (const L of leaves) {
+          this.add(parts(L.body, matId(L.mat)), m => place(m, L.f), at, across);
+          if (L.glass) this.add(parts(L.glass, matId('glass')), m => { place(m, L.f); m.renderOrder = 1; }, at, across, 0.2);
+        }
         if (fixed.length) this.add(parts(fixed), still, at, across);
         if (lights.length) this.add(parts(lights), m => { still(m); m.visible = lit(); }, at, across);
       } else {
@@ -326,8 +344,8 @@ export class Things {
     return mesh;
   }
 
-  private add(geo: THREE.BufferGeometry, place: (m: THREE.Mesh) => void, litAt?: [number, number, number], across?: [number, number]): void {
-    const mat = dynamicMaterial(), mesh = new THREE.Mesh(geo, mat);
+  private add(geo: THREE.BufferGeometry, place: (m: THREE.Mesh) => void, litAt?: [number, number, number], across?: [number, number], alpha?: number): void {
+    const mat = dynamicMaterial(alpha), mesh = new THREE.Mesh(geo, mat);
     mesh.frustumCulled = false;
     this.scene.add(mesh);
     this.list.push({ mesh, mat, place: () => place(mesh), litAt, across });
