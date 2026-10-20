@@ -118,9 +118,11 @@ function doorLook(D: DoorDef): { leaves: Leaf[]; fixed: Part[]; lights: Part[] }
   } else if (look === 'steel' || look === 'office') {
     /* a single leaf: painted steel with a wired pane and a kick plate, or a veneered door with a strip of glass */
     const office = look === 'office';
+    /* drawn to its own width, so the narrow single leaf is not a squeezed wide one */
+    const W = Math.max(D.x1 - D.x0, D.z1 - D.z0), k = 2 / W, e = W / 2;
     paint([['box', office ? 0x7a5c3e : 0x5a6168, 2, 2.4, 0.08, 0, 0, 0],
-      office ? ['box', GLASS, 0.14, 1.3, 0.085, lead * 0.62, 0.2, 0] : ['box', GLASS, 0.24, 0.62, 0.085, lead * 0.55, 0.32, 0]]);
-    metal([['box', 0x9a9ea2, 0.05, office ? 0.05 : 0.4, 0.14, lead * 0.86, -0.15, 0], ...(office ? [] : [['box', 0x8a8e92, 1.92, 0.22, 0.086, 0, -1.07, 0] as Part])]);
+      office ? ['box', GLASS, 0.14 * k, 1.3, 0.085, lead * (e - 0.3) * k, 0.2, 0] : ['box', GLASS, 0.24 * k, 0.62, 0.085, lead * (e - 0.4) * k, 0.32, 0]]);
+    metal([['box', 0x9a9ea2, 0.05 * k, office ? 0.05 : 0.4, 0.14, lead * (e - 0.12) * k, -0.15, 0], ...(office ? [] : [['box', 0x8a8e92, 1.92, 0.22, 0.086, 0, -1.07, 0] as Part])]);
   } else {
     /* a pair of leaves that both slide into the wall at the pocket: the far one all the way, the near one half */
     const grand = look === 'grand', leaf = grand ? 0x3a2618 : 0xc2c7c2, trim = grand ? 0x8a6a3a : 0x9aa0a4;
@@ -139,14 +141,15 @@ function doorLook(D: DoorDef): { leaves: Leaf[]; fixed: Part[]; lights: Part[] }
   }
   if (D.seal) paint([[`box`, 0x2a2c2e, 1.5, 0.1, 0.4, 0, -0.1, 0], ['box', 0x2a2c2e, 1.5, 0.1, 0.4, 0, 0.6, 0]]);
   /* on the wall beside it, at the pocket's side: a reader, a keypad, a heavy door's live lamp */
-  const wx = sd * 1.32, face = (D.depth ?? 2) / 2 + 0.02;
+  /* (in the door's frame, which is scaled to its width: k undoes it) */
+  const Wd = Math.max(D.x1 - D.x0, D.z1 - D.z0), kd = 2 / Wd, wx = sd * (Wd / 2 + 0.32) * kd, face = (D.depth ?? 2) / 2 + 0.02;
   for (const z of [-face, face]) {
-    if (D.card) { fixed.push(['box', 0x22262a, 0.12, 0.18, 0.04, wx, -0.05, z]); lights.push(['box', [2.25, 2.45, 2.85], 0.08, 0.04, 0.05, wx, 0.01, z]); }
+    if (D.card) { fixed.push(['box', 0x22262a, 0.12 * kd, 0.18, 0.04, wx, -0.05, z]); lights.push(['box', [2.25, 2.45, 2.85], 0.08 * kd, 0.04, 0.05, wx, 0.01, z]); }
     if (D.code) {
-      fixed.push(['box', 0x22262a, 0.16, 0.24, 0.04, wx, -0.05, z]);
-      for (let q = 0; q < 9; q++) lights.push(['box', [2.5, 2.6, 2.5], 0.028, 0.028, 0.05, wx - 0.045 + (q % 3) * 0.045, -0.12 + Math.floor(q / 3) * 0.055, z]);
+      fixed.push(['box', 0x22262a, 0.16 * kd, 0.24, 0.04, wx, -0.05, z]);
+      for (let q = 0; q < 9; q++) lights.push(['box', [2.5, 2.6, 2.5], 0.028 * kd, 0.028, 0.05, wx + (-0.045 + (q % 3) * 0.045) * kd, -0.12 + Math.floor(q / 3) * 0.055, z]);
     }
-    if (look === 'heavy') lights.push(['box', LIVE, 0.1, 0.1, 0.04, wx, 0.35, z]);
+    if (look === 'heavy') lights.push(['box', LIVE, 0.1 * kd, 0.1, 0.04, wx, 0.35, z]);
   }
   return { leaves, fixed, lights };
 }
@@ -242,8 +245,8 @@ export class Things {
       /* locked down: a red lamp on the wall beside it, on both faces, flashing while its bolt is drawn and steady once
          it is home */
       if (!(D.seal || D.vent || D.lift || D.stuck)) {
-        const wx = (D.side ?? 1) * 1.32, face = (D.depth ?? 2) / 2 + 0.03;
-        this.add(parts([-1, 1].map(s => ['box', [2.9, 0.35, 0.3], 0.14, 0.14, 0.05, wx, 0.75, s * face] as Part)), m => {
+        const k = 2 / long, wx = (D.side ?? 1) * (long / 2 + 0.32) * k, face = (D.depth ?? 2) / 2 + 0.03;
+        this.add(parts([-1, 1].map(s => ['box', [2.9, 0.35, 0.3], 0.14 * k, 0.14, 0.05, wx, 0.75, s * face] as Part)), m => {
           still(m);
           m.visible = d.down || (d.drawing > 0 && Math.floor(performance.now() / 150) % 2 === 0);
         }, at, across);

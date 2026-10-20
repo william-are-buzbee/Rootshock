@@ -171,6 +171,9 @@ export function partition(D: Deck, x: number, y: number, w: number, h: number): 
  *  metre grid either side of a tile's middle; and a window's sill and head in one over the floor: to the floor, at a
  *  desk's height, or a strip high up that only shares the light (a clerestory) */
 export const THIN = 0.5;
+/** a single door's opening (m): wide enough for anyone who uses doors; set against the end of its 2 m tile where its
+ *  pocket is, so the nav graph's spot in the tile's half there stands clear in it */
+export const NARROW = 1.2;
 export type Glaze = 'full' | 'view' | 'high';
 const GLAZE: Record<Glaze, [number, number]> = { full: [0, 2.4], view: [0.9, 2.2], high: [2.2, 2.8] };
 
@@ -415,8 +418,8 @@ const FRAME: Record<Exclude<DoorLook, 'shutter'>, [number, number, Mat]> = {
   office: [0x4e4a44, 0.06, 'steel'], clinic: [0x9aa0a4, 0.06, 'steel'],
 };
 /** the frame round both faces of a doorway (an architrave: two jambs and a head, standing 3 cm off the wall) */
-function frame(D: Deck, d: { x: number; y: number }, ns: boolean, look: DoorLook, depth = T): void {
-  const o = { c: 0 as const }, inset = (T - depth) / 2 / T;
+function frame(D: Deck, d: { x: number; y: number }, ns: boolean, look: DoorLook, depth = T, lo = 0, hi = 1): void {
+  const o = { c: 0 as const }, inset = (T - depth) / 2 / T, mid = (lo + hi) / 2, span = (hi - lo) * T;
   if (look === 'shutter') {
     for (const e of [0, 1]) {
       const a = e ? 1 - inset - 0.04 / T : inset + 0.04 / T;
@@ -427,8 +430,8 @@ function frame(D: Deck, d: { x: number; y: number }, ns: boolean, look: DoorLook
   const [c, w, mat] = FRAME[look], u = w / T / 2, f = 0.03 / T / 2;
   for (const face of [0, 1]) {
     const q = face ? 1 - inset + f : inset - f;
-    for (const e of [-u, 1 + u]) bx(D, ns ? d.x + e : d.x + q, ns ? d.y + q : d.y + e, ns ? w : 0.03, 2.4 + w, ns ? 0.03 : w, c, { ...o, mat });
-    bx(D, ns ? d.x + 0.5 : d.x + q, ns ? d.y + q : d.y + 0.5, ns ? T + 2 * w : 0.03, w, ns ? 0.03 : T + 2 * w, c, { ...o, y: 2.4, mat });
+    for (const e of [lo - u, hi + u]) bx(D, ns ? d.x + e : d.x + q, ns ? d.y + q : d.y + e, ns ? w : 0.03, 2.4 + w, ns ? 0.03 : w, c, { ...o, mat });
+    bx(D, ns ? d.x + mid : d.x + q, ns ? d.y + q : d.y + mid, ns ? span + 2 * w : 0.03, w, ns ? 0.03 : span + 2 * w, c, { ...o, y: 2.4, mat });
   }
 }
 
@@ -498,7 +501,13 @@ export function finishLevel(start?: [number, number, number]) {
       const { look, side, slides, lining } = doorway(D, k, d, ns);
       /* in a partition, the doorway is the wall's own thickness, and a window's pane sits between its sill and head */
       const thin = D.thin.has(k), dep = thin ? THIN : T, [sill, head] = d.glass && thin ? GLAZE[d.glaze ?? 'view'] : [0, 2.4];
-      const [rx0, rz0, rx1, rz1] = !thin ? [x0, z0, x0 + T, z0 + T] : ns ? [x0, cz - THIN / 2, x0 + T, cz + THIN / 2] : [cx - THIN / 2, z0, cx + THIN / 2, z0 + T];
+      /* a single leaf is a single door's width, against its pocket's end of the opening, the rest wall; a pair, a heavy
+         door, a shutter and a window keep the whole 2 m */
+      const narrow = look === 'steel' || look === 'office', w = narrow ? NARROW : T;
+      const a0 = narrow && (side ?? 1) < 0 ? 0 : T - w, a1 = a0 + w; // along the door, from the tile's near edge
+      const ox0 = ns ? x0 + a0 : x0, oz0 = ns ? z0 : z0 + a0, ox1 = ns ? x0 + a1 : x0 + T, oz1 = ns ? z0 + T : z0 + a1;
+      const [rx0, rz0, rx1, rz1] = !thin ? [ox0, oz0, ox1, oz1] : ns ? [ox0, cz - THIN / 2, ox1, cz + THIN / 2] : [cx - THIN / 2, oz0, cx + THIN / 2, oz1];
+      const ocx = (ox0 + ox1) / 2, ocz = (oz0 + oz1) / 2;
       /* the doorway: lined with the finish of the grander side (stone through the lobby's, plaster through a corridor's),
          or, for a shutter, bare steel and concrete as it always was */
       b.room('', rx0, rz0, rx1, rz1, { pal: { fl: 0, wl: 0, st: 0 }, y0: D.y0 + sill, ht: head - sill, doorway: true, nolamp: true, lit: 'main', circuit: D.c, part: thin,
@@ -508,22 +517,22 @@ export function finishLevel(start?: [number, number, number]) {
       let circuit = d.c ?? '';
       if (!circuit) { circuit = D.c; for (const o of [-D.W, D.W, -1, 1]) { const r = roomAtTile(D, k + o); if (r) { circuit = r.c; break; } } }
       const y0 = floorY(D, (d.x + 0.5) * T, (d.y + 0.5) * T);
-      b.door(ns ? x0 : cx - th / 2, ns ? cz - th / 2 : z0, ns ? x0 + T : cx + th / 2, ns ? cz + th / 2 : z0 + T, 2.4, {
+      b.door(ns ? ox0 : cx - th / 2, ns ? cz - th / 2 : oz0, ns ? ox1 : cx + th / 2, ns ? cz + th / 2 : oz1, 2.4, {
         kind: d.kind ?? 'light', alongX: ns, open: !!d.open, stuck: !!d.stuck, seal: !!d.seal, vent: !!d.vent, lift: !!d.lift,
         card: d.card, code: d.code, circuit, msg: d.msg, ...(d.glass ? { glass: true } : {}), ...(look ? { look, side } : {}), ...(slides ? { slides } : {}),
         ...(thin ? { depth: THIN } : {}),
       });
-      if (look) frame(D, d, ns, look, dep);
+      if (look) frame(D, d, ns, look, dep, a0 / T, a1 / T);
       b.level.doors[b.level.doors.length - 1].y0 = y0 + sill;
       b.level.doors[b.level.doors.length - 1].y1 = y0 + head;
       /* a sign names the room it is read toward. An armed room is not marked: its camera, by the door, is the tell */
       const inset = (T - dep) / 2;
       for (const [text, dir] of d.sg ?? []) {
         const y = y0 + 2.74;
-        if (dir === 'w') b.sign(text, x0 + inset - 0.03, y, cz, -PI / 2, circuit);
-        else if (dir === 'e') b.sign(text, x0 + T - inset + 0.03, y, cz, PI / 2, circuit);
-        else if (dir === 'n') b.sign(text, cx, y, z0 + inset - 0.03, PI, circuit);
-        else b.sign(text, cx, y, z0 + T - inset + 0.03, 0, circuit);
+        if (dir === 'w') b.sign(text, x0 + inset - 0.03, y, ocz, -PI / 2, circuit);
+        else if (dir === 'e') b.sign(text, x0 + T - inset + 0.03, y, ocz, PI / 2, circuit);
+        else if (dir === 'n') b.sign(text, ocx, y, z0 + inset - 0.03, PI, circuit);
+        else b.sign(text, ocx, y, z0 + T - inset + 0.03, 0, circuit);
       }
     }
     /* floors under an upper deck: a slab under every tile that is not a hole (or air over a room below that reaches up

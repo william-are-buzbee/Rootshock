@@ -1445,6 +1445,14 @@ their halls, and on the main level the tissue lab's glass wall onto the north gr
 director of research's office. Three new windows on the upper station renumber the doors after them, which the
 progression tests name; what they say is unchanged.
 
+**Step 7 (built): single doors are single doors.** A steel or office door's opening is 1.2 m (`NARROW`), set against
+the end of its 2 m tile where its pocket is, the rest of the tile wall: there the nav graph's spot in that half of the
+tile (0.5 m from the end, radius 0.3) stands clear, where a centred opening would leave the door no spot at all. Pairs,
+heavy doors, shutters and windows keep the whole 2 m. Its leaf, frame, sign, reader and lamps are drawn to its width
+(`doorLook` undoes the door frame's scaling for what is fixed). The thresher and the bloat use no doors (`noDoors`, as
+before); everything that does fits, a skitter, the widest, with 10 cm either side (`test/doors.test.ts`, which also
+checks that every door on every level still has a spot in it). The progression checker's answers are unchanged.
+
 Not done: decay (world.md, proposed); a bronze or brushed metal of its own (steel's pattern is riveted plate); glossy
 floors catching the tubes, which terrazzo and the coated floors now most want.
 

@@ -56,8 +56,9 @@ What the walls are, and why, before what colour they are. Plausibility first; th
   wards onto their corridors, offices onto their halls (built: the infirmary, the briefing room, the duty office, the
   tissue lab's glass wall, the director's window). Still to place: a control room over the generator hall, glass
   balustrades on the lobby's gallery, a gallery over the arboretum, clerestories, vision panels in more doors.
-  Single doors are to narrow to about 1.2 m inside the 2 m opening; the big cast (the thresher, the big skitter) then
-  use only double doors, archways and shutters (agreed, not built).
+  Single doors are 1.2 m (built); pairs, heavy doors and shutters keep 2 m. The big cast use only wide ways: the
+  thresher and the bloat already use no doors at all, and the big skitter has a skitter's body, which a single door
+  fits with 10 cm either side.
 - **Signs and thresholds (agreed).** Signs are lit as everything is, retroreflective under a beam, and take the style
   of their wall. Armed rooms are not marked on the floor or the sign: the camera is the tell.
 - **Decay (proposed, not built).** The money rots first when the power dies: ceiling tiles sag, board mottles with
