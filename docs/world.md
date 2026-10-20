@@ -528,7 +528,8 @@ wins; the older text stays only because it describes what is built, until the le
   Isolation's grand rooms at twice the size each way: call it 40 by 30 m and 12 to 14 m to the ceiling, a starting figure
   to tune in the build. The tallest room in Security (the atrium gives that up; it stays the threshold). Proposed:
   - *The way in is from above.* The surface cage lands on the second floor (+5); the hoist, freight, stays at the
-    ground-floor shaft station with the hazard store, so goods never crossed the lobby. Off the surface landing, a
+    ground-floor shaft station with the hazard store, so goods never crossed the lobby (a partition between the lobby
+    and Goods inward, since: they had been one open space, stone meeting shotcrete beside the lobby's door). Off the surface landing, a
     hallway; at its end, the checkpoint (the bag scanner, the arch, the turnstiles, the booth behind glass); through it,
     the head of a grand staircase, and the whole lobby below you at once. The descent is the dazzle.
   - *On the floor:* a statue in the middle, a lounge, a bar, all the soft furnishings a station 400 m down did not need.
