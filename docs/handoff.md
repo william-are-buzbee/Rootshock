@@ -82,6 +82,18 @@ code keeps the name `husk`; the dev tools say "changed". The breaker is searched
 step 4 is their look, a model job: ask the owner before spending long on it.
 The camera wall waits on a way into the operations room.
 
+**On the back burner** (the owner set Security aside here; pick these up with them, not unasked):
+- The changed's look (step 4's last part), then steps 5 to 7 above.
+- How you get into the operations room, which the camera wall waits on.
+- Call points as fire alarms instead (doors released, the changed sent to the muster hall), not lockdown: the owner's call.
+  Releasing card doors would let you past the card progression, so it would want ordinary doors only.
+- The `lockers` note (`content/notes.ts`) still describes the overseer ("it can see you… Screens off, it is blind"): lore
+  for the owner to rewrite.
+- The range's doorway steps 0.16 in light (`test/light.test.ts` samples around it by name).
+- Playtest questions left open: whether lockdown should let the staff through; whether dark armed rooms, guarded mostly
+  by your own flashlight, have teeth enough; the feeds' brightness at the start (`present/ui/feed.ts`); the running noise;
+  the call points' size; the statue (a placeholder: the logo or a gardening motif later).
+
 Step 1 is done: the overseer, the hand, the knock and the bolts are out of the code and of world.md §8 (old saves do not
 load: save version 6). §10's lineage still names the overseer in three places (rules 1 and 8, *Security's first*): left
 for the owner, since they are cosmology, not the level.
