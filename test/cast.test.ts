@@ -51,7 +51,8 @@ function face(s: Sim, x: number, y: number, z: number): void {
 describe('the nav graph', () => {
   it('reaches every room, and everything that walks stands on it', () => {
     const s = fresh(), F = s.fields!, nav = F.nav;
-    for (const R of s.world.rooms) expect(nav.byRoom.get(R.id)?.length ?? 0, R.name).toBeGreaterThan(0);
+    /* a room's strip in a partition is one place with the room; too narrow to hold a spot of its own */
+    for (const R of s.world.rooms) if (!R.part) expect(nav.byRoom.get(R.id)?.length ?? 0, R.name).toBeGreaterThan(0);
     for (const m of s.cast) if (m.body) expect(nav.locate(m.x, m.y, m.z), `${m.type} at ${m.x},${m.z}`).toBeGreaterThanOrEqual(0);
     /* on foot, with no doors in the way, every spot is reachable from your cell, platforms included */
     const b = s.player.body, d = field(nav, nav.locate(b.x, b.y, b.z), openRules(nav));

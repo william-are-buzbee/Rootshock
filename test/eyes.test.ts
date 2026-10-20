@@ -57,9 +57,26 @@ describe('the armed rooms', () => {
     expect(threshold(s).guard).toBe(false);
   });
 
-  it('the way in is marked: its door signs read ALARMED AREA, and the floor inside each door is painted', () => {
-    expect(level.signs.filter(q => q.warn).map(q => q.text).sort()).toEqual(['Armory', 'Chief of security', 'Electrical', 'Operations', 'Range', 'Security', 'Security']);
-    expect(level.signs.find(q => q.text === 'Lockers')?.warn).toBeFalsy();
+  it('the way in is not marked: no hazard paint on the floor, the signs as any other', () => {
+    expect(level.props.filter(p => p.sy <= 0.011 && p.y > 0.01 && p.y < 0.02 && p.sx <= 0.33 && p.sz <= 0.33).length).toBe(0);
+  });
+
+  it('the camera is the tell: from just inside every way in, its guard is in plain view', () => {
+    const s = fresh(), w = s.world;
+    let ways = 0;
+    for (const d of w.def.doors) {
+      if (d.glass || d.vent) continue;
+      const cx = (d.x0 + d.x1) / 2, cz = (d.z0 + d.z1) / 2, y = d.y0 + 1.6;
+      for (const sgn of [-1, 1]) {
+        const ix = d.alongX ? cx : cx + sgn * 1.05, iz = d.alongX ? cz + sgn * 1.05 : cz;
+        const R = w.roomAt(ix, y, iz), out = w.roomAt(d.alongX ? cx : cx - sgn * 1.2, y, d.alongX ? cz - sgn * 1.2 : cz);
+        if (!R?.armed || out?.armed) continue;
+        ways++;
+        const c = s.cams.find(q => q.guard && w.roomAt(q.def.x, q.def.y - 1, q.def.z)?.name === R.name)!;
+        expect(w.raycast(ix, y, iz, c.def.x, c.def.y, c.def.z), `${R.name} at ${cx}, ${cz}`).toBeGreaterThan(0.97);
+      }
+    }
+    expect(ways).toBe(12);
   });
 
   it('the cast keep out of them on their rounds', () => {

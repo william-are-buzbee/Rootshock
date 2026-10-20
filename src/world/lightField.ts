@@ -113,7 +113,8 @@ export class LightField {
 
     /* what the props fill: points inside them, and joins through them (bit a for the join along axis a) */
     const inProp = new Uint8Array(S * BR3), cut = new Uint8Array(S * BR3);
-    for (const P of w.def.props) this.stamp(P, inProp, cut);
+    /* (glass lets light through) */
+    for (const P of w.def.props) if (P.mat !== 'glass') this.stamp(P, inProp, cut);
 
     /* which points are open, and whose; points under a cave's floor or over its ceiling, or inside a prop, are not */
     this.pid = new Int32Array(S * BR3).fill(-1);

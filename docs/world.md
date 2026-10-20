@@ -14,8 +14,57 @@ engine's `NEWSTATION` (archived in `archive/first-engine.html`, behind `?dev=new
 
 ## 1. Premise
 
-**Lowfield Station** is a deep underground facility built and paid for by a well-funded owner (**open**: corporation, government, or
-one rich individual). Its stated purpose is commercial.
+**Lowfield Station** is a deep underground facility built and paid for by a family (**agreed**), rich enough to want a sky
+down there. Its stated purpose is commercial.
+
+### The station as built (agreed)
+
+What the walls are, and why, before what colour they are. Plausibility first; then the family's money on top of it.
+
+- **Mined, about 400 m down.** Too deep to dig a pit and bury a building (that stops at 30 or 40 m): it was drilled and
+  blasted from shafts, as a mine is, and reached by the cage. The upper station is at 400 m, the main level 450, the plant
+  500, the sump 522; the cave is a limestone stream cave the builders found.
+- **Three layers, and every room shows one.** *The rock*: blasted, held with rock bolts (a square plate every 1.5 m),
+  sprayed with shotcrete, which is lumpy, follows the rock and has no formwork seams. *The box*: most rooms are buildings
+  stood inside the caverns, of block or studs and board, with their own roof under the rock; this is why rooms are boxes.
+  *The finish*: where the money shows.
+- **What being underground rules.** Fire first: no way out and nowhere for smoke to go, so the finishes are what does not
+  burn (stone, metal, glass, tile, terrazzo); wood and fabric are rare, and the lobby's bar and sofas are the family
+  breaking its own rules for comfort. Water always comes back: bare cement weeps white salts, bolts weep rust; paint
+  takes a brown tide mark. Everything came down the shaft, so what was poured or laid in place in small pieces wins:
+  terrazzo, tile, stone in panels. And the soft finishes (board, carpet, ceiling tile, veneer) last only while the
+  dehumidifiers run.
+- **The hole is the expense.** Excavation and support dwarf any finish, and depth doubles or trebles every finish's cost
+  alike (the haul, the labour), so the good finish costs proportionally less down here. A rich owner finishes nicely
+  wherever people work, not only where visitors look.
+- **Built in the late 70s or 80s, refitted since: two layers to read.** The family's own fabric is where people
+  walked: terrazzo underfoot (the halls, the atrium, the muster hall), painted block in Security, glazed tile where
+  things are washed down, plaster in homes, limestone and a bronze band where visitors came (the surface landing, the
+  lobby and its gallery). The refit laid its own over it: coated floors in Security and Horticulture, sheet vinyl in
+  medical rooms and kitchens, plasterboard and carpet tile in the offices. A room dug and left as dug (utility rooms,
+  the plant, the bays, the sump, the tunnels) is shotcrete on a poured floor, services on hangers under its crown.
+- **By money, from the bottom (for reference).** Exposed shotcrete and a sealed slab cost nothing past the support;
+  painted block and a coated floor are an institution; board, carpet and a suspended ceiling an office; glazed tile and
+  coved vinyl are hygiene (money buys stainless, not marble); terrazzo is old money; stone, brushed metal and bronze are
+  the lobby. Light is the finish too: expensive is concealed and warm, cheap is a bare tube.
+- **Doors (agreed).** Where rooms were dug apart, the rock between them is metres thick and a doorway is a short
+  passage, lined with the finish of the grander side, its door in the middle sliding sideways into the rock. Each door
+  says where it is: the family's walnut pairs trimmed in bronze off the lobby; a clinic's pale pair with windows, wide
+  for a bed; a veneered office door with a strip of glass; Security's painted steel with a wired pane; heavy steel for
+  the Armory and its like; and in dug places, roller shutters, which rise (as does anything jammed: you crouch under
+  it). Where a cavern was divided into rooms, walls are half-metre partitions, and that is where glass goes: labs and
+  wards onto their corridors, offices onto their halls (built: the infirmary, the briefing room, the duty office, the
+  tissue lab's glass wall, the director's window; Gen-1 control over the generator hall; the arboretum's balcony,
+  through an archway; the lobby gallery's glass balustrades; a clerestory from the locker room; see-through vision
+  panels in the doors). Glass is how the station shows you what is coming: every one is a look before you go.
+  Single doors are 1.2 m (built); pairs, heavy doors and shutters keep 2 m. The big cast use only wide ways: the
+  thresher and the bloat already use no doors at all, and the big skitter has a skitter's body, which a single door
+  fits with 10 cm either side.
+- **Signs and thresholds (agreed).** Signs are lit as everything is, retroreflective under a beam, and take the style
+  of their wall. Armed rooms are not marked on the floor or the sign: the camera is the tell.
+- **Decay (proposed, not built).** The money rots first when the power dies: ceiling tiles sag, board mottles with
+  mould, veneer swells, carpet goes sour; the shotcrete looks as it did. Ties the look to the power and the time since
+  the fall.
 
 ### The plant
 
@@ -411,9 +460,9 @@ wins; the older text stays only because it describes what is built, until the le
   Armory, Operations, the wing's thresholds, wherever Security kept people out. A live camera on an armed place takes anyone
   moving in it, at any pace, as far as the light lets it see; stand stock still and it loses you, as motion detection does.
   Anywhere else a camera only records. The changed never trip one: they were staff, and from habit they still keep out of
-  where they were never cleared to go. So the lesson is knowing where the lines are, and the lines are shown: hazard paint
-  on the floor, ALARMED AREA at the door, and the camera's light, green while it watches and red while it holds you, so
-  there is still a moment to step back out. Dark is still blind. (Built cameras weigh your speed, `SPEED` and `holdRate` in
+  where they were never cleared to go. So the lesson is knowing where the lines are, and the line is the camera: one
+  hangs in every armed room in plain view from each way in (no hazard paint, no ALARMED AREA: the owner's call), and its
+  light is green while it watches and red while it holds you, so there is still a moment to step back out. Dark is still blind. (Built cameras weigh your speed, `SPEED` and `holdRate` in
   `sim/eyes.ts`: that goes, and an armed place takes its place. The cone, the light, the hold of about a second and a half,
   the zones and their speakers stay.) **Built,** with the wing's threshold as its corridor (the changed's own checkpoint
   post stays theirs, and on their rounds once the wing is lit): below, *Being found*.
@@ -481,7 +530,7 @@ wins; the older text stays only because it describes what is built, until the le
     ground-floor shaft station with the hazard store, so goods never crossed the lobby. Off the surface landing, a
     hallway; at its end, the checkpoint (the bag scanner, the arch, the turnstiles, the booth behind glass); through it,
     the head of a grand staircase, and the whole lobby below you at once. The descent is the dazzle.
-  - *On the floor:* a statue in the middle, a lounge, a bar, all the soft furnishings a station 40 m down did not need.
+  - *On the floor:* a statue in the middle, a lounge, a bar, all the soft furnishings a station 400 m down did not need.
     The statue is of the family that built the place for now (not called "the founder": that name belongs to the
     flesh, §10); a placeholder, to be retooled once the lore is down, likely the corporate logo or a gardening motif.
     A luminous ceiling, backlit panels made to pass for daylight, because the family wanted a sky down here.
@@ -718,8 +767,8 @@ should be added. Below it, production (below).
   from green to red with a servo's whir, and held about a second and a half, you sound its zone. Stand still in its view
   and it lets go a little at a time (it forgets a full hold in about three seconds); step out of its view or out of the
   room and it lets go at once. It sounds once for a sighting, and keeps the zone sounding while it still sees you
-  moving; to sound it again it must have let you go. The way in is marked: the door's sign is red, ALARMED AREA under
-  its name, and hazard paint runs across the floor just inside. The speaker's beacon turns and the klaxon goes round
+  moving; to sound it again it must have let you go. The way in is not marked; its camera is seen from it (tested).
+  The speaker's beacon turns and the klaxon goes round
   for twelve seconds; each time it goes round, any of the changed that hears it and is not already after you leaves its
   rounds or its post and hurries to the speaker (2.6 m/s; 3.4 with another in sight hurrying too), not to you. There
   one stands and looks about a while, then goes back to its rounds; it finds you only if it sees or hears you on the

@@ -1,7 +1,7 @@
 import { PI, clamp, hex, scale3, type Colour } from '../../core/math';
 import type { Rng } from '../../core/rng';
 import { CAVERN, DOORWAY, FITTED, STREET, WALKWAY, type Mat, type RoomMats } from '../materials';
-import type { Aim, LadderDef, LitRule, Motes, Shape } from '../types';
+import type { Aim, DoorLook, LadderDef, LitRule, Motes, Shape } from '../types';
 import { LevelBuilder, type Palette } from './builder';
 
 /* The first engine's way of laying out a level, kept so its levels port nearly line for line.
@@ -58,6 +58,8 @@ export interface TRoom {
 
 export interface TDoorOpts {
   kind?: 'light' | 'heavy'; open?: boolean; card?: string; code?: number; stuck?: boolean; seal?: boolean; vent?: boolean; lift?: boolean; glass?: boolean;
+  /** a window's height in a partition (GLAZE): to the floor, at a desk's height, or a strip high up */
+  glaze?: Glaze;
   c?: string; msg?: string;
   /** signs over it: [text, which side of the doorway it is read from] */
   sg?: [string, 'n' | 's' | 'e' | 'w'][];
@@ -101,6 +103,8 @@ export interface Deck {
   conn: Set<string>;
   /** standing water of its own (a pool): tiles x0, z0 to x1, z1, its surface in metres over the deck's floor */
   water: [number, number, number, number, number][];
+  /** wall tiles built as a thin partition (partition()): the axis the wall is crossed along */
+  thin: Map<number, 'x' | 'z'>;
 }
 
 /* ---- the level being built: decks share a builder, a seeded rng, and the station's ladderways */
@@ -125,7 +129,7 @@ export function mkDeck(lv: LevelInfo, W: number, H: number, o: { y0?: number; li
     lv, name: lv.name, c: lv.c, W, H, org: lv.org ?? [0, 0], y0: o.y0 ?? 0, li: o.li ?? 0, wet: o.wet ?? 0, deep: o.deep ?? 0, ground: !!o.ground,
     g: new Uint8Array(W * H), rm: new Int16Array(W * H).fill(-1), nom: new Uint8Array(W * H),
     rooms: [], doors: new Map(), above: null, below: null, hf: null, cf: null, hset: null,
-    props: [], cols: [], lamps: [], cams: [], speakers: [], stains: [], elevs: [], stairs: [], flights: [], items: [], notes: [], muts: [], uses: [], marks: {}, conn: new Set(), water: [],
+    props: [], cols: [], lamps: [], cams: [], speakers: [], stains: [], elevs: [], stairs: [], flights: [], items: [], notes: [], muts: [], uses: [], marks: {}, conn: new Set(), water: [], thin: new Map(),
   };
   C().decks.push(D);
   return D;
@@ -154,6 +158,25 @@ export function room(D: Deck, name: string, x: number, y: number, w: number, h: 
   for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) { D.g[j * D.W + i] = 1; D.rm[j * D.W + i] = r.id; }
   return r;
 }
+/** a wall built as a partition, not left as rock (world.md §1, *Doors*): the wall tiles x..x+w by y..y+h, one tile
+ *  thick, between two rooms. Each room reaches into it, and a wall half a metre thick is left between them, faced on
+ *  each side with that room's own finish. Doors and windows in it (door(), with glass for a window) are in that thin
+ *  wall: a door's doorway is the wall's own thickness, and a window is a pane in it. */
+export function partition(D: Deck, x: number, y: number, w: number, h: number): void {
+  if (w !== 1 && h !== 1) throw new Error('partition: one tile thick');
+  const across = w === 1 && h > 1 ? 'x' : 'z';
+  for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) D.thin.set(j * D.W + i, across);
+}
+/** how thick a partition is (m): half a metre, block and its finish with services in it, and on the world's quarter
+ *  metre grid either side of a tile's middle; and a window's sill and head in one over the floor: to the floor, at a
+ *  desk's height, or a strip high up that only shares the light (a clerestory) */
+export const THIN = 0.5;
+/** a single door's opening (m): wide enough for anyone who uses doors; set against the end of its 2 m tile where its
+ *  pocket is, so the nav graph's spot in the tile's half there stands clear in it */
+export const NARROW = 1.2;
+export type Glaze = 'full' | 'view' | 'high';
+const GLAZE: Record<Glaze, [number, number]> = { full: [0, 2.4], view: [0.9, 2.2], high: [2.2, 2.8] };
+
 /** two doors only (world.md §4): light, and heavy. Either may carry a card reader or a keypad, or be jammed or sealed. */
 export function door(D: Deck, x: number, y: number, o: TDoorOpts = {}): void {
   const i = y * D.W + x;
@@ -364,7 +387,61 @@ export function dive(D: Deck, x: number, z: number, y: number, to: string, label
   use(D, 'dive', x, z, y, { to, label, ...(under ? { under: 1 } : {}) });
 }
 
+/* ---- doors: what each looks like, from the rooms either side (world.md §1, *The station as built*; engine.md §15) */
+
+/** how grand a room's finish is, for which side a doorway takes its lining from */
+const GRAND: Partial<Record<Mat, number>> = { stone: 5, glazed: 4, board: 3, plaster: 3, block: 2, concrete: 1 };
+const dug = (R: TRoom | null) => !!R && (R.cave || R.mat.wall === 'shot' || R.mat.wall === 'rock');
+
+/** what a door at tile k is: its look, the end along it with wall beside it, whether it slides into that wall, and the
+ *  room it takes its doorway's lining from (none for a shutter). A door between two dug places, or between a dug place
+ *  and a plain one, is a shutter, and so is anything jammed (you crouch under it); the rest slide. */
+function doorway(D: Deck, k: number, d: TDoorOpts, ns: boolean): { look?: DoorLook; side?: -1 | 1; slides: boolean; lining: TRoom | null } {
+  if (d.glass || d.vent || d.lift) return { slides: false, lining: null };
+  const rock = (q: number) => q >= 0 && q < D.g.length && !D.g[q];
+  const along = ns ? 1 : D.W, side: -1 | 1 = rock(k + along) ? 1 : rock(k - along) ? -1 : 1;
+  const A = roomAtTile0(D, k - (ns ? D.W : 1)), B = roomAtTile0(D, k + (ns ? D.W : 1));
+  const rank = (R: TRoom | null) => (!R || R.open ? -1 : dug(R) ? 0 : GRAND[R.mat.wall] ?? 1);
+  const G = rank(A) >= rank(B) ? A : B;
+  const kind = (R: TRoom | null): DoorLook => !R || R.open || dug(R) ? 'steel' : R.mat.wall === 'stone' ? 'grand' : R.mat.wall === 'glazed' ? 'clinic'
+    : R.mat.wall === 'board' || R.mat.floor === 'carpet' ? 'office' : 'steel';
+  const shutter = d.stuck || (dug(A) || dug(B)) && kind(G) === 'steel' && !(A?.open || B?.open);
+  const look: DoorLook = shutter ? 'shutter' : d.kind === 'heavy' ? 'heavy' : kind(G);
+  return { look, side, slides: !shutter && !d.seal && rock(k + side * along), lining: shutter || !G || G.open || dug(G) ? null : G };
+}
+const roomAtTile0 = (D: Deck, k: number) => (k >= 0 && k < D.rm.length && D.rm[k] >= 0 ? D.rooms[D.rm[k]] : null);
+
+/** what frames each face of a doorway, by its door's look: [colour, width (m), material]; a shutter runs in steel guides
+ *  inside the opening instead */
+const FRAME: Record<Exclude<DoorLook, 'shutter'>, [number, number, Mat]> = {
+  grand: [0x6e5028, 0.16, 'steel'], heavy: [0x2e3236, 0.1, 'steel'], steel: [0x3a3f45, 0.07, 'steel'],
+  office: [0x4e4a44, 0.06, 'steel'], clinic: [0x9aa0a4, 0.06, 'steel'],
+};
+/** the frame round both faces of a doorway (an architrave: two jambs and a head, standing 3 cm off the wall) */
+function frame(D: Deck, d: { x: number; y: number }, ns: boolean, look: DoorLook, depth = T, lo = 0, hi = 1): void {
+  const o = { c: 0 as const }, inset = (T - depth) / 2 / T, mid = (lo + hi) / 2, span = (hi - lo) * T;
+  if (look === 'shutter') {
+    for (const e of [0, 1]) {
+      const a = e ? 1 - inset - 0.04 / T : inset + 0.04 / T;
+      bx(D, ns ? d.x + a : d.x + 0.5, ns ? d.y + 0.5 : d.y + a, ns ? 0.08 : 0.24, 2.4, ns ? 0.24 : 0.08, 0x3a3d40, { ...o, mat: 'steel' });
+    }
+    return;
+  }
+  const [c, w, mat] = FRAME[look], u = w / T / 2, f = 0.03 / T / 2;
+  for (const face of [0, 1]) {
+    const q = face ? 1 - inset + f : inset - f;
+    for (const e of [lo - u, hi + u]) bx(D, ns ? d.x + e : d.x + q, ns ? d.y + q : d.y + e, ns ? w : 0.03, 2.4 + w, ns ? 0.03 : w, c, { ...o, mat });
+    bx(D, ns ? d.x + mid : d.x + q, ns ? d.y + q : d.y + mid, ns ? span + 2 * w : 0.03, w, ns ? 0.03 : span + 2 * w, c, { ...o, y: 2.4, mat });
+  }
+}
+
 /* ---- compile: every deck of the level, into the builder */
+/** what the builder is told of a room */
+const roomOpts = (R: TRoom) => ({
+  pal: { fl: R.fl, wl: R.wl, st: R.st } as Palette, lit: R.lit, lc: R.lc, em: R.em, circuit: R.c, flick: R.flick,
+  nolamp: true, plain: R.open || R.cave, safe: R.safe, noroam: R.noroam, armed: R.armed, zone: R.zone, ...(R.sky !== undefined ? { sky: R.sky } : {}), motes: R.motes,
+  mat: R.mat,
+});
 const DOORPAL = { fl: [0.2, 0.21, 0.22] as Colour, wl: [0.27, 0.28, 0.3] as Colour, st: [0.22, 0.23, 0.25] as Colour };
 const SLAB = 0.25;
 
@@ -386,11 +463,7 @@ export function finishLevel(start?: [number, number, number]) {
     /* rooms */
     for (const R of D.rooms) {
       if (R.hole || R.shaped) continue;
-      const opts = {
-        pal: { fl: R.fl, wl: R.wl, st: R.st } as Palette, lit: R.lit, lc: R.lc, em: R.em, circuit: R.c, flick: R.flick,
-        nolamp: true, plain: R.open || R.cave, safe: R.safe, noroam: R.noroam, armed: R.armed, zone: R.zone, ...(R.sky !== undefined ? { sky: R.sky } : {}), motes: R.motes,
-        mat: R.mat,
-      };
+      const opts = roomOpts(R);
       const x0 = X(D, R.x), z0 = Z(D, R.y), x1 = X(D, R.x + R.w), z1 = Z(D, R.y + R.h);
       if (R.cave) {
         b.cave(R.name, x0, z0, x1, z1, {
@@ -402,6 +475,26 @@ export function finishLevel(start?: [number, number, number]) {
       } else b.room(R.name, x0, z0, x1, z1, { ...opts, y0: D.y0 + R.dy, ht: R.ht });
     }
     shapedCaves(b, D);
+    /* partitions: each room either side reaches into the wall tile, a thin wall left between them */
+    for (const [k, across] of D.thin) {
+      const i = k % D.W, j = Math.floor(k / D.W), x0 = X(D, i), z0 = Z(D, j), half = (T - THIN) / 2, step = across === 'x' ? 1 : D.W;
+      for (const s of [-1, 1] as const) {
+        /* the room on that side; or, with none on this deck, a tall room on a deck below reaching up past this one's
+           floor (a hall a control room looks down into), reaching into the wall as high as the room on this side */
+        let R = roomAtTile(D, k + s * step), y0 = R ? D.y0 + R.dy : 0, ht = R?.ht ?? 0;
+        if (R && (R.hole || R.cave)) continue;
+        if (!R) {
+          /* (a cave too: the arboretum, under its own sky of rock) */
+          const L = dnAt(D, k + s * step), RL = L && roomAtTile(L, k + s * step), near = roomAtTile(D, k - s * step);
+          if (!L || !RL || RL.hole || L.y0 + RL.dy + RL.ht <= D.y0 + 0.5) continue;
+          R = RL; y0 = D.y0; ht = Math.min(L.y0 + RL.dy + RL.ht, D.y0 + (near?.ht ?? 3.2)) - D.y0;
+        }
+        const a = s < 0 ? 0 : T - half, e = s < 0 ? half : T;
+        b.room(R.name, across === 'x' ? x0 + a : x0, across === 'x' ? z0 : z0 + a, across === 'x' ? x0 + e : x0 + T, across === 'x' ? z0 + T : z0 + e, {
+          ...roomOpts(R), y0, ht, part: true,
+        });
+      }
+    }
     /* water: wading depth over every room and doorway, or every room flooded over its roof; and pools */
     if (D.wet || D.deep) {
       const top = D.y0 + (D.wet || Math.max(2.4, ...D.rooms.map(R => R.ht)) + 1);
@@ -412,36 +505,45 @@ export function finishLevel(start?: [number, number, number]) {
     /* doorways, and the doors in them */
     for (const [k, d] of D.doors) {
       const x0 = X(D, d.x), z0 = Z(D, d.y), cx = x0 + T / 2, cz = z0 + T / 2;
-      b.room('', x0, z0, x0 + T, z0 + T, { pal: { fl: 0, wl: 0, st: 0 }, y0: D.y0, ht: 2.4, doorway: true, nolamp: true, lit: 'main', circuit: D.c, mat: DOORWAY });
+      /* its slab runs along x where there is open space north and south of it; a door or window there is not, being
+         the next in a run of them down the wall (a column of windows) */
+      const opn = (q: number) => !!D.g[q] && !D.doors.has(q);
+      const ns = opn(k - D.W) && opn(k + D.W), heavy = d.kind === 'heavy', th = heavy ? 0.36 : d.vent ? 0.12 : 0.14;
+      const { look, side, slides, lining } = doorway(D, k, d, ns);
+      /* in a partition, the doorway is the wall's own thickness, and a window's pane sits between its sill and head */
+      const thin = D.thin.has(k), dep = thin ? THIN : T, [sill, head] = d.glass && thin ? GLAZE[d.glaze ?? 'view'] : [0, 2.4];
+      /* a single leaf is a single door's width, against its pocket's end of the opening, the rest wall; a pair, a heavy
+         door, a shutter and a window keep the whole 2 m */
+      const narrow = look === 'steel' || look === 'office', w = narrow ? NARROW : T;
+      const a0 = narrow && (side ?? 1) < 0 ? 0 : T - w, a1 = a0 + w; // along the door, from the tile's near edge
+      const ox0 = ns ? x0 + a0 : x0, oz0 = ns ? z0 : z0 + a0, ox1 = ns ? x0 + a1 : x0 + T, oz1 = ns ? z0 + T : z0 + a1;
+      const [rx0, rz0, rx1, rz1] = !thin ? [ox0, oz0, ox1, oz1] : ns ? [ox0, cz - THIN / 2, ox1, cz + THIN / 2] : [cx - THIN / 2, oz0, cx + THIN / 2, oz1];
+      const ocx = (ox0 + ox1) / 2, ocz = (oz0 + oz1) / 2;
+      /* the doorway: lined with the finish of the grander side (stone through the lobby's, plaster through a corridor's),
+         or, for a shutter, bare steel and concrete as it always was */
+      b.room('', rx0, rz0, rx1, rz1, { pal: { fl: 0, wl: 0, st: 0 }, y0: D.y0 + sill, ht: head - sill, doorway: true, nolamp: true, lit: 'main', circuit: D.c, part: thin,
+        mat: lining ? { floor: lining.mat.floor, wall: lining.mat.wall === 'block' ? 'plaster' : lining.mat.wall, ceiling: lining.mat.wall === 'block' ? 'plaster' : lining.mat.wall } : DOORWAY });
       const R = b.level.rooms[b.level.rooms.length - 1];
-      R.floor = DOORPAL.fl; R.wall = DOORPAL.wl; R.stripe = DOORPAL.st;
-      const ns = !!(D.g[k - D.W] && D.g[k + D.W]), heavy = d.kind === 'heavy', th = heavy ? 0.36 : d.vent ? 0.12 : 0.14;
+      if (lining) { R.floor = hex(lining.fl); R.wall = hex(lining.wl); R.stripe = R.wall; } else { R.floor = DOORPAL.fl; R.wall = DOORPAL.wl; R.stripe = DOORPAL.st; }
       let circuit = d.c ?? '';
       if (!circuit) { circuit = D.c; for (const o of [-D.W, D.W, -1, 1]) { const r = roomAtTile(D, k + o); if (r) { circuit = r.c; break; } } }
       const y0 = floorY(D, (d.x + 0.5) * T, (d.y + 0.5) * T);
-      b.door(ns ? x0 : cx - th / 2, ns ? cz - th / 2 : z0, ns ? x0 + T : cx + th / 2, ns ? cz + th / 2 : z0 + T, 2.4, {
+      b.door(ns ? ox0 : cx - th / 2, ns ? cz - th / 2 : oz0, ns ? ox1 : cx + th / 2, ns ? cz + th / 2 : oz1, 2.4, {
         kind: d.kind ?? 'light', alongX: ns, open: !!d.open, stuck: !!d.stuck, seal: !!d.seal, vent: !!d.vent, lift: !!d.lift,
-        card: d.card, code: d.code, circuit, msg: d.msg, ...(d.glass ? { glass: true } : {}),
+        card: d.card, code: d.code, circuit, msg: d.msg, ...(d.glass ? { glass: true } : {}), ...(look ? { look, side } : {}), ...(slides ? { slides } : {}),
+        ...(thin ? { depth: THIN } : {}),
       });
-      b.level.doors[b.level.doors.length - 1].y0 = y0;
-      b.level.doors[b.level.doors.length - 1].y1 = y0 + 2.4;
-      /* a sign names the room it is read toward; one into an armed room says so */
-      const toward = { w: k + 1, e: k - 1, n: k + D.W, s: k - D.W };
+      if (look) frame(D, d, ns, look, dep, a0 / T, a1 / T);
+      b.level.doors[b.level.doors.length - 1].y0 = y0 + sill;
+      b.level.doors[b.level.doors.length - 1].y1 = y0 + head;
+      /* a sign names the room it is read toward. An armed room is not marked: its camera, by the door, is the tell */
+      const inset = (T - dep) / 2;
       for (const [text, dir] of d.sg ?? []) {
-        const y = y0 + 2.74, warn = !!roomAtTile(D, toward[dir])?.armed;
-        if (dir === 'w') b.sign(text, x0 - 0.03, y, cz, -PI / 2, circuit, warn);
-        else if (dir === 'e') b.sign(text, x0 + T + 0.03, y, cz, PI / 2, circuit, warn);
-        else if (dir === 'n') b.sign(text, cx, y, z0 - 0.03, PI, circuit, warn);
-        else b.sign(text, cx, y, z0 + T + 0.03, 0, circuit, warn);
-      }
-      /* the line: hazard paint across the floor just inside an armed room, the door's width, yellow and black */
-      for (const o of ns ? [-D.W, D.W] : [-1, 1]) {
-        if (!roomAtTile(D, k + o)?.armed || roomAtTile(D, k - o)?.armed) continue;
-        const into = o === D.W || o === 1 ? 1.15 : -0.15;
-        for (let s = 0; s < 6; s++) {
-          const along = d.x + (s + 0.5) / 6, across = d.y + into;
-          bx(D, ns ? along : d.x + into, ns ? across : d.y + (s + 0.5) / 6, ns ? 0.33 : 0.3, 0.01, ns ? 0.3 : 0.33, s % 2 ? 0x1d1f21 : 0xc9a227, { y: 0.013, c: 0 });
-        }
+        const y = y0 + 2.74;
+        if (dir === 'w') b.sign(text, x0 + inset - 0.03, y, ocz, -PI / 2, circuit);
+        else if (dir === 'e') b.sign(text, x0 + T - inset + 0.03, y, ocz, PI / 2, circuit);
+        else if (dir === 'n') b.sign(text, ocx, y, z0 + inset - 0.03, PI, circuit);
+        else b.sign(text, ocx, y, z0 + T - inset + 0.03, 0, circuit);
       }
     }
     /* floors under an upper deck: a slab under every tile that is not a hole (or air over a room below that reaches up
@@ -458,14 +560,15 @@ export function finishLevel(start?: [number, number, number]) {
         if (!D.g[k] || (R && (R.hole || (R.air && through(k)))) || (D.ground && !dnAt(D, k))) return null;
         return R?.open ? R.fl : -1;
       };
-      /* a walkway's is grating, as its floor is; a room's is concrete */
+      /* a walkway's is what its floor is (grating, or the family's terrazzo); a room's is concrete */
+      const slabMat = (k: number): Mat => { const R = roomAtTile(D, k); return R?.open ? R.mat.floor : 'concrete'; };
       for (let j = 0; j < D.H; j++)
         for (let i = 0; i < D.W; ) {
-          const c = slabAt(j * D.W + i);
+          const c = slabAt(j * D.W + i), m = slabMat(j * D.W + i);
           if (c === null) { i++; continue; }
           let n = 1;
-          while (i + n < D.W && slabAt(j * D.W + i + n) === c) n++;
-          b.block(X(D, i), D.y0 - SLAB, Z(D, j), X(D, i + n), D.y0, Z(D, j + 1), (c >= 0 ? hex(c) : DOORPAL.fl) as Colour, c >= 0 ? 'grating' : 'concrete');
+          while (i + n < D.W && slabAt(j * D.W + i + n) === c && slabMat(j * D.W + i + n) === m) n++;
+          b.block(X(D, i), D.y0 - SLAB, Z(D, j), X(D, i + n), D.y0, Z(D, j + 1), (c >= 0 ? hex(c) : DOORPAL.fl) as Colour, m);
           i += n;
         }
     }
@@ -481,7 +584,13 @@ export function finishLevel(start?: [number, number, number]) {
           if (!air && !st) continue;
           const e = 0.1, lx0 = di ? (di > 0 ? (i + 1) * T - e : i * T) : i * T, lx1 = di ? (di > 0 ? (i + 1) * T : i * T + e) : (i + 1) * T;
           const lz0 = dj ? (dj > 0 ? (j + 1) * T - e : j * T) : j * T, lz1 = dj ? (dj > 0 ? (j + 1) * T : j * T + e) : (j + 1) * T;
-          b.box(px(D, (lx0 + lx1) / 2), pz(D, (lz0 + lz1) / 2), lx1 - lx0, 1, lz1 - lz0, [0.35, 0.33, 0.2], { y: D.y0, solid: true });
+          const rx = px(D, (lx0 + lx1) / 2), rz = pz(D, (lz0 + lz1) / 2), sx = lx1 - lx0, sz = lz1 - lz0;
+          if (R.mat.floor === 'terrazzo') {
+            /* where the family's visitors walked: a sheet of glass in a bronze shoe, a bronze handrail along its top */
+            b.box(rx, rz, sx, 1, sz, [0.55, 0.66, 0.7], { y: D.y0, solid: true, mat: 'glass' });
+            b.box(rx, rz, di ? 0.07 : sx, 0.07, dj ? 0.07 : sz, 0x5e4424, { y: D.y0 + 1, solid: false, mat: 'steel' });
+            b.box(rx, rz, di ? 0.14 : sx, 0.1, dj ? 0.14 : sz, 0x5a4226, { y: D.y0, solid: false, mat: 'steel' });
+          } else b.box(rx, rz, sx, 1, sz, [0.35, 0.33, 0.2], { y: D.y0, solid: true });
         }
       }
     /* ceiling fittings, every third tile, as before */
@@ -507,11 +616,11 @@ export function finishLevel(start?: [number, number, number]) {
         b.vent(gx, gy - 0.05, gz);
       }
     }
-    /* services under a bare ceiling (a suspended or plastered one hides them): along a room's length, by one of its
+    /* services under a bare ceiling, poured or sprayed (a suspended or plastered one hides them): along a room's length, by one of its
        long walls, a cable tray and two pipes on hangers, a quarter metre down. Only in rooms tall enough that they
        clear the doors with room to spare, and not in the halls, whose ceilings are too far up to show them. */
     for (const R of D.rooms) {
-      if (R.open || R.hole || R.cave || R.shaped || R.air || R.sky !== undefined || R.mat.ceiling !== 'concrete' || R.ht < 3 || R.ht > 6 || Math.max(R.w, R.h) < 3) continue;
+      if (R.open || R.hole || R.cave || R.shaped || R.air || R.sky !== undefined || (R.mat.ceiling !== 'concrete' && R.mat.ceiling !== 'shot') || R.ht < 3 || R.ht > 6 || Math.max(R.w, R.h) < 3) continue;
       /* up among the light fittings they would take the full glare of them: they are lit as if a little shaded */
       const long = R.w >= R.h, side = R.id % 2, top = D.y0 + R.dy + R.ht, DIM = 0.5;
       /* a run's length, and where along and across the room it lies: `off` metres in from the wall on its side */

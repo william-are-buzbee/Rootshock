@@ -101,7 +101,7 @@ describe('the upper station', () => {
   });
 
   it('sinks the muster court 1.25 m under the hall, with steps down both long sides, and lifts its ceiling to 8.5 m', () => {
-    const court = level.rooms.find(r => r.name === 'Muster court')!, hall = level.rooms.filter(r => r.name === 'Muster hall');
+    const court = level.rooms.find(r => r.name === 'Muster court')!, hall = level.rooms.filter(r => r.name === 'Muster hall' && !r.part);
     expect(court.y0).toBeCloseTo(-1.25);
     expect(court.y0 + court.ht).toBeCloseTo(8.5);
     expect(hall.length).toBe(4);

@@ -129,10 +129,18 @@ export function updateDoor(d: Door, riders: Rider[], movers: { x: number; y: num
   return moved;
 }
 
-/** the door at openness t: it slides straight up by its own height */
+/** the door at openness t: it slides sideways into the wall by its own width, or (a shutter) straight up by its own
+ *  height. Open, 2 cm of it shows, as before. A pair of leaves that both go into the wall at one side, the far one twice
+ *  as far as the near, still blocks just what one slab would (render/things.ts draws them so) */
 export function doorBox(d: Door, t: number): Box {
-  const lift = (d.def.y1 - d.def.y0 - 0.02) * t; // open, 2 cm of it shows under the lintel, as before
-  return { x0: d.def.x0, z0: d.def.z0, x1: d.def.x1, z1: d.def.z1, y0: d.def.y0 + lift, y1: d.def.y1 + lift };
+  const D = d.def;
+  if (D.slides) {
+    const run = D.alongX ? D.x1 - D.x0 : D.z1 - D.z0, s = (D.side ?? 1) * (run - 0.02) * t;
+    return D.alongX ? { x0: D.x0 + s, z0: D.z0, x1: D.x1 + s, z1: D.z1, y0: D.y0, y1: D.y1 }
+      : { x0: D.x0, z0: D.z0 + s, x1: D.x1, z1: D.z1 + s, y0: D.y0, y1: D.y1 };
+  }
+  const lift = (D.y1 - D.y0 - 0.02) * t;
+  return { x0: D.x0, z0: D.z0, x1: D.x1, z1: D.z1, y0: D.y0 + lift, y1: D.y1 + lift };
 }
 
 /** a platform goes to its other end once something steps on and stays a moment; it carries what is on it. Whoever rode

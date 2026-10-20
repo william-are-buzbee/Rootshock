@@ -1,14 +1,15 @@
 import { PI, TAU, type Colour } from '../../core/math';
 import type { LadderDef, LevelDef } from '../types';
+import { FITTED } from '../materials';
 import {
-  beginLevel, bx, cave, door, finishLevel, hill, item, ladder, mkDeck, mut, note, P, pick, rnd, ROCKP, room, roughen, stack, stairs, T, use, vault,
+  beginLevel, bx, cave, door, finishLevel, hill, item, ladder, mkDeck, mut, note, P, partition, pick, rnd, ROCKP, room, roughen, stack, stairs, T, use, vault,
   type Deck, type LevelInfo, type TDoorOpts, type TRoom, type TRoomOpts,
 } from '../build/tiles';
 import {
   GR, HAB, HRT, MED, SEC, UTIL, WALK, bed, blood, body, column, corpse, crates, desk, eggs, genset, gore, liftRoom, medbed, overgrow, shelf, tbl, tree,
 } from '../build/fittings';
 
-/* The main level, 90 m down: the Commons (a street of residences under a cavern roof, three storeys of flats on
+/* The main level, 450 m down: the Commons (a street of residences under a cavern roof, three storeys of flats on
    galleries), the Square at its east end, and Horticulture beyond the airlock. Ported from the first engine
    (archive/first-engine.html: buildMain, buildSquare, flatRect, groundFloor, buildHorticulture) on the tile adapter, in
    tile units.
@@ -95,7 +96,7 @@ export function buildMain(ladders: Record<string, LadderDef>): LevelDef {
   door(G, 89, 14, { sg: [['Horticulture', 'w'], ['The Square', 'e']] }); room(G, 'Transit tunnel', 90, 14, 3, 2, { ...UTIL, c: 'RES', em: 1 });
   door(G, 93, 14, { sg: [['Airlock', 'w']] }); room(G, 'Airlock', 94, 14, 3, 2, { ...UTIL, c: 'HORT', em: 1 });
   door(G, 97, 14, { sg: [['Horticulture', 'w']] });
-  buildHorticulture(G);
+  buildHorticulture(G, S2);
   return finishLevel([9.6, 16.1, PI / 2]); // in the shaft station, for ?level=main
 }
 
@@ -150,34 +151,38 @@ function flatRect(D: Deck, x: number, y: number, w: number, h: number, dx: numbe
   else if (v[1] === 'body') corpse(D, vx, vz, pick([0x4a5560, 0x6b6f5a, 0x7a5a50]), true, { label: 'Search the resident', say: 'A room card on a lanyard. Not for this flat.', keys: [v[3]] });
 }
 
-/* the ground floor of block k: the street's rooms, out of the old Commons */
+/** a home's walls and ceiling over sheet vinyl: the street's rooms where food, water or sweat is */
+const VINYL = { ...HAB.mat, floor: 'vinyl' } as const;
+
+/* the ground floor of block k: the street's rooms, out of the old Commons. Built inside the blocks, so even the
+   utility rooms are poured, not dug; carpeted as homes are, but for the vinyl */
 function groundFloor(D: Deck, x0: number, north: boolean, k: number, HB: TRoomOpts, at: { y0?: number; fy?: number; dc?: number } = {}): void {
   const y0 = at.y0 || (north ? 8 : 19), fy = at.fy || (north ? 11 : 18), dc = at.dc || 3, sd = north ? 's' : 'n', back = north ? y0 + 0.3 : y0 + 2.7, front = north ? y0 + 2.6 : y0 + 0.4, mid = y0 + 1.5;
   const R = (nm: string, o: TRoomOpts = {}, dopt: TDoorOpts = {}) => { room(D, nm, x0, y0, 7, 3, { ...HB, ...o }); door(D, x0 + dc, fy, { sg: [[nm.split(' ')[0], sd]], ...dopt }); };
   if (north) switch (k) {
-    case 0: R('Canteen', {}, { open: true }); for (const dz of [-0.6, 0.6]) tbl(D, x0 + 2.6, mid + dz, 3.2, 0.8, 0x8a8578); bx(D, x0 + 6, back, 1.8, 1, 0.6, 0x6f7378); item(D, 'peaches', x0 + 6, back, 1.02, 2);
+    case 0: R('Canteen', { mat: VINYL }, { open: true }); for (const dz of [-0.6, 0.6]) tbl(D, x0 + 2.6, mid + dz, 3.2, 0.8, 0x8a8578); bx(D, x0 + 6, back, 1.8, 1, 0.6, 0x6f7378); item(D, 'peaches', x0 + 6, back, 1.02, 2);
       note(D, 'diary', x0 + 2.6, mid - 0.6, 0.78); blood(D, x0 + 4.4, front, 2); blood(D, x0 + 1, mid, 1.4); mut(D, 'husk', x0 + 5.4, mid + 0.6); mut(D, 'husk', x0 + 0.8, mid, { post: 1, yaw: -PI / 2 }); break;
-    case 1: R('Kitchen', { fl: 0x8f9492, wl: 0xa9aeab }, { stuck: true }); bx(D, x0 + 3.5, back, 6, 0.9, 0.6, 0x7c8186); bx(D, x0 + 6.5, mid, 0.8, 1.9, 0.7, 0xb4b8ba);
+    case 1: R('Kitchen', { fl: 0x8f9492, wl: 0xa9aeab, mat: { ...VINYL, wall: 'glazed' } }, { stuck: true }); bx(D, x0 + 3.5, back, 6, 0.9, 0.6, 0x7c8186); bx(D, x0 + 6.5, mid, 0.8, 1.9, 0.7, 0xb4b8ba);
       item(D, 'knife', x0 + 2.5, back, 0.92); item(D, 'ration', x0 + 4.4, back, 0.92, 2); mut(D, 'grabber', x0 + 3.5, y0 + 0.12, { yaw: 0 }); eggs(D, x0 + 1, front, 3); break;
     case 2: R('Commissary', {}, { stuck: true }); shelf(D, x0 + 2, back + 0.1, 3, 0.5, { jars: 1 }); shelf(D, x0 + 5.5, back + 0.1, 2.4, 0.5); item(D, 'peaches', x0 + 5, mid, 0.02); break;
-    case 3: R('Laundry', { lit: 'none' }); for (let q = 0; q < 4; q++) bx(D, x0 + 1 + q * 1.4, back, 0.9, 1, 0.8, 0xb8bcc0); mut(D, 'worm', x0 + 2, mid); mut(D, 'worm', x0 + 3, mid + 0.4); mut(D, 'worm', x0 + 5, mid); eggs(D, x0 + 6.2, front, 3); break;
+    case 3: R('Laundry', { lit: 'none', mat: VINYL }); for (let q = 0; q < 4; q++) bx(D, x0 + 1 + q * 1.4, back, 0.9, 1, 0.8, 0xb8bcc0); mut(D, 'worm', x0 + 2, mid); mut(D, 'worm', x0 + 3, mid + 0.4); mut(D, 'worm', x0 + 5, mid); eggs(D, x0 + 6.2, front, 3); break;
     case 4: R('Chapel'); for (let q = 0; q < 3; q++) bx(D, x0 + 1.5 + q * 1.8, mid + 0.2, 1.4, 0.45, 0.5, 0x5a4a3c); bx(D, x0 + 3.5, back, 1.6, 1, 0.6, 0x6b5a48); gore(D, x0 + 5.6, front, 3); body(D, x0 + 5, mid, 0x4a5560, false); break;
-    case 5: R('Maintenance', { ...UTIL, c: 'RES' }); genset(D, 'RES', x0 + 5.6, y0 + 0.7, x0 + 5, y0 + 1.3); shelf(D, x0 + 1.5, back + 0.1, 2.4, 0.5); item(D, 'batt', x0 + 1.2, back + 0.1, 1.06, 2); item(D, 'bandage', x0 + 2.6, mid, 0.02); break;
+    case 5: R('Maintenance', { ...UTIL, c: 'RES', mat: FITTED }); genset(D, 'RES', x0 + 5.6, y0 + 0.7, x0 + 5, y0 + 1.3); shelf(D, x0 + 1.5, back + 0.1, 2.4, 0.5); item(D, 'batt', x0 + 1.2, back + 0.1, 1.06, 2); item(D, 'bandage', x0 + 2.6, mid, 0.02); break;
     case 6: R('Post room'); shelf(D, x0 + 1.5, back + 0.1, 2.4, 0.5, { cols: [0xb9a98a, 0x8a7a6a] }); tbl(D, x0 + 4.5, mid, 2, 0.8); item(D, 'batt', x0 + 4.5, mid, 0.78); break;
     case 7: R('Recreation', { lit: 'none' }); bx(D, x0 + 2.5, mid, 2.4, 0.8, 1.3, 0x3a2e22); bx(D, x0 + 2.5, mid, 2.3, 0.04, 1.2, 0x2f5a40, { y: 0.8, c: 0 }); bx(D, x0 + 5.6, back, 2, 0.45, 0.8, 0x5a4a44);
       bx(D, x0 + 6.4, front, 0.9, 0.5, 0.6, 0x4a5238); item(D, 'goggles', x0 + 6.4, front, 0.5); item(D, 'batt', x0 + 0.6, back, 0.02);
       corpse(D, x0 + 4.4, front, 0x6b6f5a, false, { label: 'Search the resident', say: 'Swimming trunks, a towel, a room card.', keys: ['C2'] }); eggs(D, x0 + 1, front, 4); mut(D, 'skitter', x0 + 3.6, mid); mut(D, 'skitter', x0 + 1.4, back + 0.4); break;
   }
   else switch (k) {
-    case 0: R('Gymnasium'); bx(D, x0 + 2, mid, 3, 0.08, 2, 0x3a4a5a, { c: 0 }); for (let q = 0; q < 3; q++) P(D, 'cyl', x0 + 5 + q * 0.6, back, 0.4, 0.4, 0.4, 0x2a2c2e); mut(D, 'husk', x0 + 3.5, mid, { post: 1, yaw: 0 }); break;
+    case 0: R('Gymnasium', { mat: VINYL }); bx(D, x0 + 2, mid, 3, 0.08, 2, 0x3a4a5a, { c: 0 }); for (let q = 0; q < 3; q++) P(D, 'cyl', x0 + 5 + q * 0.6, back, 0.4, 0.4, 0.4, 0x2a2c2e); mut(D, 'husk', x0 + 3.5, mid, { post: 1, yaw: 0 }); break;
     case 1: R('School room'); for (let q = 0; q < 3; q++) for (const dz of [-0.5, 0.5]) tbl(D, x0 + 1.6 + q * 1.8, mid + dz, 1, 0.6, 0x8a7a5a); bx(D, x0 + 3.5, back, 3, 1.2, 0.06, 0x2a3a2c, { y: 1, c: 0 }); eggs(D, x0 + 6, front, 3); mut(D, 'skitter', x0 + 5.5, mid); break;
     case 2: R('Library', { lit: 'none' }); for (let q = 0; q < 3; q++) shelf(D, x0 + 1.2 + q * 2.3, back - 0.1, 1.8, 0.5); shelf(D, x0 + 3.5, mid + 0.2, 3, 0.5); break;
-    case 3: R('Stores', { ...UTIL, c: 'RES' }, { kind: 'heavy' }); crates(D, x0 + 1.5, mid, 2); crates(D, x0 + 5.5, mid, 2); item(D, 'ration', x0 + 3.5, back, 0.02, 2); item(D, 'batt', x0 + 3.5, mid, 0.02); break;
+    case 3: R('Stores', { ...UTIL, c: 'RES', mat: FITTED }, { kind: 'heavy' }); crates(D, x0 + 1.5, mid, 2); crates(D, x0 + 5.5, mid, 2); item(D, 'ration', x0 + 3.5, back, 0.02, 2); item(D, 'batt', x0 + 3.5, mid, 0.02); break;
     case 4: R('Trauma centre', { ...MED, c: 'RES' }, { kind: 'heavy' }); for (let q = 0; q < 4; q++) medbed(D, x0 + 0.6 + q * 1.5, y0 + 1.9);
       shelf(D, x0 + 6.7, mid, 0.5, 2.6, { cols: [0xd4d8d4, 0xb9c4bd, 0x8c2f24, 0xa8b4c0] }); for (const z of [y0 + 0.6, mid, y0 + 2.4]) item(D, 'medkit', x0 + 6.65, z, 1.06); item(D, 'bandage', x0 + 6.65, mid + 0.5, 0.61, 2);
       tbl(D, x0 + 5.4, front, 0.8, 0.7, 0xb4b8ba); note(D, 'clinic', x0 + 5.4, front, 0.78); break;
-    case 5: R('Water room', { ...UTIL, c: 'RES' }); for (const q of [1.6, 5.4]) P(D, 'cyl', x0 + q, mid, 2.2, 2.6, 2.2, 0x3b4d57); bx(D, x0 + 3.5, back, 6, 0.14, 0.14, 0x3d4042, { y: 2.4, c: 0 }); break;
-    case 6: R('Workshop', { ...UTIL, c: 'RES' }); tbl(D, x0 + 3, back + 0.2, 4, 0.9, 0x54504a); item(D, 'pipe', x0 + 3, mid + 0.6, 0.02); item(D, 'batt', x0 + 5.4, back + 0.2, 0.78); break;
+    case 5: R('Water room', { ...UTIL, c: 'RES', mat: FITTED }); for (const q of [1.6, 5.4]) P(D, 'cyl', x0 + q, mid, 2.2, 2.6, 2.2, 0x3b4d57); bx(D, x0 + 3.5, back, 6, 0.14, 0.14, 0x3d4042, { y: 2.4, c: 0 }); break;
+    case 6: R('Workshop', { ...UTIL, c: 'RES', mat: FITTED }); tbl(D, x0 + 3, back + 0.2, 4, 0.9, 0x54504a); item(D, 'pipe', x0 + 3, mid + 0.6, 0.02); item(D, 'batt', x0 + 5.4, back + 0.2, 0.78); break;
     case 7: R('Bar', {}, { open: true }); bx(D, x0 + 3.5, mid, 5, 1, 0.6, 0x4a3a2c); for (let q = 0; q < 4; q++) P(D, 'cyl', x0 + 1.8 + q * 1.2, mid - 0.7, 0.4, 0.7, 0.4, 0x2a2c2e); blood(D, x0 + 2, front, 1.6); mut(D, 'husk', x0 + 5.6, back, { post: 1, yaw: 0 }); break;
   }
 }
@@ -186,7 +191,7 @@ function groundFloor(D: Deck, x0: number, north: boolean, k: number, HB: TRoomOp
    The post off the airlock; three parallel grow galleries on a cross passage, with the tissue lab and Holt's office north of them and the
    seed vault and infirmary south; the arboretum, a 16 m cavern with the cave bulkhead breached in its north wall; and east of it the
    exhaust shaft, where ladderway B passes. ===== */
-function buildHorticulture(G: Deck): void {
+function buildHorticulture(G: Deck, S2: Deck): void {
   const H: TRoomOpts = { ...HRT, c: 'HORT' };
   /* the post: the guard who kept his pass, the backup set that still runs, and the door into the labs */
   const post = room(G, 'Security post', 98, 12, 4, 6, { ...SEC, c: 'HORT', em: 1 }); desk(G, 100.6, 12.5, 1.8, 0.7); note(G, 'hsec', 100.2, 12.45, 0.78); genset(G, 'HORT', 101.3, 16.6, 100.7, 17.2);
@@ -203,6 +208,9 @@ function buildHorticulture(G: Deck): void {
   }
   /* north: the tissue lab and the director of research's office. South: the seed vault and the infirmary */
   const lab = room(G, 'Tissue lab', 106, 1, 6, 4, { ...H, fl: 0x7d8588, wl: 0x9aa89c, flick: 1 }); door(G, 108, 5, { sg: [['Tissue lab', 's']] });
+  /* the lab looks out over the north gallery through a glass wall, and the director's office through a window */
+  partition(G, 106, 5, 6, 1); for (const x of [106, 107, 109, 110, 111]) door(G, x, 5, { seal: true, glass: true, glaze: 'full' });
+  partition(G, 113, 5, 4, 1); for (const x of [115, 116]) door(G, x, 5, { seal: true, glass: true });
   tbl(G, 108, 2.4, 3, 0.8, 0xaab2b5); tbl(G, 111.4, 3, 0.8, 2, 0xaab2b5); for (const x of [106.6, 107.6]) P(G, 'cyl', x, 1.5, 0.8, 2.2, 0.8, [0.16, 0.3, 0.24] as Colour, { c: 1 }); note(G, 'journal', 108, 2.35, 0.78); item(G, 'batt', 107.5, 2.4, 0.78, 2);
   room(G, 'Director of research', 113, 1, 4, 4, { ...HAB, c: 'HORT', fl: 0x5e5248, lc: [0.85, 0.78, 0.62] }); door(G, 114, 5, { code: 2, sg: [['Dr. M. Holt', 's']] });
   desk(G, 115, 1.6, 2, 0.8, { c: 0x4a3a2c }); shelf(G, 113.3, 3, 0.5, 2.4, { cols: [0x7a4a34, 0x4d5a66, 0x8a7a4a] }); bed(G, 116.6, 3.4, true, 0x7a5a50); note(G, 'holt', 114.6, 1.55, 0.78); item(G, 'batt', 115.35, 1.6, 0.78, 2); item(G, 'medkit', 113.6, 4.6, 0.02);
@@ -217,6 +225,15 @@ function buildHorticulture(G: Deck): void {
   for (const [x, z, h] of [[121.5, 10, 7], [126, 15, 9], [123, 17.5, 6.5], [130, 11, 7.5], [129.5, 18, 6], [120.5, 13.6, 5.5]]) tree(G, x, z, h, 0, true);
   mut(G, 'bloat', 127.6, 13, { sit: 1, yaw: -PI / 2, holt: 1 }); note(G, 'last', 125.6, 13.6, 0.03);
   for (let k = 0; k < 8; k++) bx(G, 127.4 - rnd(0, 1.4), 13 + rnd(-0.6, 0.6), rnd(0.8, 2), 0.07, 0.07, pick([0x6e2b28, 0x3f6a3a]), { y: rnd(0.02, 0.5), c: 0, ry: rnd(-0.5, 0.5), rz: rnd(-0.2, 0.2) });
+  /* the overlook: a balcony out over the arboretum a storey up, where the family showed visitors the trees. A stair
+     climbs off the cross passage in the rock between the north and middle galleries, and a passage runs on to an
+     archway in the arboretum's wall; terrazzo underfoot, glass balustrades round it */
+  room(G, 'Overlook stair', 104, 11, 6, 1, { ...H, ht: STOREY + 3.2, em: 1 }); stairs(G, S2, 104, 11, 6, 'e');
+  const OV: TRoomOpts = { ...H, em: 1, lc: [0.86, 0.82, 0.72], fl: 0x8a8070, wl: 0x9aa89c, mat: { floor: 'terrazzo', wall: 'plaster', ceiling: 'plaster' } };
+  room(S2, 'Overlook passage', 110, 11, 8, 1, { ...OV, ht: 3.2 });
+  room(S2, 'Arboretum balcony', 118, 10, 3, 3, { ...OV, open: 1, ht: 4, nolamp: 1, mat: { floor: 'terrazzo', wall: 'shot', ceiling: 'shot' } });
+  for (const z of [10.6, 12.4]) bx(S2, 118.8, z, 1.6, 0.45, 0.45, 0x5a3e34); // benches, facing the trees
+
   /* the bulkhead to the cave, in the north wall: Horticulture drilled through it */
   room(G, 'Breach', 125, 3, 1, 2, { ...ROCKP, lit: 'none', nolamp: 1, noroam: 1 }); door(G, 125, 5, { stuck: true, sg: [['Cave', 's']] });
   ladder(G, 'CV', 125.5, 3.5, 125.5, 4.4, PI, false, { bare: true, label: 'Crawl through the breach' });

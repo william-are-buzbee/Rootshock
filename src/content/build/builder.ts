@@ -38,6 +38,9 @@ export interface RoomOpts {
   /** the roof painted as sky */
   sky?: number | Colour;
   doorway?: boolean;
+  /** a strip of a room reaching into a partition, or a partition's doorway or pane: too narrow for the nav graph to
+   *  stand a spot in, and one place with the room beside it */
+  part?: boolean;
   safe?: boolean;
   noroam?: boolean;
   armed?: boolean;
@@ -94,7 +97,7 @@ export class LevelBuilder {
       floor: hex(p.fl), wall: hex(p.wl), stripe: hex(p.st), mat: { ...FITTED, ...o.mat },
       lit: o.lit ?? (fixed ? (dark ? 'none' : 'always') : 'always'),
       lc: o.lc ?? (fixed ? o.light! : WHITE),
-      em: !!o.em, circuit: o.circuit ?? this.def.circuit, flick: !!o.flick, doorway: !!o.doorway, safe: !!o.safe, noroam: !!o.noroam, armed: !!o.armed, ...(o.zone ? { zone: o.zone } : {}),
+      em: !!o.em, circuit: o.circuit ?? this.def.circuit, flick: !!o.flick, doorway: !!o.doorway, ...(o.part ? { part: true } : {}), safe: !!o.safe, noroam: !!o.noroam, armed: !!o.armed, ...(o.zone ? { zone: o.zone } : {}),
       ...(o.sky !== undefined ? { sky: hex(o.sky) } : {}), ...(o.motes && o.motes !== 'dust' ? { motes: o.motes } : {}),
     };
     this.def.rooms.push(r);
@@ -210,8 +213,8 @@ export class LevelBuilder {
   lamp(x: number, y: number, z: number, r: number, c: Colour): void {
     this.def.lamps.push({ x, y, z, r, colour: c });
   }
-  sign(text: string, x: number, y: number, z: number, yaw: number, circuit = this.def.circuit, warn = false): void {
-    this.def.signs.push({ text, x, y, z, yaw, circuit, ...(warn ? { warn } : {}) });
+  sign(text: string, x: number, y: number, z: number, yaw: number, circuit = this.def.circuit): void {
+    this.def.signs.push({ text, x, y, z, yaw, circuit });
   }
   item(id: string, x: number, y: number, z: number, n = 1, on?: Aim): void { this.def.items.push({ id, x, y, z, n, ...(on ? { on } : {}) }); }
   note(key: string, x: number, y: number, z: number): void { this.def.notes.push({ key, x, y, z }); }

@@ -1,9 +1,9 @@
 import { PI } from '../../core/math';
 import type { LadderDef, LevelDef } from '../types';
-import { beginLevel, bx, door, finishLevel, item, ladder, mkDeck, mut, note, P, room, use, type LevelInfo, type TRoom, type TRoomOpts } from '../build/tiles';
-import { MED, UTIL, corpse, genset, liftRoom, medbed, overgrow, panel, shelf, tbl } from '../build/fittings';
+import { beginLevel, bx, door, finishLevel, item, ladder, mkDeck, mut, note, P, partition, room, stack, stairs, use, type LevelInfo, type TRoom, type TRoomOpts } from '../build/tiles';
+import { MED, OFF, UTIL, corpse, desk, genset, liftRoom, medbed, overgrow, panel, shelf, tbl } from '../build/fittings';
 
-/* The plant level, 140 m down. Dead and black. Engineering on the spine (the machine shop, the parts store, Distribution
+/* The plant level, 500 m down. Dead and black. Engineering on the spine (the machine shop, the parts store, Distribution
    with every floor's service connection, the backup plant); the link corridor; the generator hall, Gen-1 at its east
    end against the exhaust shaft, where the green comes down. The west end is going green too.
    Ported from the first engine (archive/first-engine.html, buildPlant) on the tile adapter, in tile units. */
@@ -42,6 +42,16 @@ export function buildPlant(ladders: Record<string, LadderDef>): LevelDef {
   /* the link, and the generator hall */
   door(D, 64, 14, { sg: [['Generator hall', 'w'], ['Engineering', 'e']] }); room(D, 'Link corridor', 65, 14, 15, 2, { ...E, em: 1 }); door(D, 80, 14, { sg: [['Gen-1', 'w']] });
   room(D, 'Generator hall', 81, 9, 49, 12, { ...E, ht: 16, em: 1 });
+  /* Gen-1 control, over the link at the hall's west end, a storey up: a band of glass the length of its east wall, so
+     whoever ran Gen-1 watched it while they did. A stair climbs to it beside the link. */
+  const T1 = mkDeck(PLANT, 140, 30, { y0: 5, li: 1 }); stack(D, T1);
+  room(D, 'Control stair', 72, 16, 8, 1, { ...E, ht: 8.4, em: 1 }); stairs(D, T1, 73, 16, 6, 'e');
+  room(T1, 'Control landing', 79, 14, 1, 3, { ...E, ht: 3.4, em: 1 }); door(T1, 79, 13, { sg: [['Gen-1 control', 's']] });
+  room(T1, 'Gen-1 control', 72, 9, 8, 4, { ...OFF, c: 'ENG', ht: 3.4, lc: [0.8, 0.84, 0.9] });
+  partition(T1, 80, 9, 1, 4); for (let r = 9; r <= 12; r++) door(T1, 80, r, { seal: true, glass: true, glaze: 'full', c: 'ENG' });
+  /* the desk along the glass, its screens dead, a chair pushed back; the mimic board on the back wall */
+  for (let r = 0; r < 3; r++) { desk(T1, 78.9, 9.9 + r * 1.1, 0.8, 1.9, { c: 0x4a4f55 }); bx(T1, 78.2, 9.9 + r * 1.1, 0.5, 0.45, 0.5, 0x2c2f33); }
+  bx(T1, 72.12, 11, 0.06, 1.6, 5.6, 0x2a3036, { y: 1 }); for (let q = 0; q < 6; q++) bx(T1, 72.16, 9.4 + q * 0.6, 0.02, 0.1, 0.3, [0.3, 0.05, 0.04], { y: 1.4 + (q % 3) * 0.4, c: 0, pw: [[0.3, 0.05, 0.04], [2.2, 2.9, 2.3]], pc: 'ENG' });
   /* Gen-1: 24 m of housing with its stacks, and the board on its west face: the fuse socket and the main breaker */
   bx(D, 119.5, 15, 22, 5, 9, 0x44525a); bx(D, 119.5, 15, 20, 1, 8, 0x36424a, { y: 5, c: 0 }); for (const x of [115, 124]) for (const z of [13, 17]) P(D, 'cyl', x, z, 0.9, 6, 0.9, 0x2c3338, { y: 6, c: 0 });
   for (const q of [-1, 1]) bx(D, 119.5, 15 + q * 2.4, 22.4, 0.04, 0.12, 0x8a7a2a, { y: 2.4, c: 0 }); bx(D, 119.5, 15, 24, 0.01, 11, 0xb89b2e, { y: 0.012, c: 0 });

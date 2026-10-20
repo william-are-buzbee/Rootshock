@@ -10,7 +10,8 @@ import { TEMPLATES } from './templates';
 /* The level's static mesh. Flat surfaces come from the grid: wherever open space meets solid, there is a face, coloured by
    the room on the open side and by what the solid is (rock takes the room's palette; a block, its own colour). Faces are
    merged into the largest flat rectangles that share a colour (within a chunk), then cut where the palette changes (the dado
-   and the stripe on walls, the 2 m checker on floors). Sloped surfaces (ramps, cave floors and ceilings) are drawn from their
+   and the stripe on walls). What a surface is made of draws its own joints; the first engine's 2 m checker on floors,
+   walls and the painted sky is gone. Sloped surfaces (ramps, cave floors and ceilings) are drawn from their
    own lattices. Fixed props are added from their shapes; loose ones are drawn elsewhere, since they move.
 
    The light itself is read by the shader from the level's light field, pixel by pixel (lightVolume.ts); a vertex says
@@ -110,13 +111,6 @@ function cuts(lo: number, hi: number, at: number[]): [number, number][] {
   for (let i = 0; i < xs.length - 1; i++) out.push([xs[i], xs[i + 1]]);
   return out;
 }
-/** the lines every `step` metres inside [lo, hi] (the 2 m tiles by default) */
-function tiles(lo: number, hi: number, step = 2): number[] {
-  const a: number[] = [];
-  for (let x = Math.ceil(lo / step) * step; x < hi; x += step) a.push(x);
-  return a;
-}
-const odd = (a: number, b: number): boolean => ((Math.floor(a / 2) + Math.floor(b / 2)) & 1) === 1;
 
 /** build the level's mesh, its fittings showing the power as L has it */
 export function buildLevelMesh(w: World, L: Lighting): LevelMesh {
@@ -156,31 +150,26 @@ export function buildLevelMesh(w: World, L: Lighting): LevelMesh {
     if (a === 1) {
       /* u is x, v is z */
       const fm = matId(R.mat.floor);
-      if (openUp && !R.plain) {
-        for (const [x0, x1] of cuts(u0, u1, tiles(u0, u1)))
-          for (const [z0, z1] of cuts(v0, v1, tiles(v0, v1)))
-            put(a, s, x0, x1, z0, z1, room, scale3(R.floor, odd(x0, z0) ? 1 : 0.92), 1, fm);
-      } else if (openUp) put(a, s, u0, u1, v0, v1, room, R.floor, 1, fm);
-      else if (R.sky) {
-        /* the cavern's roof, painted sky, lit up more than a ceiling (as before): paint, with nothing drawn on it */
-        for (const [x0, x1] of cuts(u0, u1, tiles(u0, u1)))
-          for (const [z0, z1] of cuts(v0, v1, tiles(v0, v1)))
-            put(a, s, x0, x1, z0, z1, room, scale3(R.sky, odd(x0, z0) ? 1 : 0.95), 1.5, 0);
-      } else put(a, s, u0, u1, v0, v1, room, scale3(R.wall, 0.6), 0.8, matId(R.mat.ceiling));
+      if (openUp) put(a, s, u0, u1, v0, v1, room, R.floor, 1, fm);
+      /* the cavern's roof, painted sky, lit up more than a ceiling (as before): paint, with nothing drawn on it */
+      else if (R.sky) put(a, s, u0, u1, v0, v1, room, R.sky, 1.5, 0);
+      else put(a, s, u0, u1, v0, v1, room, scale3(R.wall, 0.6), 0.8, matId(R.mat.ceiling));
       return;
     }
-    /* a wall. On plane x the axes are (y, z); on plane z, (x, y). High up a tall room, walls are darker (as before). */
+    /* a wall. On plane x the axes are (y, z); on plane z, (x, y). High up a tall room, walls are darker (as before).
+       Painted block takes a darker dado and the stripe over it; nothing else is painted so. A room can be one thing
+       below its datum and another above it (the lobby's stone, plaster over it). */
     const yAxisFirst = a === 0;
     const [y0, y1] = yAxisFirst ? [u0, u1] : [v0, v1], [h0, h1] = yAxisFirst ? [v0, v1] : [u0, u1];
-    const f = R.y0, wm = matId(R.mat.wall);
-    for (const [ya, yb] of cuts(y0, y1, R.plain ? [f + 3.2] : [f + 0.9, f + 1.05, f + 3.2])) {
+    const f = R.y0, wm = matId(R.mat.wall), painted = !R.plain && !R.doorway && R.mat.wall === 'block';
+    const up = R.mat.upper ? f + (R.mat.datum ?? 4) : Infinity;
+    for (const [ya, yb] of cuts(y0, y1, [f + 3.2, ...(painted ? [f + 0.9, f + 1.05] : []), ...(R.mat.upper ? [up] : [])])) {
       const high = ya >= f + 3.2 - 1e-6;
-      const band = R.plain || high ? 2 : yb <= f + 0.9 + 1e-6 ? 0 : yb <= f + 1.05 + 1e-6 ? 1 : 2;
-      for (const [ha, hb] of band === 2 && !R.plain ? cuts(h0, h1, tiles(h0, h1)) : [[h0, h1] as [number, number]]) {
-        const c = band === 0 ? scale3(R.wall, 0.78) : band === 1 ? R.stripe : R.plain ? R.wall : scale3(R.wall, odd(ha, 0) ? 1 : 0.95);
-        if (yAxisFirst) put(a, s, ya, yb, ha, hb, room, c, high ? 0.6 : 1, wm);
-        else put(a, s, ha, hb, ya, yb, room, c, high ? 0.6 : 1, wm);
-      }
+      const band = !painted || high ? 2 : yb <= f + 0.9 + 1e-6 ? 0 : yb <= f + 1.05 + 1e-6 ? 1 : 2;
+      const c = band === 0 ? scale3(R.wall, 0.78) : band === 1 ? R.stripe : R.wall;
+      const m = ya >= up - 1e-6 ? matId(R.mat.upper) : wm;
+      if (yAxisFirst) put(a, s, ya, yb, h0, h1, room, c, high ? 0.6 : 1, m);
+      else put(a, s, h0, h1, ya, yb, room, c, high ? 0.6 : 1, m);
     }
   };
 
@@ -242,7 +231,8 @@ export function buildLevelMesh(w: World, L: Lighting): LevelMesh {
      Each is drawn a hair larger than it is (apart: see `apart`), so where two meet face to face, or one stands on the
      floor or a shelf, the faces are not in one plane and do not fight. */
   w.def.props.forEach((p, k) => {
-    if (p.loose) return;
+    /* glass is drawn see-through on its own (render/things.ts) */
+    if (p.loose || p.mat === 'glass') return;
     const R = w.roomAt(p.x, p.y + 0.05, p.z) ?? w.roomAt(p.x, p.y + p.sy / 2, p.z), src: Src = { room: R ? R.id : -1, m: p.glow, mat: matId(p.mat) };
     const to = p.services ? extra : o, first = to.count, e = apart(k);
     propVerts({ ...p, sx: p.sx + 2 * e, sy: p.sy + 2 * e, sz: p.sz + 2 * e, y: p.y - e }, (x, y, z) => to.vert(x, y, z, p.colour, src));

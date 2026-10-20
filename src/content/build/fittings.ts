@@ -1,21 +1,29 @@
 import { PI, TAU } from '../../core/math';
+import { DUG } from '../materials';
 import { P, T, bx, colT, door, item, pick, rnd, room, stain, stairs, use, type Deck, type TRoom, type TRoomOpts } from './tiles';
 
 /* The first engine's furniture, clutter and fittings, on the tile adapter. Ported as they were, so the station looks as
    it did; their randomness now comes from the level's own seed. */
 
-/* ---- palettes: colours, and what the walls and ceilings are where they are not poured concrete. Cells, utility
-   rooms and bays are bare concrete; Security is painted block; offices are painted block under a suspended ceiling;
-   homes are plastered; medical rooms and Horticulture are tiled to be washed down. */
+/* ---- palettes: colours, and what rooms are made of (world.md §1, *The station as built*). Lowfield is mined: a room
+   dug and left as dug is shotcrete over the rock on a poured floor (utility rooms, the plant, the bays); every other
+   room is a box built inside the rock. The family's own fabric, from the 80s, is where people walked: terrazzo
+   underfoot, painted block in Security, glazed tile where things are washed down, plaster in homes, limestone where
+   visitors came. The refit since laid its own over it: coated floors in Security and Horticulture, sheet vinyl in
+   medical rooms, plasterboard and carpet in offices. */
 export const CELL: TRoomOpts = { fl: 0x4e5052, wl: 0x666a6e, st: 0xa8521e };
-export const UTIL: TRoomOpts = { fl: 0x505254, wl: 0x6a6d6c, st: 0xb89b2e };
-export const HAB: TRoomOpts = { fl: 0x7b7568, wl: 0x9a9588, st: 0x3f7f6b, mat: { wall: 'plaster', ceiling: 'plaster' } };
-export const MED: TRoomOpts = { fl: 0x9aa39d, wl: 0xb9c4bd, st: 0x8c2f24, mat: { wall: 'glazed', ceiling: 'tiles' } };
-export const SEC: TRoomOpts = { fl: 0x55585c, wl: 0x70747a, st: 0x39485a, mat: { wall: 'block' } };
-export const OPS: TRoomOpts = { fl: 0x6a665e, wl: 0x8c887e, st: 0x8a7a4a, mat: { wall: 'block', ceiling: 'tiles' } };
+export const UTIL: TRoomOpts = { fl: 0x505254, wl: 0x6a6d6c, st: 0xb89b2e, mat: DUG };
+export const HAB: TRoomOpts = { fl: 0x7b7568, wl: 0x9a9588, st: 0x3f7f6b, mat: { floor: 'carpet', wall: 'plaster', ceiling: 'plaster' } };
+export const MED: TRoomOpts = { fl: 0x9aa39d, wl: 0xb9c4bd, st: 0x8c2f24, mat: { floor: 'vinyl', wall: 'glazed', ceiling: 'tiles' } };
+export const SEC: TRoomOpts = { fl: 0x4e555e, wl: 0x70747a, st: 0x39485a, mat: { floor: 'epoxy', wall: 'block' } };
+export const OPS: TRoomOpts = { fl: 0x847c70, wl: 0x8c887e, st: 0x8a7a4a, mat: { floor: 'terrazzo', wall: 'block', ceiling: 'tiles' } };
+/** an office, refitted: plasterboard, carpet tile, a suspended ceiling */
+export const OFF: TRoomOpts = { fl: 0x4a4f58, wl: 0x9a968c, st: 0x5a6a7a, mat: { floor: 'carpet', wall: 'board', ceiling: 'tiles' } };
+/** where the family's visitors walked: terrazzo, limestone to 4 m and plaster over it, a plastered ceiling */
+export const FAM: TRoomOpts = { fl: 0x8a8070, wl: 0xa3967e, st: 0x7a5a30, mat: { floor: 'terrazzo', wall: 'stone', ceiling: 'plaster', upper: 'plaster' } };
 /** Horticulture: the green's own, and its air is full of spores */
-export const HRT: TRoomOpts = { fl: 0x3d4a30, wl: 0x5a6a4c, st: 0x2f5a34, motes: 'spores', mat: { wall: 'glazed' } };
-export const BAY: TRoomOpts = { fl: 0x4a4c4e, wl: 0x5e6164, st: 0xb89b2e, ht: 8, em: 1 };
+export const HRT: TRoomOpts = { fl: 0x3d4a30, wl: 0x5a6a4c, st: 0x2f5a34, motes: 'spores', mat: { floor: 'epoxy', wall: 'glazed' } };
+export const BAY: TRoomOpts = { fl: 0x4a4c4e, wl: 0x5e6164, st: 0xb89b2e, ht: 8, em: 1, mat: { ...DUG, floor: 'epoxy' } };
 export const WALK: TRoomOpts = { open: 1, ht: 4, em: 1, fl: 0x5a5d60, wl: 0x5e6164, nolamp: 1 };
 export const LOW: [number, number, number] = [0.66, 0.68, 0.72];
 

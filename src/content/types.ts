@@ -33,6 +33,8 @@ export interface RoomDef {
   flick: boolean;
   /** a doorway: lit by the rooms either side of it */
   doorway: boolean;
+  /** a strip of a room reaching into a partition, or a partition's doorway or pane (content/build/tiles.ts, partition) */
+  part?: boolean;
   /** for the cast: a refuge they do not enter (safe), a room they do not wander into (noroam) */
   safe: boolean;
   noroam: boolean;
@@ -118,8 +120,6 @@ export interface SignDef {
   x: number; y: number; z: number;
   yaw: number;
   circuit: string;
-  /** it marks the way into an armed room: drawn red, ALARMED AREA under its name */
-  warn?: boolean;
 }
 
 /** a sloped or uneven surface: a ramp, a cave's floor or ceiling. Heights are given on a lattice of `res` metres
@@ -174,7 +174,21 @@ export interface DoorDef {
   msg?: string;
   /** what its slab is made of */
   mat: Mat;
+  /** the end along its length that has wall beside it (1: the far end of x or z, -1 the near): where its reader, its
+   *  lamps and, if it slides, its pocket are */
+  side?: -1 | 1;
+  /** it slides sideways into the wall at `side`; else it rises, as a shutter does */
+  slides?: boolean;
+  /** how it is drawn (content/build/tiles.ts says, from the rooms either side) */
+  look?: DoorLook;
+  /** how deep its doorway is, wall face to wall face: 2 m through the rock, half a metre through a partition */
+  depth?: number;
 }
+
+/** what a door looks like: a roller shutter (dug places, and anything jammed); a heavy steel door; a painted steel door
+ *  with a wired vision panel (Security, and anywhere plain); an office's veneered door; a clinic's pair of pale leaves
+ *  with windows, wide for a bed; the family's pair of walnut leaves trimmed in bronze */
+export type DoorLook = 'shutter' | 'heavy' | 'steel' | 'office' | 'clinic' | 'grand';
 
 /** data the later steps use (engine.md §13): kept with the level now so the level is ported once */
 export interface ItemDef {

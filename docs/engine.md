@@ -883,8 +883,8 @@ components, not code threaded through the frame loop:
   the rest only record, and have no light. A guard holds you while you are in an armed room and moving at any pace (over
   `EYES.still`), a second of hold a second; standing in view it drains; out of view or out of the room it lets go at
   once. Held `EYES.hold` it sounds its zone, once a sighting (`Cam.tripped`), and keeps it sounding while it still sees
-  you moving. An armed room's door signs are drawn red (`SignDef.warn`) and the floor inside each door is painted, both
-  from the room's flag (`content/build/tiles.ts`); the cast leave armed rooms out of their rounds. An alarm keeps a route
+  you moving. An armed room is not marked (its red signs and hazard paint are gone): its guard is in plain view from
+  every way in, which `test/eyes.test.ts` checks; the cast leave armed rooms out of their rounds. An alarm keeps a route
   to its speaker and how far its sound carries (both made once, when it starts, and again on load); each time the
   klaxon goes round, every husk in earshot that is not hunting takes the state `answer` and hurries the route (its own
   copy) at 2.6 m/s, 3.4 with another in sight hurrying too (`ANSWER` in `sim/cast.ts`). Each round also locks the zone
@@ -1056,6 +1056,12 @@ sequence of inputs. The door rules, the labels and the answers are the first eng
   its post, a box on a shelf or the floor, a crate on a crate) showed through each other as you moved. Each prop and
   each part of a thing is drawn 1 to 7 mm larger than it is, different for neighbours (`apart` in `levelMesh.ts`). A
   grid floor or ceiling that a sloped surface covers (a cave flat at its room's floor) is not drawn at all.
+- **Signs** (since; `present/render/signs.ts`): lit as any surface is, not from within (a black plate shone in a dark
+  room): the room's light where each hangs, and the lights you carry. What is pale on them is retroreflective, as real
+  room signs often are, so under your beam the letters flare and the plate stays dark. Each takes its look from the wall
+  it hangs on: bronze letters straight on the family's limestone; a small dark plate with a bar of the room's stripe
+  colour on block, plaster and board; a white plate with a coloured band on glazed tile; the name stencilled in worn
+  paint on concrete and shotcrete. Drawn at 420 px a metre and sized to their words, so short names have short plates.
 - **UI** stays in HTML over the canvas, with the current type and colours (Barlow Condensed, Newsreader, bone, ash,
   hazard).
 - **Dev tools** carry over (`?dev`, fly, god, level select, map), plus overlays for colliders, nav graph and noise.
@@ -1384,10 +1390,88 @@ Surface detail off brings back the old sound with the old look: the soundscape s
 (`Soundscape.materials`), the floor is guessed from the room as before (`legacyFloor`), and every sound plays its old
 voice.
 
+**Step 4 (built): the station as built.** world.md §1, *The station as built*: mined at 400 m, the family's fabric
+from the 80s under a refit. Seven more materials: shotcrete (`shot`), plasterboard (`board`, which looks as plaster
+does and knocks hollow), a coated slab (`epoxy`), sheet vinyl, carpet tile, terrazzo, limestone (`stone`). Their
+patterns: shotcrete lumpy at the rock's scale under the spray's grain, rock bolts every 1.5 m in staggered rows, their
+plates sprayed over (a raised square, the nut showing through), and under one in four on a wall a faint stain of rust
+(drawn plain and dark, with rust under every other one, they read as sockets leaking); a coated slab with saw cuts on 4 m bays and scuffs that take
+its shine; vinyl flecked, its welded seams a roll's width (2 m) apart; carpet tiles 500 mm, each a quarter turn from the
+next, the pile running across one and along the next; terrazzo's chips dark, pale and a few rust-red, an inch across so
+they read further off (they fade to their average where a pixel spans 12 to 40 mm, finer specks sooner), brass strips on
+1.5 m bays; limestone panels 1.2 by 0.6 m, coursed half a panel along, tight joints, bedding and pits. A pattern can now
+tint as well as shade (`surface`'s `tint`: rust, a chip, a strip). The wear's water run down a wall says what it left
+(`Look.salt`): on bare cement (poured or sprayed) white salts, on paint and tile the brown tide mark as before.
+
+The palettes (`content/build/fittings.ts`) say what rooms are made of: `UTIL` is dug (`DUG`: shotcrete walls and crown on
+a poured floor), and so are the bays, Cargo's tiers and the sump; Security's floors are coated; offices, the briefing
+room, the operations room and Cargo's control room and office are `OFF` (board, carpet, a suspended ceiling); `OPS`
+halls are terrazzo; medical floors vinyl; homes carpeted; the lobby, its gallery and the surface landing `FAM`
+(limestone, terrazzo, a plastered ceiling, a bronze band for the stripe). The Commons' utility rooms stand in its blocks,
+so are poured, not dug; its kitchen, canteen, laundry and gym are vinyl. Services hang under a sprayed crown as under a
+poured one. The 2 m checker the first engine drew on floors, walls and the painted sky is gone (it read as a
+checkerboard); each material draws its own joints, and a wall's or floor's faces merge whole. The start room is vinyl underfoot, so the first step sounds of it.
+
+Then, from play: the lobby's limestone, laid half a panel along as masonry is, read as brick, and the block's dark
+joints read as brickwork too. The stone is hung as cladding now (1.5 by 0.75 m, stacked joint over joint, hairline
+joints) to 4 m, plaster over it (`RoomMats.upper` above `datum`); the paint fills the block's joints, so its coursing shows
+faintly; the wing's two corridors are skim-coated (plaster over the block). The painted dado and stripe are drawn on
+painted block only, and nowhere else.
+
+**Step 5 (built): doors.** Every door was a 2 m steel slab rising into a steel-lined tunnel. Now the kit says what
+each is (`doorway` in `content/build/tiles.ts`, from the rooms either side; `DoorDef.look`): a shutter between two dug
+places or a dug place and a plain one, and anything jammed; else heavy if it is heavy; else by the grander side, the
+family's pair (`grand`) off limestone, a clinic's pair off glazed tile, an office door off board or carpet, painted
+steel otherwise. All but shutters, jammed doors, welded ones, the lift's and loose panels slide sideways (`slides`) into
+the end of the doorway that is rock (`side`; a door with no rock at either end rises). `doorBox` moves a sliding door
+along its length by its width; a pair of leaves both slide into the wall at the pocket, the far leaf all the way and the
+near one half (`Leaf.f` in `render/things.ts`), so they block exactly what one slab would and the sim is unchanged. The
+doorway is lined with the grander room's finish (block lined as plaster), never painted with a dado; a shutter's is
+the old bare steel. An architrave frames both faces (`FRAME`: bronze 16 cm for the family's, painted steel otherwise),
+a shutter runs in guides instead. Readers, keypads, a heavy door's lamp and the lockdown lamp are on the wall beside
+the door at its pocket side, so they stay when it slides. `test/doors.test.ts`: the looks land where meant, and on every
+level each sliding door's slab, open, is in rock.
+
+**Step 6 (built): partitions and glass.** Levels are laid out on 2 m tiles, so every wall was a tile of rock, 2 m
+thick: right where rooms were dug apart, wrong where a cavern was divided. `partition(D, x, y, w, h)` marks a run of
+wall tiles as built: each room either side reaches 0.75 m into the tile, leaving a wall 0.5 m thick (`THIN`; block and
+its finish, on the world's quarter-metre grid either side of the tile's middle), faced on each side with that room's
+own finish. A door in it has a doorway the wall's thickness (`DoorDef.depth`), its frame, sign, reader and lamps on the
+wall's faces; a window in it (a glass door, as before) is a pane between a sill and a head (`glaze`: `full` to the floor,
+`view` from 0.9 to 2.2 m, the default, or `high`, a clerestory from 2.2 to 2.8), framed to its size. The strips are
+`RoomDef.part`: too narrow for the nav graph to stand a spot in, one place with their room. Built: the infirmary's wall
+on the Security corridor (windows either side of its doors), the briefing room's vestibule and the duty office on
+their halls, and on the main level the tissue lab's glass wall onto the north grow gallery and a window from the
+director of research's office. Three new windows on the upper station renumber the doors after them, which the
+progression tests name; what they say is unchanged.
+
+**Step 7 (built): single doors are single doors.** A steel or office door's opening is 1.2 m (`NARROW`), set against
+the end of its 2 m tile where its pocket is, the rest of the tile wall: there the nav graph's spot in that half of the
+tile (0.5 m from the end, radius 0.3) stands clear, where a centred opening would leave the door no spot at all. Pairs,
+heavy doors, shutters and windows keep the whole 2 m. Its leaf, frame, sign, reader and lamps are drawn to its width
+(`doorLook` undoes the door frame's scaling for what is fixed). The thresher and the bloat use no doors (`noDoors`, as
+before); everything that does fits, a skitter, the widest, with 10 cm either side (`test/doors.test.ts`, which also
+checks that every door on every level still has a spot in it). The progression checker's answers are unchanged.
+
+**Step 8 (built): the rest of the glass.** Vision panels are holes in a door's leaf with glass in them, moving with it
+(`holed`, `Leaf.glass`, a see-through `dynamicMaterial`). Any prop made of glass is drawn see-through on its own
+(`glazing` in `render/things.ts`) and lets light through the light field; the court's balustrades, the checkpoint booth
+and the treatment bay were opaque boxes before. A walkway floored with terrazzo (the family's) gets glass balustrades in
+a bronze shoe with a bronze handrail, and its slab is the floor it says, not grating. A partition can face a tall room
+on a deck below (a hall a control room looks down into, or a cave), and a run of windows down a wall is laid as a wall.
+Built: Gen-1 control on the plant level, a storey up at the generator hall's west end, a stair to it beside the link
+and four panes of full-height glass onto the hall (`test/doors.test.ts` sees the hall through them); the arboretum's
+balcony on the main level, up a stair off the cross passage and along a passage in the rock to an archway; a clerestory
+along the top of the locker room's wall on the Security corridor. The progression tests find door numbers by the sign
+over the door, so windows added before a door no longer break them.
+
+Not done: decay (world.md, proposed); a bronze or brushed metal of its own (steel's pattern is riveted plate); glossy
+floors catching the tubes, which terrazzo and the coated floors now most want.
+
 **Next (proposed), in order:**
 
-1. **The look, further.** Glossy floors catching the ceiling's tubes; paint chipped to what is under it; the
-   tribes as finishes over a surface.
+1. **The look, further.** Glossy floors catching the ceiling's tubes; paint chipped to what is under it; the money
+   decaying once the dehumidifiers stop; the tribes as finishes over a surface.
 2. **The sound, further.** What a thing is built as, per thing rather than per material (a steel locker is hollow,
    a steel plate solid); weapons and items with materials of their own, so the striker is data and not a guess from
    the weapon; the thresher's charge into a wall; doors and the vent panel.
