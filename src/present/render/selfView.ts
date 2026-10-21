@@ -8,8 +8,8 @@ import { parts } from './things';
 /* You, drawn: a body under the eye, in the coverall your sleeve already shows (handsView.ts), so you see your legs and
    chest when you look down and a light lying about throws your shadow. Rough blocks, as the cast are.
    What the eye would only see the inside of, it is not shown: the head, and the arms (the hand in front of the camera is
-   handsView's). Those are on SHADOW_ONLY, which the beams' shadow cameras see and the eye does not, so your shadow
-   has a head and arms all the same.
+   handsView's). Those are on SHADOW_ONLY, which the shadow cameras of the beams lying about see and the eye does not, so
+   your shadow has a head and arms all the same. (Your own beam's leaves them out: its lens is in your hand.)
    The fittings over you throw it too, though the level's light is worked out once and nothing that moves stands in it:
    the body is handed to the level's shader as capsules (SELF in shader.ts), with the nearest lit fittings of the room
    you are in, and each takes back its share of the light where it falls.
