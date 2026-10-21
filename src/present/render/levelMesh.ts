@@ -19,7 +19,14 @@ import { TEMPLATES } from './templates';
    colours here change (LevelMesh.relight).
 
    Each vertex also carries what it is made of (content/materials.ts, numbered by matId), and the floor and ceiling
-   heights of its room, for the shader to draw the material and its wear from. */
+   heights of its room, for the shader to draw the material and its wear from.
+
+   It is drawn in pieces, each the faces whose middles fall in one block of space (PIECE): what is out of view, or out of
+   a beam's view for its shadow, is not drawn at all. (As one mesh, all of the level went through every shadow map
+   every frame.) What they hide is not lit for nothing: their depth is drawn first (post.ts). */
+
+/** the blocks of space the mesh is drawn in (m): across, and up. A few hundred for the upper station */
+const PIECE = { across: 16, up: 8 };
 
 /** a vertex's light: which room it is in (for its fitting's colour), and how much it takes; and what it is made of */
 interface Src { room: number; m: number; mat: number }
@@ -52,26 +59,27 @@ class Out {
   get count(): number { return this.P.length / 3; }
 }
 
-/** the level's mesh, and how to show the power in its fittings again. Its services (pipes and trays under bare
- *  ceilings) are a geometry of their own, shown only with surface detail on */
+/** the level's mesh, in pieces (PIECE), and how to show the power in its fittings again. Its services (pipes and trays
+ *  under bare ceilings) are pieces of their own, shown only with surface detail on */
 export class LevelMesh {
-  readonly geometry = new THREE.BufferGeometry();
-  readonly services: THREE.BufferGeometry | null;
-  private col: Float32Array;
+  readonly pieces: THREE.BufferGeometry[];
+  readonly services: THREE.BufferGeometry[];
+  /** for each vertex as built: the piece it went to, and its place there */
+  private piece: Int32Array;
+  private at: Int32Array;
+  /** each piece's colours, and which have changed since they were last sent */
+  private cols: Float32Array[];
+  private touched = new Set<number>();
   constructor(private o: Out, extra: Out) {
-    this.services = extra.count ? plain(extra) : null;
-    this.col = new Float32Array(o.C);
-    const light = new Float32Array(o.m);
-    this.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(o.P), 3));
-    this.geometry.setAttribute('aCol', new THREE.BufferAttribute(this.col, 3));
-    this.geometry.setAttribute('aLight', new THREE.BufferAttribute(light, 1));
-    this.geometry.setAttribute('aMat', new THREE.BufferAttribute(new Float32Array(o.M), 1));
-    this.geometry.setAttribute('aRoomY', new THREE.BufferAttribute(new Float32Array(o.RY), 2));
+    const own = cut(o);
+    this.pieces = own.geometries; this.piece = own.piece; this.at = own.at;
+    this.cols = this.pieces.map(g => g.getAttribute('aCol').array as Float32Array);
+    this.services = cut(extra).geometries;
   }
   /** every fitting's colour under this lighting */
   relight(L: Lighting): void {
     for (const [first, count, pw, circuit] of this.o.pw) this.fitting(L, first, count, pw, circuit);
-    this.geometry.getAttribute('aCol').needsUpdate = true;
+    this.send();
   }
 
   /** only these rooms' fittings: a light coming on room by room (present/cascade.ts) */
@@ -82,26 +90,55 @@ export class LevelMesh {
       o.pw.forEach((f, k) => { const r = o.room[f[0]]; let a = this.pwByRoom!.get(r); if (!a) this.pwByRoom!.set(r, (a = [])); a.push(k); });
     }
     for (const r of rooms) for (const k of this.pwByRoom.get(r) ?? []) { const [first, count, pw, circuit] = o.pw[k]; this.fitting(L, first, count, pw, circuit); }
-    this.geometry.getAttribute('aCol').needsUpdate = true;
+    this.send();
   }
 
   private pwByRoom: Map<number, number[]> | null = null;
 
   private fitting(L: Lighting, first: number, count: number, pw: [Colour, Colour], circuit: string): void {
     const c = L.fittingIn(pw, circuit, this.o.room[first]);
-    for (let i = first; i < first + count; i++) this.col.set(c, i * 3);
+    for (let i = first; i < first + count; i++) {
+      const p = this.piece[i];
+      this.cols[p].set(c, this.at[i] * 3);
+      this.touched.add(p);
+    }
+  }
+
+  /** the pieces whose colours changed, to the card */
+  private send(): void {
+    for (const p of this.touched) this.pieces[p].getAttribute('aCol').needsUpdate = true;
+    this.touched.clear();
   }
 }
 
-/** a geometry of fixed things whose colour never changes */
-function plain(o: Out): THREE.BufferGeometry {
-  const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(o.P), 3));
-  g.setAttribute('aCol', new THREE.BufferAttribute(new Float32Array(o.C), 3));
-  g.setAttribute('aLight', new THREE.BufferAttribute(new Float32Array(o.m), 1));
-  g.setAttribute('aMat', new THREE.BufferAttribute(new Float32Array(o.M), 1));
-  g.setAttribute('aRoomY', new THREE.BufferAttribute(new Float32Array(o.RY), 2));
-  return g;
+/** the mesh cut into pieces, each the triangles whose middles are in one block of space (PIECE), in the order they were
+ *  built; and where each vertex went */
+function cut(o: Out): { geometries: THREE.BufferGeometry[]; piece: Int32Array; at: Int32Array } {
+  const n = o.count, P = o.P, piece = new Int32Array(n), at = new Int32Array(n), byBlock = new Map<number, number>(), counts: number[] = [];
+  for (let v = 0; v < n; v += 3) {
+    const x = (P[v * 3] + P[v * 3 + 3] + P[v * 3 + 6]) / 3, y = (P[v * 3 + 1] + P[v * 3 + 4] + P[v * 3 + 7]) / 3, z = (P[v * 3 + 2] + P[v * 3 + 5] + P[v * 3 + 8]) / 3;
+    const key = ((Math.floor(x / PIECE.across) + 512) * 1024 + (Math.floor(y / PIECE.up) + 512)) * 1024 + (Math.floor(z / PIECE.across) + 512);
+    let p = byBlock.get(key);
+    if (p === undefined) byBlock.set(key, (p = counts.push(0) - 1));
+    for (let k = 0; k < 3; k++) { piece[v + k] = p; at[v + k] = counts[p]++; }
+  }
+  const arrays = counts.map(c => ({ P: new Float32Array(c * 3), C: new Float32Array(c * 3), m: new Float32Array(c), M: new Float32Array(c), RY: new Float32Array(c * 2) }));
+  for (let v = 0; v < n; v++) {
+    const A = arrays[piece[v]], i = at[v];
+    for (let k = 0; k < 3; k++) { A.P[i * 3 + k] = P[v * 3 + k]; A.C[i * 3 + k] = o.C[v * 3 + k]; }
+    A.m[i] = o.m[v]; A.M[i] = o.M[v]; A.RY[i * 2] = o.RY[v * 2]; A.RY[i * 2 + 1] = o.RY[v * 2 + 1];
+  }
+  const geometries = arrays.map(A => {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(A.P, 3));
+    g.setAttribute('aCol', new THREE.BufferAttribute(A.C, 3));
+    g.setAttribute('aLight', new THREE.BufferAttribute(A.m, 1));
+    g.setAttribute('aMat', new THREE.BufferAttribute(A.M, 1));
+    g.setAttribute('aRoomY', new THREE.BufferAttribute(A.RY, 2));
+    g.computeBoundingSphere();
+    return g;
+  });
+  return { geometries, piece, at };
 }
 
 /** cut [lo, hi] at each of `at` that falls inside it */

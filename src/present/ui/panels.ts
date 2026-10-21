@@ -42,12 +42,18 @@ export class Panels {
       const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-f]');
       if (b && !b.disabled) { this.send({ type: 'lift', level: b.dataset.f! }); this.close(); }
     });
+    /* played by touch, there is no Esc or Tab: a button says it */
+    $('back').addEventListener('click', e => { e.stopPropagation(); if (this.open) this.close(); });
   }
+
+  /** played by touch (touch.ts): what is said is said for it */
+  touch = false;
 
   show(p: Panel): void {
     this.closeAll();
     this.open = p;
     $(p).classList.remove('hide');
+    document.body.classList.add('panelled');
     if (p === 'inv') { this.invHtml = ''; this.renderInv(); }
     if (document.pointerLockElement) document.exitPointerLock();
   }
@@ -58,6 +64,7 @@ export class Panels {
   }
   private closeAll(): void {
     for (const id of ['inv', 'note', 'pad', 'lift']) $(id).classList.add('hide');
+    document.body.classList.remove('panelled');
     this.open = null;
   }
 
@@ -75,7 +82,7 @@ export class Panels {
     if (t === this.promptText) return;
     this.promptText = t;
     const pr = $('prompt');
-    pr.innerHTML = t ? '<kbd>E</kbd>' : '';
+    pr.innerHTML = t ? (this.touch ? '<kbd>Use</kbd>' : '<kbd>E</kbd>') : '';
     if (t) pr.append(t);
   }
   status(g: Game, airFrac: number | null, crouch: boolean, hurtFx = 0): void {
@@ -111,7 +118,8 @@ export class Panels {
         '</button><button class="drop" data-pt="' + k + '">Put down</button></div>').join('') : '<p>None</p>') +
       '</section><section><h3>Worn</h3>' + worn + '</section><section><h3>Keys</h3><p>' + (keys.length ? keys.map(esc).join('<br>') : 'None') +
       '</p></section><section><h3>Papers</h3>' + (g.read.length ? g.read.map(k => '<button data-n="' + k + '">' + esc(g.notes[k].t) + '</button>').join('') : '<p>None</p>') +
-      '</section></div><p class="hint">Click an item to use it, put it on or take it in hand; click something worn to take it off. Tab closes.</p>';
+      '</section></div><p class="hint">' + (this.touch ? 'Tap an item to use it, put it on or take it in hand; tap something worn to take it off.'
+        : 'Click an item to use it, put it on or take it in hand; click something worn to take it off. Tab closes.') + '</p>';
     /* drawn again only when it changes: drawn every frame, a button pressed for longer than a frame was gone before the
        press ended, and the click never landed */
     if (h === this.invHtml) return;
@@ -120,7 +128,7 @@ export class Panels {
   }
   showNote(g: Game, key: string): void {
     const n = g.notes[key], art = $('notet');
-    art.innerHTML = '<h2></h2><div></div><footer>E to put it down</footer>';
+    art.innerHTML = '<h2></h2><div></div><footer>' + (this.touch ? 'Tap' : 'E') + ' to put it down</footer>';
     art.firstElementChild!.textContent = n.t;
     art.children[1].textContent = n.b;
     this.show('note');
@@ -137,7 +145,7 @@ export class Panels {
   showLift(levels: { id: string; name: string; here: boolean }[]): void {
     let h = '<h2>Lift <span>Gen-1 running</span></h2>';
     for (const l of levels) h += '<button data-f="' + l.id + '"' + (l.here ? ' disabled' : '') + '>' + esc(l.name) + '</button>';
-    $('liftb').innerHTML = h + '<p class="hint">Esc steps back.</p>';
+    $('liftb').innerHTML = h + (this.touch ? '' : '<p class="hint">Esc steps back.</p>');
     this.show('lift');
   }
   showEnd(g: Game, win: boolean, msg: string): void {

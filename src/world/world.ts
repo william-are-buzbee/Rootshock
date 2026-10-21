@@ -279,6 +279,12 @@ export class World {
     return Math.min(1, best);
   }
 
+  /** whether a straight line from a to b is clear of the grid (rock, walls, blocks), whatever moves or stands on it: a
+   *  quick, generous line of sight, for what only needs to know it might be seen (the renderer's) */
+  gridClear(ax: number, ay: number, az: number, bx: number, by: number, bz: number): boolean {
+    return this.gridRay(ax, ay, az, bx - ax, by - ay, bz - az) >= 1;
+  }
+
   /** the grid, cell by cell along the line (Amanatides and Woo) */
   private gridRay(ax: number, ay: number, az: number, dx: number, dy: number, dz: number): number {
     const g = this.grid, p = [ax / CELL, ay / CELL, az / CELL], d = [dx / CELL, dy / CELL, dz / CELL];

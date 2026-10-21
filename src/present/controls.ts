@@ -2,8 +2,9 @@ import { noInput, type Input } from '../sim/input';
 
 const SENS = 0.0022;
 
-/** Keys and mouse in, one Input per sim step out. Presses are held until a step takes them; mouse movement is
- *  added up until a step takes it, and until then the camera shows it anyway (pending), so looking never lags. */
+/** Keys and mouse in (or touch: touch.ts), one Input per sim step out. Presses are held until a step takes them; mouse
+ *  movement is added up until a step takes it, and until then the camera shows it anyway (pending), so looking never
+ *  lags. */
 export class Controls {
   private keys: Record<string, boolean> = {};
   private press = { jump: false, crouch: false, light: false, use: false };
@@ -23,6 +24,9 @@ export class Controls {
   /** a drag in progress (drag-look): how far, since when. A short still click is a click. */
   private drag: { moved: number; t: number } | null = null;
   enabled = false;
+  /** played by touch (touch.ts): no mouse to capture. What the stick and the buttons hold: how far forward and to the
+   *  side (-1 to 1), running, the hands, swimming up and down */
+  touch: { forward: number; strafe: number; run: boolean; attack: boolean; rise: boolean; sink: boolean } | null = null;
 
   constructor(private canvas: HTMLCanvasElement, private onUnlock: () => void, private onHint: (text: string) => void = () => {}) {
     window.addEventListener('keydown', e => {
@@ -71,7 +75,7 @@ export class Controls {
   }
 
   lock(): void {
-    if (this.dragLook) return;
+    if (this.dragLook || this.touch) return;
     try {
       const r = this.canvas.requestPointerLock() as unknown as Promise<void> | undefined;
       r?.catch?.(() => this.lockFail());
@@ -88,18 +92,32 @@ export class Controls {
     this.onHint('Mouse capture is unavailable here. Hold a mouse button and drag to look. Hold Q to load a swing.');
   }
 
+  /** touch: a press of one of these, as its key would be; the hands going down (a tap shorter than a step still counts) */
+  push(k: 'jump' | 'crouch' | 'light' | 'use' | 'attack'): void {
+    if (!this.enabled) return;
+    if (k === 'attack') this.clicked = true;
+    else this.press[k] = true;
+  }
+  /** touch: turn by this much (radians) */
+  look(yaw: number, pitch: number): void {
+    if (!this.enabled) return;
+    this.pending.yaw += yaw;
+    this.pending.pitch += pitch;
+  }
+
   /** the input for one sim step */
   take(): Input {
-    const k = this.keys, i = noInput();
+    const k = this.keys, i = noInput(), t = this.touch;
     if (!this.enabled) return i;
-    i.forward = (k.KeyW || k.ArrowUp ? 1 : 0) - (k.KeyS || k.ArrowDown ? 1 : 0);
-    i.strafe = (k.KeyD || k.ArrowRight ? 1 : 0) - (k.KeyA || k.ArrowLeft ? 1 : 0);
-    i.run = !!(k.ShiftLeft || k.ShiftRight);
+    const clamp = (v: number) => Math.max(-1, Math.min(1, v));
+    i.forward = clamp((k.KeyW || k.ArrowUp ? 1 : 0) - (k.KeyS || k.ArrowDown ? 1 : 0) + (t?.forward ?? 0));
+    i.strafe = clamp((k.KeyD || k.ArrowRight ? 1 : 0) - (k.KeyA || k.ArrowLeft ? 1 : 0) + (t?.strafe ?? 0));
+    i.run = !!(k.ShiftLeft || k.ShiftRight || t?.run);
     i.yaw = this.pending.yaw; i.pitch = this.pending.pitch;
     this.pending.yaw = 0; this.pending.pitch = 0;
     i.jump = this.press.jump; i.crouch = this.press.crouch; i.light = this.press.light; i.use = this.press.use;
-    i.rise = !!k.Space; i.sink = !!k.KeyC;
-    i.attack = this.mouse || this.clicked || this.q;
+    i.rise = !!(k.Space || t?.rise); i.sink = !!(k.KeyC || t?.sink);
+    i.attack = this.mouse || this.clicked || this.q || !!t?.attack;
     this.clicked = false;
     this.press = { jump: false, crouch: false, light: false, use: false };
     return i;

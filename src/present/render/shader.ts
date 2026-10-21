@@ -52,9 +52,16 @@ const MAT_IDS = new Map<Mat, number>(MAT_ORDER.map((m, k) => [m, k + 1]));
 export const matId = (m?: Mat): number => (m ? MAT_IDS.get(m)! : 0);
 const P = (p: Pattern) => PATTERNS.indexOf(p);
 
+/** every material's look, by number, written into the shader (a table sent as a uniform was sent, and checked, for every
+ *  draw): (gloss, tightness, metal, bump) and (pattern, wear, salt) */
+const look = (f: (L: (typeof MATS)[Mat]['look']) => number[]) =>
+  `vec4[${NM}](vec4(0.0), ${MAT_ORDER.map(m => `vec4(${f(MATS[m].look).map(x => x.toFixed(4)).join(', ')})`).join(', ')})`;
+const LOOK_A = look(L => [L.gloss, L.tight, L.metal, L.bump]), LOOK_B = look(L => [P(L.pattern), L.wear, L.salt, 0]);
+
 const VS = /* glsl */ `
 attribute vec3 aCol; attribute float aMat; attribute vec2 aRoomY;
-uniform vec4 uLookA[${NM}]; uniform vec4 uLookB[${NM}];
+const vec4 LOOK_A[${NM}] = ${LOOK_A};
+const vec4 LOOK_B[${NM}] = ${LOOK_B};
 #if defined(STATIC)
 attribute float aLight;
 #elif defined(BAKED)
@@ -65,7 +72,7 @@ uniform vec3 uLight;
 varying vec3 vW; varying vec3 vO; varying vec3 vC; varying vec3 vL; varying vec4 vLA; varying vec4 vLB; varying vec2 vRY;
 void main(){
   vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; vO = position; vC = aCol;
-  int k = int(aMat + 0.5); vLA = uLookA[k]; vLB = uLookB[k]; vRY = aRoomY;
+  int k = int(aMat + 0.5); vLA = LOOK_A[k]; vLB = LOOK_B[k]; vRY = aRoomY;
 #if defined(STATIC)
   vL = vec3(aLight, 0.0, 0.0);
 #elif defined(BAKED)
@@ -559,13 +566,6 @@ function noiseTexture(): THREE.DataTexture {
   return t;
 }
 
-/** every material's look, by number: (gloss, tightness, metal, bump) and (pattern, wear, salt) */
-const lookA = [new THREE.Vector4()], lookB = [new THREE.Vector4()];
-for (const m of MAT_ORDER) {
-  const L = MATS[m].look;
-  lookA.push(new THREE.Vector4(L.gloss, L.tight, L.metal, L.bump));
-  lookB.push(new THREE.Vector4(P(L.pattern), L.wear, L.salt, 0));
-}
 
 /** uniforms every material shares: the flashlight, the fog, time, the eye */
 export const U = {
@@ -612,8 +612,6 @@ export const U = {
   uLN: { value: new THREE.Vector3() },
   uLW: { value: 2048 },
   uNoise: { value: noiseTexture() },
-  uLookA: { value: lookA },
-  uLookB: { value: lookB },
 };
 
 /** what a vertex is made of, and its room's floor and ceiling, where its geometry does not say: nothing, and no room */
@@ -622,6 +620,18 @@ function material(o: THREE.ShaderMaterialParameters): THREE.ShaderMaterial {
   const m = new THREE.ShaderMaterial({ vertexShader: VS, fragmentShader: FS, side: THREE.DoubleSide, ...o });
   m.defaultAttributeValues = { ...m.defaultAttributeValues, ...DEFAULTS };
   return m;
+}
+
+/** what has its depth drawn before anything is lit (the level's pieces: post.ts), on this layer as well as the first */
+export const DEPTH_FIRST = 2;
+/** that depth: placed exactly as VS places it, and pushed back a hair, so the light pass, drawing only what is not
+ *  behind it, never loses the surface itself to rounding */
+export function depthFirstMaterial(): THREE.ShaderMaterial {
+  return new THREE.ShaderMaterial({
+    vertexShader: /* glsl */ `void main(){ vec4 w = modelMatrix * vec4(position, 1.0); gl_Position = projectionMatrix * viewMatrix * w; }`,
+    fragmentShader: /* glsl */ `void main(){ gl_FragColor = vec4(0.0); }`,
+    side: THREE.DoubleSide, colorWrite: false, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1,
+  });
 }
 
 /** the level's material: lit from the level's light field, each vertex saying how much of it it takes */

@@ -21,7 +21,8 @@ export class Feed {
   constructor(private canvas: HTMLCanvasElement) {
     this.none.textContent = 'NO SIGNAL';
     const hint = el('feedh');
-    hint.innerHTML = '<kbd>A</kbd><kbd>D</kbd> camera &nbsp; <kbd>E</kbd> stand up';
+    hint.innerHTML = '<span class="keysonly"><kbd>A</kbd><kbd>D</kbd> camera &nbsp; <kbd>E</kbd> stand up</span>' +
+      '<span class="touchonly">Stick left or right: camera &nbsp; <kbd>Use</kbd> stand up</span>';
     this.root.append(this.name, this.clock, this.none, hint);
     document.body.append(this.root);
   }

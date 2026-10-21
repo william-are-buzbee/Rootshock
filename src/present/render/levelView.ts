@@ -5,7 +5,7 @@ import { CastView } from './castView';
 import { buildLevelMesh, type LevelMesh } from './levelMesh';
 import { LightVolume } from './lightVolume';
 import { Overlay } from './overlay';
-import { U, staticMaterial } from './shader';
+import { DEPTH_FIRST, U, staticMaterial } from './shader';
 import { Things } from './things';
 
 /* One level, drawn: its mesh, what moves in it, its cast, all in one group. Kept once made, so going back to a level is
@@ -24,15 +24,17 @@ export class LevelView {
     const t0 = performance.now();
     this.mesh = buildLevelMesh(sim.world, L);
     this.volume = new LightVolume(L);
-    const m = new THREE.Mesh(this.mesh.geometry, staticMaterial());
-    m.frustumCulled = false;
-    this.group.add(m);
-    if (this.mesh.services) {
-      this.services = new THREE.Mesh(this.mesh.services, staticMaterial());
-      this.services.frustumCulled = false;
-      this.services.visible = U.uDetail.value > 0.5;
-      this.group.add(this.services);
-    }
+    /* its pieces, on one material (levelMesh.ts), their depth drawn first (post.ts) */
+    const mat = staticMaterial(), piece = (g: THREE.BufferGeometry, to: THREE.Object3D) => {
+      const m = new THREE.Mesh(g, mat);
+      m.matrixAutoUpdate = false;
+      m.layers.enable(DEPTH_FIRST);
+      to.add(m);
+    };
+    for (const g of this.mesh.pieces) piece(g, this.group);
+    this.services.visible = U.uDetail.value > 0.5;
+    for (const g of this.mesh.services) piece(g, this.services);
+    this.group.add(this.services);
     this.meshMs = performance.now() - t0;
     this.things = new Things(this.group, sim, L);
     this.cast = new CastView(this.group, sim, L);
@@ -40,9 +42,13 @@ export class LevelView {
   }
 
   /** the pipes and trays under its bare ceilings, which go with surface detail */
-  private services: THREE.Mesh | null = null;
+  private services = new THREE.Group();
   showDetail(on: boolean): void {
-    if (this.services) this.services.visible = on;
+    this.services.visible = on;
+  }
+  /** how many pieces its mesh is drawn in, for the dev readout */
+  get pieces(): number {
+    return this.mesh.pieces.length + this.mesh.services.length;
   }
 
   /** this is the level being drawn: the shader reads its light */
@@ -68,9 +74,9 @@ export class LevelView {
     this.volume.sync(L);
   }
 
-  update(alpha: number): void {
+  update(alpha: number, eye: THREE.Camera): void {
     this.things.update();
-    this.cast.update(alpha);
+    this.cast.update(alpha, eye);
     this.overlay?.update();
   }
 }

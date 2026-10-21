@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { U } from './shader';
+import { DEPTH_FIRST, U, depthFirstMaterial } from './shader';
 
 /* The picture, made from the scene once it is drawn. The scene is drawn into a target that holds light as it is, past
    white where it is brighter than that (a tube, the beam's hot centre close up), not clipped to what a screen can show;
@@ -15,6 +15,10 @@ import { U } from './shader';
    The tone curve: under TONE.knee everything is as it was (LIFT: the mid-tones lifted, black left black); over it the
    light is rolled off toward white, keeping its colour, instead of clipped, so the beam's hot centre has a shape and not
    a flat edge. Very bright light whitens (TONE.white), as it does in the eye.
+
+   Before the scene is lit, the depth of the level's pieces is drawn into the target alone (DEPTH_FIRST), so the light
+   pass shades only the surface in front at each pixel: drawn as they come, the walls of the rooms behind a wall and the
+   floor under a stair were lit and then covered, 1.1 to 3.5 times over at a pixel in the upper station.
 
    The dark is grained here, most where it is darkest, over everything drawn. A card that cannot draw into a target that
    holds more than white draws into one that cannot: the game still plays, but with nothing over white the glow and the
@@ -163,12 +167,19 @@ export class Post {
     this.renderer.render(this.stage, this.cam);
   }
 
+  private depthFirst = depthFirstMaterial();
+
   /** draw the scene, and the picture from it */
   render(scene: THREE.Scene, camera: THREE.Camera): void {
-    const r = this.renderer, was = r.autoClear;
+    const r = this.renderer, was = r.autoClear, layers = camera.layers.mask, over = scene.overrideMaterial;
     r.setRenderTarget(this.scene);
+    camera.layers.set(DEPTH_FIRST);
+    scene.overrideMaterial = this.depthFirst;
     r.render(scene, camera);
+    scene.overrideMaterial = over;
+    camera.layers.mask = layers;
     r.autoClear = false;
+    r.render(scene, camera);
     const S = this.steps;
     this.draw(this.first, S[0], this.scene);
     for (let k = 1; k < S.length; k++) this.draw(this.down, S[k], S[k - 1]);

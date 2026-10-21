@@ -16,10 +16,14 @@ npm install        # once, and whenever package.json changes
 npm run dev        # serves the game at http://localhost:5173 and reloads on every save
 ```
 
+On a phone or a tablet it plays by touch, on its side (a stick under the left thumb, look with the right; engine.md §11,
+*Touch*). `?fps` shows the frame rate and how much of the screen's resolution is being drawn (it steps down when the
+GPU cannot keep up, and back up when it can).
+
 Open `http://localhost:5173/?dev` for the position readout and `window.rs.sim` in the browser console. The readout also says
 where each frame goes, in ms as the mean and worst of the last half second: the sim's steps, the cast put where the sim
 has them, the rest of the page, and handing the frame to the GPU; with the draw calls and triangles that made, and how
-many loose bodies are awake. The GPU's own time is not counted: a low fps with little of the frame spent here is the GPU. Dev keys: V fly,
+many loose bodies are awake, and the share of the screen drawn. The GPU's own time is not counted: a low fps with little of the frame spent here is the GPU. Dev keys: V fly,
 G god, B bright, O draws every collider (and each body's poise, velocity and state, and your swing's path), P the
 tracker (what the progression checker says you can reach from where you stand).
 
