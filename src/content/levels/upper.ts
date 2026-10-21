@@ -421,16 +421,19 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
      the nurses' station's balcony, looking down into the suite, and stays until something draws it (the opening: the
      other patient at the glass). Then, the one night it does so, down into the suite, at a purposeful walk: the other
      patient's door at the stair's foot, which its card opens, and the other patient, struck down where they hide and
-     dragged by an ankle from then on; rooms 3 and 4, and yours, opened and swept with its beam; and back up and out, where
-     what it drags is gone. After that its round is the wing, which is dark, and it walks it anyway, by its beam: along
+     dragged out by an ankle into the hall, in sight of your window, and grafted there, and left; rooms 4 and 3 opened
+     and searched, walked into and looked right round (not the washrooms); a while at your door before it opens it, and
+     yours searched; and back up and out. After that its round is the wing, which is dark, and it walks it anyway, by its beam: along
      the corridor to the briefing room's reader and the cut, back past the nurses' station, and out round the lobby. Last
      of the cast but one, so the rest keep their places in it */
   const once = { need: 'ISO', once: true }, quick = { ...once, pace: 1.4 };
   mut(D, 'nightround', 30.5, 10.3, { yaw: PI, round: [
     { D, x: 30.5, z: 10.3, wait: 600, ...once }, { D: B, x: 31.6, z: 3.0, wait: 0.3, ...quick }, { D: B, x: 32.4, z: 3.5, tries: 1, ...quick },
-    { D: B, x: 34.7, z: 4.0, wait: 1.5, take: true, ...quick }, { D: B, x: 32.3, z: 3.0, wait: 0.2, ...quick },
-    { D: B, x: 29.5, z: 4.4, tries: 1, look: 1.6, ...quick }, { D: B, x: 26.5, z: 4.4, tries: 1, look: 1.6, ...quick },
-    { D: B, x: 26.0, z: 5.5, tries: 1, look: 3, ...quick }, { D, x: 31.5, z: 10.2, wait: 0.2, ...quick }, { D, x: 28.5, z: 13.6, wait: 0.5, drop: true, ...quick },
+    { D: B, x: 34.7, z: 4.0, wait: 1.2, take: true, ...quick }, { D: B, x: 32.3, z: 3.0, wait: 0.2, ...quick }, { D: B, x: 29.4, z: 5.4, graft: true, ...quick },
+    { D: B, x: 29.5, z: 4.4, tries: 1, look: 0.5, ...quick }, { D: B, x: 30.0, z: 2.0, wait: 2.2, about: true, ...quick },
+    { D: B, x: 26.5, z: 4.4, tries: 1, look: 0.5, ...quick }, { D: B, x: 27.0, z: 2.0, wait: 2.2, about: true, ...quick },
+    { D: B, x: 26.0, z: 5.5, wait: 3, tries: 1, look: 0.5, ...quick }, { D: B, x: 23.6, z: 4.4, wait: 3, about: true, ...quick },
+    { D, x: 31.5, z: 10.2, wait: 0.2, ...quick }, { D, x: 28.5, z: 13.6, wait: 0.5, ...quick },
     { D, x: 36.5, z: 13.6, tries: 1 }, { D, x: 37.2, z: 14.4, wait: 4 }, { D, x: 28.5, z: 13.4, wait: 3 },
     { D, x: 18.5, z: 11.5, wait: 2 }, { D, x: 13, z: 6.5, wait: 4 }, { D, x: 16.5, z: 3, wait: 3 }, { D, x: 22, z: 14.5, wait: 2 },
   ] });

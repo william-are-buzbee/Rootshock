@@ -670,7 +670,8 @@ before the game to its first minutes.~~ Superseded by the third pass (below): th
 the first minutes is the suite's own backup set.
 
 **Built** (`sim/opening.ts` times it; the rest is the station's own rules). A new game only: `?level=` starts the level as the
-opening leaves it. Third pass, after playing the second: the whole of it in the dark, and being found is the end.
+opening leaves it. Third pass, after playing the second: the whole of it in the dark, and being found is the end. Fourth,
+after playing the third: the other patient is grafted where you can see it, and left there; the rooms are searched.
 - *The power.* The wing's feed was cut days ago (the guard by the cut is days dead; the note: *we cut it to blind the
   cameras. Holding has its own set. Nobody is going down there to see how long it lasts.*). The suite runs on its own small
   backup set (`ISO`), kept for its locks, its readers and its pumps, and failing: its fittings low and stuttering. The wing
@@ -687,17 +688,29 @@ opening leaves it. Third pass, after playing the second: the whole of it in the 
   and crouch under their window. What to fear, and what to do, shown without a word.
 - *The night round* comes down (sound before sight: four and a half seconds with its beam on the hall first) and goes
   through the suite on stops it keeps only that night. Its card opens their door: green. It strikes them twice where they
-  crouch (they bleed there: the pool stays), and at its touch they go slack (alive: Pia's touch, §2); it drags them by an
-  ankle from then on. Rooms 3, 4 and yours: green, the door open, and its beam swept about the room from the doorway.
-- *Whoever its beam finds, it takes.* Seen (in your room, at your glass on its way past), it comes through your door and
-  takes you by the ankle: the game is over. In your washroom with the door slid shut, crouched under your window, or
-  against the wall beside your door, its beam misses you (tested). The rest of the game it fights as the others do; only
-  in the opening, weak and empty-handed, are you simply taken.
+  crouch, each blow heard, and they are out cold (alive: Pia's touch, §2), their blood pooling under the window. It drags
+  them out by an ankle into the hall, heavy, streaked in it, leaving a smear, to a spot in plain sight of your window.
+- *The graft.* It lets go, kneels over the body, its beam down on it, and works the leaf into the left forearm for six
+  seconds: the body jerking under it, a long wet tearing and a scream that keeps being choked off, the suite's lights
+  stuttering all but out (`stutters`), the blood spreading round them. Then it stands, looks at its work, and leaves them
+  there, out cold in the pool, alive. They lie there the rest of the level (a game begun without the opening finds them
+  so: `leftGrafted`). *Open, for later:* left long enough (days, a week), they wake, changed, and are afraid of you.
+- *The search.* Rooms 4 and 3, each opened green and walked into, the beam looked right round. Then your door: it stands
+  at it a few seconds first, considering, before it opens it; and yours is searched the same way. Washrooms it does not
+  go into. It walks through the blood and leaves prints (`render/prints.ts`).
+- *Whoever it finds, it takes.* Seen, it comes through your door and takes you by the ankle: the game is over. The one
+  safe place is your washroom with its door slid shut (tested); crouched under your window, or against the wall by your
+  door, it finds you when it comes in. Watching the graft from a step back from your window is safe; still standing
+  there as it walks the hall toward you after, it sees you. The rest of the game it fights as the others do; only in the
+  opening, weak and empty-handed, are you simply taken.
 - *The release,* 10 s after it reaches the top of the stair: the set's hum runs down, every light out, your door's lock
   letting go in the dark; then the cells. The flashlight by the stair's foot lies off; you switch it on.
-- *About 85 seconds* from the other patient seeing you to the dark.
+- *About two minutes* from the other patient seeing you to the dark.
+- *Blood* is never square: pools and smears of the living are the sim's (`Sim.pools`), drawn as overlapping discs;
+  the level's own pools are discs too, and footprints are a sole and a heel.
 - *Earlier passes,* for the record: a first with clinical rooms and the cut timed into the opening; a second on the wing's
-  live feed, with a medical hold on your door that read red to the night round's card, and light switches.
+  live feed, with a medical hold on your door that read red to the night round's card, and light switches; a third in
+  which it dragged the other patient away out of the suite, and only swept the rooms from their doorways.
 
 **Cargo, made larger (agreed).** The best-looking place in the game, and too small for what it has to hold. An L, not an I: one
 arm the bay (Pia's eggs, the nest Security tends, porous and organic), the other the warehouse; at the corner a new lift

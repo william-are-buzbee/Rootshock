@@ -26,8 +26,9 @@ import { makeSim, type Sim, type SimOpts } from './sim';
  *  7: the night round, one more of the level's cast, on its round with its flashlight
  *  8: the opening (sim/opening.ts): the suite laid out again, the other patient one more of the cast
  *  9: the opening's second pass: the suite laid out again, and the night round's drag
- *  10: the opening in the dark: the suite on its own backup set, the light switches gone, and blood on the floor */
-export const SAVE_VERSION = 10;
+ *  10: the opening in the dark: the suite on its own backup set, the light switches gone, and blood on the floor
+ *  11: the graft: the other patient grafted and left out cold, and the smear of their dragging */
+export const SAVE_VERSION = 11;
 
 /** copy the named fields of an object */
 const pick = <T extends object, K extends keyof T>(o: T, keys: readonly K[]): Pick<T, K> => {
@@ -47,7 +48,7 @@ const PLATFORM = ['y', 'target', 'wait', 'moving', 'armed'] as const;
 const LOOSE = ['x', 'y', 'z', 'vx', 'vy', 'vz', 'awake', 'ground', 'still', 'woke'] as const;
 const MUTANT = ['x', 'y', 'z', 'px', 'py', 'pz', 'yaw', 'state', 'st', 'cd', 'stun', 'hp', 'post', 'wt', 'wm', 'wx', 'wz', 'tk',
   'lost', 'bt', 'burst', 'flee', 'ct', 'cdir', 'tgt', 'grab', 'tense', 'stk', 'fled', 'side', 'spot', 'mv',
-  'hit', 'poise', 'calm', 'reel', 'pat', 'down', 'rise', 'ph', 'dead', 'gone', 'away', 'dest', 'los', 'losAt', 'still', 'door', 'beat', 'lap', 'peered', 'torch', 'drag'] as const;
+  'hit', 'poise', 'calm', 'reel', 'pat', 'down', 'rise', 'ph', 'dead', 'gone', 'away', 'dest', 'los', 'losAt', 'still', 'door', 'beat', 'lap', 'peered', 'torch', 'drag', 'trail', 'graft', 'grafted'] as const;
 
 /** what a rider stands on, by the moving thing's id */
 const onId = (r: { on: { id: number } | null }) => r.on?.id ?? 0;

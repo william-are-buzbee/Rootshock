@@ -21,7 +21,7 @@ const RANGE: Record<string, number> = {
   door: 46, roar: 55, thud: 40, hstep: 18, moan: 28, tap: 24, skit: 24, slosh: 20, swing: 10, whiff: 14, heave: 20, rasp: 12, gust: 24, strike: 30, knock: 32, groan: 55, tick: 12, settle: 45, step: 30, rattle: 30,
   breath: 10, mutter: 20, click: 14, gurgle: 22, growl: 30, slither: 10, bubble: 12, creak: 12, drip: 30, scrape: 20, crate: 30,
   klaxon: 70, cam: 16, smash: 34, blow: 30, 'bolt-draw': 24, bolt: 26, 'bolt-free': 18,
-  bang: 40, taken: 40, pump: 14, static: 8, struck: 40, winddown: 45,
+  bang: 40, taken: 60, pump: 14, static: 8, struck: 60, graft: 70, winddown: 45,
   'die-husk': 40, 'die-skitter': 36, 'die-bloat': 46, 'die-thresher': 50, 'die-worm': 20, 'die-swimmer': 20, 'die-grabber': 24,
 };
 
@@ -439,15 +439,25 @@ export class Audio {
           break;
         case 'taken': {
           /* a cry, choked off into a long low moan as the touch takes it, and a body going down */
-          this.tn(560, 420, 0.4, 'sawtooth', 0.05 * v, 0, 0.02); this.nz(0.35, 0.05 * v, 1200, 'bandpass', 0, 3, 800, 0.02);
-          this.tn(300, 140, 1.6, 'sawtooth', 0.03 * v, 0.4, 0.2); this.nz(1.4, 0.03 * v, 500, 'bandpass', 0.4, 2, 250, 0.2);
-          this.tn(75, 40, 0.25, 'sine', 0.35 * v, 0.7); this.nz(0.2, 0.15 * v, 250, 'lowpass', 0.7);
+          this.tn(560, 420, 0.4, 'sawtooth', 0.12 * v, 0, 0.02); this.nz(0.35, 0.12 * v, 1200, 'bandpass', 0, 3, 800, 0.02);
+          this.tn(300, 140, 1.6, 'sawtooth', 0.07 * v, 0.4, 0.2); this.nz(1.4, 0.06 * v, 500, 'bandpass', 0.4, 2, 250, 0.2);
+          this.tn(75, 40, 0.25, 'sine', 0.6 * v, 0.7); this.nz(0.2, 0.3 * v, 250, 'lowpass', 0.7);
+          break;
+        }
+        case 'graft': {
+          /* the graft: something forced in wet, a long tearing under it, and a scream that the touch keeps choking down
+             and that keeps coming back up, for as long as it takes */
+          this.nz(5.5, 0.12 * v, 380, 'bandpass', 0, 3, 220, 0.4); this.nz(5.5, 0.05 * v, 1800, 'bandpass', 0.2, 6, 900, 0.5);
+          for (const [at, f] of [[0.15, 640], [1.6, 560], [2.9, 700], [4.3, 520]]) {
+            this.tn(f, f * 0.55, 0.9, 'sawtooth', 0.09 * v, at, 0.05); this.nz(0.8, 0.07 * v, f * 1.8, 'bandpass', at, 3, f, 0.05);
+          }
+          this.tn(70, 38, 0.3, 'sine', 0.5 * v, 0.05); this.nz(0.25, 0.3 * v, 300, 'lowpass', 0.05);
           break;
         }
         case 'struck':
-          /* a blow landing on someone: a dull, wet thud, and the breath knocked out of them */
-          this.nz(0.1, 0.55 * v, 220, 'lowpass'); this.tn(90, 45, 0.16, 'sine', 0.5 * v);
-          this.nz(0.3, 0.06 * v, 900, 'bandpass', 0.06, 2, 500, 0.05);
+          /* a blow landing on someone: a dull, wet thud, and a cry knocked out of them */
+          this.nz(0.12, 0.9 * v, 220, 'lowpass'); this.tn(90, 45, 0.18, 'sine', 0.8 * v);
+          this.tn(rnd(480, 560), 300, 0.35, 'sawtooth', 0.1 * v, 0.05, 0.02); this.nz(0.3, 0.1 * v, 1100, 'bandpass', 0.05, 2, 600, 0.05);
           break;
         case 'winddown':
           /* a backup set dying: its hum running down, a relay dropping out, and the hum gone */

@@ -72,10 +72,11 @@ export function medbed(D: Deck, x: number, z: number): void {
 }
 
 /* ---- what happened here */
+/** blood on the floor, `s` across: never square, a pool and what ran from it */
 export function blood(D: Deck, x: number, z: number, s: number): void {
-  bx(D, x, z, s, 0.01, s * rnd(0.6, 1), 0x3a0b0b, { y: 0.015, c: 0, ry: rnd(PI) });
+  P(D, 'cyl', x, z, s, 0.01, s * rnd(0.6, 1), 0x3a0b0b, { y: 0.015, c: 0, ry: rnd(PI) });
   stain(D, x, z, s * 0.5);
-  for (let k = 0; k < 3; k++) bx(D, x + rnd(-s, s) * 0.4, z + rnd(-s, s) * 0.4, s * rnd(0.15, 0.4), 0.01, s * rnd(0.15, 0.4), 0x450d0c, { y: 0.02, c: 0, ry: rnd(PI) });
+  for (let k = 0; k < 3; k++) P(D, 'cyl', x + rnd(-s, s) * 0.4, z + rnd(-s, s) * 0.4, s * rnd(0.15, 0.4), 0.01, s * rnd(0.15, 0.4), 0x450d0c, { y: 0.02 + k * 0.002, c: 0, ry: rnd(PI) });
 }
 export function gore(D: Deck, x: number, z: number, n: number): void {
   blood(D, x, z, 1.5);
