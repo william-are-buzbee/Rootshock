@@ -11,6 +11,11 @@ import { DOWN } from '../sim/moves';
 /** what sight goes through: bodies, and glass */
 const seeThrough = (d: Dyn) => d.kind === 'body' || !!d.glass;
 
+/** where the flashlight in your hand is aimed: at what you look at, as far off as the first thing along the view, no
+ *  nearer than `near` and no further than `far` (m), and how fast that eases (per second), so the beam does not jump
+ *  as the view crosses an edge */
+const AIM = { near: 1, far: 20, ease: 6 };
+
 /** where the player's body was at the start of the latest step, so the camera can draw between steps */
 export interface Prev { x: number; y: number; z: number }
 
@@ -31,6 +36,8 @@ export class CameraRig {
   private snap = true;
   private t = 0;
   private bounce = 0;
+  /** how far off the beam is aimed (AIM) */
+  private aim = AIM.far;
   /** jolts to the view, in radians (yaw, pitch, roll): put on at once, easing off */
   private jolt = { y: 0, p: 0, r: 0 };
   /** how far over you are (0 on your feet, 1 on the floor): quick to go, slower back up */
@@ -76,25 +83,33 @@ export class CameraRig {
     const J = this.jolt, ease = Math.exp(-dt * 9);
     J.y *= ease; J.p *= ease; J.r *= ease;
     cam.rotation.set(pitch + J.p + 0.3 * this.fall, yaw + J.y, J.r - 0.45 * h.side * this.fall);
-    /* the flashlight is in your hand: a little below the eye and to the right, so its light rakes across what is close */
-    U.uFlashPos.value.set(cam.position.x + Math.cos(yaw) * 0.22, cam.position.y - 0.3, cam.position.z - Math.sin(yaw) * 0.22);
+    /* the flashlight is in your left hand (what you swing is in your right): a little below the eye and to the left, so
+       its light rakes across what is close and what stands in it throws its shadow off to the right */
+    U.uFlashPos.value.set(cam.position.x - Math.cos(yaw) * 0.22, cam.position.y - 0.3, cam.position.z + Math.sin(yaw) * 0.22);
     /* the hand follows the eye a beat late (about 70 ms), wanders with the stride and, standing, with your breath */
     this.t += dt;
     const sway = Math.min(1, p.moved / STEP / 3), by = yaw + Math.sin(this.bob * 0.5) * 0.022 * sway + Math.sin(this.t * 0.7) * 0.004;
     const bp = pitch + (Math.abs(Math.cos(this.bob * 0.5)) - 0.6) * 0.03 * sway + Math.sin(this.t * 1.1) * 0.005;
     const bc = Math.cos(bp), want = { x: -Math.sin(by) * bc, y: Math.sin(bp), z: -Math.cos(by) * bc };
-    const B = this.beam, f = this.snap ? 1 : 1 - Math.exp(-dt * 14);
+    const B = this.beam, f = this.snap ? 1 : 1 - Math.exp(-dt * 14), snapped = this.snap;
     this.snap = false;
     B.x += (want.x - B.x) * f; B.y += (want.y - B.y) * f; B.z += (want.z - B.z) * f;
     const n = Math.hypot(B.x, B.y, B.z) || 1;
     B.x /= n; B.y /= n; B.z /= n;
-    U.uFlashDir.value.set(B.x, B.y, B.z);
     const g = sim.game, low = g.batt < 15 ? 0.6 : 1;
     U.uFlash.value = g.lightOn && g.light === 'flash' ? low : 0;
+    /* what the view meets along the beam's way, out to AIM.far */
+    const ex = x, ey = this.cy + this.eye, ez = z, F = AIM.far;
+    const met = U.uFlash.value > 0 ? sim.world.raycast(ex, ey, ez, ex + B.x * F, ey + B.y * F, ez + B.z * F, seeThrough) * F : F;
+    /* the beam, from the hand, at what you look at: it crosses the view where that is */
+    const to = Math.max(AIM.near, met), H = U.uFlashPos.value;
+    this.aim = snapped ? to : this.aim + (to - this.aim) * Math.min(1, dt * AIM.ease);
+    const ax = cam.position.x + B.x * this.aim - H.x, ay = cam.position.y + B.y * this.aim - H.y, az = cam.position.z + B.z * this.aim - H.z;
+    const an = Math.hypot(ax, ay, az) || 1;
+    U.uFlashDir.value.set(ax / an, ay / an, az / an);
     /* bounce: a wall close in front of the beam lights the space around you a little; far off, it gives nothing back */
-    const R = BOUNCE.reach, ex = x, ey = this.cy + this.eye, ez = z;
-    const hit = U.uFlash.value > 0 ? sim.world.raycast(ex, ey, ez, ex + B.x * R, ey + B.y * R, ez + B.z * R, seeThrough) : 1;
-    const bounce = hit < 1 ? (U.uFlash.value * BOUNCE.gain) / (1 + BOUNCE.hit * (hit * R) ** 2) : 0;
+    const hit = met / BOUNCE.reach;
+    const bounce = hit < 1 ? (U.uFlash.value * BOUNCE.gain) / (1 + BOUNCE.hit * (hit * BOUNCE.reach) ** 2) : 0;
     this.bounce += (bounce - this.bounce) * Math.min(1, dt * 10);
     U.uBounce.value = this.bounce;
     U.uLamp.value = sim.hands.muzzle > 0 ? 2.5 : g.lightOn && g.light === 'lantern' ? low : 0;

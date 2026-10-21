@@ -990,7 +990,15 @@ sequence of inputs. The door rules, the labels and the answers are the first eng
   `present/flicker.ts` when the tube is dimmed.
 - **Light and air** (since): the flashlight is held, not glued to the eye: the beam trails the view by about 70 ms and
   sways with your stride (`present/camera.ts`); its cone is a reflector's (a hot centre, a faint ring at its rim, a
-  wide dim spill); and a wall close in front of it throws a little light back around you (one ray a frame). The eye
+  wide dim spill); and a wall close in front of it throws a little light back around you (one ray a frame). It shines
+  from your left hand (what you swing is in your right), a little below and left of the eye, aimed at what you look
+  at: the beam crosses your line of sight where that meets the first thing along it (`AIM`, eased so it does not jump
+  across an edge). It has a shadow map of its own from the hand (`HELD` in `render/shader.ts`, `render/beams.ts`,
+  drawn each frame it is on), so what stands in it throws a shadow, off to the right of it, that slides as you sweep
+  the beam: a pillar's down the floor and the wall behind, a rail's posts across the steps below, your legs' on the
+  floor when you light your feet. Your head and arms are left out of it, the lens being in your hand. (Before, the
+  beam came from the eye, which needs no shadows, as what it lights is all you see; it read as a disc laid on the
+  world.) The eye
   adapts (`uExpo`): it opens slowly in the dark and narrows fast in light, so a room coming on glares; in a lit room it
   stays a little open, so light reads as light. The scene is drawn as light, not as a picture: every shader writes the
   light it sees, past white where it is brighter than that, into a target that keeps it (half floats, four samples a
@@ -1385,8 +1393,8 @@ coursed up from the floor, ceiling tiles on their T-bar grid, glazed tiles each 
 flags, riveted plate, a grating's bars with the dark between, rock in strata. Each pattern gives a shade, a height
 and a gloss; the height tips the surface's facing (bump mapping from screen derivatives), and lines are filtered
 over the pixel and fade to their average once finer than one. Fine detail fades out between 9 and 26 m. The
-flashlight still reaches what it reaches from your eye, but its facing and highlight are reckoned from your hand, a
-little below and right of the eye, so it rakes across the relief of what is close and raises a highlight; the level's
+flashlight's facing and highlight are reckoned from your hand, a little below and left of the eye (since, the beam
+itself too: §11), so it rakes across the relief of what is close and raises a highlight; the level's
 light favours a bump that faces up. Walls show wear: grime at
 their foot, in places brown streaks run down from the ceiling, blotches overhead; none on raw rock. Rooms under a
 bare concrete ceiling, 3 to 6 m high and at least 6 m long, get services along one long wall: a cable tray and two

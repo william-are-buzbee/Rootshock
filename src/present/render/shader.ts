@@ -12,9 +12,11 @@ import { MATS, MAT_ORDER, type Mat, type Pattern } from '../../content/materials
    Every light that is not the level's is drawn by LIGHTS below, in every shader that draws into the scene (motes,
    prints and drips too), from the numbers in world/light.ts, so a light is the same light wherever it falls and falls
    once. The flashlight is a reflector's beam: a hot centre, a faint bright ring at its rim, a wide dim spill; in your
-   hand it shines from your eye (so it needs no shadows: what it lights is what you see), and what it lights close by
-   throws some of it back around you (uBounce, measured by one ray a frame in camera.ts). Put down still on, it is the
-   same beam from its lens, with a shadow map of its own (beams.ts), and what it throws back is in the level's light.
+   hand it shines from your hand (uFlashPos, your left, a little below the eye), aimed at what you look at, with a
+   shadow map of its own (HELD, beams.ts), so what stands in it throws a shadow you can see, sliding as you sweep the
+   beam; and what it lights close by throws some of it back around you (uBounce, measured by one ray a frame in
+   camera.ts). Put down still on, it is the same beam from its lens, with a shadow map of its own, and what it throws
+   back is in the level's light.
    The level's light (world/lightField.ts, put on the card by lightVolume.ts) is blended from the 2³ points around a
    pixel, a little off the surface into the open, taking only those on its open side that open space joins to the
    nearest: so light falls off smoothly across a room and through a doorway, and none comes through a wall or a slab.
@@ -34,9 +36,9 @@ import { MATS, MAT_ORDER, type Mat, type Pattern } from '../../content/materials
    world, so a pattern runs on across faces, a moving thing's in its own frame, so a pushed crate's boards go with it.
    No textures but one of noise, made here. Each pattern gives a shade, a height and how glossy each part is (mortar is
    not, the block's paint is): the shade is the colour's, the height tips the surface's facing (bump, from how it
-   changes across the screen), and the gloss is the carried lights' highlight. The beam reaches what it reaches from
-   your eye, but its facing and highlight are reckoned from your hand, a little below and to the right of the eye
-   (uFlashPos), so the relief of what is close is raked by it. The fine detail fades with distance, where it would only
+   changes across the screen), and the gloss is the carried lights' highlight. The beam, its facing and its highlight
+   are reckoned from your hand, a little below and to the left of the eye (uFlashPos), so the relief of what is close is
+   raked by it. The fine detail fades with distance, where it would only
    shimmer. The level's walls also show wear: grime at their foot, water run down from the ceiling in places.
    All of it is surface detail, the player's to turn off (uDetail, setDetail): off, every surface is its flat colour
    and the beam's facing is reckoned from the eye, as it was before materials were drawn. */
@@ -94,28 +96,37 @@ const v3 = (c: readonly number[]) => `vec3(${c.map(f3).join(', ')})`;
 export const BEAMS = 2, SHADOW = 512;
 /** the shadow map's camera: wide enough for the whole spill, from just past the lens */
 export const SHADOW_CAM = { fov: 100, near: 0.05, far: 30 };
+/** the flashlight in your hand: its shadow map's size, finer than a beam lying about's, as it is the one you look along,
+ *  and its camera's width, just past the spill's (spot is nothing outside FLASH.spill[0]) */
+export const HELD = { size: 1024, fov: 86 };
 
 /** your body's shadow from the fittings over you: how many capsules make you, how many fittings throw it, how much
  *  darker than the field's own reckoning it is drawn (the field's fill, light from everywhere, is mostly the fittings'
  *  too: by the field's numbers alone a shadow between two fittings was barely there), and the darkest it gets */
 export const SELF = { caps: 5, fix: 2, dark: 1.6, most: 0.8 };
 
-/** the lights that are not the level's, for any shader. Yours: `held(p, facing)` (the flashlight, from your eye),
+/** the lights that are not the level's, for any shader. Yours: `held(p, facing)` (the flashlight, from your hand),
  *  `bounce(p)` (what it throws back around you), `lantern(p, facing)`, and `carried(p, facing)` for all three. Lying
  *  about: `lying(p, n)`, flashlights put down on, with their shadows (n the surface's normal toward the eye, or zero for a
  *  speck of dust, which faces every way). A lantern lying on is in the level's light, as is what a beam lying on throws
  *  back */
 export const LIGHTS = /* glsl */ `
-uniform vec3 uFlashDir; uniform float uFlash; uniform float uLamp; uniform float uBounce;
+uniform vec3 uFlashDir; uniform vec3 uFlashPos; uniform float uFlash; uniform float uLamp; uniform float uBounce;
 uniform vec4 uBeam[${BEAMS}]; uniform vec3 uBeamDir[${BEAMS}]; uniform mat4 uBeamM[${BEAMS}];
-uniform sampler2D uSh0; uniform sampler2D uSh1;
+uniform sampler2D uSh0; uniform sampler2D uSh1; uniform sampler2D uShH; uniform mat4 uHeldM;
 float spot(float ca){
   float rim = (ca - ${f3(FLASH.rim)}) / ${f3(FLASH.rimW)};
   return 0.65 * smoothstep(${f3(FLASH.hot[0])}, ${f3(FLASH.hot[1])}, ca) + 0.42 * smoothstep(${f3(FLASH.spill[0])}, ${f3(FLASH.spill[1])}, ca) + 0.12 * exp(-rim * rim);
 }
+float unshadowed(sampler2D sm, mat4 M, vec3 p, float px);
 vec3 held(vec3 p, float facing){
-  vec3 tc = cameraPosition - p; float d = length(tc);
-  return uFlash * spot(dot(-tc / max(d, 0.001), uFlashDir)) * facing * ${f3(FLASH.gain)} / (1.0 + ${f3(FLASH.fall)} * d * d) * ${v3(FLASH.colour)};
+  if (uFlash <= 0.0) return vec3(0.0);
+  vec3 v = p - uFlashPos; float d = length(v); vec3 L = v / max(d, 0.001);
+  float s = spot(dot(L, uFlashDir));
+  if (s <= 0.0) return vec3(0.0);
+  /* (looked up a little toward the hand, so a surface does not shadow itself) */
+  s *= unshadowed(uShH, uHeldM, p - L * 0.05, ${(1 / HELD.size).toFixed(7)});
+  return uFlash * s * facing * ${f3(FLASH.gain)} / (1.0 + ${f3(FLASH.fall)} * d * d) * ${v3(FLASH.colour)};
 }
 vec3 bounce(vec3 p){
   vec3 tc = cameraPosition - p;
@@ -126,8 +137,8 @@ vec3 lantern(vec3 p, float facing){
   return uLamp * facing * ${f3(LANTERN.gain)} / (1.0 + ${f3(LANTERN.fall)} * dot(tc, tc)) * ${v3(LANTERN.colour)};
 }
 vec3 carried(vec3 p, float facing){ return held(p, facing) + bounce(p) + lantern(p, facing); }
-/* how much of a beam's light reaches p, by its shadow map (3 by 3 taps, so the edge is soft) */
-float unshadowed(sampler2D sm, mat4 M, vec3 p){
+/* how much of a beam's light reaches p, by its shadow map (3 by 3 taps px apart, so the edge is soft) */
+float unshadowed(sampler2D sm, mat4 M, vec3 p, float px){
   vec4 c = M * vec4(p, 1.0);
   if (c.w <= ${f3(SHADOW_CAM.near)}) return 0.0;
   vec2 uv = c.xy / c.w * 0.5 + 0.5;
@@ -135,7 +146,7 @@ float unshadowed(sampler2D sm, mat4 M, vec3 p){
   float n = ${f3(SHADOW_CAM.near)}, f = ${f3(SHADOW_CAM.far)}, bias = 0.03 + 0.012 * c.w, lit = 0.0;
   for (int i = -1; i <= 1; i++)
     for (int j = -1; j <= 1; j++) {
-      float z = textureLod(sm, uv + vec2(float(i), float(j)) / ${SHADOW}.0, 0.0).r * 2.0 - 1.0;
+      float z = textureLod(sm, uv + vec2(float(i), float(j)) * px, 0.0).r * 2.0 - 1.0;
       lit += c.w <= 2.0 * n * f / (f + n - z * (f - n)) + bias ? 1.0 : 0.0;
     }
   return lit / 9.0;
@@ -147,8 +158,8 @@ vec3 beamOn(vec3 p, vec3 n, vec4 B, vec3 dir, float seen){
 }
 vec3 lying(vec3 p, vec3 n){
   vec3 q = p + n * 0.04, out3 = vec3(0.0);
-  if (uBeam[0].w > 0.0) out3 += beamOn(p, n, uBeam[0], uBeamDir[0], unshadowed(uSh0, uBeamM[0], q));
-  if (uBeam[1].w > 0.0) out3 += beamOn(p, n, uBeam[1], uBeamDir[1], unshadowed(uSh1, uBeamM[1], q));
+  if (uBeam[0].w > 0.0) out3 += beamOn(p, n, uBeam[0], uBeamDir[0], unshadowed(uSh0, uBeamM[0], q, ${(1 / SHADOW).toFixed(7)}));
+  if (uBeam[1].w > 0.0) out3 += beamOn(p, n, uBeam[1], uBeamDir[1], unshadowed(uSh1, uBeamM[1], q, ${(1 / SHADOW).toFixed(7)}));
   return out3;
 }`;
 
@@ -436,7 +447,7 @@ float selfShade(vec3 p, vec3 n){
 #endif
 ${LIGHTS}
 uniform float uFog; uniform float uWet;
-uniform float uFlick; uniform float uHit; uniform float uBright; uniform vec3 uFlashPos; uniform float uDetail;
+uniform float uFlick; uniform float uHit; uniform float uBright; uniform float uDetail;
 #if !defined(STATIC) && !defined(BAKED)
 uniform vec3 uLightF; uniform vec3 uLightD;
 #endif
@@ -559,7 +570,7 @@ for (const m of MAT_ORDER) {
 /** uniforms every material shares: the flashlight, the fog, time, the eye */
 export const U = {
   uFlashDir: { value: new THREE.Vector3(0, 0, -1) },
-  /** where the flashlight is held: a little below and right of the eye (camera.ts) */
+  /** where the flashlight is held: in your left hand, a little below the eye (camera.ts) */
   uFlashPos: { value: new THREE.Vector3() },
   /** 1 to draw what surfaces are made of, 0 for their flat colours (setDetail) */
   uDetail: { value: 1 },
@@ -581,6 +592,9 @@ export const U = {
   uBeamM: { value: Array.from({ length: BEAMS }, () => new THREE.Matrix4()) },
   uSh0: { value: null as THREE.Texture | null },
   uSh1: { value: null as THREE.Texture | null },
+  /** the flashlight in your hand: its shadow map, and from where it was taken (beams.ts) */
+  uShH: { value: null as THREE.Texture | null },
+  uHeldM: { value: new THREE.Matrix4() },
   /** your body, as capsules (a and its radius, b), the fittings that throw its shadow (where, and 1 if lit, 0 for
    *  none), and the room it falls in (selfView.ts) */
   uSelfA: { value: Array.from({ length: SELF.caps }, () => new THREE.Vector4()) },
@@ -630,8 +644,8 @@ export function dynamicMaterial(alpha?: number): THREE.ShaderMaterial {
 
 /** the uniforms LIGHTS reads, shared: for a material of its own that includes LIGHTS */
 export function lightUniforms() {
-  const { uFlashDir, uFlash, uLamp, uBounce, uBeam, uBeamDir, uBeamM, uSh0, uSh1 } = U;
-  return { uFlashDir, uFlash, uLamp, uBounce, uBeam, uBeamDir, uBeamM, uSh0, uSh1 };
+  const { uFlashDir, uFlashPos, uFlash, uLamp, uBounce, uBeam, uBeamDir, uBeamM, uSh0, uSh1, uShH, uHeldM } = U;
+  return { uFlashDir, uFlashPos, uFlash, uLamp, uBounce, uBeam, uBeamDir, uBeamM, uSh0, uSh1, uShH, uHeldM };
 }
 
 const NONE = [0, 0, 0];
