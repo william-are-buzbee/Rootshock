@@ -138,7 +138,8 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   const isoRoom = (k: number, x: number, y: number, east: boolean, card: string, c: string, win: number, dr: number) => {
     const dx = east ? x + 3 : x - 1, bed = east ? x + 0.4 : x + 2.6, pole = bed + (east ? 0.42 : -0.42);
     room(B, 'Isolation room ' + k, x, y, 3, 3, { ...ROOM, c });
-    partition(B, dx, y, 1, 3); door(B, dx, y + dr, { card, failsafe: true, sg: [['Isolation ' + k, east ? 'e' : 'w']] }); door(B, dx, y + win, { glass: true, glaze: 'obs' });
+    /* the door's lock on the wing's feed, not the room's light switch: only the feed dying lets it go */
+    partition(B, dx, y, 1, 3); door(B, dx, y + dr, { card, failsafe: true, c: 'SEC', sg: [['Isolation ' + k, east ? 'e' : 'w']] }); door(B, dx, y + win, { glass: true, glaze: 'obs' });
     medbed(B, bed, y + 1.5); bx(B, bed + (east ? 0.6 : -0.6), y + 0.45, 0.45, 0.5, 0.4, 0xb8bcc0);
     bx(B, pole, y + 0.85, 0.22, 0.17, 0.13, 0xd8dcd8, { y: 1.02, c: 0 }); // the pump on the pole, its screen lit while it has power
     bx(B, pole + (east ? 0.06 : -0.06), y + 0.85, 0.02, 0.07, 0.09, [0.05, 0.06, 0.05], { y: 1.08, c: 0, pw: [[0.05, 0.06, 0.05], [2.3, 2.55, 2.4]], pc: 'SEC' });
@@ -169,7 +170,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   /* rooms 3 and 4, made up and empty, along the north side of the hall, between you: their doors open to a guard's card */
   partition(B, 26, 3, 5, 1);
   for (const [k, x] of [[3, 26], [4, 29]] as const) {
-    room(B, 'Isolation room ' + k, x, 1, 2, 2, ROOM); door(B, x, 3, { card: 's', failsafe: true, sg: [['Isolation ' + k, 's']] });
+    room(B, 'Isolation room ' + k, x, 1, 2, 2, ROOM); door(B, x, 3, { card: 's', failsafe: true, c: 'SEC', sg: [['Isolation ' + k, 's']] });
     medbed(B, x + 1, 1.5); bx(B, x + 1.75, 2.6, 0.45, 0.5, 0.4, 0xb8bcc0);
   }
   /* the hall: a kitchenette under the balcony, a table, plants nobody watered */
