@@ -3,21 +3,21 @@ import { REEL } from './moves';
 import { gone, type Mutant } from './cast';
 import { say, sayOnce, sfx } from './game';
 import type { Input } from './input';
-import { eyeHeight } from './player';
 import type { Sim } from './sim';
 
 /* The opening (world.md §8, The opening): the first minutes of a new game, in the isolation suite. Most of it is the
    station working: the suite on its night setting, the night round on the balcony, the readers, the medical hold on your
    door, the fail-safe locks, the noise the other patient makes and the night round coming to it. What is kept here is
    only what has to be timed:
-   - wake: your pump's empty-bag alarm, and you weak from weeks under. When you first look out of your window (or, if you
-     do not, a little later) the other patient sees you, and starts on the glass;
+   - wake: your pump's empty-bag alarm, and you weak from days under. When you have stood at your door or window a few
+     seconds (or, if you do not, a while later) the other patient sees you, and starts on the glass;
    - scene: the night round comes down to the noise and goes through the suite (sim/cast.ts, its first time round);
-   - left: it has gone back up to the wing. A while on, the survivors cut the wing's feed to blind its cameras, and the
-     suite's fail-safe locks let go (sim/movers.ts, failSafe);
+   - left: it has gone back up to the wing. A few seconds on, the survivors cut the wing's feed to blind its cameras, and
+     the suite's fail-safe locks let go (sim/movers.ts, failSafe);
+   - black: everything out, a moment, before the suite's emergency cells come up (they wait to, as real ones do);
    - done. */
 
-export type Phase = 'wake' | 'scene' | 'left' | 'done';
+export type Phase = 'wake' | 'scene' | 'left' | 'black' | 'done';
 
 export interface Opening {
   phase: Phase;
@@ -26,46 +26,42 @@ export interface Opening {
   /** the pump still sounding, and seconds to its next round of notes */
   alarm: boolean;
   next: number;
-  /** seconds left of being weak from the weeks under */
+  /** seconds left of being weak from the days under; seconds you have stood at your door or window */
   weak: number;
+  near: number;
 }
 
-/** how long it waits for you to look out before the other patient sees you anyway (s); how long after the night round has
- *  gone before the cut; how long the night round may take about the suite before the cut comes regardless; how long you
- *  are weak, and how slow (your pace at the start, as a share); how often the pump goes round; and how near your window's
- *  middle you must be looking for it to count as looking out (a cosine) */
-export const OPENING = { wait: 30, cut: 30, late: 240, weak: 90, slow: 0.55, alarm: 2.2, look: 0.8 };
+/** how near your door or window counts as at it (m), and how long you stand there before the other patient sees you (s),
+ *  or how long it waits for you to before they do anyway; how long after the night round has gone before the cut; how
+ *  long the night round may take about the suite before the cut comes regardless; how long it is black before the cells
+ *  come up; how long you are weak, and how slow (your pace at the start, as a share); how often the pump goes round */
+export const OPENING = { near: 2.5, dwell: 3, wait: 60, cut: 10, late: 150, black: 2, weak: 90, slow: 0.55, alarm: 2.2 };
 
 const patients = (sim: Sim) => sim.cast.filter(m => m.ai === 'patient');
 const nightRound = (sim: Sim): Mutant | undefined => sim.cast.find(m => m.round && m.torch);
 
 /** a new game's start: the wing's feed whole (the survivors have not cut it yet) and the suite's fail-safe locks on */
 export function makeOpening(sim: Sim): Opening {
-  const C = sim.game.station?.circuits.SEC;
-  if (C) { C.broken = false; C.on = true; }
+  const C = sim.game.station?.circuits;
+  if (C?.SEC) { C.SEC.broken = false; C.SEC.on = true; }
   for (const d of sim.doors) if (d.def.failsafe) d.unlocked = false;
   sim.lighting = null;
-  return { phase: 'wake', t: 0, alarm: true, next: 0.6, weak: OPENING.weak };
+  return { phase: 'wake', t: 0, alarm: true, next: 0.6, weak: OPENING.weak, near: 0 };
 }
 
-/** a game that does not begin with the opening: the other patient long dead in their corner */
+/** a game that does not begin with the opening: the other patient taken already, gone where the night round took them */
 export function noOpening(sim: Sim): void {
-  for (const m of patients(sim)) gone(sim, m);
+  for (const m of patients(sim)) { gone(sim, m); m.away = true; m.rag = null; m.state = 'gone'; }
 }
 
 /** the pump on your pole (the level's use of kind 'pump') */
 const pumpAt = (sim: Sim) => sim.world.def.uses.find(u => u.kind === 'pump');
 
-/** you are looking out through your window: one of the panes near you, nearly straight ahead */
-function lookingOut(sim: Sim): boolean {
-  const p = sim.player, b = p.body, ey = b.y + eyeHeight(p), cp = Math.cos(p.pitch);
-  const fx = -Math.sin(p.yaw) * cp, fy = Math.sin(p.pitch), fz = -Math.cos(p.yaw) * cp;
-  return sim.doors.some(d => {
-    const D = d.def;
-    if (!D.glass) return false;
-    const dx = (D.x0 + D.x1) / 2 - b.x, dy = (D.y0 + D.y1) / 2 - ey, dz = (D.z0 + D.z1) / 2 - b.z, dd = Math.hypot(dx, dy, dz);
-    return dd < 5 && (dx * fx + dy * fy + dz * fz) / dd > OPENING.look;
-  });
+/** you are at your door or window: near one of them, of your own room */
+function atDoor(sim: Sim): boolean {
+  const b = sim.player.body, R = sim.world.roomAt(b.x, b.y + 0.5, b.z);
+  if (R?.name !== 'Isolation room 1') return false;
+  return sim.doors.some(d => (d.def.glass || d.def.failsafe) && Math.hypot((d.def.x0 + d.def.x1) / 2 - b.x, (d.def.z0 + d.def.z1) / 2 - b.z) < OPENING.near);
 }
 
 /** a step of it */
@@ -81,31 +77,43 @@ export function updateOpening(sim: Sim): void {
   O.t += STEP;
   switch (O.phase) {
     case 'wake':
-      if (!lookingOut(sim) && O.t < OPENING.wait) break;
+      O.near = atDoor(sim) ? O.near + STEP : 0;
+      if (O.near < OPENING.dwell && O.t < OPENING.wait) break;
       /* they see you awake, and start on the glass */
-      for (const m of patients(sim)) if (!m.dead && m.state === 'wait') { m.state = 'bang'; m.wt = 0.3; }
+      for (const m of patients(sim)) if (!m.dead && m.state === 'wait') { m.state = 'bang'; m.wt = 0.3; m.st = 0; m.tense = 0; }
       O.phase = 'scene'; O.t = 0;
       break;
     case 'scene': {
-      /* until the night round has been through the suite and gone back up: past the last of its first-time stops */
+      /* until the night round has been through the suite and gone back up: on its way to the last of its first-time stops,
+         out past the station, with what it drags */
       const m = nightRound(sim), R = m?.round;
-      const past = !m || m.dead || !R || m.lap > 0 || m.beat >= R.findIndex(s => !s.once);
+      const past = !m || m.dead || !R || m.lap > 0 || m.beat >= R.findIndex(s => !s.once) - 1;
       if (past || O.t > OPENING.late) { O.phase = 'left'; O.t = 0; }
       break;
     }
     case 'left':
       if (O.t < OPENING.cut) break;
       cut(sim);
+      O.phase = 'black'; O.t = 0;
+      break;
+    case 'black': {
+      /* the suite's emergency cells, on their delay: they stutter up (the tubes' starters), dim */
+      if (O.t < OPENING.black) break;
+      const C = g.station?.circuits.CELLS;
+      if (C && !C.back) { C.back = true; g.events.push({ type: 'power', loud: false, quiet: true }); if (P) sfx(g, 'strike', P); }
       O.phase = 'done'; O.t = 0;
       break;
+    }
   }
 }
 
-/** the survivors cut the wing's feed: heard far off, then every light on it dies (sim/sim.ts follows the power) */
+/** the survivors cut the wing's feed: heard far off, then every light on it dies, the suite's cells held off a moment
+ *  (sim/sim.ts follows the power) */
 function cut(sim: Sim): void {
-  const g = sim.game, C = g.station?.circuits.SEC;
+  const g = sim.game, C = g.station?.circuits.SEC, cells = g.station?.circuits.CELLS;
   if (!C || C.broken) return;
   C.broken = true;
+  if (cells) cells.back = false;
   g.events.push({ type: 'power', loud: false });
   const at = sim.world.def.uses.find(u => u.kind === 'panel' && u.opts.cut);
   if (at) sfx(g, 'clang', at);
@@ -116,10 +124,10 @@ export function silencePump(sim: Sim): void {
   const O = sim.opening;
   if (O) O.alarm = false;
   sfx(sim.game, 'take', pumpAt(sim));
-  say(sim.game, 'EMPTY BAG, the screen says, and the clock under it: 14 NOV, 03:12. The bag went up on the tenth.');
+  say(sim.game, 'EMPTY BAG, the screen says, and the clock under it: 14 NOV, 03:12. The bag went up on the eleventh.');
 }
 
-/** weak from the weeks under: your legs slow, and they will not run. Try, and they go from under you a moment */
+/** weak from the days under: your legs slow, and they will not run. Try, and they go from under you a moment */
 export function weakened(sim: Sim, input: Input): Input {
   const O = sim.opening;
   if (!O || O.weak <= 0) return input;
@@ -130,7 +138,7 @@ export function weakened(sim: Sim, input: Input): Input {
     h.stag = REEL.you;
     sfx(sim.game, 'reel');
     sim.game.events.push({ type: 'shake', k: 0.25 });
-    sayOnce(sim.game, 'weak', 'Your legs will not run. Not yet: weeks of lying still are in them.');
+    sayOnce(sim.game, 'weak', 'Your legs will not run. Not yet: days of lying still are in them.');
   }
   return { ...input, run: false };
 }

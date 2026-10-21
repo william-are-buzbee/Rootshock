@@ -105,6 +105,16 @@ the glass to look in when it cannot reach you (the 'peer' state, `PEER`, `reache
 stands). Save version 8. Tests: `test/opening.test.ts`. Found on the way: the operations room was a round's destination
 (lit, grown shut, reached only up the armed stair); it is `noroam` now.
 
+The opening's second pass, after the owner played it (world.md §8, *The opening*, **Built**): the suite laid out again
+(the hall 14 m wide; rooms 3 and 4, empty, in sight of your window); the trigger is standing at your door or window
+(`atDoor`, `OPENING.near`, `dwell`); the other patient warns you (states 'bang', 'warn', 'dark', 'hide' in `patient()`;
+`noiseAt` says when its noise has roused the night round, which looks toward it `ROUND.roused` before it comes); the
+night round touches them limp and drags them (`take`, `dragged`, `drop`, `Mutant.drag`; the loose body's `limp` and `pin`
+in `sim/ragdoll.ts`); green rooms are looked into (`RoundStop.look`), and the suite is walked faster (`RoundStop.pace`);
+the cut 10 s after it reaches the stair's top, then black for `OPENING.black` before the cells (their own supply,
+`CELLS`, watching `SEC`: `Batt`). Light switches: `use` of kind `switch`, on rooms' own circuits (`ISO1`, `ISO2`).
+The timeline is a week, not weeks (world.md §3), and Security fell to a late child of Pia (§2).
+
 **On the back burner** (the owner set Security aside here; pick these up with them, not unasked):
 - Step 7 above (the vaccinator, the big dark section, load on the backup set, Cargo as an L).
 - How you get into the operations room, which the camera wall waits on.

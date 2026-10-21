@@ -1,7 +1,7 @@
 import { PI, clamp, hex, scale3, type Colour } from '../../core/math';
 import type { Rng } from '../../core/rng';
 import { CAVERN, DOORWAY, FITTED, STREET, WALKWAY, type Mat, type RoomMats } from '../materials';
-import type { Aim, DoorLook, LadderDef, LitRule, Motes, Shape } from '../types';
+import type { Aim, Batt, DoorLook, LadderDef, LitRule, Motes, Shape } from '../types';
 import { LevelBuilder, type Palette } from './builder';
 
 /* The first engine's way of laying out a level, kept so its levels port nearly line for line.
@@ -23,8 +23,8 @@ export interface TRoomOpts {
   ht?: number;
   fl?: number; wl?: number; st?: number;
   lit?: LitRule; lc?: Colour; em?: number | boolean; c?: string; flick?: number | boolean;
-  /** emergency lights on their own cells: this colour when its circuit is dead (RoomDef.batt) */
-  batt?: Colour;
+  /** emergency lights on their own cells (RoomDef.batt) */
+  batt?: Batt;
   /** a walkway or rung over open air: a slab with rails at its open edges */
   open?: number | boolean;
   /** a hole in the deck for stairs ('st') or a platform ('el'): no floor */
@@ -51,7 +51,7 @@ export interface TRoomOpts {
 export interface TRoom {
   id: number; name: string; x: number; y: number; w: number; h: number;
   ht: number; dy: number; fl: number; wl: number; st: number;
-  lit: LitRule; lc: Colour; em: boolean; batt?: Colour; c: string; flick: boolean;
+  lit: LitRule; lc: Colour; em: boolean; batt?: Batt; c: string; flick: boolean;
   open: boolean; hole: string | null; cave: boolean; air: boolean; sky?: number; motes?: Motes; mat: RoomMats;
   nolamp: boolean; noroam: boolean; safe: boolean; armed: boolean; zone?: string;
   /** a cave of any outline (caveShape): its tiles are the deck's tiles marked with its id, and x, y, w, h bound them */
@@ -220,7 +220,7 @@ export function mut(D: Deck, type: string, x: number, z: number, o: Record<strin
 /** a place for one of the cast, in tiles on its deck, as an option to mut(): a stop on a guard's round (types.ts,
  *  RoundStop), given as `round`; a spot to hide in; or where it stands, if on another deck than the one it is listed on
  *  (`at`) */
-export interface TStop { D: Deck; x: number; z: number; wait?: number; tries?: number; need?: string; once?: boolean; take?: boolean }
+export interface TStop { D: Deck; x: number; z: number; wait?: number; tries?: number; look?: number; need?: string; once?: boolean; pace?: number; take?: boolean; drop?: boolean }
 export function use(D: Deck, kind: string, x: number, z: number, y: number, o: Record<string, unknown> = {}): void { D.uses.push({ kind, x, z, y, o }); }
 
 /* ---- terrain: values at tile corners. hf lifts a floor, cf a cave's ceiling */

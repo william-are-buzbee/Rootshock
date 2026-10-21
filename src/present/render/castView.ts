@@ -232,17 +232,23 @@ const ease = (t: number) => t * t * (3 - 2 * t);
 
 export const ANIM: Record<string, (m: Mutant, M: Model, c: Ctx) => void> = {
   /* the other patient: slumped at its window, a hand on the glass; banging on it, both fists, each blow landing as the sim
-     has it (m.wt, the time to the next); backed into its corner, down, its arms over its head */
+     has it (m.wt, the time to the next); still, to you, an arm out to its left and up at the balcony, looking from you to
+     it; crouched under its window, its arms over its head */
   patient(m, M) {
     const mv = m.mv > 0;
-    for (let k = 0; k < 2; k++) { M.legs[k].rotation.x = mv ? Math.sin(m.ph * 6 + k * PI) * 0.3 : 0; M.shins[k].rotation.x = 0; }
+    for (let k = 0; k < 2; k++) { M.legs[k].rotation.x = mv ? Math.sin(m.ph * 6 + k * PI) * 0.3 : 0; M.shins[k].rotation.x = 0; M.arms[k].rotation.z = 0; }
     M.hd.rotation.set(0, 0, 0);
     if (m.state === 'bang') {
       const q = ease(1 - Math.min(1, m.wt / 0.5));
       for (let k = 0; k < 2; k++) M.arms[k].rotation.x = -2.3 + q * 1.0 + k * 0.15;
       M.b.rotation.x = 0.05 + q * 0.12;
       M.hd.rotation.x = -0.1;
-    } else if (m.state === 'back') {
+    } else if (m.state === 'warn') {
+      M.b.rotation.x = 0;
+      M.arms[1].rotation.z = 2.3; M.arms[1].rotation.x = -0.35 + Math.sin(m.ph * 9) * 0.05; // out, up, and held there
+      M.arms[0].rotation.x = 0;
+      M.hd.rotation.y = Math.sin(m.ph * 2.2) > 0 ? 0.7 : 0; // from you to it, and back
+    } else if (m.state === 'hide') {
       M.b.rotation.x = 0.45;
       M.arms[0].rotation.x = M.arms[1].rotation.x = -2.6;
       M.hd.rotation.x = 0.5;
@@ -296,6 +302,8 @@ export const ANIM: Record<string, (m: Mutant, M: Model, c: Ctx) => void> = {
     M.hd.rotation.y = Math.sin(m.ph * 0.5) * 0.25;
     /* the flashlight held out along its beam, whatever the other arm is doing (sim/cast.ts, torchRay) */
     if (M.lens) M.arms[0].rotation.x = torchRay(c.sim, m).pitch - PI / 2;
+    /* dragging the other patient by an ankle: the other arm down and back, the hand low behind it */
+    if (m.drag >= 0) { M.arms[1].rotation.x = 0.6; M.arms[1].rotation.z = -0.15; }
   },
   skitter(m, M) {
     const mv = m.mv > 0, q = m.state === 'idle' ? 0.4 : 1;

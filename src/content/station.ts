@@ -28,6 +28,11 @@ export const STATION: StationDef = {
     OPS: { on: true, back: true, tag: 'upper station' },
     /* the Security wing hangs off Ops; the survivors cut its feed to blind the cameras on their side (world.md §8) */
     SEC: { on: true, back: false, broken: true, feed: 'OPS', tag: 'Security wing' },
+    /* the isolation suite's: rooms 1 and 2 on their own light switches, off the wing's feed; and the suite's emergency
+       cells, their own supply (sim/opening.ts holds them off a moment when the feed dies, as they wait to come up) */
+    ISO1: { on: true, back: false, feed: 'SEC', tag: 'Isolation room 1 lights' },
+    ISO2: { on: true, back: false, feed: 'SEC', tag: 'Isolation room 2 lights' },
+    CELLS: { on: true, back: true, tag: 'Isolation suite emergency cells' },
     /* the muster hall, in two branches off the electrical room's board: the hall, and its east bays with the stair up to
        the operations room */
     HALL: { on: true, back: false, feed: 'OPS', tag: 'Muster hall west' },

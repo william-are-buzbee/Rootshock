@@ -19,7 +19,8 @@ export type SimEvent =
   | { type: 'note'; key: string }
   | { type: 'pad' }
   | { type: 'lift' }
-  | { type: 'power'; loud: boolean }
+  /** the power changed: Gen-1 coming up (loud), anything less (a clunk), or a light switch (quiet: its own click) */
+  | { type: 'power'; loud: boolean; quiet?: boolean }
   /** a light of its own went out (a dropped flashlight picked up): the level is lit again, at once */
   | { type: 'relight' }
   /** you were hurt (the screen flashes) and how hard the view shakes */

@@ -29,9 +29,10 @@ export interface RoomDef {
   em: boolean;
   /** the circuit that powers it */
   circuit: string;
-  /** it has emergency lights on cells of their own, as life-safety code wants (the isolation suite): this colour when its
-   *  circuit is dead */
-  batt?: Colour;
+  /** it has emergency lights on cells of their own, as life-safety code wants (the isolation suite): this colour, while
+   *  the supply they watch (`watch`, the room's feed) is dead and their own (`supply`) is live. A light switch turning the
+   *  room's own circuit off leaves them dark */
+  batt?: Batt;
   /** its lights stutter */
   flick: boolean;
   /** a doorway: lit by the rooms either side of it */
@@ -55,6 +56,9 @@ export interface RoomDef {
    *  lo >= hi is not the room's. */
   cells?: { res: number; nx: number; nz: number; lo: number[]; hi: number[] };
 }
+
+/** a room's emergency lights (RoomDef.batt): their colour, their own supply, and the supply whose loss brings them up */
+export interface Batt { colour: Colour; supply: string; watch: string }
 
 /** solid built back into open space: a platform, a step, a plinth. Part of the world, not a prop. */
 export interface BlockDef {
@@ -205,9 +209,13 @@ export interface Aim { yaw: number; pitch: number }
 export interface NoteDef { key: string; x: number; y: number; z: number }
 export interface MutantDef { type: string; x: number; y: number; z: number; opts: Record<string, unknown> }
 /** a stop on a guard's round (world.md §8, the night round), in plan metres: how long it stands there looking about, and
- *  how many times it tries the door beside it with its card. A stop may want a circuit live (it is passed by otherwise),
- *  be kept on the first time round only, or be where it takes whoever is there (the opening's other patient) */
-export interface RoundStop { x: number; y: number; z: number; wait?: number; tries?: number; need?: string; once?: boolean; take?: boolean }
+ *  how many times it tries the door beside it with its card, and how long it looks in if the door opens. A stop may want
+ *  a circuit live (it is passed by otherwise), be kept on the first time round only, be walked to at a pace of its own,
+ *  or be where it takes whoever is there (the opening's other patient), or leaves them (`drop`) */
+export interface RoundStop {
+  x: number; y: number; z: number; wait?: number; tries?: number; look?: number;
+  need?: string; once?: boolean; pace?: number; take?: boolean; drop?: boolean;
+}
 /** something to use: a corpse to search, a panel, a backup set, a ladder, the lift */
 export interface UseDef { kind: string; x: number; y: number; z: number; opts: Record<string, unknown> }
 

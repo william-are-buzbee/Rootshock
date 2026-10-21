@@ -209,6 +209,15 @@ export function buildUsables(sim: Sim): Usable[] {
       case 'look':
         out.push({ ...base, label: () => (o.label as string) ?? 'Look', act: () => { say(g, o.text as string); if (o.sfx) sfx(g, o.sfx as string, base); } });
         break;
+      case 'switch': {
+        /* a room's light switch: its own circuit, on or off (with no power to it, it does nothing you can see) */
+        const c = o.c as string;
+        out.push({
+          ...base, r: 1.8, label: () => 'Light switch: ' + (g.station?.circuits[c]?.on ? 'on' : 'off'),
+          act: () => { const C = g.station?.circuits[c]; if (!C) return; C.on = !C.on; g.events.push({ type: 'power', loud: false, quiet: true }); sfx(g, 'switch', base); },
+        });
+        break;
+      }
       case 'pump':
         /* your infusion pump: its alarm, until you silence it (sim/opening.ts) */
         out.push({ ...base, r: 1.8, label: () => (sim.opening?.alarm ? 'Silence the pump' : 'Look at the pump'), act: () => silencePump(sim) });

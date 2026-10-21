@@ -1,7 +1,7 @@
 import { Rng } from '../../core/rng';
 import { hex, scale3, type Colour } from '../../core/math';
 import { CAVERN, FITTED, type Mat, type RoomMats } from '../materials';
-import type { Aim, DoorDef, LevelDef, LitRule, Motes, PropDef, RoomDef, Shape, Start, SurfaceDef } from '../types';
+import type { Aim, Batt, DoorDef, LevelDef, LitRule, Motes, PropDef, RoomDef, Shape, Start, SurfaceDef } from '../types';
 
 /* The authoring kit. Levels are written as calls on a LevelBuilder; finish() returns plain data.
    Everything random comes from the level's own seed, so a level is dressed the same way every time. */
@@ -25,8 +25,8 @@ export interface RoomOpts {
   lit?: LitRule;
   lc?: Colour;
   em?: boolean;
-  /** emergency lights on their own cells: this colour when its circuit is dead (RoomDef.batt) */
-  batt?: Colour;
+  /** emergency lights on their own cells (RoomDef.batt) */
+  batt?: Batt;
   circuit?: string;
   flick?: boolean;
   /** no ceiling fittings */

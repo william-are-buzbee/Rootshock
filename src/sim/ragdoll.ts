@@ -279,6 +279,10 @@ export interface Rag {
    *  and how many it has taken */
   stride?: { leg: number; x0: number; z0: number; x1: number; z1: number; s: number } | null;
   steps?: number;
+  /** alive but gone slack, no tone and no reflexes (the other patient, at the night round's touch: sim/cast.ts) */
+  limp?: boolean;
+  /** one point held where something holds it (an ankle in a hand, dragged): which, and where */
+  pin?: { i: number; x: number; y: number; z: number } | null;
 }
 
 /** what struck the blow that killed it: the way it was shoved (on the plan) and how hard (m/s, as the body was
@@ -610,15 +614,15 @@ function begin(sim: Sim, R: Rag, m: Mutant): void {
     const dx = (m.body.x - mx / B.mid.length) * RAG.held, dz = (m.body.z - mz / B.mid.length) * RAG.held;
     for (let i = 0; i < n; i++) { p[i * 3] += dx; p[i * 3 + 2] += dz; }
   }
-  tone(R, B, !m.dead);
-  reflexes(sim, R, B, m);
-  stagger(sim, R, B, m);
+  tone(R, B, !m.dead && !R.limp);
+  if (!R.limp) { reflexes(sim, R, B, m); stagger(sim, R, B, m); }
   /* the sticks, a few times over; the floor each time, so they cannot push a point through it */
   const St = B.sticks, A = B.apart, H = B.hinge, W = B.w;
   for (let it = 0; it < RAG.iters; it++) {
     for (let s = 0; s < St.length; s += 3) hold(p, W, St[s], St[s + 1], St[s + 2], false);
     for (let s = 0; s < A.length; s += 3) hold(p, W, A[s], A[s + 1], A[s + 2], true);
     for (let s = 0; s < H.length; s += 6) bend(p, W, H[s], H[s + 1], H[s + 2], H[s + 3], H[s + 4], H[s + 5]);
+    if (R.pin) { const j = R.pin.i * 3; p[j] = R.pin.x; p[j + 1] = R.pin.y; p[j + 2] = R.pin.z; }
     for (let i = 0; i < n; i++) {
       const j = i * 3, lo = floor[i] + B.r[i];
       if (p[j + 1] >= lo) continue;
