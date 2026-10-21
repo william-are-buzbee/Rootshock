@@ -198,6 +198,8 @@ describe('waking', () => {
     expect(was).toBeGreaterThan(0.2);
     expect(lum(s, 'Isolation room 1')).toBe(0);
     expect(sw.label?.()).toBe('Light switch: off');
+    /* and only your light: your door's lock is on the wing's feed, and holds (it once let go, and the night round came in) */
+    for (const d of s.doors.filter(q => q.def.failsafe)) { expect(d.def.circuit).toBe('SEC'); expect(locked(d)).toBe(true); }
   });
 });
 
