@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { U } from './shader';
 import { Post } from './post';
-import { flickerAt } from '../flicker';
+import { flickDepth, flickerAt } from '../flicker';
 
 /** The renderer, the scene and the camera, and the picture made from what they draw (post.ts). It draws; it decides
  *  nothing. */
@@ -35,9 +35,10 @@ export class View {
     for (const c of this.scene.children) if (c !== this.camera && c.type === 'Group') c.visible = c === group;
   }
 
-  draw(time: number): void {
+  /** `hard`: the flickering lights stuttering badly (sim/cast.ts, `stutters`) */
+  draw(time: number, hard = false): void {
     U.uTime.value = time;
-    U.uFlick.value = flickerAt(time) ? 1 : 0;
+    U.uFlick.value = flickerAt(time, hard) ? flickDepth(hard) : 0;
     this.post.render(this.scene, this.camera);
   }
 }
