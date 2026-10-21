@@ -124,8 +124,8 @@ describe('the upper station', () => {
     makeSim(buildUpper(STATION.ladders));
     const compile = performance.now() - t0;
     const t1 = performance.now();
-    const lm = buildLevelMesh(sim.world, new Lighting(sim.world, fullPower)), geo = lm.geometry;
-    const mesh = performance.now() - t1, verts = geo.getAttribute('position').count;
+    const lm = buildLevelMesh(sim.world, new Lighting(sim.world, fullPower));
+    const mesh = performance.now() - t1, verts = lm.pieces.reduce((n, g) => n + g.getAttribute('position').count, 0);
     const chunks = sim.world.grid.chunkCount;
     const t2 = performance.now(), L = new Lighting(sim.world, stationPower(STATION.circuits, STATION.main));
     void L.colours;
@@ -134,7 +134,7 @@ describe('the upper station', () => {
     expect(relight).toBeLessThan(100);
     console.log(`relight on a power change: ${relight.toFixed(1)} ms`);
     console.log(`upper station: ${level.rooms.length} rooms, ${level.props.length} props, ${chunks} chunks (${((chunks * 8) / 1024).toFixed(1)} MB of grid), ` +
-      `build + compile ${compile.toFixed(0)} ms, mesh ${mesh.toFixed(0)} ms, ${verts} vertices`);
+      `build + compile ${compile.toFixed(0)} ms, mesh ${mesh.toFixed(0)} ms, ${verts} vertices in ${lm.pieces.length} pieces`);
     expect(chunks * 8 * 1024).toBeLessThan(64 * 1024 * 1024);
   });
 });

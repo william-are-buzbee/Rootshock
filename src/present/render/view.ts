@@ -10,23 +10,34 @@ export class View {
   readonly scene = new THREE.Scene();
   readonly camera = new THREE.PerspectiveCamera(72, 1, 0.06, 140);
   private post: Post;
+  /** what share of the screen's resolution is drawn (present/quality.ts) */
+  private scale: number;
 
-  constructor(canvas: HTMLCanvasElement) {
+  constructor(canvas: HTMLCanvasElement, scale = 1) {
     /* (the scene's own target smooths its edges; the screen is drawn once, whole, by the picture's pass) */
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
     this.renderer.setClearColor(0x000000);
     this.camera.rotation.order = 'YXZ';
     this.post = new Post(this.renderer);
-    const size = () => {
-      const w = window.innerWidth, h = window.innerHeight;
-      this.renderer.setSize(w, h, false);
-      this.camera.aspect = w / h;
-      this.camera.updateProjectionMatrix();
-      this.post.resize();
-    };
-    window.addEventListener('resize', size);
-    size();
+    this.scale = scale;
+    window.addEventListener('resize', () => this.size());
+    this.size();
+  }
+
+  /** draw this share of the screen's resolution */
+  setScale(k: number): void {
+    if (k === this.scale) return;
+    this.scale = k;
+    this.size();
+  }
+
+  private size(): void {
+    const w = window.innerWidth, h = window.innerHeight;
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5) * this.scale);
+    this.renderer.setSize(w, h, false);
+    this.camera.aspect = w / h;
+    this.camera.updateProjectionMatrix();
+    this.post.resize();
   }
 
   /** show this level's group, and only it */

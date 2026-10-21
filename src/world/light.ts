@@ -106,6 +106,9 @@ export class Lighting {
   private loose = new Map<string, { L: Loose; pts: Int32Array; val: Float32Array; dir: Int8Array; c: Colour }>();
   /** the bricks whose light has changed since last asked (lightVolume.ts) */
   private dirty = new Set<number>();
+  /** counts every change to the light anywhere, so what asks it about a place that has not moved can tell whether to
+   *  ask again (the renderer's moving things) */
+  epoch = 0;
 
   /** `open`: how far each door stands open (by default, as the level has it). `loose`: the lights lying about */
   constructor(protected w: World, readonly power: Power, open?: (door: number) => number, loose: Loose[] = []) {
@@ -189,6 +192,7 @@ export class Lighting {
    *  from (`u`, as Source.dir) once that is kept */
   private add(pts: Int32Array, val: Float32Array, u: Int8Array, c: Colour, k: number, flick: boolean, scale?: (i: number) => number): void {
     const col = this.col!, fcol = this.fcol!, dir = this.dir, F = this.field, [r, g, b] = c, l = lumOf(c) / DIRK;
+    if (pts.length) this.epoch++;
     for (let i = 0; i < pts.length; i++) {
       const v = val[i] * k * (scale ? scale(i) : 1);
       if (!v) continue;
@@ -222,6 +226,7 @@ export class Lighting {
       if (dt === 0 || (Math.abs(dt) < 1e-3 && t > 0 && t < 1)) continue;
       this.open[d] = t;
       if (!this.col) continue;
+      this.epoch++;
       const D = F.doors[d], col = this.col, fcol = this.fcol!, dir = this.dir;
       for (let k = 0; k < D.pts.length; k++) {
         const s = D.src[k], c = this.lit[s], v = D.val[k] * dt, p = D.pts[k], q = p * 3;

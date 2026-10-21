@@ -21,6 +21,9 @@ interface Moving {
   litAt?: [number, number, number];
   /** a door: lit from whichever side of it is brighter, this far either way (x, z) */
   across?: [number, number];
+  /** where it was last lit, and by which lighting as it was then (Lighting.epoch): unmoved under the same light, it is
+   *  not looked up again */
+  lit?: { L: Lighting; epoch: number; x: number; y: number; z: number };
 }
 
 /** a part of a fitting: a box (or other shape) of a colour, sized, tipped about z, and placed in the fitting's own frame */
@@ -352,7 +355,6 @@ export class Things {
     const mat = dynamicMaterial(), mesh = new THREE.Mesh(geo, mat);
     mesh.position.set(x, y, z);
     mesh.rotation.y = yaw;
-    mesh.frustumCulled = false;
     this.scene.add(mesh);
     this.list.push({ mesh, mat, place: () => {} });
     return mesh;
@@ -360,7 +362,6 @@ export class Things {
 
   private add(geo: THREE.BufferGeometry, place: (m: THREE.Mesh) => void, litAt?: [number, number, number], across?: [number, number], alpha?: number): void {
     const mat = dynamicMaterial(alpha), mesh = new THREE.Mesh(geo, mat);
-    mesh.frustumCulled = false;
     this.scene.add(mesh);
     this.list.push({ mesh, mat, place: () => place(mesh), litAt, across });
   }
@@ -423,9 +424,12 @@ export class Things {
   /** move everything to where the sim has it, and light it by where it is */
   update(): void {
     this.syncItems();
+    const L = this.L;
     for (const t of this.list) {
       t.place();
-      const p = t.litAt ? { x: t.litAt[0], y: t.litAt[1], z: t.litAt[2] } : t.mesh.position, w = this.sim.world;
+      const p = t.litAt ? { x: t.litAt[0], y: t.litAt[1], z: t.litAt[2] } : t.mesh.position, w = this.sim.world, was = t.lit;
+      if (was && was.L === L && was.epoch === L.epoch && was.x === p.x && was.y === p.y && was.z === p.z) continue;
+      t.lit = { L, epoch: L.epoch, x: p.x, y: p.y, z: p.z };
       const R = w.roomAt(p.x, p.y + 0.3, p.z) ?? w.roomAt(p.x, p.y + 1.2, p.z);
       let at = [p.x, p.y + 0.3, p.z] as const, l = R ? this.L.atPoint(...at) : [0, 0, 0];
       if (R && t.across)

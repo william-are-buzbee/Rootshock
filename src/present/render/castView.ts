@@ -1,13 +1,13 @@
 import * as THREE from 'three';
 import type { Colour } from '../../core/math';
-import { blowAt, torchRay, TORCH, type Mutant } from '../../sim/cast';
+import { blowAt, MT, torchRay, TORCH, type Mutant } from '../../sim/cast';
 import { DOWN } from '../../sim/moves';
 import { ragSpeed } from '../../sim/ragdoll';
 import { STEP } from '../../core/loop';
 import { rect } from '../../world/shapes';
 import type { Sim } from '../../sim/sim';
-import type { Lighting } from '../../world/light';
-import { EMIT, dynamicMaterial, lightMaterial } from './shader';
+import type { Lighting, Loose } from '../../world/light';
+import { EMIT, SHADOW_CAM, U, dynamicMaterial, lightMaterial } from './shader';
 import { parts, type Part } from './things';
 import { BONE, DARK, FLESH, GOREC, GR, ORANGE, PALE, RAW, grp, merged, mk, seeded, shelf, type O3 } from './castKit';
 import { RIG, Rigged } from './rig';
@@ -426,7 +426,24 @@ interface Shown {
   m: Mutant; M: Model; mat: THREE.ShaderMaterial; blood: boolean; fall: number; rig: Rigged | null; loose: boolean;
   /** asleep, all of it as one mesh where it lies, in place of its parts (rig.ts, bake) */
   baked: THREE.Mesh | null;
+  /** how it was last drawn (SIGHT) */
+  drawn: Drawn;
 }
+
+/** what of the cast is out of your sight (out of view, or rock or a wall between, not a door) is drawn only where a
+ *  shadow of it could show: into the beam in your hand's shadow if it stands in its cone, and into the shadows of the
+ *  beams lying about (beams.ts) within their reach, which can show it where you cannot; and not at all, nor even
+ *  looked through by the renderer, if neither. Each of its parts is a draw, and a level's worth of them in rooms beyond
+ *  the walls in view was most of a frame's. Looked for every frame it is in view, along lines from the eye to its
+ *  middle and the corners of a box round it `wide` times as wide as it is (a dead one sprawled, `sprawl` m more);
+ *  always seen within `near` m. A beam's cone is `cone` (its spill's, as a cosine) and reaches `reach` m */
+const SIGHT = { near: 3, wide: 1.5, sprawl: 1, cone: 0.7, reach: 40 };
+/** the layer the cast out of your sight is drawn on (SIGHT) */
+export const UNSEEN = 3;
+const onLayer = (o: THREE.Object3D, layer: number) => o.traverse(c => c.layers.set(layer));
+const frustum = new THREE.Frustum(), viewProj = new THREE.Matrix4(), sphere = new THREE.Sphere();
+/** how it is drawn: seen by the eye; only into shadows; not at all */
+type Drawn = 'seen' | 'shadow' | 'none';
 
 /** a model fixed to its skeleton's points for when it goes loose (rig.ts), stood as it stands idle to be fixed */
 function rigOf(m: Mutant, M: Model, c: Ctx): Rigged | null {
@@ -450,7 +467,7 @@ export class CastView {
       const m = this.sim.cast[i], mat = dynamicMaterial(), M = BUILD[m.model](mat, m);
       const rig = rigOf(m, M, { sim: this.sim, dt: 1 / 60, L: this.L });
       this.scene.add(M.g);
-      this.shown.push({ m, M, mat, blood: false, fall: 0, rig, loose: false, baked: null });
+      this.shown.push({ m, M, mat, blood: false, fall: 0, rig, loose: false, baked: null, drawn: 'seen' });
     }
   }
 
@@ -467,17 +484,26 @@ export class CastView {
   }
 
   private last = 0;
-  /** draw everything where it is, `alpha` of the way through the step */
-  update(alpha: number): void {
+  /** draw everything where it is, `alpha` of the way through the step, seen from `eye` */
+  update(alpha: number, eye: THREE.Camera): void {
     if (this.shown.length < this.sim.cast.length) this.more();
     const w = this.sim.world, t = performance.now() / 1000, c: Ctx = { sim: this.sim, dt: this.last ? Math.min(0.1, t - this.last) : 0, L: this.L };
     this.last = t;
     this.spread();
     this.struck(c.dt);
+    eye.updateMatrixWorld();
+    frustum.setFromProjectionMatrix(viewProj.multiplyMatrices((eye as THREE.PerspectiveCamera).projectionMatrix, eye.matrixWorldInverse));
+    const E = eye.getWorldPosition(new THREE.Vector3()), lying = this.L.looseLights.filter(L => L.kind === 'flash');
     for (const s of this.shown) {
       const { m, M, mat } = s, g = M.g;
       if (s.baked && (m.away || !m.rag)) this.unbake(s);
-      g.visible = !m.away && !s.baked;
+      const drawn = m.away ? 'none' : this.drawn(m, E, lying);
+      if (drawn !== s.drawn) {
+        if (drawn !== 'none') { onLayer(g, drawn === 'seen' ? 0 : UNSEEN); if (s.baked) onLayer(s.baked, drawn === 'seen' ? 0 : UNSEEN); }
+        s.drawn = drawn;
+      }
+      g.visible = drawn !== 'none' && !s.baked;
+      if (s.baked) s.baked.visible = drawn !== 'none';
       if (m.away) continue;
       if (M.lens) M.lens.visible = !m.dead;
       if (M.gore) M.gore.visible = m.state === 'dragged' || m.state === 'out';
@@ -527,10 +553,33 @@ export class CastView {
     }
   }
 
+  /** how `m` is to be drawn, seen from E, with these beams lying about (SIGHT) */
+  private drawn(m: Mutant, E: THREE.Vector3, lying: readonly Loose[]): Drawn {
+    const h = MT[m.type]?.h ?? 1.8, wide = (m.r ?? 0.4) * SIGHT.wide + (m.dead ? SIGHT.sprawl : 0), mid = m.y + h / 2, r = Math.hypot(wide, h / 2);
+    sphere.center.set(m.x, mid, m.z);
+    sphere.radius = r;
+    if (frustum.intersectsSphere(sphere)) {
+      const dx = m.x - E.x, dz = m.z - E.z, d = Math.hypot(dx, dz);
+      if (d < SIGHT.near) return 'seen';
+      const w = this.sim.world, ax = (-dz / d) * wide, az = (dx / d) * wide, lo = m.y + 0.15, hi = m.y + h - 0.1;
+      if (w.gridClear(E.x, E.y, E.z, m.x, mid, m.z)) return 'seen';
+      for (const [sx, y] of [[-1, lo], [1, lo], [-1, hi], [1, hi]])
+        if (w.gridClear(E.x, E.y, E.z, m.x + ax * sx, y, m.z + az * sx)) return 'seen';
+    } else if (U.uFlash.value > 0) {
+      /* out of view, it can still stand in the beam in your hand and throw its shadow into view */
+      const H = U.uFlashPos.value, D = U.uFlashDir.value, vx = m.x - H.x, vy = mid - H.y, vz = m.z - H.z, d = Math.hypot(vx, vy, vz);
+      if (d < r || (d < SHADOW_CAM.far + r && (vx * D.x + vy * D.y + vz * D.z) / d > Math.cos(Math.acos(SIGHT.cone) + Math.asin(Math.min(1, r / d))))) return 'seen';
+    }
+    for (const L of lying) if (Math.hypot(L.x - m.x, L.y - mid, L.z - m.z) < SIGHT.reach + r) return 'shadow';
+    return 'none';
+  }
+
   /** asleep where it lies: one mesh of all its parts, on its material, drawn in place of them; its parts are hidden */
   private bake(s: Shown): void {
     /* beside its parts, where they are: one laid as it lies stands where its group's frame is its parent's */
     const g = s.M.g, mesh = new THREE.Mesh(s.rig!.bake(), s.mat);
+    if (s.drawn === 'shadow') onLayer(mesh, UNSEEN);
+    mesh.visible = s.drawn !== 'none';
     g.parent!.add(mesh);
     s.baked = mesh;
     g.visible = false;

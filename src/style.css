@@ -27,6 +27,7 @@ canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
 .screen p.bright input { width: 12em; vertical-align: middle; margin-left: .6em; accent-color: var(--hazard); }
 .screen p.bright label.tick { margin-left: 1.6em; white-space: nowrap; }
 .screen p.bright label.tick input { width: auto; margin: 0 .35em 0 0; }
+.screen p.bright label.touchonly { margin-left: 1.6em; white-space: nowrap; }
 
 /* the HUD and the panels, as the first engine had them */
 :root { --paper: #cfc7ae; --ink: #1d1a15; }
@@ -92,3 +93,54 @@ canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
 #feedh { position: absolute; left: 0; right: 0; bottom: 28px; text-align: center; font-size: 17px; opacity: .8; }
 #feedh kbd { font: inherit; display: inline-block; min-width: 1.4em; padding: 0 .3em; margin-right: .3em; border: 1px solid currentColor; border-radius: 2px; }
 body.watching #roomn, body.watching #dot { display: none; }
+
+/* touch (present/touch.ts): a phone or a tablet on its side. What is said for keys or for touch, by which this is */
+body:not(.touch) .touchonly, body.touch .keysonly { display: none !important; }
+body.touch { touch-action: none; -webkit-touch-callout: none; }
+body.touch .panel > div, body.touch #note article, body.touch .screen { touch-action: pan-y; }
+#touch { position: fixed; inset: 0; touch-action: none; font-family: var(--sign); }
+#stick { position: absolute; width: 104px; height: 104px; margin: -52px 0 0 -52px; border-radius: 50%; border: 2px solid rgba(217, 211, 193, .35); display: none; pointer-events: none; }
+#stick.on { display: block; }
+#stick.run { border-color: var(--hazard); box-shadow: 0 0 0 10px rgba(201, 162, 39, .12); }
+#stick i { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px; border-radius: 50%; background: rgba(217, 211, 193, .28); }
+.tb { position: absolute; display: flex; align-items: center; justify-content: center; width: 58px; height: 58px; border-radius: 50%;
+  border: 2px solid rgba(217, 211, 193, .4); background: rgba(4, 5, 6, .35); color: rgba(217, 211, 193, .85);
+  font-size: 13px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; user-select: none; -webkit-user-select: none; }
+.tb.down { background: rgba(217, 211, 193, .25); border-color: var(--bone); }
+.tb[data-tb="hands"] { width: 88px; height: 88px; right: calc(24px + env(safe-area-inset-right)); bottom: calc(30px + env(safe-area-inset-bottom)); font-size: 15px; }
+.tb[data-tb="jump"] { right: calc(128px + env(safe-area-inset-right)); bottom: calc(18px + env(safe-area-inset-bottom)); }
+.tb[data-tb="crouch"] { right: calc(198px + env(safe-area-inset-right)); bottom: calc(18px + env(safe-area-inset-bottom)); font-size: 11px; }
+.tb[data-tb="use"] { right: calc(38px + env(safe-area-inset-right)); bottom: calc(136px + env(safe-area-inset-bottom)); width: 62px; height: 62px; opacity: .5; }
+.tb[data-tb="use"].lit { opacity: 1; border-color: var(--hazard); color: var(--hazard); }
+.tb[data-tb="light"] { right: calc(116px + env(safe-area-inset-right)); bottom: calc(96px + env(safe-area-inset-bottom)); width: 52px; height: 52px; font-size: 11px; }
+.tb[data-tb="carry"], .tb[data-tb="pause"] { top: calc(12px + env(safe-area-inset-top)); width: auto; height: 34px; padding: 0 12px; border-radius: 3px; font-size: 12px; }
+.tb[data-tb="pause"] { right: calc(16px + env(safe-area-inset-right)); }
+.tb[data-tb="carry"] { right: calc(96px + env(safe-area-inset-right)); }
+/* the HUD out from under the thumbs: what you have and what is said, top left */
+body.touch #stat { top: calc(14px + env(safe-area-inset-top)); bottom: auto; left: calc(18px + env(safe-area-inset-left)); width: 180px; }
+body.touch #roomn { top: calc(58px + env(safe-area-inset-top)); left: calc(18px + env(safe-area-inset-left)); font-size: 18px; }
+body.touch #msgs { top: calc(104px + env(safe-area-inset-top)); bottom: auto; left: calc(18px + env(safe-area-inset-left)); font-size: 16px; max-width: min(440px, 50vw); }
+body.touch #prompt { top: 60%; font-size: 18px; }
+body.touch #devtag { top: 54px; font-size: 11px; }
+body.touch #feedh { bottom: auto; top: 60px; }
+#back { display: none; position: fixed; z-index: 2; bottom: calc(14px + env(safe-area-inset-bottom)); right: calc(16px + env(safe-area-inset-right)); font: inherit; font-size: 18px; font-weight: 600;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--bone); background: rgba(4, 5, 6, .6); border: 2px solid rgba(217, 211, 193, .5); border-radius: 3px; padding: 8px 18px; }
+body.touch.panelled #back { display: block; }
+#turn { display: none; position: fixed; inset: 0; z-index: 3; align-items: center; justify-content: center; background: var(--pitch); font-size: 24px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--hazard); }
+@media (orientation: portrait) { body.touch.playing #turn { display: flex; } }
+/* a short screen (a phone on its side): the title and the menus made to fit */
+@media (max-height: 520px) {
+  .screen { padding: 5vh 6vw; justify-content: safe flex-end; overflow-y: auto; }
+  .screen h1 { font-size: min(13vw, 21vh); }
+  .screen p { font-size: 15px; line-height: 1.4; margin-bottom: .6em; max-width: 48em; }
+  .screen .keys { font-size: 14px; margin: 2px 0 10px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+  .screen .go { font-size: 20px; padding-top: 6px; }
+  .panel { padding: 2vh 3vw; }
+  #inv h2, #liftb h2 { font-size: 22px; margin-bottom: 8px; }
+  .slot { min-height: 70px; }
+  #note article { padding: 22px 26px 18px; font-size: 16px; max-height: 92vh; }
+  #pad > div { width: 220px; }
+  #padd { font-size: 32px; height: 44px; margin-bottom: 8px; }
+  #padk button { font-size: 20px; padding: 6px 0; }
+  #liftb button { font-size: 18px; padding: 7px 12px; }
+}

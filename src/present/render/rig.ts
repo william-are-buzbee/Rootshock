@@ -182,7 +182,8 @@ export class Rigged {
    *  rather than one a part (castView.ts). The parts' own geometries are shared, and left as they are */
   bake(): THREE.BufferGeometry {
     const g = this.M.g, inv = _m.copy(g.matrixWorld).invert(), shown: THREE.Mesh[] = [];
-    g.traverseVisible(o => { if ((o as THREE.Mesh).isMesh) shown.push(o as THREE.Mesh); });
+    /* the parts shown, whether or not the whole is being drawn just now (castView.ts, SIGHT) */
+    for (const c of g.children) c.traverseVisible(o => { if ((o as THREE.Mesh).isMesh) shown.push(o as THREE.Mesh); });
     let n = 0;
     for (const o of shown) n += o.geometry.getAttribute('position').count;
     const P = new Float32Array(n * 3), C = new Float32Array(n * 3);

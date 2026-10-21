@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { Loose } from '../../world/light';
 import { BEAMS, HELD, SHADOW, SHADOW_CAM, U } from './shader';
 import { SHADOW_ONLY } from './selfView';
+import { UNSEEN } from './castView';
 
 /* Flashlights lying on (world/light.ts, Loose): the nearest few to the eye are drawn with their beams, each from its lens
    with a shadow map of its own, rendered every frame from there (what it lights moves: the cast, doors, crates). The map
@@ -10,9 +11,12 @@ import { SHADOW_ONLY } from './selfView';
    selfView.ts: your head, your arms) are, so your shadow is whole.
    The flashlight in your hand has one too, from your hand along its beam, finer (HELD), so what stands in your beam
    throws a shadow that slides as you sweep it. Your head and arms are left out of it (the hand is in them), and the
-   rest of you is behind the lens or under it: point it at your feet and your legs shadow the floor. */
+   rest of you is behind the lens or under it: point it at your feet and your legs shadow the floor.
+   The cast out of your sight (castView.ts, SIGHT) is in a beam lying about's map, not the one in your hand's: a husk
+   round a corner can throw its shadow out of a dropped light's beam where you see it. */
 
 const FAR = 40; // a beam farther than this from the eye is not drawn
+const AGAIN = 60; // how often the scene is searched again for what is not in a beam's way (frames)
 
 export class Beams {
   private targets: THREE.WebGLRenderTarget[];
@@ -20,6 +24,10 @@ export class Beams {
   private depthOnly = new THREE.MeshBasicMaterial({ colorWrite: false, side: THREE.DoubleSide });
   private held: THREE.WebGLRenderTarget;
   private heldCam = new THREE.PerspectiveCamera(HELD.fov, 1, SHADOW_CAM.near, SHADOW_CAM.far);
+  /** what is not in a beam's way (seen through, dust): looked for through the whole scene only every so often
+   *  (AGAIN frames), as the scene seldom gains one */
+  private clear: THREE.Object3D[] = [];
+  private since = Infinity;
 
   constructor() {
     this.targets = Array.from({ length: BEAMS }, () => {
@@ -31,6 +39,7 @@ export class Beams {
     this.cams = Array.from({ length: BEAMS }, () => {
       const c = new THREE.PerspectiveCamera(SHADOW_CAM.fov, 1, SHADOW_CAM.near, SHADOW_CAM.far);
       c.layers.enable(SHADOW_ONLY);
+      c.layers.enable(UNSEEN); // the cast out of your sight still stands in a beam's way
       return c;
     });
     U.uSh0.value = this.targets[0].depthTexture;
@@ -39,6 +48,11 @@ export class Beams {
     this.held.depthTexture = new THREE.DepthTexture(HELD.size, HELD.size, THREE.UnsignedIntType);
     this.held.depthTexture.minFilter = this.held.depthTexture.magFilter = THREE.NearestFilter;
     U.uShH.value = this.held.depthTexture;
+  }
+
+  /** another level is shown: look for what is not in a beam's way again now */
+  rescan(): void {
+    this.since = Infinity;
   }
 
   /** draw the shadow maps of the beams nearest `eye` among `lights`, and of the flashlight in your hand if it is on
@@ -54,11 +68,16 @@ export class Beams {
     const hand = U.uFlash.value > 0;
     if (!near.length && !hand) return;
     /* what is not in a beam's way, hidden while the maps are drawn */
+    if (++this.since >= AGAIN) {
+      this.since = 0;
+      this.clear = [];
+      scene.traverse(o => {
+        const m = (o as THREE.Mesh).material as THREE.Material | undefined;
+        if ((o as THREE.Points).isPoints || (o as THREE.Camera).isCamera || m?.transparent) this.clear.push(o);
+      });
+    }
     const hidden: THREE.Object3D[] = [];
-    scene.traverse(o => {
-      const m = (o as THREE.Mesh).material as THREE.Material | undefined;
-      if (o.visible && ((o as THREE.Points).isPoints || (o as THREE.Camera).isCamera || m?.transparent)) { o.visible = false; hidden.push(o); }
-    });
+    for (const o of this.clear) if (o.visible) { o.visible = false; hidden.push(o); }
     const was = renderer.getRenderTarget(), over = scene.overrideMaterial;
     scene.overrideMaterial = this.depthOnly;
     /* from (x, y, z) along (dx, dy, dz), into the map M is to read it by */

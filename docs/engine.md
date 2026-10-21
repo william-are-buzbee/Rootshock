@@ -1091,6 +1091,42 @@ sequence of inputs. The door rules, the labels and the answers are the first eng
   it hangs on: bronze letters straight on the family's limestone; a small dark plate with a bar of the room's stripe
   colour on block, plaster and board; a white plate with a coloured band on glazed tile; the name stencilled in worn
   paint on concrete and shotcrete. Drawn at 420 px a metre and sized to their words, so short names have short plates.
+- **What a frame costs** (since; measured in headless Chromium on a software GPU, so the counts and the main thread's
+  share are real and the GPU's times only relative). The sim was never the trouble: a step is about 0.9 ms (99 in
+  100 under 2 ms) on any level, the slow ones only in its first second. A frame was, three ways. It made too many
+  draws: the level was one mesh, sent whole through every pass; every door, camera and speaker on the level was drawn
+  wherever you stood (never culled); and every part of every one of the cast in view was a draw, in rooms beyond the
+  walls too, so 700 to 1,540 draws a frame (the main level, looking across it). It lit pixels for nothing: the level
+  drawn in the order it was built, each pixel's light was worked out 1.1 to 3.5 times (the lobby the worst). And the
+  renderer walked its two thousand things to place them once for each pass. Now: the level's mesh is in pieces, one
+  per 16 by 8 by 16 m of space (`PIECE` in `render/levelMesh.ts`), culled like anything else, so the flashlight's shadow
+  map draws what is in its cone (in the cell, 205 draws and 62k triangles became 40 and 9k); its depth is drawn first
+  and the light pass shades only what is in front (`DEPTH_FIRST`, `post.ts`; 1.05 to 1.3 a pixel); moving things are
+  culled and looked up in the light only when they or it have moved (`Lighting.epoch`); the cast out of your sight
+  (`SIGHT` in `render/castView.ts`: lines from the eye to its middle and corners, against the grid alone) is drawn
+  only into the shadow maps that could still show it, a beam lying about's (`UNSEEN`) or the one in your hand if it
+  stands in that cone, and otherwise not looked through at all; and the scene is placed once a frame. 157 to 577
+  draws in the cell, 57 to 527 on the main level; the main thread's share of handing a frame over, slowed four times
+  as a phone's would be, from 40 to 79 ms to 8 to 33. The material table each draw sent is written into the shader.
+  The screen's resolution is the last thing given up (`present/quality.ts`): while frames come late and the page's
+  own work is not what holds them, a step down (to 85, 72, 60, 50 and 42% of it), up again after a while on time,
+  not soon to a step found too slow; a step that does not help is followed by up to two more, and if none helps (a
+  browser holding frames to 30 a second) they are taken back and none tried for a minute, then longer. Where it
+  settles is kept on the device; a phone starts at 72%. `?fps` shows the frame rate and the share drawn; `?dev` has
+  both in its readout. Tried and set aside: drawing the level's pieces nearest first instead of their depth (the
+  renderer's own order is by where a piece's middle falls on the screen, wrong for the piece round you; put right by
+  hand, a fixed order within a piece is right from one side and wrong from the other, and the lobby went from 2.9 to
+  7.3 a pixel). Not done: one draw for each of the cast (skinning), and doors and fittings merged into fewer draws;
+  the many-materials cost of a draw, which the counts above have mostly made small.
+- **Touch** (since; `present/touch.ts`): a phone or a tablet (`pointer: coarse`) is played on its side, the whole
+  screen (asked for on the first tap, and pausing if left). The left of the screen is a stick, put down where the
+  thumb lands: how far it is pushed is how fast you go, past its rim you run (loud, as Shift is). Anywhere else is
+  dragged to look (a speed of the player's own, on the title and pause screens). On the right, the hands (held to
+  load a swing and let go to throw it, as the mouse button; dragged, it looks too, so a swing is aimed as it loads;
+  Fire with a gun), use (lit when there is something to use), the light, jump and crouch (held, swim up and down); at
+  the top, what you carry and pause. The menus are tapped as they are clicked, with a Back button for Esc; the HUD
+  moves to the top left, out from under the thumbs; what the page says for keys it says for touch instead. Only feeds
+  Controls, as the keys and mouse do.
 - **UI** stays in HTML over the canvas, with the current type and colours (Barlow Condensed, Newsreader, bone, ash,
   hazard).
 - **Dev tools** carry over (`?dev`, fly, god, level select, map), plus overlays for colliders, nav graph and noise.

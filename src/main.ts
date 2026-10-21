@@ -27,6 +27,9 @@ import { Hud } from './present/ui/hud';
 import { Panels } from './present/ui/panels';
 import { Feed } from './present/ui/feed';
 import { Meter } from './present/perf';
+import { Governor } from './present/quality';
+import { Touch } from './present/touch';
+import { ITEMS } from './content/items';
 
 /* Boot: content -> world -> sim, and the page around it. The frame runs whole sim steps for the time that passed, then draws
    between the last two. The sim reports what happened as events (messages, sounds, a note to show, the power changing,
@@ -35,12 +38,22 @@ import { Meter } from './present/perf';
 
 const params = new URLSearchParams(location.search);
 const DEV = params.has('dev');
+/** ?fps: the frame rate and the share of the screen drawn, in the corner, without the rest of the dev readout */
+const FPS = params.has('fps');
+/** a phone or a tablet: touch controls (present/touch.ts), and what the page says is said for them */
+const TOUCH = matchMedia('(pointer: coarse)').matches;
+if (TOUCH) document.body.classList.add('touch');
+
+/* how much of the screen's resolution is drawn (present/quality.ts): where it settled last time on this device, or for a
+   phone, part way down to begin with */
+const SCALE_KEY = 'rootshock-v2:scale', stepped = readStore(SCALE_KEY);
+const governor = new Governor(stepped !== null ? Number(stepped) : TOUCH ? 2 : 0);
 
 const canvas = document.getElementById('c') as HTMLCanvasElement;
 const hud = new Hud();
 let view: View;
 try {
-  view = new View(canvas);
+  view = new View(canvas, governor.scale);
 } catch {
   document.getElementById('titleg')!.textContent = 'This browser could not start WebGL.';
   throw new Error('no WebGL');
@@ -67,7 +80,7 @@ function suspend(): void {
   if (saving && sim.tick > 0 && !sim.game.ended && mode !== 'title' && mode !== 'end') writeStore(SAVE_KEY, JSON.stringify(saveRun(run)));
 }
 if (resumed) {
-  document.getElementById('titleg')!.textContent = 'Click to go on where you left off';
+  document.getElementById('titleg')!.innerHTML = '<span class="keysonly">Click</span><span class="touchonly">Tap</span> to go on where you left off';
   const line = document.createElement('p'), again = document.createElement('a');
   line.className = 'aside';
   again.href = '#'; again.textContent = 'Or start again from the cell.';
@@ -75,7 +88,12 @@ if (resumed) {
   line.append(again);
   document.getElementById('title')!.append(line);
 }
-document.addEventListener('visibilitychange', () => { if (document.hidden) suspend(); });
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) return;
+  /* (with a mouse, losing the capture has paused it already) */
+  if (TOUCH && mode === 'play') setMode('pause');
+  suspend();
+});
 window.addEventListener('pagehide', suspend);
 
 /* each level drawn once, and lit by the power as it is when you are there */
@@ -92,6 +110,9 @@ let here = levelView();
 view.show(here.group);
 here.bind();
 view.scene.add(view.camera); // the hand rides on it
+/* where everything is, worked out once a frame (below, before the first pass), not again by each pass: the scene is
+   a couple of thousand things, most of them the parts of the cast */
+view.scene.matrixWorldAutoUpdate = false;
 const handsView = new HandsView(view.camera, sim, lighting);
 const selfView = new SelfView(view.scene, sim, lighting);
 let hurtFx = 0, hitFx = 0;
@@ -111,6 +132,19 @@ const fade = document.getElementById('fade')!;
 
 const controls = new Controls(canvas, () => { if (mode === 'play') setMode('pause'); }, text => panels.say(text));
 const panels = new Panels(c => sim.game.commands.push(c), () => sim.game, () => { if (mode === 'panel') { setMode('play'); controls.lock(); } });
+panels.touch = TOUCH;
+const touch = TOUCH ? new Touch(controls, {
+  carry: () => { if (mode === 'play') openPanel(() => panels.show('inv')); },
+  pause: () => { if (mode === 'play') setMode('pause'); },
+}) : null;
+/* on a phone the game is the whole screen, on its side; leaving that (the back gesture) pauses it */
+function fullScreen(): void {
+  if (!TOUCH || document.fullscreenElement || !document.documentElement.requestFullscreen) return;
+  document.documentElement.requestFullscreen({ navigationUI: 'hide' })
+    .then(() => (screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> }).lock?.('landscape'))
+    .catch(() => {});
+}
+document.addEventListener('fullscreenchange', () => { if (TOUCH && !document.fullscreenElement && mode === 'play') setMode('pause'); });
 /* ?dev keys, as the first engine had them: V fly, G god, B bright; O for the collider overlay; P for the tracker. And for
    working on the fight (engine.md §6, F4; the arena is in the test bed, north of the hall): 1 to 5 put one of the cast
    down in front of you, awake and after you (a husk, a skitter, a thresher, a worm, a big skitter), 0 kills
@@ -168,6 +202,8 @@ function setMode(m: typeof mode): void {
   hud.show('title', m === 'title');
   hud.show('pause', m === 'pause');
   hud.show('hud', m !== 'title');
+  touch?.show(m === 'play');
+  document.body.classList.toggle('playing', m === 'play');
 }
 function openPanel(fn: () => void): void {
   setMode('panel');
@@ -185,6 +221,18 @@ for (const el of brightIn) {
     gain = Number(el.value);
     writeStore(BRIGHT_KEY, String(gain));
     for (const o of brightIn) o.value = el.value;
+  });
+}
+
+/* look speed, played by touch: the player's own, kept between runs */
+const LOOK_KEY = 'rootshock-v2:look', lookIn = [...document.querySelectorAll<HTMLInputElement>('input.lookspeed')];
+if (touch) touch.speed = Number(readStore(LOOK_KEY)) || 1;
+for (const el of lookIn) {
+  el.value = String(touch?.speed ?? 1);
+  el.addEventListener('input', () => {
+    if (touch) touch.speed = Number(el.value);
+    writeStore(LOOK_KEY, el.value);
+    for (const o of lookIn) o.value = el.value;
   });
 }
 
@@ -208,8 +256,8 @@ for (const el of detailIn) {
 showDetail(detail, false);
 if (DEV) controls.onKey.set('KeyM', () => showDetail(!detail, false));
 
-hud.onClick('title', () => { writeStore(SAVE_KEY, null); audio.start(); setMode('play'); controls.lock(); });
-hud.onClick('pause', () => { setMode('play'); controls.lock(); });
+hud.onClick('title', () => { writeStore(SAVE_KEY, null); audio.start(); setMode('play'); controls.lock(); fullScreen(); });
+hud.onClick('pause', () => { setMode('play'); controls.lock(); fullScreen(); });
 document.getElementById('end')!.addEventListener('click', () => location.reload());
 
 /* keys the menus handle: Tab for what you carry, Esc and E to step back, digits on a keypad, R to start again */
@@ -255,6 +303,7 @@ function arrive(): void {
   here = levelView();
   view.show(here.group);
   here.bind();
+  beams.rescan();
   handsView.sim = sim;
   handsView.setLighting(lighting);
   selfView.sim = sim;
@@ -352,7 +401,7 @@ function frame(t: number): void {
   if (flick < 0 && Math.random() < dt * (g.batt < 20 ? 1.4 : 0.3)) flick = 0.05 + Math.random() * 0.2;
   if (flick > 0 && g.lightOn) { U.uFlash.value *= 0.25; U.uBounce.value *= 0.25; }
   const t2 = performance.now();
-  here.update(mode === 'play' ? loop.alpha : 1);
+  here.update(mode === 'play' ? loop.alpha : 1, view.camera);
   const castMs = performance.now() - t2;
   meter.add('cast', castMs);
   /* the eye: it opens in the dark, slowly, and narrows against light quickly, so a room coming on glares a moment.
@@ -396,14 +445,16 @@ function frame(t: number): void {
   const fog = (under ? (g.worn.includes('goggles') ? 0.075 : 0.21) : wet ? 0.045 : 0.02) * (devFlags.bright ? 0.25 : 1);
   U.uFog.value += (fog - U.uFog.value) * Math.min(1, dt * 4);
   panels.prompt(mode === 'play' ? sim.focus?.text ?? null : null);
+  touch?.update(!!sim.focus || !!sim.watch, !!(g.weapon && ITEMS[g.weapon].w?.gun));
   panels.status(g, p.air < p.airMax - 0.01 ? p.air / p.airMax : null, p.crouch, hurtFx);
 
   const b = sim.player.body, room = sim.world.roomAt(b.x, b.y + 0.5, b.z);
   hud.setRoom(sim.watch ? '' : room?.name ?? '', sim.world.def.name, mode === 'title' ? 0 : dt); // the label waits for you to open your eyes
   if (dt > 0) fps += (1 / dt - fps) * 0.05;
   if (DEV) track(dt);
-  hud.dev(DEV ? `${b.x.toFixed(2)} ${b.y.toFixed(2)} ${b.z.toFixed(2)}  ${room?.name ?? 'rock'}  ${b.ground ? 'ground' : 'air'}  ${Math.round(fps)} fps\n${sim.world.def.name}: ${sim.world.grid.chunkCount} chunks  mesh ${here.meshMs.toFixed(0)} ms  ${['fly', 'god', 'bright'].filter(k => k === 'fly' ? sim.player.fly : k === 'god' ? sim.game.god : devFlags.bright).join(' ')}\n${perfLine()}\nV fly  G god  B bright  O colliders  P tracker  M surface detail\n${fightLine()}` : null);
+  hud.dev(!DEV && FPS ? `${Math.round(fps)} fps  ${Math.round(governor.scale * 100)}%` : DEV ? `${b.x.toFixed(2)} ${b.y.toFixed(2)} ${b.z.toFixed(2)}  ${room?.name ?? 'rock'}  ${b.ground ? 'ground' : 'air'}  ${Math.round(fps)} fps\n${sim.world.def.name}: ${sim.world.grid.chunkCount} chunks  mesh ${here.meshMs.toFixed(0)} ms in ${here.pieces} pieces  ${['fly', 'god', 'bright'].filter(k => k === 'fly' ? sim.player.fly : k === 'god' ? sim.game.god : devFlags.bright).join(' ')}\n${perfLine()}\nV fly  G god  B bright  O colliders  P tracker  M surface detail\n${fightLine()}` : null);
   const t3 = performance.now();
+  view.scene.updateMatrixWorld();
   beams.render(view.renderer, view.scene, view.camera.position, lighting.looseLights);
   view.draw(t / 1000, stutters(sim));
   const t4 = performance.now(), info = view.renderer.info.render;
@@ -413,12 +464,14 @@ function frame(t: number): void {
   meter.add('calls', info.calls);
   meter.add('tris', info.triangles / 1000);
   meter.end(dt);
+  /* fewer pixels while the card cannot keep up (not counting the frame being handed to it, which can wait on it) */
+  if (governor.frame(dt, t3 - t0)) { view.setScale(governor.scale); writeStore(SCALE_KEY, String(governor.step)); }
 }
 
 /** the dev readout's lines for where a frame goes (meter): ms, as the mean and worst of the last half second */
 function perfLine(): string {
   const dead = sim.cast.filter(m => m.rag), awake = dead.filter(m => m.rag!.awake).length;
-  return `ms  ${meter.line(['frame', 'sim', 'cast', 'page', 'gl'])}  (${meter.line(['steps'], 1)} a frame)\n` +
+  return `ms  ${meter.line(['frame', 'sim', 'cast', 'page', 'gl'])}  (${meter.line(['steps'], 1)} a frame)  drawn at ${Math.round(governor.scale * 100)}%\n` +
     `${meter.line(['calls'], 0)} draw calls  ${meter.line(['tris'], 0)}k triangles  loose bodies ${awake} awake of ${dead.length}`;
 }
 /* ?dev: the run on the window, for poking at from the console or a test script */

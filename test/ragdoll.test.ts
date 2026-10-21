@@ -468,7 +468,10 @@ describe('corpses stay in the world', () => {
     let now = 0;
     vi.spyOn(performance, 'now').mockImplementation(() => now);
     onTestFinished(() => { vi.restoreAllMocks(); });
-    const draw = (n = 1) => { for (let k = 0; k < n; k++) { now += 1000 / 60; cv.update(1); } };
+    /* seen from where you stand, looking at it (what is out of sight is not drawn: castView.ts, SIGHT) */
+    const eye = new THREE.PerspectiveCamera(72, 16 / 9, 0.06, 140);
+    const look = () => { const b = s.player.body, a = ragAt(m.rag!); eye.position.set(b.x, b.y + 1.6, b.z); eye.lookAt(a.x, a.y, a.z); };
+    const draw = (n = 1) => { for (let k = 0; k < n; k++) { now += 1000 / 60; look(); cv.update(1, eye); } };
     const shown = () => (cv as unknown as { shown: { m: Mutant; M: { g: THREE.Group }; baked: THREE.Mesh | null }[] }).shown.find(x => x.m === m)!;
     draw(15); // blended in and laid as it lies
     const S = shown();
@@ -492,6 +495,24 @@ describe('corpses stay in the world', () => {
     hold(s, 3);
     draw(15);
     expect(S.baked).not.toBe(null); // and again, once it settles
+  });
+
+  it('asleep out of sight, it is laid as one mesh all the same, not drawn, and drawn once looked at', () => {
+    const s = arena(), m = lying(s), cv = new CastView(new THREE.Group(), s, simLighting(s));
+    let now = 0;
+    vi.spyOn(performance, 'now').mockImplementation(() => now);
+    onTestFinished(() => { vi.restoreAllMocks(); });
+    const eye = new THREE.PerspectiveCamera(72, 16 / 9, 0.06, 140), a = ragAt(m.rag!);
+    eye.position.set(a.x, a.y + 1.6, a.z + 6);
+    eye.lookAt(a.x, a.y + 1.6, a.z + 20); // turned away from it
+    for (let k = 0; k < 15; k++) { now += 1000 / 60; cv.update(1, eye); }
+    const S = (cv as unknown as { shown: { m: Mutant; M: { g: THREE.Group }; baked: THREE.Mesh | null }[] }).shown.find(x => x.m === m)!;
+    expect(S.baked).not.toBe(null);
+    expect(S.baked!.visible).toBe(false);
+    expect(S.baked!.geometry.getAttribute('position').count).toBeGreaterThan(100); // all of it, though nothing of it was shown
+    eye.lookAt(a.x, a.y, a.z);
+    now += 1000 / 60; cv.update(1, eye);
+    expect(S.baked!.visible).toBe(true);
   });
 
   it('one of the cast walking through one shoves it too', () => {

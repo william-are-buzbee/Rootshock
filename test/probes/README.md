@@ -14,6 +14,9 @@ were written for were found by measuring, not by looking, and the next one will 
 - `down.probe.ts`: the axe flooring a husk (as hard as one run into): how far its shoulders turn on the plan while it
   is down, and how far its hips go out. `TRACE=1` prints one fall step by step.
 
+- `step.probe.ts`: what a sim step costs on each level (mean, median, 95th, worst), walking; and the page's share of
+  the light each frame.
+
 `SET='STAGGER.upright=0;RAG.tip=0.6'` tries constants for one run (`kill` and `down`), without touching the tables.
 To compare with what was there before a change: `git stash push <file>`, run with `PROBE_OUT` elsewhere, pop it.
 
