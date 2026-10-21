@@ -3,7 +3,7 @@ import { Rng } from '../../core/rng';
 import type { Sim } from '../../sim/sim';
 import type { Lighting } from '../../world/light';
 import type { World } from '../../world/world';
-import { LIFT, LIGHTS, U, lightUniforms } from './shader';
+import { LIGHTS, U, lightUniforms } from './shader';
 
 /* Water coming through the rock. A level's drip points are found once, from its own id, so they are the same every
    time: in its caves and over its standing water, one to three a room, each where there is roof above and something
@@ -45,14 +45,14 @@ export function dripPoints(w: World): Drip[] {
 
 const RING_VS = /* glsl */ `
 attribute vec3 iPos; attribute float iSize; attribute vec3 iCol; attribute float iA; attribute vec3 iL;
-uniform float uFog; uniform float uExpo;
+uniform float uFog;
 varying vec3 vC; varying float vA; varying vec2 vS;
 ${LIGHTS}
 void main(){
   vec3 p = iPos + vec3(position.x * iSize, 0.0, position.z * iSize);
   vec3 tc = cameraPosition - p; float d = length(tc);
   /* a ring on water is mostly what it catches: a little light of its own (iA > 0); a wet patch has none */
-  vC = iCol * (iL + carried(p, 1.0) + lying(p, vec3(0.0, 1.0, 0.0)) + (iA > 0.0 ? 0.12 : 0.0)) * uExpo;
+  vC = iCol * (iL + carried(p, 1.0) + lying(p, vec3(0.0, 1.0, 0.0)) + (iA > 0.0 ? 0.12 : 0.0));
   vA = iA * exp(-d * uFog);
   vS = position.xz * 2.0;
   gl_Position = projectionMatrix * viewMatrix * vec4(p, 1.0);
@@ -60,31 +60,29 @@ void main(){
 /* a ring is a square's edge; a wet patch (iCol's alpha flag in vA's sign) is a whole square */
 const RING_FS = /* glsl */ `
 varying vec3 vC; varying float vA; varying vec2 vS;
-${LIFT}
 void main(){
   float a = abs(vA), edge = max(abs(vS.x), abs(vS.y));
   if (vA > 0.0 && edge < 0.62) discard;
   if (a < 0.01) discard;
-  gl_FragColor = vec4(lift(vC), a);
+  gl_FragColor = vec4(vC, a);
 }`;
 
 const DROP_VS = /* glsl */ `
 attribute vec3 aL; attribute float aA;
-uniform float uFog; uniform float uExpo; uniform float uPx;
+uniform float uFog; uniform float uPx;
 varying vec3 vC; varying float vA;
 ${LIGHTS}
 void main(){
   vec4 mv = modelViewMatrix * vec4(position, 1.0);
   vec3 tc = cameraPosition - position; float d = length(tc);
-  vC = vec3(0.7, 0.8, 0.85) * (aL + 0.6 * (held(position, 1.0) + lying(position, vec3(0.0))) + bounce(position) + 0.1) * uExpo;
+  vC = vec3(0.7, 0.8, 0.85) * (aL + 0.6 * (held(position, 1.0) + lying(position, vec3(0.0))) + bounce(position) + 0.1);
   vA = aA * exp(-d * uFog);
   gl_PointSize = floor(clamp(uPx / max(-mv.z, 0.1), 2.0, 6.0));
   gl_Position = projectionMatrix * mv;
 }`;
 const DROP_FS = /* glsl */ `
 varying vec3 vC; varying float vA;
-${LIFT}
-void main(){ if (vA < 0.01) discard; gl_FragColor = vec4(lift(vC), vA); }`;
+void main(){ if (vA < 0.01) discard; gl_FragColor = vec4(vC, vA); }`;
 
 interface Ring { x: number; y: number; z: number; age: number; life: number; most: number; water: boolean }
 
@@ -114,7 +112,7 @@ export class Drips {
     this.dropGeo.setAttribute('aL', dyn(new THREE.BufferAttribute(this.dL, 3)));
     this.dropGeo.setAttribute('aA', dyn(new THREE.BufferAttribute(this.dA, 1)));
     this.dropMat = new THREE.ShaderMaterial({
-      uniforms: { ...lightUniforms(), uFog: U.uFog, uExpo: U.uExpo, uPx: { value: 30 } },
+      uniforms: { ...lightUniforms(), uFog: U.uFog, uPx: { value: 30 } },
       vertexShader: DROP_VS, fragmentShader: DROP_FS, transparent: true, depthWrite: false,
     });
     const drops = new THREE.Points(this.dropGeo, this.dropMat);
@@ -132,7 +130,7 @@ export class Drips {
     this.ringGeo.setAttribute('iL', inst(this.rL, 3));
     this.ringGeo.instanceCount = 0;
     const ringMat = new THREE.ShaderMaterial({
-      uniforms: { ...lightUniforms(), uFog: U.uFog, uExpo: U.uExpo },
+      uniforms: { ...lightUniforms(), uFog: U.uFog },
       vertexShader: RING_VS, fragmentShader: RING_FS, transparent: true, depthWrite: false,
       polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
     });

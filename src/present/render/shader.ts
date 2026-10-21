@@ -6,7 +6,9 @@ import { MATS, MAT_ORDER, type Mat, type Pattern } from '../../content/materials
 /* One shader for everything, carried over from the first engine.
    Light = the level's light (read point by point from its light field for the level itself, per object for things that
    move, per vertex for glass) + the lights you carry + the lights lying about, flat-shaded from screen-space derivatives.
-   No ambient floor: unlit is black. A colour channel above 1.5 is emissive.
+   No ambient floor: unlit is black. A colour channel above 1.5 is emissive. A light fitting (a tube, a lamp) is lit by
+   its room's light many times over (its `glow`), so it goes out with the room; it and anything emissive that is bright
+   are drawn brighter than white (EMIT), so they glow in the picture (post.ts).
    Every light that is not the level's is drawn by LIGHTS below, in every shader that draws into the scene (motes,
    prints and drips too), from the numbers in world/light.ts, so a light is the same light wherever it falls and falls
    once. The flashlight is a reflector's beam: a hot centre, a faint bright ring at its rim, a wide dim spill; in your
@@ -20,8 +22,8 @@ import { MATS, MAT_ORDER, type Mat, type Pattern } from '../../content/materials
    Your body stands in the way of the fittings over you (selfShade): a few capsules (selfView.ts) against the nearest
    fittings of the room you are in, each taking back its share of the light where it falls, soft-edged, wider and
    fainter the further it falls from you.
-   Then the eye: everything is scaled by how open it is (uExpo: wide in the dark, narrowed in light; main.ts), and the
-   dark is never quite flat, but grained, most where it is darkest.
+   What every shader here writes is light as it is, brighter than white where it is: the eye (uExpo: wide in the dark,
+   narrowed in light; main.ts), the glow, the tone curve and the grain are the picture's, made once from it (post.ts).
 
    What a surface is made of (content/materials.ts, by aMat) is drawn on it, from where it is: the level's in the
    world, so a pattern runs on across faces, a moving thing's in its own frame, so a pushed crate's boards go with it.
@@ -67,9 +69,11 @@ void main(){
   gl_Position = projectionMatrix * viewMatrix * w;
 }`;
 
-/** the screen's tone curve: mid-tones lifted, black left black, so a lit room reads as lit on a screen. Every shader
- *  that draws into the scene ends with it, so nothing stands out against the rest */
-export const LIFT = /* glsl */ `vec3 lift(vec3 c){ return pow(max(c, vec3(0.0)), vec3(0.78)); }`;
+/** how much brighter than white a light is drawn, so it glows: a fitting lit by its room's light (`glow` over 1, a tube)
+ *  `fitting` times over what it was; something emissive, `most` times its colour for the brightest, by its brightest
+ *  channel from `dim` up to `bright`, and a dimmer one (a screen, a pilot light) as it was. The light in the room is the
+ *  light field's: this is only how the light itself looks */
+export const EMIT = { fitting: 2.4, most: 3.2, dim: 0.72, bright: 0.92 };
 
 /** the brightest light the field holds: what is over it is held at it */
 export const LIGHT_RANGE = 4;
@@ -416,13 +420,12 @@ float selfShade(vec3 p, vec3 n){
 }
 #endif
 ${LIGHTS}
-uniform float uFog; uniform float uWet; uniform float uTime;
-uniform float uFlick; uniform float uHit; uniform float uBright; uniform float uExpo; uniform vec3 uFlashPos; uniform float uDetail;
+uniform float uFog; uniform float uWet;
+uniform float uFlick; uniform float uHit; uniform float uBright; uniform vec3 uFlashPos; uniform float uDetail;
 #if !defined(STATIC) && !defined(BAKED)
 uniform vec3 uLightF;
 #endif
 varying vec3 vW; varying vec3 vO; varying vec3 vC; varying vec3 vL; varying vec4 vLA; varying vec4 vLB; varying vec2 vRY;
-${LIFT}
 ${SURFACE}
 void main(){
   vec3 n = normalize(cross(dFdx(vW), dFdy(vW)));
@@ -467,14 +470,16 @@ void main(){
   float rel = clamp(1.0 + 1.1 * (nb.y - nf.y), 0.5, 1.5);
 #if defined(STATIC)
   vec3 fl, lv = field(vW, nf, fl);
-  vec3 light = (lv - fl * 0.55 * uFlick) * vL.x * sh * rel * selfShade(vW, nf);
+  vec3 light = (lv - fl * 0.55 * uFlick) * (vL.x > 1.0 ? vL.x * ${f3(EMIT.fitting)} : vL.x) * sh * rel * selfShade(vW, nf);
 #elif defined(BAKED)
   vec3 light = vL * sh;
 #else
   vec3 light = (vL - uLightF * 0.55 * uFlick) * sh * rel;
 #endif
   light += vec3(0.014) / (1.0 + 3.0 * d * d) + carried(vW, facing) + lying(vW, nf) + vec3(uBright);
-  vec3 c = mix(base * light, base, em);
+  /* a light that is lit is brighter than white, the brightest the most */
+  float top = max(base.r, max(base.g, base.b));
+  vec3 c = mix(base * light, max(base, vec3(0.0)) * (1.0 + ${f3(EMIT.most - 1)} * smoothstep(${f3(EMIT.dim)}, ${f3(EMIT.bright)}, top)), em);
   /* the highlight, of the flashlight and the lantern you carry: tight and tinted on metal, broad and white on paint */
   if (on && vLA.x > 0.0 && em == 0.0) {
     float tight = vLA.y, norm = (tight + 8.0) / 32.0;
@@ -484,13 +489,7 @@ void main(){
   }
   c += uHit * vec3(0.45, 0.08, 0.06);
   c *= exp(-d * uFog);
-  c = mix(c, c * vec3(0.5, 0.85, 0.9), uWet);
-  c = lift(c * uExpo);
-  /* a hash with no sin in it (a sin hash shows patterns on some GPUs), moved every frame */
-  vec3 h3 = fract(vec3(gl_FragCoord.xyx + floor(fract(uTime * 7.13) * 977.0)) * 0.1031);
-  h3 += dot(h3, h3.yzx + 33.33);
-  float gr = fract((h3.x + h3.y) * h3.z) - 0.5;
-  c += gr * 0.022 * (1.0 - smoothstep(0.0, 0.35, dot(c, vec3(0.3, 0.59, 0.11))));
+  c = max(mix(c, c * vec3(0.5, 0.85, 0.9), uWet), vec3(0.0));
 #ifdef ALPHA
   gl_FragColor = vec4(c, ALPHA);
 #else
@@ -527,7 +526,7 @@ for (const m of MAT_ORDER) {
   lookB.push(new THREE.Vector4(P(L.pattern), L.wear, L.salt, 0));
 }
 
-/** uniforms every material shares: the flashlight, the fog, time */
+/** uniforms every material shares: the flashlight, the fog, time, the eye */
 export const U = {
   uFlashDir: { value: new THREE.Vector3(0, 0, -1) },
   /** where the flashlight is held: a little below and right of the eye (camera.ts) */

@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { Mutant } from '../../sim/cast';
 import type { Sim } from '../../sim/sim';
 import type { Lighting } from '../../world/light';
-import { LIFT, LIGHTS, U, lightUniforms } from './shader';
+import { LIGHTS, U, lightUniforms } from './shader';
 
 /* What is left on the floor.
 
@@ -44,7 +44,7 @@ const GAIT: Partial<Record<string, Gait>> = {
 
 const VS = /* glsl */ `
 attribute vec3 iPos; attribute float iYaw; attribute vec2 iSize; attribute vec3 iCol; attribute float iA; attribute vec3 iL;
-uniform float uFog; uniform float uExpo;
+uniform float uFog;
 varying vec3 vC; varying float vA; varying vec2 vQ;
 ${LIGHTS}
 void main(){
@@ -53,20 +53,19 @@ void main(){
   vec2 q = position.xz * iSize;
   vec3 p = iPos + vec3(q.x * c + q.y * s, 0.0, -q.x * s + q.y * c);
   vec3 tc = cameraPosition - p; float d = length(tc);
-  vC = iCol * (iL + carried(p, 1.0) + lying(p, vec3(0.0, 1.0, 0.0))) * uExpo;
+  vC = iCol * (iL + carried(p, 1.0) + lying(p, vec3(0.0, 1.0, 0.0)));
   vA = iA * exp(-d * uFog);
   gl_Position = projectionMatrix * viewMatrix * vec4(p, 1.0);
 }`;
 
 const FS = /* glsl */ `
 varying vec3 vC; varying float vA; varying vec2 vQ;
-${LIFT}
 void main(){
   if (vA < 0.01) discard;
   /* a foot, not a block: the ball and sole toward its front, the heel behind, round at both (the quad a unit square) */
   vec2 a = vec2(vQ.x / 0.5, (vQ.y - 0.12) / 0.38), h = vec2(vQ.x / 0.4, (vQ.y + 0.3) / 0.2);
   if (dot(a, a) > 1.0 && dot(h, h) > 1.0) discard;
-  gl_FragColor = vec4(lift(vC), vA);
+  gl_FragColor = vec4(vC, vA);
 }`;
 
 /** a print on the floor: where, of what, how strong (0..1), how old, how big (across and along) and how big it began */
@@ -102,7 +101,7 @@ export class Prints {
     this.geo.setAttribute('iL', attr(this.iL, 3));
     this.geo.instanceCount = 0;
     const mat = new THREE.ShaderMaterial({
-      uniforms: { ...lightUniforms(), uFog: U.uFog, uExpo: U.uExpo },
+      uniforms: { ...lightUniforms(), uFog: U.uFog },
       vertexShader: VS, fragmentShader: FS, transparent: true, depthWrite: false,
       polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
     });

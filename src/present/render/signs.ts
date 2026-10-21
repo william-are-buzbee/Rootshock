@@ -4,7 +4,7 @@ import type { SignDef } from '../../content/types';
 import type { Mat } from '../../content/materials';
 import type { World } from '../../world/world';
 import type { Lighting } from '../../world/light';
-import { LIFT, LIGHTS, U, lightUniforms } from './shader';
+import { LIGHTS, U, lightUniforms } from './shader';
 
 /* The signs over the doors. Not lit from within, as they were (a black plate shone in a dark room): lit as any
    surface is, by the room's light where they hang and the lights you carry. Their pale parts are retroreflective, as
@@ -89,10 +89,9 @@ varying vec2 vUv; varying vec3 vW;
 void main(){ vUv = uv; vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`;
 const FS = /* glsl */ `
 uniform sampler2D uMap; uniform vec3 uL; uniform vec3 uN; uniform float uRetro; uniform float uCut;
-uniform float uFog; uniform float uExpo; uniform float uBright;
+uniform float uFog; uniform float uBright;
 varying vec2 vUv; varying vec3 vW;
 ${LIGHTS}
-${LIFT}
 void main(){
   vec4 t = texture2D(uMap, vUv);
   if (uCut > 0.5 && t.a < 0.5) discard;
@@ -103,7 +102,7 @@ void main(){
   /* what is pale on it sends your beam straight back at you */
   c += base * uRetro * dot(base, vec3(0.3, 0.59, 0.11)) * held(vW, 1.0);
   c *= exp(-d * uFog);
-  gl_FragColor = vec4(lift(c * uExpo), 1.0);
+  gl_FragColor = vec4(c, 1.0);
 }`;
 
 interface Hung { mat: THREE.ShaderMaterial; at: [number, number, number]; draw: () => void }
@@ -131,7 +130,7 @@ export class SignView {
     const mat = new THREE.ShaderMaterial({
       vertexShader: VS, fragmentShader: FS,
       uniforms: {
-        ...lightUniforms(), uFog: U.uFog, uExpo: U.uExpo, uBright: U.uBright,
+        ...lightUniforms(), uFog: U.uFog, uBright: U.uBright,
         uMap: { value: null as THREE.Texture | null }, uL: { value: new THREE.Vector3() }, uN: { value: new THREE.Vector3(nx, 0, nz) },
         uRetro: { value: S.retro }, uCut: { value: S.cut ? 1 : 0 },
       },

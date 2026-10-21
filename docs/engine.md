@@ -980,11 +980,20 @@ sequence of inputs. The door rules, the labels and the answers are the first eng
   sways with your stride (`present/camera.ts`); its cone is a reflector's (a hot centre, a faint ring at its rim, a
   wide dim spill); and a wall close in front of it throws a little light back around you (one ray a frame). The eye
   adapts (`uExpo`): it opens slowly in the dark and narrows fast in light, so a room coming on glares; in a lit room it
-  stays a little open, so light reads as light. Every shader ends on one tone curve (`LIFT` in `render/shader.ts`: the
-  mid-tones lifted, black left black), the haze is thin in dry air so a long hall reads to its far end, and the player's
+  stays a little open, so light reads as light. The scene is drawn as light, not as a picture: every shader writes the
+  light it sees, past white where it is brighter than that, into a target that keeps it (half floats, four samples a
+  pixel), and one pass makes the picture from it (`render/post.ts`): the eye, the glow, the tone curve and the grain,
+  the same for everything drawn. The glow is a bright light's halo in the eye: what is over white is taken down by halves
+  to a small image and back up, wider each step, and laid over the picture (`GLOW`), so a tube, a lit screen and the
+  beam's centre on a wall close by bloom. The tone curve (`LIFT` and `TONE`) lifts the mid-tones and leaves black
+  black, as before, and under its knee it is exactly what it was; over it light is rolled off toward white, keeping its
+  colour, instead of clipped, so the beam's hot centre has a shape and not a flat edge, and very bright light whitens.
+  A fitting is drawn brighter than white, so it glows: a tube lit by its room's light (its `glow`) 2.4 times what it
+  was, a bright emissive colour (a lamp, the lobby's false sky) up to 3.2 times (`EMIT` in `render/shader.ts`); the
+  night round's lens too. Where the card cannot draw into a target that holds more than white, it draws into one that
+  cannot, and looks as it did before. The haze is thin in dry air so a long hall reads to its far end, and the player's
   brightness setting (title and pause screens, kept between runs) scales the eye. All of it is the screen's alone: the
-  cast and the cameras see by the light as it is. The dark is
-  grained in the shader, most where it is darkest. A fitted room's light falls in pools under its ceiling fittings (`LevelDef.fixtures`, `POOL` in `world/lightField.ts`):
+  cast and the cameras see by the light as it is. The dark is grained, most where it is darkest. A fitted room's light falls in pools under its ceiling fittings (`LevelDef.fixtures`, `POOL` in `world/lightField.ts`):
   a point takes 0.55 of the room's light plus 1.3 times what its fittings throw at it, down and falling off, so the
   floor under a tube is lit above the room's level and the corners and the ceiling below it, and what they throw
   through a doorway lights the floor past it. Between the lights you are a little harder to see. A room on its backup set is lit amber; its brightest channel, which
