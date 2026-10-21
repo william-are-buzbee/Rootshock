@@ -46,7 +46,7 @@ export function roomLight(R: RoomDef, power: Power): Colour {
   if (R.lit === 'none') return BLACK;
   const l = power(R.circuit);
   if (l === 2) return R.lc;
-  if (l === 0 && R.batt) return R.batt;
+  if (l === 0 && R.batt && power(R.batt.watch) === 0 && power(R.batt.supply) > 0) return R.batt.colour;
   if (l !== 1 || !R.em) return BLACK;
   const c: Colour = [R.lc[0] * EMERGENCY[0], R.lc[1] * EMERGENCY[1], R.lc[2] * EMERGENCY[2]], top = Math.max(...c);
   return top > 0 ? scale3(c, (0.4 * Math.max(...R.lc)) / top) : BLACK;

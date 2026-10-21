@@ -66,12 +66,12 @@ export const ITEMS: Record<string, ItemDef> = {
 
 const KEYN: Record<string, string> = {
   s: 'Security keycard', o: 'Operations pass', h: 'Horticulture security pass', e: 'Engineering keycard', surf: 'Surface lift pass', lift: "Director's lift key",
-  med: 'Medical staff card', hold: "an attending physician's override",
+  hold: "an attending physician's override",
 };
-/** cards whose holders are gone: the medical staff's, and a physician's override for a medical hold. No guard's card
- *  opens their doors (it reads red: the opening, world.md §8), and nothing in the game gives one: their doors stay shut,
- *  or let go some other way (a fail-safe) */
-export const GONE = new Set(['med', 'hold']);
+/** cards whose holders are gone: a physician's override for a medical hold. No guard's card opens its door (it reads
+ *  red: the opening, world.md §8), and nothing in the game gives one: its door stays shut, or lets go some other way (a
+ *  fail-safe) */
+export const GONE = new Set(['hold']);
 export const keyName = (k: string): string => KEYN[k] ?? 'Room card, Residence ' + k;
 
 /** how a weapon handles, from its mass and kind, as the first engine worked it out: damage, the time to load a swing

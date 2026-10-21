@@ -301,7 +301,7 @@ export function step(sim: Sim, input: Input): void {
     if (e.type !== 'power') continue;
     sim.lighting = null;
     if (e.loud) { makeNoise(g, 30); g.events.push({ type: 'shake', k: 0.4 }); }
-    else sfx(g, 'door');
+    else if (!e.quiet) sfx(g, 'door');
   }
 }
 

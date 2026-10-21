@@ -21,7 +21,7 @@ const RANGE: Record<string, number> = {
   door: 46, roar: 55, thud: 40, hstep: 18, moan: 28, tap: 24, skit: 24, slosh: 20, swing: 10, whiff: 14, heave: 20, rasp: 12, gust: 24, strike: 30, knock: 32, groan: 55, tick: 12, settle: 45, step: 30, rattle: 30,
   breath: 10, mutter: 20, click: 14, gurgle: 22, growl: 30, slither: 10, bubble: 12, creak: 12, drip: 30, scrape: 20, crate: 30,
   klaxon: 70, cam: 16, smash: 34, blow: 30, 'bolt-draw': 24, bolt: 26, 'bolt-free': 18,
-  bang: 40, taken: 40, pump: 14, static: 8,
+  bang: 40, taken: 40, pump: 14, static: 8, switch: 10,
   'die-husk': 40, 'die-skitter': 36, 'die-bloat': 46, 'die-thresher': 50, 'die-worm': 20, 'die-swimmer': 20, 'die-grabber': 24,
 };
 
@@ -438,12 +438,13 @@ export class Audio {
           this.tn(rnd(1700, 1900), 1650, 0.3, 'triangle', 0.025 * v, 0.01);
           break;
         case 'taken': {
-          for (let i = 0, at = 0; i < 5; i++, at += rnd(0.12, 0.4)) { this.tn(rnd(80, 130), 50, 0.12, 'sine', rnd(0.25, 0.45) * v, at); this.nz(0.1, 0.18 * v, rnd(300, 600), 'bandpass', at, 1); }
-          this.tn(520, 330, 0.55, 'sawtooth', 0.05 * v, 0.35, 0.03); this.nz(0.5, 0.05 * v, 1100, 'bandpass', 0.35, 3, 700, 0.03);
-          this.nz(0.6, 0.08 * v, 900, 'bandpass', 1.4, 1.5, 300); // dragged over the floor
-          this.tn(70, 40, 0.25, 'sine', 0.4 * v, 2.3); this.nz(0.2, 0.2 * v, 250, 'lowpass', 2.3);
+          /* a cry, choked off into a long low moan as the touch takes it, and a body going down */
+          this.tn(560, 420, 0.4, 'sawtooth', 0.05 * v, 0, 0.02); this.nz(0.35, 0.05 * v, 1200, 'bandpass', 0, 3, 800, 0.02);
+          this.tn(300, 140, 1.6, 'sawtooth', 0.03 * v, 0.4, 0.2); this.nz(1.4, 0.03 * v, 500, 'bandpass', 0.4, 2, 250, 0.2);
+          this.tn(75, 40, 0.25, 'sine', 0.35 * v, 0.7); this.nz(0.2, 0.15 * v, 250, 'lowpass', 0.7);
           break;
         }
+        case 'switch': this.tn(1500, 900, 0.02, 'square', 0.05 * v); this.nz(0.03, 0.06 * v, 3000, 'bandpass', 0.005, 2); break;
         case 'pump': for (const at of [0, 0.17, 0.34]) this.tn(at === 0.17 ? 1170 : 980, at === 0.17 ? 1170 : 980, 0.11, 'square', 0.035 * v, at, 0.005); break;
         case 'static': this.nz(1.4, 0.07 * v, 2600, 'bandpass', 0, 0.6, 1900, 0.04); this.nz(1.4, 0.03 * v, 700, 'bandpass', 0, 1); break;
         case 'smash': this.nz(0.25, 0.5 * v, 3800, 'highpass'); this.nz(0.2, 0.4 * v, 500, 'bandpass', 0.02, 1.5); this.tn(900, 300, 0.15, 'triangle', 0.12 * v); break;

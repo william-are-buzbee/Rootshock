@@ -21,7 +21,7 @@ function place(s: Sim, who: Mutant | 'player', x: number, y: number, z: number):
 const setUp = () => {
   const s = fresh(), m = s.cast.find(q => q.type === 'nightround')!;
   for (const q of s.cast) if (q !== m) q.stun = 1e9;
-  place(s, 'player', 30, -4.5, -25);
+  place(s, 'player', 39, -4.5, -15);
   hold(s, 0.1);
   return { s, m };
 };

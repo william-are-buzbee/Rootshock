@@ -35,7 +35,7 @@ const setUp = (mended: boolean) => {
   const s = fresh(), m = s.cast.find(q => q.ai === 'husk' && !q.post && q.cards)!;
   only(s, [m]);
   if (mended) { s.game.station!.circuits.SEC.broken = false; s.lighting = null; }
-  place(s, 'player', 30, -4.5, -25);
+  place(s, 'player', 39, -4.5, -15);
   place(s, m, 63, 0, -1);
   hold(s, 0.2);
   return { s, m };
@@ -94,7 +94,7 @@ describe('a breaker thrown means someone threw it', () => {
   const setUp = () => {
     const s = fresh(), m = s.cast.find(q => q.ai === 'husk' && !q.post && q.cards)!;
     only(s, [m]);
-    place(s, 'player', 30, -4.5, -25);
+    place(s, 'player', 39, -4.5, -15);
     place(s, m, 70, 0, 36);
     hold(s, 0.2);
     brk(s, 'Muster hall east').act();
@@ -157,7 +157,7 @@ describe('a door left open is noticed', () => {
     only(s, staff);
     s.game.station!.main = true; s.lighting = null;
     const k = armory(s), d = s.doors[k], cx = (d.def.x0 + d.def.x1) / 2, cz = (d.def.z0 + d.def.z1) / 2;
-    place(s, 'player', 30, -4.5, -25);
+    place(s, 'player', 39, -4.5, -15);
     place(s, m, cx, 0, cz + 7); m.yaw = yaw; m.wt = 30; m.dest = -1; // standing, between rounds
     place(s, n, cx - 3, 0, cz + 8); n.yaw = Math.PI; n.wt = 30; n.dest = -1;
     hold(s, 0.2);

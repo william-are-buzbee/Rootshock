@@ -81,7 +81,7 @@ describe('the armed rooms', () => {
 
   it('the cast keep out of them on their rounds', () => {
     const s = fresh();
-    place(s, 30, -4.5, -25); // you, out of it all, a storey down
+    place(s, 39, -4.5, -15); // you, out of it all, a storey down
     const rounds = s.cast.filter(m => m.ai === 'husk' && !m.post);
     expect(rounds.length).toBeGreaterThan(1);
     for (let t = 0; t < 90; t += 0.5) {
@@ -218,7 +218,7 @@ describe('the zone alarm', () => {
   /** the husks that would answer and hear the atrium's alarm, with you out of it all; everything else still */
   const setUp = (keep: (s: Sim) => number[]) => {
     const s = fresh();
-    place(s, 30, -4.5, -25); // you are a storey down in the suite, far out of its sight and hearing
+    place(s, 39, -4.5, -15); // you are a storey down in the suite, far out of its sight and hearing
     hold(s, 0.2);
     const k = keep(s);
     for (const q of s.cast) if (!k.includes(q.id)) q.stun = 1e9;
@@ -311,7 +311,7 @@ describe('lockdown', () => {
   it('an alarm bolts its zone\'s doors that have power to move: heard being drawn, home a moment later', () => {
     const s = fresh();
     still(s);
-    place(s, 30, -4.5, -25);
+    place(s, 39, -4.5, -15);
     s.game.events.length = 0;
     soundZone(s, 'muster');
     hold(s, 0.1);
@@ -409,7 +409,7 @@ describe('call points', () => {
   it('break the glass and its zone sounds, with all that follows: the changed hurry to it, and the zone locks down', () => {
     const s = fresh(), u = callIn(s, 'muster');
     for (const m of s.cast) if (m.ai !== 'husk' || m.post) m.stun = 1e9;
-    place(s, 30, -4.5, -25);
+    place(s, 39, -4.5, -15);
     hold(s, 0.2);
     expect(u.label()).toBe('Break the glass');
     s.game.noiseI = 0;
@@ -573,7 +573,7 @@ describe('the power-failure drill', () => {
   const setUp = () => {
     const s = fresh(), m = s.cast.find(q => q.ai === 'husk' && !q.post)!;
     for (const q of s.cast) if (q !== m) q.stun = 1e9;
-    place(s, 30, -4.5, -25); // you, out of it all, a storey down
+    place(s, 39, -4.5, -15); // you, out of it all, a storey down
     const b = m.body!; b.x = m.x = 70; b.y = m.y = 0; b.z = m.z = 36; b.sync();
     hold(s, 0.2);
     return { s, m };
@@ -735,7 +735,7 @@ describe('a smashed speaker', () => {
   it('smashed while it sounds, the klaxon stops at its next round', () => {
     const s = fresh();
     still(s);
-    place(s, 30, -4.5, -25);
+    place(s, 39, -4.5, -15);
     soundZone(s, 'atrium');
     hold(s, 2);
     s.mute.push('atrium');

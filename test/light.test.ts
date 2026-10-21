@@ -90,8 +90,11 @@ describe('light past a room', () => {
     return out;
   };
 
+  /** a room with a pane of glass in its walls (light goes through a window: not this test's) */
+  const glazed = (id: number) => { const R = w.rooms[id]; return w.def.doors.some(d => d.glass && d.x1 > R.x0 - 0.6 && d.x0 < R.x1 + 0.6 && d.z1 > R.z0 - 0.6 && d.z0 < R.z1 + 0.6 && d.y0 < R.y0 + R.ht && d.y1 > R.y0); };
+
   it('reaches through a doorway into a dark room, falling off with distance, and not through its walls', () => {
-    const [A, D, B] = pairs().find(([a, , b]) => w.rooms[a].lit === 'main' && w.rooms[b].lit !== 'always')!;
+    const [A, D, B] = pairs().find(([a, , b]) => w.rooms[a].lit === 'main' && w.rooms[b].lit !== 'always' && !glazed(a) && !glazed(b))!;
     const L = only([A]), Dr = w.rooms[D], Br = w.rooms[B];
     expect(Math.max(...L.room(B))).toBe(0); // the room itself is dark
     /* the doorway takes some of A's light, and B, just past it, less */
