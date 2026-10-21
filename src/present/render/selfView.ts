@@ -181,7 +181,7 @@ export class SelfView {
     left.up.rotation.set(swing + crouch * 0.5 + P.lean * 0.5, 0, -0.08);
     left.fore.rotation.x = 0.25 + crouch * 0.3;
 
-    lightMaterial(this.mat, this.L.atPoint(b.x, b.y + 1, b.z), this.L.flickAt(b.x, b.y + 1, b.z));
+    lightMaterial(this.mat, this.L.atPoint(b.x, b.y + 1, b.z), this.L.flickAt(b.x, b.y + 1, b.z), this.L.towards(b.x, b.y + 1, b.z));
     this.shadow(at);
   }
 
