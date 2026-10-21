@@ -8,15 +8,17 @@ import { power } from '../src/sim/game';
 import { locked } from '../src/sim/movers';
 import { checkProgress } from '../src/sim/progress';
 import { OPENING } from '../src/sim/opening';
+import { GRAFT, stutters } from '../src/sim/cast';
 import { REEL } from '../src/sim/moves';
 
-/* The opening (world.md §8): a new game's first minutes in the isolation suite, each beat saying one thing, in about
-   ninety seconds. The wing's feed is days cut; you wake to your pump's alarm in the suite's low stutter, on its own
-   failing set. At your door, the other patient sees you and bangs on the glass; the noise draws the night round's beam;
-   they point it out to you and hide. It comes down, opens their door (green), strikes them twice where they hide and
-   drags them on by an ankle, through rooms 3 and 4 to yours, each opened green and swept with its beam: whoever it finds,
-   it takes. It goes up with them, and they are gone; ten seconds on the set dies: black, your lock letting go in the
-   dark, and the suite's cells coming up. */
+/* The opening (world.md §8): a new game's first minutes in the isolation suite, each beat saying one thing. The wing's
+   feed is days cut; you wake to your pump's alarm in the suite's low stutter, on its own failing set. At your door, the
+   other patient sees you and bangs on the glass; the noise draws the night round's beam; they point it out to you and
+   hide. It comes down, opens their door (green), strikes them twice where they hide, out cold, and drags them out by an
+   ankle into the hall, smearing blood, where it grafts them, in sight of your window, the lights stuttering; and leaves
+   them there, bleeding. Then it searches the rooms, walking into each and looking right round, yours last, after a
+   while at your door: whoever it finds, it takes. Your washroom, its door shut, it does not go into. It goes up; ten
+   seconds on the set dies: black, your lock letting go in the dark, and the suite's cells coming up. */
 
 const level = buildUpper(STATION.ladders);
 const opening = (seed = 7) => {
@@ -41,10 +43,10 @@ function at(s: Sim, [i, j]: readonly [number, number], crouch = false): void {
   s.player.yaw = -Math.PI / 2; s.player.pitch = 0;
   if (crouch !== s.player.crouch) step(s, { ...noInput(), crouch: true });
 }
-/** the readers' beeps heard, and at which door (by its room's name, through the door's sign); and blows landing */
+/** the readers' beeps heard, and at which door (by its room's name, through the door's sign); blows landing; the graft */
 function beeps(s: Sim, into: string[]): void {
   for (const e of s.game.events) {
-    if (e.type === 'sfx' && e.name === 'struck') into.push('struck');
+    if (e.type === 'sfx' && (e.name === 'struck' || e.name === 'graft')) into.push(e.name);
     if (e.type !== 'sfx' || (e.name !== 'take' && e.name !== 'deny') || e.x === undefined) continue;
     const d = s.doors.find(q => q.def.card && Math.hypot((q.def.x0 + q.def.x1) / 2 - e.x!, (q.def.z0 + q.def.z1) / 2 - e.z!) < 0.5);
     if (d) into.push(roomBehind(s, d) + ':' + (e.name === 'take' ? 'green' : 'red'));
@@ -106,7 +108,7 @@ describe('the opening, as it plays out', () => {
     expect(play(20, () => roomOf(s, round) === 'Isolation suite')).toBe(true);
   });
 
-  it('green at their door; struck twice where they hide, bleeding there, and limp, it drags them on by an ankle', () => {
+  it('green at their door; struck twice where they hide, out cold, bleeding there; dragged out by an ankle, smearing blood', () => {
     expect(play(30, () => patient.state === 'dragged')).toBe(true);
     expect(heard[0]).toBe('room 2:green');
     expect(heard.filter(h => h === 'struck').length).toBe(2);
@@ -116,27 +118,56 @@ describe('the opening, as it plays out', () => {
     expect(round.drag).toBe(patient.id);
     expect(patient.dead).toBe(false); // alive, and taken
     expect(patient.rag?.limp).toBe(true);
-    play(6, () => false);
+    play(4, () => false);
     expect(Math.hypot(patient.x - round.x, patient.z - round.z)).toBeLessThan(2.5); // with it, wherever it goes
+    expect(s.pools.filter(p => p.kind === 'smear').length).toBeGreaterThan(2);
   });
 
-  it('rooms 3, 4 and yours open green to its card, each swept with its beam; hidden in your washroom, it passes you by', () => {
+  it('it grafts them in the hall, in sight of your window: the lights stuttering, the body jerking, the blood spreading; and leaves them there out cold', () => {
+    expect(play(20, () => patient.state === 'out')).toBe(true);
+    expect(heard).toContain('graft');
+    expect(roomOf(s, patient)).toBe('Isolation suite');
+    const w = tile(WINDOW.back[0], WINDOW.back[1]);
+    expect(s.world.raycast(w.x, -2.9, w.z, patient.x, patient.y + 0.3, patient.z, d => d.kind === 'body' || !!d.glass)).toBe(1); // you see it all
+    expect(patient.grafted).toBe(true);
+    expect(stutters(s)).toBe(true);
+    let jerked = 0;
+    for (let t = 0; t < GRAFT.time + 0.5; t += STEP) { const v = patient.rag!.p[1]; step(s, noInput()); if (patient.rag!.p[1] - v > 0.01) jerked++; }
+    expect(jerked).toBeGreaterThan(3);
+    expect(stutters(s)).toBe(false);
+    const pool = s.pools.find(p => !p.kind && Math.hypot(p.x - patient.x, p.z - patient.z) < 0.8)!;
+    expect(pool.r).toBeGreaterThan(1.5);
+    expect(round.drag).toBe(-1);
+    expect(patient.state).toBe('out');
+    expect(patient.dead || patient.away).toBe(false); // alive
+  });
+
+  it('it searches rooms 4 and 3, walking into each, and stands a while at your door before it opens it; hidden in your washroom, door shut, it passes you by', () => {
     at(s, WASHROOM);
-    expect(play(60, () => s.opening?.phase !== 'scene')).toBe(true);
-    for (const r of ['room 3', 'room 4', 'room 1']) expect(heard).toContain(r + ':green');
+    const been = new Set<string>();
+    let atDoor = -1, green = -1;
+    expect(play(90, () => {
+      const r = roomOf(s, round);
+      if (r) been.add(r);
+      if (atDoor < 0 && round.beat === 10 && round.dest < 0) atDoor = s.game.time;
+      if (green < 0 && heard.includes('room 1:green')) green = s.game.time;
+      return s.opening?.phase !== 'scene';
+    })).toBe(true);
+    for (const r of ['Isolation room 4', 'Isolation room 3', 'Isolation room 1']) expect(been.has(r)).toBe(true);
+    expect(been.has('Washroom')).toBe(false);
     expect(heard.indexOf('room 1:green')).toBeGreaterThan(heard.indexOf('room 3:green')); // yours last
+    expect(green - atDoor).toBeGreaterThan(2.5); // a while at your door first
     expect(heard.some(h => h.endsWith(':red'))).toBe(false);
     expect(s.game.ended).toBeFalsy();
   });
 
-  it('it goes up with them, and they are gone; ten seconds on, the set dies: black, and your lock lets go in the dark', () => {
+  it('it goes up; ten seconds on, the set dies: black, and your lock lets go in the dark', () => {
     expect(s.opening?.phase).toBe('left');
     let wound = false;
     for (let t = 0; t < OPENING.fail + 1 && s.opening?.phase !== 'black'; t += STEP) { step(s, noInput()); wound ||= s.game.events.some(e => e.type === 'sfx' && e.name === 'winddown'); s.game.events.length = 0; }
     expect(s.opening?.phase).toBe('black');
     expect(wound).toBe(true);
-    expect(s.game.time - began).toBeLessThan(95); // the whole of it, from their seeing you to the dark, in about ninety seconds
-    expect(patient.away).toBe(true);
+    expect(s.game.time - began).toBeLessThan(135); // the whole of it, from their seeing you to the dark, about two minutes
     expect(power(s.game, 'ISO')).toBe(0);
     hold(s, 0.1);
     expect(lum(s, 'Isolation suite')).toBe(0); // black
@@ -151,31 +182,42 @@ describe('the opening, as it plays out', () => {
     expect(c[2]).toBeGreaterThan(c[0]); // cool
     expect(lum(s, 'Security corridor')).toBe(0);
     expect(roomOf(s, round)).not.toBe('Isolation suite');
+    expect(patient.state).toBe('out'); // still lying there
+    expect(roomOf(s, patient)).toBe('Isolation suite');
   });
 });
 
 describe('hiding from it', () => {
-  /** an opening played on until the night round is on its way to room 3's door, the last before yours; you put somewhere;
-   *  then whether it takes you before it is done with your door */
-  const toYourDoor = (place: (s: Sim) => void) => {
+  /** an opening played on, you watching from your window, until the night round has grafted the other patient and
+   *  turns to the rooms; you put somewhere; then whether it takes you before it is done with yours */
+  const search = (place: (s: Sim) => void) => {
     const { s, round } = opening(11);
     at(s, WINDOW.back);
-    until(s, 150, () => round.beat === 6);
+    until(s, 200, () => round.beat === 6);
     place(s);
-    until(s, 40, () => round.beat > 7 || !!s.game.ended);
+    until(s, 40, () => round.beat > 11 || !!s.game.ended);
     return !!s.game.ended && !s.game.ended.win;
   };
-  it('in your washroom, or crouched against the wall beside your door or under your window, its beam misses you; stood in your room, it takes you', () => {
-    expect(toYourDoor(s => at(s, WINDOW.back))).toBe(true);
-    expect(toYourDoor(s => at(s, WASHROOM))).toBe(false);
-    expect(toYourDoor(s => at(s, CORNER, true))).toBe(false);
-    expect(toYourDoor(s => at(s, WINDOW.at, true))).toBe(false); // as the other patient showed you
+  const washroom = () => level.doors.findIndex(d => Math.hypot((d.x0 + d.x1) / 2 - tile(23.5, 6.5).x, (d.z0 + d.z1) / 2 - tile(23.5, 6.5).z) < 1.2);
+  it('in your washroom with its door shut it passes you by; anywhere in your room it finds you, crouched under your window too, or stood at your glass as it comes your way', () => {
+    expect(search(s => at(s, WINDOW.back))).toBe(true);
+    expect(search(s => at(s, WASHROOM))).toBe(false);
+    expect(search(s => at(s, WINDOW.at, true))).toBe(true);
+    expect(search(s => at(s, CORNER, true))).toBe(true);
+  });
+  it('your washroom\'s door is slid by hand, and stays as you leave it', () => {
+    const { s } = opening(), d = s.doors[washroom()];
+    expect(d.def.circuit).toBe('SEC');
+    at(s, WASHROOM);
+    hold(s, 1);
+    expect(d.open).toBe(false);
   });
 
   it('taken is the end: the game over, and how', () => {
     const { s, round } = opening(11);
     at(s, WINDOW.back);
-    until(s, 150, () => round.beat === 6);
+    until(s, 200, () => round.beat === 6);
+    expect(s.game.ended).toBeFalsy(); // watching it all from a step back, in the dark: not seen yet
     s.game.events.length = 0;
     until(s, 40, () => !!s.game.ended);
     expect(s.game.ended?.win).toBe(false);
@@ -225,13 +267,17 @@ describe('waking', () => {
 });
 
 describe('without it', () => {
-  it('a game not begun with the opening has the level as it leaves it: the set dead, the locks let go, the other patient gone', () => {
+  it('a game not begun with the opening has the level as it leaves it: the set dead, the locks let go, the other patient grafted and out cold in the hall', () => {
     const s = makeSim(level, { seed: 7, station: STATION });
     expect(s.opening).toBeNull();
     expect(power(s.game, 'ISO')).toBe(0);
     expect(power(s.game, 'SEC')).toBe(0);
     for (const d of s.doors.filter(q => q.def.failsafe)) expect(locked(d)).toBe(false);
-    expect(s.cast.find(q => q.type === 'patient')!.away).toBe(true);
+    const p = s.cast.find(q => q.type === 'patient')!;
+    expect(p.state).toBe('out');
+    expect(p.grafted && !p.dead && !p.away).toBe(true);
+    expect(roomOf(s, p)).toBe('Isolation suite');
+    expect(s.pools.some(q => Math.hypot(q.x - p.x, q.z - p.z) < 0.8)).toBe(true);
     expect(lum(s, 'Isolation suite')).toBeGreaterThan(0.03); // its cells
   });
 
@@ -243,11 +289,12 @@ describe('without it', () => {
     expect(r.deadEnds).toEqual([]);
   });
 
-  it('a save made in the middle of it, the other patient dragged and their blood on the floor, plays on the same', async () => {
-    const { s, patient } = opening();
+  it('a save made in the middle of the graft, the blood on the floor, plays on the same', async () => {
+    const { s, patient, round } = opening();
     at(s, WINDOW.back);
-    until(s, 60, () => patient.state === 'dragged');
+    until(s, 80, () => patient.state === 'out');
     hold(s, 1);
+    expect(round.graft).toBeGreaterThan(0);
     const { load, save } = await import('../src/sim/save');
     const a = load(level, JSON.parse(JSON.stringify(save(s))), { seed: 7, station: STATION });
     expect(a.opening?.phase).toBe(s.opening?.phase);

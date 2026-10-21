@@ -1,6 +1,6 @@
 import { STEP } from '../core/loop';
 import { REEL } from './moves';
-import { gone, type Mutant } from './cast';
+import { leftGrafted, type Mutant } from './cast';
 import { say, sayOnce, sfx } from './game';
 import type { Input } from './input';
 import type { Sim } from './sim';
@@ -12,7 +12,8 @@ import type { Sim } from './sim';
    its beam. What is kept here is only what has to be timed:
    - wake: your pump's empty-bag alarm, and you weak from days under. When you have stood at your door or window a few
      seconds (or, if you do not, a while later) the other patient sees you, and starts on the glass;
-   - scene: the night round comes down to the noise and goes through the suite (sim/cast.ts, its first time round);
+   - scene: the night round comes down to the noise: it strikes the other patient down, drags them out into the hall and
+     grafts them there, and searches the rooms, yours last (sim/cast.ts, its first time round);
    - left: it has gone back up to the wing. A few seconds on, the suite's set dies, and its fail-safe locks let go
      (sim/movers.ts, failSafe);
    - black: everything out, a moment, before the suite's emergency cells come up (they wait to, as real ones do);
@@ -36,7 +37,7 @@ export interface Opening {
  *  or how long it waits for you to before they do anyway; how long after the night round has gone before the suite's set
  *  dies; how long the night round may take about the suite before it dies regardless; how long it is black before the cells
  *  come up; how long you are weak, and how slow (your pace at the start, as a share); how often the pump goes round */
-export const OPENING = { near: 2.5, dwell: 3, wait: 60, fail: 10, late: 150, black: 2, weak: 90, slow: 0.55, alarm: 2.2 };
+export const OPENING = { near: 2.5, dwell: 3, wait: 60, fail: 10, late: 200, black: 2, weak: 90, slow: 0.55, alarm: 2.2 };
 
 const patients = (sim: Sim) => sim.cast.filter(m => m.ai === 'patient');
 const nightRound = (sim: Sim): Mutant | undefined => sim.cast.find(m => m.round && m.torch);
@@ -50,9 +51,11 @@ export function makeOpening(sim: Sim): Opening {
   return { phase: 'wake', t: 0, alarm: true, next: 0.6, weak: OPENING.weak, near: 0 };
 }
 
-/** a game that does not begin with the opening: the other patient taken already, gone where the night round took them */
+/** a game that does not begin with the opening: the other patient taken already, grafted and out cold where the night
+ *  round left them */
 export function noOpening(sim: Sim): void {
-  for (const m of patients(sim)) { gone(sim, m); m.away = true; m.rag = null; m.state = 'gone'; }
+  const at = nightRound(sim)?.round?.find(s => s.graft);
+  for (const m of patients(sim)) if (at) leftGrafted(sim, m, at);
 }
 
 /** the pump on your pole (the level's use of kind 'pump') */

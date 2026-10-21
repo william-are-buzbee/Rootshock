@@ -2,7 +2,7 @@ import type { Mat } from '../content/materials';
 import { ITEMS } from '../content/items';
 import type { RoomDef } from '../content/types';
 import { clamp } from '../core/math';
-import type { Mutant } from '../sim/cast';
+import { stutters, type Mutant } from '../sim/cast';
 import { power, type SimEvent } from '../sim/game';
 import type { Loose } from '../sim/loose';
 import type { Sim } from '../sim/sim';
@@ -328,7 +328,7 @@ export class Soundscape {
       }
     }
 
-    const dim = flickerAt(t);
+    const dim = flickerAt(t, stutters(sim));
     A.setBuzz(buzz, dim);
     if (buzz && dim !== this.dim) A.play(dim ? 'zap' : 'tink', { k: buzz });
     this.dim = dim;

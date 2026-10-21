@@ -3,7 +3,7 @@ import { testbed } from './content/levels/testbed';
 import { STATION } from './content/station';
 import { Lighting } from './world/light';
 import { applyCommands, looseLights, makeSim, simLighting, type Sim } from './sim/sim';
-import { killAll, spawn } from './sim/cast';
+import { killAll, spawn, stutters } from './sim/cast';
 import { give } from './sim/game';
 import { Beams } from './present/render/beams';
 import { levelDef, loadRun, makeRun, saveRun, soloRun, stepRun, type Run } from './sim/run';
@@ -405,7 +405,7 @@ function frame(t: number): void {
   hud.dev(DEV ? `${b.x.toFixed(2)} ${b.y.toFixed(2)} ${b.z.toFixed(2)}  ${room?.name ?? 'rock'}  ${b.ground ? 'ground' : 'air'}  ${Math.round(fps)} fps\n${sim.world.def.name}: ${sim.world.grid.chunkCount} chunks  mesh ${here.meshMs.toFixed(0)} ms  ${['fly', 'god', 'bright'].filter(k => k === 'fly' ? sim.player.fly : k === 'god' ? sim.game.god : devFlags.bright).join(' ')}\n${perfLine()}\nV fly  G god  B bright  O colliders  P tracker  M surface detail\n${fightLine()}` : null);
   const t3 = performance.now();
   beams.render(view.renderer, view.scene, view.camera.position, lighting.looseLights);
-  view.draw(t / 1000);
+  view.draw(t / 1000, stutters(sim));
   const t4 = performance.now(), info = view.renderer.info.render;
   meter.add('gl', t4 - t3);
   meter.add('page', t3 - t1 - castMs);

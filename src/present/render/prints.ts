@@ -4,11 +4,11 @@ import type { Sim } from '../../sim/sim';
 import type { Lighting } from '../../world/light';
 import { LIFT, LIGHTS, U, lightUniforms } from './shader';
 
-/* What is left on the floor: flat blocks, the one shape blood has in this station (content's blood(), a dark red box).
+/* What is left on the floor.
 
    Footprints, yours and the cast's: out of water soles are wet for a dozen prints or so, and those dry off in half a
    minute; through blood (a pool on the floor, or under one of the cast that fell) they are red for about ten, and
-   those stay; through what a green one bled, green. Each print is a block the size of the foot that made it (the
+   those stay; through what a green one bled, green. Each print is a sole and a heel the size of the foot that made it (the
    models in castView), a touch smaller and fainter as what is on the sole runs out. A walker's feet and pace set its
    prints: you and the husks a pace apart, left and right; the thresher's broader and further apart; a skitter's
    small and quick; a worm one wide patch where it dragged itself.
@@ -45,10 +45,11 @@ const GAIT: Partial<Record<string, Gait>> = {
 const VS = /* glsl */ `
 attribute vec3 iPos; attribute float iYaw; attribute vec2 iSize; attribute vec3 iCol; attribute float iA; attribute vec3 iL;
 uniform float uFog; uniform float uExpo;
-varying vec3 vC; varying float vA;
+varying vec3 vC; varying float vA; varying vec2 vQ;
 ${LIGHTS}
 void main(){
   float c = cos(iYaw), s = sin(iYaw);
+  vQ = position.xz;
   vec2 q = position.xz * iSize;
   vec3 p = iPos + vec3(q.x * c + q.y * s, 0.0, -q.x * s + q.y * c);
   vec3 tc = cameraPosition - p; float d = length(tc);
@@ -58,10 +59,13 @@ void main(){
 }`;
 
 const FS = /* glsl */ `
-varying vec3 vC; varying float vA;
+varying vec3 vC; varying float vA; varying vec2 vQ;
 ${LIFT}
 void main(){
   if (vA < 0.01) discard;
+  /* a foot, not a block: the ball and sole toward its front, the heel behind, round at both (the quad a unit square) */
+  vec2 a = vec2(vQ.x / 0.5, (vQ.y - 0.12) / 0.38), h = vec2(vQ.x / 0.4, (vQ.y + 0.3) / 0.2);
+  if (dot(a, a) > 1.0 && dot(h, h) > 1.0) discard;
   gl_FragColor = vec4(lift(vC), vA);
 }`;
 
@@ -135,10 +139,12 @@ export class Prints {
     return -1;
   }
 
-  /** what is underfoot at (x, z) on the floor at y: a pool the level was built with, or what one of the cast that fell
-   *  bled (blood, or a green one's sap). A print is not: walking back over your own trail does not wet your soles again. */
+  /** what is underfoot at (x, z) on the floor at y: a pool the level was built with, one the living bled (Sim.pools: a
+   *  pool, not a smear), or what one of the cast that fell bled (blood, or a green one's sap). A print is not: walking
+   *  back over your own trail does not wet your soles again. */
   private spilt(sim: Sim, x: number, y: number, z: number): 'red' | 'green' | null {
     for (const S of sim.world.def.stains ?? []) if (Math.abs(S.y - y) < 0.5 && Math.hypot(S.x - x, S.z - z) < S.r + 0.12) return 'red';
+    for (const P of sim.pools) if (!P.kind && Math.abs(P.y - y) < 0.5 && Math.hypot(P.x - x, P.z - z) < P.r * 0.45 + 0.12) return 'red';
     for (const m of sim.cast) {
       if (!m.dead || m.away || m.fixed || m.swim || Math.abs(m.y - y) > 0.5) continue;
       if (Math.hypot(m.x - x, m.z - z) < m.r * 1.2 + 0.12) return m.green ? 'green' : 'red';

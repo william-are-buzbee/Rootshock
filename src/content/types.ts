@@ -208,13 +208,15 @@ export interface ItemDef {
 export interface Aim { yaw: number; pitch: number }
 export interface NoteDef { key: string; x: number; y: number; z: number }
 export interface MutantDef { type: string; x: number; y: number; z: number; opts: Record<string, unknown> }
-/** a stop on a guard's round (world.md §8, the night round), in plan metres: how long it stands there looking about, and
- *  how many times it tries the door beside it with its card, and how long it looks in if the door opens. A stop may want
- *  a circuit live (it is passed by otherwise), be kept on the first time round only, be walked to at a pace of its own,
- *  or be where it takes whoever is there (the opening's other patient), or leaves them (`drop`) */
+/** a stop on a guard's round (world.md §8, the night round), in plan metres: how long it stands there looking about (at
+ *  a door, first, before it tries it), and how many times it tries the door beside it with its card, and how long it
+ *  looks in if the door opens. A stop may want a circuit live (it is passed by otherwise), be kept on the first time
+ *  round only, be walked to at a pace of its own, be inside a room it searches (`about`: it looks right round), or be
+ *  where it strikes down whoever is there and takes them (the opening's other patient), or grafts what it has taken
+ *  (`graft`) and leaves it there */
 export interface RoundStop {
   x: number; y: number; z: number; wait?: number; tries?: number; look?: number;
-  need?: string; once?: boolean; pace?: number; take?: boolean; drop?: boolean;
+  need?: string; once?: boolean; pace?: number; take?: boolean; graft?: boolean; about?: boolean;
 }
 /** something to use: a corpse to search, a panel, a backup set, a ladder, the lift */
 export interface UseDef { kind: string; x: number; y: number; z: number; opts: Record<string, unknown> }
