@@ -219,8 +219,9 @@ export const RAG = {
   tone: { start: 0.12, last: 0.45, alive: 0.06 },
   /** what the air takes of its speed each step */
   air: 0.999,
-  /** what a step leaves of each point's speed apart from the whole body's: its joints are not frictionless */
-  joint: 0.97,
+  /** what a step leaves of each point's speed apart from the whole body's: its joints are not frictionless; and of one
+   *  out cold, dragged, which goes heavy rather than flailing */
+  joint: 0.97, slack: 0.86,
   /** what the floor takes of the speed of a point on it, as a share of how hard it is pressed on it: 1.2 stops a body
    *  lying on it at 12 m/s², and one thrown along it slides a metre or two */
   friction: 1.2,
@@ -600,15 +601,15 @@ function begin(sim: Sim, R: Rag, m: Mutant): void {
   let Vx = 0, Vy = 0, Vz = 0;
   for (let i = 0; i < n; i++) { const k = i * 3, c = B.kg[i] / B.mass; Vx += (p[k] - q[k]) * c; Vy += (p[k + 1] - q[k + 1]) * c; Vz += (p[k + 2] - q[k + 2]) * c; }
   for (let i = 0; i < n; i++) {
-    const k = i * 3, keep = wet[i] ? RAG.air * (1 - RAG.water.drag * dt) : RAG.air, J = RAG.joint;
+    const k = i * 3, keep = wet[i] ? RAG.air * (1 - RAG.water.drag * dt) : RAG.air, J = R.limp ? RAG.slack : RAG.joint;
     const vx = (Vx + (p[k] - q[k] - Vx) * J) * keep, vy = (Vy + (p[k + 1] - q[k + 1] - Vy) * J) * keep, vz = (Vz + (p[k + 2] - q[k + 2] - Vz) * J) * keep;
     q[k] = p[k]; q[k + 1] = p[k + 1]; q[k + 2] = p[k + 2];
     p[k] += vx; p[k + 1] += vy - g * (wet[i] ? RAG.water.weight : 1); p[k + 2] += vz;
     press[i] = 0; rubbed[i] = 0; sink[i] = -vy / dt;
   }
   /* knocked down, not dead: drawn after its feet, which the fight moves (a share of the way each step, as a speed, so
-     the world still stops it) */
-  if (!m.dead && m.body) {
+     the world still stops it); not one out cold, which goes where it is dragged */
+  if (!m.dead && m.body && !R.limp) {
     let mx = 0, mz = 0;
     for (const i of B.mid) { mx += p[i * 3]; mz += p[i * 3 + 2]; }
     const dx = (m.body.x - mx / B.mid.length) * RAG.held, dz = (m.body.z - mz / B.mid.length) * RAG.held;

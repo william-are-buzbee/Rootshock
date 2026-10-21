@@ -220,7 +220,7 @@ export function mut(D: Deck, type: string, x: number, z: number, o: Record<strin
 /** a place for one of the cast, in tiles on its deck, as an option to mut(): a stop on a guard's round (types.ts,
  *  RoundStop), given as `round`; a spot to hide in; or where it stands, if on another deck than the one it is listed on
  *  (`at`) */
-export interface TStop { D: Deck; x: number; z: number; wait?: number; tries?: number; look?: number; need?: string; once?: boolean; pace?: number; take?: boolean; drop?: boolean }
+export interface TStop { D: Deck; x: number; z: number; wait?: number; tries?: number; look?: number; need?: string; once?: boolean; pace?: number; take?: boolean; graft?: boolean; about?: boolean }
 export function use(D: Deck, kind: string, x: number, z: number, y: number, o: Record<string, unknown> = {}): void { D.uses.push({ kind, x, z, y, o }); }
 
 /* ---- terrain: values at tile corners. hf lifts a floor, cf a cave's ceiling */

@@ -56,8 +56,9 @@ export interface Sim {
   watch: Watch | null;
   /** a new game's first minutes, in the isolation suite (sim/opening.ts); null once a game is not beginning with it */
   opening: Opening | null;
-  /** blood on the floor from the living, where they were struck (the dead bleed where they lie: castView.ts) */
-  pools: { x: number; y: number; z: number; r: number }[];
+  /** blood on the floor from the living: a pool where one was struck or lies bleeding (`r` how far across, m), or a
+   *  smear where one was dragged (along `yaw`; the dead bleed where they lie: castView.ts) */
+  pools: { x: number; y: number; z: number; r: number; kind?: 'smear'; yaw?: number }[];
 }
 
 export interface SimOpts {

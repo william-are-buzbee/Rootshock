@@ -11,7 +11,7 @@ import { occupied, sendPlatform, type Door } from './movers';
 import { eyeHeight } from './player';
 import { closing, DOWN, FALL, LAUNCH, MOVES, POISE, react, regain, RISE, SHOVE, SLAM, type Move } from './moves';
 import { riders, simLighting, type Sim } from './sim';
-import { bones, knockRag, layRag, makeRag, RAG, REFLEX, type Killing, type Rag } from './ragdoll';
+import { bones, knockRag, layRag, makeRag, ragAt, RAG, REFLEX, type Killing, type Rag } from './ragdoll';
 import type { V3 } from './sweep';
 
 /* The cast (engine.md §7, §8): what lives in the station, ported from the first engine's behaviours. Each is a body that
@@ -102,8 +102,11 @@ export interface Mutant {
   lap: number; peered: number;
   /** the other patient's place to hide: where it crouches, under its window */
   hide: { x: number; z: number } | null;
-  /** the one of the cast it is dragging (an index into Sim.cast), or -1 */
-  drag: number;
+  /** the one of the cast it is dragging (an index into Sim.cast), or -1; metres it has dragged them since the last smear
+   *  of blood it left */
+  drag: number; trail: number;
+  /** seconds left of grafting what it took (the night round, world.md §8); the leaf in it (the other patient) */
+  graft: number; grafted: boolean;
   /** its flashlight is on in its hand */
   torch: boolean;
   /** where it started, which it keeps near */
@@ -177,7 +180,7 @@ function makeMutant(sim: Sim, def: MutantDef, id: number): Mutant {
       post: !!o.post, sit: !!o.sit, holt: !!o.holt, big: !!o.big, hx: def.x, hz: def.z, room,
       cards: !!sim.world.def.cards && !!S.opens && !!sim.world.rooms[room]?.zone, door: -1,
       round: (def.opts.round as RoundStop[] | undefined) ?? null, beat: 0, lap: 0, peered: 99, torch: !!S.torch,
-      hide: (def.opts.hide as { x: number; z: number } | undefined) ?? null, drag: -1,
+      hide: (def.opts.hide as { x: number; z: number } | undefined) ?? null, drag: -1, trail: 0, graft: 0, grafted: false,
       wt: rnd(1, 5), wm: 0, wx: 0, wz: 0, tk: 0, lost: 0, bt: 0, burst: false, flee: 0, ct: rnd(6, 14), cdir: 0, tgt: false,
       grab: 0, tense: 0, blow: null, dest: -1, F: null, stk: 0, fled: false, side: 0, ride: null, spot: -1,
       mv: 0, d: 99, dp: 99, dy: 0, los: false, losAt: -99, hit: 0, poise: poiseOf(def.type, S.ai, !!o.big), pmax: poiseOf(def.type, S.ai, !!o.big), calm: 99, reel: 0, pat: 0, down: 0, rise: 0, acc: S.acc, drove: false, ph: rnd(9), dead: false, gone: 0, rag: null, away: false, still: 0,
@@ -800,10 +803,11 @@ function hurried(sim: Sim, m: Mutant): boolean {
 
 /** its pace on the round (m/s), slow: it is sedated as they all are; after you, slower than the rest; at a stop, how long
  *  it looks about if the stop does not say, how far its beam swings either way (radians) and how fast; between tries at a
- *  reader, and how far either way it sweeps its beam about a room it has opened; how far below level it holds the beam
+ *  reader, and how far either way it sweeps its beam about a room it has opened, or one it has gone into to search; how
+ *  far below level it holds the beam
  *  walking; and, drawn off a stop by a noise, how long it stands looking toward it first, its beam on it (sound before
  *  sight: the opening) */
-export const ROUND = { pace: 1.0, hunt: 3.0, look: 2.5, sweep: 0.55, into: 0.5, swing: 1.1, beep: 0.8, pitch: 0.14, roused: 4.5 };
+export const ROUND = { pace: 1.0, hunt: 3.0, look: 2.5, sweep: 0.55, into: 0.5, about: 1.5, swing: 1.1, beep: 0.8, pitch: 0.14, roused: 4.5 };
 
 /** the door a stop tries: the nearest within reach of it (not a pane of glass), or -1 */
 function stopDoor(sim: Sim, P: RoundStop): number {
@@ -843,11 +847,13 @@ function walkRound(sim: Sim, m: Mutant): void {
   /* stopped: the beam about, or held on the reader; then the card, as many times as the stop says */
   if (m.wt > 0) {
     const k = P.tries ? stopDoor(sim, P) : -1;
-    if (k >= 0) {
+    if (P.graft && m.graft > 0) grafting(sim, m);
+    else if (k >= 0) {
       /* at the reader; through a door it opened, its beam swept about the room, side to side */
       const at = doorMid(sim.doors[k]), to = Math.atan2(at.x - m.x, at.z - m.z), sweep = m.st <= 0 && sim.doors[k].open ? Math.sin(m.ph * ROUND.swing * 1.6) * ROUND.into : 0;
       m.yaw = angLerp(m.yaw, to + sweep, Math.min(1, dt * 4));
-    } else m.yaw = angLerp(m.yaw, m.wm + Math.sin(m.ph * ROUND.swing) * ROUND.sweep, Math.min(1, dt * 3));
+    } else if (P.about) m.yaw = angLerp(m.yaw, m.wm + Math.sin(m.ph * ROUND.swing * 0.8) * ROUND.about, Math.min(1, dt * 2.5)); // right round the room
+    else m.yaw = angLerp(m.yaw, m.wm + Math.sin(m.ph * ROUND.swing) * ROUND.sweep, Math.min(1, dt * 3));
     if ((m.wt -= dt) > 0) return;
     if (P.take) {
       /* the other patient, where they hide: struck, and struck again, and then taken */
@@ -879,8 +885,8 @@ function walkRound(sim: Sim, m: Mutant): void {
   if (m.spot === m.dest || m.F![m.spot] < 0.9) {
     /* there: it stops, and looks about (or at the reader); and takes whoever is there to be taken */
     m.dest = -1; m.wm = m.yaw; m.st = P.take ? BEAT.blows : P.tries ?? 0;
-    m.wt = P.tries ? ROUND.beep : P.take ? BEAT.first : P.wait ?? ROUND.look;
-    if (P.drop) drop(sim, m);
+    m.wt = P.tries ? P.wait ?? ROUND.beep : P.take ? BEAT.first : P.wait ?? ROUND.look;
+    if (P.graft) graftHere(sim, m);
     if (m.wt <= 0) next();
     return;
   }
@@ -900,29 +906,80 @@ const prey = (sim: Sim, m: Mutant) => sim.cast.find(q => !q.dead && q.ai === 'pa
 function beaten(sim: Sim, q: Mutant): void {
   sfx(sim.game, 'struck', { x: q.x, y: q.y + 0.8, z: q.z });
   q.hit = 1; q.reel = 0.5;
-  const P = sim.pools.find(p => Math.hypot(p.x - q.x, p.z - q.z) < 0.6);
+  const P = sim.pools.find(p => !p.kind && Math.hypot(p.x - q.x, p.z - q.z) < 0.6);
   if (P) P.r = Math.min(1.4, P.r + 0.5);
   else sim.pools.push({ x: q.x, y: q.y, z: q.z, r: 0.8 });
 }
 
-/** the other patient, struck down: at its touch they go slack (Pia's line: its touch is the opiate, world.md §10), and it
- *  takes them by an ankle and drags them from then on, wherever its round goes. Alive, and taken (world.md §8, the
- *  opening) */
+/** the other patient, struck down: out cold (Pia's line: its touch is the opiate, world.md §10), and it takes them by an
+ *  ankle and drags them from then on. Alive, and taken (world.md §8, the opening) */
 function take(sim: Sim, m: Mutant, q: Mutant): void {
   m.yaw = Math.atan2(q.x - m.x, q.z - m.z); m.wm = m.yaw;
   sfx(sim.game, 'taken', { x: q.x, y: q.y + 1, z: q.z });
-  q.state = 'dragged'; q.down = 1e9; q.rise = 0;
-  q.rag = makeRag(q, null, true);
+  slack(sim, q);
+  q.state = 'dragged';
+  m.drag = q.id; m.trail = 0;
+}
+
+/** out cold: loose, alive, no tone, and out of everyone's way (made again after a load, as a save does not say what is in
+ *  the world) */
+function slack(sim: Sim, q: Mutant): void {
+  q.down = 1e9; q.rise = 0;
+  if (!q.rag) q.rag = makeRag(q, null, true);
   if (q.rag) { q.rag.limp = true; q.rag.woke = sim.tick; }
   if (q.body) { const k = sim.world.dyn.indexOf(q.body.dyn); if (k >= 0) sim.world.dyn.splice(k, 1); }
-  m.drag = q.id;
+}
+
+/** the graft (world.md §8, the opening): where it stops with what it has dragged, it lets go, kneels over them and puts
+ *  the leaf into their arm, which takes a while, the body jerking under it, the suite's lights stuttering (`stutters`)
+ *  and the blood spreading round them. Then it leaves them there, out cold. `GRAFT`: how long it takes (s), how long it
+ *  looks at its work after, and how often the body jerks; how hard */
+export const GRAFT = { time: 6, after: 1.5, jerk: [0.25, 0.7] as const, J: 45 };
+function graftHere(sim: Sim, m: Mutant): void {
+  const q = sim.cast[m.drag];
+  m.drag = -1;
+  if (!q || q.dead) return;
+  q.state = 'out'; q.grafted = true;
+  if (q.rag) q.rag.pin = null;
+  const at = q.rag ? ragAt(q.rag) : { x: q.x, y: q.y, z: q.z };
+  m.wx = at.x; m.wz = at.z; m.st = 0.4;
+  m.graft = GRAFT.time; m.wt = GRAFT.time + GRAFT.after;
+  sfx(sim.game, 'graft', { x: at.x, y: at.y + 0.3, z: at.z });
+}
+/** a step of it: down over the body, its beam on it; the body jerking, and bleeding */
+function grafting(sim: Sim, m: Mutant): void {
+  m.yaw = angLerp(m.yaw, Math.atan2(m.wx - m.x, m.wz - m.z), Math.min(1, dt * 4));
+  const q = sim.cast.find(o => o.grafted && o.state === 'out' && Math.hypot(o.x - m.wx, o.z - m.wz) < 2);
+  if (!q?.rag) return;
+  bleed(sim, q, 0.3);
+  if ((m.st -= dt) > 0) return;
+  m.st = sim.rng.range(GRAFT.jerk[0], GRAFT.jerk[1]);
+  const B = bones(q.rag.kind), i = Math.floor(sim.rng.range(0, B.names.length - 0.001)), p = q.rag.p;
+  knockRag(q.rag, { x: p[i * 3], y: p[i * 3 + 1], z: p[i * 3 + 2] }, { x: sim.rng.range(-0.4, 0.4), y: 1, z: sim.rng.range(-0.4, 0.4) }, GRAFT.J, sim.tick);
+}
+
+/** grafting: the suite's lights stutter hard while it does it (render/view.ts, the soundscape) */
+export const stutters = (sim: Sim): boolean => sim.cast.some(m => m.graft > 0);
+
+/** blood: a pool spreading under one of the cast where it lies (by `k` metres a second, to as big as a pool gets), and a
+ *  smear where a body is dragged (`Sim.pools`; drawn in castView.ts, and walked through, render/prints.ts). Not without
+ *  end */
+export const BLOOD = { pool: 1.9, most: 220, smear: 0.55 };
+function bleed(sim: Sim, q: Mutant, k: number): void {
+  const at = q.rag ? ragAt(q.rag) : { x: q.x, y: q.y, z: q.z };
+  const P = sim.pools.find(p => !p.kind && Math.hypot(p.x - at.x, p.z - at.z) < 0.7);
+  if (P) P.r = Math.min(BLOOD.pool, P.r + k * dt);
+  else if (sim.pools.length < BLOOD.most) sim.pools.push({ x: at.x, y: q.y, z: at.z, r: 0.3 });
+}
+function smear(sim: Sim, x: number, y: number, z: number, yaw: number): void {
+  if (sim.pools.length < BLOOD.most) sim.pools.push({ x, y, z, r: 1, kind: 'smear', yaw });
 }
 
 /** you, in the opening, within its reach: weak from the days under and nothing in your hands, you are taken as the other
- *  patient was (world.md §8, The opening). The rest of the game it fights as the others do */
+ *  patient was (world.md §8, The opening). The rest of the game it fights as the others do; and not in god mode */
 function takesYou(sim: Sim, m: Mutant): boolean {
   const O = sim.opening;
-  if (!m.round || !m.torch || !O || O.phase === 'done' || sim.game.ended) return false;
+  if (!m.round || !m.torch || !O || O.phase === 'done' || sim.game.ended || sim.game.god) return false;
   const b = sim.player.body;
   m.yaw = Math.atan2(b.x - m.x, b.z - m.z);
   sfx(sim.game, 'taken', { x: b.x, y: b.y + 1, z: b.z });
@@ -930,17 +987,9 @@ function takesYou(sim: Sim, m: Mutant): boolean {
   return true;
 }
 
-/** what it drags, left where it stops: out of sight, and gone (where it takes them is the wing's to tell) */
-function drop(sim: Sim, m: Mutant): void {
-  const q = sim.cast[m.drag];
-  m.drag = -1;
-  if (!q) return;
-  q.away = true; q.dead = true; q.rag = null; q.state = 'gone';
-}
-
-/** dragged by the ankle: its foot in the night round's hand, low behind it, and its body a length further back, wherever
- *  the round goes (the loose body follows its middle and its pinned foot: sim/ragdoll.ts) */
-const DRAG = { hand: [0.3, -0.3, 0.55] as const, behind: 1.5 };
+/** dragged by the ankle: its foot in the night round's hand, low behind it, and the rest of it after, on the floor, as
+ *  the loose body goes (sim/ragdoll.ts): where it is is where its middle is. It bleeds as it goes, and leaves a smear */
+const DRAG = { hand: [0.3, -0.3, 0.42] as const };
 function dragged(sim: Sim, m: Mutant): void {
   const d = sim.cast.find(q => q.drag === m.id && !q.dead);
   if (!d || !m.body) return;
@@ -948,16 +997,22 @@ function dragged(sim: Sim, m: Mutant): void {
   /* its right is (cos, -sin) of where it faces (sin, cos) */
   const hx = d.x + rx * c + fz * s, hz = d.z - rx * s + fz * c;
   if (m.rag) { m.rag.pin = { i: bones(m.model).at.footR, x: hx, y: d.y + hy, z: hz }; m.rag.awake = true; m.rag.still = 0; }
-  /* out of everyone's way, made again so after a load (a save does not say what is in the world) */
-  const b = m.body, k = sim.world.dyn.indexOf(b.dyn);
+  lies(sim, m);
+  if ((m.trail += Math.hypot(d.x - d.px, d.z - d.pz)) >= BLOOD.smear) { m.trail = 0; smear(sim, m.x, m.y, m.z, d.yaw); }
+}
+/** out cold where it lies: its body kept with its loose body's middle, out of everyone's way (made again after a load,
+ *  as a save does not say what is in the world) */
+function lies(sim: Sim, m: Mutant): void {
+  const b = m.body!, k = sim.world.dyn.indexOf(b.dyn);
   if (k >= 0) sim.world.dyn.splice(k, 1);
-  b.x = m.x = d.x - s * DRAG.behind; b.z = m.z = d.z - c * DRAG.behind; b.y = m.y = d.y; b.vx = b.vz = 0; b.sync();
+  if (m.rag) { const at = ragAt(m.rag); b.x = m.x = at.x; b.z = m.z = at.z; b.y = m.y = Math.max(at.y, m.y - 0.5); }
+  b.vy = 0; b.vx = b.vz = 0; b.sync();
 }
 
 /** the other patient (world.md §8, the opening): at its window, still, until it sees you wake; then banging on the glass
  *  to you, which carries. When that draws the night round's beam onto the hall it stops, points up at it for you, and
  *  crouches under its window: what to fear, and what to do, shown without a word. Found anyway (its door takes a guard's
- *  card), it is struck down where it hides and dragged away. `BANG`: how often it strikes the glass (s), how far the sound carries
+ *  card), it is struck down where it hides, dragged out and grafted, and left out cold. `BANG`: how often it strikes the glass (s), how far the sound carries
  *  (m); how long it points */
 export const BANG = { every: [0.55, 0.95] as const, loud: 40, least: 2.5, warn: 2.8 };
 function patient(sim: Sim, m: Mutant): void {
@@ -995,6 +1050,11 @@ function patient(sim: Sim, m: Mutant): void {
     }
     case 'dragged':
       dragged(sim, m);
+      break;
+    case 'out':
+      /* out cold where it was left, grafted, bleeding a while yet */
+      lies(sim, m);
+      bleed(sim, m, 0.012);
       break;
   }
 }
@@ -1076,7 +1136,7 @@ export function torchRay(sim: Sim, m: Mutant): { x: number; y: number; z: number
   if (m.state === 'hunt' || m.state === 'peer') {
     const d = Math.max(0.5, m.dp);
     pitch = clamp(Math.atan2(m.y + TORCH.shoulder[1] - (b.y + 1.1), d), -0.6, 0.9);
-  }
+  } else if (m.graft > 0) pitch = clamp(Math.atan2(TORCH.shoulder[1] - 0.6, Math.max(0.4, Math.hypot(m.wx - m.x, m.wz - m.z))), 0, 1.1); // down on what it grafts
   const s = Math.sin(m.yaw), c = Math.cos(m.yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
   const [ox, oy] = TORCH.shoulder, L = TORCH.arm + TORCH.lead; // the beam from just past the lens
   /* its own right is (cos, -sin) of where it faces (sin, cos); the shoulder to its left, the hand out along the beam */
@@ -1433,14 +1493,16 @@ export function updateCast(sim: Sim): void {
     m.calm += dt;
     m.poise = regain(m.poise, m.pmax, m.calm, dt);
     if (m.reel > 0) m.reel = Math.max(0, m.reel - dt);
+    if (m.graft > 0) m.graft = Math.max(0, m.graft - dt);
     /* on the floor, then getting up */
     if (m.down > 0) { m.down = Math.max(0, m.down - dt); if (m.down === 0) m.rise = DOWN.rise; }
     else if (m.rise > 0) m.rise = Math.max(0, m.rise - dt);
     /* up again: its body is its own once more */
     if (m.rag && !m.dead && m.down === 0 && m.rise === 0) m.rag = null;
     if (m.dead) { if (m.gone < 1) m.gone = Math.min(1, m.gone + dt * 2.5); continue; }
-    /* one being dragged is put where it is dragged to (dragged(), below): its own feet, falls and footing are not asked */
-    const towed = m.state === 'dragged';
+    /* one being dragged, or out cold, is put where its loose body is (dragged(), lies(), below): its own feet, falls and
+       footing are not asked */
+    const towed = m.state === 'dragged' || m.state === 'out';
     const mb = towed ? null : m.body, resting = !!mb && m.still > 2 && mb.ground && mb.vy === 0 && !mb.on, ox = mb?.x, oz = mb?.z;
     if (mb) {
       if (!resting) settle(sim.world, mb);
@@ -1586,12 +1648,17 @@ export function shoved(sim: Sim, m: Mutant): void {
 /** dev (the arena): every one of the cast dead at once; with none left alive, the dead taken away */
 /** one of the cast long dead, lying where it went to hide (a game that does not begin with the opening: the other
  *  patient, in its corner) */
-export function gone(sim: Sim, m: Mutant): void {
-  if (m.dead) return;
-  if (m.hide && m.body) { const b = m.body; b.x = m.x = m.px = m.hide.x; b.z = m.z = m.pz = m.hide.z; b.sync(); }
-  m.dead = true; m.gone = 1;
+/** the other patient as the opening leaves them, for a game begun without it: out cold where they were grafted (`at`),
+ *  in their blood, and their blood where they hid */
+export function leftGrafted(sim: Sim, m: Mutant, at: { x: number; y: number; z: number }): void {
+  if (m.dead || !m.body) return;
+  if (m.hide) sim.pools.push({ x: m.hide.x, y: m.y, z: m.hide.z, r: 1.3 });
+  const b = m.body;
+  b.x = m.x = m.px = at.x; b.y = m.y = m.py = at.y; b.z = m.z = m.pz = at.z; b.sync();
   m.rag = layRag(m);
-  if (m.body) { const k = sim.world.dyn.indexOf(m.body.dyn); if (k >= 0) sim.world.dyn.splice(k, 1); }
+  slack(sim, m);
+  m.state = 'out'; m.grafted = true;
+  sim.pools.push({ x: at.x, y: at.y, z: at.z, r: BLOOD.pool });
 }
 
 export function killAll(sim: Sim): void {

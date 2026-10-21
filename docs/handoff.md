@@ -125,6 +125,16 @@ now come through the card doors between (`staffField` in `sim/fields.ts`, a cach
 straight at you through glass (`chase`). Your washroom's door is a hand-slid one (on the dead `SEC`), so it stays shut
 behind you. Room 4 is walled off from the bay. Save version 10.
 
+The fourth pass, the graft (world.md §8, *The opening*, **Built**): the other patient is struck out cold (`take`,
+`slack`), dragged into the hall by the ankle, heavy rather than flailing (`RAG.slack`, and a limp body is not drawn
+after its feet), leaving smears (`Sim.pools` kind `smear`), and grafted at a round stop (`RoundStop.graft`: `graftHere`,
+`grafting`, `GRAFT`, the night round's `graft` timer, `stutters` for the view and the soundscape's hard flicker in
+`present/flicker.ts`); then left out cold (patient state 'out', `lies`, `bleed`; `grafted`, drawn as a shelf of leaf
+on the forearm, the gown streaked). The rooms are walked into and looked right round (`RoundStop.about`, `ROUND.about`);
+a tries stop's `wait` is a pause before the card. Footprints through the new pools are the renderer's (`Prints.spilt`),
+now foot-shaped; every pool is discs (`SPLAT` in `castView.ts`, `blood()` in `content/build/fittings.ts`). The take
+respects god mode. Save version 11.
+
 **On the back burner** (the owner set Security aside here; pick these up with them, not unasked):
 - Step 7 above (the vaccinator, the big dark section, load on the backup set, Cargo as an L).
 - How you get into the operations room, which the camera wall waits on.

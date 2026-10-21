@@ -8,7 +8,7 @@ import { rect } from '../../world/shapes';
 import type { Sim } from '../../sim/sim';
 import type { Lighting } from '../../world/light';
 import { dynamicMaterial, lightMaterial } from './shader';
-import { parts } from './things';
+import { parts, type Part } from './things';
 import { BONE, DARK, FLESH, GOREC, GR, ORANGE, PALE, RAW, grp, merged, mk, seeded, shelf, type O3 } from './castKit';
 import { RIG, Rigged } from './rig';
 
@@ -87,8 +87,10 @@ function changed(mat: THREE.Material, m: Mutant): Model {
 }
 
 /* the other patient in the isolation suite (world.md §8, the opening): a gown, bare legs and feet, thin from days with
-   nothing to eat, the hair gone wild; built as the husk is, so it goes loose as the husk does */
-const GOWN = 0x8fa09b, SKIN = 0xc9b7a4, HAIR = 0x2a2420;
+   nothing to eat, the hair gone wild; built as the husk is, so it goes loose as the husk does. Struck down and dragged,
+   the gown is streaked with blood (`gore`); grafted, a small shelf of leaf comes out of the left forearm, a raw knot
+   round it (`graft`) */
+const GOWN = 0x8fa09b, SKIN = 0xc9b7a4, HAIR = 0x2a2420, GORE = 0x4a0d0c;
 function patientModel(mat: THREE.Material): Model {
   const g = new THREE.Group(), legs: O3[] = [], shins: O3[] = [];
   for (const s of [-1, 1]) {
@@ -108,7 +110,17 @@ function patientModel(mat: THREE.Material): Model {
     const a = grp(b, s * 0.25, 0.56, 0); mk(a, mat, 'box', GOWN, 0.12, 0.16, 0.13, 0, -0.06, 0); mk(a, mat, 'box', SKIN, 0.07, 0.6, 0.07, 0, -0.38, 0);
     arms.push(a);
   }
-  return { g, b, hd, legs, shins, arms };
+  const gore = merged(b, mat, G => {
+    for (const [x, y, z, sx, sy] of [[0.08, 0.38, 0.115, 0.14, 0.3], [-0.1, 0.12, 0.118, 0.1, 0.22], [0.12, -0.2, 0.13, 0.12, 0.26], [0, 0.45, -0.115, 0.22, 0.2], [-0.12, -0.05, -0.13, 0.12, 0.3]] as const)
+      mk(G, mat, 'box', GORE, sx, sy, 0.012, x, y, z);
+    mk(G, mat, 'ico', GORE, 0.2, 0.12, 0.22, 0, 0.72, 0.02); // the hair matted with it
+  });
+  const graft = merged(arms[0], mat, G => {
+    mk(G, mat, 'ico', 0x6a2820, 0.1, 0.12, 0.1, 0, -0.42, 0.03);
+    shelf(G, mat, 0, -0.44, 0.04, 0, 2, 0.16, seeded(7).rnd, { rise: 0.05, fan: 0.5 });
+  });
+  gore.visible = graft.visible = false;
+  return { g, b, hd, legs, shins, arms, gore, graft };
 }
 
 export const BUILD: Record<string, (mat: THREE.Material, m: Mutant) => Model> = {
@@ -263,7 +275,7 @@ export const ANIM: Record<string, (m: Mutant, M: Model, c: Ctx) => void> = {
   },
   husk(m, M, c) {
     const mv = m.mv > 0, hunt = m.state === 'hunt', f = hunt ? 11 : 5;
-    for (let k = 0; k < 2; k++) M.legs[k].rotation.x = mv ? Math.sin(m.ph * f + k * PI) * (hunt ? 0.7 : 0.35) : 0;
+    for (let k = 0; k < 2; k++) { M.legs[k].rotation.x = mv ? Math.sin(m.ph * f + k * PI) * (hunt ? 0.7 : 0.35) : 0; if (M.shins) M.shins[k].rotation.x = 0; }
     M.arms[0].rotation.x = hunt ? -1.1 + Math.sin(m.ph * f) * 0.2 : mv ? Math.sin(m.ph * f + PI) * 0.25 : 0;
     M.arms[1].rotation.x = hunt ? -1.3 + Math.sin(m.ph * f + 2) * 0.25 : mv ? Math.sin(m.ph * f) * 0.2 : Math.sin(m.ph * 0.9) * 0.06;
     M.b.rotation.x = m.state === 'flee' ? 0.4 : hunt ? 0.18 : 0.06;
@@ -304,6 +316,14 @@ export const ANIM: Record<string, (m: Mutant, M: Model, c: Ctx) => void> = {
     if (M.lens) M.arms[0].rotation.x = torchRay(c.sim, m).pitch - PI / 2;
     /* dragging the other patient by an ankle: the other arm down and back, the hand low behind it */
     if (m.drag >= 0) { M.arms[1].rotation.x = 0.6; M.arms[1].rotation.z = -0.15; }
+    /* grafting: down on its knees over the body, bent to it, the free hand driving into the arm, again and again */
+    if (m.graft > 0) {
+      for (let k = 0; k < 2; k++) { M.legs[k].rotation.x = -1.35; M.shins[k].rotation.x = 1.6; }
+      M.g.position.y -= 0.5;
+      M.b.rotation.x = 0.85;
+      M.arms[1].rotation.x = -1.2 + Math.max(0, Math.sin(m.ph * 7)) * 0.5;
+      M.hd.rotation.x = 0.5;
+    }
   },
   skitter(m, M) {
     const mv = m.mv > 0, q = m.state === 'idle' ? 0.4 : 1;
@@ -395,6 +415,11 @@ ANIM.swimmer = ANIM.worm;
 /** a corpse bleeds once it has been loose `after` seconds and is on the floor slower than `speed` (m/s); its pool
  *  starts at `from` of its size and comes to the whole of it over `spread` seconds, most of it in the first */
 const BLEED = { after: 0.25, speed: 0.6, from: 0.15, spread: 3.5 };
+/** blood on a floor, never square: a pool `d` across and what ran from it; a smear along a drag (along z, a metre) */
+const SPLAT = {
+  pool: (c: number, d: number): Part[] => [['cyl', c, d, 0.012, d * 0.9, 0, 0, 0], ['cyl', c, d * 0.55, 0.012, d * 0.42, d * 0.42, 0, d * 0.14], ['cyl', c, d * 0.36, 0.012, d * 0.5, -d * 0.3, 0, -d * 0.34], ['cyl', c, d * 0.2, 0.012, d * 0.16, d * 0.12, 0, -d * 0.58]],
+  smear: [['cyl', 0x3a0b0b, 0.34, 0.012, 1.1, 0, 0, 0], ['cyl', 0x2e0909, 0.07, 0.012, 1.2, 0.12, 0, 0.05], ['cyl', 0x2e0909, 0.06, 0.012, 1.0, -0.13, 0, -0.04]] as Part[],
+};
 
 /** `loose`: the rig has had its parts since the animation last did */
 interface Shown {
@@ -455,6 +480,8 @@ export class CastView {
       g.visible = !m.away && !s.baked;
       if (m.away) continue;
       if (M.lens) M.lens.visible = !m.dead;
+      if (M.gore) M.gore.visible = m.state === 'dragged' || m.state === 'out';
+      if (M.graft) M.graft.visible = m.grafted;
       const x = m.px + (m.x - m.px) * alpha, z = m.pz + (m.z - m.pz) * alpha;
       let y = m.py + (m.y - m.py) * alpha;
       /* a swimmer rides just under the surface of shallow water, and a little off the floor of deep (as before) */
@@ -527,7 +554,7 @@ export class CastView {
   }
 
   private blood(m: Mutant): void {
-    const mat = dynamicMaterial(), mesh = new THREE.Mesh(parts([['box', m.green ? 0x24401f : 0x3a0b0b, m.r * 2.6, 0.012, m.r * 2.2, 0, 0, 0]]), mat);
+    const mat = dynamicMaterial(), mesh = new THREE.Mesh(parts(SPLAT.pool(m.green ? 0x24401f : 0x3a0b0b, m.r * 2.6)), mat);
     mesh.position.set(m.x, m.y + 0.012, m.z);
     mesh.rotation.y = Math.random() * PI;
     mesh.scale.set(BLEED.from, 1, BLEED.from);
@@ -537,21 +564,23 @@ export class CastView {
     this.spreading.push({ mesh, m, t0: this.sim.tick, held: !!m.rag?.awake });
   }
 
-  /** blood from the living, where they were struck (Sim.pools): each one a pool, spreading out to as big as it is */
+  /** blood from the living (Sim.pools): a pool spreading out to as big as it is, or a smear along the way a body was
+   *  dragged; each a little above the last so they do not fight where they overlap */
   private pooled: THREE.Mesh[] = [];
   private struck(dt: number): void {
     const P = this.sim.pools;
     for (let i = this.pooled.length; i < P.length; i++) {
-      /* not round: a pool and what ran from it, a metre across at its full size */
-      const p = P[i], mesh = new THREE.Mesh(parts([['cyl', 0x3a0b0b, 1, 0.012, 1, 0, 0, 0], ['cyl', 0x3a0b0b, 0.55, 0.012, 0.45, 0.45, 0, 0.12], ['cyl', 0x3a0b0b, 0.4, 0.012, 0.5, -0.28, 0, -0.38]]), dynamicMaterial());
-      mesh.position.set(p.x, p.y + 0.012, p.z);
-      mesh.rotation.y = Math.random() * PI;
-      mesh.scale.set(0.05, 1, 0.05);
+      const p = P[i], mesh = new THREE.Mesh(parts(p.kind === 'smear' ? SPLAT.smear : SPLAT.pool(0x3a0b0b, 1)), dynamicMaterial());
+      mesh.position.set(p.x, p.y + 0.012 + (i % 8) * 0.0015, p.z);
+      mesh.rotation.y = p.yaw ?? Math.random() * PI;
+      const k = p.kind ? p.r : 0.05;
+      mesh.scale.set(k, 1, k);
       this.light(mesh);
       this.bloods.push(mesh); this.pooled.push(mesh);
       this.scene.add(mesh);
     }
     this.pooled.forEach((mesh, i) => {
+      if (P[i].kind) return;
       const k = mesh.scale.x + (P[i].r - mesh.scale.x) * Math.min(1, dt * 1.5);
       mesh.scale.set(k, 1, k);
     });
