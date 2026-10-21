@@ -5,7 +5,7 @@
   box-sizing: border-box;
 }
 *, *::before, *::after { box-sizing: inherit; }
-html, body { height: 100%; margin: 0; background: var(--pitch); color: var(--bone); font-family: var(--sign); overflow: hidden; user-select: none; -webkit-user-select: none; }
+html, body { height: 100%; margin: 0; background: var(--pitch); color: var(--bone); font-family: var(--sign); overflow: hidden; overscroll-behavior: none; user-select: none; -webkit-user-select: none; }
 canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
 .hide { display: none !important; }
 #hud { position: fixed; inset: 0; pointer-events: none; font-size: 18px; letter-spacing: .02em; }
