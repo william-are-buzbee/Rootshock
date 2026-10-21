@@ -4,7 +4,7 @@ import { power } from '../../sim/game';
 import { STEP } from '../../core/loop';
 import type { Sim } from '../../sim/sim';
 import type { Lighting } from '../../world/light';
-import { LIFT, LIGHTS, U, lightUniforms } from './shader';
+import { LIGHTS, U, lightUniforms } from './shader';
 
 /* What hangs in the air near you: dust, the green's spores, the flesh's flecks (RoomDef.motes). Nine hundred specks in
    a box that travels with the eye; one that drifts out of the box comes back in at the far side. Each is a fleck of
@@ -50,9 +50,9 @@ void main(){
   vec3 tc = cameraPosition - position; float d = length(tc);
   /* a beam through dust shows it, softly: less than a wall would take */
   vec3 light = aL + 0.45 * (held(position, 1.0) + lying(position, vec3(0.0))) + bounce(position) + 0.8 * lantern(position, 1.0);
-  /* dust is never the brightest thing in view: bright light is given back softly */
+  /* dust is never the brightest thing in view: bright light is given back softly, as the eye sees it */
   vec3 c = aCol * light * uExpo;
-  vC = c / (1.0 + 0.35 * c);
+  vC = c / (1.0 + 0.35 * c) / uExpo;
   /* not right at the eye, not at the box's edge (where a speck comes back in), thinned by the fog */
   vA = aA * smoothstep(0.25, 0.8, d) * (1.0 - smoothstep(2.8, 3.9, d)) * exp(-d * uFog * 1.5);
   /* whole pixels, so a fleck is a crisp square and not a smudge */
@@ -62,10 +62,9 @@ void main(){
 
 const FS = /* glsl */ `
 varying vec3 vC; varying float vA;
-${LIFT}
 void main(){
   if (vA < 0.01) discard;
-  gl_FragColor = vec4(lift(vC), vA);
+  gl_FragColor = vec4(vC, vA);
 }`;
 
 interface Air {

@@ -7,7 +7,7 @@ import { STEP } from '../../core/loop';
 import { rect } from '../../world/shapes';
 import type { Sim } from '../../sim/sim';
 import type { Lighting } from '../../world/light';
-import { dynamicMaterial, lightMaterial } from './shader';
+import { EMIT, dynamicMaterial, lightMaterial } from './shader';
 import { parts } from './things';
 import { BONE, DARK, FLESH, GOREC, GR, ORANGE, PALE, RAW, grp, merged, mk, seeded, shelf, type O3 } from './castKit';
 import { RIG, Rigged } from './rig';
@@ -24,11 +24,11 @@ const PI = Math.PI;
 type Model = { g: THREE.Group; [k: string]: any };
 
 /** the night round's flashlight, in the hand that is still a hand (`h`, its left arm), along the arm; its lens lit while
- *  it lives (sim/cast.ts, torchRay, from the same numbers). None for the rest */
+ *  it lives (sim/cast.ts, torchRay, from the same numbers), as bright as a lit tube, so it glows. None for the rest */
 function torch(mat: THREE.Material, m: Mutant, h: O3): THREE.Mesh | null {
   if (!m.torch) return null;
   mk(h, mat, 'cyl', 0x2a2c2e, 0.055, 0.26, 0.055, 0, -TORCH.arm + 0.17, 0.03); mk(h, mat, 'cyl', 0x3a3d40, 0.075, 0.06, 0.075, 0, -TORCH.arm + 0.03, 0.03);
-  const lens = new THREE.Mesh(parts([['cyl', 0xfff4dc, 0.06, 0.012, 0.06, 0, 0, 0]]), new THREE.MeshBasicMaterial({ color: 0xfff1d6 }));
+  const lens = new THREE.Mesh(parts([['cyl', 0xfff4dc, 0.06, 0.012, 0.06, 0, 0, 0]]), new THREE.MeshBasicMaterial({ color: new THREE.Color().setRGB(1, 0.94, 0.82).multiplyScalar(EMIT.most) }));
   lens.position.set(0, -TORCH.arm, 0.03);
   h.add(lens);
   return lens;
