@@ -21,7 +21,7 @@ const RANGE: Record<string, number> = {
   door: 46, roar: 55, thud: 40, hstep: 18, moan: 28, tap: 24, skit: 24, slosh: 20, swing: 10, whiff: 14, heave: 20, rasp: 12, gust: 24, strike: 30, knock: 32, groan: 55, tick: 12, settle: 45, step: 30, rattle: 30,
   breath: 10, mutter: 20, click: 14, gurgle: 22, growl: 30, slither: 10, bubble: 12, creak: 12, drip: 30, scrape: 20, crate: 30,
   klaxon: 70, cam: 16, smash: 34, blow: 30, 'bolt-draw': 24, bolt: 26, 'bolt-free': 18,
-  bang: 40, taken: 40, pump: 14, static: 8, switch: 10,
+  bang: 40, taken: 40, pump: 14, static: 8, struck: 40, winddown: 45,
   'die-husk': 40, 'die-skitter': 36, 'die-bloat': 46, 'die-thresher': 50, 'die-worm': 20, 'die-swimmer': 20, 'die-grabber': 24,
 };
 
@@ -444,7 +444,16 @@ export class Audio {
           this.tn(75, 40, 0.25, 'sine', 0.35 * v, 0.7); this.nz(0.2, 0.15 * v, 250, 'lowpass', 0.7);
           break;
         }
-        case 'switch': this.tn(1500, 900, 0.02, 'square', 0.05 * v); this.nz(0.03, 0.06 * v, 3000, 'bandpass', 0.005, 2); break;
+        case 'struck':
+          /* a blow landing on someone: a dull, wet thud, and the breath knocked out of them */
+          this.nz(0.1, 0.55 * v, 220, 'lowpass'); this.tn(90, 45, 0.16, 'sine', 0.5 * v);
+          this.nz(0.3, 0.06 * v, 900, 'bandpass', 0.06, 2, 500, 0.05);
+          break;
+        case 'winddown':
+          /* a backup set dying: its hum running down, a relay dropping out, and the hum gone */
+          this.tn(110, 28, 2.2, 'sawtooth', 0.1 * v, 0, 0.1); this.nz(2, 0.06 * v, 160, 'lowpass', 0, 1, 60, 0.1);
+          this.tn(1200, 600, 0.03, 'square', 0.08 * v, 2.1); this.nz(0.05, 0.25 * v, 1500, 'bandpass', 2.1, 2);
+          break;
         case 'pump': for (const at of [0, 0.17, 0.34]) this.tn(at === 0.17 ? 1170 : 980, at === 0.17 ? 1170 : 980, 0.11, 'square', 0.035 * v, at, 0.005); break;
         case 'static': this.nz(1.4, 0.07 * v, 2600, 'bandpass', 0, 0.6, 1900, 0.04); this.nz(1.4, 0.03 * v, 700, 'bandpass', 0, 1); break;
         case 'smash': this.nz(0.25, 0.5 * v, 3800, 'highpass'); this.nz(0.2, 0.4 * v, 500, 'bandpass', 0.02, 1.5); this.tn(900, 300, 0.15, 'triangle', 0.12 * v); break;

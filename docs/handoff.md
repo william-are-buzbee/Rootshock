@@ -96,8 +96,7 @@ to take (talk it through with the owner first).
 Step 6 is done: the opening (world.md §8, *The opening*, **Built**, for what plays and where it differs from the beats).
 `sim/opening.ts` times it (`Opening`, `OPENING`: the look out, the cut after the night round has gone, the pump, being
 weak); a new game only (`SimOpts.opening`, `makeRun`'s `opening`, set in `main.ts` unless `?level=`). The rest is rules,
-general, in their places: fail-safe locks (`DoorDef.failsafe`, `failSafe` in `sim/movers.ts`, also at `makeSim`); cards
-whose holders are gone (`GONE` in `content/items.ts`: no guard's card opens them, and the validator lets them be);
+general, in their places: fail-safe locks (`DoorDef.failsafe`, `failSafe` in `sim/movers.ts`, also at `makeSim`);
 emergency cells (`RoomDef.batt`, in `roomLight`); a round's stops that want a circuit live, come once, or take the other
 patient (`RoundStop.need`, `once`, `take`); a sound made somewhere else drawing the cast (`noiseAt`); the night round coming to
 the glass to look in when it cannot reach you (the 'peer' state, `PEER`, `reaches`, `glassSpot`); the other patient (`MT.patient`,
@@ -114,6 +113,17 @@ in `sim/ragdoll.ts`); green rooms are looked into (`RoundStop.look`), and the su
 the cut 10 s after it reaches the stair's top, then black for `OPENING.black` before the cells (their own supply,
 `CELLS`, watching `SEC`: `Batt`). Light switches: `use` of kind `switch`, on rooms' own circuits (`ISO1`, `ISO2`).
 The timeline is a week, not weeks (world.md §3), and Security fell to a late child of Pia (§2).
+
+The third pass, in the dark (world.md §8, *The opening*, **Built**): the cut is days old (SEC broken from the start); the
+suite runs on its own failing set, `ISO` (`back` set by `makeOpening`, dropped by `fail()` in `sim/opening.ts`, with a
+`winddown`), its rooms flickering (`flick`), its locks, readers and pumps on it, and the cells watching it. The medical
+hold, `GONE`, the light switches and the patient's 'dark' state are gone; every isolation door is on a guard's card. The
+night round strikes the other patient twice before it takes them (`BEAT`; a blow at another of the cast, `Blow.at`;
+`beaten()` leaves blood, `Sim.pools`, saved, drawn in `castView.ts`), sweeps each room it opens from the doorway
+(`ROUND.into`), and in the opening takes you if it gets to you (`takesYou`: `end()`, game over). Card-carriers after you
+now come through the card doors between (`staffField` in `sim/fields.ts`, a cache, so not saved), and nobody walks
+straight at you through glass (`chase`). Your washroom's door is a hand-slid one (on the dead `SEC`), so it stays shut
+behind you. Room 4 is walled off from the bay. Save version 10.
 
 **On the back burner** (the owner set Security aside here; pick these up with them, not unasked):
 - Step 7 above (the vaccinator, the big dark section, load on the backup set, Cargo as an L).

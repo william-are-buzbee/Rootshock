@@ -56,6 +56,8 @@ export interface Sim {
   watch: Watch | null;
   /** a new game's first minutes, in the isolation suite (sim/opening.ts); null once a game is not beginning with it */
   opening: Opening | null;
+  /** blood on the floor from the living, where they were struck (the dead bleed where they lie: castView.ts) */
+  pools: { x: number; y: number; z: number; r: number }[];
 }
 
 export interface SimOpts {
@@ -119,7 +121,7 @@ export function makeSim(level: LevelDef, o: SimOpts = {}): Sim {
     doors: level.doors.map(d => makeDoor(world, d)),
     platforms: level.platforms.map(p => makePlatform(world, p)),
     items: level.items.map(it => ({ ...it, taken: false })),
-    usables: [], focus: null, cast: [], fields: null, hands: makeHands(), wormN: 0, front: -1, lighting: null, cams: [], alarms: [], mute: [], drills: [], watch: null, opening: null,
+    usables: [], focus: null, cast: [], fields: null, hands: makeHands(), wormN: 0, front: -1, lighting: null, cams: [], alarms: [], mute: [], drills: [], watch: null, opening: null, pools: [],
   };
   /* a fail-safe door with no power to it has let go already */
   for (const d of sim.doors) failSafe(d, power(sim.game, d.def.circuit));

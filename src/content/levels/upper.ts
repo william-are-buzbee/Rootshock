@@ -114,63 +114,63 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   /* the cut, near the wing's end: the cabinet left open, the cable through, and the one who did it */
   panel(D, 'SEC', 37.4, 13.06, 's', { cut: 1, zone: 'wing' }); // mended, it comes live on Security's board, and the wing sounds bx(D, 37.4, 13.04, 0.12, 2.6, 0.08, 0x2a2c2e, { y: 1.8, c: 0 });
   P(D, 'cyl', 37.15, 13.16, 0.07, 0.6, 0.07, 0x1d1f21, { y: 1.15, rz: 0.35, c: 0 }); P(D, 'cyl', 37.65, 13.16, 0.07, 0.45, 0.07, 0x1d1f21, { y: 1.3, rz: -0.3, c: 0 });
-  corpse(D, 36.2, 13.9, 0x2c3440, false, { label: 'Search the guard', say: 'A guard, bolt cutters still in his hand, and the blood still wet. Behind him the feed to the wing is cut clean through.' });
-  blood(D, 36.5, 14.3, 1.3); note(D, 'cut', 36.9, 14.4, 0.02); // just now: the opening's cut (sim/opening.ts)
+  corpse(D, 36.2, 13.9, 0x2c3440, false, { label: 'Search the guard', say: 'A guard, days dead, bolt cutters still in his hand. Behind him the feed to the wing is cut clean through.' });
+  blood(D, 36.5, 14.3, 1.3); note(D, 'cut', 36.9, 14.4, 0.02); // days ago: the survivors' cut, to blind the wing's cameras
   /* the wing's eye, dead with it until the cut is mended: its corridor, past the checkpoint, is armed, and the camera
      looks down it from the lobby end. Mended, the way along the wing is watched */
   speaker(D, 'wing', 30, 14.5, 'CRIT'); camera(D, 21.4, 13.3, 3.9, PI / 2, 'SEC', 'wing');
   /* what was left of a barricade across the mouth of the wing */
   bx(D, 38.4, 13.7, 1.8, 0.75, 0.7, 0x5b5d5f, { ry: 0.5 });
   /* North, a storey down: the medical isolation suite (world.md §8, Holding and The opening). Isolation rooms round a tall
-     common hall, and over its south end, at the wing's own level, the nurses' station that the stair climbs to. On the
-     wing's feed, which Ops' backup set carries: its night setting, low warm pools. When the feed dies its emergency lights
-     come up on their own cells, as the code wants: dimmer and cooler, not dark. You wake in room 1, on the west side; the
-     other patient is in room 2, by the foot of the stair, their window facing yours across the hall; rooms 3 and 4, empty,
-     are along the north side between you, in sight of your window; every isolation room's door is fail-safe: locked while
-     the suite has power, let go when it dies. Rooms 1 and 2 have light switches (their own circuits off the wing's feed) */
-  const NIGHT: Colour = [0.8, 0.68, 0.5], BATT = { colour: [0.06, 0.065, 0.075] as Colour, supply: 'CELLS', watch: 'SEC' };
-  const ISO: TRoomOpts = { fl: 0x4c5250, wl: 0x6f7a77, st: 0x3f7f6b, c: 'SEC', em: 1, safe: 1, lc: NIGHT, batt: BATT, mat: { floor: 'vinyl', wall: 'block' } };
-  const ROOM: TRoomOpts = { ...ISO, lc: [1.3, 1.1, 0.8] };
-  room(B, 'Isolation suite', 26, 4, 7, 7, { ...ISO, ht: 8 }); room(B, 'Isolation suite', 31, 1, 2, 3, { ...ISO, ht: 8 }); // the hall, and its north-east bay at the stair's foot
-  /* a room in use: its bed, its pump on its pole and the last bag hung on it, dry. (x, y) its north-west corner, the
+     common hall, and over its south end, at the wing's own level, the nurses' station that the stair climbs to. The wing's
+     feed is days cut; the suite runs on its own small backup set, kept for its locks, its readers and its pumps, and
+     failing: its fittings low and stuttering. When it dies its emergency lights come up on their own cells, as the code
+     wants: dimmer and cooler, not dark. You wake in room 1, on the west side; the other patient is in room 2, by the foot
+     of the stair, their window facing yours across the hall; rooms 3 and 4, empty, are along the north side between you,
+     in sight of your window; every isolation room's door is fail-safe: locked while the set runs, let go when it dies */
+  const NIGHT: Colour = [0.3, 0.26, 0.2], BATT = { colour: [0.06, 0.065, 0.075] as Colour, supply: 'CELLS', watch: 'ISO' };
+  const ISO: TRoomOpts = { fl: 0x4c5250, wl: 0x6f7a77, st: 0x3f7f6b, c: 'ISO', em: 1, flick: 1, safe: 1, lc: NIGHT, batt: BATT, mat: { floor: 'vinyl', wall: 'block' } };
+  const ROOM: TRoomOpts = { ...ISO, lc: [0.5, 0.42, 0.32] };
+  /* the hall, and its north-east bay at the stair's foot, walled off from room 4 */
+  room(B, 'Isolation suite', 26, 4, 7, 7, { ...ISO, ht: 8 }); room(B, 'Isolation suite', 32, 1, 1, 2, { ...ISO, ht: 8 }); room(B, 'Isolation suite', 31, 3, 2, 1, { ...ISO, ht: 8 });
+  /* a room in use: its bed, its pump on its pole and the last bag hung on it, dry; its bed lamp on (`lamp`), whoever is
+     in it shows against it at the glass. (x, y) its north-west corner, the
      partition with its door and observation window on its east (east) or west side, the window `win` rows in; its sill
      high enough that crouched under it nobody outside sees you */
-  const isoRoom = (k: number, x: number, y: number, east: boolean, card: string, c: string, win: number, dr: number) => {
+  const isoRoom = (k: number, x: number, y: number, east: boolean, win: number, dr: number, lamp = false) => {
     const dx = east ? x + 3 : x - 1, bed = east ? x + 0.4 : x + 2.6, pole = bed + (east ? 0.42 : -0.42);
-    room(B, 'Isolation room ' + k, x, y, 3, 3, { ...ROOM, c });
-    /* the door's lock on the wing's feed, not the room's light switch: only the feed dying lets it go */
-    partition(B, dx, y, 1, 3); door(B, dx, y + dr, { card, failsafe: true, c: 'SEC', sg: [['Isolation ' + k, east ? 'e' : 'w']] }); door(B, dx, y + win, { glass: true, glaze: 'obs' });
+    room(B, 'Isolation room ' + k, x, y, 3, 3, lamp ? { ...ROOM, lc: [1.5, 1.25, 0.88] } : ROOM);
+    partition(B, dx, y, 1, 3); door(B, dx, y + dr, { card: 's', failsafe: true, c: 'ISO', sg: [['Isolation ' + k, east ? 'e' : 'w']] }); door(B, dx, y + win, { glass: true, glaze: 'obs' });
     medbed(B, bed, y + 1.5); bx(B, bed + (east ? 0.6 : -0.6), y + 0.45, 0.45, 0.5, 0.4, 0xb8bcc0);
     bx(B, pole, y + 0.85, 0.22, 0.17, 0.13, 0xd8dcd8, { y: 1.02, c: 0 }); // the pump on the pole, its screen lit while it has power
-    bx(B, pole + (east ? 0.06 : -0.06), y + 0.85, 0.02, 0.07, 0.09, [0.05, 0.06, 0.05], { y: 1.08, c: 0, pw: [[0.05, 0.06, 0.05], [2.3, 2.55, 2.4]], pc: 'SEC' });
+    bx(B, pole + (east ? 0.06 : -0.06), y + 0.85, 0.02, 0.07, 0.09, [0.05, 0.06, 0.05], { y: 1.08, c: 0, pw: [[0.05, 0.06, 0.05], [2.3, 2.55, 2.4]], pc: 'ISO' });
     return pole;
   };
-  /* yours, under a medical hold, which wants a physician's override nobody on the station still carries */
-  const p1 = isoRoom(1, 22, 3, true, 'hold', 'ISO1', 1, 2); // its window straight across the hall at room 2's
+  /* yours, on a guard's card like the rest */
+  const p1 = isoRoom(1, 22, 3, true, 1, 2); // its window straight across the hall at room 2's
   use(B, 'pump', p1, 3.85, 1.1);
   use(B, 'look', p1, 3.85, 1.55, { label: 'Read the bag', text: 'MIDAZOLAM 100 mg in 100 mL sodium chloride 0.9%. Isolation 1. Hung 11/11, 23:10, M.O. Empty.' });
   use(B, 'look', 25.33, 3.3, 1.4, { label: 'Press the intercom', text: 'Static, and nothing under it.', sfx: 'static' });
-  use(B, 'switch', 25.33, 3.75, 1.3, { c: 'ISO1' });
   note(B, 'intake', 23, 3.45, 0.52);
-  /* your washroom, out of sight of the hall, behind room 1 */
-  room(B, 'Washroom', 22, 7, 3, 2, { ...ISO, c: 'ISO1' }); door(B, 23, 6, { open: true });
+  /* your washroom, out of sight of the hall, behind room 1: its door a plain one, slid by hand, that stays as you leave it
+     (on the wing's dead feed, so no motor of its own) */
+  room(B, 'Washroom', 22, 7, 3, 2, ROOM); door(B, 23, 6, { c: 'SEC' });
   for (const x of [22.3, 23.1]) bx(B, x, 8.7, 0.5, 0.85, 0.6, 0xc8ccd0); bx(B, 24.5, 7.5, 1, 2.1, 1, 0x8a9a94, { c: 0 });
-  /* the other patient's, by the stair's foot, on a guard's card: awake for days, their bag run dry first. Tally marks by
-     the bed, the chair they hit the glass with, the drawers turned out for anything to eat, their hands on the inside of
-     the window, and their own light switch by the door */
-  const p2 = isoRoom(2, 34, 2, false, 's', 'ISO2', 2, 1); // its window straight across at yours, over the stair's foot
+  /* the other patient's, by the stair's foot: awake for days, their bag run dry first, and their lamp on. Tally marks by
+     the bed, the chair they hit the glass with, the drawers turned out for anything to eat, and their hands on the inside
+     of the window */
+  const p2 = isoRoom(2, 34, 2, false, 2, 1, true); // its window straight across at yours, over the stair's foot
   use(B, 'look', p2, 2.85, 1.55, { label: 'Read the bag', text: 'MIDAZOLAM 100 mg in 100 mL sodium chloride 0.9%. Isolation 2. Hung 8/11, 22:50, M.O. Dry, days ago.' });
-  use(B, 'switch', 33.67, 2.5, 1.3, { c: 'ISO2' });
   for (let k = 0; k < 3; k++) bx(B, 35.1 + k * 0.05, 2.03, 0.012, 0.32, 0.01, 0x2a2622, { y: 1.15, c: 0 });
   for (const [z, y] of [[4.35, 1.45], [4.55, 1.62], [4.7, 1.38], [4.45, 1.8]]) bx(B, 33.64, z, 0.006, 0.09, 0.07, 0x5a4a3e, { y, c: 0 });
   bx(B, 35.4, 4.6, 0.45, 0.45, 0.45, 0x5f6266, { rz: PI / 2 - 0.15, ry: 0.4 }); // the chair, on its side by the window
   bx(B, 35.6, 2.4, 0.6, 0.8, 0.45, 0x5f6266); for (const y of [0.2, 0.5]) bx(B, 35.6, 2.75, 0.5, 0.18, 0.4, 0x6a6e70, { y, c: 0 });
-  room(B, 'Washroom', 34, 6, 3, 2, { ...ISO, c: 'ISO2' }); door(B, 35, 5, { open: true });
+  room(B, 'Washroom', 34, 6, 3, 2, ROOM); door(B, 35, 5, { open: true });
   for (const z of [6.3, 7.1]) bx(B, 36.7, z, 0.5, 0.85, 0.6, 0xc8ccd0); bx(B, 34.6, 7.5, 1, 2.1, 1, 0x8a9a94, { c: 0 });
   /* rooms 3 and 4, made up and empty, along the north side of the hall, between you: their doors open to a guard's card */
-  partition(B, 26, 3, 5, 1);
+  partition(B, 26, 3, 5, 1); partition(B, 31, 1, 1, 2);
   for (const [k, x] of [[3, 26], [4, 29]] as const) {
-    room(B, 'Isolation room ' + k, x, 1, 2, 2, ROOM); door(B, x, 3, { card: 's', failsafe: true, c: 'SEC', sg: [['Isolation ' + k, 's']] });
+    room(B, 'Isolation room ' + k, x, 1, 2, 2, ROOM); door(B, x, 3, { card: 's', failsafe: true, c: 'ISO', sg: [['Isolation ' + k, 's']] });
     medbed(B, x + 1, 1.5); bx(B, x + 1.75, 2.6, 0.45, 0.5, 0.4, 0xb8bcc0);
   }
   /* the hall: a kitchenette under the balcony, a table, plants nobody watered */
@@ -178,10 +178,8 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   bx(B, 31.4, 10.82, 0.8, 1.9, 0.7, 0xb8bcc0);
   tbl(B, 28.4, 7.2, 2.4, 1.2, 0x6b5a48); for (const [x, z] of [[28, 6.65], [28.8, 6.65], [28, 7.75], [28.8, 7.75]]) bx(B, x, z, 0.45, 0.45, 0.45, 0x3a3d40);
   for (const [x, z] of [[26.4, 9.4], [26.4, 10.4]]) { P(B, 'cyl', x, z, 0.5, 0.5, 0.5, 0x8a6a4a); P(B, 'ico', x, z, 0.8, 0.5, 0.8, 0x5a4a34, { y: 0.5, c: 0 }); }
-  /* the stair up to the station, wide, against the east wall; at its foot the last of them who came down to change the
-     bags, days ago, and his flashlight, out, where it rolled */
+  /* the stair up to the station, wide, against the east wall; by its foot a flashlight, out, where somebody dropped it */
   stairs(B, D, 31, 4, 5, 's'); stairs(B, D, 32, 4, 5, 's'); exitSign(B, 32.97, 4.6, 3, 'w'); // on the wall the stair climbs
-  corpse(B, 31.4, 1.8, 0x2c3440, false, { label: 'Search the guard', say: 'A guard at the foot of the stairs, face down, days dead. He came down to change the bags and did not go back up.' });
   item(B, 'flash', 32.3, 1.5, 0.02);
   room(D, "Nurses' station", 23, 9, 11, 3, { ...WALK, c: 'SEC', ht: 3.5, safe: 1, fl: 0x4c5250, wl: 0x6f7a77 }); door(D, 28, 12, { open: true, sg: [['Isolation', 's']] });
   exitSign(D, 28.5, 11.97, 2.5, 'n');
@@ -422,23 +420,23 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   /* the night round (world.md §8): one of the changed still walking the night shift's round, flashlight on. It begins on
      the nurses' station's balcony, looking down into the suite, and stays until something draws it (the opening: the
      other patient at the glass). Then, the one night it does so, down into the suite, at a purposeful walk: the other
-     patient's door at the stair's foot, which its card opens, and the other patient, limp at its touch, dragged by an
-     ankle from then on; rooms 3 and 4, opened and looked into; yours, under the hold, twice; and back up and out, where
+     patient's door at the stair's foot, which its card opens, and the other patient, struck down where they hide and
+     dragged by an ankle from then on; rooms 3 and 4, and yours, opened and swept with its beam; and back up and out, where
      what it drags is gone. After that its round is the wing, which is dark, and it walks it anyway, by its beam: along
      the corridor to the briefing room's reader and the cut, back past the nurses' station, and out round the lobby. Last
      of the cast but one, so the rest keep their places in it */
-  const once = { need: 'SEC', once: true }, quick = { ...once, pace: 1.4 };
+  const once = { need: 'ISO', once: true }, quick = { ...once, pace: 1.4 };
   mut(D, 'nightround', 30.5, 10.3, { yaw: PI, round: [
     { D, x: 30.5, z: 10.3, wait: 600, ...once }, { D: B, x: 31.6, z: 3.0, wait: 0.3, ...quick }, { D: B, x: 32.4, z: 3.5, tries: 1, ...quick },
-    { D: B, x: 34.7, z: 4.0, wait: 2.5, take: true, ...quick }, { D: B, x: 32.3, z: 3.0, wait: 0.2, ...quick },
+    { D: B, x: 34.7, z: 4.0, wait: 1.5, take: true, ...quick }, { D: B, x: 32.3, z: 3.0, wait: 0.2, ...quick },
     { D: B, x: 29.5, z: 4.4, tries: 1, look: 1.6, ...quick }, { D: B, x: 26.5, z: 4.4, tries: 1, look: 1.6, ...quick },
-    { D: B, x: 26.3, z: 5.5, tries: 2, ...quick }, { D, x: 31.5, z: 10.2, wait: 0.2, ...quick }, { D, x: 28.5, z: 13.6, wait: 0.5, drop: true, ...quick },
+    { D: B, x: 26.0, z: 5.5, tries: 1, look: 3, ...quick }, { D, x: 31.5, z: 10.2, wait: 0.2, ...quick }, { D, x: 28.5, z: 13.6, wait: 0.5, drop: true, ...quick },
     { D, x: 36.5, z: 13.6, tries: 1 }, { D, x: 37.2, z: 14.4, wait: 4 }, { D, x: 28.5, z: 13.4, wait: 3 },
     { D, x: 18.5, z: 11.5, wait: 2 }, { D, x: 13, z: 6.5, wait: 4 }, { D, x: 16.5, z: 3, wait: 3 }, { D, x: 22, z: 14.5, wait: 2 },
   ] });
-  /* the other patient, at their window in room 2; where they crouch to hide (under the sill), and their light switch.
-     Listed after the night round, last of all */
-  mut(D, 'patient', 0, 0, { at: { D: B, x: 34.4, z: 4.5 }, yaw: -PI / 2, state: 'wait', hide: { D: B, x: 34.3, z: 4.45 }, sw: { D: B, x: 34.05, z: 2.5 } });
+  /* the other patient, at their window in room 2, and where they crouch to hide (under the sill). Listed after the night
+     round, last of all */
+  mut(D, 'patient', 0, 0, { at: { D: B, x: 34.4, z: 4.5 }, yaw: -PI / 2, state: 'wait', hide: { D: B, x: 34.3, z: 4.45 } });
   return finishLevel([23.6, 4.5, PI / 2]); // in isolation room 1, by the bed, turned to the pump; the window behind you
 }
 

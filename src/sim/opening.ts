@@ -5,15 +5,16 @@ import { say, sayOnce, sfx } from './game';
 import type { Input } from './input';
 import type { Sim } from './sim';
 
-/* The opening (world.md §8, The opening): the first minutes of a new game, in the isolation suite. Most of it is the
-   station working: the suite on its night setting, the night round on the balcony, the readers, the medical hold on your
-   door, the fail-safe locks, the noise the other patient makes and the night round coming to it. What is kept here is
-   only what has to be timed:
+/* The opening (world.md §8, The opening): the first minutes of a new game, in the isolation suite. The wing's feed was
+   cut days ago; the suite runs on its own small backup set, kept for its locks, its readers and its pumps, and failing:
+   its fittings flicker, low. Most of it is the station working: the night round on the dark balcony, the readers, the
+   fail-safe locks, the noise the other patient makes and the night round coming to it, sweeping each room it opens with
+   its beam. What is kept here is only what has to be timed:
    - wake: your pump's empty-bag alarm, and you weak from days under. When you have stood at your door or window a few
      seconds (or, if you do not, a while later) the other patient sees you, and starts on the glass;
    - scene: the night round comes down to the noise and goes through the suite (sim/cast.ts, its first time round);
-   - left: it has gone back up to the wing. A few seconds on, the survivors cut the wing's feed to blind its cameras, and
-     the suite's fail-safe locks let go (sim/movers.ts, failSafe);
+   - left: it has gone back up to the wing. A few seconds on, the suite's set dies, and its fail-safe locks let go
+     (sim/movers.ts, failSafe);
    - black: everything out, a moment, before the suite's emergency cells come up (they wait to, as real ones do);
    - done. */
 
@@ -32,18 +33,18 @@ export interface Opening {
 }
 
 /** how near your door or window counts as at it (m), and how long you stand there before the other patient sees you (s),
- *  or how long it waits for you to before they do anyway; how long after the night round has gone before the cut; how
- *  long the night round may take about the suite before the cut comes regardless; how long it is black before the cells
+ *  or how long it waits for you to before they do anyway; how long after the night round has gone before the suite's set
+ *  dies; how long the night round may take about the suite before it dies regardless; how long it is black before the cells
  *  come up; how long you are weak, and how slow (your pace at the start, as a share); how often the pump goes round */
-export const OPENING = { near: 2.5, dwell: 3, wait: 60, cut: 10, late: 150, black: 2, weak: 90, slow: 0.55, alarm: 2.2 };
+export const OPENING = { near: 2.5, dwell: 3, wait: 60, fail: 10, late: 150, black: 2, weak: 90, slow: 0.55, alarm: 2.2 };
 
 const patients = (sim: Sim) => sim.cast.filter(m => m.ai === 'patient');
 const nightRound = (sim: Sim): Mutant | undefined => sim.cast.find(m => m.round && m.torch);
 
-/** a new game's start: the wing's feed whole (the survivors have not cut it yet) and the suite's fail-safe locks on */
+/** a new game's start: the suite's set still running (it is dead by the time you are out) and its fail-safe locks on */
 export function makeOpening(sim: Sim): Opening {
-  const C = sim.game.station?.circuits;
-  if (C?.SEC) { C.SEC.broken = false; C.SEC.on = true; }
+  const C = sim.game.station?.circuits.ISO;
+  if (C) { C.back = true; C.on = true; }
   for (const d of sim.doors) if (d.def.failsafe) d.unlocked = false;
   sim.lighting = null;
   return { phase: 'wake', t: 0, alarm: true, next: 0.6, weak: OPENING.weak, near: 0 };
@@ -92,8 +93,8 @@ export function updateOpening(sim: Sim): void {
       break;
     }
     case 'left':
-      if (O.t < OPENING.cut) break;
-      cut(sim);
+      if (O.t < OPENING.fail) break;
+      fail(sim);
       O.phase = 'black'; O.t = 0;
       break;
     case 'black': {
@@ -107,16 +108,16 @@ export function updateOpening(sim: Sim): void {
   }
 }
 
-/** the survivors cut the wing's feed: heard far off, then every light on it dies, the suite's cells held off a moment
- *  (sim/sim.ts follows the power) */
-function cut(sim: Sim): void {
-  const g = sim.game, C = g.station?.circuits.SEC, cells = g.station?.circuits.CELLS;
-  if (!C || C.broken) return;
-  C.broken = true;
+/** the suite's set dies: its hum runs down, and every light on it goes, the cells held off a moment (sim/sim.ts follows
+ *  the power) */
+function fail(sim: Sim): void {
+  const g = sim.game, C = g.station?.circuits.ISO, cells = g.station?.circuits.CELLS;
+  if (!C?.back) return;
+  C.back = false;
   if (cells) cells.back = false;
   g.events.push({ type: 'power', loud: false });
-  const at = sim.world.def.uses.find(u => u.kind === 'panel' && u.opts.cut);
-  if (at) sfx(g, 'clang', at);
+  const at = pumpAt(sim);
+  if (at) sfx(g, 'winddown', at);
 }
 
 /** silence the pump: what its screen says */
@@ -124,7 +125,7 @@ export function silencePump(sim: Sim): void {
   const O = sim.opening;
   if (O) O.alarm = false;
   sfx(sim.game, 'take', pumpAt(sim));
-  say(sim.game, 'EMPTY BAG, the screen says, and the clock under it: 14 NOV, 03:12. The bag went up on the eleventh.');
+  say(sim.game, 'EMPTY BAG, the screen says, and over it MAINS FAIL, and the clock: 14 NOV, 03:12. The bag went up on the eleventh.');
 }
 
 /** weak from the days under: your legs slow, and they will not run. Try, and they go from under you a moment */

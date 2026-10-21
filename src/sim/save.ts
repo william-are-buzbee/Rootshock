@@ -25,8 +25,9 @@ import { makeSim, type Sim, type SimOpts } from './sim';
  *  guard armed rooms (a save from before them loads: nothing tripped)
  *  7: the night round, one more of the level's cast, on its round with its flashlight
  *  8: the opening (sim/opening.ts): the suite laid out again, the other patient one more of the cast
- *  9: the opening's second pass: the suite laid out again, and the night round's drag */
-export const SAVE_VERSION = 9;
+ *  9: the opening's second pass: the suite laid out again, and the night round's drag
+ *  10: the opening in the dark: the suite on its own backup set, the light switches gone, and blood on the floor */
+export const SAVE_VERSION = 10;
 
 /** copy the named fields of an object */
 const pick = <T extends object, K extends keyof T>(o: T, keys: readonly K[]): Pick<T, K> => {
@@ -79,6 +80,8 @@ export interface Save {
   drills?: Sim['drills'];
   /** the opening, while it lasts (sim/opening.ts) */
   opening?: Sim['opening'];
+  /** blood from the living, where they were struck */
+  pools?: Sim['pools'];
   /** the fields over the nav graph as they stood (they are made in turn, so cannot be made again exactly) */
   fields: { from: number; turn: number; made: Record<string, string>; crawl: string; hands: string; big: string; sound: string } | null;
 }
@@ -118,6 +121,7 @@ export function save(sim: Sim): Save {
     alarms: sim.alarms.map(saveAlarm),
     drills: structuredClone(sim.drills),
     ...(sim.opening ? { opening: structuredClone(sim.opening) } : {}),
+    ...(sim.pools.length ? { pools: structuredClone(sim.pools) } : {}),
     mute: [...sim.mute],
     fields: sim.fields && {
       from: sim.fields.from, turn: sim.fields.turn, made: { ...sim.fields.made },
@@ -180,6 +184,7 @@ export function load(level: LevelDef, data: Save, o: SimOpts = {}): Sim {
   sim.mute = [...(data.mute ?? [])];
   sim.drills = structuredClone(data.drills ?? []);
   sim.opening = data.opening ? structuredClone(data.opening) : null;
+  sim.pools = structuredClone(data.pools ?? []);
   restoreAlarms(sim, data.alarms ?? []);
   const byId = new Map(sim.world.dyn.map(d => [d.id, d]));
   [sim.player.body, ...sim.loose.all, ...sim.cast.map(m => m.body)].forEach((r, i) => { if (r) r.on = byId.get(data.on[i]) ?? null; });
