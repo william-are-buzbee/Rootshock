@@ -691,8 +691,9 @@ opening leaves it. Second pass, after playing the first: each beat says one thin
   4: green, the door open, its beam in, a look, on. Yours: red. Red. Every door opens for it but yours: the medical hold is
   what saves you.
 - *Seen at your glass,* where it cannot get in, it comes to the window and looks in a few seconds, its face lit by your room,
-  the body on the floor behind it. Crouched under the sill against the wall, in your washroom, or with your light off and
-  back from the window, it does not see you. Then it goes back up the stair, dragging them, and out of sight they are gone.
+  the body on the floor behind it. Crouched under the sill against the wall, or in your washroom, it does not see you
+  (tested). Your light switch should help too, by the same rules (you are harder to see in the dark), but its beam on
+  your window may undo that: untested, for play. Then it goes back up the stair, dragging them, and out of sight they are gone.
 - *The release,* 10 s after it reaches the top: the survivors' cut, a clang far off, every light out, and your door's lock
   letting go in the dark. Two seconds on, the suite's emergency cells stutter up on their own supply: dimmer, cooler, not
   dark. By the cut, the guard with the bolt cutters, wet blood, and the note. The flashlight at the stair's foot lies off;
