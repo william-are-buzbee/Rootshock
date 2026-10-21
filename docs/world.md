@@ -262,11 +262,8 @@ Two independent questions per door.
 **Exceptions and alternatives**
 
 - **Fail-safe doors**, few and visibly marked (life-safety signage): they release when power dies, and stay released. The
-  isolation suite's rooms are all fail-safe (§8, *The opening*): that is why your door let go when the survivors cut the wing's feed.
-  **Built** (`DoorDef.failsafe`).
-- **Cards whose holders are gone (built).** A physician's override for a medical hold: no guard's card opens its door (the
-  reader reads red to it), and nothing in the game gives one. Your door, under a medical hold, opens only because it is also
-  fail-safe.
+  isolation suite's rooms are all fail-safe (§8, *The opening*): that is why your door let go when the suite's own backup set
+  died. **Built** (`DoorDef.failsafe`).
 - **Brute force (proposed):** break a lock or pry a door, at a cost: loud, slow, weapon wear, or a repair kit.
 
 ### Power
@@ -668,37 +665,39 @@ game has shown you anything to fear. It is SS2's window: see it first, from safe
    loose. The isolation doors are fail-safe and let go. Emergency light only, dim, not black. Later, a note: *we cut it the
    moment it came through holding. We forgot the suite was fail-safe.*
 
-The scene starts when you first look out of the window (a timer behind it), and is kept short. **This moves the cut** from long
-before the game to its first minutes: the survivors die on the far side of it, some of them just now (the one by the cut has
-the cutters still in hand, and the blood is fresh). The flashlight on the guard is still the next beat, in dim light now.
+The scene starts when you first look out of the window (a timer behind it), and is kept short. ~~This moves the cut from long
+before the game to its first minutes.~~ Superseded by the third pass (below): the cut is days old again, and what dies in
+the first minutes is the suite's own backup set.
 
 **Built** (`sim/opening.ts` times it; the rest is the station's own rules). A new game only: `?level=` starts the level as the
-opening leaves it. Second pass, after playing the first: each beat says one thing, in order, in about 90 seconds.
-- *The layout.* The hall narrowed to 14 m. Your room (1) on its west side; the other patient's (2) by the stair's foot, its
-  window facing yours across the hall, about 18 m; rooms 3 and 4, made up and empty, along the north side between you, in
-  sight of your window. Every isolation room fail-safe. The clinical rooms of the first pass are gone.
-- *Waking.* The wing's feed whole and on Ops' backup set: the suite at its night setting, warm amber pools. You wake by the bed
-  turned to the pump, its empty-bag alarm going (silence it: its screen gives the date, 14 NOV). The bag's label, hung 11/11;
-  the whiteboard at the station, sedation orders dated 6/11; the intercom, static; a light switch by your door. Weak for a
-  minute and a half: slow at first, coming back; no running (try, and your legs go from under you a moment).
-- *The other patient* stands at their window. When you have stood at your door or window three seconds (or after a minute)
-  they see you and bang on the glass. The noise draws the night round's beam onto the hall from the balcony; seeing it, they
-  stop, point up at it for you, switch their light off and crouch under their window. What to fear, and what to do, shown
-  without a word.
-- *The night round* comes down (sound before sight: it stands four and a half seconds with its beam on the hall first) and
-  goes through the suite at a purposeful walk on stops it keeps only that first night. Its card opens the other patient's
-  door: green. At its touch they go slack (alive: Pia's touch, §2), and it drags them by an ankle from then on. Rooms 3 and
-  4: green, the door open, its beam in, a look, on. Yours: red. Red. Every door opens for it but yours: the medical hold is
-  what saves you.
-- *Seen at your glass,* where it cannot get in, it comes to the window and looks in a few seconds, its face lit by your room,
-  the body on the floor behind it. Crouched under the sill against the wall, or in your washroom, it does not see you
-  (tested). Your light switch should help too, by the same rules (you are harder to see in the dark), but its beam on
-  your window may undo that: untested, for play. Then it goes back up the stair, dragging them, and out of sight they are gone.
-- *The release,* 10 s after it reaches the top: the survivors' cut, a clang far off, every light out, and your door's lock
-  letting go in the dark. Two seconds on, the suite's emergency cells stutter up on their own supply: dimmer, cooler, not
-  dark. By the cut, the guard with the bolt cutters, wet blood, and the note. The flashlight at the stair's foot lies off;
-  you switch it on.
-- *About 87 seconds* from the other patient seeing you to the cut.
+opening leaves it. Third pass, after playing the second: the whole of it in the dark, and being found is the end.
+- *The power.* The wing's feed was cut days ago (the guard by the cut is days dead; the note: *we cut it to blind the
+  cameras. Holding has its own set. Nobody is going down there to see how long it lasts.*). The suite runs on its own small
+  backup set (`ISO`), kept for its locks, its readers and its pumps, and failing: its fittings low and stuttering. The wing
+  above is black; the night round walks the balcony by its beam. When the set dies, the fail-safe locks let go and, two
+  seconds on, the suite's emergency cells (`CELLS`) come up: dimmer, cooler.
+- *The layout.* The hall 14 m across. Your room (1) on its west side; the other patient's (2) by the stair's foot, its window
+  facing yours, about 18 m; rooms 3 and 4, made up and empty, along the north side between you, walled off from the bay at
+  the stair's foot. Every isolation room fail-safe, and every one on a guard's card, yours too: no medical hold.
+- *Waking.* You wake by the bed turned to the pump, its alarm going (silence it: EMPTY BAG, MAINS FAIL, 14 NOV). Your room
+  is dark; theirs has its bed lamp on, so they show against it at the glass. The bag's label, hung 11/11; the whiteboard,
+  orders dated 6/11; the intercom, static. Weak for a minute and a half: slow, no running.
+- *The other patient* sees you when you have stood at your door or window three seconds (or after a minute) and bangs on the
+  glass. The noise draws the night round's beam onto the hall from the balcony; seeing it, they stop, point up at it for you,
+  and crouch under their window. What to fear, and what to do, shown without a word.
+- *The night round* comes down (sound before sight: four and a half seconds with its beam on the hall first) and goes
+  through the suite on stops it keeps only that night. Its card opens their door: green. It strikes them twice where they
+  crouch (they bleed there: the pool stays), and at its touch they go slack (alive: Pia's touch, §2); it drags them by an
+  ankle from then on. Rooms 3, 4 and yours: green, the door open, and its beam swept about the room from the doorway.
+- *Whoever its beam finds, it takes.* Seen (in your room, at your glass on its way past), it comes through your door and
+  takes you by the ankle: the game is over. In your washroom with the door slid shut, crouched under your window, or
+  against the wall beside your door, its beam misses you (tested). The rest of the game it fights as the others do; only
+  in the opening, weak and empty-handed, are you simply taken.
+- *The release,* 10 s after it reaches the top of the stair: the set's hum runs down, every light out, your door's lock
+  letting go in the dark; then the cells. The flashlight by the stair's foot lies off; you switch it on.
+- *About 85 seconds* from the other patient seeing you to the dark.
+- *Earlier passes,* for the record: a first with clinical rooms and the cut timed into the opening; a second on the wing's
+  live feed, with a medical hold on your door that read red to the night round's card, and light switches.
 
 **Cargo, made larger (agreed).** The best-looking place in the game, and too small for what it has to hold. An L, not an I: one
 arm the bay (Pia's eggs, the nest Security tends, porous and organic), the other the warehouse; at the corner a new lift
@@ -736,8 +735,8 @@ should be added. Below it, production (below).
   doors and card readers wake. **What it costs:** the wing's cameras wake too, you are easier to see in the light, and the patrols'
   rounds now take in the wing (below). The circuit comes live on Security's board and the board sounds that zone at once, so the
   first thing the mended feed brings is someone to the cut.
-- **Timing:** superseded by *The opening*, above: the game starts with the wing's feed whole, and the survivors cut it in the
-  first minutes; the suite's fail-safe doors let go then.
+- **Timing:** the cut is days old when the game starts (*The opening*, above, third pass); what fails in the first minutes is
+  the isolation suite's own backup set, and its fail-safe doors let go then.
 - **The surface lift (proposed):** what mends it is one unique part, not a kit. Count its locks before adding any: Gen-1, a
   credential and the mend are three.
 
@@ -757,10 +756,10 @@ should be added. Below it, production (below).
   with a bay to the north-east at the stair's foot), a kitchenette under the balcony, a table, plants nobody watered. Off it,
   west: room 1 (yours), its washroom behind it; east, by the stair's foot: room 2 (the other patient's), with its washroom;
   north, between them: rooms 3 and 4, made up and empty. Rooms 1 and 2 face each other, each a door and an observation
-  window in a partition, and a light switch. Over the hall's south end, at the wing's level, the nurses' station, a balcony
-  with the station's desk and whiteboard, which a double stair up the east wall climbs to, and which opens onto the Security
-  corridor. At the stair's foot a guard face down, days dead, his flashlight off beside him, and an exit sign. The suite
-  and the station are refuges; with the wing cut, the suite has its emergency cells; mended, it lights amber like the rest.
+  window in a partition; your washroom's door is a plain one, slid by hand. Over the hall's south end, at the wing's level,
+  the nurses' station, a balcony with the station's desk and whiteboard, which a double stair up the east wall climbs to,
+  and which opens onto the Security corridor. At the stair's foot a flashlight, off, and an exit sign. Its own backup set
+  dead, the suite has its emergency cells; the station, on the wing's feed, lights amber when the cut is mended.
 
 **The layout (proposed)**
 
@@ -917,7 +916,7 @@ whether or not the wing is mended.
 - **For the second pass** (above): cameras that guard armed places; running heard; the alarm answered in a hurry; the
   camera wall; the changed made intelligent (investigating, using cards);
   the night round and its beam; the vaccinator; call points and lockdown; load on the backup set; the big dark section; the
-  opening (the pump, the other patient, the card at each door, the medical hold); Cargo as an L. To be put in order before any of it is built.
+  opening (the pump, the other patient, the card at each door); Cargo as an L. To be put in order before any of it is built.
 
 ### Production (agreed)
 

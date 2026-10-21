@@ -448,6 +448,7 @@ export class CastView {
     const w = this.sim.world, t = performance.now() / 1000, c: Ctx = { sim: this.sim, dt: this.last ? Math.min(0.1, t - this.last) : 0, L: this.L };
     this.last = t;
     this.spread();
+    this.struck(c.dt);
     for (const s of this.shown) {
       const { m, M, mat } = s, g = M.g;
       if (s.baked && (m.away || !m.rag)) this.unbake(s);
@@ -534,6 +535,26 @@ export class CastView {
     this.bloods.push(mesh);
     this.scene.add(mesh);
     this.spreading.push({ mesh, m, t0: this.sim.tick, held: !!m.rag?.awake });
+  }
+
+  /** blood from the living, where they were struck (Sim.pools): each one a pool, spreading out to as big as it is */
+  private pooled: THREE.Mesh[] = [];
+  private struck(dt: number): void {
+    const P = this.sim.pools;
+    for (let i = this.pooled.length; i < P.length; i++) {
+      /* not round: a pool and what ran from it, a metre across at its full size */
+      const p = P[i], mesh = new THREE.Mesh(parts([['cyl', 0x3a0b0b, 1, 0.012, 1, 0, 0, 0], ['cyl', 0x3a0b0b, 0.55, 0.012, 0.45, 0.45, 0, 0.12], ['cyl', 0x3a0b0b, 0.4, 0.012, 0.5, -0.28, 0, -0.38]]), dynamicMaterial());
+      mesh.position.set(p.x, p.y + 0.012, p.z);
+      mesh.rotation.y = Math.random() * PI;
+      mesh.scale.set(0.05, 1, 0.05);
+      this.light(mesh);
+      this.bloods.push(mesh); this.pooled.push(mesh);
+      this.scene.add(mesh);
+    }
+    this.pooled.forEach((mesh, i) => {
+      const k = mesh.scale.x + (P[i].r - mesh.scale.x) * Math.min(1, dt * 1.5);
+      mesh.scale.set(k, 1, k);
+    });
   }
 
   /* a pool spreads out from under it, fast and then slower; while it is still settling, it goes where the body does */

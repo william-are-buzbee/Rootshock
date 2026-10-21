@@ -1,5 +1,4 @@
 import { buildNav, field, type Nav, type Rules } from '../world/nav';
-import { GONE } from '../content/items';
 import { power } from './game';
 import { locked, type Door, type Platform } from './movers';
 import type { Sim } from './sim';
@@ -82,7 +81,7 @@ export const doorShut = (d: Door) => {
  *  medical staff's), with power enough to move it, and not locked down (an alarm's bolt beats a card) */
 export const carded = (sim: Sim, d: Door): boolean => {
   const D = d.def;
-  return !!sim.world.def.cards && !!D.card && !GONE.has(D.card) && !D.code && !d.down && !(D.seal || D.vent || D.lift || D.stuck)
+  return !!sim.world.def.cards && !!D.card && !D.code && !d.down && !(D.seal || D.vent || D.lift || D.stuck)
     && power(sim.game, D.circuit) >= (D.kind === 'heavy' ? 2 : 1);
 };
 
@@ -162,6 +161,21 @@ export function updateFields(sim: Sim, F: Fields): void {
   if (F.made[w] === key) return;
   F.made[w] = key;
   field(F.nav, F.from, w === 'sound' ? soundRules(sim, F) : rulesFor(sim, F, w), F[w], LIMIT[w]);
+}
+
+/** the hands' field for those who carry their cards, through the card doors their cards open: made when one of them
+ *  wants it (after you, behind a door the hands' own field will not go through), and kept only as a cache, being made
+ *  from where you are and how the doors stand alone */
+const staffs = new WeakMap<Fields, { key: string; F: Float32Array }>();
+export function staffField(sim: Sim, F: Fields): Float32Array {
+  const R = rulesFor(sim, F, 'hands', true);
+  let k = String(F.from);
+  for (const s of F.doorSpots) k += s.length && R.blocked[s[0]] ? '0' : '1';
+  for (const l of R.lifts) k += l;
+  let c = staffs.get(F);
+  if (!c) staffs.set(F, (c = { key: '', F: new Float32Array(F.nav.n) }));
+  if (c.key !== k) { c.key = k; field(F.nav, F.from, R, c.F, LIMIT.hands); }
+  return c.F;
 }
 
 /** all four now (at the start, or after a jump in place) */

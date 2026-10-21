@@ -209,15 +209,6 @@ export function buildUsables(sim: Sim): Usable[] {
       case 'look':
         out.push({ ...base, label: () => (o.label as string) ?? 'Look', act: () => { say(g, o.text as string); if (o.sfx) sfx(g, o.sfx as string, base); } });
         break;
-      case 'switch': {
-        /* a room's light switch: its own circuit, on or off (with no power to it, it does nothing you can see) */
-        const c = o.c as string;
-        out.push({
-          ...base, r: 1.8, label: () => 'Light switch: ' + (g.station?.circuits[c]?.on ? 'on' : 'off'),
-          act: () => { const C = g.station?.circuits[c]; if (!C) return; C.on = !C.on; g.events.push({ type: 'power', loud: false, quiet: true }); sfx(g, 'switch', base); },
-        });
-        break;
-      }
       case 'pump':
         /* your infusion pump: its alarm, until you silence it (sim/opening.ts) */
         out.push({ ...base, r: 1.8, label: () => (sim.opening?.alarm ? 'Silence the pump' : 'Look at the pump'), act: () => silencePump(sim) });
@@ -302,7 +293,7 @@ export function doorLabel(sim: Sim, d: Door): string | null {
   if (D.seal) return 'Jammed shut';
   if (D.stuck) return sim.player.crouch ? null : 'Jammed half open';
   if (d.down) return 'Locked down';
-  const L = power(g, D.circuit), rd = D.card ? (D.card === 'hold' ? 'Card reader: medical hold' : 'Card reader') : 'Keypad';
+  const L = power(g, D.circuit), rd = D.card ? 'Card reader' : 'Keypad';
   if (D.kind === 'heavy') {
     if (L < 2) return 'Heavy door: no power';
     if (locked(d)) return rd;
@@ -334,7 +325,6 @@ export function doorAct(sim: Sim, d: Door): void {
   if (locked(d)) {
     if (L === 0) { say(g, D.card ? 'The reader is dark. It needs power to read a card, and the door will not slide.' : 'The keypad is dark, and the door will not slide.'); sfx(g, 'deny'); return; }
     if (D.card) {
-      if (D.card === 'hold' && !g.keys.includes(D.card)) { say(g, 'MEDICAL HOLD, the reader says, and under it: release by attending physician only.'); sfx(g, 'deny'); return; }
       if (!g.keys.includes(D.card)) { say(g, 'The reader wants: ' + keyName(D.card) + '.'); sfx(g, 'deny'); return; }
       d.unlocked = true; sfx(g, 'take'); say(g, 'The reader takes the card.');
       if (!heavy) return;
