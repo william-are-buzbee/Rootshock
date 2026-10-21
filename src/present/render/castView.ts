@@ -438,7 +438,7 @@ export class CastView {
   private spreading: { mesh: THREE.Mesh; m: Mutant; t0: number; held: boolean }[] = [];
   private light(mesh: THREE.Mesh): void {
     const p = mesh.position, R = this.sim.world.roomAt(p.x, p.y + 0.3, p.z), none = [0, 0, 0];
-    lightMaterial(mesh.material as THREE.ShaderMaterial, R ? this.L.atPoint(p.x, p.y, p.z) : none, R ? this.L.flickAt(p.x, p.y, p.z) : none);
+    lightMaterial(mesh.material as THREE.ShaderMaterial, R ? this.L.atPoint(p.x, p.y, p.z) : none, R ? this.L.flickAt(p.x, p.y, p.z) : none, R ? this.L.towards(p.x, p.y, p.z) : none);
   }
 
   private last = 0;
@@ -473,7 +473,7 @@ export class CastView {
       mat.uniforms.uHit.value = m.hit;
       const R = w.roomAt(x, y + 0.5, z) ?? w.roomAt(x, y + 1.2, z), none = [0, 0, 0];
       const ly = y + (m.rag ? 0.4 : 0.8);
-      lightMaterial(mat, R ? this.L.atPoint(x, ly, z) : none, R ? this.L.flickAt(x, ly, z) : none);
+      lightMaterial(mat, R ? this.L.atPoint(x, ly, z) : none, R ? this.L.flickAt(x, ly, z) : none, R ? this.L.towards(x, ly, z) : none);
       if (m.dead && m.rag && s.rig) {
         /* gone loose: drawn as its points lie (rig.ts); it bleeds where it comes to rest */
         s.rig.pose(m.rag, alpha, c.dt);

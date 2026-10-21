@@ -76,7 +76,7 @@ export class HandsView {
       this.mesh.frustumCulled = false;
       this.vm.add(this.mesh);
     }
-    lightMaterial(this.mat, this.L.atPoint(b.x, b.y + 1, b.z), this.L.flickAt(b.x, b.y + 1, b.z));
+    lightMaterial(this.mat, this.L.atPoint(b.x, b.y + 1, b.z), this.L.flickAt(b.x, b.y + 1, b.z), this.L.towards(b.x, b.y + 1, b.z));
     const w = wstats(g.weapon), fist = !g.weapon, sw = h.swing;
     const ld = h.chg >= 0 ? clamp(h.chg / loadTime(sim, w), 0, 1) : 0;
     const shape = w.shape, thrust = fist || shape === 'thrust', tilt = -0.15;

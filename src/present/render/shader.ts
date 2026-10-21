@@ -18,7 +18,12 @@ import { MATS, MAT_ORDER, type Mat, type Pattern } from '../../content/materials
    The level's light (world/lightField.ts, put on the card by lightVolume.ts) is blended from the 2³ points around a
    pixel, a little off the surface into the open, taking only those on its open side that open space joins to the
    nearest: so light falls off smoothly across a room and through a doorway, and none comes through a wall or a slab.
-   The part of it from tubes that stutter dims with them (uFlick), wherever it has reached.
+   The part of it from tubes that stutter dims with them (uFlick), wherever it has reached. With it comes which way the
+   light comes from there (uLD: how much of it from one way, and which), blended the same way, so a surface takes it by
+   how it faces it (DIR): the wall facing a lamp or a lit doorway more than the one side on to it, a floor under
+   fittings more than the ceiling beside them, and a bump catches it on the side it comes from. What takes a highlight
+   (gloss) takes one from that light too, a soft sheen, so a polished floor shows a streak toward a lamp. Light that
+   comes from every way (a room's fill) is taken as before.
    Your body stands in the way of the fittings over you (selfShade): a few capsules (selfView.ts) against the nearest
    fittings of the room you are in, each taking back its share of the light where it falls, soft-edged, wider and
    fainter the further it falls from you.
@@ -74,6 +79,11 @@ void main(){
  *  channel from `dim` up to `bright`, and a dimmer one (a screen, a pilot light) as it was. The light in the room is the
  *  light field's: this is only how the light itself looks */
 export const EMIT = { fitting: 2.4, most: 3.2, dim: 0.72, bright: 0.92 };
+
+/** how a surface takes the level's light by which way it comes from (the field's direction): facing straight into it
+ *  `base` + `slope`, side on `base`, facing away `base` - `slope`; a bump tipped toward it by `relief` more; and the
+ *  sheen it gives what has gloss, against the carried lights' highlight */
+export const DIR = { base: 0.76, slope: 0.6, relief: 1.1, sheen: 0.5 };
 
 /** the brightest light the field holds: what is over it is held at it */
 export const LIGHT_RANGE = 4;
@@ -345,10 +355,11 @@ vec3 bumped(vec3 n, vec3 w, float h){
 
 const FS = /* glsl */ `
 #ifdef STATIC
-uniform sampler2D uLA; uniform highp sampler3D uLI; uniform vec3 uLO; uniform vec3 uLN; uniform int uLW;
-/* the level's light at p, on a surface facing n (toward the eye), and in fl the part of it that flickers */
-vec3 field(vec3 p, vec3 n, out vec3 fl){
-  fl = vec3(0.0);
+uniform sampler2D uLA; uniform sampler2D uLD; uniform highp sampler3D uLI; uniform vec3 uLO; uniform vec3 uLN; uniform int uLW;
+/* the level's light at p, on a surface facing n (toward the eye); in fl the part of it that flickers, and in dl which way
+   it comes from (as long as the share of it that comes from one way) */
+vec3 field(vec3 p, vec3 n, out vec3 fl, out vec3 dl){
+  fl = vec3(0.0); dl = vec3(0.0);
   vec3 f = (p + n * 0.2 - ${f3(LOFF)}) / ${f3(LCELL)}, b = floor(f), t = f - b;
   vec3 bk = floor(b / ${BR}.0), ix = bk - uLO;
   if (any(lessThan(ix, vec3(0.0))) || any(greaterThanEqual(ix, uLN))) return vec3(0.0);
@@ -356,11 +367,12 @@ vec3 field(vec3 p, vec3 n, out vec3 fl){
   if (slot < 0.0) return vec3(0.0);
   ivec3 l = ivec3(b - bk * ${BR}.0);
   int base = int(slot) * ${(BR + 1) ** 3};
-  vec4 S[8]; float W[8]; int best = -1;
+  vec4 S[8]; vec3 D[8]; float W[8]; int best = -1;
   for (int c = 0; c < 8; c++) {
     ivec3 o = ivec3(c & 1, (c >> 1) & 1, c >> 2), q = l + o;
     int i = base + (q.z * ${BR + 1} + q.y) * ${BR + 1} + q.x;
     S[c] = texelFetch(uLA, ivec2(i % uLW, i / uLW), 0);
+    D[c] = texelFetch(uLD, ivec2(i % uLW, i / uLW), 0).rgb * 2.0 - 1.0;
     vec3 w3 = mix(1.0 - t, t, vec3(o));
     /* a point behind the surface counts for little: the far side of a wall it stands on */
     vec3 cp = (b + vec3(o)) * ${f3(LCELL)} + ${f3(LOFF)};
@@ -378,12 +390,15 @@ vec3 field(vec3 p, vec3 n, out vec3 fl){
         int bits = int(S[c].a * 255.0 + 0.5);
         if (((reach >> c) & 1) != ((reach >> d) & 1) && (bits & (2 << a)) != 0) reach |= (1 << c) | (1 << d);
       }
-  vec3 acc = vec3(0.0), accF = vec3(0.0); float sw = 0.0;
+  vec3 acc = vec3(0.0), accF = vec3(0.0), accD = vec3(0.0); float sw = 0.0, sl = 0.0;
   for (int c = 0; c < 8; c++) {
     if (((reach >> c) & 1) == 0) continue;
     vec3 l = W[c] * S[c].rgb * S[c].rgb;
+    float lm = dot(l, vec3(0.3, 0.59, 0.11));
     acc += l; accF += l * float(int(S[c].a * 255.0 + 0.5) >> 4) / 15.0; sw += W[c];
+    accD += lm * D[c]; sl += lm;
   }
+  dl = sl > 1e-7 ? accD / sl : vec3(0.0);
   fl = accF / max(sw, 1e-5) * ${f3(LIGHT_RANGE)};
   return acc / max(sw, 1e-5) * ${f3(LIGHT_RANGE)};
 }
@@ -423,10 +438,19 @@ ${LIGHTS}
 uniform float uFog; uniform float uWet;
 uniform float uFlick; uniform float uHit; uniform float uBright; uniform vec3 uFlashPos; uniform float uDetail;
 #if !defined(STATIC) && !defined(BAKED)
-uniform vec3 uLightF;
+uniform vec3 uLightF; uniform vec3 uLightD;
 #endif
 varying vec3 vW; varying vec3 vO; varying vec3 vC; varying vec3 vL; varying vec4 vLA; varying vec4 vLB; varying vec2 vRY;
 ${SURFACE}
+/* how much of the level's light a surface takes, facing nf (nb with its bumps): of what comes from every way, as before
+   (sh, and rel for a bump facing up); of what comes from one way (dl, as long as its share), by how it faces that way */
+float takes(vec3 nf, vec3 nb, vec3 dl, float sh, float rel){
+  float a = min(length(dl), 1.0);
+  if (a < 1e-3) return sh * rel;
+  vec3 u = dl / a;
+  float g = ${f3(DIR.base)} + ${f3(DIR.slope)} * dot(nf, u), r = clamp(1.0 + ${f3(DIR.relief)} * dot(nb - nf, u), 0.5, 1.5);
+  return mix(sh * rel, g * r, a);
+}
 void main(){
   vec3 n = normalize(cross(dFdx(vW), dFdy(vW)));
   vec3 tc = cameraPosition - vW; float d = length(tc); vec3 Ld = tc / max(d, 0.001);
@@ -468,24 +492,30 @@ void main(){
   vec3 Lf = normalize(uFlashPos - vW);
   float facing = on ? 0.35 + 0.65 * max(dot(nb, Lf), 0.0) : 0.35 + 0.65 * abs(dot(n, Ld));
   float rel = clamp(1.0 + 1.1 * (nb.y - nf.y), 0.5, 1.5);
+  /* the level's light here, and which way it comes from */
+  vec3 lvl = vec3(0.0), dl = vec3(0.0);
 #if defined(STATIC)
-  vec3 fl, lv = field(vW, nf, fl);
-  vec3 light = (lv - fl * 0.55 * uFlick) * (vL.x > 1.0 ? vL.x * ${f3(EMIT.fitting)} : vL.x) * sh * rel * selfShade(vW, nf);
+  vec3 fl, lv = field(vW, nf, fl, dl);
+  lvl = (lv - fl * 0.55 * uFlick) * (vL.x > 1.0 ? vL.x * ${f3(EMIT.fitting)} : vL.x) * selfShade(vW, nf);
+  vec3 light = lvl * takes(nf, nb, dl, sh, rel);
 #elif defined(BAKED)
   vec3 light = vL * sh;
 #else
-  vec3 light = (vL - uLightF * 0.55 * uFlick) * sh * rel;
+  lvl = vL - uLightF * 0.55 * uFlick; dl = uLightD;
+  vec3 light = lvl * takes(nf, nb, dl, sh, rel);
 #endif
   light += vec3(0.014) / (1.0 + 3.0 * d * d) + carried(vW, facing) + lying(vW, nf) + vec3(uBright);
   /* a light that is lit is brighter than white, the brightest the most */
   float top = max(base.r, max(base.g, base.b));
   vec3 c = mix(base * light, max(base, vec3(0.0)) * (1.0 + ${f3(EMIT.most - 1)} * smoothstep(${f3(EMIT.dim)}, ${f3(EMIT.bright)}, top)), em);
-  /* the highlight, of the flashlight and the lantern you carry: tight and tinted on metal, broad and white on paint */
+  /* the highlight, of the flashlight and the lantern you carry, and a sheen from the level's light where it comes from
+     one way: tight and tinted on metal, broad and white on paint */
   if (on && vLA.x > 0.0 && em == 0.0) {
-    float tight = vLA.y, norm = (tight + 8.0) / 32.0;
+    float tight = vLA.y, norm = (tight + 8.0) / 32.0, a = min(length(dl), 1.0);
     float sb = pow(max(dot(nb, normalize(Lf + Ld)), 0.0), tight), sl = pow(max(dot(nb, Ld), 0.0), tight);
+    float sf = a > 1e-3 ? pow(max(dot(nb, normalize(dl / a + Ld)), 0.0), tight) * a * ${f3(DIR.sheen)} : 0.0;
     vec3 tint = mix(vec3(1.0), base * 2.2, vLA.z);
-    c += tint * vLA.x * gm * norm * (held(vW, 1.0) * sb + lantern(vW, 1.0) * sl);
+    c += tint * vLA.x * gm * norm * (held(vW, 1.0) * sb + lantern(vW, 1.0) * sl + lvl * sf);
   }
   c += uHit * vec3(0.45, 0.08, 0.06);
   c *= exp(-d * uFog);
@@ -561,6 +591,8 @@ export const U = {
   /** the level's light field: its bricks' texels, the index of its bricks, where the index starts and how big it is (in
    *  bricks), the texels' width (lightVolume.ts) */
   uLA: { value: null as THREE.Texture | null },
+  /** which way its light comes from, laid out as uLA */
+  uLD: { value: null as THREE.Texture | null },
   uLI: { value: null as THREE.Texture | null },
   uLO: { value: new THREE.Vector3() },
   uLN: { value: new THREE.Vector3() },
@@ -588,10 +620,11 @@ export function glassMaterial(alpha: number): THREE.ShaderMaterial {
   return material({ uniforms: { ...U, uHit: { value: 0 } }, defines: { BAKED: '', ALPHA: alpha.toFixed(3) }, transparent: true, depthWrite: false });
 }
 
-/** a material for one moving thing: its light (and the part of it that flickers) is set from where it stands. With
+/** a material for one moving thing: its light (the part of it that flickers, and which way it comes from) is set from
+ *  where it stands. With
  *  `alpha`, see-through, as a door's vision panel is */
 export function dynamicMaterial(alpha?: number): THREE.ShaderMaterial {
-  const uniforms = { ...U, uHit: { value: 0 }, uLight: { value: new THREE.Vector3() }, uLightF: { value: new THREE.Vector3() } };
+  const uniforms = { ...U, uHit: { value: 0 }, uLight: { value: new THREE.Vector3() }, uLightF: { value: new THREE.Vector3() }, uLightD: { value: new THREE.Vector3() } };
   return alpha === undefined ? material({ uniforms }) : material({ uniforms, defines: { ALPHA: alpha.toFixed(3) }, transparent: true, depthWrite: false });
 }
 
@@ -601,10 +634,13 @@ export function lightUniforms() {
   return { uFlashDir, uFlash, uLamp, uBounce, uBeam, uBeamDir, uBeamM, uSh0, uSh1 };
 }
 
-/** light a moving thing's material by the level's light where it is: `l` the light, `f` the part of it that flickers */
-export function lightMaterial(mat: THREE.ShaderMaterial, l: readonly number[], f: readonly number[]): void {
+const NONE = [0, 0, 0];
+/** light a moving thing's material by the level's light where it is: `l` the light, `f` the part of it that flickers,
+ *  `d` which way it comes from (Lighting.towards; none, from every way) */
+export function lightMaterial(mat: THREE.ShaderMaterial, l: readonly number[], f: readonly number[], d: readonly number[] = NONE): void {
   (mat.uniforms.uLight.value as THREE.Vector3).set(l[0], l[1], l[2]);
   (mat.uniforms.uLightF.value as THREE.Vector3).set(f[0], f[1], f[2]);
+  (mat.uniforms.uLightD.value as THREE.Vector3).set(d[0], d[1], d[2]);
 }
 
 /** surface detail on or off: what surfaces are made of, their wear, the beam's highlight; the services under bare

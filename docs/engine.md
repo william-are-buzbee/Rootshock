@@ -953,7 +953,19 @@ sequence of inputs. The door rules, the labels and the answers are the first eng
   container throws a shadow from a fitting over it; and the fill a point takes is shaded by how open it is round it,
   above most (`SHADE`), so the floor under a desk, a corner, the gap under a slab are darker, as they would be. A room
   whose tubes stutter flickers wherever its light has reached: the field keeps the part of each point's light that
-  flickers, and the shader and everything that moves dim that part with the tube.
+  flickers, and the shader and everything that moves dim that part with the tube. It keeps which way the light comes
+  from too (since; `dir` in `world/lightField.ts`, `Lighting.directions` and `towards`): each source, with what it
+  throws at a point, keeps the way back to it from there, as long as the share of it that comes from one way (a lamp
+  all of it; a room's fittings toward those that light the point, by how much each does; a room's fill none in the
+  room, where it has bounced about, and out past it mostly from the opening it left by, `FILL.way`). Summed like the
+  light, by how bright each source is, it is linear in the sources too, so the power, the doors and the lights put down
+  change it as they change the light. The shader lights a surface by how it faces it (`DIR` in `render/shader.ts`): the
+  wall facing a lamp or a lit doorway takes more than the one side on to it, a floor under fittings more than the
+  ceiling beside them, a bump catches it on the side it comes from, and what has gloss takes a soft sheen from it, so a
+  polished floor shows a streak toward a lamp. What moves is lit the same way, from where it stands. In a hall under a
+  grid of tubes the pulls sideways cancel, as they do in a real one, and the walls are lit evenly. It is the screen's
+  alone: the sim, and what the cast see you by, go by how much light there is, never which way, and the sim never
+  makes it.
   The renderer puts the field on the card (`render/lightVolume.ts`: a brick of 9³ texels per grid chunk and an index of
   them) and the shader blends the 2³ points around each pixel, only those on its open side and joined to the nearest,
   so no light comes through a wall or a slab; only the bricks whose light changed are sent again. What moves asks

@@ -7,14 +7,18 @@ import { LIGHT_RANGE, U } from './shader';
    is laid out as 9³ texels, its own 8³ points and the first of the bricks past its high faces, so the 2³ points around
    anywhere are always in one brick. Texels: the light (square-rooted, over LIGHT_RANGE, so the dark keeps its steps
    fine), and in alpha the point's flags (open, joined along x, y, z) under how much of its light flickers (in 15ths).
-   An index over the level's bricks says where each one is. */
+   A second texture laid out the same holds which way each point's light comes from (Lighting.directions, over how
+   bright it is there, so each part is -1 to 1, as a byte from 0 to 255). An index over the level's bricks says where
+   each one is. */
 
 const B9 = BR + 1, B93 = B9 * B9 * B9;
 
 export class LightVolume {
   private atlas: THREE.DataTexture;
+  private dirAtlas: THREE.DataTexture;
   private index: THREE.Data3DTexture;
   private data: Uint8Array;
+  private dirData: Uint8Array;
   private origin = new THREE.Vector3();
   private size = new THREE.Vector3();
   readonly width: number;
@@ -44,9 +48,15 @@ export class LightVolume {
     this.width = texels <= 2048 * 2048 ? 2048 : 4096;
     const h = Math.ceil(texels / this.width);
     this.data = new Uint8Array(this.width * h * 4);
-    this.atlas = new THREE.DataTexture(this.data, this.width, h, THREE.RGBAFormat, THREE.UnsignedByteType);
-    this.atlas.minFilter = this.atlas.magFilter = THREE.NearestFilter;
-    this.atlas.generateMipmaps = false;
+    this.dirData = new Uint8Array(this.width * h * 4);
+    const tex = (d: Uint8Array) => {
+      const t = new THREE.DataTexture(d, this.width, h, THREE.RGBAFormat, THREE.UnsignedByteType);
+      t.minFilter = t.magFilter = THREE.NearestFilter;
+      t.generateMipmaps = false;
+      return t;
+    };
+    this.atlas = tex(this.data);
+    this.dirAtlas = tex(this.dirData);
     this.L = null;
     this.sync(L);
   }
@@ -58,8 +68,7 @@ export class LightVolume {
       this.L = L;
       L.changed();
       for (let s = 0; s < F.slots; s++) this.brick(s);
-      this.atlas.clearUpdateRanges();
-      this.atlas.needsUpdate = true;
+      for (const t of [this.atlas, this.dirAtlas]) { t.clearUpdateRanges(); t.needsUpdate = true; }
       return;
     }
     const changed = L.changed();
@@ -77,29 +86,34 @@ export class LightVolume {
       for (let a = s * B93, end = a + B93; a < end; ) {
         const b = Math.min(end, (Math.floor(a / this.width) + 1) * this.width);
         this.atlas.addUpdateRange(a * 4, (b - a) * 4);
+        this.dirAtlas.addUpdateRange(a * 4, (b - a) * 4);
         a = b;
       }
     }
     this.atlas.needsUpdate = true;
+    this.dirAtlas.needsUpdate = true;
   }
 
   private brick(s: number): void {
-    const L = this.L!, F = L.field, col = L.colours, fcol = L.flickers, d = this.data;
+    const L = this.L!, F = L.field, col = L.colours, fcol = L.flickers, dir = L.directions, d = this.data, e = this.dirData;
     let t = s * B93 * 4;
     for (let z = 0; z < B9; z++)
       for (let y = 0; y < B9; y++)
         for (let x = 0; x < B9; x++, t += 4) {
           const P = F.local(s, x, y, z), f = P >= 0 ? F.flags[P] : 0;
-          if (!f) { d[t] = d[t + 1] = d[t + 2] = d[t + 3] = 0; continue; }
+          if (!f) { d[t] = d[t + 1] = d[t + 2] = d[t + 3] = 0; e[t] = e[t + 1] = e[t + 2] = 128; e[t + 3] = 0; continue; }
           const p = F.pid[P] * 3, top = Math.max(col[p], col[p + 1], col[p + 2]);
           const fl = top > 1e-4 ? Math.min(15, Math.round((15 * Math.max(fcol[p], fcol[p + 1], fcol[p + 2])) / top)) : 0;
           d[t] = enc(col[p]); d[t + 1] = enc(col[p + 1]); d[t + 2] = enc(col[p + 2]); d[t + 3] = (f & 15) | (fl << 4);
+          const l = 0.3 * col[p] + 0.59 * col[p + 1] + 0.11 * col[p + 2], k = l > 1e-5 ? 1 / l : 0;
+          e[t] = way(dir[p] * k); e[t + 1] = way(dir[p + 1] * k); e[t + 2] = way(dir[p + 2] * k); e[t + 3] = 0;
         }
   }
 
   /** draw by this volume */
   bind(): void {
     U.uLA.value = this.atlas;
+    U.uLD.value = this.dirAtlas;
     U.uLI.value = this.index;
     U.uLO.value.copy(this.origin);
     U.uLN.value.copy(this.size);
@@ -108,3 +122,5 @@ export class LightVolume {
 }
 
 const enc = (v: number) => Math.round(Math.sqrt(Math.min(Math.max(v / LIGHT_RANGE, 0), 1)) * 255);
+/** a part of a direction, -1 to 1, as a byte */
+const way = (v: number) => Math.round((Math.min(Math.max(v, -1), 1) * 0.5 + 0.5) * 255);

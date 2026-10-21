@@ -23,7 +23,15 @@ import type { World } from './world';
    in it, nor what is flat on a ceiling: the fittings themselves, grilles.)
 
    Doors are not in the grid (they move), so a join through a door is a gate: what a source throws through one is kept
-   apart, by door, and counts as far as the door stands open. Light gets under a door as it lifts. */
+   apart, by door, and counts as far as the door stands open. Light gets under a door as it lifts.
+
+   And which way it comes from: with what it throws at each point, a source keeps the way back to it from there (`dir`,
+   a vector as long as the share of it that comes from one way: all of it for a lamp; for a room's fittings, toward the
+   ones that light it, by how much each does; for a room's fill, none in the room, where it has bounced about, and out
+   past it mostly from the opening it came out of (FILL.way), so the light spilt into a dark corridor comes from the
+   doorway). Summed over the sources like their light, by how bright each is, it says at each point how much of the light
+   comes from one way and which; the renderer lights a surface by it, so the wall facing a lit doorway is the lit one.
+   Kept to a byte a part (DIRK), as it is only for the look. */
 
 /** the lattice's spacing; a point stands at the middle of the even cell, LOFF in from its corner */
 export const LCELL = 2 * CELL;
@@ -35,8 +43,9 @@ const BR3 = BR * BR * BR;
 /** how a ceiling fitting throws its light: down (as the cube of the cosine from straight down) and out (as r² / (r² + d²)).
  *  A fitted room's fill is `base` of its light; its fittings add `gain` times what they throw, up to once over. */
 export const POOL = { r2: 9, base: 0.55, gain: 1.3 };
-/** a room's fill reaching out past it: falling off as e^(-d / fade) along the way through open space, to `reach` */
-export const FILL = { fade: 0.9, reach: 4 };
+/** a room's fill reaching out past it: falling off as e^(-d / fade) along the way through open space, to `reach`; and
+ *  `way` of it coming from the opening it came out of (the rest from every way, as it is in the room) */
+export const FILL = { fade: 0.9, reach: 4, way: 0.7 };
 /** how open a point is, for the fill: how far it sees along each axis, up to `steps`, the way up counting `up` times
  *  (the fill comes mostly from above); open as a floor in a room is, it takes all of its fill (`full`), and less in a
  *  corner, under a desk, close under a slab */
@@ -45,16 +54,23 @@ export const SHADE = { steps: 4, up: 3, full: 0.85, pow: 1.2 };
  *  that counts */
 const THROW = { reach: 8, most: 14, faint: 0.004 };
 
-/** what a source throws at the points it reaches (by open point): straight, and through each door (gated) */
+/** a direction's parts are kept as bytes, this much to 1 */
+export const DIRK = 127;
+
+/** what a source throws at the points it reaches (by open point): straight, and through each door (gated); with each,
+ *  the way back to the light from there (x, y, z by point, over DIRK), as long as the share of it that comes from one
+ *  way */
 export interface Source {
   room: number;
   lamp: number;
   pts: Int32Array;
   val: Float32Array;
+  dir: Int8Array;
   /** the bricks `pts` are in */
   slots: Int32Array;
   gpts: Int32Array;
   gval: Float32Array;
+  gdir: Int8Array;
   gdoor: Int32Array;
 }
 
@@ -85,8 +101,8 @@ export class LightField {
   readonly sources: Source[] = [];
   /** each room's own source (fill and fittings), or -1 for one that gives none */
   readonly roomSource: Int32Array;
-  /** each door's gated light: by source, point, and how much */
-  readonly doors: { src: Int32Array; pts: Int32Array; val: Float32Array }[];
+  /** each door's gated light: by source, point, how much, and the way it comes from (as Source.dir) */
+  readonly doors: { src: Int32Array; pts: Int32Array; val: Float32Array; dir: Int8Array }[];
   /** for each room, its fittings (not in a room lit by lamps of its own) */
   readonly fixtures = new Map<number, { x: number; y: number; z: number }[]>();
   private slotOf = new Map<number, number>();
@@ -185,7 +201,7 @@ export class LightField {
     });
 
     this.roomSource = new Int32Array(w.rooms.length).fill(-1);
-    this.doors = w.def.doors.map(() => ({ src: new Int32Array(0), pts: new Int32Array(0), val: new Float32Array(0) }));
+    this.doors = w.def.doors.map(() => ({ src: new Int32Array(0), pts: new Int32Array(0), val: new Float32Array(0), dir: new Int8Array(0) }));
     this.build();
   }
 
@@ -362,19 +378,23 @@ export class LightField {
   }
 
   /** what a light at (x, y, z) reaches, out to r, through open space and not through a door: each open point it
-   *  sees, and how much (`f` of the distance, times how much of it the light sees). For lights that come and go */
-  glow(x: number, y: number, z: number, r: number, f: (d: number) => number): { pts: Int32Array; val: Float32Array } {
-    const pts: number[] = [], val: number[] = [], at = this.openOf([x, y, z], [x, y + 0.1, z], [x, y + 0.3, z]);
+   *  sees, how much (`f` of the distance, times how much of it the light sees), and the way back to it (as
+   *  Source.dir). For lights that come and go */
+  glow(x: number, y: number, z: number, r: number, f: (d: number) => number): { pts: Int32Array; val: Float32Array; dir: Int8Array } {
+    const pts: number[] = [], val: number[] = [], dir: number[] = [], at = this.openOf([x, y, z], [x, y + 0.1, z], [x, y + 0.3, z]);
     if (at) {
       const [ax, ay, az] = at;
       this.shine(ax, ay, az, r, false, (L, px, py, pz, seen, door) => {
         const d = Math.sqrt((px - ax) ** 2 + (py - ay) ** 2 + (pz - az) ** 2);
         if (door >= 0 || d >= r) return;
         const v = seen * f(d);
-        if (v > 1e-4) { pts.push(this.pid[L]); val.push(v); }
+        if (v <= 1e-4) return;
+        pts.push(this.pid[L]); val.push(v);
+        const k = d > 1e-3 ? DIRK / d : 0;
+        dir.push(Math.round((ax - px) * k), Math.round((ay - py) * k), Math.round((az - pz) * k));
       });
     }
-    return { pts: Int32Array.from(pts), val: Float32Array.from(val) };
+    return { pts: Int32Array.from(pts), val: Float32Array.from(val), dir: Int8Array.from(dir) };
   }
 
   /** the first open place of these, or null */
@@ -402,7 +422,7 @@ export class LightField {
        point, found by passing it out from point to joined point (nearest first); and the door it went through */
     const dist = new Float64Array(this.flags.length).fill(Infinity), seed = new Int32Array(this.flags.length);
     const via = new Int32Array(this.flags.length), heap = new Heap();
-    const reach: { pts: number[]; d: number[]; door: number[] }[] = rooms.map(() => ({ pts: [], d: [], door: [] }));
+    const reach: { pts: number[]; d: number[]; door: number[]; seed: number[] }[] = rooms.map(() => ({ pts: [], d: [], door: [], seed: [] }));
     const share = new Float32Array(n), bp = this.bpos;
     const gi = (L: number) => bp[(L >> 9) * 3] * BR + (L & 7), gj = (L: number) => bp[(L >> 9) * 3 + 1] * BR + ((L >> 3) & 7);
     const gk = (L: number) => bp[(L >> 9) * 3 + 2] * BR + ((L >> 6) & 7);
@@ -438,7 +458,7 @@ export class LightField {
       }
       for (const L of touched) {
         if (room[L] !== id) {
-          out.pts.push(L); out.d.push(dist[L]); out.door.push(via[L]);
+          out.pts.push(L); out.d.push(dist[L]); out.door.push(via[L]); out.seed.push(seed[L]);
           /* the share is reckoned with every door open: a shut one leaves a little shadow by it, as it would */
           share[this.pid[L]] += Math.exp(-dist[L] / FILL.fade);
         }
@@ -453,38 +473,54 @@ export class LightField {
        fittings throw; then each lamp's */
     const acc = new Float32Array(n), mark = new Uint8Array(n), thrown = new Float32Array(n), tgate = new Float32Array(n);
     const tdoor = new Int32Array(n).fill(-1);
+    /* the way back to the light, summed by how much each part of it gives: what is added, and what its fittings throw */
+    const accD = new Float32Array(n * 3), tdir = new Float32Array(n * 3);
     const gated = new Map<number, number>(); // point * 4096 + door -> how much
-    const kp = new Int32Array(n), kv = new Float32Array(n), ks = new Int32Array(this.slots), ksm = new Uint8Array(this.slots);
-    const perDoor: { src: number[]; pts: number[]; val: number[] }[] = this.doors.map(() => ({ src: [], pts: [], val: [] }));
+    const gatedD = new Map<number, [number, number, number]>(); // and the way back, summed
+    const kp = new Int32Array(n), kv = new Float32Array(n), kd = new Int8Array(n * 3), ks = new Int32Array(this.slots), ksm = new Uint8Array(this.slots);
+    const perDoor: { src: number[]; pts: number[]; val: number[]; dir: number[] }[] = this.doors.map(() => ({ src: [], pts: [], val: [], dir: [] }));
+    /* a summed way back over how much it sums, as bytes (at most as long as 1, so it fits) */
+    const byte = (d: number, v: number) => Math.max(-DIRK, Math.min(DIRK, Math.round((d / v) * DIRK)));
     const keep = (rm: number, lamp: number, touched: number[]) => {
       let m = 0, ns = 0;
       for (const p of touched) {
         if (acc[p] > 1e-4) {
-          kp[m] = p; kv[m++] = acc[p];
+          kp[m] = p; kv[m] = acc[p];
+          for (let a = 0; a < 3; a++) kd[m * 3 + a] = byte(accD[p * 3 + a], acc[p]);
+          m++;
           const b = this.pslot[p];
           if (!ksm[b]) { ksm[b] = 1; ks[ns++] = b; }
         }
         acc[p] = 0; mark[p] = 0; thrown[p] = 0; tgate[p] = 0; tdoor[p] = -1;
+        accD.fill(0, p * 3, p * 3 + 3); tdir.fill(0, p * 3, p * 3 + 3);
       }
       for (let k = 0; k < ns; k++) ksm[ks[k]] = 0;
-      const src = this.sources.length, gpts: number[] = [], gval: number[] = [], gdoor: number[] = [];
+      const src = this.sources.length, gpts: number[] = [], gval: number[] = [], gdir: number[] = [], gdoor: number[] = [];
       for (const [key, v] of gated) {
         if (v <= 1e-4) continue;
-        const p = Math.floor(key / 4096), d = key % 4096;
-        gpts.push(p); gval.push(v); gdoor.push(d);
-        perDoor[d].src.push(src); perDoor[d].pts.push(p); perDoor[d].val.push(v);
+        const p = Math.floor(key / 4096), d = key % 4096, D = gatedD.get(key)!.map(c => byte(c, v));
+        gpts.push(p); gval.push(v); gdir.push(...D); gdoor.push(d);
+        perDoor[d].src.push(src); perDoor[d].pts.push(p); perDoor[d].val.push(v); perDoor[d].dir.push(...D);
       }
       gated.clear();
+      gatedD.clear();
       this.sources.push({
-        room: rm, lamp, pts: kp.slice(0, m), val: kv.slice(0, m), slots: ks.slice(0, ns),
-        gpts: Int32Array.from(gpts), gval: Float32Array.from(gval), gdoor: Int32Array.from(gdoor),
+        room: rm, lamp, pts: kp.slice(0, m), val: kv.slice(0, m), dir: kd.slice(0, m * 3), slots: ks.slice(0, ns),
+        gpts: Int32Array.from(gpts), gval: Float32Array.from(gval), gdir: Int8Array.from(gdir), gdoor: Int32Array.from(gdoor),
       });
     };
-    const add = (p: number, v: number, door: number, touched: number[]) => {
+    /* add v at p, through `door` (or none), its share from one way along (ux, uy, uz) (as long as that share) */
+    const add = (p: number, v: number, door: number, touched: number[], ux = 0, uy = 0, uz = 0) => {
       if (door < 0) {
         if (!mark[p]) { mark[p] = 1; touched.push(p); }
         acc[p] += v;
-      } else gated.set(p * 4096 + door, (gated.get(p * 4096 + door) ?? 0) + v);
+        accD[p * 3] += v * ux; accD[p * 3 + 1] += v * uy; accD[p * 3 + 2] += v * uz;
+      } else {
+        const key = p * 4096 + door, D = gatedD.get(key) ?? [0, 0, 0];
+        gated.set(key, (gated.get(key) ?? 0) + v);
+        D[0] += v * ux; D[1] += v * uy; D[2] += v * uz;
+        gatedD.set(key, D);
+      }
     };
 
     for (const R of rooms) {
@@ -493,8 +529,10 @@ export class LightField {
       for (const L of own[id]) { const p = this.pid[L]; add(p, (base * shade[p]) / share[p], -1, touched); }
       const out = reach[id];
       for (let k = 0; k < out.pts.length; k++) {
-        const p = this.pid[out.pts[k]];
-        add(p, (base * shade[p] * Math.exp(-out.d[k] / FILL.fade)) / share[p], out.door[k], touched);
+        /* out past the room, it comes from where it left it */
+        const L = out.pts[k], S = out.seed[k], p = this.pid[L];
+        const ex = gi(S) - gi(L), ey = gj(S) - gj(L), ez = gk(S) - gk(L), e = Math.hypot(ex, ey, ez), u = e > 0 ? FILL.way / e : 0;
+        add(p, (base * shade[p] * Math.exp(-out.d[k] / FILL.fade)) / share[p], out.door[k], touched, ex * u, ey * u, ez * u);
       }
       if (fx) {
         const hit: number[] = [];
@@ -505,19 +543,22 @@ export class LightField {
           this.shine(ax, ay, az, Math.min(THROW.most, Math.max(THROW.reach, ay - R.y0 + 2)), true, (L, x, y, z, seen, door) => {
             const dx = x - ax, dy = ay - y, dz = z - az;
             if (dy <= 0) return;
-            const d2 = dx * dx + dy * dy + dz * dz, c = dy / Math.sqrt(d2), v = (seen * c * c * c * POOL.r2) / (POOL.r2 + d2);
+            const d2 = dx * dx + dy * dy + dz * dz, dl = Math.sqrt(d2), c = dy / dl, v = (seen * c * c * c * POOL.r2) / (POOL.r2 + d2);
             if (v < THROW.faint) return;
             const p = this.pid[L];
             if (!thrown[p]) hit.push(p);
             thrown[p] += v;
+            /* (dx, dz run from the fitting to the point, dy from the point up to the fitting) */
+            tdir[p * 3] -= (v * dx) / dl; tdir[p * 3 + 1] += (v * dy) / dl; tdir[p * 3 + 2] -= (v * dz) / dl;
             if (door >= 0 && (tdoor[p] < 0 || tdoor[p] === door)) { tdoor[p] = door; tgate[p] += v; }
           });
         }
         /* up to once over, taken as straight and through a door in the shares they were thrown */
         for (const p of hit) {
-          const all = POOL.gain * Math.min(thrown[p], 1), g = tgate[p] / thrown[p];
-          add(p, all * (1 - g), -1, touched);
-          if (g > 0) add(p, all * g, tdoor[p], touched);
+          const all = POOL.gain * Math.min(thrown[p], 1), g = tgate[p] / thrown[p], t = thrown[p];
+          const ux = tdir[p * 3] / t, uy = tdir[p * 3 + 1] / t, uz = tdir[p * 3 + 2] / t;
+          add(p, all * (1 - g), -1, touched, ux, uy, uz);
+          if (g > 0) add(p, all * g, tdoor[p], touched, ux, uy, uz);
         }
       }
       this.roomSource[id] = this.sources.length;
@@ -531,8 +572,8 @@ export class LightField {
       if (at) {
         const [ax, ay, az] = at, r = Lp.r;
         this.shine(ax, ay, az, r, false, (L, x, y, z, seen, door) => {
-          const d = Math.sqrt((x - ax) ** 2 + (y - ay) ** 2 + (z - az) ** 2);
-          if (d < r) add(this.pid[L], seen * (1 - d / r), door, touched);
+          const d = Math.sqrt((x - ax) ** 2 + (y - ay) ** 2 + (z - az) ** 2), k = d > 1e-3 ? 1 / d : 0;
+          if (d < r) add(this.pid[L], seen * (1 - d / r), door, touched, (ax - x) * k, (ay - y) * k, (az - z) * k);
         });
       }
       keep(-1, k, touched);
@@ -540,7 +581,7 @@ export class LightField {
 
     this.doors.forEach((_, d) => {
       const D = perDoor[d];
-      this.doors[d] = { src: Int32Array.from(D.src), pts: Int32Array.from(D.pts), val: Float32Array.from(D.val) };
+      this.doors[d] = { src: Int32Array.from(D.src), pts: Int32Array.from(D.pts), val: Float32Array.from(D.val), dir: Int8Array.from(D.dir) };
     });
   }
 }

@@ -433,7 +433,7 @@ export class Things {
           const q = [p.x + k * t.across[0], p.y + 0.3, p.z + k * t.across[1]] as const, o = this.L.atPoint(...q);
           if (Math.max(...o) > Math.max(...l)) { l = o; at = q; }
         }
-      lightMaterial(t.mat, l, R ? this.L.flickAt(...at) : [0, 0, 0]);
+      lightMaterial(t.mat, l, R ? this.L.flickAt(...at) : [0, 0, 0], R ? this.L.towards(...at) : [0, 0, 0]);
     }
   }
 }

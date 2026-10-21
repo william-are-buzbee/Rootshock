@@ -150,6 +150,24 @@ describe('light past a room', () => {
     expect(lum(L, ...far)).toBeCloseTo(shut, 5);
   });
 
+  it('spilt into a dark room, comes from the doorway it came through', () => {
+    /* (which way it comes from is the renderer's: world/light.ts, towards) */
+    let checked = 0;
+    for (const [A, D, B] of pairs()) {
+      if (w.rooms[A].lit !== 'main' || w.rooms[B].lit === 'always' || glazed(A) || glazed(B)) continue;
+      const L = only([A]), Dr = w.rooms[D], Br = w.rooms[B];
+      if (Math.max(...L.room(B)) > 0) continue;
+      /* just past the doorway into B, as above */
+      const cx = (Dr.x0 + Dr.x1) / 2, cz = (Dr.z0 + Dr.z1) / 2, dx = Math.sign(((Br.x0 + Br.x1) / 2 - cx) * (Dr.z1 - Dr.z0 < Dr.x1 - Dr.x0 ? 0 : 1)), dz = dx ? 0 : Math.sign((Br.z0 + Br.z1) / 2 - cz);
+      const ex = dx > 0 ? Dr.x1 : dx < 0 ? Dr.x0 : cx, ez = dz > 0 ? Dr.z1 : dz < 0 ? Dr.z0 : cz, p = [ex + dx * 0.6, Dr.y0 + 1, ez + dz * 0.6] as const;
+      if (lum(L, ...p) < 0.01) continue;
+      const t = L.towards(...p);
+      expect(-(t[0] * dx + t[2] * dz)).toBeGreaterThan(0.2);
+      checked++;
+    }
+    expect(checked).toBeGreaterThan(2);
+  });
+
   it('does not come through a wall: rooms side by side with none between them see none of each other', () => {
     /* every point of a dark room a wall's thickness from a lit one, with no opening between, is dark */
     const L = new Lighting(w, fullPower), off = (r: number) => Math.max(...L.room(r)) === 0 && !w.rooms[r].doorway;
@@ -266,5 +284,65 @@ describe('lights put down', () => {
     let worst = 0;
     for (let k = 0; k < L.colours.length; k++) worst = Math.max(worst, Math.abs(L.colours[k] - none.colours[k]));
     expect(worst).toBeLessThan(1e-4);
+  });
+});
+
+describe('which way the light comes from', () => {
+  /* the renderer's alone (Lighting.directions, towards): how much of the light at a point comes from one way, and which */
+  const len = (v: readonly number[]) => Math.hypot(v[0], v[1], v[2]);
+  const close = (a: Float32Array, b: Float32Array) => {
+    let worst = 0;
+    for (let k = 0; k < a.length; k++) worst = Math.max(worst, Math.abs(a[k] - b[k]));
+    return worst;
+  };
+
+  it('under a fitting, from above; by a lamp, from the lamp; and never more than all of it', () => {
+    const corridor = named('Security corridor'), R = w.rooms[corridor], f = lit.fixtures.get(corridor)![1];
+    const up = lit.towards(f.x, R.y0 + 0.3, f.z);
+    expect(up[1]).toBeGreaterThan(0.3);
+    expect(up[1]).toBeGreaterThan(3 * Math.hypot(up[0], up[2]));
+    /* a lamp, from a metre and a half off it, whichever way is open */
+    const lamp = w.def.lamps.find(l => w.roomAt(l.x, l.y + 0.3, l.z)?.name === "Nurses' station")!;
+    const off = [[1.5, 0], [-1.5, 0], [0, 1.5], [0, -1.5]].map(([dx, dz]) => [lamp.x + dx, lamp.y, lamp.z + dz] as const)
+      .find(p => w.grid.at(...p) >= 0 && lum(lit, ...p) > 0)!;
+    const t = lit.towards(...off), back = [lamp.x - off[0], lamp.y - off[1], lamp.z - off[2]];
+    expect((t[0] * back[0] + t[1] * back[1] + t[2] * back[2]) / (len(t) * len(back))).toBeGreaterThan(0.8);
+    /* summed by how bright each part is, it is never longer than the light it comes with */
+    const col = lit.colours, dir = lit.directions;
+    let over = 0;
+    for (let p = 0; p < col.length; p += 3) {
+      const l = 0.3 * col[p] + 0.59 * col[p + 1] + 0.11 * col[p + 2];
+      if (len([dir[p], dir[p + 1], dir[p + 2]]) > l * 1.02 + 1e-4) over++;
+    }
+    expect(over).toBe(0);
+  });
+
+  it('follows the power, the doors and the lights put down as one made afresh has it', () => {
+    const here = named('Operations corridor'), C = new Cascade(w, dark, lit, here, () => {});
+    void C.L.directions; // kept from the start, and changed as the rooms come on
+    for (let t = 0; t < 5 && !C.done; t += 1 / 60) C.update(1 / 60);
+    expect(close(C.L.directions, lit.directions)).toBeLessThan(1e-3);
+    /* a door opening, half and whole, and shutting again */
+    const door = w.def.doors.findIndex(d => !d.glass), L = new Lighting(w, fullPower, () => 0);
+    const shut = Float32Array.from(L.directions);
+    L.follow(d => (d === door ? 0.5 : 0));
+    L.follow(d => (d === door ? 1 : 0));
+    expect(close(L.directions, new Lighting(w, fullPower, d => (d === door ? 1 : 0)).directions)).toBeLessThan(1e-3);
+    L.follow(() => 0);
+    expect(close(L.directions, shut)).toBeLessThan(1e-3);
+    /* a lantern put down, and taken again */
+    const [x, y, z] = mid(named('Security corridor'), 0.3);
+    const lantern = { key: 'l', kind: 'lantern' as const, x, y, z, dx: 0, dy: 0, dz: 1, k: 1 };
+    L.lights([lantern]);
+    expect(close(L.directions, new Lighting(w, fullPower, () => 0, [lantern]).directions)).toBeLessThan(1e-3);
+    L.lights([]);
+    expect(close(L.directions, shut)).toBeLessThan(1e-3);
+  });
+
+  it('asking which way changes nothing the sim sees', () => {
+    const a = new Lighting(w, fullPower), b = new Lighting(w, fullPower);
+    void a.directions;
+    expect(close(a.colours, b.colours)).toBe(0);
+    for (const R of w.rooms.slice(0, 40)) expect(a.atPoint(...mid(R.id))).toEqual(b.atPoint(...mid(R.id)));
   });
 });
