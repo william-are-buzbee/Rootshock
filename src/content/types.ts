@@ -73,6 +73,10 @@ export interface ColliderDef {
 }
 
 export type Shape = 'box' | 'cyl' | 'ico';
+/** how far an icosahedron reaches along each axis, as a share of the size it is given: its corners lie on the sphere in
+ *  the cube it is sized by (present/render/templates.ts), so it is drawn this much of its size, its lowest corner on its
+ *  base (a lump sits on what it is put on) */
+export const ICO = (1 + Math.sqrt(5)) / 2 / Math.hypot(1, (1 + Math.sqrt(5)) / 2);
 
 /** a thing standing in a room. (x, z) is its centre, y its base */
 export interface PropDef {
@@ -207,9 +211,14 @@ export interface ItemDef {
   id: string; x: number; y: number; z: number; n: number;
   /** a light lying switched on (a flashlight dropped still on), and which way it points: yaw as the player's, pitch up */
   on?: Aim;
+  /** put down square on a shelf, a desk or a table: how it lies, turned about y as drawn (content/lying.ts); without
+   *  it, it lies as it fell */
+  yaw?: number;
 }
 export interface Aim { yaw: number; pitch: number }
-export interface NoteDef { key: string; x: number; y: number; z: number }
+/** a paper to read; how it lies, as an item (ItemDef.yaw). `bare`: no paper of its own, it is written on what it is read
+ *  from (a whiteboard), at its face */
+export interface NoteDef { key: string; x: number; y: number; z: number; yaw?: number; bare?: boolean }
 export interface MutantDef { type: string; x: number; y: number; z: number; opts: Record<string, unknown> }
 /** a stop on a guard's round (world.md §8, the night round), in plan metres: how long it stands there looking about (at
  *  a door, first, before it tries it), and how many times it tries the door beside it with its card, and how long it

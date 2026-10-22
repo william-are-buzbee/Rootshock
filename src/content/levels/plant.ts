@@ -25,17 +25,17 @@ export function buildPlant(ladders: Record<string, LadderDef>): LevelDef {
   room(D, 'Parts store', 24, 8, 6, 5, E); door(D, 26, 13, { card: 'e', sg: [['Parts', 's']] });
   shelf(D, 24.3, 10.4, 0.5, 4); shelf(D, 29.7, 10.4, 0.5, 4); shelf(D, 26.8, 8.3, 3, 0.5); item(D, 'kit', 24.35, 9.6, 1.06); item(D, 'kit', 29.65, 11.2, 1.06); item(D, 'batt', 26.8, 8.35, 1.06, 3); item(D, 'pipe', 26.8, 10.6, 0.02);
   room(D, 'Distribution', 31, 8, 8, 5, E); door(D, 34, 13, { sg: [['Distribution', 's']] });
-  ['OPS', 'CARGO', 'RES', 'HORT', 'HYD'].forEach((c, k) => panel(D, c, 32.4 + k * 1.2, 8.06, 's')); bx(D, 34.8, 8.5, 6.4, 0.01, 0.9, 0xb89b2e, { y: 0.012, c: 0 });
+  ['OPS', 'CARGO', 'RES', 'HORT', 'HYD'].forEach((c, k) => panel(D, c, 32.4 + k * 1.2, 8.035, 's')); bx(D, 34.8, 8.5, 6.4, 0.01, 0.9, 0xb89b2e, { y: 0.012, c: 0 });
   for (const x of [31.6, 38.4]) bx(D, x, 10.6, 0.9, 2, 2.4, 0x4a4f55); note(D, 'route', 37, 12.4, 0.02);
-  room(D, 'Chillers', 40, 8, 8, 5, E); door(D, 43, 13, { sg: [['Chillers', 's']] }); for (let q = 0; q < 3; q++) bx(D, 41.4 + q * 2.6, 10, 2, 2.2, 3, 0x5a6a72); bx(D, 44, 8.4, 7.6, 0.2, 0.2, 0x3d4042, { y: 2.8, c: 0 });
+  room(D, 'Chillers', 40, 8, 8, 5, E); door(D, 43, 13, { sg: [['Chillers', 's']] }); for (let q = 0; q < 3; q++) bx(D, 41.4 + q * 2.6, 10, 2, 2.2, 3, 0x5a6a72); bx(D, 44, 8.05, 7.6, 0.2, 0.2, 0x3d4042, { y: 2.8, c: 0 });
   room(D, 'Backup plant', 49, 8, 5, 5, E); door(D, 51, 13, { sg: [['Backup plant', 's']] }); genset(D, 'ENG', 50.2, 8.6, 50.2, 9.3); genset(D, 'ENG', 52.6, 8.6, 52.6, 9.3);
   room(D, 'Infirmary', 14, 17, 4, 5, { ...MED, c: 'ENG' }); door(D, 15, 16, { sg: [['Infirmary', 'n']] }); medbed(D, 14.4, 19); item(D, 'bandage', 17.4, 20.6, 0.02, 2); item(D, 'medkit', 16.4, 21.4, 0.02);
   room(D, 'Water treatment', 19, 17, 10, 5, E); door(D, 23, 16, { sg: [['Water', 'n']] }); for (const x of [21, 25]) P(D, 'cyl', x, 19.6, 2.4, 3, 2.4, 0x3b4d57);
-  for (const z of [18, 20]) bx(D, 28.2, z, 1, 1.6, 1.4, 0x3f5148); bx(D, 24, 21.6, 9.6, 0.14, 0.14, 0x3d4042, { y: 2.4, c: 0 });
+  for (const z of [18, 20]) bx(D, 28.2, z, 1, 1.6, 1.4, 0x3f5148); bx(D, 24, 21.965, 9.6, 0.14, 0.14, 0x3d4042, { y: 2.4, c: 0 });
   room(D, 'Control room', 30, 17, 7, 5, E); door(D, 33, 16, { sg: [['Control', 'n']] }); tbl(D, 33.5, 21.2, 5, 0.8);
-  for (let k = 0; k < 5; k++) { bx(D, 31.3 + k * 1.1, 21.94, 1, 0.7, 0.06, 0x22262a, { y: 1.2, c: 0 }); bx(D, 31.3 + k * 1.1, 21.92, 0.9, 0.6, 0.02, [0.05, 0.07, 0.08], { y: 1.25, c: 0, pw: [[0.04, 0.05, 0.05], [2.3, 2.6, 2.75]] }); }
-  item(D, 'batt', 32, 21.2, 0.78);
-  room(D, 'Locker room', 38, 17, 6, 5, E); door(D, 40, 16, { sg: [['Lockers', 'n']] }); for (let k = 0; k < 6; k++) bx(D, 38.6 + k * 0.9, 21.7, 0.8, 1.9, 0.5, 0x4d5863); bx(D, 41, 19.4, 3, 0.42, 0.4, 0x44484c); item(D, 'hardhat', 41.6, 19.4, 0.44); item(D, 'bandage', 39.4, 19.4, 0.44);
+  for (let k = 0; k < 5; k++) { bx(D, 31.3 + k * 1.1, 21.985, 1, 0.7, 0.06, 0x22262a, { y: 1.2, c: 0 }); bx(D, 31.3 + k * 1.1, 21.965, 0.9, 0.6, 0.02, [0.05, 0.07, 0.08], { y: 1.25, c: 0, pw: [[0.04, 0.05, 0.05], [2.3, 2.6, 2.75]] }); }
+  item(D, 'batt', 32.5, 21.2, 0.78);
+  room(D, 'Locker room', 38, 17, 6, 5, E); door(D, 40, 16, { sg: [['Lockers', 'n']] }); for (let k = 0; k < 6; k++) bx(D, 38.6 + k * 0.9, 21.875, 0.8, 1.9, 0.5, 0x4d5863); bx(D, 41, 19.4, 3, 0.42, 0.4, 0x44484c); item(D, 'hardhat', 41.6, 19.4, 0.44); item(D, 'bandage', 40.5, 19.4, 0.44);
   overgrow(D, wc, 0.6, true); overgrow(D, shop, 0.7, true);
   mut(D, 'vine', 13.12, 15.5, { yaw: PI / 2 }); mut(D, 'vine', 17.5, 12.88, { yaw: PI }); mut(D, 'rootworm', 16, 10.4); mut(D, 'rootworm', 20, 11.2); mut(D, 'rootworm', 18.6, 9.2); mut(D, 'rootworm', 22, 14.6); mut(D, 'rootworm', 26, 15.4);
   mut(D, 'husk', 46, 14.6); mut(D, 'husk', 58, 15.4, { post: 1, yaw: -PI / 2 });
@@ -51,17 +51,18 @@ export function buildPlant(ladders: Record<string, LadderDef>): LevelDef {
   partition(T1, 80, 9, 1, 4); for (let r = 9; r <= 12; r++) door(T1, 80, r, { seal: true, glass: true, glaze: 'full', c: 'ENG' });
   /* the desk along the glass, its screens dead, a chair pushed back; the mimic board on the back wall */
   for (let r = 0; r < 3; r++) { desk(T1, 78.9, 9.9 + r * 1.1, 0.8, 1.9, { c: 0x4a4f55 }); bx(T1, 78.2, 9.9 + r * 1.1, 0.5, 0.45, 0.5, 0x2c2f33); }
-  bx(T1, 72.12, 11, 0.06, 1.6, 5.6, 0x2a3036, { y: 1 }); for (let q = 0; q < 6; q++) bx(T1, 72.16, 9.4 + q * 0.6, 0.02, 0.1, 0.3, [0.3, 0.05, 0.04], { y: 1.4 + (q % 3) * 0.4, c: 0, pw: [[0.3, 0.05, 0.04], [2.2, 2.9, 2.3]], pc: 'ENG' });
+  bx(T1, 72.015, 11, 0.06, 1.6, 5.6, 0x2a3036, { y: 1 }); for (let q = 0; q < 6; q++) bx(T1, 72.035, 9.7 + q * 0.52, 0.02, 0.1, 0.3, [0.3, 0.05, 0.04], { y: 1.4 + (q % 3) * 0.4, c: 0, pw: [[0.3, 0.05, 0.04], [2.2, 2.9, 2.3]], pc: 'ENG' });
   /* Gen-1: 24 m of housing with its stacks, and the board on its west face: the fuse socket and the main breaker */
   bx(D, 119.5, 15, 22, 5, 9, 0x44525a); bx(D, 119.5, 15, 20, 1, 8, 0x36424a, { y: 5, c: 0 }); for (const x of [115, 124]) for (const z of [13, 17]) P(D, 'cyl', x, z, 0.9, 6, 0.9, 0x2c3338, { y: 6, c: 0 });
-  for (const q of [-1, 1]) bx(D, 119.5, 15 + q * 2.4, 22.4, 0.04, 0.12, 0x8a7a2a, { y: 2.4, c: 0 }); bx(D, 119.5, 15, 24, 0.01, 11, 0xb89b2e, { y: 0.012, c: 0 });
+  for (const q of [-1, 1]) bx(D, 119.5, 15 + q * 2.28, 22.4, 0.04, 0.12, 0x8a7a2a, { y: 2.4, c: 0 }); bx(D, 119.5, 15, 24, 0.01, 11, 0xb89b2e, { y: 0.012, c: 0 });
   bx(D, 113.6, 15, 0.34, 2, 1.7, 0x3a3f44); bx(D, 113.5, 14.7, 0.06, 0.3, 0.2, 0x15181b, { y: 1.05, c: 0 }); bx(D, 113.48, 15.3, 0.08, 0.4, 0.08, 0xa82a20, { y: 1, c: 0, rz: 0.5 });
   bx(D, 113.5, 15, 0.06, 0.1, 0.1, [0.3, 0.05, 0.04], { y: 1.7, c: 0, pw: [[2.9, 2.15, 2.1], [2.2, 2.9, 2.3]] }); bx(D, 113.1, 15, 0.9, 0.01, 1.9, 0xb89b2e, { y: 0.013, c: 0 });
   use(D, 'fuse', 113.2, 14.7, 1.2); use(D, 'breaker', 113.2, 15.3, 1.2);
   /* the hall's fittings: transformers along both walls, cable trays and ducts overhead, the crane that set Gen-1 in place */
-  for (let x = 86; x <= 110; x += 6) for (const z of [9.6, 20.4]) { bx(D, x, z, 2.4, 2.4, 1.4, 0x3f4a50); bx(D, x, z, 2, 0.3, 1, 0x2c3338, { y: 2.4, c: 0 }); for (const q of [-0.6, 0, 0.6]) P(D, 'cyl', x + q, z, 0.18, 0.5, 0.18, 0xb8bcc0, { y: 2.7, c: 0 }); }
-  for (const z of [9.3, 20.7]) { bx(D, 105, z, 48, 0.12, 0.6, 0x5a5d60, { y: 6, c: 0 }); bx(D, 105, z, 48, 0.5, 0.5, 0x3d4042, { y: 9, c: 0 }); }
-  for (const z of [9.25, 20.75]) bx(D, 105, z, 96, 0.5, 0.4, 0x5a5d60, { y: 13.4, c: 0 }); bx(D, 119.5, 15, 1.2, 1, 23.4, 0xc9a227, { y: 13.6, c: 0 }); bx(D, 119.5, 13.5, 1.6, 0.8, 1.6, 0x2a2c2e, { y: 13, c: 0 });
+  for (let x = 86; x <= 110; x += 6) for (const z of [9.6, 20.4]) { bx(D, x, z, 2.4, 2.4, 1.4, 0x3f4a50); bx(D, x, z, 2, 0.3, 1, 0x2c3338, { y: 2.4, c: 0 }); for (const q of [-0.35, 0, 0.35]) P(D, 'cyl', x + q, z, 0.18, 0.5, 0.18, 0xb8bcc0, { y: 2.7, c: 0 }); }
+  /* trays and ducts along the walls, end to end */
+  for (const [z, q] of [[9, 1], [21, -1]]) { bx(D, 105.5, z + q * 0.15, 98, 0.12, 0.6, 0x5a5d60, { y: 6, c: 0 }); bx(D, 105.5, z + q * 0.125, 98, 0.5, 0.5, 0x3d4042, { y: 9, c: 0 }); }
+  for (const z of [9.1, 20.9]) bx(D, 105, z, 96, 0.5, 0.4, 0x5a5d60, { y: 13.4, c: 0 }); bx(D, 119.5, 15, 1.2, 1, 23.4, 0xc9a227, { y: 13.6, c: 0 }); bx(D, 119.5, 13.5, 1.6, 0.8, 1.6, 0x2a2c2e, { y: 13, c: 0 });
   bx(D, 119.5, 13.5, 0.06, 6.4, 0.06, 0x2a2c2e, { y: 6.6, c: 0 }); bx(D, 119.5, 13.5, 0.5, 0.4, 0.5, 0x8a7a2a, { y: 6.3, c: 0 });
   bx(D, 100, 9.09, 0.8, 1.9, 0.18, 0xa82a20); item(D, 'axe', 100, 9.6, 0.02); item(D, 'batt', 90, 19.5, 0.02); mut(D, 'husk', 92, 12.6); mut(D, 'husk', 104, 18.4);
   /* the east end, where the green comes down the exhaust shaft */

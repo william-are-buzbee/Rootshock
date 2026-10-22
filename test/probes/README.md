@@ -16,6 +16,9 @@ were written for were found by measuring, not by looking, and the next one will 
 
 - `step.probe.ts`: what a sim step costs on each level (mean, median, 95th, worst), walking; and the page's share of
   the light each frame.
+- `placement.probe.ts`: everything `test/placement.ts` finds on every level, in the room it is in: things you pick up
+  over, off or in what they lie on, fittings hanging in the air or running into walls (with their colour, to find them
+  by), panes along their openings. The growth and stains the test lets meet rock are listed too. `KIND=floats` for one.
 
 `SET='STAGGER.upright=0;RAG.tip=0.6'` tries constants for one run (`kill` and `down`), without touching the tables.
 To compare with what was there before a change: `git stash push <file>`, run with `PROBE_OUT` elsewhere, pop it.

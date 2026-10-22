@@ -31,7 +31,7 @@ export function buildMain(ladders: Record<string, LadderDef>): LevelDef {
   liftRoom(G, 5, 14, 7, 14); room(G, 'Shaft station', 8, 14, 3, 3, { ...UTIL, em: 1, safe: 1 }); door(G, 11, 14, { sg: [['The Commons', 'w'], ['Shaft station', 'e']] });
   ladder(G, 'A2', 8.5, 16.6, 9.4, 15.6, PI / 2, false);
   room(G, 'Security elevator', 8, 18, 2, 2, { ...SEC, c: 'SEC', em: 1, noroam: 1 }); door(G, 9, 17, { sg: [['Security elevator', 'n']] });
-  bx(G, 9, 19.96, 0.5, 0.4, 0.06, 0x2c2f33, { y: 1.1, c: 0 }); use(G, 'elev', 9, 19.9, 1.3, { c: 'SEC', to: 'upper' }); G.marks['elev:upper'] = [9, 18.8, 0];
+  bx(G, 9, 19.985, 0.5, 0.4, 0.06, 0x2c2f33, { y: 1.1, c: 0 }); use(G, 'elev', 9, 19.9, 1.3, { c: 'SEC', to: 'upper' }); G.marks['elev:upper'] = [9, 18.8, 0];
   /* the cavern: the street between the rows, the plazas at either end, and its volume over the roofs */
   const CM: TRoomOpts = { fl: 0x8d8a7c, wl: 0xa5a296, st: 0x3f7f6b, ht: 20, sky: 0x86a9c4, em: 1, c: 'RES' };
   room(G, 'The Commons', 12, 12, 55, 6, CM); for (const y of [8, 18]) room(G, 'The Commons', 12, y, 2, 4, CM);
@@ -125,10 +125,10 @@ function buildSquare(G: Deck, S2: Deck, HB: TRoomOpts, GW: TRoomOpts, CM: TRoomO
     room(G, nm, x, y, w, h, { ...HB }); door(G, dx, dy, { sg: [[nm.split(' ')[0], sd]] }); f(x, y);
   };
   shop('Café', 81, 4, 7, 3, 82, 7, 's', (x, y) => { for (const q of [1.6, 4, 6.2]) tbl(G, x + q, y + 1.6, 1, 1, 0x8a7a5a); bx(G, x + 3.5, y + 0.3, 5, 1, 0.6, 0x6f7378); item(G, 'ration', x + 3, y + 0.3, 1.02, 2); blood(G, x + 5, y + 2.4, 1.2); });
-  shop('Barbershop', 81, 23, 7, 3, 82, 22, 'n', (x, y) => { for (let q = 0; q < 3; q++) bx(G, x + 1.5 + q * 2, y + 2.4, 0.7, 1, 0.7, 0x7a2a2a); bx(G, x + 3.5, y + 2.94, 6, 1, 0.06, [0.16, 0.2, 0.22], { y: 1, c: 0 }); body(G, x + 4, y + 1.2, 0x6b6f5a, false); });
+  shop('Barbershop', 81, 23, 7, 3, 82, 22, 'n', (x, y) => { for (let q = 0; q < 3; q++) bx(G, x + 1.5 + q * 2, y + 2.4, 0.7, 1, 0.7, 0x7a2a2a); bx(G, x + 3.5, y + 2.985, 6, 1, 0.06, [0.16, 0.2, 0.22], { y: 1, c: 0 }); body(G, x + 4, y + 1.2, 0x6b6f5a, false); });
   shop('Kiosk', 67, 8, 3, 3, 70, 10, 'e', (x, y) => { bx(G, x + 2.2, y + 1.5, 0.6, 1, 2.4, 0x6b5a48); item(G, 'peaches', x + 2.2, y + 1, 1.02); shelf(G, x + 0.3, y + 1.5, 0.5, 2.4, { cols: [0xc9a227, 0x7a4a34] }); });
   shop('Florist', 67, 19, 3, 3, 70, 19, 'e', (x, y) => { for (let q = 0; q < 4; q++) P(G, 'cyl', x + 0.6 + (q % 2) * 1.2, y + 0.8 + Math.floor(q / 2) * 1.4, 0.5, 0.5, 0.5, 0x6b5a48); overgrow(G, { x, y, w: 3, h: 3, ht: 3.2 } as TRoom, 0.6, true); });
-  shop('Transit office', 86, 8, 3, 5, 85, 11, 'w', (x, y) => { desk(G, x + 1.6, y + 0.6, 1.8, 0.7); item(G, 'batt', x + 1.6, y + 0.6, 0.78); shelf(G, x + 2.7, y + 3, 0.5, 2.4); });
+  shop('Transit office', 86, 8, 3, 5, 85, 11, 'w', (x, y) => { desk(G, x + 1.6, y + 0.6, 1.8, 0.7); item(G, 'batt', x + 2, y + 0.6, 0.78); shelf(G, x + 2.7, y + 3, 0.5, 2.4); });
   shop('Lost property', 86, 17, 3, 5, 85, 18, 'w', (x, y) => { shelf(G, x + 2.7, y + 2.4, 0.5, 3, { cols: [0x4d5a66, 0x6b5a3c, 0x8a7a6a] }); item(G, 'bandage', x + 1.2, y + 1.4, 0.02); });
   const CV: [number, number, number, number, number, number, string, Flat][] = [
     [67, 4, 7, 3, 71, 7, 'C1', [{}, 'clean', 'peaches']], [74, 4, 7, 3, 79, 7, 'C2', [{ card: 'C2' }, 'nest', 'medkit']], [81, 4, 7, 3, 84, 7, 'C3', [{ open: true }, 'body', 'bandage', 'N4.3']],
@@ -175,14 +175,14 @@ function groundFloor(D: Deck, x0: number, north: boolean, k: number, HB: TRoomOp
   }
   else switch (k) {
     case 0: R('Gymnasium', { mat: VINYL }); bx(D, x0 + 2, mid, 3, 0.08, 2, 0x3a4a5a, { c: 0 }); for (let q = 0; q < 3; q++) P(D, 'cyl', x0 + 5 + q * 0.6, back, 0.4, 0.4, 0.4, 0x2a2c2e); mut(D, 'husk', x0 + 3.5, mid, { post: 1, yaw: 0 }); break;
-    case 1: R('School room'); for (let q = 0; q < 3; q++) for (const dz of [-0.5, 0.5]) tbl(D, x0 + 1.6 + q * 1.8, mid + dz, 1, 0.6, 0x8a7a5a); bx(D, x0 + 3.5, back, 3, 1.2, 0.06, 0x2a3a2c, { y: 1, c: 0 }); eggs(D, x0 + 6, front, 3); mut(D, 'skitter', x0 + 5.5, mid); break;
+    case 1: R('School room'); for (let q = 0; q < 3; q++) for (const dz of [-0.5, 0.5]) tbl(D, x0 + 1.6 + q * 1.8, mid + dz, 1, 0.6, 0x8a7a5a); bx(D, x0 + 3.5, y0 + 2.985, 3, 1.2, 0.06, 0x2a3a2c, { y: 1, c: 0 }); eggs(D, x0 + 6, front, 3); mut(D, 'skitter', x0 + 5.5, mid); break;
     case 2: R('Library', { lit: 'none' }); for (let q = 0; q < 3; q++) shelf(D, x0 + 1.2 + q * 2.3, back - 0.1, 1.8, 0.5); shelf(D, x0 + 3.5, mid + 0.2, 3, 0.5); break;
     case 3: R('Stores', { ...UTIL, c: 'RES', mat: FITTED }, { kind: 'heavy' }); shelf(D, x0 + 1.5, back + 0.1, 2.4, 0.5); shelf(D, x0 + 5.5, back + 0.1, 2.4, 0.5); item(D, 'ration', x0 + 3.5, back, 0.02, 2); item(D, 'batt', x0 + 3.5, mid, 0.02); break;
     case 4: R('Trauma centre', { ...MED, c: 'RES' }, { kind: 'heavy' }); for (let q = 0; q < 4; q++) medbed(D, x0 + 0.6 + q * 1.5, y0 + 1.9);
-      shelf(D, x0 + 6.7, mid, 0.5, 2.6, { cols: [0xd4d8d4, 0xb9c4bd, 0x8c2f24, 0xa8b4c0] }); for (const z of [y0 + 0.6, mid, y0 + 2.4]) item(D, 'medkit', x0 + 6.65, z, 1.06); item(D, 'bandage', x0 + 6.65, mid + 0.5, 0.61, 2);
+      shelf(D, x0 + 6.7, mid, 0.5, 2.6, { cols: [0xd4d8d4, 0xb9c4bd, 0x8c2f24, 0xa8b4c0] }); for (const z of [mid - 0.45, mid, mid + 0.45]) item(D, 'medkit', x0 + 6.65, z, 1.06); item(D, 'bandage', x0 + 6.65, mid + 0.5, 0.61, 2);
       tbl(D, x0 + 5.4, front, 0.8, 0.7, 0xb4b8ba); note(D, 'clinic', x0 + 5.4, front, 0.78); break;
-    case 5: R('Water room', { ...UTIL, c: 'RES', mat: FITTED }); for (const q of [1.6, 5.4]) P(D, 'cyl', x0 + q, mid, 2.2, 2.6, 2.2, 0x3b4d57); bx(D, x0 + 3.5, back, 6, 0.14, 0.14, 0x3d4042, { y: 2.4, c: 0 }); break;
-    case 6: R('Workshop', { ...UTIL, c: 'RES', mat: FITTED }); tbl(D, x0 + 3, back + 0.2, 4, 0.9, 0x54504a); item(D, 'pipe', x0 + 3, mid + 0.6, 0.02); item(D, 'batt', x0 + 5.4, back + 0.2, 0.78); break;
+    case 5: R('Water room', { ...UTIL, c: 'RES', mat: FITTED }); for (const q of [1.6, 5.4]) P(D, 'cyl', x0 + q, mid, 2.2, 2.6, 2.2, 0x3b4d57); bx(D, x0 + 3.5, mid, 6, 0.14, 0.14, 0x3d4042, { y: 2.4, c: 0 }); break;
+    case 6: R('Workshop', { ...UTIL, c: 'RES', mat: FITTED }); tbl(D, x0 + 3, back + 0.075, 4, 0.9, 0x54504a); item(D, 'pipe', x0 + 3, mid + 0.6, 0.02); item(D, 'batt', x0 + 3.8, back + 0.075, 0.78); break;
     case 7: R('Bar', {}, { open: true }); bx(D, x0 + 3.5, mid, 5, 1, 0.6, 0x4a3a2c); for (let q = 0; q < 4; q++) P(D, 'cyl', x0 + 1.8 + q * 1.2, mid - 0.7, 0.4, 0.7, 0.4, 0x2a2c2e); blood(D, x0 + 2, front, 1.6); mut(D, 'husk', x0 + 5.6, back, { post: 1, yaw: 0 }); break;
   }
 }
@@ -223,8 +223,9 @@ function buildHorticulture(G: Deck, S2: Deck): void {
   const arb = cave(G, 'Arboretum', 118, 6, 15, 15, { ...HRT, c: 'HORT', ht: 16, lit: 'always', lc: [0.5, 0.24, 0.4] });
   hill(G, 122, 17, 4, 1.6, arb); hill(G, 129, 9.5, 3.5, 1.2, arb); hill(G, 128, 17.5, 3, 1, arb); vault(G, 125, 13, 8, 4, arb); roughen(G, arb, 0.15, 1.5);
   for (const [x, z, h] of [[121.5, 10, 7], [126, 15, 9], [123, 17.5, 6.5], [130, 11, 7.5], [129.5, 18, 6], [120.5, 13.6, 5.5]]) tree(G, x, z, h, 0, true);
-  mut(G, 'bloat', 127.6, 13, { sit: 1, yaw: -PI / 2, holt: 1 }); note(G, 'last', 125.6, 13.6, 0.03);
-  for (let k = 0; k < 8; k++) bx(G, 127.4 - rnd(0, 1.4), 13 + rnd(-0.6, 0.6), rnd(0.8, 2), 0.07, 0.07, pick([0x6e2b28, 0x3f6a3a]), { y: rnd(0.02, 0.5), c: 0, ry: rnd(-0.5, 0.5), rz: rnd(-0.2, 0.2) });
+  mut(G, 'bloat', 127.6, 13, { sit: 1, yaw: -PI / 2, holt: 1 }); note(G, 'last', 125.2, 12.7, 0.03);
+  /* roots out of her across the ground, rising to her */
+  for (let k = 0; k < 8; k++) bx(G, 127.4 - rnd(0, 1.4), 13 + rnd(-0.6, 0.6), rnd(0.8, 2), 0.07, 0.07, pick([0x6e2b28, 0x3f6a3a]), { y: rnd(-0.04, 0), c: 0, ry: rnd(-0.5, 0.5), rz: rnd(0, 0.2) });
   /* the overlook: a balcony out over the arboretum a storey up, where the family showed visitors the trees. A stair
      climbs off the cross passage in the rock between the north and middle galleries, and a passage runs on to an
      archway in the arboretum's wall; terrazzo underfoot, glass balustrades round it */
@@ -237,7 +238,8 @@ function buildHorticulture(G: Deck, S2: Deck): void {
   /* the bulkhead to the cave, in the north wall: Horticulture drilled through it */
   room(G, 'Breach', 125, 3, 1, 2, { ...ROCKP, lit: 'none', nolamp: 1, noroam: 1 }); door(G, 125, 5, { stuck: true, sg: [['Cave', 's']] });
   ladder(G, 'CV', 125.5, 3.5, 125.5, 4.4, PI, false, { bare: true, label: 'Crawl through the breach' });
-  for (let k = 0; k < 6; k++) P(G, 'ico', 125 + rnd(0.1, 0.9), 3 + rnd(0, 2), rnd(0.3, 0.7), rnd(0.2, 0.5), rnd(0.3, 0.7), pick(GR), { c: 0, y: rnd(0, 1.6) });
+  /* the green through the breach, on its walls */
+  for (let k = 0; k < 6; k++) P(G, 'ico', 125 + (rnd(0.1, 0.9) < 0.5 ? 0.08 : 0.92), 3 + rnd(0, 2), rnd(0.3, 0.7), rnd(0.2, 0.5), rnd(0.3, 0.7), pick(GR), { c: 0, y: rnd(0, 1.6) });
   /* east: the exhaust shaft. Ladderway B up to Cargo, and on down to the plant level */
   door(G, 133, 14, { sg: [['Exhaust shaft', 'w']] }); room(G, 'Exhaust shaft', 134, 12, 4, 6, { ...UTIL, c: 'HORT', em: 1 });
   ladder(G, 'B1', 136.6, 12.6, 135.6, 13.4, PI / 2, true); ladder(G, 'B2', 136.6, 16.6, 135.6, 16.4, PI / 2, false);

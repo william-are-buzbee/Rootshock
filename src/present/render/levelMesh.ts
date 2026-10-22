@@ -3,7 +3,7 @@ import { scale3, type Colour } from '../../core/math';
 import { CELL, CHUNK } from '../../world/grid';
 import type { Surface, World } from '../../world/world';
 import type { Lighting } from '../../world/light';
-import type { PropDef, RoomDef } from '../../content/types';
+import { ICO, type PropDef, type RoomDef } from '../../content/types';
 import { matId } from './shader';
 import { TEMPLATES } from './templates';
 
@@ -284,7 +284,8 @@ export function buildLevelMesh(w: World, L: Lighting): LevelMesh {
 /** a prop's triangles in the world, from its template: scaled, tipped (rz), turned (ry), stood on its base */
 export function propVerts(p: PropDef, put: (x: number, y: number, z: number) => void, at?: { x: number; y: number; z: number }): void {
   const src = TEMPLATES[p.shape], px = at ? at.x : p.x, py = at ? at.y : p.y, pz = at ? at.z : p.z;
-  const cy = Math.cos(p.ry), sy = Math.sin(p.ry), cz = Math.cos(p.rz), sz = Math.sin(p.rz), by = py + p.sy / 2;
+  /* its middle over its base: half its height, or for a lump, half what it reaches (ICO), so it sits on its base */
+  const cy = Math.cos(p.ry), sy = Math.sin(p.ry), cz = Math.cos(p.rz), sz = Math.sin(p.rz), by = py + (p.sy / 2) * (p.shape === 'ico' ? ICO : 1);
   for (let v = 0; v < src.length; v += 3) {
     let X = src[v] * p.sx, Y = src[v + 1] * p.sy, Z = src[v + 2] * p.sz;
     if (p.rz) { const x2 = X * cz - Y * sz; Y = X * sz + Y * cz; X = x2; }

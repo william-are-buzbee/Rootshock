@@ -1,6 +1,6 @@
 import { clamp } from '../../core/math';
-import type { LadderDef, LevelDef } from '../types';
-import { beginLevel, chamber, dive, finishLevel, ladder, mkDeck, mut, P, pick, pool, rnd, roughen, tunnel, use, vault, bx, type LevelInfo, type TRoomOpts } from '../build/tiles';
+import { ICO, type LadderDef, type LevelDef } from '../types';
+import { beginLevel, chamber, dive, fieldAt, finishLevel, ladder, mkDeck, mut, P, pick, pool, rnd, roughen, T, tunnel, use, vault, bx, type LevelInfo, type TRoomOpts } from '../build/tiles';
 import { caveDress, tree } from '../build/fittings';
 
 /* The cave. A stream cave in limestone, known to the builders, walled off and used as the water intake. Its own frame:
@@ -37,9 +37,15 @@ export function buildCave(ladders: Record<string, LadderDef>): LevelDef {
     P(D, 'ico', x, z, s * 1.3, s, s * 1.2, pick([0x5a5248, 0x4a443c, 0x6b6a64]), { c: 1, y: -0.3 });
   }
   /* the stream across the great chamber; the green's real arboretum */
-  for (let x = 96; x > 58; x -= 0.6) { const z = 15 + Math.sin(x * 0.21) * 2.6 + Math.sin(x * 0.07) * 1.6; bx(D, x, z, 1.4, 0.03, 1.3, 0x16343c, { y: 0.02, c: 0 }); }
+  for (let x = 96, k = 0; x > 58; x -= 0.6, k++) { const z = 15 + Math.sin(x * 0.21) * 2.6 + Math.sin(x * 0.07) * 1.6; bx(D, x, z, 1.4, 0.03, 1.3, 0x16343c, { y: 0.004 + (k % 3) * 0.003, c: 0, lie: true }); }
   for (let k = 0; k < 9; k++) { const x = rnd(62, 98), z = rnd(9, 21), t = Math.floor(z) * D.W + Math.floor(x); if (D.rm[t] !== great.id) continue; P(D, 'cyl', x, z, rnd(0.6, 1.2), rnd(14, 20), rnd(0.6, 1.2), 0x3a4a2c, { c: 1 }); }
-  for (let k = 0; k < 12; k++) P(D, 'ico', rnd(62, 98), rnd(9, 21), rnd(2, 4), rnd(1.4, 3), rnd(2, 4), pick([0x2f4a2a, 0x3a5230, 0x4f7a40, 0x6e2b28]), { y: rnd(14, 19), c: 0 });
+  /* the canopy: masses of it hanging from the roof, grown into it (its height drawn as it was, so the rest of the cave is
+     dressed as before, and set from the roof over it) */
+  for (let k = 0; k < 12; k++) {
+    const x = rnd(62, 98), z = rnd(9, 21), sx = rnd(2, 4), sy = rnd(1.4, 3), sz = rnd(2, 4), c = pick([0x2f4a2a, 0x3a5230, 0x4f7a40, 0x6e2b28]);
+    rnd(14, 19);
+    P(D, 'ico', x, z, sx, sy, sz, c, { y: great.ht + fieldAt(D, D.cf, x * T, z * T) - ICO * sy + 0.4, c: 0 });
+  }
   for (let k = 0; k < 6; k++) tree(D, rnd(64, 96), rnd(10, 20), rnd(6, 10), 0, true);
   caveDress(D, great, 140, true); caveDress(D, upper, 24, true); caveDress(D, lc, 20, true); caveDress(D, entry, 16, false); caveDress(D, desc, 14, false); caveDress(D, lower, 10, true); caveDress(D, spring, 12, false);
   for (const [x, z] of [[70, 14], [78, 18], [86, 12], [92, 17], [66, 19], [74, 10]]) mut(D, 'rootworm', x, z); mut(D, 'rootworm', 112, 41); mut(D, 'rootworm', 46, 31);

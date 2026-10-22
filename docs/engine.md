@@ -1547,6 +1547,26 @@ the old face in the air (the wing's cut SEC connection, a call point, the infirm
 the old face moves with it (`followFace` in `content/build/tiles.ts`). The loose crates are gone from the station (the
 testbed keeps its own for the tests that push them); a shelf's contents are laid in slots along each board, one a slot.
 
+**Then, where things are.** What you pick up and the papers were put down 2 cm over whatever they lay on (the first
+engine's habit), so on every desk, shelf and floor they hung in the air. They come to rest now on what is under them as
+the level is built (`settle` in `content/build/builder.ts`): the floor, a step, or the top of anything square-topped, up
+to 3 cm over or 10 cm under where they were put (further is a mistake, left for the test); on a shelf, a desk or a
+table, square to it with a turn of their own (`ItemDef.yaw`) and 5 cm in from its edges, and a shelf's dressing
+(`goods`) makes room for them. How each lies is data (`content/lying.ts`), so the builder and the tests know its size.
+A note with no paper of its own (`NoteDef.bare`) is read off what it is written on: the nurses' whiteboard, which was a
+sheet in the air in front of the board. Fittings hang from the ceiling as the grid carves it (`lid`: a 3.2 m room's is
+at 3.25, where they hung 6 cm short; a 3.6 m room's at 3.5, where they were inside it). A lump is drawn 0.85 of its size
+(`ICO`) and sat that much over its base; it sits on it now. A door's frame stops at a side wall instead of running into
+it, and a window over a tall room on a deck below lies across its opening (the operations room's eight panes stood edge
+on to the court). Flat things on rough ground (moss, the cave's stream) are tipped to the slope and laid so no edge is in
+the air (`POpts.lie`). By hand, on every level: the treatment bay's shelf (10 cm into its wall), chair backs 17 cm behind
+their seats, screens off their monitors and monitors off their desks, boards, signs and panels off their walls, the
+patient's handprints 20 cm off the glass, the drip pole past the bed's head (in the wall), forklift wheels lying flat,
+call points half in the wall, and the rest. The infirmary shelf the pass above meant to move never did (it stands
+0.6 m and a hair off the old face); it was right where it was. `test/placement.ts` measures every pickup, paper, fitting
+and pane against the world, `test/placement.test.ts` holds every level to it (growth and stains may meet rock, and in a
+cave anything may), and the placement probe lists everything it finds.
+
 A walkway's grating was a square grid of thin bright lines over black, the same from every side: it read as graph
 paper. It is bar grating now (`mesh`), galvanised: bearing bars 5 mm thick on 30 mm centres along z and 30 mm deep, so
 looked at across them their sides close the gaps (each bar drawn as wide as its top and the side of it you can see, from

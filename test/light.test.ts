@@ -91,7 +91,8 @@ describe('light past a room', () => {
   };
 
   /** a room with a pane of glass in its walls (light goes through a window: not this test's) */
-  const glazed = (id: number) => { const R = w.rooms[id]; return w.def.doors.some(d => d.glass && d.x1 > R.x0 - 0.6 && d.x0 < R.x1 + 0.6 && d.z1 > R.z0 - 0.6 && d.z0 < R.z1 + 0.6 && d.y0 < R.y0 + R.ht && d.y1 > R.y0); };
+  /* a room with a window: a pane lies in the middle of its opening, a quarter metre into a partition and a metre into the rock */
+  const glazed = (id: number) => { const R = w.rooms[id]; return w.def.doors.some(d => d.glass && d.x1 > R.x0 - 1.1 && d.x0 < R.x1 + 1.1 && d.z1 > R.z0 - 1.1 && d.z0 < R.z1 + 1.1 && d.y0 < R.y0 + R.ht && d.y1 > R.y0); };
 
   it('reaches through a doorway into a dark room, falling off with distance, and not through its walls', () => {
     const [A, D, B] = pairs().find(([a, , b]) => w.rooms[a].lit === 'main' && w.rooms[b].lit !== 'always' && !glazed(a) && !glazed(b))!;
