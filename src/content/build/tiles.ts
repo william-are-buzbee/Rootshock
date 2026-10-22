@@ -634,7 +634,14 @@ export function finishLevel(start?: [number, number, number]) {
           i += n;
         }
     }
-    /* rails along a walkway's edges over open air, and beside a stair opening */
+    /* rails along a walkway's edges over open air, and beside a stair opening. Open air is a room on some deck below
+       rising past the walkway's floor (the street under a gallery, and under the gallery below it too; the lobby under
+       its own); where only rooms that do not reach it lie below (a doorway, a flat, a washroom) there is wall at the
+       walkway's height, and a rail against a wall is no rail */
+    const drop = (n: number) => {
+      for (let L = D.below; L; L = L.below) { const RL = L.g[n] ? roomAtTile(L, n) : null; if (RL && !RL.hole && L.y0 + RL.dy + RL.ht > D.y0 + 0.5) return true; }
+      return false;
+    };
     for (let j = 0; j < D.H; j++)
       for (let i = 0; i < D.W; i++) {
         const k = j * D.W + i, R = roomAtTile(D, k);
@@ -642,7 +649,7 @@ export function finishLevel(start?: [number, number, number]) {
         for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
           const ni = i + di, nj = j + dj, n = nj * D.W + ni, inside = ni >= 0 && nj >= 0 && ni < D.W && nj < D.H;
           const NR = inside && D.g[n] ? roomAtTile(D, n) : null, hole = NR?.hole;
-          const air = inside && !D.g[n] && !!dnAt(D, n), st = hole === 'st' && !D.conn.has(k + ':' + n);
+          const air = inside && !D.g[n] && drop(n), st = hole === 'st' && !D.conn.has(k + ':' + n);
           if (!air && !st) continue;
           const e = 0.1, lx0 = di ? (di > 0 ? (i + 1) * T - e : i * T) : i * T, lx1 = di ? (di > 0 ? (i + 1) * T : i * T + e) : (i + 1) * T;
           const lz0 = dj ? (dj > 0 ? (j + 1) * T - e : j * T) : j * T, lz1 = dj ? (dj > 0 ? (j + 1) * T : j * T + e) : (j + 1) * T;

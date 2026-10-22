@@ -213,6 +213,25 @@ export function placement(def: LevelDef, site = new Site(def)): Fault[] {
     const n = group.filter((_, j) => find(j) === g).length, [, lo, , , hi] = span(corners(p));
     fault('hangs in the air', `prop ${k} ${tint(p)} (${p.shape} ${p.sx}×${p.sy}×${p.sz}${p.rz ? ` tipped ${p.rz.toFixed(2)}` : ''}) from ${lo.toFixed(2)} to ${hi.toFixed(2)}${n > 1 ? `, and ${n - 1} it touches,` : ''} held by nothing`, p.x, p.y, p.z, lo - site.ground(p.x, p.z, lo, k).y, k);
   });
+  /* a rail (a balustrade waist high, a hand's breadth thick) keeps you from a drop: open air at least to one side of it,
+     and nothing solid hard against either. One along a wall, or with a room's side behind it, is no rail */
+  def.props.forEach((p, k) => {
+    if (p.services || p.shape !== 'box' || p.sy < 0.9 || p.sy > 1.1 || Math.min(p.sx, p.sz) < 0.08 || Math.min(p.sx, p.sz) > 0.12 || p.rz) return;
+    if (Math.abs(p.y - site.floor(p.x, p.z, p.y + 0.3)) > 0.02) return; // standing on the floor, not fixed to a wall
+    const along = p.sx >= p.sz, c = Math.cos(p.ry), s = Math.sin(p.ry), half = (along ? p.sz : p.sx) / 2 + 0.15, len = (along ? p.sx : p.sz) / 2;
+    /* its two sides, out from its middle and along it, at waist height and just under its top */
+    const side = (q: -1 | 1) => {
+      let solid = 0, n = 0;
+      for (const t of [-0.9, -0.5, 0, 0.5, 0.9]) for (const h of [0.3, 0.7]) {
+        const u = along ? t * len : q * half, w = along ? q * half : t * len;
+        n++;
+        if (site.solid(p.x + u * c + w * s, p.y + h * p.sy, p.z - u * s + w * c)) solid++;
+      }
+      return solid / n;
+    };
+    const a = side(-1), b = side(1);
+    if (a > 0 || b > 0) fault('rail against a wall', `prop ${k} ${tint(p)} (box ${p.sx}×${p.sy}×${p.sz}): ${Math.round(Math.max(a, b) * 100)}% of one side solid`, p.x, p.y, p.z, Math.max(a, b), k);
+  });
   /* a pane (or any door) lies across its opening: open either side of it, and not open room beyond both its ends */
   def.doors.forEach((D, k) => {
     const cx = (D.x0 + D.x1) / 2, cz = (D.z0 + D.z1) / 2, y = (D.y0 + D.y1) / 2, ax = D.alongX, L = ax ? D.x1 - D.x0 : D.z1 - D.z0;

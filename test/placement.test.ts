@@ -8,7 +8,7 @@ import { placement, Site, type Fault } from './placement';
 
 /* Where things are (test/placement.ts measures it): nothing you can pick up, and no paper, floats over what it lies on,
    hangs off its edge, or lies in a wall or in something else; no fitting hangs in the air or runs into a wall; every pane
-   lies across its opening. A lump of growth may grow into the rock, a stain or a patch of moss may run under a wall's
+   lies across its opening; every rail stands at a drop, not against a wall. A lump of growth may grow into the rock, a stain or a patch of moss may run under a wall's
    edge, and anything in a cave may meet its rough walls: that is where they are, not a mistake. The probe
    (test/probes/placement.probe.ts) lists everything, those included. */
 
@@ -18,7 +18,7 @@ const say = (F: Fault[]) => F.map(f => `${f.kind}: ${f.what} at ${f.at.join(', '
 
 describe('where things are', () => {
   for (const L of levels)
-    it(`${L.id}: what you pick up and the papers lie on something, the fittings are held and clear of the walls, the panes lie across`, () => {
+    it(`${L.id}: what you pick up and the papers lie on something, the fittings are held and clear of the walls, the panes lie across, the rails stand at drops`, () => {
       const site = new Site(L), F = placement(L, site);
       /* growth and stains, and anything in a cave, against rock */
       const rough = (f: Fault) => {
@@ -27,6 +27,7 @@ describe('where things are', () => {
       };
       expect(say(F.filter(f => THINGS.has(f.kind)))).toEqual([]);
       expect(say(F.filter(f => f.kind === 'lies along its opening'))).toEqual([]);
+      expect(say(F.filter(f => f.kind === 'rail against a wall'))).toEqual([]);
       expect(say(F.filter(f => f.kind === 'hangs in the air'))).toEqual([]);
       expect(say(F.filter(f => (f.kind === 'runs into a wall' || f.kind === 'lost in a wall') && !rough(f)))).toEqual([]);
     });
@@ -52,6 +53,19 @@ describe('where things are', () => {
     const L = levelDef(STATION, 'upper'), panes = L.doors.filter(d => d.glass && d.circuit === 'CRIT');
     expect(panes.length).toBe(8);
     for (const d of panes) { expect(d.alongX).toBe(true); expect(d.x1 - d.x0).toBeCloseTo(2); }
+  });
+
+  it('rails a walkway only where there is a drop: along the galleries over the street and the lobby, not along their walls', () => {
+    const rails = (id: string) => levelDef(STATION, id).props.filter(p => p.sy === 1 && Math.min(p.sx, p.sz) > 0.09 && Math.min(p.sx, p.sz) < 0.11 && Math.max(p.sx, p.sz) === 2);
+    const main = rails('main'), upper = rails('upper');
+    /* the Commons: the galleries' inner edges over the street (plan z -2 and 2 on both upper floors) are railed; their fronts
+       (z -6 and 6), over the doors of the floor below, are wall */
+    expect(main.filter(p => Math.abs(Math.abs(p.z) - 2.05) < 0.01).length).toBeGreaterThan(80);
+    expect(main.filter(p => Math.abs(Math.abs(p.z) - 5.95) < 0.01 && p.x > 18 && p.x < 112)).toEqual([]); // (west of x 18, the plazas' stairwells: railed)
+    /* the lobby's gallery: glass over the lobby, and none against its end wall over the corridor's door */
+    const glass = upper.filter(p => p.mat === 'glass' && p.y === 5);
+    expect(glass.length).toBeGreaterThan(10);
+    expect(glass.filter(p => Math.abs(p.x - 29.95) < 0.01)).toEqual([]);
   });
 
   it('puts down what lies about on what is under it: square to it, in from its edges, making room on a shelf', () => {

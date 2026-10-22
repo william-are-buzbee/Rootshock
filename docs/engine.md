@@ -1567,6 +1567,13 @@ call points half in the wall, and the rest. The infirmary shelf the pass above m
 and pane against the world, `test/placement.test.ts` holds every level to it (growth and stains may meet rock, and in a
 cave anything may), and the placement probe lists everything it finds.
 
+Rails, too. A walkway's edge was railed wherever anything at all lay below the tile beyond it, so a gallery over a
+doorway or a flat on the floor below had a rail standing against the wall there: 51 of them, along the Commons' and the
+Square's fronts over every door below, at the end of the lobby's gallery, the atrium's, and the nurses' station's. An
+edge is railed now only where a room on some deck below rises past the walkway's floor (`drop`, in `finishLevel`): looked
+for through every deck down, so the third floor's gallery ends, its bridge and Cargo's tiers, which look down past the
+walkway under them, keep theirs. The test finds a rail with wall hard against it.
+
 A walkway's grating was a square grid of thin bright lines over black, the same from every side: it read as graph
 paper. It is bar grating now (`mesh`), galvanised: bearing bars 5 mm thick on 30 mm centres along z and 30 mm deep, so
 looked at across them their sides close the gaps (each bar drawn as wide as its top and the side of it you can see, from
