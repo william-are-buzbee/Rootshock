@@ -191,7 +191,8 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   desk(D, 25.5, 11.6, 1.8, 0.7, { bare: 1 }); bx(D, 25.5, 11.7, 0.5, 0.34, 0.06, 0x22262a, { y: 0.76, c: 0 }); bx(D, 25.5, 11.68, 0.44, 0.28, 0.02, [0.06, 0.12, 0.1], { y: 0.79, c: 0, pw: [[0.04, 0.05, 0.05], [2.2, 2.75, 2.5]], pc: 'SEC' });
   bx(D, 25.5, 11, 0.45, 0.45, 0.45, 0x2c2f33); bx(D, 30.5, 11.7, 1.6, 0.42, 0.4, 0x44484c);
   /* the whiteboard on the wall behind the desk, its sedation orders seven weeks old: read off the board itself */
-  bx(D, 31.4, 11.99, 1.7, 1.0, 0.04, 0xe2e2da, { y: 1.15, c: 0 }); for (let k = 0; k < 5; k++) bx(D, 30.9 + (k % 2) * 0.2, 11.9775, 0.5 + (k % 3) * 0.12, 0.03, 0.01, 0x2a3a6a, { y: 1.9 - k * 0.15, c: 0 });
+  bx(D, 31.4, 11.99, 1.7, 1.0, 0.04, 0xe2e2da, { y: 1.15, c: 0 });
+  for (let k = 0; k < 5; k++) { const w = 0.7 + (k % 3) * 0.2; bx(D, 31.75 - (k % 2) * 0.075 - w / 4, 11.9775, w, 0.03, 0.01, 0x2a3a6a, { y: 1.9 - k * 0.15, c: 0 }); } // its lines, from a margin on the reader's left (east)
   note(D, 'board', 31.4, 11.975, 1.5, true);
   item(D, 'batt', 25.9, 11.6, 0.78); note(D, 'duty', 25.1, 11.55, 0.78); item(D, 'baton', 30.2, 11.7, 0.44); item(D, 'ration', 30.8, 11.7, 0.44);
   /* The briefing room (world.md §8, one control room): where the response team was told what the day held, and the
@@ -215,7 +216,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   /* the station's plans, on the walls: a floor to a sheet */
   for (const [x, z, ew] of [[35.0075, 4.3, true], [35.0075, 6.4, true], [39.6, 7.9925, false]] as const) {
     bx(D, x, z, ew ? 0.03 : 2.2, 1.4, ew ? 2.2 : 0.03, 0xd8d4c4, { y: 1.2, c: 0 });
-    for (let k = 0; k < 4; k++) bx(D, x + (ew ? 0.01 : (k - 1.5) * 0.4), z + (ew ? (k - 1.5) * 0.4 : -0.01), ew ? 0.02 : 0.3, 0.6 + (k % 2) * 0.3, ew ? 0.3 : 0.02, [0x39485a, 0x8c2f24, 0x4a5a3a, 0x8a7a4a][k], { y: 1.45, c: 0 });
+    for (let k = 0; k < 4; k++) bx(D, x + (ew ? 0.01 : (k - 1.5) * 0.25), z + (ew ? (k - 1.5) * 0.25 : -0.01), ew ? 0.02 : 0.3, 0.6 + (k % 2) * 0.3, ew ? 0.3 : 0.02, [0x39485a, 0x8c2f24, 0x4a5a3a, 0x8a7a4a][k], { y: 1.45, c: 0 });
   }
   /* where the survivors slept: bedrolls along the back wall, and what they ate */
   for (const x of [39.9, 40.95]) bx(D, x, 7.55, 1.9, 0.14, 0.7, 0x4a5240, { c: 0 });
@@ -246,9 +247,11 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   bx(D, 34.2, 18.7, 0.45, 0.45, 0.45, 0x5f6266); blood(D, 34.5, 19.6, 0.8); // the chair pulled up to the last bed
   bx(D, 35.25, 17.8, 0.05, 2.1, 3.2, [0.55, 0.66, 0.7], { mat: 'glass' }); // the treatment bay's glass
   bx(D, 36.6, 18, 0.8, 0.9, 2, 0xb9c4bd); bx(D, 37.5, 19.2, 0.6, 0.95, 0.5, 0x8c2f24); bx(D, 30.35, 17.3, 0.6, 0.9, 0.5, 0xc8ccd0); // table, crash cart, sink
-  /* the treatment bay's shelf in its corner, against the south and east walls */
-  shelf(D, 31.8, 17.3, 1.8, 0.5, { cols: [0xd4d8d4, 0xb9c4bd, 0x8c2f24] }); shelf(D, 37.55, 20.875, 1.8, 0.5, { cols: [0xd4d8d4, 0xb9c4bd, 0x8c2f24] });
-  item(D, 'bandage', 37.25, 20.875, 1.04, 2); item(D, 'medkit', 37.8, 20.875, 1.04);
+  /* the treatment bay's shelf, against its south wall across from the table. Its middle on a column of the light's
+     lattice (lightField.ts), so its ends fall past the half way to the next: what is dark inside it stays inside it,
+     not a slab on the wall beside it */
+  shelf(D, 31.8, 17.3, 1.8, 0.5, { cols: [0xd4d8d4, 0xb9c4bd, 0x8c2f24] }); shelf(D, 36.5625, 20.875, 1.8, 0.5, { cols: [0xd4d8d4, 0xb9c4bd, 0x8c2f24] });
+  item(D, 'bandage', 36.25, 20.875, 1.04, 2); item(D, 'medkit', 36.8, 20.875, 1.04);
 
   /* The atrium: the highway's bend, and the threshold. The wing's leg runs into it from the west, dark; it is lit,
      theirs, and the second leg leaves it south for Operations. Two storeys, a gallery round two sides at +5 with a

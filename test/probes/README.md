@@ -18,7 +18,7 @@ were written for were found by measuring, not by looking, and the next one will 
   the light each frame.
 - `placement.probe.ts`: everything `test/placement.ts` finds on every level, in the room it is in: things you pick up
   over, off or in what they lie on, fittings hanging in the air or running into walls (with their colour, to find them
-  by), panes along their openings, rails against walls. The growth and stains the test lets meet rock are listed too.
+  by), panes along their openings, rails against walls, what is drawn or pinned on a board hanging off its edge. The growth and stains the test lets meet rock are listed too.
   `KIND=floats` for one.
 
 `SET='STAGGER.upright=0;RAG.tip=0.6'` tries constants for one run (`kill` and `down`), without touching the tables.

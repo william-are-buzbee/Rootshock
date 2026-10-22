@@ -213,6 +213,29 @@ export function placement(def: LevelDef, site = new Site(def)): Fault[] {
     const n = group.filter((_, j) => find(j) === g).length, [, lo, , , hi] = span(corners(p));
     fault('hangs in the air', `prop ${k} ${tint(p)} (${p.shape} ${p.sx}×${p.sy}×${p.sz}${p.rz ? ` tipped ${p.rz.toFixed(2)}` : ''}) from ${lo.toFixed(2)} to ${hi.toFixed(2)}${n > 1 ? `, and ${n - 1} it touches,` : ''} held by nothing`, p.x, p.y, p.z, lo - site.ground(p.x, p.z, lo, k).y, k);
   });
+  /* something flat fixed on the face of another (writing on a board, a screen on its monitor, a sheet on a notice board)
+     lies within that face, not half off its edge. Square ones only (turned a quarter at most), on square ones */
+  const square = (p: PropDef) => p.shape === 'box' && !p.rz && Math.abs(Math.sin(2 * p.ry)) < 1e-6;
+  def.props.forEach((p, k) => {
+    if (p.services || !square(p)) return;
+    const [x0, y0, z0, x1, y1, z1] = span(corners(p)), size = [x1 - x0, y1 - y0, z1 - z0], a = size.indexOf(Math.min(...size));
+    const rest = [0, 1, 2].filter(i => i !== a);
+    if (size[a] < 0.002 || size[a] > 0.025 || Math.max(...rest.map(i => size[i])) < 4 * size[a] || Math.min(...rest.map(i => size[i])) < 2 * size[a]) return;
+    const P = [x0, y0, z0, x1, y1, z1], E = 0.015;
+    /* what it is on: a face of its thin side against a face of another, the one holding the most of it */
+    let best = -1, most = 0, B: number[] = [];
+    for (const j of site.around(x0, z0, x1, z1)) {
+      const q = def.props[j];
+      if (j === k || q.services || !square(q)) continue;
+      const Q = span(corners(q));
+      if (!(Math.abs(P[a] - Q[a + 3]) < E && P[a + 3] > Q[a + 3] + 1e-3) && !(Math.abs(P[a + 3] - Q[a]) < E && P[a] < Q[a] - 1e-3)) continue; // proud of it
+      const share = rest.reduce((f, i) => f * Math.max(0, Math.min(P[i + 3], Q[i + 3]) - Math.max(P[i], Q[i])) / size[i], 1);
+      if (share > most && Math.min(...rest.map(i => Q[i + 3] - Q[i])) >= Math.min(...rest.map(i => size[i]))) { most = share; best = j; B = Q; }
+    }
+    if (best < 0) return;
+    const off = Math.max(...rest.map(i => Math.max(B[i] - P[i], P[i + 3] - B[i + 3])));
+    if (off > 0.01) fault('off its edge', `prop ${k} ${tint(p)} (box ${p.sx}×${p.sy}×${p.sz}) on prop ${best} ${tint(def.props[best])}: ${off.toFixed(2)} m of it past the edge`, p.x, p.y, p.z, off, k);
+  });
   /* a rail (a balustrade waist high, a hand's breadth thick) keeps you from a drop: open air at least to one side of it,
      and nothing solid hard against either. One along a wall, or with a room's side behind it, is no rail */
   def.props.forEach((p, k) => {

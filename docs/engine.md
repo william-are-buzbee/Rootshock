@@ -1574,6 +1574,13 @@ edge is railed now only where a room on some deck below rises past the walkway's
 for through every deck down, so the third floor's gallery ends, its bridge and Cargo's tiers, which look down past the
 walkway under them, keep theirs. The test finds a rail with wall hard against it.
 
+And what is drawn on a board. The nurses' station's whiteboard had its lines started 0.15 m in from its edge, so four of
+the five ran off it into the air, most by more than half; the briefing room's plans had their outer sheets 0.25 m past the paper they were
+pinned to. The test takes anything flat (a centimetre or two through) laid on the face of another, and finds the part of
+it past that face's edge (`off its edge`). And a shelf stood out from a wall is set with its middle on a column of the
+light's lattice: its inside, shut in by its boards, is dark, and its ends otherwise fall short of the half way to the
+lattice's next point, so the wall beside it read that dark too, a slab standing out past each end.
+
 A walkway's grating was a square grid of thin bright lines over black, the same from every side: it read as graph
 paper. It is bar grating now (`mesh`), galvanised: bearing bars 5 mm thick on 30 mm centres along z and 30 mm deep, so
 looked at across them their sides close the gaps (each bar drawn as wide as its top and the side of it you can see, from

@@ -4,6 +4,7 @@ import { testbed } from '../src/content/levels/testbed';
 import { LevelBuilder } from '../src/content/build/builder';
 import type { LevelDef } from '../src/content/types';
 import { levelDef } from '../src/sim/run';
+import { LCELL, LOFF } from '../src/world/lightField';
 import { placement, Site, type Fault } from './placement';
 
 /* Where things are (test/placement.ts measures it): nothing you can pick up, and no paper, floats over what it lies on,
@@ -18,7 +19,7 @@ const say = (F: Fault[]) => F.map(f => `${f.kind}: ${f.what} at ${f.at.join(', '
 
 describe('where things are', () => {
   for (const L of levels)
-    it(`${L.id}: what you pick up and the papers lie on something, the fittings are held and clear of the walls, the panes lie across, the rails stand at drops`, () => {
+    it(`${L.id}: what you pick up and the papers lie on something, the fittings are held and clear of the walls, the panes lie across, the rails stand at drops, what is on a board is on it`, () => {
       const site = new Site(L), F = placement(L, site);
       /* growth and stains, and anything in a cave, against rock */
       const rough = (f: Fault) => {
@@ -29,6 +30,7 @@ describe('where things are', () => {
       expect(say(F.filter(f => f.kind === 'lies along its opening'))).toEqual([]);
       expect(say(F.filter(f => f.kind === 'rail against a wall'))).toEqual([]);
       expect(say(F.filter(f => f.kind === 'hangs in the air'))).toEqual([]);
+      expect(say(F.filter(f => f.kind === 'off its edge'))).toEqual([]);
       expect(say(F.filter(f => (f.kind === 'runs into a wall' || f.kind === 'lost in a wall') && !rough(f)))).toEqual([]);
     });
 
@@ -38,15 +40,20 @@ describe('where things are', () => {
     const board = L.props.find(p => Math.abs(p.x - n.x) < 0.01 && p.sx === 1.7 && p.sy === 1)!;
     expect(Math.abs(n.z - (board.z - board.sz / 2))).toBeLessThan(0.02); // at its face
     expect(n.y).toBeGreaterThan(board.y); expect(n.y).toBeLessThan(board.y + board.sy);
+    const lines = L.props.filter(p => p.sy === 0.03 && p.sz === 0.01 && Math.abs(p.z - n.z) < 0.02 && Math.abs(p.x - board.x) < 1);
+    expect(lines.length).toBe(5);
+    for (const p of lines) { expect(p.x - p.sx / 2).toBeGreaterThan(board.x - board.sx / 2 + 0.05); expect(p.x + p.sx / 2).toBeLessThan(board.x + board.sx / 2 - 0.05); } // on it, from a margin
   });
 
-  it('the treatment bay\'s shelf, with the trauma kit and the bandages on it, stands in its corner, in the room', () => {
+  it('the treatment bay\'s shelf, with the trauma kit and the bandages on it, stands against its south wall, out of the corner', () => {
     const L = levelDef(STATION, 'upper'), R = L.rooms.find(r => r.name === 'Infirmary' && !r.part)!, kit = L.items.find(i => i.id === 'medkit' && i.x > R.x0 && i.x < R.x1 && i.z > R.z0 && i.z < R.z1)!;
     const boards = L.props.filter(p => Math.abs(p.z - kit.z) < 0.3 && Math.abs(p.x - kit.x) < 1 && p.sy === 0.04);
     expect(boards.length).toBe(5);
     for (const p of boards) { expect(p.x + p.sx / 2).toBeLessThanOrEqual(R.x1 + 1e-6); expect(p.z + p.sz / 2).toBeLessThanOrEqual(R.z1 + 1e-6); }
-    expect(R.x1 - Math.max(...boards.map(p => p.x + p.sx / 2))).toBeLessThan(0.01); // against the east wall
-    expect(R.z1 - Math.max(...boards.map(p => p.z + p.sz / 2))).toBeLessThan(0.01); // and the south
+    expect(R.z1 - Math.max(...boards.map(p => p.z + p.sz / 2))).toBeLessThan(0.01); // against the south wall
+    expect(R.x1 - Math.max(...boards.map(p => p.x + p.sx / 2))).toBeGreaterThan(1); // well off the east one
+    const col = (boards[0].x - LOFF) / LCELL;
+    expect(Math.abs(col - Math.round(col))).toBeLessThan(1e-6); // its middle on a column of the light's lattice: no dark slab on the wall by it
   });
 
   it('the operations room\'s glass on the court runs along its wall, pane by pane, not across it', () => {
