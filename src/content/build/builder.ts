@@ -1,7 +1,8 @@
 import { Rng } from '../../core/rng';
 import { hex, scale3, type Colour } from '../../core/math';
 import { CAVERN, FITTED, type Mat, type RoomMats } from '../materials';
-import type { Aim, Batt, DoorDef, LevelDef, LitRule, Motes, PropDef, RoomDef, Shape, Start, SurfaceDef } from '../types';
+import { lie, lyingCorners, lyingYaw, paperYaw } from '../lying';
+import { ICO, type Aim, type Batt, type DoorDef, type LevelDef, type LitRule, type Motes, type PropDef, type RoomDef, type Shape, type Start, type SurfaceDef } from '../types';
 
 /* The authoring kit. Levels are written as calls on a LevelBuilder; finish() returns plain data.
    Everything random comes from the level's own seed, so a level is dressed the same way every time. */
@@ -70,7 +71,14 @@ export interface PropOpts {
   services?: boolean;
   /** drawn at its size (PropDef.flush) */
   flush?: boolean;
+  /** dressing on a shelf: it makes room for anything put down where it stands (finish, settle) */
+  goods?: boolean;
 }
+
+/** how what lies about comes to rest (LevelBuilder.settle): on anything up to `up` over or `down` under where it was
+ *  put (further than that is a mistake, left for the tests to find); put down square to a shelf, a desk or a table, a
+ *  turn of its own either way of up to `turn` of a half turn, and `edge` in from the edges of its top */
+const SETTLE = { up: 0.03, down: 0.1, turn: 0.06, edge: 0.05 };
 
 /** heights relative to a floor or ceiling, as a function of plan position */
 export type Relief = (x: number, z: number) => number;
@@ -79,6 +87,7 @@ export class LevelBuilder {
   readonly rng: Rng;
   private def: LevelDef;
   private nolamp = new Set<number>();
+  private goods = new Set<PropDef>();
 
   constructor(id: string, name: string, o: { seed?: string; circuit?: string; cards?: boolean } = {}) {
     this.def = {
@@ -138,6 +147,7 @@ export class LevelBuilder {
     if (o.flush) p.flush = true;
     if (o.pw) { p.pw = o.pw; p.pc = o.pc ?? this.def.circuit; }
     this.def.props.push(p);
+    if (o.goods) this.goods.add(p);
     return p;
   }
   box(x: number, z: number, sx: number, sy: number, sz: number, c: number | Colour, o?: PropOpts): PropDef {
@@ -222,7 +232,7 @@ export class LevelBuilder {
     this.def.signs.push({ text, x, y, z, yaw, circuit });
   }
   item(id: string, x: number, y: number, z: number, n = 1, on?: Aim): void { this.def.items.push({ id, x, y, z, n, ...(on ? { on } : {}) }); }
-  note(key: string, x: number, y: number, z: number): void { this.def.notes.push({ key, x, y, z }); }
+  note(key: string, x: number, y: number, z: number, bare = false): void { this.def.notes.push({ key, x, y, z, ...(bare ? { bare } : {}) }); }
   mutant(type: string, x: number, y: number, z: number, opts: Record<string, unknown> = {}): void { this.def.mutants.push({ type, x, y, z, opts }); }
   use(kind: string, x: number, y: number, z: number, opts: Record<string, unknown> = {}): void { this.def.uses.push({ kind, x, y, z, opts }); }
   mark(name: string, x: number, y: number, z: number, yaw: number): void { this.def.marks[name] = { x, y, z, yaw }; }
@@ -248,29 +258,115 @@ export class LevelBuilder {
     for (const r of this.def.rooms) if (x >= r.x0 && x < r.x1 && z >= r.z0 && z < r.z1) y = Math.max(y, r.y0);
     for (const b of this.def.blocks) if (x >= b.x0 && x < b.x1 && z >= b.z0 && z < b.z1 && b.y1 > y && b.y0 <= y + 0.01) y = b.y1;
     for (const s of this.def.surfaces) {
-      if (s.kind !== 'floor' || x < s.x0 || x > s.x1 || z < s.z0 || z > s.z1) continue;
-      const fx = Math.min((x - s.x0) / s.res, s.nx - 1 - 1e-9), fz = Math.min((z - s.z0) / s.res, s.nz - 1 - 1e-9);
-      const i = Math.floor(fx), j = Math.floor(fz);
-      if (s.mask && !s.mask[j * (s.nx - 1) + i]) continue;
-      const u = fx - i, v = fz - j, h = s.h, n = s.nx;
-      y = Math.max(y, h[j * n + i] * (1 - u) * (1 - v) + h[j * n + i + 1] * u * (1 - v) + h[(j + 1) * n + i] * (1 - u) * v + h[(j + 1) * n + i + 1] * u * v);
+      if (s.kind !== 'floor') continue;
+      const h = surfaceAt(s, x, z);
+      if (h !== null) y = Math.max(y, h);
     }
     return y === -Infinity ? 0 : y;
   }
 
   finish(): LevelDef {
-    /* ceiling fittings: a strip light every 6 m, lit if the room is */
+    /* ceiling fittings: a strip light every 6 m, lit if the room is, on its ceiling as the world carves it */
     for (const r of this.def.rooms) {
       if (this.nolamp.has(r.id)) continue;
       const dead = r.lit === 'none', w = r.x1 - r.x0, d = r.z1 - r.z0;
       for (let z = r.z0 + Math.min(3, d / 2); z < r.z1; z += 6)
         for (let x = r.x0 + Math.min(3, w / 2); x < r.x1; x += 6)
-          this.box(x, z, 1.1, 0.06, 0.3, dead ? 0x2a2c2e : 0xe8eef2, { y: r.y0 + r.ht - 0.07, glow: dead ? 1 : 3, solid: false });
+          this.box(x, z, 1.1, 0.06, 0.3, dead ? 0x2a2c2e : 0xe8eef2, { y: lid(r.y0 + r.ht) - 0.07, glow: dead ? 1 : 3, solid: false });
     }
+    /* what lies about comes to rest on what is under it, and a shelf's dressing makes room for it */
+    for (const it of this.def.items) this.settle(it, it.id);
+    for (const n of this.def.notes) if (!n.bare) this.settle(n, 'note');
+    this.clear();
     return this.def;
+  }
+
+  /** something lying about (a thing to pick up, a paper) comes to rest on what is under it (SETTLE): the floor of the
+   *  room it is in, a step, a sloped floor, or the top of anything square-topped there. Put on something (a shelf, a
+   *  desk), it is put down square to it, a little turned, and kept in from its edges */
+  private settle(t: { x: number; y: number; z: number; yaw?: number; on?: Aim }, id: string): void {
+    const x = t.x, z = t.z, top = t.y + SETTLE.up;
+    let y = -Infinity, on: PropDef | null = null;
+    const over = (h: number) => h <= top && h > y;
+    for (const r of this.def.rooms) if (!r.doorway && x >= r.x0 && x < r.x1 && z >= r.z0 && z < r.z1 && r.y0 + r.ht > t.y && over(r.y0)) { y = r.y0; on = null; }
+    for (const b of this.def.blocks) if (x >= b.x0 && x < b.x1 && z >= b.z0 && z < b.z1 && over(b.y1)) { y = b.y1; on = null; }
+    for (const s of this.def.surfaces) {
+      const h = s.kind === 'floor' && !s.hidden ? surfaceAt(s, x, z) : null;
+      if (h !== null && over(h)) { y = h; on = null; }
+    }
+    /* a lump, or anything tipped, is no shelf */
+    for (const p of this.def.props) if (p.shape !== 'ico' && !p.services && Math.abs(Math.sin(p.rz)) < 0.05 && under(p, x, z) && over(p.y + p.sy)) { y = p.y + p.sy; on = p; }
+    if (y < t.y - SETTLE.down) return;
+    t.y = y;
+    if (!on || t.on) return;
+    t.yaw = on.ry + (on.sx >= on.sz ? 0 : Math.PI / 2) + lie(x, z) * SETTLE.turn;
+    if (on.shape !== 'box') return;
+    /* kept on it: how far it reaches each way along its top, and moved in to leave the edge clear (or, too big for
+       that, put in its middle) */
+    const c = Math.cos(on.ry), s = Math.sin(on.ry);
+    let u0 = Infinity, u1 = -Infinity, v0 = Infinity, v1 = -Infinity;
+    for (const [px, , pz] of lyingCorners(id, x, y, z, t.yaw)) {
+      const dx = px - on.x, dz = pz - on.z, u = dx * c - dz * s, v = dx * s + dz * c;
+      u0 = Math.min(u0, u); u1 = Math.max(u1, u); v0 = Math.min(v0, v); v1 = Math.max(v1, v);
+    }
+    const keep = (a0: number, a1: number, h: number) => { const e = h - SETTLE.edge; return a1 - a0 > 2 * e ? -(a0 + a1) / 2 : a0 < -e ? -e - a0 : a1 > e ? e - a1 : 0; };
+    const du = keep(u0, u1, on.sx / 2), dv = keep(v0, v1, on.sz / 2);
+    t.x += du * c + dv * s; t.z += -du * s + dv * c;
+  }
+
+  /** a shelf's dressing makes room for whatever was put down where it stood */
+  private clear(): void {
+    if (!this.goods.size) return;
+    const room = [...this.def.items.map(it => lyingCorners(it.id, it.x, it.y, it.z, lyingYaw(it))), ...this.def.notes.filter(n => !n.bare).map(n => lyingCorners('note', n.x, n.y, n.z, paperYaw(n)))].map(span);
+    const E = 0.002;
+    this.def.props = this.def.props.filter(p => {
+      if (!this.goods.has(p)) return true;
+      const g = span(propCorners(p));
+      return !room.some(r => r[0] < g[3] - E && r[3] > g[0] + E && r[1] < g[4] - E && r[4] > g[1] + E && r[2] < g[5] - E && r[5] > g[2] + E);
+    });
   }
 }
 
 function shade(c: number, k: number): Colour {
   return scale3(hex(c), k);
+}
+
+/** the world's grid (world/grid.ts, CELL): rooms are carved to it, so a room's ceiling as built is its top rounded to
+ *  it (a 3.2 m room's is at 3.25), and what hangs from a ceiling hangs from that */
+export const GRID = 0.25;
+export const lid = (y: number): number => Math.round(y / GRID) * GRID;
+
+/** a sloped floor's height at (x, z), or null where it is not */
+function surfaceAt(s: SurfaceDef, x: number, z: number): number | null {
+  if (x < s.x0 || x > s.x1 || z < s.z0 || z > s.z1) return null;
+  const fx = Math.min((x - s.x0) / s.res, s.nx - 1 - 1e-9), fz = Math.min((z - s.z0) / s.res, s.nz - 1 - 1e-9);
+  const i = Math.floor(fx), j = Math.floor(fz);
+  if (s.mask && !s.mask[j * (s.nx - 1) + i]) return null;
+  const u = fx - i, v = fz - j, h = s.h, n = s.nx;
+  return h[j * n + i] * (1 - u) * (1 - v) + h[j * n + i + 1] * u * (1 - v) + h[(j + 1) * n + i] * (1 - u) * v + h[(j + 1) * n + i + 1] * u * v;
+}
+
+/** is (x, z) under a prop, turned as it stands: within its box, or a cylinder's round */
+function under(p: PropDef, x: number, z: number): boolean {
+  const dx = x - p.x, dz = z - p.z, c = Math.cos(p.ry), s = Math.sin(p.ry), u = dx * c - dz * s, v = dx * s + dz * c;
+  return p.shape === 'box' ? Math.abs(u) <= p.sx / 2 && Math.abs(v) <= p.sz / 2 : (u / (p.sx / 2)) ** 2 + (v / (p.sz / 2)) ** 2 <= 1;
+}
+
+/** a prop's corners as drawn (present/render/levelMesh.ts, propVerts): tipped about z, turned about y, its base at y */
+export function propCorners(p: Pick<PropDef, 'x' | 'y' | 'z' | 'sx' | 'sy' | 'sz' | 'ry' | 'rz'> & { shape?: Shape }): [number, number, number][] {
+  const out: [number, number, number][] = [], cy = Math.cos(p.ry), sy = Math.sin(p.ry), cz = Math.cos(p.rz), sz = Math.sin(p.rz), k = p.shape === 'ico' ? ICO : 1, by = p.y + (p.sy / 2) * k;
+  for (const a of [-0.5, 0.5]) for (const b of [-0.5, 0.5]) for (const c of [-0.5, 0.5]) {
+    let X = a * p.sx * k, Y = b * p.sy * k, Z = c * p.sz * k;
+    if (p.rz) { const x2 = X * cz - Y * sz; Y = X * sz + Y * cz; X = x2; }
+    const x3 = X * cy + Z * sy; Z = -X * sy + Z * cy; X = x3;
+    out.push([p.x + X, by + Y, p.z + Z]);
+  }
+  return out;
+}
+
+/** the box round some points: [x0, y0, z0, x1, y1, z1] */
+function span(pts: [number, number, number][]): number[] {
+  const b = [Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity];
+  for (const p of pts) for (let a = 0; a < 3; a++) { b[a] = Math.min(b[a], p[a]); b[a + 3] = Math.max(b[a + 3], p[a]); }
+  return b;
 }

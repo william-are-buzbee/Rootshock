@@ -45,7 +45,8 @@ export function shelf(D: Deck, x: number, z: number, w: number, d: number, o: { 
   for (const y of [0.1, 0.55, 1, 1.45, 1.86]) bx(D, x, z, w, 0.04, d, 0x4a4d50, { y, c: 0 });
   for (const s of [-1, 1]) bx(D, x + (ns ? 0 : (s * (w / 2 - 0.02)) / T), z + (ns ? (s * (d / 2 - 0.02)) / T : 0), ns ? w : 0.04, 1.9, ns ? 0.04 : d, 0x3a3d40, { c: 0 });
   /* what is on it: each board in slots along it, one thing a slot, so nothing stands in anything else; some slots
-     empty. As tall as the gap to the board over it allows */
+     empty. As tall as the gap to the board over it allows. It is goods: anything put on the shelf later takes the place
+     of what stood there (builder.ts, clear) */
   if (!o.empty)
     for (const y of [0.14, 0.59, 1.04, 1.49]) {
       const n = L > 2 ? 4 : 3, slot = (L - 0.2) / n;
@@ -53,7 +54,7 @@ export function shelf(D: Deck, x: number, z: number, w: number, d: number, o: { 
         if (rnd(0, 1) < 0.3) continue;
         const t = (-L / 2 + 0.1 + slot * (k + 0.5) + rnd(-0.05, 0.05) * slot) / T, s = Math.min(rnd(0.15, 0.3), slot * 0.8);
         const deep = Math.min(s, (ns ? w : d) - 0.08);
-        P(D, o.jars ? 'cyl' : 'box', x + (ns ? 0 : t), z + (ns ? t : 0), ns ? deep : s, rnd(0.14, 0.34), ns ? s : deep, pick(o.cols ?? [0x6b5a3c, 0x4d5a66, 0x7a4a34, 0x5c6b4a]), { y, c: 0 });
+        P(D, o.jars ? 'cyl' : 'box', x + (ns ? 0 : t), z + (ns ? t : 0), ns ? deep : s, rnd(0.14, 0.34), ns ? s : deep, pick(o.cols ?? [0x6b5a3c, 0x4d5a66, 0x7a4a34, 0x5c6b4a]), { y, c: 0, goods: true });
       }
     }
   colT(D, x, z, w, d, 1.9);
@@ -65,18 +66,23 @@ export function desk(D: Deck, x: number, z: number, w: number, d: number, o: { c
     bx(D, x, z + 0.02, 0.44, 0.28, 0.02, [0.06, 0.12, 0.1], { y: 0.79, c: 0, pw: [[0.04, 0.05, 0.05], [2.2, 2.75, 2.5]] });
   }
 }
-export function medbed(D: Deck, x: number, z: number): void {
+/** where a hospital bed's drip stands (m): beside it, toward its head, on whichever side it is put (medbed) */
+export const POLE = { across: 0.6, along: -0.8 };
+/** a hospital bed, its head to the north, and its drip on a pole by the head on side `pole` (east, or -1 for west) */
+export function medbed(D: Deck, x: number, z: number, pole: 1 | -1 = 1): void {
   bed(D, x, z, true, 0xd4d8d4);
-  bx(D, x + 0.42, z - 0.65, 0.05, 1.7, 0.05, 0xa8acae, { c: 0 });
-  bx(D, x + 0.42, z - 0.65, 0.14, 0.2, 0.08, 0xc8d4d8, { y: 1.5, c: 0 });
+  const px = x + (pole * POLE.across) / T, pz = z + POLE.along / T;
+  bx(D, px, pz, 0.05, 1.7, 0.05, 0xa8acae, { c: 0 });
+  bx(D, px, pz, 0.14, 0.2, 0.08, 0xc8d4d8, { y: 1.5, c: 0 });
 }
 
 /* ---- what happened here */
 /** blood on the floor, `s` across: never square, a pool and what ran from it */
 export function blood(D: Deck, x: number, z: number, s: number): void {
-  P(D, 'cyl', x, z, s, 0.01, s * rnd(0.6, 1), 0x3a0b0b, { y: 0.015, c: 0, ry: rnd(PI) });
+  /* on the floor, each splash a hair over the last so none fights another */
+  P(D, 'cyl', x, z, s, 0.01, s * rnd(0.6, 1), 0x3a0b0b, { y: 0.001, c: 0, ry: rnd(PI) });
   stain(D, x, z, s * 0.5);
-  for (let k = 0; k < 3; k++) P(D, 'cyl', x + rnd(-s, s) * 0.4, z + rnd(-s, s) * 0.4, s * rnd(0.15, 0.4), 0.01, s * rnd(0.15, 0.4), 0x450d0c, { y: 0.02 + k * 0.002, c: 0, ry: rnd(PI) });
+  for (let k = 0; k < 3; k++) P(D, 'cyl', x + rnd(-s, s) * 0.4, z + rnd(-s, s) * 0.4, s * rnd(0.15, 0.4), 0.01, s * rnd(0.15, 0.4), 0x450d0c, { y: 0.003 + k * 0.002, c: 0, ry: rnd(PI) });
 }
 export function gore(D: Deck, x: number, z: number, n: number): void {
   blood(D, x, z, 1.5);
@@ -100,7 +106,7 @@ export function corpse(D: Deck, x: number, z: number, c: number, ns: boolean, o:
 /** the greens of the garden */
 export const GR = [0x3f6a3a, 0x4f7a40, 0x2f5a34, 0x5a7a3a, 0x6a8a44, 0x2a4a2c];
 export function bush(D: Deck, x: number, z: number, s: number): void {
-  for (let k = 0; k < 3; k++) P(D, 'ico', x + rnd(-0.2, 0.2) * s, z + rnd(-0.2, 0.2) * s, rnd(0.5, 1) * s, rnd(0.4, 0.9) * s, rnd(0.5, 1) * s, pick(GR), { c: 0, y: rnd(0, 0.2) });
+  for (let k = 0; k < 3; k++) P(D, 'ico', x + rnd(-0.2, 0.2) * s, z + rnd(-0.2, 0.2) * s, rnd(0.5, 1) * s, rnd(0.4, 0.9) * s, rnd(0.5, 1) * s, pick(GR), { c: 0, y: -rnd(0, 0.1) });
 }
 export function stalk(D: Deck, x: number, z: number, h: number): void {
   P(D, 'cyl', x, z, 0.14, h, 0.14, 0x3a5a30, { c: 0, rz: rnd(-0.1, 0.1) });
@@ -112,7 +118,7 @@ export function shroom(D: Deck, x: number, z: number, s: number, glow: boolean):
   P(D, 'ico', x, z, 0.6 * s, 0.22 * s, 0.6 * s, glow ? [2.35, 2.8, 2.5] : pick([0x9a6a4a, 0x8a4a44, 0xb09060]), { c: 0, y: 0.45 * s });
 }
 export function moss(D: Deck, x: number, z: number, s: number): void {
-  bx(D, x, z, s * rnd(0.7, 1.3), 0.02, s * rnd(0.7, 1.3), pick([0x2f4a2a, 0x3a5230, 0x44502a, 0x2a3a22, 0x4a4a22]), { y: 0.012 + rnd(0.012), c: 0, ry: rnd(PI) });
+  bx(D, x, z, s * rnd(0.7, 1.3), 0.02, s * rnd(0.7, 1.3), pick([0x2f4a2a, 0x3a5230, 0x44502a, 0x2a3a22, 0x4a4a22]), { y: 0.002 + rnd(0.008), c: 0, ry: rnd(PI), lie: true });
 }
 export function tree(D: Deck, x: number, z: number, h: number, y0: number, sick: boolean): void {
   P(D, 'cyl', x, z, 0.34, h, 0.34, 0x4a3b2c, { y: y0, c: 0 });
@@ -128,8 +134,9 @@ export function overgrow(D: Deck, R: TRoom, dens: number, glow: boolean): void {
     else if (t < 0.75) stalk(D, x, z, rnd(1, Math.min(R.ht - 0.6, 3.4)));
     else if (t < 0.9) shroom(D, x, z, rnd(0.6, 2.2), glow && C01() < 0.3);
     else {
-      const side = Math.floor(rnd(4)), lenw = rnd(0.8, 2.4), vx = side === 0 ? R.x + 0.03 : side === 1 ? R.x + R.w - 0.03 : R.x + rnd(0.7, R.w - 0.7), vz = side === 2 ? R.y + 0.03 : side === 3 ? R.y + R.h - 0.03 : R.y + rnd(0.7, R.h - 0.7);
-      bx(D, vx, vz, side < 2 ? 0.06 : Math.min(lenw, 1.2), rnd(1, R.ht - 0.4), side < 2 ? Math.min(lenw, 1.2) : 0.06, pick(GR), { c: 0, y: rnd(0, 0.3) });
+      /* a creeper up a wall, from the floor, flat on it */
+      const side = Math.floor(rnd(4)), lenw = rnd(0.8, 2.4), vx = side === 0 ? R.x + 0.015 : side === 1 ? R.x + R.w - 0.015 : R.x + rnd(0.7, R.w - 0.7), vz = side === 2 ? R.y + 0.015 : side === 3 ? R.y + R.h - 0.015 : R.y + rnd(0.7, R.h - 0.7);
+      bx(D, vx, vz, side < 2 ? 0.06 : Math.min(lenw, 1.2), rnd(1, R.ht - 0.4), side < 2 ? Math.min(lenw, 1.2) : 0.06, pick(GR), { c: 0, y: rnd(-0.3, 0) });
     }
   }
   if (glow)
@@ -175,8 +182,10 @@ export function crates(D: Deck, x: number, z: number, n: number): void {
 export function forklift(D: Deck, x: number, z: number, ns: boolean): void {
   const a = (ox: number, oz: number, sx: number, sy: number, sz: number, c: number, y = 0, cl = false) => bx(D, x + (ns ? ox : oz) / T, z + (ns ? oz : ox) / T, ns ? sx : sz, sy, ns ? sz : sx, c, { y, c: cl ? 1 : 0, mat: 'steel' });
   a(0, 0, 1.2, 0.9, 2, 0xc9a227, 0.25, true); a(0, -0.3, 1.1, 0.08, 1.1, 0x2a2c2e, 2, false);
-  for (const s of [-0.5, 0.5]) { a(s, -0.75, 0.07, 1.1, 0.07, 0x2a2c2e, 1.1); a(s, 0.2, 0.07, 1.1, 0.07, 0x2a2c2e, 1.1); a(s * 0.7, 1.15, 0.1, 2.4, 0.1, 0x2a2c2e, 0.1); a(s * 0.6, 1.7, 0.12, 0.06, 1.1, 0x8a8a84, 0.15); }
-  for (const s of [-0.55, 0.55]) for (const q of [-0.65, 0.65]) P(D, 'cyl', x + (ns ? s : q) / T, z + (ns ? q : s) / T, 0.5, 0.3, 0.5, 0x15181b, { y: 0.1, c: 0, rz: ns ? PI / 2 : 0 });
+  /* the mast against the body's front, the forks out from the mast */
+  for (const s of [-0.5, 0.5]) { a(s, -0.75, 0.07, 1.1, 0.07, 0x2a2c2e, 1.1); a(s, 0.2, 0.07, 1.1, 0.07, 0x2a2c2e, 1.1); a(s * 0.7, 1.05, 0.1, 2.4, 0.1, 0x2a2c2e, 0.1); a(s * 0.6, 1.65, 0.12, 0.06, 1.1, 0x8a8a84, 0.15); }
+  /* the wheels on the floor, on their axles across it: tipped onto their sides, and turned to it */
+  for (const s of [-0.55, 0.55]) for (const q of [-0.65, 0.65]) P(D, 'cyl', x + (ns ? s : q) / T, z + (ns ? q : s) / T, 0.5, 0.3, 0.5, 0x15181b, { y: 0.1, c: 0, rz: PI / 2, ry: ns ? 0 : PI / 2 });
 }
 export function column(D: Deck, x: number, z: number, h: number): void {
   P(D, 'cyl', x, z, 0.5, h - 0.14, 0.5, 0x55585c, { c: 1 });
@@ -204,7 +213,9 @@ export function monitors(D: Deck, x: number, z: number, y: number, c: string, fe
  *  button, wired to the zone's PA (sim/interact.ts, 'call'). The pane is drawn by present/render/things.ts, gone once
  *  broken */
 export function callPoint(D: Deck, x: number, z: number, face: 'n' | 's' | 'e' | 'w', zone: string): void {
+  /* (x, z) is the wall's face: the box stands out from it toward whoever reads it, its back on the wall */
   const ew = face === 'e' || face === 'w', o = face === 'e' || face === 's' ? 1 : -1;
+  if (ew) x += (o * 0.05) / T; else z += (o * 0.05) / T;
   bx(D, x, z, ew ? 0.1 : 0.17, 0.17, ew ? 0.17 : 0.1, 0xb3261e, { y: 1.32, c: 0 });
   bx(D, x + (ew ? o * 0.026 : 0), z + (ew ? 0 : o * 0.026), ew ? 0.01 : 0.07, 0.07, ew ? 0.07 : 0.01, 0xe8e2d4, { y: 1.37, c: 0 });
   use(D, 'call', x + (ew ? o * 0.09 : 0), z + (ew ? 0 : o * 0.09), 1.4, { zone, face });
@@ -237,7 +248,8 @@ export function genset(D: Deck, c: string, x: number, z: number, ix: number, iz:
 export function liftRoom(D: Deck, x: number, y: number, dx: number, dy: number): void {
   room(D, 'Main lift', x, y, 2, 2, { fl: 0x44474a, wl: 0x54585a, st: 0xb89b2e, c: 'LIFT', noroam: 1, safe: 1 });
   door(D, dx, dy, { kind: 'heavy', c: 'LIFT', sg: [['Lift', dy < y ? 'n' : dy > y + 1 ? 's' : dx < x ? 'w' : 'e']] });
-  const px = dy < y ? x + 1 : dy > y + 1 ? x + 1 : dx < x ? x + 1.94 : x + 0.06, pz = dy < y ? y + 1.94 : dy > y + 1 ? y + 0.06 : y + 1;
+  /* its panel on the wall beside the door, its back on the wall */
+  const px = dy < y ? x + 1 : dy > y + 1 ? x + 1 : dx < x ? x + 1.98 : x + 0.02, pz = dy < y ? y + 1.98 : dy > y + 1 ? y + 0.02 : y + 1;
   bx(D, px, pz, dy < y || dy > y + 1 ? 0.5 : 0.08, 0.4, dy < y || dy > y + 1 ? 0.08 : 0.5, 0x2c2f33, { y: 1.1, c: 0 });
   use(D, 'lift', x + 1, y + 1, 1.3);
   D.marks.lift = [x + 1, y + 1, 0];

@@ -24,8 +24,9 @@ export interface Usable {
   key?: string;
 }
 
-/** an item lying in the world; a light lying switched on says which way it points */
-export interface WorldItem { id: string; n: number; x: number; y: number; z: number; taken: boolean; raw?: boolean; on?: Aim }
+/** an item lying in the world; a light lying switched on says which way it points, and one put down square on something
+ *  how it lies (ItemDef.yaw) */
+export interface WorldItem { id: string; n: number; x: number; y: number; z: number; taken: boolean; raw?: boolean; on?: Aim; yaw?: number }
 
 export function buildUsables(sim: Sim): Usable[] {
   const g = sim.game, out: Usable[] = [], L = sim.world.def;

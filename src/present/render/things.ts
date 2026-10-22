@@ -8,6 +8,7 @@ import type { Mat } from '../../content/materials';
 import type { World } from '../../world/world';
 import type { Lighting } from '../../world/light';
 import { apart, propVerts } from './levelMesh';
+import { LENS, itemParts, lyingYaw, paperYaw, type Part } from '../../content/lying';
 import { TEMPLATES } from './templates';
 import { dynamicMaterial, glassMaterial, lightMaterial, matId } from './shader';
 import { SignView } from './signs';
@@ -26,8 +27,7 @@ interface Moving {
   lit?: { L: Lighting; epoch: number; x: number; y: number; z: number };
 }
 
-/** a part of a fitting: a box (or other shape) of a colour, sized, tipped about z, and placed in the fitting's own frame */
-export type Part = [shape: 'box' | 'cyl' | 'ico', c: number | Colour, sx: number, sy: number, sz: number, x: number, y: number, z: number, rz?: number];
+export type { Part };
 
 /** what a geometry is made of, all of it (matId), for the shader */
 function madeOf(g: THREE.BufferGeometry, mat: number): THREE.BufferGeometry {
@@ -54,44 +54,6 @@ export function parts(list: Part[], mat = 0): THREE.BufferGeometry {
 }
 
 const LIVE: Colour = [2.3, 2.9, 2.4];
-/** a flashlight's lens, lit: in front of its head (itemParts) */
-const LENS: Part[] = [['cyl', [2.9, 2.85, 2.6], 0.065, 0.01, 0.065, 0.137, 0.04, 0, Math.PI / 2]];
-const R90 = Math.PI / 2;
-
-/** something lying on the floor, as the first engine drew it (itemMesh); anything else is a sheet of paper. A flashlight's
- *  lens is its own part (LENS), shown while it lies on */
-function itemParts(id: string): Part[] {
-  switch (id) {
-    case 'baton': return [['cyl', 0x1c1e20, 0.05, 0.55, 0.05, 0, 0.03, 0, R90], ['cyl', 0x3a3d40, 0.06, 0.14, 0.06, -0.2, 0.03, 0, R90]];
-    case 'adjwrench': return [['box', 0xb8bcc0, 0.36, 0.03, 0.05, 0, 0.02, 0], ['box', 0xb8bcc0, 0.08, 0.03, 0.12, 0.2, 0.02, 0]];
-    case 'pistol': return [['box', 0x1c1e20, 0.2, 0.04, 0.05, 0, 0.03, 0], ['box', 0x1c1e20, 0.05, 0.04, 0.12, -0.07, 0.03, 0.06]];
-    case 'shotgun': return [['box', 0x1c1e20, 0.7, 0.05, 0.06, 0, 0.03, 0], ['box', 0x5a4034, 0.25, 0.06, 0.07, -0.4, 0.03, 0]];
-    case 'ammo9': return [['box', 0x8a7a2a, 0.12, 0.06, 0.08, 0, 0.03, 0]];
-    case 'shells': return [['box', 0xa82a20, 0.14, 0.07, 0.1, 0, 0.035, 0]];
-    case 'tacvest': return [['box', 0x23272c, 0.46, 0.14, 0.54, 0, 0.07, 0], ['box', 0x3a4030, 0.12, 0.05, 0.14, -0.1, 0.15, 0.1], ['box', 0x3a4030, 0.12, 0.05, 0.14, 0.1, 0.15, 0.1]];
-    case 'goggles': return [['box', 0x22262a, 0.18, 0.05, 0.03, 0, 0.03, 0], ['cyl', [2.2, 2.5, 2.6], 0.07, 0.03, 0.07, -0.05, 0.03, 0.02, R90], ['cyl', [2.2, 2.5, 2.6], 0.07, 0.03, 0.07, 0.05, 0.03, 0.02, R90]];
-    case 'rebreather': return [['box', 0x2a2c2e, 0.26, 0.12, 0.2, 0, 0.06, 0], ['cyl', 0xc9a227, 0.09, 0.2, 0.09, 0.08, 0.17, 0, R90], ['box', 0x15181b, 0.05, 0.05, 0.16, -0.1, 0.14, 0.12]];
-    case 'surf': return [['box', [2.3, 2.85, 2.5], 0.09, 0.006, 0.06, 0, 0.006, 0]];
-    case 'pipe': return [['cyl', 0x7a7e84, 0.06, 0.8, 0.06, 0, 0.03, 0, R90]];
-    case 'wrench': return [['box', 0x8a3a2a, 0.45, 0.035, 0.06, 0, 0.02, 0], ['box', 0x9a9ea4, 0.1, 0.035, 0.13, 0.24, 0.02, 0]];
-    case 'knife': return [['box', 0x22262a, 0.12, 0.025, 0.03, -0.1, 0.015, 0], ['box', 0xc8ccd0, 0.22, 0.01, 0.045, 0.07, 0.01, 0]];
-    case 'axe': return [['box', 0x7a5a34, 0.9, 0.04, 0.045, 0, 0.03, 0], ['box', 0xa82a20, 0.14, 0.035, 0.24, 0.38, 0.03, 0.06]];
-    case 'flash': return [['cyl', 0x2a2c2e, 0.06, 0.2, 0.06, 0, 0.035, 0, R90], ['cyl', 0xc9a227, 0.075, 0.05, 0.075, 0.11, 0.04, 0, R90]];
-    case 'lantern': return [['cyl', 0xc9a227, 0.14, 0.06, 0.14, 0, 0.03, 0], ['cyl', [2.4, 2.6, 2.7], 0.11, 0.14, 0.11, 0, 0.13, 0], ['cyl', 0xc9a227, 0.14, 0.05, 0.14, 0, 0.225, 0], ['box', 0x2a2c2e, 0.16, 0.02, 0.02, 0, 0.3, 0]];
-    case 'batt': return [['cyl', 0xb87333, 0.045, 0.1, 0.045, 0, 0.05, 0], ['cyl', 0x22262a, 0.047, 0.04, 0.047, 0, 0.03, 0]];
-    case 'medkit': return [['box', 0xd4d8d4, 0.32, 0.14, 0.22, 0, 0.07, 0], ['box', 0xa82a20, 0.12, 0.01, 0.04, 0, 0.145, 0], ['box', 0xa82a20, 0.04, 0.01, 0.12, 0, 0.145, 0]];
-    case 'bandage': return [['cyl', 0xd8d4c8, 0.09, 0.07, 0.09, 0, 0.035, 0]];
-    case 'ration': return [['box', 0x8a8478, 0.15, 0.03, 0.08, 0, 0.015, 0]];
-    case 'peaches': return [['cyl', 0xb8bcc0, 0.09, 0.11, 0.09, 0, 0.055, 0], ['cyl', 0xd88a2a, 0.093, 0.06, 0.093, 0, 0.055, 0]];
-    case 'fuse': return [['cyl', 0xd8d0b8, 0.07, 0.22, 0.07, 0, 0.04, 0, R90], ['cyl', 0xb87333, 0.075, 0.04, 0.075, -0.1, 0.04, 0, R90], ['cyl', 0xb87333, 0.075, 0.04, 0.075, 0.1, 0.04, 0, R90]];
-    case 'armor': return [['box', 0x23272c, 0.44, 0.12, 0.52, 0, 0.06, 0], ['box', 0x39485a, 0.3, 0.02, 0.1, 0, 0.125, -0.1]];
-    case 'hardhat': return [['ico', 0xc9a227, 0.28, 0.2, 0.3, 0, 0.08, 0], ['box', 0xc9a227, 0.2, 0.02, 0.12, 0, 0.02, 0.17]];
-    case 'kit': return [['box', 0x39485a, 0.3, 0.12, 0.2, 0, 0.06, 0], ['cyl', 0x1a1c1e, 0.2, 0.05, 0.2, 0, 0.145, 0], ['box', 0xc9a227, 0.3, 0.02, 0.05, 0, 0.125, 0]];
-    default: return [['box', [2.5, 2.48, 2.4], 0.2, 0.004, 0.28, 0, 0.004, 0]];
-  }
-}
-/** a turn for something lying on the floor that is the same every time (it used to be random) */
-const lie = (x: number, z: number) => (Math.sin(x * 12.9898 + z * 78.233) * 43758.5453) % 1 * Math.PI;
 
 /** a part of a door that moves: its parts, what they are made of, and how much of the door's travel it makes (a pair of
  *  leaves going into the wall at one side: the far leaf all of it, the near one half, so they end stacked) */
@@ -329,7 +291,7 @@ export class Things {
       propVerts({ ...P, ry: 0, sx: P.sx + 2 * e, sy: P.sy + 2 * e, sz: P.sz + 2 * e }, (x, y, z) => pts.push(x, y, z), { x: 0, y: -e, z: 0 });
       this.add(coloured(new Float32Array(pts), o.prop.colour, matId(o.prop.mat)), m => m.position.set(o.x, o.y, o.z));
     });
-    for (const n of w.def.notes) this.addFixed(parts(itemParts('note')), n.x, n.y, n.z, lie(n.x, n.z) * 0.3);
+    for (const n of w.def.notes) if (!n.bare) this.addFixed(parts(itemParts('note')), n.x, n.y, n.z, paperYaw(n));
     this.glazing(w);
     this.water(w);
   }
@@ -340,9 +302,8 @@ export class Things {
   private syncItems(): void {
     for (; this.items < this.sim.items.length; this.items++) {
       const it = this.sim.items[this.items];
-      /* a light lying switched on points its lens the way it shines (the player's yaw, turned to the part's +x) */
-      const aim = it.on ?? (it.id === 'flash' ? { yaw: 0, pitch: 0 } : null), yaw = aim ? aim.yaw + R90 : lie(it.x, it.z);
-      const m = this.addFixed(parts(itemParts(it.id)), it.x, it.y, it.z, yaw);
+      /* turned as it lies: a light lying on, the way it shines; something put down on a shelf or a desk, square to it */
+      const yaw = lyingYaw(it), m =this.addFixed(parts(itemParts(it.id)), it.x, it.y, it.z, yaw);
       this.itemMeshes.push({ mesh: m, shown: () => !it.taken });
       if (it.id === 'flash') {
         const lens = this.addFixed(parts(LENS), it.x, it.y, it.z, yaw);

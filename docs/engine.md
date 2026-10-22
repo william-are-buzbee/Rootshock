@@ -1547,6 +1547,40 @@ the old face in the air (the wing's cut SEC connection, a call point, the infirm
 the old face moves with it (`followFace` in `content/build/tiles.ts`). The loose crates are gone from the station (the
 testbed keeps its own for the tests that push them); a shelf's contents are laid in slots along each board, one a slot.
 
+**Then, where things are.** What you pick up and the papers were put down 2 cm over whatever they lay on (the first
+engine's habit), so on every desk, shelf and floor they hung in the air. They come to rest now on what is under them as
+the level is built (`settle` in `content/build/builder.ts`): the floor, a step, or the top of anything square-topped, up
+to 3 cm over or 10 cm under where they were put (further is a mistake, left for the test); on a shelf, a desk or a
+table, square to it with a turn of their own (`ItemDef.yaw`) and 5 cm in from its edges, and a shelf's dressing
+(`goods`) makes room for them. How each lies is data (`content/lying.ts`), so the builder and the tests know its size.
+A note with no paper of its own (`NoteDef.bare`) is read off what it is written on: the nurses' whiteboard, which was a
+sheet in the air in front of the board. Fittings hang from the ceiling as the grid carves it (`lid`: a 3.2 m room's is
+at 3.25, where they hung 6 cm short; a 3.6 m room's at 3.5, where they were inside it). A lump is drawn 0.85 of its size
+(`ICO`) and sat that much over its base; it sits on it now. A door's frame stops at a side wall instead of running into
+it, and a window over a tall room on a deck below lies across its opening (the operations room's eight panes stood edge
+on to the court). Flat things on rough ground (moss, the cave's stream) are tipped to the slope and laid so no edge is in
+the air (`POpts.lie`). By hand, on every level: the treatment bay's shelf (10 cm into its wall), chair backs 17 cm behind
+their seats, screens off their monitors and monitors off their desks, boards, signs and panels off their walls, the
+patient's handprints 20 cm off the glass, the drip pole past the bed's head (in the wall), forklift wheels lying flat,
+call points half in the wall, and the rest. The infirmary shelf the pass above meant to move never did (it stands
+0.6 m and a hair off the old face); it was right where it was. `test/placement.ts` measures every pickup, paper, fitting
+and pane against the world, `test/placement.test.ts` holds every level to it (growth and stains may meet rock, and in a
+cave anything may), and the placement probe lists everything it finds.
+
+Rails, too. A walkway's edge was railed wherever anything at all lay below the tile beyond it, so a gallery over a
+doorway or a flat on the floor below had a rail standing against the wall there: 51 of them, along the Commons' and the
+Square's fronts over every door below, at the end of the lobby's gallery, the atrium's, and the nurses' station's. An
+edge is railed now only where a room on some deck below rises past the walkway's floor (`drop`, in `finishLevel`): looked
+for through every deck down, so the third floor's gallery ends, its bridge and Cargo's tiers, which look down past the
+walkway under them, keep theirs. The test finds a rail with wall hard against it.
+
+And what is drawn on a board. The nurses' station's whiteboard had its lines started 0.15 m in from its edge, so four of
+the five ran off it into the air, most by more than half; the briefing room's plans had their outer sheets 0.25 m past the paper they were
+pinned to. The test takes anything flat (a centimetre or two through) laid on the face of another, and finds the part of
+it past that face's edge (`off its edge`). And a shelf stood out from a wall is set with its middle on a column of the
+light's lattice: its inside, shut in by its boards, is dark, and its ends otherwise fall short of the half way to the
+lattice's next point, so the wall beside it read that dark too, a slab standing out past each end.
+
 A walkway's grating was a square grid of thin bright lines over black, the same from every side: it read as graph
 paper. It is bar grating now (`mesh`), galvanised: bearing bars 5 mm thick on 30 mm centres along z and 30 mm deep, so
 looked at across them their sides close the gaps (each bar drawn as wide as its top and the side of it you can see, from
