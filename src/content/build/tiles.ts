@@ -71,7 +71,7 @@ export interface TDoorOpts {
 
 interface TProp {
   shape: Shape; x: number; z: number; y: number; sx: number; sy: number; sz: number; c: Colour;
-  ry: number; rz: number; glow: number; pw: [Colour, Colour] | null; pc: string | null; solid: boolean; loose: boolean; mat?: Mat;
+  ry: number; rz: number; glow: number; pw: [Colour, Colour] | null; pc: string | null; solid: boolean; loose: boolean; mat?: Mat; flush?: boolean;
 }
 
 /** a level as the first engine described it, before it is compiled */
@@ -96,7 +96,7 @@ export interface Deck {
   /** blood on the floor: middle and reach, in metres */
   stains: { x: number; z: number; r: number }[];
   elevs: { tx: number; tz: number; w: number; h: number; lo: Deck; hi: Deck; c: string; name: string }[];
-  stairs: { tx: number; tz: number; len: number; dir: 'n' | 's' | 'e' | 'w'; lo: Deck; hi: Deck }[];
+  stairs: { tx: number; tz: number; len: number; dir: 'n' | 's' | 'e' | 'w'; lo: Deck; hi: Deck; bare: boolean }[];
   /** steps within a deck: from a sunken floor up to the deck's own, or between any two heights over it */
   flights: { tx: number; tz: number; w: number; h: number; y0: number; y1: number; n: number; dir: 'n' | 's' | 'e' | 'w'; c: number }[];
   items: { id: string; x: number; z: number; y: number; n: number; on?: Aim }[];
@@ -189,12 +189,13 @@ export function door(D: Deck, x: number, y: number, o: TDoorOpts = {}): void {
 }
 
 /* ---- props, in tile units with sizes in metres */
-export interface POpts { y?: number; ry?: number; rz?: number; glow?: number; pw?: [Col, Col]; pc?: string; c?: 0 | 1; loose?: boolean; mat?: Mat }
+export interface POpts { y?: number; ry?: number; rz?: number; glow?: number; pw?: [Col, Col]; pc?: string; c?: 0 | 1; loose?: boolean; mat?: Mat; flush?: boolean }
 export function P(D: Deck, shape: Shape, x: number, z: number, sx: number, sy: number, sz: number, c: Col, o: POpts = {}): void {
   const y = o.y ?? 0, solid = o.c === 1 || (o.c !== 0 && sy >= 0.3 && y < 1.6 && shape !== 'ico');
   D.props.push({
     shape, x: x * T, z: z * T, y, sx, sy, sz, c: col(c), ry: o.ry ?? 0, rz: o.rz ?? 0, glow: o.glow ?? 0,
     pw: o.pw ? [col(o.pw[0]), col(o.pw[1])] : null, pc: o.pc ?? null, solid: solid || !!o.loose, loose: !!o.loose, ...(o.mat ? { mat: o.mat } : {}),
+    ...(o.flush ? { flush: true } : {}),
   });
 }
 export const bx = (D: Deck, x: number, z: number, sx: number, sy: number, sz: number, c: Col, o?: POpts): void => P(D, 'box', x, z, sx, sy, sz, c, o);
@@ -340,12 +341,13 @@ export function pool(D: Deck, R: TRoom, cx: number, cz: number, r: number, depth
 }
 
 /* ---- ways between layers */
-/** walk-up stairs between a hall and the rung above it. (tx, tz) is the first tile; dir is the way you climb. */
-export function stairs(lo: Deck, hi: Deck, tx: number, tz: number, len: number, dir: 'n' | 's' | 'e' | 'w'): void {
+/** walk-up stairs between a hall and the rung above it. (tx, tz) is the first tile; dir is the way you climb. `bare`:
+ *  the way up only, its steps drawn by whoever asked for it (a grand stair draws its own over several side by side) */
+export function stairs(lo: Deck, hi: Deck, tx: number, tz: number, len: number, dir: 'n' | 's' | 'e' | 'w', bare = false): void {
   const ax = dir === 'e' || dir === 'w', w = ax ? len : 1, h = ax ? 1 : len;
   room(hi, '', tx, tz, w, h, { hole: 'st', noroam: 1, nolamp: 1 });
   for (let j = tz; j < tz + h; j++) for (let i = tx; i < tx + w; i++) { lo.nom[j * lo.W + i] = 1; hi.nom[j * hi.W + i] = 1; }
-  lo.stairs.push({ tx, tz, len, dir, lo, hi });
+  lo.stairs.push({ tx, tz, len, dir, lo, hi, bare });
   const rev = dir === 'w' || dir === 'n';
   const ti = ax ? (rev ? tx : tx + len - 1) : tx, tj = !ax ? (rev ? tz : tz + len - 1) : tz;
   const li = ti + (ax ? (rev ? -1 : 1) : 0), lj = tj + (!ax ? (rev ? -1 : 1) : 0);
@@ -682,6 +684,7 @@ export function finishLevel(start?: [number, number, number]) {
       const x0 = X(D, S.tx), z0 = Z(D, S.tz), x1 = X(D, S.tx + w), z1 = Z(D, S.tz + hh), rise = S.hi.y0 - S.lo.y0;
       b.ramp(x0, z0, x1, z1, S.lo.y0, S.hi.y0, S.dir, 0x5a5d60);
       b.level.surfaces[b.level.surfaces.length - 1].hidden = true;
+      if (S.bare) continue;
       const N = S.len * 4, L = S.len * T;
       for (let q = 0; q < N; q++) {
         const pos = rev ? 1 - (q + 0.5) / N : (q + 0.5) / N, sh = ((q + 1) / N) * rise;
@@ -694,7 +697,7 @@ export function finishLevel(start?: [number, number, number]) {
     /* props, colliders, lamps */
     for (const p of D.props)
       b.prop(p.shape, px(D, p.x), pz(D, p.z), p.sx, p.sy, p.sz, p.c, {
-        y: floorY(D, p.x, p.z) + p.y, ry: p.ry, rz: p.rz, glow: p.glow ? 3 : 1, solid: p.solid, loose: p.loose, mat: p.mat,
+        y: floorY(D, p.x, p.z) + p.y, ry: p.ry, rz: p.rz, glow: p.glow ? 3 : 1, solid: p.solid, loose: p.loose, mat: p.mat, flush: p.flush,
         ...(p.pw ? { pw: p.pw, pc: p.pc ?? D.c } : {}),
       });
     for (const [x0, z0, x1, z1, lo, hi] of D.cols) {

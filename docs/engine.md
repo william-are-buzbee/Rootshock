@@ -968,7 +968,10 @@ sequence of inputs. The door rules, the labels and the answers are the first eng
   makes it.
   The renderer puts the field on the card (`render/lightVolume.ts`: a brick of 9³ texels per grid chunk and an index of
   them) and the shader blends the 2³ points around each pixel, only those on its open side and joined to the nearest,
-  so no light comes through a wall or a slab; only the bricks whose light changed are sent again. What moves asks
+  so no light comes through a wall or a slab; only the bricks whose light changed are sent again. A pixel on a face's
+  edge is shaded where its middle would be on the face (the edges are smoothed), which past the edge can be inside what
+  the face meets, with no open point about it; it is looked up again from nearer the eye (`field` in `shader.ts`).
+  Unlit, those pixels were a line of black specks along the foot of a wall seen far off, crawling as you moved. What moves asks
   `Lighting.atPoint` (and `flickAt`), which blends the same way; what the cast see you by asks `Lighting.seen`, the same
   and any beam lying about that falls on you. `?power=full` shows a level with everything
   on.
@@ -1084,7 +1087,12 @@ sequence of inputs. The door rules, the labels and the answers are the first eng
 - **Nothing fights in one plane** (since): everything is drawn two-sided, so two faces in one plane (a button flush with
   its post, a box on a shelf or the floor, a crate on a crate) showed through each other as you moved. Each prop and
   each part of a thing is drawn 1 to 7 mm larger than it is, different for neighbours (`apart` in `levelMesh.ts`). A
-  grid floor or ceiling that a sloped surface covers (a cave flat at its room's floor) is not drawn at all.
+  grid floor or ceiling that a sloped surface covers (a cave flat at its room's floor) is not drawn at all. A run of
+  parts laid face to face to read as one piece is drawn at its size instead (`PropDef.flush`), or every joint shows: the
+  lobby's grand stair (`grandStair`), each tread and each block of its balustrade running on 2 cm into the next and
+  5 mm into the floor, and the balustrade's faces sheeted 5 mm clear, as the end of each block stands edge on in the
+  face it runs into. Its four stairs underneath are only the way up (`stairs(..., bare)`): their own steps, drawn
+  inside the stone treads, showed through them.
 - **Signs** (since; `present/render/signs.ts`): lit as any surface is, not from within (a black plate shone in a dark
   room): the room's light where each hangs, and the lights you carry. What is pale on them is retroreflective, as real
   room signs often are, so under your beam the letters flare and the plate stays dark. Each takes its look from the wall
@@ -1475,7 +1483,8 @@ halls are terrazzo; medical floors vinyl; homes carpeted; the lobby, its gallery
 (limestone, terrazzo, a plastered ceiling, a bronze band for the stripe). The Commons' utility rooms stand in its blocks,
 so are poured, not dug; its kitchen, canteen, laundry and gym are vinyl. Services hang under a sprayed crown as under a
 poured one. The 2 m checker the first engine drew on floors, walls and the painted sky is gone (it read as a
-checkerboard); each material draws its own joints, and a wall's or floor's faces merge whole. The start room is vinyl underfoot, so the first step sounds of it.
+checkerboard), and so is the shade a cave's floor and roof took by each square of their lattice (Cargo's floor is
+one); each material draws its own joints, and a wall's or floor's faces merge whole. The start room is vinyl underfoot, so the first step sounds of it.
 
 Then, from play: the lobby's limestone, laid half a panel along as masonry is, read as brick, and the block's dark
 joints read as brickwork too. The stone is hung as cladding now (1.5 by 0.75 m, stacked joint over joint, hairline
