@@ -375,9 +375,9 @@ const FS = /* glsl */ `
 #ifdef STATIC
 uniform sampler2D uLA; uniform sampler2D uLD; uniform highp sampler3D uLI; uniform vec3 uLO; uniform vec3 uLN; uniform int uLW;
 /* the level's light at p, on a surface facing n (toward the eye); in fl the part of it that flickers, and in dl which way
-   it comes from (as long as the share of it that comes from one way) */
-vec3 field(vec3 p, vec3 n, out vec3 fl, out vec3 dl){
-  fl = vec3(0.0); dl = vec3(0.0);
+   it comes from (as long as the share of it that comes from one way); found, false where no open point is near */
+vec3 fieldAt(vec3 p, vec3 n, out vec3 fl, out vec3 dl, out bool found){
+  fl = vec3(0.0); dl = vec3(0.0); found = false;
   vec3 f = (p + n * 0.2 - ${f3(LOFF)}) / ${f3(LCELL)}, b = floor(f), t = f - b;
   vec3 bk = floor(b / ${BR}.0), ix = bk - uLO;
   if (any(lessThan(ix, vec3(0.0))) || any(greaterThanEqual(ix, uLN))) return vec3(0.0);
@@ -398,6 +398,7 @@ vec3 field(vec3 p, vec3 n, out vec3 fl, out vec3 dl){
     if (S[c].a > 0.0 && (best < 0 || W[c] > W[best])) best = c;
   }
   if (best < 0) return vec3(0.0);
+  found = true;
   /* only the points joined to the nearest open one */
   int reach = 1 << best;
   for (int pass = 0; pass < 3; pass++)
@@ -419,6 +420,17 @@ vec3 field(vec3 p, vec3 n, out vec3 fl, out vec3 dl){
   dl = sl > 1e-7 ? accD / sl : vec3(0.0);
   fl = accF / max(sw, 1e-5) * ${f3(LIGHT_RANGE)};
   return acc / max(sw, 1e-5) * ${f3(LIGHT_RANGE)};
+}
+/* the same, at p on a surface a pixel wide px metres there. A pixel on a face's edge is shaded where its middle would
+   be on that face, though only part of it is (the scene is smoothed at its edges: post.ts); past the edge, that can be
+   inside what the face meets, with nothing open about it: a floor seen far off, along the foot of a wall. Unlit, such
+   pixels made a line of black specks that crawled as you moved. There, it is looked up again from that far nearer the
+   eye, which is in the open; and failing that (a rough cave roof), a lattice step nearer again */
+vec3 field(vec3 p, vec3 n, float px, out vec3 fl, out vec3 dl){
+  vec3 V = normalize(cameraPosition - p), l = vec3(0.0);
+  bool found = false;
+  for (int k = 0; k < 3 && !found; k++) l = fieldAt(p + V * (k == 0 ? 0.0 : px + (k == 1 ? 0.1 : 0.6)), n, fl, dl, found);
+  return l;
 }
 uniform vec4 uSelfA[${SELF.caps}]; uniform vec4 uSelfB[${SELF.caps}]; uniform vec4 uFix[${SELF.fix}]; uniform vec3 uSelfLo; uniform vec3 uSelfHi;
 /* how much of a capsule (a to b, radius r) stands between p and a light dl away along l: soft, its edge wider and its
@@ -513,7 +525,8 @@ void main(){
   /* the level's light here, and which way it comes from */
   vec3 lvl = vec3(0.0), dl = vec3(0.0);
 #if defined(STATIC)
-  vec3 fl, lv = field(vW, nf, fl, dl);
+  float px = length(fwidth(vW));
+  vec3 fl, lv = field(vW, nf, px, fl, dl);
   lvl = (lv - fl * 0.55 * uFlick) * (vL.x > 1.0 ? vL.x * ${f3(EMIT.fitting)} : vL.x) * selfShade(vW, nf);
   vec3 light = lvl * takes(nf, nb, dl, sh, rel);
 #elif defined(BAKED)

@@ -271,7 +271,7 @@ export function buildLevelMesh(w: World, L: Lighting): LevelMesh {
     /* glass is drawn see-through on its own (render/things.ts) */
     if (p.loose || p.mat === 'glass') return;
     const R = w.roomAt(p.x, p.y + 0.05, p.z) ?? w.roomAt(p.x, p.y + p.sy / 2, p.z), src: Src = { room: R ? R.id : -1, m: p.glow, mat: matId(p.mat) };
-    const to = p.services ? extra : o, first = to.count, e = apart(k);
+    const to = p.services ? extra : o, first = to.count, e = p.flush ? 0 : apart(k);
     propVerts({ ...p, sx: p.sx + 2 * e, sy: p.sy + 2 * e, sz: p.sz + 2 * e, y: p.y - e }, (x, y, z) => to.vert(x, y, z, p.colour, src));
     if (p.pw) to.pw.push([first, to.count - first, p.pw, p.pc ?? w.def.circuit]);
   });
@@ -313,9 +313,9 @@ function surfaceMesh(o: Out, w: World, sf: Surface): void {
     for (let i = 0; i < d.nx - 1; i++) {
       if (d.mask && !d.mask[j * (d.nx - 1) + i]) continue;
       const x0 = X(i), x1 = X(i + 1), z0 = Z(j), z1 = Z(j + 1), h00 = H(i, j), h10 = H(i + 1, j), h11 = H(i + 1, j + 1), h01 = H(i, j + 1);
-      const l = src((x0 + x1) / 2, (h00 + h11) / 2, (z0 + z1) / 2, m), c = d.sides ? d.colour : scale3(d.colour, 0.94 + 0.06 * (((i * 7 + j * 13) % 5) / 4));
+      const l = src((x0 + x1) / 2, (h00 + h11) / 2, (z0 + z1) / 2, m);
       const q: [number, number, number][] = [[x0, h00, z0], [x1, h10, z0], [x1, h11, z1], [x0, h01, z1]];
-      for (const k of [0, 1, 2, 0, 2, 3]) o.vert(q[k][0], q[k][1], q[k][2], c, l);
+      for (const k of [0, 1, 2, 0, 2, 3]) o.vert(q[k][0], q[k][1], q[k][2], d.colour, l);
     }
   if (!d.sides) return;
   const side = (pts: [number, number, number][]) => {

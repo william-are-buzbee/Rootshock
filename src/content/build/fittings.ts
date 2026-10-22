@@ -244,15 +244,24 @@ export function liftRoom(D: Deck, x: number, y: number, dx: number, dy: number):
 }
 
 /** a grand stair from deck lo up to deck hi: w tiles wide and len long at (tx, tz), climbing toward dir (north or
- *  south). Walked as w stairs side by side (tiles.ts, stairs: the way the cast find up it too), drawn as one: stone
- *  treads the whole width over them, and a solid balustrade stepping up each side */
+ *  south). Walked as w stairs side by side (tiles.ts, stairs: the way the cast find up it too), bare, and drawn as
+ *  one: stone treads the whole width over them, and a solid balustrade stepping up each side, its foot a centimetre
+ *  into the treads. Each block is drawn at its size (flush), so one step's faces run on into the next with no seam
+ *  (each a different hair larger, as props are, every joint showed); it runs on a little into the next (all but the
+ *  last, which meets the floor above), so no face of one lies in a face of the next, and down a little into the floor.
+ *  Over each face of the balustrade, outside and in, a sheet a hair clear of it, each step's own: the end of one block
+ *  stands edge on in the face it runs into, and showed through it along every joint as a broken dark line */
 export function grandStair(lo: Deck, hi: Deck, tx: number, tz: number, w: number, len: number, dir: 'n' | 's', c = 0xb3ab9c): void {
-  for (let k = 0; k < w; k++) stairs(lo, hi, tx + k, tz, len, dir);
-  const N = len * 4, rise = hi.y0 - lo.y0, d = (len * T) / N, rev = dir === 'n';
+  for (let k = 0; k < w; k++) stairs(lo, hi, tx + k, tz, len, dir, true);
+  const N = len * 4, rise = hi.y0 - lo.y0, d = (len * T) / N, rev = dir === 'n', OVER = 0.02, CLEAR = 0.005, SINK = 0.005;
   for (let q = 0; q < N; q++) {
-    const pos = rev ? 1 - (q + 0.5) / N : (q + 0.5) / N, z = tz + pos * len, sh = ((q + 1) / N) * rise;
-    bx(lo, tx + w / 2, z, w * T, sh + 0.01, d, q % 2 ? c : 0xa9a192, { c: 0 });
-    for (const x of [tx - 0.08, tx + w + 0.08]) bx(lo, x, z, 0.3, sh + 1.05, d, 0x8f877a);
+    const on = q < N - 1 ? OVER : 0, pos = rev ? 1 - (q + 0.5) / N : (q + 0.5) / N, sh = ((q + 1) / N) * rise;
+    const z = tz + pos * len + ((rev ? -1 : 1) * on) / 2 / T, o = { y: -SINK, flush: true };
+    bx(lo, tx + w / 2, z, w * T, sh + SINK, d + on, q % 2 ? c : 0xa9a192, { ...o, c: 0 });
+    for (const x of [tx - 0.075, tx + w + 0.075]) {
+      bx(lo, x, z, 0.32, sh + 1.05 + SINK, d + on, 0x8f877a, o);
+      for (const s of [-1, 1]) bx(lo, x + (s * (0.16 + CLEAR)) / T, z, 0, sh + 1.05 + SINK, d + on, 0x8f877a, { ...o, c: 0 });
+    }
   }
 }
 

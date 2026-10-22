@@ -96,6 +96,9 @@ export interface PropDef {
   pw?: [Colour, Colour];
   /** the circuit for pw */
   pc?: string;
+  /** drawn at its size, not a hair larger (render/levelMesh.ts, apart): one of a run laid face to face to read as one
+   *  piece (a stair's treads, its balustrade), where each drawn a different hair larger shows a seam at every joint */
+  flush?: boolean;
 }
 
 /** a light of its own (a battery work lamp, a glowing growth): a pool of light, in its room only, whatever the power. It

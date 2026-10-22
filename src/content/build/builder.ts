@@ -68,6 +68,8 @@ export interface PropOpts {
   mat?: Mat;
   /** part of a run of services under a bare ceiling */
   services?: boolean;
+  /** drawn at its size (PropDef.flush) */
+  flush?: boolean;
 }
 
 /** heights relative to a floor or ceiling, as a function of plan position */
@@ -133,6 +135,7 @@ export class LevelBuilder {
     const mat = o.mat ?? (o.loose ? 'wood' : undefined);
     if (mat) p.mat = mat;
     if (o.services) p.services = true;
+    if (o.flush) p.flush = true;
     if (o.pw) { p.pw = o.pw; p.pc = o.pc ?? this.def.circuit; }
     this.def.props.push(p);
     return p;
