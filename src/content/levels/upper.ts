@@ -82,7 +82,10 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   const LG: TRoomOpts = { ...WALK, ht: 8, c: 'SEC', fl: FAM.fl, wl: FAM.wl, mat: { floor: 'terrazzo', wall: 'stone', upper: 'plaster', datum: 3.2 } };
   room(T1, 'Lobby gallery', 1, 12, 19, 1, LG); room(T1, 'Lobby gallery', 12, 13, 8, 1, LG);
   grandStair(D, T1, 9, 6, 4, 6, 's');
-  bx(D, 10.5, 7, 38, 0.06, 24, [0.1, 0.1, 0.1], { y: 12.94, c: 0, pw: [[0.08, 0.08, 0.09], [2.85, 2.82, 2.72]], pc: 'SEC' }); // the false sky: emitting (2 + its colour), with power
+  /* the false sky: emitting (2 + its colour), with power. A diffuser hung under the roof, wall to wall and over the
+     strip by the gallery too, deep enough that the light fittings and air grilles are behind it: their light comes
+     through it, and they are not seen */
+  for (const [x, z, w, d] of [[10.5, 7, 38, 24], [16, 13.5, 16, 2]] as const) bx(D, x, z, w, 0.18, d, [0.1, 0.1, 0.1], { y: 12.82, c: 0, pw: [[0.08, 0.08, 0.09], [2.85, 2.82, 2.72]], pc: 'SEC' });
   /* the statue: a plinth, and a figure in bronze looking up at the false sky */
   bx(D, 11, 3.2, 3.4, 1.1, 3.4, 0x9a9384); bx(D, 11, 3.2, 3.6, 0.12, 3.6, 0x7d776a, { y: 1.1, c: 0 });
   for (const dx of [-0.25, 0.25]) bx(D, 11 + dx / 2, 3.2, 0.42, 2.1, 0.5, 0x6b5a3a, { y: 1.22 });
