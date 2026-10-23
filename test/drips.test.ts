@@ -10,10 +10,12 @@ import { dripPoints } from '../src/present/render/drips';
 const world = (id: string) => makeSim(levelDef(STATION, id), { seed: 1, station: STATION }).world;
 
 describe('drips', () => {
-  it('the cave and the sump drip; the dry station does not', () => {
+  it('the cave and the sump drip; the dry station only over its pool', () => {
     expect(dripPoints(world('cave')).length).toBeGreaterThan(3);
     expect(dripPoints(world('sump')).length).toBeGreaterThan(3);
-    expect(dripPoints(world('upper')).length).toBe(0);
+    /* the station is dry but for the retreat's pool, its hall shut up warm and wet since the power went */
+    const W = world('upper');
+    expect(dripPoints(W).every(d => /^Pool/.test(W.roomAt(d.x, d.low + 0.5, d.z)?.name ?? ''))).toBe(true);
   });
 
   it('the same points every time, each falling at least a metre onto rock or water', () => {

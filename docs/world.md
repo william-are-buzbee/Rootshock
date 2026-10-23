@@ -554,8 +554,7 @@ wins; the older text stays only because it describes what is built, until the le
     visitor saw, and the last climb is the grand stair. Whether the surface hallway is an armed place is open (*No
     alarm on the way out*, below).
   - *Its cameras* only record: a public room is not armed. The checkpoint and the surface hallway are where the lines
-    are. Its upper volume meets Security's second floor somewhere, a vent or a service walkway behind the ceiling
-    panels (open).
+    are. Its upper volume meets Security's second floor by the space over its false sky (*The lobby as a hub*, below).
   - *Where it goes:* north of the shaft, west of the wing, where the old checkpoint and open ground were. **Built**
     there without moving the wing: shifting it east would have moved Cargo, the exhaust shaft and ladderway B off their
     lines to the levels above and below. 38 by 24 m and 13 m tall (a little under the 40 by 30 aimed at; a strip along
@@ -565,6 +564,37 @@ wins; the older text stays only because it describes what is built, until the le
     into *Goods inward*, through to the hazard store and the corridor. The bar is under the gallery's west end, the
     lounge east of the stair; the false sky is an emitting panel under the ceiling, lit with the wing's power. Its
     camera, high in the north-east corner, only records.
+- **The lobby as a hub (agreed; built).** Security as built was a tree: 47 rooms off one spine, the lobby a dead end at
+  its west end, and nothing that could be gone round (the loops probe, `test/probes/loops.probe.ts`). With the
+  locker room's back door it had one loop; now the lobby is the upper station's hub, every way off it but the corridor's
+  door and the grand stair new, and Security has five loops. Thought in three dimensions: the lobby is boxed in by the
+  wing east and the shaft south, and the level's grid starts at its north wall, so it grows down, up and east, into
+  rock that was empty. All of it on the wing's feed (dark until the cut is mended) and in the wing's zone.
+  - *Arrivals, east.* The luxury hands over to Security in the order a visitor met it: the lobby's east wall opens on
+    the check-in hall, where crews on rotation and visitors checked in (the desk facing the lobby, carpet and paint
+    where the lobby is stone); behind it, through a staff door, screening, where everyone arriving or leaving was looked
+    over for exposure, which opens onto the nurses' station. It is why the isolation suite is a stair from the front
+    door, and it makes the first loop out of the opening: suite, nurses' station, screening, lobby, corridor.
+  - *The retreat, below.* The family's, and their buyers', a storey under the lobby: a stair down from its north-west
+    corner (glass and bronze at its head, planters beside it) to a lounge panelled in wood (the family's indulgence;
+    nothing else down here burns), its window a lit panel of sky; off it the humidor behind glass, where the product
+    line was sampled, its trial lots taken root in the cedar as the leaf comes out of the changed; through a passage, a
+    pool cut into the limestone, chest deep, its hall dripping since the power went; and the plant room that serves
+    them. The passage goes on to the isolation suite: the retreat's second way out, as fire code wants of a room below
+    ground, and the family's private door to their clinic. A plain door for now, slid by hand from either side.
+    **Proposed:** a push bar on the retreat's side and nothing on the suite's, so it is a shortcut opened from the far
+    side (wants a door that opens one way, and the progression checker taught it).
+  - *Over the wing, +5.* The second floor long asked for (*The layout*, below), cut to what makes it work: a corridor
+    from the lobby's gallery to the atrium's, so the wing can be gone round upstairs; off it the staff mess,
+    administration, and the plant stair.
+  - *Over the sky, +13.5.* The lobby's air plant, at +10, and steps from it up into the space over the false sky: half
+    a metre over the lobby's roof, a dark plenum of grating between the backs of the ceiling's light boxes. A way over
+    the lobby, for whoever finds it.
+  - *Behind the bar.* The kitchen that served the bar and the lounges, and a passage round the back of the shaft to
+    goods inward, so stock never crossed the lobby.
+  - **Open:** what each new place holds that is worth the walk (a kit, a card, a note, a threat's ground); the strong
+    plant thing that patrols and grabs, which wants a loop for its territory and is placed once the layout has been
+    walked; whether the retreat keeps a light of its own.
 - **The changed (agreed).** No longer husks: the word says empty, and they are not. Pia's line (§10): **intelligent, but
   sedated.** They think, slowly, and without much caring. They notice and come to look (a breaker thrown means someone threw
   it; a door left open is noticed), they use cards (a card door is safe from them no longer, only from you), and they are slow
@@ -822,7 +852,9 @@ should be added. Below it, production (below).
   a 16 by 8 m ward of four curtained beds, with a treatment bay behind glass and a chair pulled up to the last bed. The hazard
   store moves off the checkpoint, where things came off the hoist (same gate: Gen-1). Still to do: the wing's corridor could
   widen where its rooms branch off (a trunk, not a straight pipe).
-- **A second floor over Security**, at about +5, the height of Cargo's Tier 1, reaching east to the cavern.
+- **A second floor over Security**, at about +5, the height of Cargo's Tier 1, reaching east to the cavern. **Built**
+  from the lobby's gallery to the atrium's, over the wing (*The lobby as a hub*, above); the atrium's gallery already
+  went on to Cargo control.
 - **A window onto the bay.** A glass wall high on the cavern's west side: the nest seen in person, from above, before you go.
   The bay is black until its backup set runs, so the nest must give off its own sick glow, and it should sit nearer the window
   than the cavern's far end (about 120 m today). The glass works both ways: the bay can see you. A view only, not a door; at

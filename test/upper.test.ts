@@ -74,9 +74,10 @@ describe('the upper station', () => {
     expect(Math.max(...c)).toBeGreaterThan(0.03);
     expect(Math.max(...c)).toBeLessThan(0.1);
     expect(c[2]).toBeGreaterThanOrEqual(c[0]);
-    /* the exit signs: green, a little light each, whatever the power */
+    /* the exit signs: green, a little light each, whatever the power (the suite's two, and the retreat's fire exit
+       over its door into the suite) */
     const signs = level.lamps.filter(l => l.colour[1] > l.colour[0] * 3);
-    expect(signs.length).toBe(2);
+    expect(signs.length).toBe(3);
     for (const S of signs) expect(Math.max(...off.atPoint(S.x, S.y + 0.5, S.z))).toBeGreaterThan(0.1);
   });
 
