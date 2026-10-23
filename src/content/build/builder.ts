@@ -248,8 +248,9 @@ export class LevelBuilder {
     return this.def;
   }
 
-  start(x: number, z: number, yaw: number): void {
-    this.def.start = { x, y: this.floorAt(x, z), z, yaw } satisfies Start;
+  /** where the game begins: on the floor at y, or, with none given, the highest floor there */
+  start(x: number, z: number, yaw: number, y = this.floorAt(x, z)): void {
+    this.def.start = { x, y, z, yaw } satisfies Start;
   }
 
   /** the floor under (x, z): the highest room floor, block top or sloped floor there */

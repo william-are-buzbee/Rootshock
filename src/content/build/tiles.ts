@@ -503,7 +503,9 @@ const roomOpts = (R: TRoom) => ({
 const DOORPAL = { fl: [0.2, 0.21, 0.22] as Colour, wl: [0.27, 0.28, 0.3] as Colour, st: [0.22, 0.23, 0.25] as Colour };
 const SLAB = 0.25;
 
-export function finishLevel(start?: [number, number, number]) {
+/** compile the level. `start`: where the game begins, in tiles, and the way it faces; on the floor of deck `on`, or the
+ *  highest floor there with none given */
+export function finishLevel(start?: [number, number, number], on?: Deck) {
   const { b, decks } = C();
   const X = (D: Deck, tx: number) => D.org[0] + tx * T, Z = (D: Deck, tz: number) => D.org[1] + tz * T;
   /** plan position of deck-local metres */
@@ -609,9 +611,18 @@ export function finishLevel(start?: [number, number, number]) {
       }
     }
     /* floors under an upper deck: a slab under every tile that is not a hole (or air over a room below that reaches up
-       through it: the street's cavern under its own sky, not a flat's ceiling), row by row */
+       through it: the street's cavern under its own sky, not a flat's ceiling), row by row. A stair's opening on the way
+       down is no room: what reaches up is the room it is cut in (the retreat's stair, in the lobby's floor), or else the
+       one it opens from below (the grand stair's, over the lobby) */
+    const roomOver = (L: Deck, k: number): TRoom | null => {
+      const R = roomAtTile(L, k);
+      if (!R?.hole) return R;
+      const i = k % L.W, j = Math.floor(k / L.W);
+      return L.rooms.find(q => !q.hole && !q.shaped && i >= q.x && i < q.x + q.w && j >= q.y && j < q.y + q.h) ?? null;
+    };
     const through = (k: number) => {
-      const lo = dnAt(D, k), R = lo && roomAtTile(lo, k);
+      let lo = dnAt(D, k), R = lo && roomOver(lo, k);
+      while (lo && !R) { lo = dnAt(lo, k); R = lo && roomOver(lo, k); }
       return !!R && lo!.y0 + R.ht > D.y0 + 0.01;
     };
     if (D.below) {
@@ -762,7 +773,7 @@ export function finishLevel(start?: [number, number, number]) {
     for (const u of D.uses) b.use(u.kind, X(D, u.x), floorY(D, u.x * T, u.z * T) + u.y, Z(D, u.z), u.o);
     for (const [name, [ax, az, yaw]] of Object.entries(D.marks)) b.mark(name, X(D, ax), floorY(D, ax * T, az * T), Z(D, az), yaw);
   }
-  if (start) b.start(X(decks[0], start[0]), Z(decks[0], start[1]), start[2]);
+  if (start) b.start(X(decks[0], start[0]), Z(decks[0], start[1]), start[2], on ? floorY(on, start[0] * T, start[1] * T) : undefined);
   const level = b.finish();
   cur = null;
   return level;
