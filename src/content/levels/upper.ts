@@ -224,9 +224,11 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   tbl(D, 36.5, 9.8, 2.6, 1.4, 0x4a3a2c); bx(D, 36.5, 9.8, 2.2, 0.01, 1.1, 0xd8d4c4, { y: 0.76, c: 0 }); // the plan of the floor, pinned out
   shelf(D, 41.7, 5, 0.5, 2.4, { cols: [0x4d5a66, 0x7a4a34, 0x8a7a4a] });
   note(D, 'cams', 36.2, 3.88, 1.16); item(D, 'batt', 40.6, 7.55, 0.16, 2); item(D, 'ammo9', 35.5, 11.5, 0.02);
-  /* South off the wing: the locker room, the survivors' back way into the muster hall (a door at each end), and the
-     infirmary. */
+  /* South off the wing: the locker room, the survivors' back way into the muster hall (a door at each end, down the
+     aisle between the banks), and the infirmary. The back door is the wing's, on its feed like the room: cut, it slides
+     by hand; and it makes the level's first loop, the wing to the hall by the atrium or by the lockers */
   room(D, 'Locker room', 21, 17, 8, 9, { ...SEC, c: 'SEC', safe: 1 }); door(D, 24, 16, { sg: [['Lockers', 'n']] });
+  door(D, 24, 26, { c: 'SEC', sg: [['Lockers', 's']] });
   /* its wall on the corridor a partition, a strip of glass along its top sharing the corridor's light */
   partition(D, 21, 16, 8, 1); for (const x of [21, 22, 26, 27, 28]) door(D, x, 16, { seal: true, glass: true, glaze: 'high' });
   for (const z of [19.5, 22.5]) for (const x of [22.4, 26.6]) { bx(D, x, z, 5.6, 2, 1, 0x4d5a66); bx(D, x, z, 5.64, 0.05, 1.04, 0x3a444c, { y: 2, c: 0 }); }
