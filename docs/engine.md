@@ -323,7 +323,7 @@ corpse worth throwing.
   motions, reach, damage, the poise it takes, and its armour while winding up and while striking. Yours are worked
   out from what you hold (`swingOf`: the poise a full blow takes, the step it carries you, the recovery when it meets
   nothing). The two sides still run their own code for the motions
-  (`combat.ts`, `updateHands`; `cast.ts`, `blowStep`), but read the same kind of data and the same ladder.
+  (`combat.ts`, `updateHands`; `cast/blows.ts`, `blowStep`), but read the same kind of data and the same ladder.
 - **The ladder**: `react(left, max, hit, armour)`. A hit takes poise. Broken: **stagger** (it reels, open; its poise
   comes back whole). Not broken, but more than the armour of the part it is in: **flinch** (a wind-up or a strike on
   its way is lost). Otherwise **none**. Poise comes back once left alone a second, at half the whole a second. A blow
@@ -494,7 +494,7 @@ corpse worth throwing.
 
 ### The cast by velocity, as built
 
-- **One way of moving** (`cast.ts`, `drive`): whatever a behaviour does, it does by wanting a velocity, and the body
+- **One way of moving** (`cast/move.ts`, `drive`): whatever a behaviour does, it does by wanting a velocity, and the body
   speeds toward it as fast as its kind changes pace: a skitter 40 m/s² (at once), a husk 18, a swimmer 10, a thresher
   10, a worm 8, the hand 8, a bloat 3. Once a step: what the behaviours asked for, or, if none moved it (standing,
   winding up, reeling, down, stunned), coming to a stop on its own feet. Faster than it wants to go (knocked, thrown,
@@ -628,7 +628,7 @@ fall loose; corpses stay in the world (knocked about, saved); knockdowns as ragd
   sixteen falling at once cost about 1 ms a step together (60 µs each), 0.85 ms settling, nothing asleep. Forty husks
   killed together in a heap 5 m across, 2.5 ms a step while they fall (all awake, the budget waiting for them to land),
   all asleep within 2.5 s; walking through the heap, 0.7 ms.
-- **Knocked down, loose** (step 3). A husk, a thresher or the hand floored (`cast.ts`, `floored`) goes down as a body
+- **Knocked down, loose** (step 3). A husk, a thresher or the hand floored (`cast/blows.ts`, `floored`) goes down as a body
   gone loose, carrying the blow that floored it, as a corpse does a killing one (less the throw, which the fight has
   given its body already). The fight is untouched: its body (the upright cylinder) is still where the rules have it,
   sliding on the knock, slamming into walls, getting up when `m.down` and `m.rise` say; the loose body is drawn after
@@ -829,7 +829,7 @@ As built in step 5 (`world/nav.ts`, `sim/fields.ts`):
 - **Flow fields to the player**, one for each kind of body and one for sound, by Dijkstra over the graph. One is
   refreshed each step in turn (about 2.5 ms each on the upper station's 7,600 spots), so each is at most four steps
   old and no step pays for all of them. A roam (a husk keeping its rounds) gets a field of its own to a room lit as
-  the power stands, picked at random, one new route a step across the whole cast (`rounds` in `sim/cast.ts`).
+  the power stands, picked at random, one new route a step across the whole cast (`rounds` in `sim/cast/move.ts`).
   One standing in the dark makes for the nearest lit room it can get to as the doors stand now (a locked door bars it),
   and with none keeps still until the light comes.
 - **Agreed: mutants use stairs and elevators.** Stairs, ramps, walkways and drops are walked like any floor.
@@ -845,7 +845,7 @@ As built in step 5 (`world/nav.ts`, `sim/fields.ts`):
 
 ## 8. Perception
 
-As built in step 5 (`sim/cast.ts`), the first engine's senses on the new world:
+As built in step 5 (`sim/cast/senses.ts`), the first engine's senses on the new world:
 
 - **Sight** is a raycast from its eye to yours through the world model (walls, shut doors, crates and props hide you;
   bodies do not), within a range scaled by how visible you are: the light where you stand (`Lighting`), your own light,
@@ -872,7 +872,7 @@ components, not code threaded through the frame loop:
   Collision, pathing and sight learn a door's state from its mover, never from a special case. A window is a door too: sealed,
   and glass (`DoorDef.glass`), so it stops what moves while every sight check (the cast's, the cameras', your flashlight's)
   looks through it; it is drawn as a tinted pane.
-- **The staff's drill** (`world.md` §8): a breaker opened by hand starts a drill (`drill` in `sim/cast.ts`): each husk it
+- **The staff's drill** (`world.md` §8): a breaker opened by hand starts a drill (`drill` in `sim/cast/husk.ts`): each husk it
   leaves in the dark is given a time to go (a quarter at once, the rest between 30 s and 180 s, later more likely), and goes
   to the board to throw it back if it is still in the dark then (state `fix`). Saves keep the drills.
 - **Interaction**: anything with `interactable` is found by one query (in reach, in view, unobstructed), as today's
@@ -887,7 +887,7 @@ components, not code threaded through the frame loop:
   every way in, which `test/eyes.test.ts` checks; the cast leave armed rooms out of their rounds. An alarm keeps a route
   to its speaker and how far its sound carries (both made once, when it starts, and again on load); each time the
   klaxon goes round, every husk in earshot that is not hunting takes the state `answer` and hurries the route (its own
-  copy) at 2.6 m/s, 3.4 with another in sight hurrying too (`ANSWER` in `sim/cast.ts`). Each round also locks the zone
+  copy) at 2.6 m/s, 3.4 with another in sight hurrying too (`ANSWER` in `sim/cast/husk.ts`). Each round also locks the zone
   down: a door is in the zones of the rooms either side of it (`RoomDef.zone`, `doorZones`), and each in the zone that
   can move with the power it has is drawn (`Door.drawing`, `LOCKDOWN.draw`) and then bolted (`Door.down`, which
   `locked` counts, so it blocks the cast's ways too) while an alarm in one of its zones sounds and it keeps its power.
