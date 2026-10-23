@@ -1,19 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { STATION } from '../src/content/station';
-import { buildUpper } from '../src/content/levels/upper';
 import { makeSim, step, type Sim } from '../src/sim/sim';
-import { noInput, type Input } from '../src/sim/input';
+import { noInput } from '../src/sim/input';
 import { power } from '../src/sim/game';
 import { eyeHeight } from '../src/sim/player';
-import { STEP } from '../src/core/loop';
 import type { Usable } from '../src/sim/interact';
 import { circle } from '../src/world/shapes';
+import { fresh, hold, upper } from './kit';
 
 /* The upper station's gates, played headless through the real interaction: stand near a thing, look at it, press E. */
 
-const level = buildUpper(STATION.ladders);
-const fresh = () => makeSim(level, { seed: 7, station: STATION });
-const hold = (s: Sim, secs: number, inp: Partial<Input> = {}) => { for (let t = 0; t < secs; t += STEP) step(s, { ...noInput(), ...inp }); };
+const level = upper();
 const said = (s: Sim) => s.game.events.filter(e => e.type === 'say').map(e => (e as { text: string }).text);
 
 /** the usable whose label matches, nearest to (x, z) if given */

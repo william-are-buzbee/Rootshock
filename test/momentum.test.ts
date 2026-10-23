@@ -4,6 +4,7 @@ import { STEP } from '../src/core/loop';
 import { push } from '../src/sim/body';
 import { noInput, type Input } from '../src/sim/input';
 import { makeSim, step, type Sim } from '../src/sim/sim';
+import { hold } from './kit';
 
 /* Momentum and solid bodies (engine.md §6, F1 and F1b). A corridor running east from x 0, 30 m long; you start at x 1
    facing east. Whatever of the cast is put in it stands still (stunned), so what moves it is you. */
@@ -17,9 +18,6 @@ function course(build: (b: LevelBuilder) => void = () => {}): Sim {
   s.game.hp = 1e9;
   return s;
 }
-const hold = (sim: Sim, secs: number, inp: Partial<Input> = {}) => {
-  for (let t = 0; t < secs; t += STEP) step(sim, { ...noInput(), ...inp });
-};
 const east = { forward: 1 };
 const speed = (s: Sim) => Math.hypot(s.player.body.vx, s.player.body.vz);
 

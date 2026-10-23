@@ -1,16 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { STATION } from '../src/content/station';
-import { buildUpper } from '../src/content/levels/upper';
 import { makeSim, type Sim } from '../src/sim/sim';
 import { power } from '../src/sim/game';
 import { Lighting } from '../src/world/light';
 import { Prints } from '../src/present/render/prints';
+import { upper } from './kit';
 
 /* Footprints (present/render/prints.ts), headless: wet ones after water, red ones after blood, a pace apart; the cast's
    too; a print on one already there grows it. */
 
-const level = buildUpper(STATION.ladders);
+const level = upper();
 type Print = { x: number; z: number; stuff: 'wet' | 'red' | 'green'; k: number; w: number; l: number };
 const list = (p: Prints) => (p as unknown as { list: Print[] }).list;
 

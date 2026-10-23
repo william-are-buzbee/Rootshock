@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { STATION } from '../src/content/station';
-import { buildUpper } from '../src/content/levels/upper';
-import { makeSim, step, type Sim } from '../src/sim/sim';
+import { step, type Sim } from '../src/sim/sim';
 import { noInput, type Input } from '../src/sim/input';
 import { STEP } from '../src/core/loop';
 import { give, power } from '../src/sim/game';
@@ -9,13 +8,12 @@ import { EYES, LOCKDOWN, doorZones, onScreen, soundZone } from '../src/sim/eyes'
 import { doorAct, doorLabel, findUsable } from '../src/sim/interact';
 import { load, save } from '../src/sim/save';
 import { free } from '../src/sim/cast';
+import { fresh, hold, upper } from './kit';
 
 /* Security's eyes and voice (sim/eyes.ts), on the upper station: cameras guard the armed rooms they hang in, and hold
    you moving there sound their zone; every husk that hears it hurries to it. */
 
-const level = buildUpper(STATION.ladders);
-const fresh = () => makeSim(level, { seed: 7, station: STATION });
-const hold = (s: Sim, secs: number) => { for (let t = 0; t < secs; t += STEP) step(s, noInput()); };
+const level = upper();
 const place = (s: Sim, x: number, y: number, z: number) => { const b = s.player.body; b.x = x; b.y = y; b.z = z; b.vx = b.vy = b.vz = 0; b.sync(); };
 const sounded = (s: Sim, name: string) => s.game.events.some(e => e.type === 'sfx' && e.name === name);
 const camIn = (s: Sim, room: string) => s.cams.find(c => s.world.roomAt(c.def.x, c.def.y - 1, c.def.z)?.name === room)!;

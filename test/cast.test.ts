@@ -1,20 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { STATION } from '../src/content/station';
-import { buildUpper } from '../src/content/levels/upper';
-import { makeSim, simLighting, step, type Sim } from '../src/sim/sim';
-import { noInput, type Input } from '../src/sim/input';
+import { simLighting, step, type Sim } from '../src/sim/sim';
+import { noInput } from '../src/sim/input';
 import { STEP } from '../src/core/loop';
 import { give } from '../src/sim/game';
 import { field, openRules } from '../src/world/nav';
 import { refreshFields } from '../src/sim/fields';
 import { hitMutant, rounds, type Mutant } from '../src/sim/cast';
 import { MOVES as BLOWS } from '../src/sim/moves';
+import { fresh, hold } from './kit';
 
 /* The cast on the upper station: the graph they walk, what they notice, how they follow, and what hurts them. */
 
-const level = buildUpper(STATION.ladders);
-const fresh = (seed = 7) => makeSim(level, { seed, station: STATION });
-const hold = (s: Sim, secs: number, inp: Partial<Input> = {}) => { for (let t = 0; t < secs; t += STEP) step(s, { ...noInput(), ...inp }); };
 /** put a body somewhere and let the world know */
 function place(s: Sim, who: Mutant | 'player', x: number, y: number, z: number): void {
   const b = who === 'player' ? s.player.body : who.body!;

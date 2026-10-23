@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { LevelBuilder } from '../src/content/build/builder';
-import { STEP } from '../src/core/loop';
-import { noInput, type Input } from '../src/sim/input';
+import { noInput } from '../src/sim/input';
 import { BUDGET } from '../src/sim/loose';
 import { AIR } from '../src/sim/player';
 import { makeSim, step, type Sim } from '../src/sim/sim';
+import { hold } from './kit';
 
 function level(build: (b: LevelBuilder) => void, start: [number, number, number] = [1, 1, -Math.PI / 2]): Sim {
   const b = new LevelBuilder('t', 'T');
@@ -12,9 +12,6 @@ function level(build: (b: LevelBuilder) => void, start: [number, number, number]
   b.start(start[0], start[1], start[2]);
   return makeSim(b.finish());
 }
-const hold = (sim: Sim, secs: number, inp: Partial<Input> = {}) => {
-  for (let t = 0; t < secs; t += STEP) step(sim, { ...noInput(), ...inp });
-};
 
 describe('doors', () => {
   /* two rooms joined by a doorway at x 6..6.25, the door in it */

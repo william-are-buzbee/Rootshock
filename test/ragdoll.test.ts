@@ -10,6 +10,7 @@ import { load, save } from '../src/sim/save';
 import { makeSim, simLighting, step, type Sim } from '../src/sim/sim';
 import { BUILD, CastView } from '../src/present/render/castView';
 import { RIG, Rigged } from '../src/present/render/rig';
+import { hold } from './kit';
 
 /* Corpses that fall loose (engine.md §6, bodies with physics). */
 
@@ -18,7 +19,6 @@ const arena = (lv = testbed()): Sim => {
   b.x = 8; b.z = -3; b.y = 0; b.sync(); s.player.yaw = 0; s.game.god = true;
   return s;
 };
-const hold = (s: Sim, secs: number, inp: Partial<Input> = {}) => { for (let t = 0; t < secs; t += STEP) step(s, { ...noInput(), ...inp }); };
 /** one of the cast stood still at (x, y, z) facing yaw, a few steps to find its feet */
 const stood = (s: Sim, type: string, x: number, y: number, z: number, yaw = Math.PI / 2): Mutant => {
   const m = spawn(s, type, x, y, z)!;

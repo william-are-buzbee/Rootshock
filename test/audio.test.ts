@@ -2,12 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { STATION } from '../src/content/station';
 import { levelDef } from '../src/sim/run';
 import { testbed } from '../src/content/levels/testbed';
-import { makeSim, step, type Sim } from '../src/sim/sim';
-import { noInput, type Input } from '../src/sim/input';
+import { makeSim, type Sim } from '../src/sim/sim';
 import { STEP } from '../src/core/loop';
 import { refreshFields } from '../src/sim/fields';
 import { ambientFor, genAt, hearing, legacyFloor, roomAir, spaceOf, underfoot } from '../src/present/soundscape';
 import { flickerAt } from '../src/present/flicker';
+import { hold } from './kit';
 
 /* What the sound is told: what feet fall on, how a sound comes to you through the rooms, and the landings and jumps. The
    synthesis itself needs a browser; where a sound is does not. */
@@ -15,7 +15,6 @@ import { flickerAt } from '../src/present/flicker';
 const sim = (id: string) => makeSim(levelDef(STATION, id), { seed: 7, station: STATION });
 /** a crate: the station has none lying about now; the testbed's arena keeps them */
 const bed = () => makeSim(testbed(), { seed: 7, station: STATION }), crate = () => bed().loose.all[0];
-const hold = (s: Sim, secs: number, inp: Partial<Input> = {}) => { for (let t = 0; t < secs; t += STEP) step(s, { ...noInput(), ...inp }); };
 const sounds = (s: Sim, name: string) => s.game.events.filter(e => e.type === 'sfx' && e.name === name) as { k?: number }[];
 
 describe('feet', () => {

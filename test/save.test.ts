@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { STATION } from '../src/content/station';
-import { buildUpper } from '../src/content/levels/upper';
 import { makeSim, step, type Sim } from '../src/sim/sim';
 import { noInput, type Input } from '../src/sim/input';
 import { load, save } from '../src/sim/save';
 import { give } from '../src/sim/game';
+import { upper } from './kit';
 
 /* A save is everything that can change; loaded, a run plays on exactly as it would have. */
 
-const level = buildUpper(STATION.ladders);
+const level = upper();
 const opts = { seed: 5, station: STATION };
 /** a walk about the place that does a bit of everything: turning, running, crouching, the light, swinging */
 const script = (k: number): Input => ({

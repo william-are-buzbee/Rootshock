@@ -3,8 +3,9 @@ import { LevelBuilder } from '../src/content/build/builder';
 import { STEP } from '../src/core/loop';
 import type { Mutant } from '../src/sim/cast';
 import { give } from '../src/sim/game';
-import { noInput, type Input } from '../src/sim/input';
+import { noInput } from '../src/sim/input';
 import { makeSim, step, type Sim } from '../src/sim/sim';
+import { hold } from './kit';
 
 /* What a blow carries, and what a body thrown into something takes (engine.md §6, F3a). A hall 20 by 12 m, its east
    wall at x 20; you face east. What is put in it stands still (stunned) and cannot die of these unless a test says. */
@@ -18,9 +19,6 @@ function hall(build: (b: LevelBuilder) => void = () => {}, at: [number, number] 
   s.game.hp = 1e9;
   return s;
 }
-const hold = (s: Sim, secs: number, inp: Partial<Input> = {}) => {
-  for (let t = 0; t < secs; t += STEP) step(s, { ...noInput(), ...inp });
-};
 /** what a blow (or whatever the steps do) took from it */
 const lost = (m: Mutant) => m.max - m.hp;
 const AXE_REACH = 0.8 + 0.9;

@@ -1,17 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { STATION } from '../src/content/station';
-import { buildUpper } from '../src/content/levels/upper';
-import { looseLights, makeSim, step, type Sim } from '../src/sim/sim';
-import { noInput, type Input } from '../src/sim/input';
+import { looseLights, step, type Sim } from '../src/sim/sim';
+import { noInput } from '../src/sim/input';
 import { STEP } from '../src/core/loop';
 import { ROUND, type Mutant } from '../src/sim/cast';
+import { fresh, hold, upper } from './kit';
 
 /* The night round (world.md §8): one of the changed still walking the night shift's round with its flashlight on. It walks
    the dark by its beam, tries the readers on its round with its card, and its beam lights you for anything that sees. */
 
-const level = buildUpper(STATION.ladders);
-const fresh = (seed = 7) => makeSim(level, { seed, station: STATION });
-const hold = (s: Sim, secs: number, inp: Partial<Input> = {}) => { for (let t = 0; t < secs; t += STEP) step(s, { ...noInput(), ...inp }); };
+const level = upper();
 function place(s: Sim, who: Mutant | 'player', x: number, y: number, z: number): void {
   const b = who === 'player' ? s.player.body : who.body!;
   b.x = x; b.y = y; b.z = z; b.vx = b.vz = 0; b.vy = 0; b.sync();

@@ -1,17 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { STATION } from '../src/content/station';
-import { buildUpper } from '../src/content/levels/upper';
 import { levelDef } from '../src/sim/run';
 import { makeSim } from '../src/sim/sim';
 import { doorBox } from '../src/sim/movers';
 import { MT } from '../src/sim/cast';
 import { NARROW } from '../src/content/build/tiles';
 import { checkProgress } from '../src/sim/progress';
+import { upper } from './kit';
 
 /* Doors by where they are (world.md §1, *The station as built*; engine.md §15): what each looks like, and that a door
    sliding into its wall goes into rock, not into a room or another doorway. */
 
-const level = buildUpper(STATION.ladders);
+const level = upper();
 /** the door whose sign reads `text` */
 const signed = (text: string) => {
   const g = level.signs.find(q => q.text === text)!;

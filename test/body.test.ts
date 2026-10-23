@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { LevelBuilder } from '../src/content/build/builder';
-import { STEP } from '../src/core/loop';
-import { noInput, type Input } from '../src/sim/input';
+import { noInput } from '../src/sim/input';
 import { makeSim, step, type Sim } from '../src/sim/sim';
 import { CROUCH } from '../src/sim/player';
+import { hold } from './kit';
 
 /* A corridor running east from x 0 with things in the way. The player starts at x 1 facing east (yaw -PI/2). */
 function course(build: (b: LevelBuilder) => void): Sim {
@@ -13,9 +13,6 @@ function course(build: (b: LevelBuilder) => void): Sim {
   b.start(1, 1, -Math.PI / 2);
   return makeSim(b.finish());
 }
-const hold = (sim: Sim, secs: number, inp: Partial<Input> = {}) => {
-  for (let t = 0; t < secs; t += STEP) step(sim, { ...noInput(), ...inp });
-};
 const east = { forward: 1 };
 
 describe('the body', () => {

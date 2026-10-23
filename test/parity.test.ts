@@ -1,17 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { STATION } from '../src/content/station';
-import { buildUpper } from '../src/content/levels/upper';
-import { makeSim, step, type Sim } from '../src/sim/sim';
-import { noInput, type Input } from '../src/sim/input';
+import { step, type Sim } from '../src/sim/sim';
+import { noInput } from '../src/sim/input';
 import { STEP } from '../src/core/loop';
 import { give, hurt } from '../src/sim/game';
 import type { Mutant } from '../src/sim/cast';
+import { fresh, hold } from './kit';
 
 /* Step 6: the things the parity audit found the first engine did and v2 did not, held to the first engine's way. */
 
-const level = buildUpper(STATION.ladders);
-const fresh = () => makeSim(level, { seed: 7, station: STATION });
-const hold = (s: Sim, secs: number, inp: Partial<Input> = {}) => { for (let t = 0; t < secs; t += STEP) step(s, { ...noInput(), ...inp }); };
 const sounds = (s: Sim, name: string) => s.game.events.filter(e => e.type === 'sfx' && e.name === name) as { d?: number }[];
 /** the door from the Lobby into the wing's corridor, x 31: dead with the wing, so slid open by hand and left */
 function openLobbyDoor(s: Sim): void {
