@@ -1,7 +1,7 @@
 import { PI, type Colour } from '../../core/math';
 import type { LevelDef, LadderDef } from '../types';
 import {
-  arch, beginLevel, bx, cave, door, elev, finishLevel, flight, item, ladder, mkDeck, mut, note, P, partition, roughen, room, stack, stairs, use, type Deck, type LevelInfo, type TRoomOpts,
+  arch, beginLevel, bx, cave, colT, door, elev, finishLevel, flight, item, ladder, mkDeck, mut, note, P, partition, roughen, room, stack, stairs, use, type Deck, type LevelInfo, type TRoomOpts,
 } from '../build/tiles';
 import {
   BAY, FAM, MED, OFF, OPS, SEC, UTIL, WALK, blood, callPoint, camera, container, corpse, desk, eggs, exitSign, forklift, genset, gore, grandStair, liftRoom, medbed, monitors, panel, POLE, shelf, speaker, tbl,
@@ -82,7 +82,10 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   const LG: TRoomOpts = { ...WALK, ht: 8, c: 'SEC', fl: FAM.fl, wl: FAM.wl, mat: { floor: 'terrazzo', wall: 'stone', upper: 'plaster', datum: 3.2 } };
   room(T1, 'Lobby gallery', 1, 12, 19, 1, LG); room(T1, 'Lobby gallery', 12, 13, 8, 1, LG);
   grandStair(D, T1, 9, 6, 4, 6, 's');
-  bx(D, 10.5, 7, 38, 0.06, 24, [0.1, 0.1, 0.1], { y: 12.94, c: 0, pw: [[0.08, 0.08, 0.09], [2.85, 2.82, 2.72]], pc: 'SEC' }); // the false sky: emitting (2 + its colour), with power
+  /* the false sky: emitting (2 + its colour), with power. A diffuser hung under the roof, wall to wall and over the
+     strip by the gallery too, deep enough that the light fittings and air grilles are behind it: their light comes
+     through it, and they are not seen */
+  for (const [x, z, w, d] of [[10.5, 7, 38, 24], [16, 13.5, 16, 2]] as const) bx(D, x, z, w, 0.18, d, [0.1, 0.1, 0.1], { y: 12.82, c: 0, pw: [[0.08, 0.08, 0.09], [2.85, 2.82, 2.72]], pc: 'SEC' });
   /* the statue: a plinth, and a figure in bronze looking up at the false sky */
   bx(D, 11, 3.2, 3.4, 1.1, 3.4, 0x9a9384); bx(D, 11, 3.2, 3.6, 0.12, 3.6, 0x7d776a, { y: 1.1, c: 0 });
   for (const dx of [-0.25, 0.25]) bx(D, 11 + dx / 2, 3.2, 0.42, 2.1, 0.5, 0x6b5a3a, { y: 1.22 });
@@ -182,7 +185,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   bx(B, 28.5, 10.84, 5, 0.88, 0.6, 0x5a5e60); bx(B, 28.5, 10.83, 5.1, 0.04, 0.66, 0x8a8e8c, { y: 0.88, c: 0 }); bx(B, 28.5, 10.91, 5, 0.7, 0.35, 0x5a5e60, { y: 1.6, c: 0 });
   bx(B, 31.4, 10.82, 0.8, 1.9, 0.7, 0xb8bcc0);
   tbl(B, 28.4, 7.2, 2.4, 1.2, 0x6b5a48); for (const [x, z] of [[28, 6.65], [28.8, 6.65], [28, 7.75], [28.8, 7.75]]) bx(B, x, z, 0.45, 0.45, 0.45, 0x3a3d40);
-  for (const [x, z] of [[26.4, 9.4], [26.4, 10.4]]) { P(B, 'cyl', x, z, 0.5, 0.5, 0.5, 0x8a6a4a); P(B, 'ico', x, z, 0.8, 0.5, 0.8, 0x5a4a34, { y: 0.5, c: 0 }); }
+  for (const [x, z] of [[26.4, 7.6], [26.4, 8.5]]) { P(B, 'cyl', x, z, 0.5, 0.5, 0.5, 0x8a6a4a); P(B, 'ico', x, z, 0.8, 0.5, 0.8, 0x5a4a34, { y: 0.5, c: 0 }); } // clear of the door to the retreat
   /* the stair up to the station, wide, against the east wall; by its foot a flashlight, out, where somebody dropped it */
   stairs(B, D, 31, 4, 5, 's'); stairs(B, D, 32, 4, 5, 's'); exitSign(B, 32.9875, 4.6, 3, 'w'); // on the wall the stair climbs
   item(B, 'flash', 32.3, 1.5, 0.02);
@@ -224,9 +227,11 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   tbl(D, 36.5, 9.8, 2.6, 1.4, 0x4a3a2c); bx(D, 36.5, 9.8, 2.2, 0.01, 1.1, 0xd8d4c4, { y: 0.76, c: 0 }); // the plan of the floor, pinned out
   shelf(D, 41.7, 5, 0.5, 2.4, { cols: [0x4d5a66, 0x7a4a34, 0x8a7a4a] });
   note(D, 'cams', 36.2, 3.88, 1.16); item(D, 'batt', 40.6, 7.55, 0.16, 2); item(D, 'ammo9', 35.5, 11.5, 0.02);
-  /* South off the wing: the locker room, the survivors' back way into the muster hall (a door at each end), and the
-     infirmary. */
+  /* South off the wing: the locker room, the survivors' back way into the muster hall (a door at each end, down the
+     aisle between the banks), and the infirmary. The back door is the wing's, on its feed like the room: cut, it slides
+     by hand; and it makes the level's first loop, the wing to the hall by the atrium or by the lockers */
   room(D, 'Locker room', 21, 17, 8, 9, { ...SEC, c: 'SEC', safe: 1 }); door(D, 24, 16, { sg: [['Lockers', 'n']] });
+  door(D, 24, 26, { c: 'SEC', sg: [['Lockers', 's']] });
   /* its wall on the corridor a partition, a strip of glass along its top sharing the corridor's light */
   partition(D, 21, 16, 8, 1); for (const x of [21, 22, 26, 27, 28]) door(D, x, 16, { seal: true, glass: true, glaze: 'high' });
   for (const z of [19.5, 22.5]) for (const x of [22.4, 26.6]) { bx(D, x, z, 5.6, 2, 1, 0x4d5a66); bx(D, x, z, 5.64, 0.05, 1.04, 0x3a444c, { y: 2, c: 0 }); }
@@ -454,7 +459,156 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   /* the other patient, at their window in room 2, and where they crouch to hide (under the sill). Listed after the night
      round, last of all */
   mut(D, 'patient', 0, 0, { at: { D: B, x: 34.4, z: 4.5 }, yaw: -PI / 2, state: 'wait', hide: { D: B, x: 34.3, z: 4.45 } });
-  return finishLevel([23.6, 4.5, PI / 2]); // in isolation room 1, by the bed, turned to the pump; the window behind you
+  buildHub(B, D, T1, T2); // last: everything built before it keeps its place in the level's lists
+  return finishLevel([23.6, 4.5, PI / 2], B); // in isolation room 1, by the bed, turned to the pump; the window behind you (arrivals and the plant stair are over it)
+}
+
+/* The lobby as the upper station's hub (world.md §8, *The lobby as a hub*): every way off it but the corridor's door
+   and the grand stair is here. East, arrivals: the desk the lobby opens onto, and screening behind it, which opens onto
+   the nurses' station. Below, the family's retreat: a stair down from the lobby's north-west corner to a lounge, its
+   humidor and a pool, and a passage on to the isolation suite, the retreat's second way out. Over the wing at +5, a
+   corridor from the lobby's gallery to the atrium's, the mess and administration off it, and the stair to the air
+   plant, which climbs on into the space over the false sky. Behind the bar, the kitchen, and a passage round the back
+   of the shaft to goods inward. All of it on the wing's feed, dark until the cut is mended, and in the wing's zone. */
+function buildHub(B: Deck, D: Deck, T1: Deck, T2: Deck): void {
+  const wing = { c: 'SEC', em: 1, zone: 'wing' };
+  /* shelving with its goods in fixed places (shelf() draws them at random, and would move everything drawn after) */
+  const rack = (Dk: Deck, x: number, z: number, w: number, d: number, cols: number[]) => {
+    const ns = d > w, L = ns ? d : w;
+    for (const y of [0.1, 0.55, 1, 1.45, 1.86]) bx(Dk, x, z, w, 0.04, d, 0x4a4d50, { y, c: 0 });
+    for (const s of [-1, 1]) bx(Dk, x + (ns ? 0 : (s * (L / 2 - 0.02)) / 2), z + (ns ? (s * (L / 2 - 0.02)) / 2 : 0), ns ? w : 0.04, 1.9, ns ? 0.04 : d, 0x3a3d40, { c: 0 });
+    [0.14, 0.59, 1.04, 1.49].forEach((y, b) => {
+      for (let k = 0; k < 4; k++) {
+        if ((k + b) % 3 === 0) continue;
+        const t = (-L / 2 + 0.1 + ((L - 0.2) / 4) * (k + 0.5)) / 2, s = 0.22, deep = Math.min(0.24, (ns ? w : d) - 0.08);
+        bx(Dk, x + (ns ? 0 : t), z + (ns ? t : 0), ns ? deep : s, 0.16 + ((k * 3 + b) % 4) * 0.04, ns ? s : deep, cols[(k + b) % cols.length], { y, c: 0, goods: true });
+      }
+    });
+    colT(Dk, x, z, w, d, 1.9);
+  };
+  const seat = (Dk: Deck, x: number, z: number, c: number) => { bx(Dk, x, z, 0.45, 0.45, 0.45, c); };
+  /* a screen on a desk, facing west or north (s -1) or east or south (s 1), lit with the wing */
+  const screen = (Dk: Deck, x: number, z: number, y: number, ew: boolean, s = -1) => {
+    bx(Dk, x, z, ew ? 0.06 : 0.5, 0.34, ew ? 0.5 : 0.06, 0x22262a, { y, c: 0 });
+    bx(Dk, x + (ew ? s * 0.02 : 0), z + (ew ? 0 : s * 0.02), ew ? 0.02 : 0.44, 0.28, ew ? 0.44 : 0.02, [0.04, 0.05, 0.05], { y: y + 0.03, c: 0, pw: [[0.04, 0.05, 0.05], [2.2, 2.75, 2.5]], pc: 'SEC' });
+  };
+  const planter = (Dk: Deck, x: number, z: number) => {
+    bx(Dk, x, z, 1.2, 0.8, 1.2, 0x6e6a62);
+    for (let k = 0; k < 4; k++) P(Dk, 'ico', x + Math.cos(k * 1.7) * 0.15, z + Math.sin(k * 1.7) * 0.15, 0.2, 0.9 + k * 0.2, 0.2, 0x5a4a2e, { y: 0.8, c: 0 });
+  };
+
+  /* Arrivals. The lobby's east wall opens on the desk where crews on rotation and visitors checked in: the customer's
+     side of the station, its finish already less than the lobby's (carpet and paint, not stone). Behind the desk, the
+     door to screening, where everyone arriving or leaving was looked over for exposure; it opens onto the nurses'
+     station, which is why the isolation suite is a stair from the front door */
+  const CK: TRoomOpts = { ...OFF, ...wing, ht: 4, fl: 0x6a6258, wl: 0xa39a8a, st: 0x7a5a30, lc: [0.92, 0.86, 0.74], mat: { floor: 'carpet', wall: 'plaster', ceiling: 'tiles' } };
+  room(D, 'Check-in hall', 21, 1, 5, 4, CK); room(D, 'Check-in hall', 20, 2, 1, 2, { ...CK, mat: FAM.mat }); // the opening, in the lobby's stone
+  bx(D, 22.6, 2.9, 0.7, 1.05, 5.6, 0x8a8070, { mat: 'stone' }); bx(D, 22.6, 2.9, 0.8, 0.05, 5.7, 0x3a3026, { y: 1.05, c: 0 }); // the desk, facing the lobby
+  for (const z of [2.2, 3.6]) { screen(D, 22.72, z, 1.1, true, 1); seat(D, 23.3, z, 0x2c2f33); } // the staff's side, east
+  bx(D, 22.62, 2.9, 0.3, 0.18, 0.26, 0xb8bcc0, { y: 1.1, c: 0 }); // the badge printer
+  for (const z of [1.8, 2.6, 3.4, 4.2]) P(D, 'cyl', 21.55, z, 0.06, 0.95, 0.06, 0x8a7a4a); // the queue's posts, their tape gone
+  bx(D, 25.8, 2.9, 0.5, 0.9, 5.6, 0x5a5048); bx(D, 25.995, 2.9, 0.02, 0.9, 2.4, 0xd8d4c4, { y: 1.3, c: 0 }); // cabinets, and the rotation board over them
+  item(D, 'batt', 25.8, 2.1, 0.9);
+  partition(D, 21, 5, 5, 1); door(D, 23, 5, { sg: [['Screening', 'n']] });
+  room(D, 'Screening', 21, 6, 5, 2, { ...MED, ...wing }); door(D, 24, 8, { sg: [['Isolation', 'n'], ['Screening', 's']] });
+  for (const x of [21.8, 25.2]) { bx(D, x, 6.5, 2, 0.7, 0.8, 0xb8c4bd); bx(D, x - 0.35, 6.5, 0.5, 0.08, 0.6, 0xe2e2da, { y: 0.7, c: 0 }); } // couches, a pillow on each
+  desk(D, 23.1, 7.55, 1.2, 0.6, { bare: 1 }); screen(D, 23.1, 7.68, 0.76, false); seat(D, 23.1, 7.0, 0x2c2f33);
+  item(D, 'bandage', 22.88, 7.55, 0.76);
+
+  /* The retreat, a storey under the lobby: the family's, and their buyers'. A stair down from the lobby's north-west
+     corner, behind glass and planting, to a lounge panelled in wood (the family's indulgence: nothing else down here
+     burns), with a window that is a lit panel; off it the humidor, glazed, where the product line was sampled; through
+     the passage, a pool cut into the limestone; and the plant room that serves them. The passage goes on to the
+     isolation suite: the retreat's second way out, as fire code wants of a room below ground, and the family's private
+     door to their clinic. A plain door for now, on the wing's dead feed, slid by hand from either side */
+  /* one flight two tiles wide, stone like the grand stair, its lounge side a balustrade that rises with it to the lobby's
+     floor, where the glass takes over */
+  for (const k of [1, 2]) stairs(B, D, k, 3, 5, 's', true);
+  for (let q = 0, N = 20; q < N; q++) {
+    const sh = ((q + 1) / N) * 4.5, z = 3 + ((q + 0.5) / N) * 5, d = 10 / N; // 10 m of stair, 4.5 m of rise
+    bx(B, 1.92, z, 3.68, sh, d, q % 2 ? 0xb3ab9c : 0xa9a192, { c: 0, flush: true });
+    bx(B, 2.92, z, 0.32, Math.min(sh + 1.05, 4.5), d, 0x8f877a, { flush: true });
+  }
+  const GL: Colour = [0.55, 0.66, 0.7];
+  for (const [x, z, sx, sz] of [[3.03, 5.5, 0.06, 10], [2, 2.97, 4, 0.06]] as const) {
+    bx(D, x, z, sx, 1, sz, GL, { mat: 'glass' }); bx(D, x, z, sx > 1 ? sx : 0.07, 0.07, sz > 1 ? sz : 0.07, 0x5e4424, { y: 1, c: 0, mat: 'steel' });
+  }
+  planter(D, 3.7, 4.2); planter(D, 3.7, 6.2);
+  const RL: TRoomOpts = { ...wing, ht: 3.8, fl: 0x3e342a, wl: 0x5a4030, st: 0x7a5a30, lc: [0.95, 0.78, 0.55], mat: { floor: 'stone', wall: 'wood', ceiling: 'plaster' } };
+  room(B, 'Retreat lounge', 3, 1, 7, 8, RL); room(B, 'Retreat lounge', 1, 1, 2, 1, RL);
+  room(B, 'Retreat lounge', 1, 2, 2, 6, { ...RL, ht: 4.5, nolamp: 1 }); // the stairwell, open to the lobby over it
+  for (const z of [3.2, 6.4]) {
+    bx(B, 6.2, z, 1.6, 0.4, 0.9, 0x2a2420);
+    for (const s of [-1, 1]) { bx(B, 6.2, z + s * 0.9, 2.6, 0.45, 0.85, 0x6a3a2a); bx(B, 6.2, z + s * 1.16, 2.6, 0.9, 0.22, 0x5a3024, { c: 0 }); }
+    bx(B, 7.6, z, 0.85, 0.45, 0.85, 0x6a3a2a); bx(B, 7.86, z, 0.22, 0.9, 0.85, 0x5a3024, { c: 0 });
+  }
+  bx(B, 6.2, 1.15, 3, 0.85, 0.5, 0x4a3226); for (const x of [5.9, 6.1, 6.6]) P(B, 'cyl', x, 1.15, 0.1, 0.28, 0.1, 0x6a4a2a, { y: 0.85, c: 0 }); // the sideboard, its decanters
+  item(B, 'peaches', 5.5, 1.15, 0.85);
+  bx(B, 6, 8.985, 6, 1.6, 0.03, [0.06, 0.06, 0.07], { y: 0.8, c: 0, pw: [[0.06, 0.06, 0.07], [2.75, 2.82, 2.92]], pc: 'SEC' }); // the window: a lit panel of sky
+  for (const x of [4.515, 5.5, 6.5, 7.485]) bx(B, x, 8.965, 0.06, 1.6, 0.02, 0x3a2c22, { y: 0.8, c: 0 }); // its frame and mullions
+  for (const y of [0.8, 2.34]) bx(B, 6, 8.965, 6, 0.06, 0.02, 0x3a2c22, { y, c: 0 });
+  partition(B, 10, 1, 1, 4);
+  room(B, 'Humidor', 11, 1, 2, 4, { ...wing, ht: 3, fl: 0x4a3426, wl: 0x8a5a3a, st: 0x5a3a24, lc: [0.95, 0.8, 0.6], mat: { floor: 'wood', wall: 'wood', ceiling: 'wood' } });
+  door(B, 10, 2, { sg: [['Humidor', 'w']] }); for (const z of [1, 3, 4]) door(B, 10, z, { glass: true, glaze: 'full' });
+  for (const z of [2, 4]) rack(B, 12.75, z, 0.5, 2.6, [0x7a4a2a, 0x8a6a3a, 0x6a3a24, 0xa08a4a]);
+  /* the trial lots have taken: leaf out of the cedar, in shelves, as it comes out of the changed */
+  for (const [z, y] of [[1.7, 1.04], [2.3, 0.59], [3.8, 1.49], [4.4, 0.14]]) P(B, 'ico', 12.7, z, 0.36, 0.22, 0.3, 0x8a8a3a, { y, c: 0 });
+  tbl(B, 11.6, 3, 0.9, 1.6, 0x5a3e2a); bx(B, 11.6, 2.8, 0.25, 0.06, 0.18, 0x7a4a2a, { y: 0.76, c: 0 }); bx(B, 11.55, 3.2, 0.22, 0.05, 0.16, 0x8a6a3a, { y: 0.76, c: 0 });
+  const PH: TRoomOpts = { ...wing, ht: 4, fl: 0x9a968a, wl: 0x6a8a88, st: 0x3f6a6a, lc: [0.8, 0.9, 0.95], mat: { floor: 'stone', wall: 'glazed', ceiling: 'plaster' } };
+  room(B, 'Pool hall', 14, 1, 7, 8, PH);
+  room(B, 'Pool', 15, 2, 5, 5, { ...PH, dy: -1.5, ht: 5.5, fl: 0x4a8a9a, wl: 0x3a7a8a, mat: { floor: 'glazed', wall: 'glazed', ceiling: 'plaster' }, nolamp: 1 });
+  flight(B, 15, 5, 2, 2, -1.5, 0, 's', 6, 0x9a968a); // steps down into it at the shallow end
+  B.water.push([15, 2, 20, 7, -0.25]); // chest deep: you wade it
+  for (const z of [3, 4.5]) for (const x of [15.0075, 19.9925]) bx(B, x, z, 0.03, 0.18, 0.3, [0.1, 0.12, 0.12], { y: 0.5, c: 0, pw: [[0.1, 0.12, 0.12], [2.1, 2.6, 2.9]], pc: 'SEC' }); // its lights, under the water
+  for (const z of [2.5, 4.2, 5.9]) bx(B, 20.45, z, 0.7, 0.35, 1.9, 0xd8d4c4); // loungers
+  planter(B, 14.5, 1.7); planter(B, 14.5, 7.4);
+  room(B, 'Retreat plant', 1, 10, 7, 2, { ...UTIL, ...wing, noroam: 1 }); door(B, 8, 10, { sg: [['Plant room', 'e']] });
+  bx(B, 1.55, 11, 2, 1.8, 2.6, 0x6b6e70, { mat: 'steel' }); // the air handler against the wall, and the smoke extract's fan
+  for (const x of [4.4, 5.6]) P(B, 'cyl', x, 10.4, 1, 1.8, 1, 0x8a8a84, { mat: 'steel' }); // the pool's filters
+  for (const x of [4.2, 5.2]) P(B, 'cyl', x, 11.4, 0.7, 0.7, 0.7, 0x3d5a44, { mat: 'steel' }); // its pumps
+  bx(B, 7, 11.55, 1.6, 0.9, 0.7, 0x5a5048); item(B, 'adjwrench', 7, 11.55, 0.9);
+  const PS: TRoomOpts = { ...wing, ht: 3, fl: 0x5a5d5a, wl: 0x8a8e88, st: 0x3f7f6b, mat: { floor: 'vinyl', wall: 'plaster' } };
+  room(B, 'Retreat passage', 9, 10, 16, 2, PS);
+  door(B, 9, 9, { sg: [['Pool', 'n'], ['Lounge', 's']] }); door(B, 17, 9, { sg: [['Pool', 's']] });
+  door(B, 25, 10, { c: 'SEC', sg: [['Isolation', 'w'], ['Private', 'e']] }); exitSign(B, 24.9875, 10.5, 2.5, 'w'); // the fire exit, lit on its own battery
+
+  /* Over the wing, at +5: the floor world.md has long asked for. A corridor from the lobby's gallery to the atrium's,
+     so the wing can be gone round upstairs; off it the mess and the station's administration, and the stair up to the
+     plant that keeps the lobby's air */
+  const UC: TRoomOpts = { ...SEC, ...wing, ht: 3.5, mat: SKIM(SEC) };
+  room(T1, 'Upper corridor', 20, 9, 2, 5, UC); room(T1, 'Upper corridor', 22, 9, 17, 2, UC);
+  const PL: TRoomOpts = { ...UTIL, ...wing, ht: 3.5, noroam: 1 };
+  room(T1, 'Plant stair', 21, 2, 4, 6, PL); room(T1, 'Plant stair', 25, 2, 1, 6, { ...PL, ht: 7.5 }); // the stairwell, up to the plant
+  door(T1, 22, 8, { sg: [['Plant room', 's']] }); stairs(T1, T2, 25, 2, 5, 'n');
+  bx(T1, 21.6, 2.6, 1, 3.4, 1, 0x6b6e70, { mat: 'steel' }); // the lobby's air, in its riser
+  room(T1, 'Staff mess', 27, 2, 5, 6, { ...OFF, ...wing, mat: { floor: 'vinyl', wall: 'plaster', ceiling: 'tiles' } }); door(T1, 28, 8, { sg: [['Mess', 's']] });
+  for (const x of [28.2, 30.4]) for (const z of [4.2, 6.2]) { tbl(T1, x, z, 1.6, 0.8, 0x8a8e8c); for (const s of [-1, 1]) seat(T1, x, z + s * 0.45, 0x3a3d40); }
+  bx(T1, 28.5, 2.2, 4, 0.9, 0.6, 0x8a8e8c); bx(T1, 31.5, 2.25, 0.8, 1.9, 0.7, 0xb8bcc0); P(T1, 'cyl', 27.7, 2.2, 0.16, 0.24, 0.16, 0x2a2c2e, { y: 0.9, c: 0 }); // the counter, the fridge, a kettle
+  item(T1, 'ration', 28.2, 2.2, 0.9);
+  room(T1, 'Administration', 33, 2, 5, 6, { ...OFF, ...wing }); door(T1, 35, 8, { sg: [['Administration', 's']] });
+  for (const x of [34.5, 36.5]) for (const z of [3.5, 5.8]) { desk(T1, x, z, 1.4, 0.7, { bare: 1 }); screen(T1, x, z + 0.1, 0.76, false); seat(T1, x, z - 0.45, 0x2c2f33); }
+  for (const z of [3, 4, 5]) bx(T1, 37.75, z, 0.5, 1.3, 0.5, 0x5f6266); // filing
+  /* the air plant, at +10, and the space over the false sky: half a metre over the lobby's roof, a dark plenum of
+     grating between the backs of the ceiling's light boxes. Steps up into it from the plant, the whole length of the
+     room (any steeper and nothing that walks could follow you up) */
+  room(T2, 'Air plant', 21, 0, 5, 2, { ...UTIL, ...wing, ht: 6, noroam: 1 });
+  flight(T2, 21, 0, 4, 2, 0, 3.5, 'w', 16);
+  bx(T2, 25.5, 0.4, 0.9, 2.2, 0.7, 0x6b6e70, { mat: 'steel' });
+  const SV: TRoomOpts = { ...wing, em: 0, air: 1, dy: 3.5, ht: 2.4, noroam: 1, fl: 0x4a4c4e, wl: 0x4a4640, st: 0x4a4640, mat: { floor: 'grating', wall: 'shot', ceiling: 'shot' } };
+  room(T2, 'Sky void', 1, 1, 19, 12, SV); room(T2, 'Sky void', 20, 1, 1, 1, SV);
+  for (const x of [2.5, 5.5, 8.5, 11.5, 14.5, 17.5]) for (const z of [2.5, 5.5, 8.5, 11.5]) {
+    bx(T2, x, z, 2.8, 0.4, 2.8, 0x3a3c3e); bx(T2, x, z, 2.6, 0.02, 2.6, 0x8a8e8c, { y: 0.4, c: 0 }); // a light box's back, its access panel
+  }
+
+  /* Behind the bar: the kitchen that served it and the lounges, and a passage round the back of the shaft to goods
+     inward, so that stock never crossed the lobby */
+  room(D, 'Kitchen', 1, 14, 3, 6, { ...wing, fl: 0x6a6e6a, wl: 0xb8bcb4, st: 0x8c2f24, mat: { floor: 'epoxy', wall: 'glazed', ceiling: 'tiles' } });
+  door(D, 1, 13, { sg: [['Staff only', 'n']] });
+  bx(D, 1.2, 17, 0.6, 0.9, 10, 0x8a8e8c, { mat: 'steel' }); bx(D, 1.2, 15.2, 0.56, 0.02, 0.9, 0x1d1f21, { y: 0.9, c: 0 }); // the counter, and its hob
+  rack(D, 3.75, 16, 0.5, 3, [0x8a8e8c, 0x6b5a3c, 0x4d5a66, 0x7a4a34]); bx(D, 3.3, 19.4, 0.8, 0.6, 0.8, 0x6b5a3c);
+  item(D, 'ration', 1.2, 18.6, 0.9, 2); item(D, 'peaches', 1.2, 18, 0.9);
+  room(D, 'Service passage', 4, 18, 7, 2, { ...UTIL, ...wing }); door(D, 11, 18, { sg: [['Goods inward', 'w']] });
+  bx(D, 6, 19.4, 0.8, 1.6, 0.7, 0x6b6e70, { mat: 'steel' }); // a roll cage, empty
 }
 
 /* the Cargo cavern: a 20 m vault, x 110 to 240, with three tiers stepped up its north side at +5, +10 and +15 and a platform
