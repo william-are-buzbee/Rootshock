@@ -20,6 +20,10 @@ were written for were found by measuring, not by looking, and the next one will 
   over, off or in what they lie on, fittings hanging in the air or running into walls (with their colour, to find them
   by), panes along their openings, rails against walls, what is drawn or pinned on a board hanging off its edge. The growth and stains the test lets meet rock are listed too.
   `KIND=floats` for one.
+- `loops.probe.ts`: how each level is joined up, from the nav graph: its rooms and the links between them (doors by
+  what they want, openings, platforms, drops), how many loops there are on foot and with drops, the rooms on a loop,
+  the dead ends, and what cannot be walked to from the rest. A loop is a way round, which is what a patrol needs to be
+  gone round rather than waited out. `LEVEL=upper` for one; `LINKS=1` lists every link.
 
 `SET='STAGGER.upright=0;RAG.tip=0.6'` tries constants for one run (`kill` and `down`), without touching the tables.
 To compare with what was there before a change: `git stash push <file>`, run with `PROBE_OUT` elsewhere, pop it.
