@@ -31,7 +31,7 @@ export class Controls {
    *  side (-1 to 1), running, the hands, swimming up and down */
   touch: { forward: number; strafe: number; run: boolean; attack: boolean; rise: boolean; sink: boolean } | null = null;
 
-  constructor(private canvas: HTMLCanvasElement, private onUnlock: () => void, private onHint: (text: string) => void = () => {}) {
+  constructor(private canvas: HTMLCanvasElement, private onUnlock: () => void) {
     window.addEventListener('keydown', e => {
       if (e.code === 'Tab' || e.code === 'Space') e.preventDefault();
       if (e.repeat) return;
@@ -87,12 +87,11 @@ export class Controls {
     }
   }
 
-  /** capture refused: if it has worked here before, pause; the first time, look by dragging instead, and say so */
+  /** capture refused: if it has worked here before, pause; the first time, look by dragging instead */
   private lockFail(): void {
     if (this.everLocked) { if (this.enabled) this.onUnlock(); return; }
     if (this.dragLook) return;
     this.dragLook = true;
-    this.onHint('Drag to look. Hold Q to swing.');
   }
 
   /** touch: a press of one of these, as its key would be; the hands going down (a tap shorter than a step still counts) */

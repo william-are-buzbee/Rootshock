@@ -77,7 +77,27 @@ function newRun(): Run {
   const seed = (Math.random() * 2 ** 32) >>> 0;
   return inStation ? makeRun(STATION, { seed, start: want, opening }) : soloRun(makeSim(testbed(), { seed }));
 }
-let run: Run = resumed ?? newRun();
+/* The title's shot. A run kept is shown where you left it. With none, the station as you have not seen it: the lobby lit
+   end to end, or the cargo bay dark, from its floor by the door in from Security, where the link's red emergency light
+   spills (one or the other each visit; ?shot=lobby or ?shot=cargo for one). A level made for the look of it only, the
+   power set for the shot and you stood where the camera is; New game makes the real one. The lobby from the head of the
+   grand stair, the statue under the false sky; the bay low, crouched by the door, toward the nest's red glow on the floor */
+const SHOTS: Record<string, { x: number; z: number; y: number; yaw: number; pitch: number; crouch?: boolean; power?: (s: NonNullable<Sim['game']['station']>) => void }> = {
+  lobby: { x: 11, z: -5, y: 5, yaw: 0, pitch: -0.16, power: s => { s.main = true; Object.assign(s.circuits.SEC, { broken: false, on: true }); } },
+  cargo: { x: 114.5, z: 2, y: 0, yaw: -2.25, pitch: 0.06, crouch: true },
+};
+function shotRun(): Run {
+  const ask = params.get('shot'), S = SHOTS[ask && ask in SHOTS ? ask : Math.random() < 0.5 ? 'lobby' : 'cargo'];
+  const level = levelDef(STATION, STATION.start), sim = makeSim(level, { seed: 1, station: STATION }), p = sim.player, b = p.body;
+  S.power?.(sim.game.station!);
+  b.x = S.x; b.z = S.z; b.y = sim.world.groundBelow({ x: S.x, z: S.z, hx: b.r, hz: b.r, round: true }, S.y + 1); b.sync();
+  p.yaw = S.yaw; p.pitch = S.pitch; p.crouch = !!S.crouch;
+  sim.game.events.length = 0;
+  return { station: STATION, sims: new Map([[level.id, sim]]), here: sim };
+}
+/** the run in the page is only the title's shot */
+let shot = !resumed && inStation && opening;
+let run: Run = resumed ?? (shot ? shotRun() : newRun());
 let sim: Sim = run.here;
 let mode: 'title' | 'play' | 'pause' | 'panel' | 'end' = 'title';
 /** the run in the page has been played (or was saved): the title offers to go on with it */
@@ -130,7 +150,7 @@ const scape = new Soundscape(audio);
 const prev: Prev = { x: 0, y: 0, z: 0 };
 const fade = document.getElementById('fade')!;
 
-const controls = new Controls(canvas, () => { if (mode === 'play') setMode('pause'); }, text => panels.say(text));
+const controls = new Controls(canvas, () => { if (mode === 'play') setMode('pause'); });
 /** a menu that stops the game was opened over what you carry (a paper read from it): put away, it comes back */
 let carrying = false;
 const panels = new Panels(c => sim.game.commands.push(c), () => {
@@ -288,7 +308,7 @@ function play(): void {
 }
 hud.onMenu('title', go => {
   if (go === 'settings') { settings(true); return; }
-  if (go === 'new' && begun) fresh();
+  if (go === 'new' && (begun || shot)) fresh();
   writeStore(SAVE_KEY, null); // going on uses the save up, so a death is still a death
   begun = true;
   play();
@@ -310,6 +330,7 @@ function fresh(): void {
   previews.clear();
   hitLog.length = 0;
   tracked = '';
+  shot = false;
   run = newRun();
   arrive();
 }
@@ -381,7 +402,7 @@ function events(): void {
   const g = sim.game;
   for (const ev of g.events.splice(0)) {
     switch (ev.type) {
-      case 'say': panels.say(ev.text); break;
+      case 'say': break; // nothing the sim says is on the screen, for now: what it would say is to be shown in the world
       case 'log': if (DEV) { hitLog.push(ev.text); if (hitLog.length > 5) hitLog.shift(); } break;
       case 'sfx': scape.event(sim, ev); break;
       case 'note': openPanel(() => panels.showNote(g, ev.key)); break;
@@ -451,7 +472,7 @@ function frame(t: number): void {
   meter.add('sim', t1 - t0);
   if (!sim.tick) { const b = sim.player.body; prev.x = b.x; prev.y = b.y; prev.z = b.z; }
   rig.update(view.camera, sim, prev, mode === 'play' ? loop.alpha : 1, dt, controls.pending);
-  handsView.shown = !feed.update(sim, view.camera); // sat at a console, the view is its camera's
+  handsView.shown = !feed.update(sim, view.camera) && mode !== 'title'; // sat at a console, the view is its camera's; the title's is only the place
   /* a failing battery stutters */
   const g = sim.game;
   flick -= dt;

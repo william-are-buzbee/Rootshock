@@ -14,7 +14,8 @@ canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
 #devtag { position: absolute; right: 20px; top: 18px; font-size: 14px; font-weight: 600; letter-spacing: .12em; color: var(--hazard); text-shadow: 0 1px 4px #000; white-space: pre; }
 #track { position: absolute; left: 28px; top: 92px; max-width: min(46em, 60vw); max-height: calc(100vh - 260px); overflow: hidden; font-size: 13px; line-height: 1.35; color: var(--bone); text-shadow: 0 1px 4px #000; white-space: pre-wrap; background: rgba(2, 3, 4, .55); padding: 8px 10px; }
 .screen { position: fixed; inset: 0; display: flex; flex-direction: column; justify-content: flex-end; padding: 8vh 8vw; background: rgba(2, 3, 4, .72); }
-#title { background: linear-gradient(to top right, rgba(2, 3, 4, .96), rgba(2, 3, 4, .7)); }
+/* the title's shot shows through: dark under the name, and behind the menu, and little elsewhere */
+#title { background: linear-gradient(to top, rgba(2, 3, 4, .88), rgba(2, 3, 4, .3) 48%, rgba(2, 3, 4, .12)), linear-gradient(to left, rgba(2, 3, 4, .6), transparent 40%); }
 .screen h1 { font-size: clamp(64px, 13vw, 180px); font-weight: 600; line-height: .85; margin: 0 0 .12em -.04em; letter-spacing: -.01em; text-transform: uppercase; }
 /* a menu: a few words on the right, as a title card has them */
 .menu { position: absolute; right: 12vw; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; align-items: flex-start; gap: .15em; font-size: clamp(22px, 2.2vw, 30px); }
@@ -38,8 +39,6 @@ canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
 #fade { background: #000; opacity: 0; }
 #vig { background: radial-gradient(ellipse at center, transparent 45%, rgba(120, 10, 6, .75) 100%); opacity: 0; }
 #prompt { position: absolute; left: 0; right: 0; top: 54%; text-align: center; font-size: 18px; font-weight: 500; letter-spacing: .03em; opacity: .85; text-shadow: 0 1px 6px #000; }
-#msgs { position: absolute; left: 28px; bottom: 112px; max-width: min(520px, 80vw); font-family: var(--hand); font-size: 19px; line-height: 1.35; text-shadow: 0 1px 6px #000; }
-#msgs p { margin: 0 0 6px; transition: opacity 1s; }
 #stat { position: absolute; left: 28px; bottom: 26px; width: 230px; }
 .bar { height: 9px; background: rgba(217, 211, 193, .14); margin-bottom: 6px; }
 .bar i { display: block; height: 100%; width: 100%; background: var(--blood); }
@@ -89,7 +88,6 @@ canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
 #padk button { font: inherit; font-size: 26px; padding: 10px 0; background: rgba(217, 211, 193, .06); color: var(--bone); border: 1px solid rgba(217, 211, 193, .3); cursor: pointer; }
 #padk button .ico { width: 1.1em; height: 1.1em; margin: auto; display: block; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 #padk button:hover, #padk button:focus-visible { border-color: var(--hazard); outline: none; }
-@media (prefers-reduced-motion: reduce) { #msgs p { transition: none; } }
 /* a console's feed (present/ui/feed.ts): a monitor's grain and lines over the view, its name, its clock */
 #feed { position: fixed; inset: 0; pointer-events: none; background: repeating-linear-gradient(to bottom, rgba(0, 0, 0, .22) 0 1px, transparent 1px 3px); font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; color: #e8e4d8; letter-spacing: .12em; text-shadow: 0 1px 3px #000; }
 #feedn { position: absolute; left: 28px; top: 24px; font-size: 20px; font-weight: 600; }
@@ -123,7 +121,6 @@ body.touch .panel > div, body.touch #note article, body.touch .screen { touch-ac
 .tb[data-tb="carry"] { right: calc(70px + env(safe-area-inset-right)); }
 /* the HUD out from under the thumbs: what you have and what is said, top left */
 body.touch #stat { top: calc(14px + env(safe-area-inset-top)); bottom: auto; left: calc(18px + env(safe-area-inset-left)); width: 180px; }
-body.touch #msgs { top: calc(64px + env(safe-area-inset-top)); bottom: auto; left: calc(18px + env(safe-area-inset-left)); font-size: 16px; max-width: min(440px, 50vw); }
 body.touch #prompt { top: 60%; font-size: 18px; }
 body.touch #inv { left: calc(12px + env(safe-area-inset-left)); transform: none; top: calc(8px + env(safe-area-inset-top)); }
 body.touch #devtag { top: 54px; }
