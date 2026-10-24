@@ -117,22 +117,23 @@ function buildSquare(G: Floor, S2: Floor, HB: RoomOpts, GW: RoomOpts, CM: RoomOp
   for (const [x, z, n] of [[142.8, -3.6, 4], [149.2, 3.8, 3], [156, 8, 3], [134, -12, 2]]) eggs(G, x, z, n); blood(G, 138, 7.2, 2); gore(G, 155.2, -10, 3);
   mut(G, 'thresher', 146, -9); mut(G, 'bloat', 150, 8); mut(G, 'worm', 142.4, 3.2); mut(G, 'worm', 149.6, -3.2); mut(G, 'husk', 139, 6, { post: 1, yaw: PI / 2 }); mut(S2, 'skitter', 144, -12.8); mut(S2, 'skitter', 157.2, 2);
   /* the band. North and south: three rooms a side behind facades at z -16 and 14 (the street's last four ground floors and new
-     ones); west and east: two a side behind facades at x 130 and 160. Storey 2 is ten flats, C1 to C10, their doors on the ring. */
+     ones), half a metre of wall between neighbours; west and east: two a side behind facades at x 130 and 160. Storey 2 is
+     ten flats, C1 to C10, their doors on the ring. */
   const nb = { z0: -22, dz: -15 }, sb = { z0: 16, dz: 15 };
-  groundFloor(G, 124, true, 7, HB, { ...nb, dc: 11 }); groundFloor(G, 138, true, 6, HB, { ...nb, dc: 7 }); groundFloor(G, 124, false, 7, HB, { ...sb, dc: 11 }); groundFloor(G, 138, false, 6, HB, { ...sb, dc: 7 });
+  for (const o of [nb, sb]) { groundFloor(G, 124, o === nb, 7, HB, { ...o, dc: 11, sides: [124, 137.75] }); groundFloor(G, 138, o === nb, 6, HB, { ...o, dc: 7, sides: [138.25, 151.75] }); }
   /* a shop: its north-west corner, w by d; its door's middle; and what is in it, from its corner */
   const shop = (nm: string, x: number, z: number, w: number, d: number, dx: number, dz: number, sd: 'n' | 's' | 'e' | 'w', f: (x: number, z: number) => void) => {
     room(G, nm, x, z, w, d, { ...HB }); door(G, dx, dz, { span: 2, sg: [[nm.split(' ')[0], sd]] }); f(x, z);
   };
-  shop('Café', 152, -22, 14, 6, 155, -15, 's', (x, z) => { for (const q of [3.2, 8, 12.4]) tbl(G, x + q, z + 3.2, 1, 1, 0x8a7a5a); bx(G, x + 7, z + 0.6, 5, 1, 0.6, 0x6f7378); item(G, 'ration', x + 6, z + 0.6, 1.02, 2); blood(G, x + 10, z + 4.8, 1.2); });
-  shop('Barbershop', 152, 16, 14, 6, 155, 15, 'n', (x, z) => { for (let q = 0; q < 3; q++) bx(G, x + 3 + q * 4, z + 4.8, 0.7, 1, 0.7, 0x7a2a2a); bx(G, x + 7, z + 5.97, 6, 1, 0.06, [0.16, 0.2, 0.22], { y: 1, c: 0 }); body(G, x + 8, z + 2.4, 0x6b6f5a, false); });
+  shop('Café', 152.25, -22, 13.75, 6, 155, -15, 's', (x, z) => { for (const q of [3.2, 8, 12.4]) tbl(G, x + q, z + 3.2, 1, 1, 0x8a7a5a); bx(G, x + 7, z + 0.6, 5, 1, 0.6, 0x6f7378); item(G, 'ration', x + 6, z + 0.6, 1.02, 2); blood(G, x + 10, z + 4.8, 1.2); });
+  shop('Barbershop', 152.25, 16, 13.75, 6, 155, 15, 'n', (x, z) => { for (let q = 0; q < 3; q++) bx(G, x + 3 + q * 4, z + 4.8, 0.7, 1, 0.7, 0x7a2a2a); bx(G, x + 7, z + 5.97, 6, 1, 0.06, [0.16, 0.2, 0.22], { y: 1, c: 0 }); body(G, x + 8, z + 2.4, 0x6b6f5a, false); });
   shop('Kiosk', 124, -14, 6, 6, 131, -9, 'e', (x, z) => { bx(G, x + 4.4, z + 3, 0.6, 1, 2.4, 0x6b5a48); item(G, 'peaches', x + 4.4, z + 2, 1.02); shelf(G, x + 0.6, z + 3, 0.5, 2.4, { cols: [0xc9a227, 0x7a4a34] }); });
   shop('Florist', 124, 8, 6, 6, 131, 9, 'e', (x, z) => { for (let q = 0; q < 4; q++) P(G, 'cyl', x + 1.2 + (q % 2) * 2.4, z + 1.6 + Math.floor(q / 2) * 2.8, 0.5, 0.5, 0.5, 0x6b5a48); overgrow(G, { x0: x, z0: z, x1: x + 6, z1: z + 6, ht: 3.2 }, 0.6, true); });
   shop('Transit office', 162, -14, 6, 10, 161, -7, 'w', (x, z) => { desk(G, x + 3.2, z + 1.2, 1.8, 0.7); item(G, 'batt', x + 4, z + 1.2, 0.78); shelf(G, x + 5.4, z + 6, 0.5, 2.4); });
   shop('Lost property', 162, 4, 6, 10, 161, 7, 'w', (x, z) => { shelf(G, x + 5.4, z + 4.8, 0.5, 3, { cols: [0x4d5a66, 0x6b5a3c, 0x8a7a6a] }); item(G, 'bandage', x + 2.4, z + 2.8, 0.02); });
   const CV: [number, number, number, number, number, number, string, Flat][] = [
-    [124, -22, 14, 6, 133, -15, 'C1', [{}, 'clean', 'peaches']], [138, -22, 14, 6, 149, -15, 'C2', [{ card: 'C2' }, 'nest', 'medkit']], [152, -22, 14, 6, 159, -15, 'C3', [{ open: true }, 'body', 'bandage', 'N4.3']],
-    [124, 16, 14, 6, 133, 15, 'C4', [{ open: true }, 'clean', 'ration']], [138, 16, 14, 6, 149, 15, 'C5', [{ open: true }, 'worm', 'peaches']], [152, 16, 14, 6, 159, 15, 'C6', [{}, 'worm', 'batt']],
+    [124, -22, 13.75, 6, 133, -15, 'C1', [{}, 'clean', 'peaches']], [138.25, -22, 13.5, 6, 149, -15, 'C2', [{ card: 'C2' }, 'nest', 'medkit']], [152.25, -22, 13.75, 6, 159, -15, 'C3', [{ open: true }, 'body', 'bandage', 'N4.3']],
+    [124, 16, 13.75, 6, 133, 15, 'C4', [{ open: true }, 'clean', 'ration']], [138.25, 16, 13.5, 6, 149, 15, 'C5', [{ open: true }, 'worm', 'peaches']], [152.25, 16, 13.75, 6, 159, 15, 'C6', [{}, 'worm', 'batt']],
     [124, -14, 6, 6, 131, -13, 'C7', [{ card: 'C7' }, 'clean', 'shells']], [124, 8, 6, 6, 131, 13, 'C8', [{}, 'clean', 'ration']], [162, -14, 6, 10, 161, -11, 'C9', [{}, 'gore', 'batt']], [162, 4, 6, 10, 161, 11, 'C10', [{}, 'post', 'bandage']],
   ];
   for (const [x, z, w, d, dx, dz, nm, v] of CV) flatRect(S2, x, z, w, d, dx, dz, nm, v, HB);
@@ -156,11 +157,12 @@ function flatRect(D: Floor, x: number, z: number, w: number, d: number, dx: numb
 const VINYL = { ...HAB.mat, floor: 'vinyl' } as const;
 
 /* the ground floor of block k: the street's rooms, out of the old Commons. Built inside the blocks, so even the
-   utility rooms are poured, not dug; carpeted as homes are, but for the vinyl. (x0, z0) its north-west corner, 14 by 6 m;
-   its door's middle dc along its front, at dz */
-function groundFloor(D: Floor, x0: number, north: boolean, k: number, HB: RoomOpts, at: { z0?: number; dz?: number; dc?: number } = {}): void {
+   utility rooms are poured, not dug; carpeted as homes are, but for the vinyl. (x0, z0) its north-west corner, 14 by 6 m
+   (its west and east sides `sides`, if walled from a neighbour); its door's middle dc along its front, at dz */
+function groundFloor(D: Floor, x0: number, north: boolean, k: number, HB: RoomOpts, at: { z0?: number; dz?: number; dc?: number; sides?: [number, number] } = {}): void {
   const z0 = at.z0 ?? (north ? -14 : 8), dz = at.dz ?? (north ? -7 : 7), dc = at.dc ?? 7, sd = north ? 's' : 'n', back = north ? z0 + 0.6 : z0 + 5.4, front = north ? z0 + 5.2 : z0 + 0.8, mid = z0 + 3;
-  const R = (nm: string, o: RoomOpts = {}, dopt: DoorOpts = {}) => { room(D, nm, x0, z0, 14, 6, { ...HB, ...o }); door(D, x0 + dc, dz, { span: 2, sg: [[nm.split(' ')[0], sd]], ...dopt }); };
+  const [w0, w1] = at.sides ?? [x0, x0 + 14];
+  const R = (nm: string, o: RoomOpts = {}, dopt: DoorOpts = {}) => { room(D, nm, w0, z0, w1 - w0, 6, { ...HB, ...o }); door(D, x0 + dc, dz, { span: 2, sg: [[nm.split(' ')[0], sd]], ...dopt }); };
   if (north) switch (k) {
     case 0: R('Canteen', { mat: VINYL }, { open: true }); for (const dm of [-1.2, 1.2]) tbl(D, x0 + 5.2, mid + dm, 3.2, 0.8, 0x8a8578); bx(D, x0 + 12, back, 1.8, 1, 0.6, 0x6f7378); item(D, 'peaches', x0 + 12, back, 1.02, 2);
       note(D, 'diary', x0 + 5.2, mid - 1.2, 0.78); blood(D, x0 + 8.8, front, 2); blood(D, x0 + 2, mid, 1.4); mut(D, 'husk', x0 + 10.8, mid + 1.2); mut(D, 'husk', x0 + 1.6, mid, { post: 1, yaw: -PI / 2 }); break;

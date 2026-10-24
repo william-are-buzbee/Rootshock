@@ -161,7 +161,9 @@ thing is added once.
   `EQUIV`), then tidied of the tile units, build for build. On the way, walking every place where two rooms touch with
   no wall found what the tiles had left open on the upper station: room 4's corner at the stair's foot (the partitions
   never met, the bay holding the tile between), the isolation hall's upper half open to the check-in hall and screening
-  beside it, and the upper corridor open to the lobby's void (`test/upper.test.ts`).
+  beside it, and the upper corridor open to the lobby's void (`test/upper.test.ts`); and on the main level the square's
+  shops and the flats over them, wall to wall with nothing between (flat C2's card lock kept nobody out of it). Every
+  contact left is listed in `test/contacts.test.ts` with why it is meant, and one that is not listed fails it.
 - **Small props** (crates, tables, shelves) are not stamped into the grid. They are boxes, oriented boxes or cylinders
   in a spatial hash, so they can later move.
 - **Everything that moves is a `Dyn`**: a box the sim keeps up to date in the world's list. Doors, platforms, loose
