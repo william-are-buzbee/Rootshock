@@ -63,15 +63,17 @@ describe('where things are', () => {
   });
 
   it('rails a walkway only where there is a drop: along the galleries over the street and the lobby, not along their walls', () => {
-    const rails = (id: string) => levelDef(STATION, id).props.filter(p => p.sy === 1 && Math.min(p.sx, p.sz) > 0.09 && Math.min(p.sx, p.sz) < 0.11 && Math.max(p.sx, p.sz) === 2);
+    /* rails are runs a metre high and 10 cm through, as long as the edge they guard */
+    const rails = (id: string) => levelDef(STATION, id).props.filter(p => p.sy === 1 && Math.min(p.sx, p.sz) > 0.09 && Math.min(p.sx, p.sz) < 0.11);
+    const length = (ps: { sx: number; sz: number }[]) => ps.reduce((n, p) => n + Math.max(p.sx, p.sz), 0);
     const main = rails('main'), upper = rails('upper');
     /* the Commons: the galleries' inner edges over the street (plan z -2 and 2 on both upper floors) are railed; their fronts
        (z -6 and 6), over the doors of the floor below, are wall */
-    expect(main.filter(p => Math.abs(Math.abs(p.z) - 2.05) < 0.01).length).toBeGreaterThan(80);
-    expect(main.filter(p => Math.abs(Math.abs(p.z) - 5.95) < 0.01 && p.x > 18 && p.x < 112)).toEqual([]); // (west of x 18, the plazas' stairwells: railed)
+    expect(length(main.filter(p => Math.abs(Math.abs(p.z) - 2.05) < 0.01))).toBeGreaterThan(160);
+    expect(main.filter(p => Math.abs(Math.abs(p.z) - 5.95) < 0.01 && p.x + p.sx / 2 > 18 && p.x - p.sx / 2 < 112)).toEqual([]); // (west of x 18, the plazas' stairwells: railed)
     /* the lobby's gallery: glass over the lobby, and none against its end wall over the corridor's door */
     const glass = upper.filter(p => p.mat === 'glass' && p.y === 5);
-    expect(glass.length).toBeGreaterThan(10);
+    expect(length(glass)).toBeGreaterThan(20);
     expect(glass.filter(p => Math.abs(p.x - 29.95) < 0.01)).toEqual([]);
   });
 
