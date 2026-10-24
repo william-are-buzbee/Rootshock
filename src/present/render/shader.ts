@@ -33,7 +33,8 @@ import { MATS, MAT_ORDER, type Mat, type Pattern } from '../../content/materials
    narrowed in light; main.ts), the glow, the tone curve and the grain are the picture's, made once from it (post.ts).
 
    What a surface is made of (content/materials.ts, by aMat) is drawn on it, from where it is: the level's in the
-   world, so a pattern runs on across faces, a moving thing's in its own frame, so a pushed crate's boards go with it.
+   world, so a pattern runs on across faces, its joints laid from its room's corner (aRoomO), a moving thing's in its
+   own frame, so a pushed crate's boards go with it.
    No textures but one of noise, made here. Each pattern gives a shade, a height and how glossy each part is (mortar is
    not, the block's paint is): the shade is the colour's, the height tips the surface's facing (bump, from how it
    changes across the screen), and the gloss is the carried lights' highlight. The beam, its facing and its highlight
@@ -60,7 +61,7 @@ const look = (f: (L: (typeof MATS)[Mat]['look']) => number[]) =>
 const LOOK_A = look(L => [L.gloss, L.tight, L.metal, L.bump]), LOOK_B = look(L => [P(L.pattern), L.wear, L.salt, 0]);
 
 const VS = /* glsl */ `
-attribute vec3 aCol; attribute float aMat; attribute vec2 aRoomY;
+attribute vec3 aCol; attribute float aMat; attribute vec2 aRoomY; attribute vec2 aRoomO;
 const vec4 LOOK_A[${NM}] = ${LOOK_A};
 const vec4 LOOK_B[${NM}] = ${LOOK_B};
 #if defined(STATIC)
@@ -70,10 +71,10 @@ attribute vec4 aLight;
 #else
 uniform vec3 uLight;
 #endif
-varying vec3 vW; varying vec3 vO; varying vec3 vC; varying vec3 vL; varying vec4 vLA; varying vec4 vLB; varying vec2 vRY;
+varying vec3 vW; varying vec3 vO; varying vec3 vC; varying vec3 vL; varying vec4 vLA; varying vec4 vLB; varying vec2 vRY; varying vec2 vRO;
 void main(){
   vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; vO = position; vC = aCol;
-  int k = int(aMat + 0.5); vLA = LOOK_A[k]; vLB = LOOK_B[k]; vRY = aRoomY;
+  int k = int(aMat + 0.5); vLA = LOOK_A[k]; vLB = LOOK_B[k]; vRY = aRoomY; vRO = aRoomO;
 #if defined(STATIC)
   vL = vec3(aLight, 0.0, 0.0);
 #elif defined(BAKED)
@@ -198,10 +199,14 @@ float n3(vec3 p){
   return mix(rg.x, rg.y, f.z);
 }
 float hash(vec2 p){ vec3 q = fract(vec3(p.xyx) * 0.1031); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y) * q.z); }
-/* 1 on a line of a grid every per metres, w either side of it; 0 between */
+/* 1 on a line of a grid every per metres, w either side of it; 0 between. What a pixel shows is the share of it the
+   line covers (the pixel fw wide, the line 2w): a line finer than a pixel is drawn as faint as it is thin. (Drawn at
+   half strength across a whole pixel however thin it was, a joint a few millimetres wide stood out the further off it
+   was, once the floor's own grain had faded: a grid of squares across every floor past a few metres.) Where the lines
+   are as close as a few pixels, they fade to the share of the surface they cover */
 float grid(float x, float per, float w){
-  float d = abs(fract(x / per + 0.5) - 0.5) * per, fw = fwidth(x);
-  float on = 1.0 - smoothstep(w - fw, w + fw, d);
+  float d = abs(fract(x / per + 0.5) - 0.5) * per, fw = max(fwidth(x), 1e-6);
+  float on = clamp((min(d + 0.5 * fw, w) - max(d - 0.5 * fw, -w)) / fw, 0.0, 1.0);
   return mix(on, min(1.0, 2.0 * w / per), smoothstep(0.1, 0.45, fw / per));
 }
 /* 1 within r of a point of a lattice of dots, d from the nearest */
@@ -213,13 +218,17 @@ float dot1(float d, float r, float fw){ return (1.0 - smoothstep(r - fw, r + fw,
 float keep(float size, float px){ return 1.0 - smoothstep(0.25, 0.75, px / size); }
 /* n3 at k cells a metre, faded to its average where a pixel px wide is too wide for them */
 float n3f(vec3 p, float k, float px){ return mix(0.5, n3(p * k), keep(1.0 / k, px)); }
-void surface(int pat, vec3 p, vec3 n, float up, float det, out float alb, out float h, out float gm, out vec3 tint){
+void surface(int pat, vec3 p, vec3 n, float up, vec2 at, float det, out float alb, out float h, out float gm, out vec3 tint){
   alb = 1.0; h = 0.0; gm = 1.0; tint = vec3(1.0);
   vec3 an = abs(n);
   bool horiz = an.y > max(an.x, an.z);
   bool overhead = horiz && n.y < 0.0;
+  /* where the joints are laid from: the corner of the room it is in (at), so each room's start at its own walls and
+     do not run on from room to room in one lattice over the station. Noise is the world's, so it runs on across a
+     doorway without a seam */
+  vec3 pa = p - vec3(at.x, 0.0, at.y);
   /* across the face and up it: a floor or ceiling's are x and z; a wall's along it and up from the floor */
-  vec2 uv = horiz ? p.xz : vec2(an.x > an.z ? p.z : p.x, up);
+  vec2 uv = horiz ? pa.xz : vec2(an.x > an.z ? pa.z : pa.x, up);
   float fw = fwidth(uv.x) + fwidth(uv.y);
   /* how wide a pixel is here (metres), the way it is widest: seen at a slant, it is stretched along the surface */
   float px = max(length(dFdx(p)), length(dFdy(p)));
@@ -249,17 +258,16 @@ void surface(int pat, vec3 p, vec3 n, float up, float det, out float alb, out fl
     alb = 1.0 + 0.05 * (b - 0.5) + 0.03 * (pe - 0.5) * det;
     h = 0.0002 * pe;
   } else if (pat == ${P('tiles')}) {
-    /* a suspended ceiling's grid, a third of a 2 m tile each way, of painted T-bar; the tiles pitted mineral fibre */
-    vec2 q = horiz ? p.xz : uv;
-    float bar = max(grid(q.x, 2.0 / 3.0, 0.012), grid(q.y, 2.0 / 3.0, 0.012));
-    float pits = mix(0.11, smoothstep(0.7, 0.78, n3(p * 70.0)), keep(0.5 / 70.0, px)) * det, tone = hash(floor(q * 1.5));
+    /* a suspended ceiling's grid, 600 mm each way as the tiles are made, of painted T-bar; the tiles pitted mineral fibre */
+    float bar = max(grid(uv.x, 0.6, 0.012), grid(uv.y, 0.6, 0.012));
+    float pits = mix(0.11, smoothstep(0.7, 0.78, n3(p * 70.0)), keep(0.5 / 70.0, px)) * det, tone = hash(floor(uv / 0.6));
     alb = mix(1.0 + 0.06 * (tone - 0.5) + 0.04 * (n3f(p, 9.0, px) - 0.5) - 0.1 * pits, 1.12, bar);
     h = 0.004 * bar - 0.0006 * pits;
     gm = 1.0 + 5.0 * bar;
   } else if (pat == ${P('glazed')}) {
     /* 150 mm tiles in grout; each laid a little out of true, so a highlight breaks across them */
-    vec2 q = horiz ? p.xz : uv, cell = floor(q / 0.15), f = fract(q / 0.15) - 0.5;
-    float g = max(grid(q.x, 0.15, 0.0025), grid(q.y, 0.15, 0.0025));
+    vec2 cell = floor(uv / 0.15), f = fract(uv / 0.15) - 0.5;
+    float g = max(grid(uv.x, 0.15, 0.0025), grid(uv.y, 0.15, 0.0025));
     float tone = hash(cell), tilt = hash(cell + 17.0);
     alb = (1.0 + 0.06 * (tone - 0.5)) * (1.0 - 0.35 * g);
     h = 0.0012 * ((tone - 0.5) * f.x + (tilt - 0.5) * f.y) - 0.002 * g;
@@ -279,12 +287,12 @@ void surface(int pat, vec3 p, vec3 n, float up, float det, out float alb, out fl
        flush with their tops; panels a metre wide, a banding bar at each edge, each a little different */
     vec3 v = normalize(cameraPosition - p);
     float tilt = 1.0 / max(abs(v.y), 0.05);
-    float top = grid(p.x, 0.03, 0.0025);
-    float bear = grid(p.x, 0.03, min(0.0025 + 0.015 * abs(v.x) * tilt, 0.015));
+    float top = grid(pa.x, 0.03, 0.0025);
+    float bear = grid(pa.x, 0.03, min(0.0025 + 0.015 * abs(v.x) * tilt, 0.015));
     /* (a rod is 6 mm proud of the slot's floor of shadow: looking along the slots at a slant, the rods close them) */
-    float rod = grid(p.z, 0.1, min(0.0015 + 0.006 * abs(v.z) * tilt, 0.05));
-    float band = grid(p.x, 1.0, 0.004);
-    float pan = hash(vec2(floor(p.x), floor(p.z / 6.0))), grime = n3f(p, 0.8, px);
+    float rod = grid(pa.z, 0.1, min(0.0015 + 0.006 * abs(v.z) * tilt, 0.05));
+    float band = grid(pa.x, 1.0, 0.004);
+    float pan = hash(vec2(floor(pa.x), floor(pa.z / 6.0))), grime = n3f(p, 0.8, px);
     float solid = max(max(bear, 0.85 * rod), band);
     /* between the bars, the dim of what is under the walkway: not black */
     alb = mix(0.3, mix(0.62, 1.0, max(top, band)) * (1.0 + 0.1 * (pan - 0.5) + 0.14 * (grime - 0.5)), solid);
@@ -310,7 +318,7 @@ void surface(int pat, vec3 p, vec3 n, float up, float det, out float alb, out fl
     gm = 0.4 + 6.0 * smoothstep(0.6, 0.78, n3(p * 0.35 + 9.0));
   } else if (pat == ${P('boards')}) {
     /* planks 120 mm wide, across the face; grain along them */
-    vec2 q = horiz ? p.xz : vec2(an.x > an.z ? p.z : p.x, p.y);
+    vec2 q = horiz ? pa.xz : vec2(an.x > an.z ? pa.z : pa.x, p.y);
     float k = floor(q.y / 0.12), gap = grid(q.y, 0.12, 0.003);
     float tone = hash(vec2(k, 7.0)), grain = mix(0.5, n3(vec3(q.x * 1.5, q.y * 60.0, k * 3.0)), keep(1.0 / 60.0, px));
     alb = (1.0 + 0.2 * (tone - 0.5) + 0.14 * (grain - 0.5) * det) * (1.0 - 0.5 * gap);
@@ -336,21 +344,23 @@ void surface(int pat, vec3 p, vec3 n, float up, float det, out float alb, out fl
       tint = mix(mix(vec3(1.0), vec3(1.0, 0.9, 0.8), nut), vec3(1.2, 0.9, 0.7), 0.45 * tear);
     }
   } else if (pat == ${P('epoxy')}) {
-    /* a coated slab: the coat smooth and a little uneven in tone, saw cuts between 4 m bays, scuffs where wheels and
-       feet went, which take the shine off it */
-    float m = n3f(p, 0.45, px), cut = max(grid(uv.x, 4.0, 0.003), grid(uv.y, 4.0, 0.003));
+    /* a coated slab: the coat smooth and a little uneven in tone, saw cuts between 4 m bays (a few millimetres, the
+       coat run into them: darker, and duller than the coat, not black), scuffs where wheels and feet went, which take
+       the shine off it */
+    float m = n3f(p, 0.45, px), cut = max(grid(uv.x, 4.0, 0.002), grid(uv.y, 4.0, 0.002));
     float scuff = mix(0.05, smoothstep(0.6, 0.8, n3(vec3(uv.x * 1.5, uv.y * 9.0, 7.7))) * smoothstep(0.45, 0.7, n3(p * 0.3 + 3.0)), keep(0.5 / 9.0, px));
-    alb = (1.0 + 0.08 * (m - 0.5) - 0.14 * scuff * det) * (1.0 - 0.45 * cut);
-    h = -0.003 * cut;
-    gm = (1.0 - 0.6 * scuff) * (1.0 - cut);
+    alb = (1.0 + 0.08 * (m - 0.5) - 0.14 * scuff * det) * (1.0 - 0.3 * cut);
+    h = -0.002 * cut;
+    gm = (1.0 - 0.6 * scuff) * (1.0 - 0.6 * cut);
   } else if (pat == ${P('vinyl')}) {
-    /* sheet vinyl: flecked dark and light, the seams welded every 2 m along the roll */
+    /* sheet vinyl: flecked dark and light, the seams welded every 2 m along the roll, with a rod of the same colour: a
+       hairline, all but gone but where the light catches it */
     float f1 = mix(0.14, smoothstep(0.68, 0.74, n3(p * 140.0)), keep(0.5 / 140.0, px));
     float f2 = mix(0.12, smoothstep(0.7, 0.76, n3(p * 110.0 + 5.0)), keep(0.5 / 110.0, px));
-    float seam = grid(uv.x, 2.0, 0.0015), m = n3f(p, 0.6, px);
-    alb = 1.0 + 0.05 * (m - 0.5) + (0.12 * f2 - 0.14 * f1) * det - 0.15 * seam;
-    h = -0.0005 * seam;
-    gm = 1.0 - 0.4 * seam;
+    float seam = grid(uv.x, 2.0, 0.001), m = n3f(p, 0.6, px);
+    alb = 1.0 + 0.05 * (m - 0.5) + (0.12 * f2 - 0.14 * f1) * det - 0.05 * seam;
+    h = -0.0003 * seam;
+    gm = 1.0 - 0.2 * seam;
   } else if (pat == ${P('carpet')}) {
     /* carpet tile, 500 mm, each laid a quarter turn from the next, so the pile takes the light one way or the other;
        worn paler where the feet went */
@@ -492,7 +502,7 @@ uniform float uFlick; uniform float uHit; uniform float uBright; uniform float u
 #if !defined(STATIC) && !defined(BAKED)
 uniform vec3 uLightF; uniform vec3 uLightD;
 #endif
-varying vec3 vW; varying vec3 vO; varying vec3 vC; varying vec3 vL; varying vec4 vLA; varying vec4 vLB; varying vec2 vRY;
+varying vec3 vW; varying vec3 vO; varying vec3 vC; varying vec3 vL; varying vec4 vLA; varying vec4 vLB; varying vec2 vRY; varying vec2 vRO;
 ${SURFACE}
 /* how much of the level's light a surface takes, facing nf (nb with its bumps): of what comes from every way, as before
    (sh, and rel for a bump facing up); of what comes from one way (dl, as long as its share), by how it faces that way */
@@ -516,10 +526,10 @@ void main(){
   bool walls = vRY.y > vRY.x, on = uDetail > 0.5;
   if (on && pat > 0 && em == 0.0) {
 #ifdef STATIC
-    surface(pat, vW, nf, walls ? vW.y - vRY.x : vW.y, det, alb, h, gm, tint);
+    surface(pat, vW, nf, walls ? vW.y - vRY.x : vW.y, vRO, det, alb, h, gm, tint);
 #else
     vec3 no = normalize(cross(dFdx(vO), dFdy(vO)));
-    surface(pat, vO, no, vO.y, det, alb, h, gm, tint);
+    surface(pat, vO, no, vO.y, vec2(0.0), det, alb, h, gm, tint);
 #endif
   }
   /* wear, on the level's walls and ceilings: grime at the foot of a wall; in places, water run down from the
@@ -651,8 +661,9 @@ export const U = {
   uNoise: { value: noiseTexture() },
 };
 
-/** what a vertex is made of, and its room's floor and ceiling, where its geometry does not say: nothing, and no room */
-const DEFAULTS = { aMat: [0], aRoomY: [0, 0] };
+/** what a vertex is made of, its room's floor and ceiling, and the corner its joints are laid from, where its geometry
+ *  does not say: nothing, and no room */
+const DEFAULTS = { aMat: [0], aRoomY: [0, 0], aRoomO: [0, 0] };
 function material(o: THREE.ShaderMaterialParameters): THREE.ShaderMaterial {
   const m = new THREE.ShaderMaterial({ vertexShader: VS, fragmentShader: FS, side: THREE.DoubleSide, ...o });
   m.defaultAttributeValues = { ...m.defaultAttributeValues, ...DEFAULTS };

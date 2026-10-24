@@ -31,14 +31,29 @@ const PIECE = { across: 16, up: 8 };
 /** a vertex's light: which room it is in (for its fitting's colour), and how much it takes; and what it is made of */
 interface Src { room: number; m: number; mat: number }
 
+/** the corner each room's joints are laid from (the shader's aRoomO): the north-west corner of all of it, every piece
+ *  of a room that bears its name on its floor (a hall and its bay, the strips it reaches into a partition with), so a
+ *  floor's joints run on across its pieces and start again past its doorways */
+function corners(rooms: RoomDef[]): [number, number][] {
+  const at = new Map<string, [number, number]>();
+  const key = (R: RoomDef) => R.name + '@' + R.y0.toFixed(2);
+  for (const R of rooms) {
+    const c = at.get(key(R));
+    at.set(key(R), c ? [Math.min(c[0], R.x0), Math.min(c[1], R.z0)] : [R.x0, R.z0]);
+  }
+  return rooms.map(R => at.get(key(R))!);
+}
+
 class Out {
-  constructor(private rooms: RoomDef[]) {}
+  private corner: [number, number][];
+  constructor(private rooms: RoomDef[]) { this.corner = corners(rooms); }
   P: number[] = [];
   C: number[] = [];
   room: number[] = [];
   m: number[] = [];
   M: number[] = [];
   RY: number[] = [];
+  RO: number[] = [];
   /** fittings whose colour shows power: [first vertex, count, which] */
   pw: [number, number, [Colour, Colour], string][] = [];
   vert(x: number, y: number, z: number, c: Colour, src: Src): void {
@@ -48,6 +63,8 @@ class Out {
     const R = src.room >= 0 ? this.rooms[src.room] : null;
     this.M.push(src.mat);
     this.RY.push(R ? R.y0 : 0, R ? R.y0 + R.ht : 0);
+    const o = R ? this.corner[src.room] : null;
+    this.RO.push(o ? o[0] : 0, o ? o[1] : 0);
   }
   /** a rectangle on plane `a` (0 x, 1 y, 2 z) at `s`, spanning [u0, u1] x [v0, v1] on the other two axes in order */
   rect(a: number, s: number, u0: number, u1: number, v0: number, v1: number, c: Colour, room: number, m: number, mat = 0): void {
@@ -122,11 +139,12 @@ function cut(o: Out): { geometries: THREE.BufferGeometry[]; piece: Int32Array; a
     if (p === undefined) byBlock.set(key, (p = counts.push(0) - 1));
     for (let k = 0; k < 3; k++) { piece[v + k] = p; at[v + k] = counts[p]++; }
   }
-  const arrays = counts.map(c => ({ P: new Float32Array(c * 3), C: new Float32Array(c * 3), m: new Float32Array(c), M: new Float32Array(c), RY: new Float32Array(c * 2) }));
+  const arrays = counts.map(c => ({ P: new Float32Array(c * 3), C: new Float32Array(c * 3), m: new Float32Array(c), M: new Float32Array(c), RY: new Float32Array(c * 2), RO: new Float32Array(c * 2) }));
   for (let v = 0; v < n; v++) {
     const A = arrays[piece[v]], i = at[v];
     for (let k = 0; k < 3; k++) { A.P[i * 3 + k] = P[v * 3 + k]; A.C[i * 3 + k] = o.C[v * 3 + k]; }
     A.m[i] = o.m[v]; A.M[i] = o.M[v]; A.RY[i * 2] = o.RY[v * 2]; A.RY[i * 2 + 1] = o.RY[v * 2 + 1];
+    A.RO[i * 2] = o.RO[v * 2]; A.RO[i * 2 + 1] = o.RO[v * 2 + 1];
   }
   const geometries = arrays.map(A => {
     const g = new THREE.BufferGeometry();
@@ -135,6 +153,7 @@ function cut(o: Out): { geometries: THREE.BufferGeometry[]; piece: Int32Array; a
     g.setAttribute('aLight', new THREE.BufferAttribute(A.m, 1));
     g.setAttribute('aMat', new THREE.BufferAttribute(A.M, 1));
     g.setAttribute('aRoomY', new THREE.BufferAttribute(A.RY, 2));
+    g.setAttribute('aRoomO', new THREE.BufferAttribute(A.RO, 2));
     g.computeBoundingSphere();
     return g;
   });
