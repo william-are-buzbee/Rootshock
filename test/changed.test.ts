@@ -1,21 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import { STATION } from '../src/content/station';
-import { buildUpper } from '../src/content/levels/upper';
 import { buildMain } from '../src/content/levels/main';
 import { makeSim, step, type Sim } from '../src/sim/sim';
-import { noInput, type Input } from '../src/sim/input';
+import { noInput } from '../src/sim/input';
 import { STEP } from '../src/core/loop';
 import { field } from '../src/world/nav';
 import { carded, routeRules } from '../src/sim/fields';
 import { answer, type Mutant } from '../src/sim/cast';
 import { locked } from '../src/sim/movers';
 import { doorAct } from '../src/sim/interact';
+import { fresh, hold, upper } from './kit';
 
 /* The changed (world.md §8, The second pass): Security's staff, intelligent but sedated. They carry their cards. */
 
-const level = buildUpper(STATION.ladders);
-const fresh = (seed = 7) => makeSim(level, { seed, station: STATION });
-const hold = (s: Sim, secs: number, inp: Partial<Input> = {}) => { for (let t = 0; t < secs; t += STEP) step(s, { ...noInput(), ...inp }); };
+const level = upper();
 function place(s: Sim, who: Mutant | 'player', x: number, y: number, z: number): void {
   const b = who === 'player' ? s.player.body : who.body!;
   b.x = x; b.y = y; b.z = z; b.vy = 0; b.sync();

@@ -1,17 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { STATION } from '../src/content/station';
-import { buildUpper } from '../src/content/levels/upper';
 import { makeSim } from '../src/sim/sim';
 import { Lighting, fullPower } from '../src/world/light';
 import { U } from '../src/present/render/shader';
 import { ANKLE, SHIN, THIGH, SelfView, ankle, fittingsOver, leg, pose, strideOf } from '../src/present/render/selfView';
+import { upper } from './kit';
 
 /* Your body (present/render/selfView.ts), headless: legs that put each foot where it is meant to be, standing nearly
    straight and folded right down crouched; feet that keep to the floor through a stride and the right one coming
    down on the footstep; and its shadow handed to the level's shader, from the fittings over you when they are lit. */
 
-const level = buildUpper(STATION.ladders);
+const level = upper();
 const room = (n: string) => level.rooms.find(R => R.name === n)!;
 const LEG = THIGH + SHIN;
 

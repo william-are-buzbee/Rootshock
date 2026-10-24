@@ -63,7 +63,7 @@ Step 2's first half is done: cameras guard the armed rooms they hang in (`RoomDe
 the rest only record), the way into each was marked (red door signs and hazard paint; since taken out, the camera in view
 from each way in being the tell),
 the cast keep armed rooms out of their rounds, alarm fatigue is out, and every husk in earshot hurries to the speaker,
-faster with another in sight hurrying (`ANSWER` in `sim/cast.ts`). Running noise is left as it is until played.
+faster with another in sight hurrying (`ANSWER` in `sim/cast/husk.ts`). Running noise is left as it is until played.
 Lockdown is done too: rooms carry their alarm zone (`RoomDef.zone`, set from a table at the end of `buildUpper`), and
 each klaxon round bolts the zone's doors that have power to move (`Door.down`, `Door.drawing`, `LOCKDOWN` in
 `sim/eyes.ts`), with the old bolt sounds and a red lamp over the door. And the call points, one a zone (`callPoint`, a
@@ -79,13 +79,13 @@ console with a sequencer, `dwell`) is done. Step 3 is done.
 Step 4 has begun: Security's staff carry their cards (`Mutant.cards`, set from `LevelDef.cards` and the room they start in;
 `carded` and the 'staff' rules in `sim/fields.ts`; `Door.pass` in `sim/movers.ts`; tests in `test/changed.test.ts`). The
 code keeps the name `husk`; the dev tools say "changed". The breaker is searched for (the 'search' state and `SEARCH` in
-`sim/cast.ts`). A door left open is noticed and shut (the 'shut' state, `LEFT`, `Mutant.door`). Their look is done
+`sim/cast/husk.ts`). A door left open is noticed and shut (the 'shut' state, `LEFT`, `Mutant.door`). Their look is done
 too (`changed()` in `render/castView.ts`, for a husk with `cards`; the leaf from `shelf()` in `render/castKit.ts`, each
 cluster merged into one mesh by `merged()`, so one draw call). Step 4 is done.
 The camera wall waits on a way into the operations room.
 
-Step 5 has begun: the night round walks (`nightround` in `MT`, `sim/cast.ts`: the 'round' state, `walkRound`,
-`ROUND`; its stops are `RoundStop`s, given to `mut()` as `round` on any deck). Its flashlight is a loose light like one
+Step 5 has begun: the night round walks (`nightround` in `MT`, `sim/cast.ts`; the 'round' state, `walkRound`,
+`ROUND` in `sim/cast/round.ts`; its stops are `RoundStop`s, given to `mut()` as `round` on any deck). Its flashlight is a loose light like one
 lying on (`torchRay`, put among `looseLights` in `sim/sim.ts`), so it lights you for it and for the cameras by the same
 `vis`; what a beam throws back is made again only once it has moved a quarter metre or turned (`DRIFT` in
 `world/light.ts`). At a stop with `tries` it shows the reader its card (`tryDoor`): `Door.beep` and `beepOk` show green
@@ -153,8 +153,8 @@ for the owner, since they are cosmology, not the level.
 
 - `src/sim/eyes.ts`: cameras (`makeCams`, `camLive`, `camSees`), zones and speakers (`soundZone`, `heard`), alarms
   (`makeAlarm`, `restoreAlarms`), and `updateEyes`, which runs them. Tests: `test/eyes.test.ts`.
-- `src/sim/cast.ts`: the cast. `Ai` and the kinds table near the top; answering an alarm (`answer`); the power-failure
-  drill (`drill`). Tests: `test/cast.test.ts`.
+- `src/sim/cast.ts`: the cast. `Ai` and the kinds table near the top; its parts in `src/sim/cast/`. Answering an alarm
+  (`answer`) and the power-failure drill (`drill`) are in `cast/husk.ts`. Tests: `test/cast.test.ts`.
 - `src/sim/movers.ts`: doors (`locked`). `src/sim/interact.ts`: card readers and keypads (`doorLabel`, `doorAct`).
 - `src/content/levels/upper.ts`: the level. The isolation suite is near the top (rooms round a common hall, the patient,
   the guard's dropped light); the start is `finishLevel` at the end (room 1, facing its door). The muster hall and the
@@ -203,7 +203,7 @@ for the owner, since they are cosmology, not the level.
   hands, legs), `RAG` (the solver and how blows land on a body), `REFLEX`, `STAGGER`. `makeRag`/`loose` turn a body
   loose with the blow in it; `updateCorpses` steps them all (budget 16 awake, asleep costs nothing); `begin` and
   `finish` are the two halves of a step; `knockRag` is a blow on one already loose.
-- `src/sim/cast.ts`: `hitMutant` (the shove, the kill, the knockdown), `floored`, `kill`.
+- `src/sim/cast/blows.ts`: `hitMutant` (the shove, the kill, the knockdown), `floored`, `kill`.
 - `src/sim/combat.ts`: your blows. `sweep` traces the swing (`sim/sweep.ts`: `PATHS`, `ACTIVE`, `along`); `landOn`
   makes the hit (shove, its way, `Hit.at`, `Hit.way`); `knock` is a swing through a corpse; `fire` the guns.
 - `src/present/render/rig.ts`: draws a loose body with the model's own boxes (`RIG` per model), blends in and out.

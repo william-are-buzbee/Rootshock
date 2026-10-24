@@ -1,16 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import { STATION } from '../src/content/station';
-import { buildUpper } from '../src/content/levels/upper';
 import { makeSim } from '../src/sim/sim';
 import { power } from '../src/sim/game';
 import { Lighting } from '../src/world/light';
 import { Motes } from '../src/present/render/motes';
+import { upper } from './kit';
 
 /* What hangs in the air (present/render/motes.ts), headless: how much of it the air holds, and that a speck keeps the
    push of something passing through it instead of swinging back to where it was. */
 
-const level = buildUpper(STATION.ladders);
+const level = upper();
 type Inside = { pos: Float32Array; vel: Float32Array; want: Float32Array; room: Int32Array };
 const inside = (m: Motes) => m as unknown as Inside;
 

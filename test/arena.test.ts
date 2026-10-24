@@ -1,10 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { testbed } from '../src/content/levels/testbed';
-import { STEP } from '../src/core/loop';
 import { hitMutant, killAll, spawn } from '../src/sim/cast';
-import { noInput } from '../src/sim/input';
-import { makeSim, step, type Sim } from '../src/sim/sim';
+import { makeSim, type Sim } from '../src/sim/sim';
 import { field, openRules } from '../src/world/nav';
+import { hold } from './kit';
 
 /* The arena in the test bed, and the tools for working on the fight (engine.md §6, F4). */
 const arena = (): Sim => {
@@ -13,7 +12,6 @@ const arena = (): Sim => {
   b.x = 8; b.z = -8; b.y = 0; b.sync(); s.player.yaw = 0; // in the middle of the arena, facing north
   return s;
 };
-const hold = (s: Sim, secs: number) => { for (let t = 0; t < secs; t += STEP) step(s, noInput()); };
 
 describe('the arena', () => {
   it('is reached on foot from the test bed\'s start, and so are its corridor, its low bay and the top of its ledge', () => {

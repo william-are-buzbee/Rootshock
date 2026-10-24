@@ -3,9 +3,10 @@ import { LevelBuilder } from '../src/content/build/builder';
 import { STEP } from '../src/core/loop';
 import { hitMutant, type Mutant } from '../src/sim/cast';
 import { give } from '../src/sim/game';
-import { noInput, type Input } from '../src/sim/input';
+import { noInput } from '../src/sim/input';
 import { DOWN, MOVES, swingOf } from '../src/sim/moves';
 import { makeSim, step, type Sim } from '../src/sim/sim';
+import { hold } from './kit';
 
 /* Knocked down and thrown (engine.md §6, knockdowns). A hall 20 by 12 m; you stand at (10, 6) facing east. What is put in
    it stands still (stunned) and cannot die of these unless a test says. */
@@ -19,9 +20,6 @@ function hall(build: (b: LevelBuilder) => void = () => {}, at: [number, number] 
   s.game.hp = 1e9;
   return s;
 }
-const hold = (s: Sim, secs: number, inp: Partial<Input> = {}) => {
-  for (let t = 0; t < secs; t += STEP) step(s, { ...noInput(), ...inp });
-};
 const AXE = { dmg: 14 + 9 * 3.2, poise: swingOf('edge', 3.2).poise, shove: 70 * (3.2 + 1.5) };
 const lost = (m: Mutant) => m.max - m.hp;
 

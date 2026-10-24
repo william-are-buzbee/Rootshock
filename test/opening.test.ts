@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { STATION } from '../src/content/station';
-import { buildUpper } from '../src/content/levels/upper';
 import { makeSim, simLighting, step, type Sim } from '../src/sim/sim';
 import { noInput, type Input } from '../src/sim/input';
 import { STEP } from '../src/core/loop';
@@ -10,6 +9,7 @@ import { checkProgress } from '../src/sim/progress';
 import { OPENING } from '../src/sim/opening';
 import { GRAFT, stutters } from '../src/sim/cast';
 import { REEL } from '../src/sim/moves';
+import { hold, upper } from './kit';
 
 /* The opening (world.md §8): a new game's first minutes in the isolation suite, each beat saying one thing. The wing's
    feed is days cut; you wake to your pump's alarm in the suite's low stutter, on its own failing set. At your door, the
@@ -20,14 +20,13 @@ import { REEL } from '../src/sim/moves';
    while at your door: whoever it finds, it takes. Your washroom, its door shut, it does not go into. It goes up; ten
    seconds on the set dies: black, your lock letting go in the dark, and the suite's cells coming up. */
 
-const level = buildUpper(STATION.ladders);
+const level = upper();
 const opening = (seed = 7) => {
   const s = makeSim(level, { seed, station: STATION, opening: true });
   const round = s.cast.find(q => q.type === 'nightround')!, patient = s.cast.find(q => q.type === 'patient')!;
   for (const q of s.cast) if (q !== round && q !== patient) q.stun = 1e9; // the rest of the level held still: not theirs
   return { s, round, patient };
 };
-const hold = (s: Sim, secs: number, inp: Partial<Input> = {}) => { for (let t = 0; t < secs; t += STEP) step(s, { ...noInput(), ...inp }); };
 const until = (s: Sim, secs: number, done: () => boolean, inp: Partial<Input> = {}) => { for (let t = 0; t < secs && !done(); t += STEP) step(s, { ...noInput(), ...inp }); return done(); };
 const roomOf = (s: Sim, m: { x: number; y: number; z: number }) => s.world.roomAt(m.x, m.y + 0.5, m.z)?.name;
 const lum = (s: Sim, name: string) => Math.max(...simLighting(s).room(s.world.rooms.find(R => R.name === name)!.id));

@@ -7,6 +7,7 @@ import { give } from '../src/sim/game';
 import { noInput, type Input } from '../src/sim/input';
 import { MOVES, POISE, swingOf } from '../src/sim/moves';
 import { makeSim, step, type Sim } from '../src/sim/sim';
+import { hold } from './kit';
 
 /* Committing to a blow, and the reaction ladder (engine.md §6, F2). A hall 20 by 12 m; you stand in the middle facing
    east. What is put in it stands still (stunned) unless a test wakes it. */
@@ -20,9 +21,6 @@ function hall(build: (b: LevelBuilder) => void = () => {}): Sim {
   s.game.hp = 1e9;
   return s;
 }
-const hold = (s: Sim, secs: number, inp: Partial<Input> = {}) => {
-  for (let t = 0; t < secs; t += STEP) step(s, { ...noInput(), ...inp });
-};
 const heard = (s: Sim, name: string) => s.game.events.some(e => e.type === 'sfx' && e.name === name);
 /** look at a point from where you stand */
 function face(s: Sim, x: number, y: number, z: number): void {

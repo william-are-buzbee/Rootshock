@@ -3,9 +3,10 @@ import { LevelBuilder } from '../src/content/build/builder';
 import { STEP } from '../src/core/loop';
 import type { Mutant } from '../src/sim/cast';
 import { give } from '../src/sim/game';
-import { noInput, type Input } from '../src/sim/input';
+import { noInput } from '../src/sim/input';
 import { MOVES, POISE } from '../src/sim/moves';
 import { makeSim, step, type Sim } from '../src/sim/sim';
+import { hold } from './kit';
 
 /* Blows traced through the world (engine.md §6, F3b). You stand at x 10, in the middle of a room's width, facing east;
    your right is south (+z). The pipe and the baton swing side to side, right to left; the axe chops, from up and right
@@ -20,9 +21,6 @@ function room(w: number, ht: number, build: (b: LevelBuilder, z: number) => void
   s.game.hp = 1e9;
   return s;
 }
-const hold = (s: Sim, secs: number, inp: Partial<Input> = {}) => {
-  for (let t = 0; t < secs; t += STEP) step(s, { ...noInput(), ...inp });
-};
 const heard = (s: Sim, name: string) => s.game.events.some(e => e.type === 'sfx' && e.name === name);
 /** a click, and what came of it: whether it glanced, whether you reeled */
 function swing(s: Sim, id: string) {

@@ -10,8 +10,9 @@ import { looseLights } from '../src/sim/sim';
 import { circle } from '../src/world/shapes';
 import { field } from '../src/world/nav';
 import { makeFields, rulesFor } from '../src/sim/fields';
+import { upper } from './kit';
 
-const level = buildUpper(STATION.ladders);
+const level = upper();
 const sim = makeSim(level);
 
 describe('the upper station', () => {
