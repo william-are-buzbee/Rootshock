@@ -4420,6 +4420,13 @@ float grid(float x, float per, float w){
 }
 /* 1 within r of a point of a lattice of dots, d from the nearest */
 float dot1(float d, float r, float fw){ return (1.0 - smoothstep(r - fw, r + fw, d)) * (1.0 - smoothstep(r * 0.4, r * 1.2, fw)); }
+/* how much of a detail size metres across (a cell of noise, a speck) a pixel px metres wide can show: all of it while
+   it is four pixels across, half at two, none under one and a third. Finer than that it is not drawn but sampled, a
+   different few of its specks each frame as you move, so it crawls: on a floor or a wall seen at a slant, in streaks
+   across the way the pixel is stretched. Faded to its average, it shades the surface as it would from that far */
+float keep(float size, float px){ return 1.0 - smoothstep(0.25, 0.75, px / size); }
+/* n3 at k cells a metre, faded to its average where a pixel px wide is too wide for them */
+float n3f(vec3 p, float k, float px){ return mix(0.5, n3(p * k), keep(1.0 / k, px)); }
 void surface(int pat, vec3 p, vec3 n, float up, float det, out float alb, out float h, out float gm, out vec3 tint){
   alb = 1.0; h = 0.0; gm = 1.0; tint = vec3(1.0);
   vec3 an = abs(n);
@@ -4427,9 +4434,11 @@ void surface(int pat, vec3 p, vec3 n, float up, float det, out float alb, out fl
   bool overhead = horiz && n.y < 0.0;
   /* across the face and up it: a floor or ceiling's are x and z; a wall's along it and up from the floor */
   vec2 uv = horiz ? p.xz : vec2(an.x > an.z ? p.z : p.x, up);
-  float fw = fwidth(uv.x) + fwidth(uv.y), fine = 1.0 - smoothstep(0.006, 0.02, fw);
+  float fw = fwidth(uv.x) + fwidth(uv.y);
+  /* how wide a pixel is here (metres), the way it is widest: seen at a slant, it is stretched along the surface */
+  float px = max(length(dFdx(p)), length(dFdy(p)));
   if (pat == ${cb(`cast`)}) {
-    float b = n3(p * 0.6), s = n3(p * 7.0), sp = n3(p * 31.0);
+    float b = n3f(p, 0.6, px), s = n3f(p, 7.0, px), sp = n3f(p, 31.0, px);
     alb = 1.0 + 0.18 * (b - 0.5) + 0.12 * (s - 0.5) * det + 0.08 * (sp - 0.5) * det;
     h = 0.006 * b + 0.0015 * s + 0.0004 * sp;
     if (!horiz || overhead) {
@@ -4445,20 +4454,20 @@ void surface(int pat, vec3 p, vec3 n, float up, float det, out float alb, out fl
   } else if (pat == ${cb(`block`)}) {
     /* block filled and painted smooth, as an institution paints it: no coursing (drawn, it read as brick), a roller's
        stipple, the paint a little uneven, and a control joint every 6 m */
-    float m = n3(p * 0.7), st = mix(0.5, n3(p * 55.0), fine), j = grid(uv.x, 6.0, 0.004);
+    float m = n3f(p, 0.7, px), st = n3f(p, 55.0, px), j = grid(uv.x, 6.0, 0.004);
     alb = (1.0 + 0.05 * (m - 0.5) + 0.05 * (st - 0.5) * det) * (1.0 - 0.15 * j);
     h = 0.0003 * st - 0.002 * j;
     gm = 1.0 - 0.6 * j;
   } else if (pat == ${cb(`plaster`)}) {
-    float b = n3(p * 1.1), pe = n3(p * 42.0);
+    float b = n3f(p, 1.1, px), pe = n3f(p, 42.0, px);
     alb = 1.0 + 0.05 * (b - 0.5) + 0.03 * (pe - 0.5) * det;
     h = 0.0002 * pe;
   } else if (pat == ${cb(`tiles`)}) {
     /* a suspended ceiling's grid, a third of a 2 m tile each way, of painted T-bar; the tiles pitted mineral fibre */
     vec2 q = horiz ? p.xz : uv;
     float bar = max(grid(q.x, 2.0 / 3.0, 0.012), grid(q.y, 2.0 / 3.0, 0.012));
-    float pits = smoothstep(0.7, 0.78, n3(p * 70.0)) * det, tone = hash(floor(q * 1.5));
-    alb = mix(1.0 + 0.06 * (tone - 0.5) + 0.04 * (n3(p * 9.0) - 0.5) - 0.1 * pits, 1.12, bar);
+    float pits = mix(0.11, smoothstep(0.7, 0.78, n3(p * 70.0)), keep(0.5 / 70.0, px)) * det, tone = hash(floor(q * 1.5));
+    alb = mix(1.0 + 0.06 * (tone - 0.5) + 0.04 * (n3f(p, 9.0, px) - 0.5) - 0.1 * pits, 1.12, bar);
     h = 0.004 * bar - 0.0006 * pits;
     gm = 1.0 + 5.0 * bar;
   } else if (pat == ${cb(`glazed`)}) {
@@ -4474,7 +4483,7 @@ void surface(int pat, vec3 p, vec3 n, float up, float det, out float alb, out fl
        brick pavement), each a little different in tone */
     vec2 cell = floor(uv / 0.9);
     float j = max(grid(uv.x, 0.9, 0.003), grid(uv.y, 0.9, 0.003));
-    float tone = hash(cell), grit = n3(p * 18.0);
+    float tone = hash(cell), grit = n3f(p, 18.0, px);
     alb = (1.0 + 0.06 * (tone - 0.5) + 0.08 * (grit - 0.5) * det) * (1.0 - 0.2 * j);
     h = 0.0012 * grit - 0.003 * j;
   } else if (pat == ${cb(`mesh`)} && horiz) {
@@ -4489,7 +4498,7 @@ void surface(int pat, vec3 p, vec3 n, float up, float det, out float alb, out fl
     /* (a rod is 6 mm proud of the slot's floor of shadow: looking along the slots at a slant, the rods close them) */
     float rod = grid(p.z, 0.1, min(0.0015 + 0.006 * abs(v.z) * tilt, 0.05));
     float band = grid(p.x, 1.0, 0.004);
-    float pan = hash(vec2(floor(p.x), floor(p.z / 6.0))), grime = n3(p * 0.8);
+    float pan = hash(vec2(floor(p.x), floor(p.z / 6.0))), grime = n3f(p, 0.8, px);
     float solid = max(max(bear, 0.85 * rod), band);
     /* between the bars, the dim of what is under the walkway: not black */
     alb = mix(0.3, mix(0.62, 1.0, max(top, band)) * (1.0 + 0.1 * (pan - 0.5) + 0.14 * (grime - 0.5)), solid);
@@ -4502,12 +4511,12 @@ void surface(int pat, vec3 p, vec3 n, float up, float det, out float alb, out fl
     float ex = min(c.x, per.x - c.x), ey = min(c.y, per.y - c.y);
     float ax = abs(fract(uv.x / 0.15 + 0.5) - 0.5) * 0.15, ay = abs(fract(uv.y / 0.15 + 0.5) - 0.5) * 0.15;
     float riv = dot1(min(length(vec2(ex - 0.03, ay)), length(vec2(ey - 0.03, ax))), 0.007, fw);
-    float brush = n3(vec3(uv.x * 2.0, uv.y * 70.0, 3.1)), stain = n3(p * 0.4);
+    float brush = mix(0.5, n3(vec3(uv.x * 2.0, uv.y * 70.0, 3.1)), keep(1.0 / 70.0, px)), stain = n3f(p, 0.4, px);
     alb = (1.0 + 0.1 * (brush - 0.5) * det + 0.24 * (stain - 0.5)) * (1.0 - 0.3 * seam) * (1.0 + 0.15 * riv);
     h = -0.002 * seam + 0.003 * riv + 0.0001 * brush;
     gm = 0.7 + 0.6 * brush;
   } else if (pat == ${cb(`rock`)}) {
-    float a = n3(p * 0.9), b = n3(p * 3.1), c = n3(p * 11.0);
+    float a = n3f(p, 0.9, px), b = n3f(p, 3.1, px), c = n3f(p, 11.0, px);
     float strata = 0.5 + 0.5 * sin(p.y * 6.0 + a * 5.0);
     alb = 0.88 + 0.5 * (0.5 * a + 0.33 * b + 0.17 * c * det - 0.5) + 0.07 * strata;
     h = 0.09 * a + 0.025 * b + 0.004 * c * det;
@@ -4517,14 +4526,14 @@ void surface(int pat, vec3 p, vec3 n, float up, float det, out float alb, out fl
     /* planks 120 mm wide, across the face; grain along them */
     vec2 q = horiz ? p.xz : vec2(an.x > an.z ? p.z : p.x, p.y);
     float k = floor(q.y / 0.12), gap = grid(q.y, 0.12, 0.003);
-    float tone = hash(vec2(k, 7.0)), grain = n3(vec3(q.x * 1.5, q.y * 60.0, k * 3.0));
+    float tone = hash(vec2(k, 7.0)), grain = mix(0.5, n3(vec3(q.x * 1.5, q.y * 60.0, k * 3.0)), keep(1.0 / 60.0, px));
     alb = (1.0 + 0.2 * (tone - 0.5) + 0.14 * (grain - 0.5) * det) * (1.0 - 0.5 * gap);
     h = -0.003 * gap + 0.0003 * grain;
   } else if (pat == ${cb(`shot`)}) {
     /* sprayed over blasted rock: lumps the size of the rock's own under the spray's grain, and no seams */
-    float a = n3(p * 0.7), b = n3(p * 2.3), g = n3(p * 23.0), sp = n3(p * 61.0);
-    alb = 0.94 + 0.2 * (a - 0.5) + 0.12 * (b - 0.5) + (0.1 * (g - 0.5) + 0.06 * (sp - 0.5) * fine) * det;
-    h = 0.07 * a + 0.025 * b + (0.002 * g + 0.0004 * sp * fine) * det;
+    float a = n3f(p, 0.7, px), b = n3f(p, 2.3, px), g = n3f(p, 23.0, px), sp = n3f(p, 61.0, px);
+    alb = 0.94 + 0.2 * (a - 0.5) + 0.12 * (b - 0.5) + (0.1 * (g - 0.5) + 0.06 * (sp - 0.5)) * det;
+    h = 0.07 * a + 0.025 * b + (0.002 * g + 0.0004 * sp) * det;
     if (!horiz || overhead) {
       /* the rock bolts: a plate 150 mm square every 1.5 m, rows staggered, sprayed over with the rest, so it shows as a
          raised square and the nut through it; under one in four on a wall, a faint stain of rust run down from it */
@@ -4543,15 +4552,16 @@ void surface(int pat, vec3 p, vec3 n, float up, float det, out float alb, out fl
   } else if (pat == ${cb(`epoxy`)}) {
     /* a coated slab: the coat smooth and a little uneven in tone, saw cuts between 4 m bays, scuffs where wheels and
        feet went, which take the shine off it */
-    float m = n3(p * 0.45), cut = max(grid(uv.x, 4.0, 0.003), grid(uv.y, 4.0, 0.003));
-    float scuff = smoothstep(0.6, 0.8, n3(vec3(uv.x * 1.5, uv.y * 9.0, 7.7))) * smoothstep(0.45, 0.7, n3(p * 0.3 + 3.0));
+    float m = n3f(p, 0.45, px), cut = max(grid(uv.x, 4.0, 0.003), grid(uv.y, 4.0, 0.003));
+    float scuff = mix(0.05, smoothstep(0.6, 0.8, n3(vec3(uv.x * 1.5, uv.y * 9.0, 7.7))) * smoothstep(0.45, 0.7, n3(p * 0.3 + 3.0)), keep(0.5 / 9.0, px));
     alb = (1.0 + 0.08 * (m - 0.5) - 0.14 * scuff * det) * (1.0 - 0.45 * cut);
     h = -0.003 * cut;
     gm = (1.0 - 0.6 * scuff) * (1.0 - cut);
   } else if (pat == ${cb(`vinyl`)}) {
     /* sheet vinyl: flecked dark and light, the seams welded every 2 m along the roll */
-    float f1 = mix(0.12, smoothstep(0.68, 0.74, n3(p * 140.0)), fine), f2 = mix(0.1, smoothstep(0.7, 0.76, n3(p * 110.0 + 5.0)), fine);
-    float seam = grid(uv.x, 2.0, 0.0015), m = n3(p * 0.6);
+    float f1 = mix(0.14, smoothstep(0.68, 0.74, n3(p * 140.0)), keep(0.5 / 140.0, px));
+    float f2 = mix(0.12, smoothstep(0.7, 0.76, n3(p * 110.0 + 5.0)), keep(0.5 / 110.0, px));
+    float seam = grid(uv.x, 2.0, 0.0015), m = n3f(p, 0.6, px);
     alb = 1.0 + 0.05 * (m - 0.5) + (0.12 * f2 - 0.14 * f1) * det - 0.15 * seam;
     h = -0.0005 * seam;
     gm = 1.0 - 0.4 * seam;
@@ -4560,29 +4570,29 @@ void surface(int pat, vec3 p, vec3 n, float up, float det, out float alb, out fl
        worn paler where the feet went */
     vec2 cell = floor(uv / 0.5);
     float turn = mod(cell.x + cell.y, 2.0);
-    float pile = n3(turn > 0.5 ? vec3(uv.x * 200.0, uv.y * 60.0, 1.0) : vec3(uv.x * 60.0, uv.y * 200.0, 1.0));
-    float j = max(grid(uv.x, 0.5, 0.001), grid(uv.y, 0.5, 0.001)), worn = n3(p * 0.7);
-    alb = (1.0 + 0.04 * (turn - 0.5) + 0.14 * (pile - 0.5) * fine * det + 0.08 * (worn - 0.5)) * (1.0 - 0.1 * j);
-    h = 0.0008 * pile * fine - 0.001 * j;
+    float pile = mix(0.5, n3(turn > 0.5 ? vec3(uv.x * 200.0, uv.y * 60.0, 1.0) : vec3(uv.x * 60.0, uv.y * 200.0, 1.0)), keep(1.0 / 200.0, px));
+    float j = max(grid(uv.x, 0.5, 0.001), grid(uv.y, 0.5, 0.001)), worn = n3f(p, 0.7, px);
+    alb = (1.0 + 0.04 * (turn - 0.5) + 0.14 * (pile - 0.5) * det + 0.08 * (worn - 0.5)) * (1.0 - 0.1 * j);
+    h = 0.0008 * pile - 0.001 * j;
     gm = 0.0;
   } else if (pat == ${cb(`terrazzo`)}) {
     /* marble chips in cement, ground flat and polished: dark, pale and a few rust-red ones, an inch or so across, so
        they read further off than the finer specks elsewhere; brass strips between bays 1.5 m square */
-    float big = 1.0 - smoothstep(0.012, 0.04, fw);
-    float c1 = mix(0.08, smoothstep(0.7, 0.74, n3(p * 34.0)), big), c2 = mix(0.12, smoothstep(0.66, 0.7, n3(p * 27.0 + 11.0)), big);
-    float c3 = mix(0.03, smoothstep(0.77, 0.81, n3(p * 40.0 + 23.0)), big), grain = n3(p * 90.0);
-    float strip = max(grid(uv.x, 1.5, 0.0015), grid(uv.y, 1.5, 0.0015)), m = n3(p * 0.5);
-    alb = mix((1.0 + 0.06 * (m - 0.5) + 0.06 * (grain - 0.5) * fine) * (1.0 - 0.3 * c1) * (1.0 + 0.14 * c2), 1.04, strip);
+    float c1 = mix(0.13, smoothstep(0.7, 0.74, n3(p * 34.0)), keep(0.5 / 34.0, px));
+    float c2 = mix(0.19, smoothstep(0.66, 0.7, n3(p * 27.0 + 11.0)), keep(0.5 / 27.0, px));
+    float c3 = mix(0.06, smoothstep(0.77, 0.81, n3(p * 40.0 + 23.0)), keep(0.5 / 40.0, px)), grain = n3f(p, 90.0, px);
+    float strip = max(grid(uv.x, 1.5, 0.0015), grid(uv.y, 1.5, 0.0015)), m = n3f(p, 0.5, px);
+    alb = mix((1.0 + 0.06 * (m - 0.5) + 0.06 * (grain - 0.5)) * (1.0 - 0.3 * c1) * (1.0 + 0.14 * c2), 1.04, strip);
     tint = mix(mix(vec3(1.0), vec3(1.18, 0.9, 0.76), c3), vec3(1.15, 1.03, 0.8), strip);
-    h = 0.0002 * (c2 - c1) * big + 0.0004 * strip;
+    h = 0.0002 * (c2 - c1) + 0.0004 * strip;
     gm = 1.0 + 1.5 * strip;
   } else if (pat == ${cb(`stone`)}) {
     /* honed limestone hung as cladding: panels 1.5 m long and 0.75 high stacked joint over joint (set half a panel
        along, as masonry is, it reads as brick), hairline joints; its bedding planes, and pits where a fossil fell out */
     float row = floor(uv.y / 0.75), x = uv.x;
     float j = max(grid(uv.y, 0.75, 0.001), grid(x, 1.5, 0.001));
-    float tone = hash(vec2(floor(x / 1.5), row)), bed = n3(vec3(x * 1.5, uv.y * 14.0, tone * 40.0));
-    float pit = smoothstep(0.73, 0.78, n3(p * 45.0)) * fine;
+    float tone = hash(vec2(floor(x / 1.5), row)), bed = mix(0.5, n3(vec3(x * 1.5, uv.y * 14.0, tone * 40.0)), keep(1.0 / 14.0, px));
+    float pit = mix(0.09, smoothstep(0.73, 0.78, n3(p * 45.0)), keep(0.5 / 45.0, px));
     alb = (1.0 + 0.06 * (tone - 0.5) + 0.08 * (bed - 0.5) * det - 0.12 * pit) * (1.0 - 0.1 * j);
     h = -0.001 * j - 0.0004 * pit;
     gm = 1.0 - 0.9 * j;
@@ -4730,9 +4740,11 @@ void main(){
   if (on && vLB.y > 0.0 && walls && em == 0.0) {
     float k = vLB.y;
     if (abs(nf.y) < 0.5) {
-      float g = (1.0 - smoothstep(0.0, 0.45, vW.y - vRY.x)) * (0.45 + 0.9 * n3(vW * 1.7));
+      float px = max(length(dFdx(vW)), length(dFdy(vW)));
+      float g = (1.0 - smoothstep(0.0, 0.45, vW.y - vRY.x)) * (0.45 + 0.9 * n3f(vW, 1.7, px));
       float along = abs(nf.x) > abs(nf.z) ? vW.z : vW.x;
-      float run = smoothstep(0.58, 0.78, n3(vW * 0.21 + 5.0)) * smoothstep(0.45, 0.8, n3(vec3(along * 9.0, vW.y * 0.5, 1.7))) * exp(-(vRY.y - vW.y) / 1.4);
+      float streak = mix(0.28, smoothstep(0.45, 0.8, n3(vec3(along * 9.0, vW.y * 0.5, 1.7))), keep(0.5 / 9.0, px));
+      float run = smoothstep(0.58, 0.78, n3(vW * 0.21 + 5.0)) * streak * exp(-(vRY.y - vW.y) / 1.4);
       alb *= 1.0 - 0.3 * k * g;
       vec3 left = vLB.z > 0.5 ? min(base * vec3(1.6, 1.6, 1.55) + 0.06, vec3(0.82, 0.81, 0.78)) : base * vec3(0.74, 0.66, 0.52);
       base = mix(base, left, 0.7 * k * run);
