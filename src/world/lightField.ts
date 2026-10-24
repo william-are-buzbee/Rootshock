@@ -20,7 +20,8 @@ import type { World } from './world';
 
    Fixed props are stamped into the lattice: a point inside one is not open, and a join that passes through one is cut, so
    a crate or a table throws a shadow from a fitting over it and the floor under a desk is dark. (Crates that move are not
-   in it, nor what is flat on a ceiling: the fittings themselves, grilles.)
+   in it, nor what is flat on a ceiling: the fittings themselves, grilles.) So are walls at an angle, as the turned boxes
+   they are: light stops at one exactly, though the grid's cells either side of it are open.
 
    Doors are not in the grid (they move), so a join through a door is a gate: what a source throws through one is kept
    apart, by door, and counts as far as the door stands open. Light gets under a door as it lifts.
@@ -131,6 +132,10 @@ export class LightField {
     const inProp = new Uint8Array(S * BR3), cut = new Uint8Array(S * BR3);
     /* (glass lets light through) */
     for (const P of w.def.props) if (P.mat !== 'glass') this.stamp(P, inProp, cut);
+    for (const W of w.walls) if (W.mat !== 'glass') {
+      const t = W.turn;
+      this.fill(t.cx, (W.y0 + W.y1) / 2, t.cz, t.hu, (W.y1 - W.y0) / 2, t.hv, -Math.atan2(t.s, t.c), 0, 'box', inProp, cut);
+    }
 
     /* which points are open, and whose; points under a cave's floor or over its ceiling, or inside a prop, are not */
     this.pid = new Int32Array(S * BR3).fill(-1);
@@ -213,8 +218,14 @@ export class LightField {
     if (P.loose || P.glow > 1 || P.colour[0] > 1.5 || P.pw || Math.max(P.sx, P.sy, P.sz) < 0.12) return;
     const top = w.roomAt(P.x, P.y + P.sy / 2, P.z);
     if (P.sy < 0.15 && top && P.y + P.sy > top.y0 + top.ht - 0.12) return; // flat on the ceiling
-    const hx = Math.max(P.sx / 2, 0.07), hy = Math.max(P.sy / 2, 0.07), hz = Math.max(P.sz / 2, 0.07);
-    const cx = P.x, cy = P.y + P.sy / 2, cz = P.z, ca = Math.cos(P.ry), sa = Math.sin(P.ry), cb = Math.cos(P.rz), sb = Math.sin(P.rz);
+    this.fill(P.x, P.y + P.sy / 2, P.z, P.sx / 2, P.sy / 2, P.sz / 2, P.ry, P.rz, P.shape, inProp, cut);
+  }
+
+  /** mark what a box fills, turned as a prop is (about y by ry, then tipped about z by rz), its middle at (cx, cy, cz) and
+   *  its half sizes hx, hy, hz (each at least 7 cm); a cylinder or a ball as what fits in that box */
+  private fill(cx: number, cy: number, cz: number, hx: number, hy: number, hz: number, ry: number, rz: number, shape: PropDef['shape'], inProp: Uint8Array, cut: Uint8Array): void {
+    hx = Math.max(hx, 0.07); hy = Math.max(hy, 0.07); hz = Math.max(hz, 0.07);
+    const P = { shape }, ca = Math.cos(ry), sa = Math.sin(ry), cb = Math.cos(rz), sb = Math.sin(rz);
     /* world to the prop's own frame, as rows (turned back about y, then tipped back about z), each over its half size */
     const U = [(cb * ca) / hx, sb / hx, (-cb * sa) / hx], V = [(-sb * ca) / hy, cb / hy, (sb * sa) / hy], T = [sa / hz, 0, ca / hz];
     const inside = (u: number, v: number, t: number) =>

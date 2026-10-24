@@ -136,6 +136,19 @@ thing is added once.
   ceiling, from it up. They are answered exactly, not by the grid, so a ramp is smooth to walk and to look at. A cave
   is a room carved in the grid from its lowest floor to its highest ceiling, with a floor surface and a ceiling
   surface inside; the walls are grid walls, plain rock with no dado or stripe.
+- **Walls at an angle (built).** The grid's faces are its cells' faces, so a wall at an angle carved in it is a staircase.
+  Instead a wall is a solid of its own (`WallDef`, `LevelDef.walls`): a straight run from one point on the plan to
+  another, some thickness about that line, from one height to another. It is a turned box among the fixed solids, and
+  every query answers it exactly (`meetsTurned`, `segmentTurned` in `world/shapes.ts`), so a body stops at its face,
+  sight and a swing at its surface; the light field stamps it as it stamps a prop (light stops at it, though the cells
+  either side are open); the mesh draws each face in the finish of the room in front of it, dado and stripe and all, cut
+  where that room changes along it (`wallMesh` in `levelMesh.ts`); the shader lays a pattern along it, whichever way it
+  faces. A room can have any outline (`RoomDef.poly`): carved cell by cell, each cell whose middle is inside it. The
+  staircase its sides at an angle make is hidden by the walls standing on them: a wall at least `WALL_MIN` (0.36 m)
+  thick, centred on the side, covers half a cell's diagonal either way. `LevelBuilder.outline` walls an outline's sides
+  at an angle itself, closing its outward corners, and leaves open the sides it is told to (for a way through, put up
+  the wall with a gap in it: `wall()`, twice). The test bed's angled hall, south of the lab, is one, with an annex
+  through a gap in a wall at 127 degrees (`test/walls.test.ts`).
 - **Small props** (crates, tables, shelves) are not stamped into the grid. They are boxes, oriented boxes or cylinders
   in a spatial hash, so they can later move.
 - **Everything that moves is a `Dyn`**: a box the sim keeps up to date in the world's list. Doors, platforms, loose
@@ -813,6 +826,10 @@ As built in step 5 (`world/nav.ts`, `sim/fields.ts`):
   every floor height (grid floors and sloped surfaces both), so one graph covers every layer of a level: a walkway and
   the hall under it are one place to the cast. Each spot knows its headroom, its room and the door it stands in, if
   any. Built once per level with everything that moves moved aside, and shared by every run of that level.
+- **Near a wall at an angle** a spot may stand off its square's middle, at the nearest point in the square the wall
+  leaves room for it (`NUDGE`). Walls on the grid's lines and the 1 m lattice agree; one at an angle, or a gap in one,
+  falls anywhere across them, and with spots only in the middle a 1.4 m gap could have none either side to take a body
+  through it. Nowhere near one, the lattice is as it was.
 - **Edges** go to the eight neighbouring columns: a walk (a step up to 0.5 m, as a body climbs), or a drop (down to
   2.5 m, one way). Diagonals only where both squares beside them are open, so no corner is cut through rock. A
   platform joins the spots on it at the bottom to the spots beside it at the top.

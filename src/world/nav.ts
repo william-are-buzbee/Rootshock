@@ -1,10 +1,11 @@
 import { CELL } from './grid';
-import { circle } from './shapes';
+import { circle, meetsTurned, rect } from './shapes';
 import type { Dyn, World } from './world';
 
 /* The nav graph (engine.md §7): where something can stand, and how it gets from there to the next spot. Spots lie on a
    1 m lattice in plan and at every floor height, so one graph covers every layer of a level: a walkway and the hall
-   under it are one place to the cast. Each spot knows its headroom (a big body skips low ones), its room, and the door
+   under it are one place to the cast. (Near a wall at an angle a spot may stand off the middle of its square, where the
+   wall leaves room for it: NUDGE.) Each spot knows its headroom (a big body skips low ones), its room, and the door
    it stands in, if any (the door's state decides at run time who may pass). Platforms join their two ends.
 
    Built once per level with everything that moves moved out of the way; the sim keeps it, and fields over it say how far
@@ -16,6 +17,15 @@ const R = 0.3;
 const LOW = 1.0;
 const STEP_UP = 0.5; // as a body walks: body.ts STEP_UP
 const DROP = 2.5;
+/** where in its square a spot may stand, if a wall at an angle is in the way of its middle: the nearest of these to the
+ *  middle that is clear. (Lattice squares and walls on the grid's lines agree; a wall at an angle, and a gap in one,
+ *  fall anywhere across them, and a spot only in the middle would leave a way through a gap with no spot to take it) */
+const NUDGE = (() => {
+  const at = [-0.45, -0.3, -0.15, 0, 0.15, 0.3, 0.45], out: [number, number][] = [];
+  for (const a of at) for (const b of at) out.push([a, b]);
+  return out.sort((p, q) => Math.hypot(p[0], p[1]) - Math.hypot(q[0], q[1]) || p[0] - q[0] || p[1] - q[1]);
+})();
+const MIDDLE: [number, number][] = [[0, 0]];
 
 export const enum Edge { Walk = 0, Drop = 1, Lift = 2 }
 
@@ -110,7 +120,8 @@ function build(w: World, doors: NavDoor[], lifts: NavLift[]): Nav {
   const g = w.grid, j0 = Math.floor(y0 / CELL) - 1, j1 = Math.ceil(y1 / CELL); // one below: a floor on an all-rock chunk
   for (let iz = Math.floor(z0 / NAV); iz < Math.ceil(z1 / NAV); iz++)
     for (let ix = Math.floor(x0 / NAV); ix < Math.ceil(x1 / NAV); ix++) {
-      const x = (ix + 0.5) * NAV, z = (iz + 0.5) * NAV, f = circle(x, z, R);
+      const x = (ix + 0.5) * NAV, z = (iz + 0.5) * NAV;
+      const tries = w.walls.length && w.walls.some(W => meetsTurned(rect(x, z, NAV / 2 + R, NAV / 2 + R), W.turn)) ? NUDGE : MIDDLE;
       /* floors in this column: rock or a block with open space over it, and any sloped floor */
       const cand: number[] = [], up: number[] = [];
       const ci = Math.floor(x / CELL), ck = Math.floor(z / CELL);
@@ -121,22 +132,25 @@ function build(w: World, doors: NavDoor[], lifts: NavLift[]): Nav {
         if (d.kind === 'floor' && x >= d.x0 && x <= d.x1 && z >= d.z0 && z <= d.z1 && s.has(x, z)) { cand.push(s.heightAt(x, z)); up.push(0.3 + 2 * R); }
       }
       const here: number[] = [];
-      for (const [n, c] of cand.entries()) {
-        const gy = w.groundBelow(f, c + up[n]);
-        if (gy === -Infinity || gy < c - 0.3) continue;
-        if (w.overlap(f, gy + 0.01, gy + LOW)) continue;
-        if (here.some(i => Math.abs(spots[i].y - gy) < 0.4)) continue;
-        const head = w.ceilingAbove(f, gy + 0.01) - gy, R0 = w.roomAt(x, gy + 0.5, z);
-        let door = -1;
-        doors.forEach((d, k) => {
-          const along = d.x1 - d.x0 > d.z1 - d.z0, cx = (d.x0 + d.x1) / 2, cz = (d.z0 + d.z1) / 2;
-          const inX = along ? x > d.x0 && x < d.x1 : Math.abs(x - cx) < 1;
-          const inZ = along ? Math.abs(z - cz) < 1 : z > d.z0 && z < d.z1;
-          if (inX && inZ && Math.abs(gy - d.y0) < 0.6) door = k;
-        });
-        here.push(spots.length);
-        spots.push({ x, y: gy, z, head, room: R0 ? R0.id : -1, door });
-      }
+      for (const [n, c] of cand.entries())
+        for (const [ox, oz] of tries) {
+          const sx = x + ox, sz = z + oz, f = circle(sx, sz, R);
+          const gy = w.groundBelow(f, c + up[n]);
+          if (gy === -Infinity || gy < c - 0.3) continue;
+          if (w.overlap(f, gy + 0.01, gy + LOW)) continue;
+          if (here.some(i => Math.abs(spots[i].y - gy) < 0.4)) break;
+          const head = w.ceilingAbove(f, gy + 0.01) - gy, R0 = w.roomAt(sx, gy + 0.5, sz);
+          let door = -1;
+          doors.forEach((d, k) => {
+            const along = d.x1 - d.x0 > d.z1 - d.z0, cx = (d.x0 + d.x1) / 2, cz = (d.z0 + d.z1) / 2;
+            const inX = along ? sx > d.x0 && sx < d.x1 : Math.abs(sx - cx) < 1;
+            const inZ = along ? Math.abs(sz - cz) < 1 : sz > d.z0 && sz < d.z1;
+            if (inX && inZ && Math.abs(gy - d.y0) < 0.6) door = k;
+          });
+          here.push(spots.length);
+          spots.push({ x: sx, y: gy, z: sz, head, room: R0 ? R0.id : -1, door });
+          break;
+        }
       if (here.length) byCol.set(colKey(ix, iz), here);
     }
 

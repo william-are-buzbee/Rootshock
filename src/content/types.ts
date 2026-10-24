@@ -1,4 +1,4 @@
-import type { Colour } from '../core/math';
+import { inPoly, type Colour } from '../core/math';
 import type { Mat, RoomMats } from './materials';
 
 /* A level as data. Builders in content/build produce it; world/compile turns it into a World.
@@ -16,9 +16,13 @@ export interface RoomDef {
   name: string;
   /** rock or a walkway, not a fitted room: plain walls, no dado or stripe */
   plain: boolean;
-  /** the open volume: floor at y0, ceiling at y0 + ht */
+  /** the open volume: floor at y0, ceiling at y0 + ht; on the plan, the box x0..x1, z0..z1, or the outline in it */
   x0: number; z0: number; x1: number; z1: number;
   y0: number; ht: number;
+  /** an outline of any shape on the plan, its corners in order (either way round): the room is what lies inside it,
+   *  carved cell by cell (each cell whose middle is in it), and its box bounds it. A side of it at an angle is a
+   *  staircase of cells until a wall (WallDef) stands on it */
+  poly?: [number, number][];
   floor: Colour; wall: Colour; stripe: Colour;
   /** what its floor, walls and ceiling are made of (content/materials.ts) */
   mat: RoomMats;
@@ -57,6 +61,10 @@ export interface RoomDef {
   cells?: { res: number; nx: number; nz: number; lo: number[]; hi: number[] };
 }
 
+/** is (x, z) on the plan of the room: in its outline, or else its box */
+export const roomHas = (R: Pick<RoomDef, 'x0' | 'z0' | 'x1' | 'z1' | 'poly'>, x: number, z: number): boolean =>
+  R.poly ? inPoly(R.poly, x, z) : x >= R.x0 && x < R.x1 && z >= R.z0 && z < R.z1;
+
 /** a room's emergency lights (RoomDef.batt): their colour, their own supply, and the supply whose loss brings them up */
 export interface Batt { colour: Colour; supply: string; watch: string }
 
@@ -66,6 +74,24 @@ export interface BlockDef {
   colour: Colour;
   mat: Mat;
 }
+
+/** a wall at any angle on the plan: a straight run of solid from (ax, az) to (bx, bz), `t` thick about that line,
+ *  from y0 up to y1. It is part of the world (bodies, sight, light and sound stop at it, exactly), and each face takes
+ *  the finish of the room in front of it, as a face of rock does; or, given, a colour and what it is made of, as a
+ *  block does. On an outline's side at an angle (RoomDef.poly) it hides the cells' staircase, if it is at least
+ *  WALL_MIN thick there */
+export interface WallDef {
+  ax: number; az: number; bx: number; bz: number;
+  t: number;
+  y0: number; y1: number;
+  colour?: Colour;
+  mat?: Mat;
+}
+
+/** how thick a wall on an outline's side at an angle must be to hide the staircase of cells the room is carved as
+ *  (both rooms', if it stands between two): the cells reach a half cell's width across the side either way, which is
+ *  most (0.18 m) at 45 degrees */
+export const WALL_MIN = 0.36;
 
 /** an invisible solid: one box around furniture that is drawn as many parts */
 export interface ColliderDef {
@@ -271,6 +297,8 @@ export interface LevelDef {
   seed: string;
   rooms: RoomDef[];
   blocks: BlockDef[];
+  /** walls at any angle */
+  walls?: WallDef[];
   props: PropDef[];
   colliders: ColliderDef[];
   surfaces: SurfaceDef[];

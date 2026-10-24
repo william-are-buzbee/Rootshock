@@ -218,6 +218,14 @@ float dot1(float d, float r, float fw){ return (1.0 - smoothstep(r - fw, r + fw,
 float keep(float size, float px){ return 1.0 - smoothstep(0.25, 0.75, px / size); }
 /* n3 at k cells a metre, faded to its average where a pixel px wide is too wide for them */
 float n3f(vec3 p, float k, float px){ return mix(0.5, n3(p * k), keep(1.0 / k, px)); }
+/* how far along a wall facing n the point q on the plan is: a wall facing x or z along z or x, as ever; a wall at an
+   angle, along it, the same way from either face (along x before z) */
+float along(vec2 q, vec3 n){
+  vec2 an = abs(n.xz);
+  if (max(an.x, an.y) > 0.999 * length(n.xz)) return an.x > an.y ? q.y : q.x;
+  vec2 t = normalize(vec2(-n.z, n.x));
+  return dot(q, t.x < 0.0 ? -t : t);
+}
 void surface(int pat, vec3 p, vec3 n, float up, vec2 at, float det, out float alb, out float h, out float gm, out vec3 tint){
   alb = 1.0; h = 0.0; gm = 1.0; tint = vec3(1.0);
   vec3 an = abs(n);
@@ -228,7 +236,7 @@ void surface(int pat, vec3 p, vec3 n, float up, vec2 at, float det, out float al
      doorway without a seam */
   vec3 pa = p - vec3(at.x, 0.0, at.y);
   /* across the face and up it: a floor or ceiling's are x and z; a wall's along it and up from the floor */
-  vec2 uv = horiz ? pa.xz : vec2(an.x > an.z ? pa.z : pa.x, up);
+  vec2 uv = horiz ? pa.xz : vec2(along(pa.xz, n), up);
   float fw = fwidth(uv.x) + fwidth(uv.y);
   /* how wide a pixel is here (metres), the way it is widest: seen at a slant, it is stretched along the surface */
   float px = max(length(dFdx(p)), length(dFdy(p)));
@@ -318,7 +326,7 @@ void surface(int pat, vec3 p, vec3 n, float up, vec2 at, float det, out float al
     gm = 0.4 + 6.0 * smoothstep(0.6, 0.78, n3(p * 0.35 + 9.0));
   } else if (pat == ${P('boards')}) {
     /* planks 120 mm wide, across the face; grain along them */
-    vec2 q = horiz ? pa.xz : vec2(an.x > an.z ? pa.z : pa.x, p.y);
+    vec2 q = horiz ? pa.xz : vec2(along(pa.xz, n), p.y);
     float k = floor(q.y / 0.12), gap = grid(q.y, 0.12, 0.003);
     float tone = hash(vec2(k, 7.0)), grain = mix(0.5, n3(vec3(q.x * 1.5, q.y * 60.0, k * 3.0)), keep(1.0 / 60.0, px));
     alb = (1.0 + 0.2 * (tone - 0.5) + 0.14 * (grain - 0.5) * det) * (1.0 - 0.5 * gap);
@@ -540,8 +548,7 @@ void main(){
     if (abs(nf.y) < 0.5) {
       float px = max(length(dFdx(vW)), length(dFdy(vW)));
       float g = (1.0 - smoothstep(0.0, 0.45, vW.y - vRY.x)) * (0.45 + 0.9 * n3f(vW, 1.7, px));
-      float along = abs(nf.x) > abs(nf.z) ? vW.z : vW.x;
-      float streak = mix(0.28, smoothstep(0.45, 0.8, n3(vec3(along * 9.0, vW.y * 0.5, 1.7))), keep(0.5 / 9.0, px));
+      float streak = mix(0.28, smoothstep(0.45, 0.8, n3(vec3(along(vW.xz, nf) * 9.0, vW.y * 0.5, 1.7))), keep(0.5 / 9.0, px));
       float run = smoothstep(0.58, 0.78, n3(vW * 0.21 + 5.0)) * streak * exp(-(vRY.y - vW.y) / 1.4);
       alb *= 1.0 - 0.3 * k * g;
       vec3 left = vLB.z > 0.5 ? min(base * vec3(1.6, 1.6, 1.55) + 0.06, vec3(0.82, 0.81, 0.78)) : base * vec3(0.74, 0.66, 0.52);

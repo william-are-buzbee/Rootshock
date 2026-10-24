@@ -1,4 +1,5 @@
 import { angLerp } from '../../core/math';
+import { roomHas } from '../../content/types';
 import { STEP } from '../../core/loop';
 import { Edge, edgeCost, field as fieldFrom } from '../../world/nav';
 import { shove, slide, steer, walk, type Slid } from '../body';
@@ -210,6 +211,11 @@ export function roomWp(sim: Sim, m: Mutant): void {
   const pad = Math.min(m.r + 0.3, (R.x1 - R.x0) / 2, (R.z1 - R.z0) / 2);
   m.wx = sim.rng.range(R.x0 + pad, R.x1 - pad);
   m.wz = sim.rng.range(R.z0 + pad, R.z1 - pad);
+  /* a room of any outline: a point inside it, not just in its box */
+  for (let k = 0; R.poly && k < 8 && !roomHas(R, m.wx, m.wz); k++) {
+    m.wx = sim.rng.range(R.x0 + pad, R.x1 - pad);
+    m.wz = sim.rng.range(R.z0 + pad, R.z1 - pad);
+  }
 }
 
 const picked = new WeakMap<Sim, number>();

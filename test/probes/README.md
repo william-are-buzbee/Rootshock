@@ -25,6 +25,11 @@ were written for were found by measuring, not by looking, and the next one will 
   the dead ends, and what cannot be walked to from the rest. A loop is a way round, which is what a patrol needs to be
   gone round rather than waited out. `LEVEL=upper` for one; `LINKS=1` lists every link.
 
+- `golden.probe.ts`: every level as compiled, to compare with after a change to how levels are written that should
+  change nothing, or only what it says. `SAVE=<dir>` writes each level's definition and grid there (before the change);
+  `CHECK=<dir>` builds them again and lists what differs: by part, the first few things in each, and how many cells of
+  the grid (and where the first are). `LEVEL=upper` for one.
+
 `SET='STAGGER.upright=0;RAG.tip=0.6'` tries constants for one run (`kill` and `down`), without touching the tables.
 To compare with what was there before a change: `git stash push <file>`, run with `PROBE_OUT` elsewhere, pop it.
 

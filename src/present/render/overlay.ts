@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { blowKind } from '../../sim/cast';
 import { sweepPath } from '../../sim/combat';
 import type { Sim } from '../../sim/sim';
-import type { Box } from '../../world/shapes';
+import type { Box, Turned } from '../../world/shapes';
 
 /* Dev only (?dev, then O): every collider drawn as lines. Fixed boxes in grey, sloped surfaces in green, whatever moves
    in amber, the player's body in white. A blow under way is drawn as the ground it covers: orange as it winds up, red
@@ -102,7 +102,16 @@ function lineGeo(P: number[]): THREE.BufferGeometry {
   return g;
 }
 
-function boxLines(b: Box, P: number[]): void {
+function boxLines(b: Box & { turn?: Turned }, P: number[]): void {
+  if (b.turn) {
+    /* a wall at an angle: its own box, turned */
+    const t = b.turn, c = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([u, v]) => [t.cx + t.c * u * t.hu - t.s * v * t.hv, t.cz + t.s * u * t.hu + t.c * v * t.hv]);
+    for (let k = 0; k < 4; k++) {
+      const [ax, az] = c[k], [bx, bz] = c[(k + 1) % 4];
+      P.push(ax, b.y0, az, bx, b.y0, bz, ax, b.y1, az, bx, b.y1, bz, ax, b.y0, az, ax, b.y1, az);
+    }
+    return;
+  }
   const x = [b.x0, b.x1], y = [b.y0, b.y1], z = [b.z0, b.z1];
   for (const i of [0, 1]) for (const j of [0, 1]) {
     P.push(x[0], y[i], z[j], x[1], y[i], z[j]);

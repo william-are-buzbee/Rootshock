@@ -1,7 +1,8 @@
 import type { Mat } from '../content/materials';
-import type { BlockDef, LevelDef, RoomDef, SurfaceDef, WaterDef } from '../content/types';
+import { inPoly } from '../core/math';
+import type { BlockDef, LevelDef, RoomDef, SurfaceDef, WallDef, WaterDef } from '../content/types';
 import { CELL, Grid, blockCell } from './grid';
-import { meets, samples, segmentBox, type Box, type Footprint } from './shapes';
+import { meets, meetsTurned, samples, segmentBox, segmentTurned, turnedAlong, turnedReach, type Box, type Footprint, type Turned } from './shapes';
 
 /** something solid that moves: a door, a platform, a loose crate. The sim moves it; the world reports it. */
 export interface Dyn extends Box {
@@ -57,6 +58,12 @@ export class Surface {
 
 const EPS = 1e-6;
 
+/** a fixed solid: a box (a prop, a collider), or a wall turned on the plan (`turn`; the box bounds it). It says what it
+ *  is made of, if its level does */
+type Fixed = Box & { mat?: Mat; turn?: Turned };
+/** does the footprint meet a fixed solid's plan? */
+const hits = (f: Footprint, b: Fixed): boolean => meets(f, b.x0, b.z0, b.x1, b.z1) && (!b.turn || meetsTurned(f, b.turn));
+
 /* The world: one level compiled into one spatial model. Every spatial question goes through here: bodies, sight,
    sound, pathing, light. An answer combines the grid, the fixed solids (props, colliders), the sloped surfaces, and
    whatever moves (doors, platforms, loose crates), which the sim keeps in `dyn`. */
@@ -66,12 +73,13 @@ export class World {
   readonly blocks: BlockDef[];
   readonly surfaces: Surface[];
   readonly water: WaterDef[];
+  /** the walls at an angle, as each stands */
+  readonly walls: (WallDef & { turn: Turned })[];
   /** the moving solids, kept up to date by the sim */
   readonly dyn: Dyn[] = [];
   private ids = 0;
-  /** fixed solids, bucketed by 2 m column so a query only looks at what is near; a prop's says what it is made of, if
-   *  its level does */
-  private boxes = new Map<number, (Box & { mat?: Mat })[]>();
+  /** fixed solids, bucketed by 2 m column so a query only looks at what is near */
+  private boxes = new Map<number, Fixed[]>();
   private static readonly B = 2;
 
   constructor(readonly def: LevelDef) {
@@ -82,6 +90,7 @@ export class World {
     /* carve the rooms, then build the blocks back in */
     for (const r of def.rooms) {
       const c = r.cells;
+      if (r.poly) { this.carve(r, r.poly); continue; }
       if (!c) { this.grid.fill(r.x0, r.y0, r.z0, r.x1, r.y0 + r.ht, r.z1, r.id); continue; }
       for (let j = 0; j < c.nz; j++)
         for (let i = 0; i < c.nx; i++) {
@@ -96,10 +105,30 @@ export class World {
       this.addBox({ x0: p.x - ex, y0: p.y, z0: p.z - ez, x1: p.x + ex, y1: p.y + p.sy, z1: p.z + ez, ...(p.mat ? { mat: p.mat } : {}) });
     }
     for (const c of def.colliders) this.addBox(c);
+    this.walls = (def.walls ?? []).map(W => ({ ...W, turn: turnedAlong(W.ax, W.az, W.bx, W.bz, W.t) }));
+    for (const W of this.walls) {
+      const t = W.turn, [rx, rz] = turnedReach(t);
+      this.addBox({ x0: t.cx - rx, y0: W.y0, z0: t.cz - rz, x1: t.cx + rx, y1: W.y1, z1: t.cz + rz, turn: t, ...(W.mat ? { mat: W.mat } : {}) });
+    }
+  }
+
+  /** carve a room of any outline: each column of cells whose middle is inside it, from its floor to its ceiling */
+  private carve(r: RoomDef, pts: [number, number][]): void {
+    for (let k = Math.floor(r.z0 / CELL); k < Math.ceil(r.z1 / CELL); k++)
+      for (let i = Math.floor(r.x0 / CELL); i < Math.ceil(r.x1 / CELL); i++)
+        if (inPoly(pts, (i + 0.5) * CELL, (k + 0.5) * CELL)) this.grid.fill(i * CELL, r.y0, k * CELL, (i + 1) * CELL, r.y0 + r.ht, (k + 1) * CELL, r.id);
+  }
+
+  /** is (x, y, z) inside one of the walls at an angle? */
+  inWall(x: number, y: number, z: number): boolean {
+    const f: Footprint = { x, z, hx: 1e-4, hz: 1e-4, round: false };
+    let inside = false;
+    this.boxesNear(f, b => { if (b.turn && y > b.y0 && y < b.y1) inside = true; });
+    return inside;
   }
 
   private bkey(i: number, k: number): number { return (k + 32768) * 65536 + (i + 32768); }
-  private addBox(b: Box & { mat?: Mat }): void {
+  private addBox(b: Fixed): void {
     const B = World.B;
     for (let k = Math.floor(b.z0 / B); k <= Math.floor(b.z1 / B); k++)
       for (let i = Math.floor(b.x0 / B); i <= Math.floor(b.x1 / B); i++) {
@@ -110,12 +139,12 @@ export class World {
       }
   }
   /** each fixed solid whose plan meets the footprint, once */
-  private boxesNear(f: Footprint, fn: (b: Box & { mat?: Mat }) => void): void {
+  private boxesNear(f: Footprint, fn: (b: Fixed) => void): void {
     const B = World.B, k0 = Math.floor((f.z - f.hz) / B), k1 = Math.floor((f.z + f.hz) / B), i0 = Math.floor((f.x - f.hx) / B), i1 = Math.floor((f.x + f.hx) / B);
     /* in one column, nothing is met twice: no need to keep count (a small footprint, a corpse's point, nearly always) */
     if (k0 === k1 && i0 === i1) {
       const a = this.boxes.get(this.bkey(i0, k0));
-      if (a) for (const b of a) if (meets(f, b.x0, b.z0, b.x1, b.z1)) fn(b);
+      if (a) for (const b of a) if (hits(f, b)) fn(b);
       return;
     }
     const seen = new Set<Box>();
@@ -125,7 +154,7 @@ export class World {
         if (a) for (const b of a) {
           if (seen.has(b)) continue;
           seen.add(b);
-          if (meets(f, b.x0, b.z0, b.x1, b.z1)) fn(b);
+          if (hits(f, b)) fn(b);
         }
       }
   }
@@ -154,8 +183,8 @@ export class World {
     return ++this.ids;
   }
 
-  /** every fixed solid box, once (for the dev overlay) */
-  forEachBox(fn: (b: Box) => void): void {
+  /** every fixed solid box, once (for the dev overlay): a wall at an angle as its turned box */
+  forEachBox(fn: (b: Box & { turn?: Turned }) => void): void {
     const seen = new Set<Box>();
     for (const a of this.boxes.values()) for (const b of a) if (!seen.has(b)) { seen.add(b); fn(b); }
   }
@@ -271,7 +300,10 @@ export class World {
     for (let s = 0; s <= n; s++) {
       const x = ax + (dx * s) / n, z = az + (dz * s) / n;
       const a = this.boxes.get(this.bkey(Math.floor(x / B), Math.floor(z / B)));
-      if (a) for (const b of a) if (!seen.has(b)) { seen.add(b); best = Math.min(best, segmentBox(ax, ay, az, dx, dy, dz, b)); }
+      if (a) for (const b of a) if (!seen.has(b)) {
+        seen.add(b);
+        best = Math.min(best, b.turn ? segmentTurned(ax, ay, az, dx, dy, dz, b.turn, b.y0, b.y1) : segmentBox(ax, ay, az, dx, dy, dz, b));
+      }
     }
     const skip = skipper(ignore);
     for (const d of this.dyn) if (!skip(d)) best = Math.min(best, segmentBox(ax, ay, az, dx, dy, dz, d));
@@ -331,15 +363,40 @@ export class World {
     return lv;
   }
 
-  /** the rooms that open into this one: open cells just outside its box, at its floor and a little above */
+  /** the rooms that open into this one: open cells just outside its box (or its outline), at its floor and a little
+   *  above, and not across a wall */
   neighbours(id: number): number[] {
-    const R = this.rooms[id], out = new Set<number>(), g = this.grid;
+    const R = this.rooms[id], out = new Set<number>(), g = this.grid, walls = this.walls.length > 0;
+    /* the cell at (x, z), looked at from (ex, ez) on the room's side: not if a wall stands between */
+    const look = (x: number, y: number, z: number, ex: number, ez: number) => {
+      const c = g.at(x, y, z);
+      if (c < 0 || c === id) return;
+      if (walls && [0, 0.5, 1].some(f => this.inWall(ex + (x - ex) * f, y, ez + (z - ez) * f))) return;
+      out.add(c);
+    };
+    if (R.poly) {
+      /* along each side, out past the staircase of its cells (half a cell's diagonal) and half a cell more */
+      const P = R.poly, n = P.length, out0 = (CELL / 2) * Math.SQRT2 + CELL / 2;
+      let area = 0;
+      for (let i = 0; i < n; i++) { const [ax, az] = P[i], [bx, bz] = P[(i + 1) % n]; area += ax * bz - bx * az; }
+      for (let i = 0; i < n; i++) {
+        const [ax, az] = P[i], [bx, bz] = P[(i + 1) % n], len = Math.hypot(bx - ax, bz - az), side = area > 0 ? 1 : -1;
+        if (len < 1e-9) continue;
+        const nx = ((bz - az) / len) * side, nz = (-(bx - ax) / len) * side;
+        for (const y of [R.y0 + 0.3, R.y0 + 1.2])
+          for (let d = CELL / 2; d < len; d += CELL) {
+            const ex = ax + ((bx - ax) * d) / len, ez = az + ((bz - az) * d) / len;
+            look(ex + nx * out0, y, ez + nz * out0, ex, ez);
+          }
+      }
+      return [...out];
+    }
     for (const y of [R.y0 + 0.3, R.y0 + 1.2])
       for (let x = R.x0 + CELL / 2; x < R.x1; x += CELL)
-        for (const z of [R.z0 - CELL / 2, R.z1 + CELL / 2]) { const c = g.at(x, y, z); if (c >= 0 && c !== id) out.add(c); }
+        for (const [z, e] of [[R.z0 - CELL / 2, R.z0], [R.z1 + CELL / 2, R.z1]]) look(x, y, z, x, e);
     for (const y of [R.y0 + 0.3, R.y0 + 1.2])
       for (let z = R.z0 + CELL / 2; z < R.z1; z += CELL)
-        for (const x of [R.x0 - CELL / 2, R.x1 + CELL / 2]) { const c = g.at(x, y, z); if (c >= 0 && c !== id) out.add(c); }
+        for (const [x, e] of [[R.x0 - CELL / 2, R.x0], [R.x1 + CELL / 2, R.x1]]) look(x, y, z, e, z);
     return [...out];
   }
 
@@ -354,7 +411,7 @@ export class World {
   solidMat(x: number, y: number, z: number, fx: number, fy: number, fz: number): Mat {
     const f: Footprint = { x, z, hx: 0.06, hz: 0.06, round: false };
     let m: Mat | null = null;
-    const at = (b: Box & { mat?: Mat }) => { if (b.mat && y > b.y0 - 0.06 && y < b.y1 + 0.06) m = b.mat; };
+    const at = (b: Fixed | Dyn) => { if (b.mat && y > b.y0 - 0.06 && y < b.y1 + 0.06) m = b.mat; };
     this.boxesNear(f, at);
     this.dynNear(f, null, at);
     if (m) return m;
@@ -371,7 +428,7 @@ export class World {
     if (on) return on.mat ?? 'concrete';
     const f: Footprint = { x, z, hx: 1e-4, hz: 1e-4, round: false };
     let top: Mat | null = null;
-    const at = (b: Box & { mat?: Mat }) => { if (b.mat && Math.abs(b.y1 - y) < 0.05) top = b.mat; };
+    const at = (b: Fixed | Dyn) => { if (b.mat && Math.abs(b.y1 - y) < 0.05) top = b.mat; };
     this.boxesNear(f, at);
     this.dynNear(f, null, at);
     if (top) return top;
