@@ -301,7 +301,7 @@ function actions(M: Model, st: St, R: Reach): Action[] {
     switch (u.kind) {
       case 'body':
         if (st.have.has('b' + ui)) return;
-        act(((o.label as string) ?? 'search the body').toLowerCase(), n => {
+        act('search the ' + ((o.label as string) ?? 'body').toLowerCase(), n => {
           n.have.add('b' + ui);
           for (const k of (o.keys as string[]) ?? []) n.have.add(k);
           if (o.note) n.have.add('#1');

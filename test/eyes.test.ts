@@ -324,7 +324,7 @@ describe('lockdown', () => {
     for (const d of zoneDoors(s, 'ops')) expect(d.down || d.drawing > 0).toBe(false); // another zone's
   });
 
-  it('a bolted door will not open, for you or anything else, and says why', () => {
+  it('a bolted door will not open, for you or anything else, and is refused', () => {
     const s = fresh(), d = doorTo(s, 'Firing range');
     still(s);
     soundZone(s, 'muster');
@@ -333,7 +333,7 @@ describe('lockdown', () => {
     s.game.events.length = 0;
     doorAct(s, d);
     expect(d.open).toBe(false);
-    expect(s.game.events.some(e => e.type === 'say' && /Locked down/.test(e.text))).toBe(true);
+    expect(s.game.events.some(e => e.type === 'sfx' && e.name === 'deny')).toBe(true); // its red lamp says why
     const D = d.def;
     place(s, (D.x0 + D.x1) / 2, 0, (D.z0 + D.z1) / 2 - 1.5); // right at it, on the hall's side
     hold(s, 0.5);
@@ -409,7 +409,7 @@ describe('call points', () => {
     for (const m of s.cast) if (m.ai !== 'husk' || m.post) m.stun = 1e9;
     place(s, 39, -4.5, -15);
     hold(s, 0.2);
-    expect(u.label()).toBe('Break the glass');
+    expect(u.label()).toBe('Call point');
     s.game.noiseI = 0;
     u.act(); // bare hands: it is made for a thumb
     expect(s.alarms.map(a => a.zone)).toEqual(['muster']);
@@ -457,14 +457,14 @@ describe('the booth\'s monitors', () => {
   it('dark until the wing is mended', () => {
     const s = fresh(), u = console_(s);
     still(s);
-    expect(u.label()).toBe('Monitors: dark');
+    expect(u.label()).toBe('Monitors');
     u.act();
     expect(s.watch).toBeNull();
   });
 
   it('sat at them, you see the lobby, the checkpoint, the surface landing and the shaft station, a feed a press', () => {
     const s = mended(), u = console_(s);
-    expect(u.label()).toBe('Watch the monitors');
+    expect(u.label()).toBe('Monitors');
     u.act();
     expect(s.watch).not.toBeNull();
     const names = () => onScreen(s)!.cam.def.name;
@@ -521,7 +521,7 @@ describe('the duty office\'s screen', () => {
   it('on Ops\' power from the start: the hall\'s cameras and the rooms off it, a sequencer stepping through them', () => {
     const s = fresh(), u = console_(s);
     still(s);
-    expect(u.label()).toBe('Watch the monitors');
+    expect(u.label()).toBe('Monitors');
     u.act();
     const seen = [name(s)];
     for (let k = 0; k < 5; k++) { hold(s, 5.05); seen.push(name(s)!); }
@@ -637,7 +637,7 @@ describe('the electrical room\'s board', () => {
     for (const u of b) expect(u.label()).toMatch(/: closed$/);
     expect(Math.hypot(b[1].x - b[0].x, b[1].z - b[0].z)).toBeLessThan(4);
     expect(s.usables.filter(u => /^Breaker, /.test(u.label() ?? '')).length).toBe(2);
-    const sched = s.usables.find(u => u.label() === 'Read the panel schedule')!;
+    const sched = s.usables.find(u => u.label() === 'Panel schedule')!;
     s.game.events.length = 0;
     sched.act();
     expect(s.game.events.some(e => e.type === 'say' && /CRITICAL LOADS.*NOT ON THIS BOARD/.test(e.text))).toBe(true);
@@ -679,7 +679,7 @@ describe('a smashed speaker', () => {
     place(s, 77, 0, 20.6);
     hold(s, 0.1);
     lookAt(s, u.x, u.y, u.z);
-    expect(findUsable(s)?.text).toBe('Smash the speaker');
+    expect(findUsable(s)?.text).toBe('Speaker');
     u.act();
     expect(s.mute).toEqual([]); // bare hands
     give(s.game, 'baton');
@@ -696,12 +696,12 @@ describe('a smashed speaker', () => {
     place(s, u.x, 0, u.z);
     hold(s, 0.1);
     lookAt(s, u.x, u.y, u.z);
-    expect(findUsable(s)?.text).not.toBe('Smash the speaker');
+    expect(findUsable(s)?.text).not.toBe('Speaker');
     place(s, 84.5, 5, u.z); // on the east gallery, at the rail
     hold(s, 0.1);
     expect(s.player.body.x).toBeGreaterThan(84);
     lookAt(s, u.x, u.y, u.z);
-    expect(findUsable(s)?.text).toBe('Smash the speaker');
+    expect(findUsable(s)?.text).toBe('Speaker');
   });
 
   it('not from the deck above: only from under it', () => {

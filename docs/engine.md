@@ -1134,14 +1134,33 @@ sequence of inputs. The door rules, the labels and the answers are the first eng
 - **Touch** (since; `present/touch.ts`): a phone or a tablet (`pointer: coarse`) is played on its side, the whole
   screen (asked for on the first tap, and pausing if left). The left of the screen is a stick, put down where the
   thumb lands: how far it is pushed is how fast you go, past its rim you run (loud, as Shift is). Anywhere else is
-  dragged to look (a speed of the player's own, on the title and pause screens). On the right, the hands (held to
-  load a swing and let go to throw it, as the mouse button; dragged, it looks too, so a swing is aimed as it loads;
-  Fire with a gun), use (lit when there is something to use), the light, jump and crouch (held, swim up and down); at
-  the top, what you carry and pause. The menus are tapped as they are clicked, with a Back button for Esc; the HUD
-  moves to the top left, out from under the thumbs; what the page says for keys it says for touch instead. Only feeds
-  Controls, as the keys and mouse do.
+  dragged to look (a speed of the player's own, in Settings). On the right, the hands (held to load a swing and let go
+  to throw it, as the mouse button; dragged, it looks too, so a swing is aimed as it loads; a sight with a gun), use
+  (lit when there is something to use), the light, jump and crouch (held, swim up and down); at the top, what you carry
+  and pause. Each button is a picture, not a word. The menus are tapped as they are clicked, with a back arrow for Esc;
+  the HUD moves to the top left, out from under the thumbs. Only feeds Controls, as the keys and mouse do.
 - **UI** stays in HTML over the canvas, with the current type and colours (Barlow Condensed, Newsreader, bone, ash,
-  hazard).
+  hazard). **As few words as will do** (since): everything that is not a paper is pared to what you cannot do without.
+  - The title is the name and a menu: Continue (with a run kept), New game, Settings. Pause is Resume, Settings, Quit
+    (to the title, the run kept: pausing saved it). Settings holds brightness, surface detail, look speed by touch, and
+    the controls, which no longer stand on the title. New game over a run in the page makes the run again in the page
+    (`fresh` in `main.ts`; what was drawn for the old one is let go, `LevelView.dispose`). The test bed, the lights on and
+    the first engine are linked from the title under `?dev` only. The end is its word (Surface, Grafted); the way out is
+    told as before, without the counts; a click goes back to the title.
+  - In play: no room or level name (you do not know where you are), nothing about what is in your hand (you can see it);
+    the bars, and the rounds left as a bare number while a gun is in hand. What you look at that can be used is named
+    under the dot, which grows a little: a thing's name, with no verb and no key (a state only where nothing in the
+    world shows it: a breaker's, a backup set's). A console's feed keeps what a monitor prints over it (its camera's
+    name, the clock) and says nothing of how to work it.
+  - The inventory is pictures in boxes (`present/ui/icons.ts`): your ten slots, and under them, smaller, your lights,
+    what you wear, the keys you know (cards marked by whose they are) and the papers you have read. Each is named only
+    while the pointer is on it (by touch, the last tapped). A click uses it as before; the arrow in a slot's corner, or
+    a right click, puts it down. Counts are a number in the corner.
+  - What the sim says (`say`) is only what you could not see or hear for yourself, mostly what a thing wants that you
+    lack (No power. Not on the backup. Needs the Security keycard. Needs a splice kit. Hands full.). Taking something,
+    a switch thrown, a door unlocked, a keypad's code taken are heard, not said; the hints in the narrator's voice are
+    gone. What a level gives a place to say (a body searched, a sealed door, a look at a schedule, a ladderway) is the
+    level's writing and stays, as the papers do; its labels are names (Officer, IV bag, Breach).
 - **Dev tools** carry over (`?dev`, fly, god, level select, map), plus overlays for colliders, nav graph and noise.
 
 ---
@@ -1450,8 +1469,8 @@ their foot, in places brown streaks run down from the ceiling, blotches overhead
 bare concrete ceiling, 3 to 6 m high and at least 6 m long, get services along one long wall: a cable tray and two
 pipes on hangers, a quarter metre down. A suspended or plastered ceiling hides them.
 
-All of the look (and, since step 3, the sound) is surface detail, which the player can turn off (a checkbox by the
-brightness on the title and pause screens, kept between runs; `?detail=off` for one visit; M under `?dev`). Off, the
+All of the look (and, since step 3, the sound) is surface detail, which the player can turn off (a checkbox in
+Settings, kept between runs; `?detail=off` for one visit; M under `?dev`). Off, the
 shader skips the patterns, wear, bump and highlight, reckons the beam's facing from the eye, and the services (their own
 mesh) are hidden: the station as it looked before.
 

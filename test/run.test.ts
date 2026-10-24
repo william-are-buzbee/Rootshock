@@ -22,15 +22,15 @@ const use = (run: Run, label: RegExp) => {
 /** down from Security the usual way: the wing mended (as if with a kit), and its elevator */
 const down = (run: Run) => {
   run.here.game.station!.circuits.SEC.broken = false;
-  use(run, /^Elevator: Main level$/);
+  use(run, /^Elevator$/);
 };
 
 describe('travel between levels', () => {
   it('the Security elevator is dead until the wing is mended', () => {
     const run = makeRun(STATION, { seed: 4 });
-    use(run, /^Elevator: Main level$/);
+    use(run, /^Elevator$/);
     expect(run.here.world.def.id).toBe('upper');
-    expect(run.here.game.events.some(e => e.type === 'say' && /The panel is dark/.test(e.text))).toBe(true);
+    expect(run.here.game.events.some(e => e.type === 'say' && e.text === 'No power.')).toBe(true);
   });
 
   it('the Security elevator goes down to the main level and back up, and each level waits as you left it', () => {
@@ -44,7 +44,7 @@ describe('travel between levels', () => {
     expect(run.here.game).toBe(upper.game); // one game: what you carry came with you
     expect(run.here.game.inv.map(s => s.id)).toContain('pipe');
     expect(run.here.game.events.some(e => e.type === 'level' && e.id === 'main')).toBe(true);
-    use(run, /^Elevator: Upper station$/);
+    use(run, /^Elevator$/);
     expect(run.here).toBe(upper);
     const u = upper.world.def.marks['elev:main'];
     expect(Math.hypot(upper.player.body.x - u.x, upper.player.body.z - u.z)).toBeLessThan(0.01);
@@ -137,7 +137,7 @@ describe('the plant level', () => {
 
   it('starting Gen-1 in the sim powers the station and opens the lift', () => {
     const run = makeRun(STATION, { seed: 4, start: 'plant' }), g = run.here.game;
-    use(run, /^Take main fuse$/);
+    use(run, /^Main fuse$/);
     use(run, /^Fuse socket/);
     expect(g.station!.fuseIn).toBe(true);
     use(run, /^Gen-1 main breaker/);
@@ -194,11 +194,10 @@ describe('the drowned sump', () => {
   });
 
   it('down through the intake grates: no surface over you, so you hang where you are, swim up and down, and count', () => {
-    const run = makeRun(STATION, { seed: 4, start: 'sump' }), g = run.here.game;
-    use(run, /^Dive: the intake grates$/);
+    const run = makeRun(STATION, { seed: 4, start: 'sump' });
+    use(run, /^Dive$/);
     expect(run.here.world.def.id).toBe('sumpdeep');
     expect(at(run, 'dive:sump')).toBe(true);
-    expect(g.events.some(e => e.type === 'say' && e.text === 'One lungful. Count it.')).toBe(true);
     const p = run.here.player, b = p.body, y = b.y, air = p.air;
     for (let k = 0; k < 120; k++) stepRun(run, noInput());
     expect(p.water).toBe('swimming');
@@ -207,7 +206,7 @@ describe('the drowned sump', () => {
     expect(p.air).toBeLessThan(air - 1.9);
     for (let k = 0; k < 30; k++) stepRun(run, { ...noInput(), rise: true });
     expect(b.y).toBeGreaterThan(y + 0.5);
-    use(run, /^Swim up: the intake grates$/);
+    use(run, /^Swim up$/);
     expect(run.here.world.def.id).toBe('sump');
     expect(at(run, 'dive:sumpdeep')).toBe(true);
   });
@@ -249,13 +248,13 @@ describe('the drowned sump', () => {
 
   it("Sergeant Aldana has the Armory code; the flooded link goes on to the cave", () => {
     const run = makeRun(STATION, { seed: 4, start: 'sumpdeep' }), g = run.here.game;
-    use(run, /^Search the drowned sergeant$/);
+    use(run, /^Drowned sergeant$/);
     expect(g.read).toContain('code');
     expect(g.events.some(e => e.type === 'say' && e.text.includes(String(g.code)))).toBe(true);
     const r = checkProgress(run.here);
     expect(Object.keys(r.goals).sort()).toEqual(['dive to The cave', 'dive to The sump']);
     expect(r.rooms.never).toEqual([]);
-    use(run, /^Swim on: the flooded link/);
+    use(run, /^Swim on$/);
     expect(run.here.world.def.id).toBe('cave');
     expect(at(run, 'dive:sumpdeep')).toBe(true);
   });
@@ -288,7 +287,7 @@ describe('the cave', () => {
 
   it('on your own feet from the pool in the lower chamber up to the breach, 58 m higher', () => {
     const run = makeRun(STATION, { seed: 4, start: 'sumpdeep' });
-    use(run, /^Swim on: the flooded link/);
+    use(run, /^Swim on$/);
     const sim = run.here, p = sim.player, b = p.body, nav = sim.fields!.nav, cv = sim.world.def.marks['ladder:CV'];
     sim.game.god = true; // the cast is about; this is about the rock
     const F = field(nav, nav.locate(cv.x, cv.y, cv.z), openRules(nav));

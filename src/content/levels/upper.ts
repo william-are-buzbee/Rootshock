@@ -68,7 +68,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   camera(T1, 10.6, 16.6, 3.1, -2.17, 'SEC', 'wing', { name: 'Surface landing' });
   camera(D, 10.6, 14.4, 2.8, -1.17, 'SEC', 'wing', { name: 'Shaft station' });
   bx(T1, 12.4, 17.5, 0.45, 0.42, 2.6, 0x5f6266); bx(T1, 12.15, 20.2, 0.5, 1.8, 1.4, 0x56636e);
-  corpse(T1, 16.4, 17.2, 0x2c3440, true, { label: 'Search the officer', say: 'A security officer. Whatever opened him did it from behind.', keys: ['s'] });
+  corpse(T1, 16.4, 17.2, 0x2c3440, true, { label: 'Officer', say: 'A security officer. Whatever opened him did it from behind.', keys: ['s'] });
 
   /* The lobby: where the money shows (world.md §8, The lobby). A hall 38 by 24 m and 13 m to a luminous ceiling,
      backlit panels made to pass for daylight 400 m down. Down the grand stair from the checkpoint's gallery: the statue
@@ -120,7 +120,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   bx(D, 37.4, 13.02, 0.12, 2.7, 0.08, 0x2a2c2e, { y: 1.8, c: 0 }); // its conduit, up the wall to the ceiling
   /* the cut ends, hanging out of the bottom of the open cabinet */
   P(D, 'cyl', 37.3, 13.05, 0.07, 0.6, 0.07, 0x1d1f21, { y: 0.38, rz: 0.35, c: 0 }); P(D, 'cyl', 37.5, 13.05, 0.07, 0.45, 0.07, 0x1d1f21, { y: 0.51, rz: -0.3, c: 0 });
-  corpse(D, 36.2, 13.9, 0x2c3440, false, { label: 'Search the guard', say: 'A guard, days dead, bolt cutters still in his hand. Behind him the feed to the wing is cut clean through.' });
+  corpse(D, 36.2, 13.9, 0x2c3440, false, { label: 'Guard', say: 'A guard, days dead, bolt cutters still in his hand. Behind him the feed to the wing is cut clean through.' });
   blood(D, 36.5, 14.3, 1.3); note(D, 'cut', 36.9, 14.4, 0.02); // days ago: the survivors' cut, to blind the wing's cameras
   /* the wing's eye, dead with it until the cut is mended: its corridor, past the checkpoint, is armed, and the camera
      looks down it from the lobby end. Mended, the way along the wing is watched */
@@ -155,8 +155,8 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   /* yours, on a guard's card like the rest */
   const p1 = isoRoom(1, 22, 3, true, 1, 2); // its window straight across the hall at room 2's
   use(B, 'pump', p1.x, p1.z, 1.1);
-  use(B, 'look', p1.x, p1.z, 1.55, { label: 'Read the bag', text: 'MIDAZOLAM 100 mg in 100 mL sodium chloride 0.9%. Isolation 1. Hung 11/11, 23:10, M.O. Empty.' });
-  use(B, 'look', 25.33, 3.3, 1.4, { label: 'Press the intercom', text: 'Static, and nothing under it.', sfx: 'static' });
+  use(B, 'look', p1.x, p1.z, 1.55, { label: 'IV bag', text: 'MIDAZOLAM 100 mg in 100 mL sodium chloride 0.9%. Isolation 1. Hung 11/11, 23:10, M.O. Empty.' });
+  use(B, 'look', 25.33, 3.3, 1.4, { label: 'Intercom', text: 'Static, and nothing under it.', sfx: 'static' });
   note(B, 'intake', 23, 3.45, 0.52);
   /* your washroom, out of sight of the hall, behind room 1: its door a plain one, slid by hand, that stays as you leave it
      (on the wing's dead feed, so no motor of its own) */
@@ -166,7 +166,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
      the bed, the chair they hit the glass with, the drawers turned out for anything to eat, and their hands on the inside
      of the window */
   const p2 = isoRoom(2, 34, 2, false, 2, 1, true); // its window straight across at yours, over the stair's foot
-  use(B, 'look', p2.x, p2.z, 1.55, { label: 'Read the bag', text: 'MIDAZOLAM 100 mg in 100 mL sodium chloride 0.9%. Isolation 2. Hung 8/11, 22:50, M.O. Dry, days ago.' });
+  use(B, 'look', p2.x, p2.z, 1.55, { label: 'IV bag', text: 'MIDAZOLAM 100 mg in 100 mL sodium chloride 0.9%. Isolation 2. Hung 8/11, 22:50, M.O. Dry, days ago.' });
   for (let k = 0; k < 3; k++) bx(B, 35.1 + k * 0.05, 2.0025, 0.012, 0.32, 0.01, 0x2a2622, { y: 1.15, c: 0 });
   /* on the glass, the room's side of it (the pane's 3 cm in the middle of the wall) */
   for (const [z, y] of [[4.35, 1.45], [4.55, 1.62], [4.7, 1.38], [4.45, 1.8]]) bx(B, 33.509, z, 0.006, 0.09, 0.07, 0x5a4a3e, { y, c: 0 });
@@ -340,11 +340,11 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   bx(D, 10.01, 32.5, 0.04, 1.7, 3.4, 0x3a3d40, { y: 0.55, c: 0 });
   for (const [c, z] of [['HALL', 31.6], ['EAST', 32.5]] as const) panel(D, c, 10.055, z, 'e', { brk: 1 });
   bx(D, 10.04, 33.4, 0.08, 0.5, 0.5, 0x2c2f33, { y: 1.1, c: 0 }); // the spare way, blanked
-  use(D, 'look', 10.2, 33.4, 1.6, { label: 'Read the panel schedule', text: 'Typed, under plastic. 1: MUSTER HALL WEST (AND COURT). 2: MUSTER HALL EAST (AND OPS STAIR). 3: SPARE. Below, in red: OPERATIONS AND SECURITY PA ARE CRITICAL LOADS. FED FROM THE UPS ROOM BEHIND OPERATIONS. NOT ON THIS BOARD.' });
+  use(D, 'look', 10.2, 33.4, 1.6, { label: 'Panel schedule', text: 'Typed, under plastic. 1: MUSTER HALL WEST (AND COURT). 2: MUSTER HALL EAST (AND OPS STAIR). 3: SPARE. Below, in red: OPERATIONS AND SECURITY PA ARE CRITICAL LOADS. FED FROM THE UPS ROOM BEHIND OPERATIONS. NOT ON THIS BOARD.' });
   bx(D, 12.5, 31.2, 4.4, 2.2, 0.6, 0x4a4f55);
   for (const [k, c] of (['HALL', 'EAST', 'CRIT', 'OPS'] as const).entries()) bx(D, 11.65 + k * 0.6, 31.36, 0.5, 0.3, 0.04, [0.2, 0.2, 0.2], { y: 1.5, c: 0, pw: [[0.2, 0.2, 0.2], [0.4, 2.6, 0.6]], pc: c });
   bx(D, 13.8, 34.2, 1.2, 1.6, 1, 0x44525a); bx(D, 12.4, 34.925, 3.4, 0.08, 0.3, 0x2a2c2e, { y: 2.8, c: 0 }); item(D, 'batt', 11, 34.4, 0.02);
-  corpse(D, 16.9, 32.8, 0x2c3440, true, { label: 'Search the guard', say: 'A guard, a step short of the electrical room. REYES, on the name tape. Opened from the side, by something that kept going.' });
+  corpse(D, 16.9, 32.8, 0x2c3440, true, { label: 'Guard', say: 'A guard, a step short of the electrical room. REYES, on the name tape. Opened from the side, by something that kept going.' });
   blood(D, 17.6, 33.4, 1.8);
 
   /* north, off the hall: the Armory, the response team's, where they kept what they drilled with. Armed, its camera
@@ -370,7 +370,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
      (world.md §8, smaller screens first). A branch you have opened is black on it */
   monitors(D, 33.5, 41.0, 1.1, 'OPS', ['Muster court', 'East bays', 'Electrical room', 'Armory', 'Firing range', 'Operations stair'], { dwell: 5 });
   /* the deputy director, at the far end of the hall from Cargo's door, under the glass: she ran for the range */
-  corpse(D, 16.8, 37.4, 0x4a4238, false, { label: 'Search the manager', say: 'DEPUTY DIRECTOR, OPERATIONS. She got as far as the range door. Her pass is still on its lanyard.', keys: ['o'] });
+  corpse(D, 16.8, 37.4, 0x4a4238, false, { label: 'Manager', say: 'DEPUTY DIRECTOR, OPERATIONS. She got as far as the range door. Her pass is still on its lanyard.', keys: ['o'] });
   /* the stair up to the operations room: a tall well off the east bays, and the landing at its head, where the door is
      grown shut. Armed, as the way to Operations. Eggs, and the floor dragged red, thicken toward it */
   room(D, 'Operations stair', 37, 40, 3, 6, { ...OPS, c: 'EAST', em: 1, ht: 9.5, armed: 1 }); door(D, 38, 39, { sg: [['Operations', 'n']] });
@@ -397,7 +397,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   tbl(T1, 58.3, 15, 0.8, 4, 0x3a3d40); bx(T1, 57.4, 15, 0.45, 0.45, 0.45, 0x2c2f33); for (const z of [14.2, 15.8]) bx(T1, 58.4, z, 0.5, 0.3, 0.06, 0x22262a, { y: 0.76, c: 0, pw: [[0.04, 0.05, 0.05], [2.2, 2.5, 2.75]], pc: 'CARGO' });
   /* the window onto the bay: three bays of glass in the east wall, high over the floor (world.md §8) */
   for (const r of [13, 15, 17]) door(T1, 59, r, { seal: true, glass: true, c: 'CARGO' });
-  use(T1, 'look', 58.4, 15, 1.5, { label: 'Look out over the bay', text: 'Thick glass, and the bay a long way down. Out on the rungs something glows, the colour of a healing burn.' });
+  use(T1, 'look', 58.4, 15, 1.5, { label: 'Window', text: 'Thick glass, and the bay a long way down. Out on the rungs something glows, the colour of a healing burn.' });
   buildCargo(D, T1, T2, T3);
   /* at each screen, what is left of one of the operations staff, grown to it: a hunched trunk, a hand on the desk and
      one swollen eye at the glass of it, joined to its neighbours and by a cord of meat toward the middle of the room.

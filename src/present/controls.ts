@@ -89,7 +89,7 @@ export class Controls {
     if (this.everLocked) { if (this.enabled) this.onUnlock(); return; }
     if (this.dragLook) return;
     this.dragLook = true;
-    this.onHint('Mouse capture is unavailable here. Hold a mouse button and drag to look. Hold Q to load a swing.');
+    this.onHint('Drag to look. Hold Q to swing.');
   }
 
   /** touch: a press of one of these, as its key would be; the hands going down (a tap shorter than a step still counts) */

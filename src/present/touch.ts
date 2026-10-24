@@ -5,7 +5,8 @@ import type { Controls } from './controls';
    dragging. On the right, the buttons: the hands (held to load a swing and let go to throw it, as the mouse button is;
    dragged, it looks as well, so a swing is aimed as it loads), use (lit when there is something to use), the light,
    jump (held, up through water) and crouch (held, down); at the top, what you carry and pause. Shown only in play;
-   the menus are tapped as they are clicked. Feeds Controls as the keys and mouse do; decides nothing. */
+   the menus are tapped as they are clicked. Each button is a picture, not a word. Feeds Controls as the keys and mouse do;
+   decides nothing. */
 
 export const TOUCH = {
   /** how far the stick goes (px from where the thumb came down to full pace); pushed past `run` of that, you run */
@@ -19,9 +20,19 @@ export const TOUCH = {
 };
 
 type Button = 'hands' | 'use' | 'light' | 'jump' | 'crouch' | 'carry' | 'pause';
-const BUTTONS: [Button, string][] = [
-  ['hands', 'Swing'], ['use', 'Use'], ['light', 'Light'], ['jump', 'Jump'], ['crouch', 'Crouch'], ['carry', 'Carried'], ['pause', 'Pause'],
-];
+/** each button's picture (no words on them), drawn on a 24 grid; the hands' is a swing's arc, or a sight for a gun */
+const glyph = (d: string) => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${d}"/></svg>`;
+const GLYPH: Record<Button, string> = {
+  hands: glyph('M5 17A9 9 0 0 1 17 5M17 5l-4-1M17 5l-1 4'),
+  use: glyph('M8 21c-2-2-4-5-4-8V11h2v3M6 11V5a1.3 1.3 0 0 1 2.6 0v6M8.6 10V3.5a1.3 1.3 0 0 1 2.6 0V10M11.2 10V4.5a1.3 1.3 0 0 1 2.6 0V10M13.8 10.5V6.5a1.3 1.3 0 0 1 2.6 0V15c0 3-2 6-5 6H8'),
+  light: glyph('M3 10h7l3-2v8l-3-2H3zM16 8l4-2M16 12h5M16 16l4 2'),
+  jump: glyph('M5 15l7-7 7 7'),
+  crouch: glyph('M5 9l7 7 7-7'),
+  carry: glyph('M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z'),
+  pause: glyph('M8 5v14M16 5v14'),
+};
+const FIRE = glyph('M12 3v5M12 16v5M3 12h5M16 12h5M12 9a3 3 0 1 0 0.01 0');
+const LABEL: Record<Button, string> = { hands: 'Swing', use: 'Use', light: 'Light', jump: 'Jump', crouch: 'Crouch', carry: 'Carried', pause: 'Pause' };
 
 /** a finger on the glass: what it came down on, and where it was last */
 interface Finger { on: 'stick' | 'look' | Button; x: number; y: number; x0: number; y0: number }
@@ -43,11 +54,12 @@ export class Touch {
     this.stick.id = 'stick';
     this.stick.append(this.knob);
     this.root.append(this.stick);
-    for (const [b, label] of BUTTONS) {
+    for (const b of Object.keys(GLYPH) as Button[]) {
       const el = document.createElement('div');
       el.className = 'tb';
       el.dataset.tb = b;
-      el.textContent = label;
+      el.setAttribute('aria-label', LABEL[b]);
+      el.innerHTML = GLYPH[b];
       this.buttons.set(b, el);
       this.root.append(el);
     }
@@ -67,11 +79,15 @@ export class Touch {
     if (!on) for (const id of [...this.fingers.keys()]) this.lift(id);
   }
 
-  /** what the buttons say: use lit when there is something to use; the hands' button by what is in them */
+  /** what the buttons show: use lit when there is something to use; the hands' button by what is in them */
+  private gun = false;
   update(canUse: boolean, gun: boolean): void {
     this.buttons.get('use')!.classList.toggle('lit', canUse);
-    const h = this.buttons.get('hands')!, label = gun ? 'Fire' : 'Swing';
-    if (h.textContent !== label) h.textContent = label;
+    if (gun === this.gun) return;
+    this.gun = gun;
+    const h = this.buttons.get('hands')!;
+    h.innerHTML = gun ? FIRE : GLYPH.hands;
+    h.setAttribute('aria-label', gun ? 'Fire' : 'Swing');
   }
 
   private down(e: PointerEvent): void {

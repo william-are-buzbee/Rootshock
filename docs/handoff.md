@@ -225,7 +225,7 @@ for the owner, since they are cosmology, not the level.
       page.on('pageerror', e => errors.push(String(e)));
       await page.goto('http://localhost:5173/?dev&level=testbed');
       await page.waitForFunction(() => window.rs?.sim);
-      await page.click('#title').catch(() => {});
+      await page.click('[data-go="new"]').catch(() => {});
       // T twice, then step it by hand from page.evaluate: import('/src/sim/input.ts') for noInput,
       // import('/src/sim/cast.ts') for spawn and hitMutant, rs.step(rs.run, { ...noInput(), attack: true })
 

@@ -49,26 +49,26 @@ describe('the upper station, played', () => {
 
   it('the wing\'s cut wants a splice kit; mended, it takes what Ops has, and its elevator goes down', () => {
     const s = fresh();
-    use(s, find(s, /Elevator: Main level/), [-1, 0]);
-    expect(said(s).join(' ')).toMatch(/The panel is dark/);
+    use(s, find(s, /^Elevator$/), [-1, 0]);
+    expect(said(s).join(' ')).toMatch(/No power/);
     const cut = find(s, /Service connection, Security wing: cut through/);
     use(s, cut, [0, 1]);
-    expect(said(s).join(' ')).toMatch(/cut clean through/);
+    expect(said(s).join(' ')).toMatch(/Needs a splice kit/);
     expect(power(s.game, 'SEC')).toBe(0);
-    use(s, find(s, /Take splice kit/, tile(47, 31)), [0, -1]); // the one in Maintenance, on Ops' side
+    use(s, find(s, /^Splice kit$/, tile(47, 31)), [0, -1]); // the one in Maintenance, on Ops' side
     use(s, cut, [0, 1]);
-    expect(said(s).join(' ')).toMatch(/You splice the feed/);
+    expect(cut.label()).toMatch(/: closed$/);
     expect(s.game.inv.some(i => i.id === 'kit')).toBe(false);
     expect(power(s.game, 'SEC')).toBe(1); // Ops' backup set, through the mended feed
-    use(s, find(s, /Elevator: Main level/), [-1, 0]);
+    use(s, find(s, /^Elevator$/), [-1, 0]);
     expect(s.game.travel).toEqual({ level: 'main', mark: 'elev:upper' }); // the run takes you down
     s.game.travel = null;
     s.game.station!.circuits.OPS.back = false; // Ops' set stopped: the wing goes with it
     expect(power(s.game, 'SEC')).toBe(0);
     s.game.station!.main = true; // and on Gen-1, the wing has full power
     expect(power(s.game, 'SEC')).toBe(2);
-    use(s, find(s, /Service connection, Security wing: closed/), [0, 1]);
-    expect(said(s).join(' ')).toMatch(/The Security wing is cut off/);
+    use(s, cut, [0, 1]);
+    expect(cut.label()).toMatch(/: open$/);
     expect(power(s.game, 'SEC')).toBe(0);
   });
 
@@ -76,7 +76,7 @@ describe('the upper station, played', () => {
     const s = fresh();
     hold(s, 0.1, { light: true });
     expect(s.game.lightOn).toBe(false); // nothing to switch on yet
-    const F = find(s, /Take flashlight/), it = s.items.find(i => i.id === 'flash')!;
+    const F = find(s, /^Flashlight$/), it = s.items.find(i => i.id === 'flash')!;
     expect(it.on).toBeUndefined();
     use(s, F, [0, 1]);
     expect(s.game.tools).toContain('flash');
@@ -93,17 +93,17 @@ describe('the upper station, played', () => {
   it('The briefing room\'s reader is dark while the wing is; mended, it wants the officer\'s card, and takes it', () => {
     const s = fresh();
     const [cx, cz] = tile(36, 12), d = doorAt(s, cx, cz);
-    use(s, find(s, /Card reader: dark/, [cx, cz]), [0, 1]);
-    expect(said(s).join(' ')).toMatch(/The reader is dark/);
+    use(s, find(s, /Card reader/, [cx, cz]), [0, 1]);
+    expect(said(s).join(' ')).toMatch(/No power/);
     s.game.station!.circuits.SEC.broken = false; // as if the cut were mended
     use(s, find(s, /Card reader/, [cx, cz]), [0, 1]);
-    expect(said(s).join(' ')).toMatch(/The reader wants: Security keycard/);
+    expect(said(s).join(' ')).toMatch(/Needs the Security keycard/);
     hold(s, 1);
     expect(d.t).toBe(0); // locked: it does not open for you
-    use(s, find(s, /Search the officer/), [1, 0]);
+    use(s, find(s, /^Officer$/), [1, 0]);
     expect(s.game.keys).toContain('s');
     use(s, find(s, /Card reader/, [cx, cz]), [0, 1]);
-    expect(said(s).join(' ')).toMatch(/The reader takes the card/);
+    expect(d.unlocked).toBe(true);
     const b = s.player.body; b.x = cx; b.z = cz + 2.2; b.sync();
     hold(s, 1.5);
     expect(d.t).toBeGreaterThan(0.9);
@@ -112,9 +112,9 @@ describe('the upper station, played', () => {
   it('heavy doors will not move on the backup set; on Gen-1 the Armory keypad wants the run\'s code', () => {
     const s = fresh();
     const [ax, az] = tile(32, 26);
-    expect(find(s, /Heavy door: no power/, [ax, az])).toBeTruthy();
+    expect(find(s, /^Heavy door$/, [ax, az])).toBeTruthy();
     use(s, find(s, /Heavy door/, [ax, az]), [0, 1]);
-    expect(said(s).join(' ')).toMatch(/The backup set cannot move a door this size/);
+    expect(said(s).join(' ')).toMatch(/Not on the backup/);
     s.game.station!.main = true; // as if Gen-1 had been brought back
     use(s, find(s, /Keypad/, [ax, az]), [0, 1]);
     expect(s.game.pad).not.toBeNull();
@@ -124,7 +124,7 @@ describe('the upper station, played', () => {
     for (const k of s.game.code) s.game.commands.push({ type: 'pad', key: k });
     step(s, noInput());
     expect(s.game.pad).toBeNull();
-    use(s, find(s, /Door control: open/, [ax, az]), [0, 1]);
+    use(s, find(s, /^Door control$/, [ax, az]), [0, 1]);
     hold(s, 1.5);
     expect(doorAt(s, ax, az).t).toBeGreaterThan(0.9);
   });
@@ -133,22 +133,24 @@ describe('the upper station, played', () => {
     const s = fresh();
     const [dx, dz] = tile(59, 14), d = doorAt(s, dx, dz);
     expect(d.def.circuit).toBe('CARGO');
-    use(s, find(s, /Slide the door open/, [dx, dz]), [-1, 0]);
+    use(s, find(s, /^Door$/, [dx, dz]), [-1, 0]);
     hold(s, 1);
     expect(d.t).toBeGreaterThan(0.9);
     /* step onto the first platform: its button offers the ride up, and without power refuses */
     const P = s.platforms.find(p => p.def.y1 === 5)!, b = s.player.body;
     const onto = () => { b.x = (P.def.x0 + P.def.x1) / 2; b.z = (P.def.z0 + P.def.z1) / 2 + 1; b.y = 0; b.sync(); hold(s, 0.3); };
+    const mid: [number, number] = [(P.def.x0 + P.def.x1) / 2, (P.def.z0 + P.def.z1) / 2];
     onto();
-    use(s, find(s, /Cargo platform: up/), [0, 1]);
-    expect(said(s).join(' ')).toMatch(/No power to it/);
+    use(s, find(s, /^Cargo platform$/, mid), [0, 1]);
+    expect(said(s).join(' ')).toMatch(/No power/);
     expect(P.moving).toBe(false);
-    use(s, find(s, /Backup set, Cargo: stopped/), [0, 1]);
+    const set = s.world.def.uses.find(u => u.kind === 'backup' && (u.opts as { c?: string }).c === 'CARGO')!;
+    use(s, find(s, /^Backup set: stopped$/, [set.x, set.z]), [0, 1]);
     expect(power(s.game, 'CARGO')).toBe(1);
     expect(s.game.events.some(e => e.type === 'power')).toBe(true);
     /* now it answers: ride it up to Tier 1 */
     onto();
-    use(s, find(s, /Cargo platform: up/), [0, 1]);
+    use(s, find(s, /^Cargo platform$/, mid), [0, 1]);
     expect(P.moving).toBe(true);
     hold(s, 4.5);
     expect(P.y).toBeCloseTo(5);
@@ -165,15 +167,15 @@ describe('the upper station, played', () => {
     expect(said(s).join(' ')).toMatch(/rung over rung/);
     expect(s.game.travel).toEqual({ level: 'main', mark: 'ladder:B1' }); // the run takes you down
     s.game.travel = null;
-    use(s, find(s, /Take main fuse/), [0, 1]);
+    use(s, find(s, /^Main fuse$/), [0, 1]);
     expect(s.game.inv.map(i => i.id)).toContain('fuse');
-    use(s, find(s, /Call the surface lift/), [0, 1]);
-    expect(said(s).join(' ')).toMatch(/The call button is dead/);
+    use(s, find(s, /^Surface lift$/), [0, 1]);
+    expect(said(s).join(' ')).toMatch(/^(No power|Not on the backup)\.$/);
   });
 
   it('notes can be read and are kept; a long fall hurts', () => {
     const s = fresh();
-    use(s, find(s, /Read: isolation record, room 1/), [1, 0]);
+    use(s, find(s, /^Isolation record, room 1$/), [1, 0]);
     expect(s.game.read).toContain('intake');
     expect(s.game.events.some(e => e.type === 'note')).toBe(true);
     const b = s.player.body, [x, z] = tile(90, 11);
@@ -185,13 +187,13 @@ describe('the upper station, played', () => {
 
   it('what you put down can be taken again, and a searched body stays searched', () => {
     const s = fresh();
-    use(s, find(s, /Search the officer/), [1, 0]);
-    use(s, find(s, /Take guard's baton/), [0, -1]);
+    use(s, find(s, /^Officer$/), [1, 0]);
+    use(s, find(s, /^Guard's baton$/), [0, -1]);
     s.game.commands.push({ type: 'drop', slot: 0 });
     step(s, noInput());
     expect(s.game.inv.length).toBe(0);
-    expect(s.usables.some(u => /Search the officer/.test(u.label() ?? '') && !u.off)).toBe(false);
-    use(s, find(s, /Take guard's baton/), [0, 1]);
+    expect(s.usables.some(u => /^Officer$/.test(u.label() ?? '') && !u.off)).toBe(false);
+    use(s, find(s, /^Guard's baton$/), [0, 1]);
     expect(s.game.inv.map(i => i.id)).toEqual(['baton']);
   });
 

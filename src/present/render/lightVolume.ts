@@ -119,6 +119,13 @@ export class LightVolume {
     U.uLN.value.copy(this.size);
     U.uLW.value = this.width;
   }
+
+  /** let the card have its memory back */
+  dispose(): void {
+    this.atlas.dispose();
+    this.dirAtlas.dispose();
+    this.index.dispose();
+  }
 }
 
 const enc = (v: number) => Math.round(Math.sqrt(Math.min(Math.max(v / LIGHT_RANGE, 0), 1)) * 255);

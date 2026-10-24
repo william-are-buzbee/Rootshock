@@ -131,6 +131,9 @@ export function consume(g: Game, i: number): void {
   }
 }
 
+/** your hands are full: the one thing worth saying about taking something */
+const FULL = 'Hands full.';
+
 export function giveKey(g: Game, k: string): void {
   if (!g.keys.includes(k)) g.keys.push(k);
   say(g, keyName(k) + '.');
@@ -140,24 +143,22 @@ export function giveKey(g: Game, k: string): void {
 export function give(g: Game, id: string, n = 1): boolean {
   const it = ITEMS[id];
   if (!it) return false;
-  if (it.key) { if (!g.keys.includes(it.key)) g.keys.push(it.key); say(g, it.n + '.'); return true; }
+  /* nothing said: what you took was named while you looked at it */
+  if (it.key) { if (!g.keys.includes(it.key)) g.keys.push(it.key); return true; }
   if (it.per) n *= it.per;
   if (it.worn) {
     if (!g.worn.includes(id)) g.worn.push(id);
-    say(g, id === 'goggles' ? 'Swim goggles. You will be able to see under water.' : id === 'rebreather' ? 'Rebreather. Four times the air.' : it.n + '. You put it on.');
     return true;
   }
   if (it.tool) {
     if (!g.tools.includes(id)) g.tools.push(id);
     if (!g.light) g.light = id;
-    say(g, id === 'flash' ? 'Flashlight. F switches it.' : 'Dive lantern. A small circle of light all round you, and the only kind that works under water. F switches it.');
     return true;
   }
   const s = g.inv.find(q => q.id === id);
-  if (s && it.stack) { s.n += n; say(g, it.n + (n > 1 ? ' ×' + n : '') + '.'); return true; }
-  if (g.inv.length >= g.cap) { say(g, 'Your hands are full. Tab, and put something down.'); return false; }
+  if (s && it.stack) { s.n += n; return true; }
+  if (g.inv.length >= g.cap) { say(g, FULL); sfx(g, 'deny'); return false; }
   g.inv.push({ id, n });
-  say(g, it.n + (n > 1 ? ' ×' + n : '') + '.');
   /* into your hand if it is empty, or if this hits harder than what is in it */
   if (it.w && (!g.weapon || wstats(id).dmg > wstats(g.weapon).dmg)) g.weapon = id;
   return true;
@@ -179,10 +180,10 @@ export function toggleLight(g: Game, want: string | null, underWater: boolean): 
     if (!g.light) return;
   }
   if (!g.lightOn) {
-    if (g.light === 'flash' && underWater) { say(g, 'The flashlight is dead in the water.'); sfx(g, 'deny'); return; }
+    if (g.light === 'flash' && underWater) { sfx(g, 'deny'); return; }
     if (g.batt <= 0) {
       const i = g.inv.findIndex(s => s.id === 'batt');
-      if (i < 0) { say(g, 'No batteries.'); return; }
+      if (i < 0) { sfx(g, 'deny'); return; }
       consume(g, i); g.batt = 100;
     }
   }
@@ -192,13 +193,13 @@ export function toggleLight(g: Game, want: string | null, underWater: boolean): 
 
 /** a step of the light: the battery runs down, and a fresh one goes in when it dies, if you have one */
 export function runLight(g: Game, dt: number, underWater: boolean): void {
-  if (g.lightOn && g.light === 'flash' && underWater) { g.lightOn = false; sfx(g, 'deny'); say(g, 'The flashlight goes under and dies. It is not sealed.'); }
+  if (g.lightOn && g.light === 'flash' && underWater) { g.lightOn = false; sfx(g, 'deny'); }
   if (!g.lightOn) return;
   g.batt -= (dt * 100) / (g.light === 'flash' ? 270 : 420);
   if (g.batt <= 0) {
     const i = g.inv.findIndex(s => s.id === 'batt');
-    if (i >= 0) { consume(g, i); g.batt = 100; say(g, 'The light dies. You thumb in a fresh battery.'); }
-    else { g.batt = 0; g.lightOn = false; say(g, 'The light is dead.'); }
+    if (i >= 0) { consume(g, i); g.batt = 100; sfx(g, 'take'); }
+    else { g.batt = 0; g.lightOn = false; }
   }
 }
 
@@ -209,29 +210,26 @@ export function useItem(g: Game, i: number): void {
   const it = ITEMS[s.id];
   if (it.w) g.weapon = g.weapon === s.id ? null : s.id;
   else if (it.heal) {
-    if (g.hp >= 100) say(g, 'You are not hurt.');
+    if (g.hp >= 100) sfx(g, 'deny');
     else { g.hp = Math.min(100, g.hp + it.heal); consume(g, i); sfx(g, 'eat'); }
   } else if (s.id === 'batt') {
-    if (!has(g, 'flash') && !has(g, 'lantern')) say(g, 'Nothing to put it in.');
-    else if (g.batt > 90) say(g, 'The light is still strong.');
-    else { g.batt = 100; consume(g, i); say(g, 'Fresh battery.'); }
+    if ((!has(g, 'flash') && !has(g, 'lantern')) || g.batt > 90) sfx(g, 'deny');
+    else { g.batt = 100; consume(g, i); sfx(g, 'take'); }
   } else if (it.worn) {
     consume(g, i);
     if (!g.worn.includes(s.id)) g.worn.push(s.id);
-    say(g, 'You put the ' + it.n.toLowerCase() + ' on.'); sfx(g, 'take');
-  } else if (s.id === 'fuse') say(g, 'It belongs in a generator.');
-  else if (s.id === 'kit') say(g, 'It mends a broken service connection. One of them.');
-  else if (it.per) say(g, 'Ammunition. It needs the gun.');
+    sfx(g, 'take');
+  } else sfx(g, 'deny'); // used where it goes: a fuse, a kit; rounds go in a gun
 }
 
 /** take off something worn: it goes into your hands, if they have room */
 export function unwear(g: Game, id: string): void {
   const k = g.worn.indexOf(id), it = ITEMS[id];
   if (k < 0 || !it) return;
-  if (g.inv.length >= g.cap) { say(g, 'Your hands are full. Tab, and put something down.'); return; }
+  if (g.inv.length >= g.cap) { say(g, FULL); sfx(g, 'deny'); return; }
   g.worn.splice(k, 1);
   g.inv.push({ id, n: 1 });
-  say(g, 'You take the ' + it.n.toLowerCase() + ' off.'); sfx(g, 'take');
+  sfx(g, 'take');
 }
 
 /** say it the first time only */

@@ -24,7 +24,7 @@ export function buildSump(ladders: Record<string, LadderDef>): LevelDef {
   for (const z of [8.075, 21.925]) bx(D, 32, z, 79, 0.3, 0.3, 0x3d4042, { y: 4.4, c: 0 }); bx(D, 32, 8.045, 79, 0.18, 0.18, 0x5a4034, { y: 3.6, c: 0 });
   for (let k = 0; k < 8; k++) bx(D, rnd(14, 50), rnd(9, 21), rnd(0.4, 1.2), 0.12, rnd(0.3, 0.9), pick([0x3a3020, 0x4a5052, 0x2c3a3c]), { y: 0.88, c: 0, ry: rnd(PI) });
   bx(D, 30.5, 8.3, 2.4, 0.06, 1.2, 0x2a2c2e, { y: 0.88, c: 0 }); for (let q = -1; q <= 1; q++) bx(D, 30.5 + q * 0.5, 8.3, 0.08, 0.08, 1.2, 0x8a7a2a, { y: 0.92, c: 0 });
-  dive(D, 30.5, 8.9, 1, 'sumpdeep', 'Dive: the intake grates', true); D.marks['dive:sumpdeep'] = [30.5, 9.6, PI];
+  dive(D, 30.5, 8.9, 1, 'sumpdeep', 'Dive', true); D.marks['dive:sumpdeep'] = [30.5, 9.6, PI];
   mut(D, 'swimmer', 22, 13); mut(D, 'swimmer', 36, 17); mut(D, 'swimmer', 44, 11); mut(D, 'swimmer', 28, 20);
   /* the pump station, the control office over it, and the filters */
   room(D, 'Pump station', 52, 10, 8, 10, { ...WT, ht: 8, em: 1 });
@@ -49,9 +49,9 @@ export function buildSumpDeep(ladders: Record<string, LadderDef>): LevelDef {
     for (let q = 0; q < 4; q++) P(D, 'ico', x + rnd(-0.5, 0.5), 3.05 + rnd(0, 0.15), rnd(0.6, 1.1), rnd(0.6, 1.2), rnd(0.5, 0.9), pick([0x2f4a2a, 0x4a3b2c, 0x3a5230, 0x6e2b28]), { y: rnd(0.2, 1.4), c: 0 });
   }
   for (let k = 0; k < 8; k++) bx(D, rnd(15, 50), rnd(4.2, 6.2), rnd(0.3, 0.9), rnd(0.2, 0.5), rnd(0.3, 0.9), pick([0x2c3a3c, 0x3a3020, 0x4a5052]), { ry: rnd(PI), c: 0 });
-  corpse(D, 34.6, 5.6, 0x2c3440, true, { label: 'Search the drowned sergeant', say: 'SGT. R. ALDANA. Four digits in grease pencil on the back of her hand.', note: 'code' });
-  dive(D, 30.5, 5.8, 1.6, 'sump', 'Swim up: the intake grates'); D.marks['dive:sump'] = [30.5, 5.4, PI];
-  dive(D, 14.6, 4.6, 1.4, 'cave', 'Swim on: the flooded link, toward the cave'); D.marks['dive:cave'] = [15.4, 4.6, -PI / 2];
+  corpse(D, 34.6, 5.6, 0x2c3440, true, { label: 'Drowned sergeant', say: 'SGT. R. ALDANA. Four digits in grease pencil on the back of her hand.', note: 'code' });
+  dive(D, 30.5, 5.8, 1.6, 'sump', 'Swim up'); D.marks['dive:sump'] = [30.5, 5.4, PI];
+  dive(D, 14.6, 4.6, 1.4, 'cave', 'Swim on'); D.marks['dive:cave'] = [15.4, 4.6, -PI / 2];
   mut(D, 'swimmer', 26, 5); mut(D, 'swimmer', 31, 4); mut(D, 'swimmer', 37, 5.6); mut(D, 'swimmer', 18, 4.8); mut(D, 'swimmer', 46, 4.6);
   return finishLevel([30.5, 5.4, PI]); // under the intake grates, for ?level=sumpdeep
 }

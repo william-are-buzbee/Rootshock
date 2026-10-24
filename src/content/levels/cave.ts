@@ -28,9 +28,9 @@ export function buildCave(ladders: Record<string, LadderDef>): LevelDef {
   for (const [R, f, c] of [[entry, 0.25, 0.8], [upper, 0.3, 1.5], [spring, 0.2, 0.35], [desc, 0.3, 1], [great, 0.4, 2], [lower, 0.2, 0.35], [lc, 0.25, 1]] as const) roughen(D, R, f, c);
   pool(D, lc, 46, 36.5, 2.6, 2.4);
   /* the ways out: back through the breach; the flooded link; the crack at the top of the spring branch */
-  ladder(D, 'CV', 125.5, 60.6, 125.5, 59.4, 0, true, { bare: true, label: 'Crawl back through the breach' });
-  dive(D, 46, 34.3, 1, 'sumpdeep', 'Dive: the flooded link', true); D.marks['dive:sumpdeep'] = [45, 33.8, 0];
-  use(D, 'look', 150, 10.2, 1.2, { label: 'Examine the crack', text: 'The passage pinches to a crack you could put an arm through. Cold air comes down it, and the smell of grass. Not today.' });
+  ladder(D, 'CV', 125.5, 60.6, 125.5, 59.4, 0, true, { bare: true, label: 'Breach' });
+  dive(D, 46, 34.3, 1, 'sumpdeep', 'Dive', true); D.marks['dive:sumpdeep'] = [45, 33.8, 0];
+  use(D, 'look', 150, 10.2, 1.2, { label: 'Crack', text: 'The passage pinches to a crack you could put an arm through. Cold air comes down it, and the smell of grass. Not today.' });
   /* breakdown along both sides of the descent, a clear way down its middle */
   for (let k = 0; k < 14; k++) {
     const t = rnd(0.15, 0.9), side = k % 2 ? 1 : -1, off = side * rnd(1.1, 1.8), x = 108 + (92 - 108) * t + off * 0.69, z = 37 + (22 - 37) * t - off * 0.72, s = rnd(0.8, 1.8);

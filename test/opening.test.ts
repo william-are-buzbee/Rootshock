@@ -241,7 +241,7 @@ describe('waking', () => {
 
   it('the pump goes on until you silence it, and tells you the date, and that it is on its battery', () => {
     const { s } = opening();
-    const pump = s.usables.find(u => u.label?.() === 'Silence the pump')!;
+    const pump = s.usables.find(u => u.label?.() === 'Pump')!;
     expect(pump).toBeDefined();
     s.game.events.length = 0;
     pump.act();

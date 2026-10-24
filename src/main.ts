@@ -55,7 +55,7 @@ let view: View;
 try {
   view = new View(canvas, governor.scale);
 } catch {
-  document.getElementById('titleg')!.textContent = 'This browser could not start WebGL.';
+  document.querySelector('#title nav')!.textContent = 'This browser could not start WebGL.';
   throw new Error('no WebGL');
 }
 
@@ -70,24 +70,23 @@ const SAVE_KEY = 'rootshock-v2:run', saving = !DEV && inStation && !params.has('
 const stored = saving ? readStore(SAVE_KEY) : null;
 let resumed: Run | null = null;
 if (stored) try { resumed = loadRun(STATION, JSON.parse(stored)); } catch { writeStore(SAVE_KEY, null); }
-const seed = (Math.random() * 2 ** 32) >>> 0;
 /* a new game begins with the opening (sim/opening.ts); ?level= (the station's first level too) starts as it leaves things */
 const opening = !params.has('level') && params.get('power') !== 'full';
-const run: Run = resumed ?? (inStation ? makeRun(STATION, { seed, start: want, opening }) : soloRun(makeSim(testbed(), { seed })));
+function newRun(): Run {
+  const seed = (Math.random() * 2 ** 32) >>> 0;
+  return inStation ? makeRun(STATION, { seed, start: want, opening }) : soloRun(makeSim(testbed(), { seed }));
+}
+let run: Run = resumed ?? newRun();
 let sim: Sim = run.here;
 let mode: 'title' | 'play' | 'pause' | 'panel' | 'end' = 'title';
+/** the run in the page has been played (or was saved): the title offers to go on with it */
+let begun = !!resumed;
 function suspend(): void {
   if (saving && sim.tick > 0 && !sim.game.ended && mode !== 'title' && mode !== 'end') writeStore(SAVE_KEY, JSON.stringify(saveRun(run)));
 }
-if (resumed) {
-  document.getElementById('titleg')!.innerHTML = '<span class="keysonly">Click</span><span class="touchonly">Tap</span> to go on where you left off';
-  const line = document.createElement('p'), again = document.createElement('a');
-  line.className = 'aside';
-  again.href = '#'; again.textContent = 'Or start again from the cell.';
-  again.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); writeStore(SAVE_KEY, null); location.reload(); });
-  line.append(again);
-  document.getElementById('title')!.append(line);
-}
+hud.entry('title', 'continue', begun);
+/* the ways round the game for working on it: the test bed, the power on, the first engine */
+if (DEV) document.querySelector('#title .dev')!.classList.remove('hide');
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) return;
   /* (with a mouse, losing the capture has paused it already) */
@@ -201,6 +200,7 @@ function setMode(m: typeof mode): void {
   controls.enabled = m === 'play';
   hud.show('title', m === 'title');
   hud.show('pause', m === 'pause');
+  hud.show('settings', false);
   hud.show('hud', m !== 'title');
   touch?.show(m === 'play');
   document.body.classList.toggle('playing', m === 'play');
@@ -216,7 +216,6 @@ const BRIGHT_KEY = 'rootshock-v2:bright', brightIn = [...document.querySelectorA
 let gain = Number(readStore(BRIGHT_KEY)) || 1;
 for (const el of brightIn) {
   el.value = String(gain);
-  el.closest('p')!.addEventListener('click', e => e.stopPropagation()); // not a click to go on
   el.addEventListener('input', () => {
     gain = Number(el.value);
     writeStore(BRIGHT_KEY, String(gain));
@@ -250,15 +249,50 @@ function showDetail(on: boolean, keep: boolean): void {
   if (keep) writeStore(DETAIL_KEY, on ? 'on' : 'off');
 }
 for (const el of detailIn) {
-  el.closest('p')!.addEventListener('click', e => e.stopPropagation()); // not a click to go on
   el.addEventListener('change', () => showDetail(el.checked, true));
 }
 showDetail(detail, false);
 if (DEV) controls.onKey.set('KeyM', () => showDetail(!detail, false));
 
-hud.onClick('title', () => { writeStore(SAVE_KEY, null); audio.start(); setMode('play'); controls.lock(); fullScreen(); });
-hud.onClick('pause', () => { setMode('play'); controls.lock(); fullScreen(); });
+/* the menus. Settings opens over the title or the pause, and goes back to it */
+function settings(on: boolean): void {
+  hud.show('settings', on);
+  hud.show(mode === 'title' ? 'title' : 'pause', !on);
+}
+function play(): void {
+  (document.activeElement as HTMLElement | null)?.blur(); // a key in play is not a press of the menu's button
+  audio.start();
+  setMode('play');
+  controls.lock();
+  fullScreen();
+}
+hud.onMenu('title', go => {
+  if (go === 'settings') { settings(true); return; }
+  if (go === 'new' && begun) fresh();
+  writeStore(SAVE_KEY, null); // going on uses the save up, so a death is still a death
+  begun = true;
+  play();
+});
+/* Quit: to the title, the run kept (pausing saved it) */
+hud.onMenu('pause', go => {
+  if (go === 'settings') settings(true);
+  else if (go === 'quit') { setMode('title'); hud.entry('title', 'continue', true); }
+  else play();
+});
+hud.onMenu('settings', go => { if (go === 'back') settings(false); });
 document.getElementById('end')!.addEventListener('click', () => location.reload());
+
+/** a new game over one in the page: the run made again, and what was drawn for the old one let go */
+function fresh(): void {
+  writeStore(SAVE_KEY, null);
+  for (const lv of levels.values()) lv.dispose();
+  levels.clear();
+  previews.clear();
+  hitLog.length = 0;
+  tracked = '';
+  run = newRun();
+  arrive();
+}
 
 /* keys the menus handle: Tab for what you carry, Esc and E to step back, digits on a keypad, R to start again */
 window.addEventListener('keydown', e => {
@@ -266,6 +300,7 @@ window.addEventListener('keydown', e => {
   const c = e.code;
   if (mode === 'play' && (c === 'Tab' || c === 'KeyI')) { openPanel(() => panels.show('inv')); return; }
   if (mode === 'end' && c === 'KeyR') { location.reload(); return; }
+  if (c === 'Escape' && !document.getElementById('settings')!.classList.contains('hide')) { settings(false); return; }
   if (mode !== 'panel') return;
   const open = panels.open;
   if (open === 'pad') {
@@ -359,7 +394,7 @@ function events(): void {
         break;
       case 'impact': rig.impact(ev.k); break;
       case 'shake': rig.shake = Math.max(rig.shake, ev.k); break;
-      case 'end': setMode('end'); if (document.pointerLockElement) document.exitPointerLock(); panels.showEnd(g, ev.win, ev.msg); break;
+      case 'end': setMode('end'); if (document.pointerLockElement) document.exitPointerLock(); panels.showEnd(ev.win); break;
     }
   }
   if (panels.open === 'pad') { panels.renderPad(g); if (!g.pad) panels.close(); }
@@ -446,10 +481,9 @@ function frame(t: number): void {
   U.uFog.value += (fog - U.uFog.value) * Math.min(1, dt * 4);
   panels.prompt(mode === 'play' ? sim.focus?.text ?? null : null);
   touch?.update(!!sim.focus || !!sim.watch, !!(g.weapon && ITEMS[g.weapon].w?.gun));
-  panels.status(g, p.air < p.airMax - 0.01 ? p.air / p.airMax : null, p.crouch, hurtFx);
+  panels.status(g, p.air < p.airMax - 0.01 ? p.air / p.airMax : null, hurtFx);
 
   const b = sim.player.body, room = sim.world.roomAt(b.x, b.y + 0.5, b.z);
-  hud.setRoom(sim.watch ? '' : room?.name ?? '', sim.world.def.name, mode === 'title' ? 0 : dt); // the label waits for you to open your eyes
   if (dt > 0) fps += (1 / dt - fps) * 0.05;
   if (DEV) track(dt);
   hud.dev(!DEV && FPS ? `${Math.round(fps)} fps  ${Math.round(governor.scale * 100)}%` : DEV ? `${b.x.toFixed(2)} ${b.y.toFixed(2)} ${b.z.toFixed(2)}  ${room?.name ?? 'rock'}  ${b.ground ? 'ground' : 'air'}  ${Math.round(fps)} fps\n${sim.world.def.name}: ${sim.world.grid.chunkCount} chunks  mesh ${here.meshMs.toFixed(0)} ms in ${here.pieces} pieces  ${['fly', 'god', 'bright'].filter(k => k === 'fly' ? sim.player.fly : k === 'god' ? sim.game.god : devFlags.bright).join(' ')}\n${perfLine()}\nV fly  G god  B bright  O colliders  P tracker  M surface detail\n${fightLine()}` : null);
@@ -476,8 +510,9 @@ function perfLine(): string {
 }
 /* ?dev: the run on the window, for poking at from the console or a test script */
 if (DEV) (window as unknown as { rs: unknown }).rs = {
-  run, view, get sim() { return sim; }, step: stepRun, save: () => save(sim), saveRun: () => saveRun(run),
+  get run() { return run; }, view, get sim() { return sim; }, step: stepRun, save: () => save(sim), saveRun: () => saveRun(run),
   progress: (o?: CheckOpts) => describe(checkProgress(sim, o)),
+  give: (id: string, n?: number) => give(sim.game, id, n),
 };
 
 setMode('title');
