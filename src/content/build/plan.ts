@@ -656,7 +656,8 @@ export function finishLevel(start?: [number, number, number], on?: Floor) {
       return !!R && lo!.y0 + R.ht > F.y0 + 0.01;
     };
     if (F.below) {
-      /* a walkway's slab is its own floor, so it takes the walkway's colour; under a fitted room it is the doorway grey */
+      /* a walkway's slab is its own floor, so it takes the walkway's colour; under a fitted room it is the doorway grey
+         (what stands on a slab is floored in its room's finish all the same: BlockDef.slab) */
       slabs(b, F, P, (x, z, c) => {
         const R = c.room;
         if ((R && (R.hole || (R.air && through(x, z)))) || (F.ground && !downFrom(F, x, z))) return null;
@@ -979,7 +980,7 @@ function slabs(b: LevelBuilder, F: Floor, P: Paint, key: (x: number, z: number, 
   }
   for (const t of open.values()) done.push({ ...t, k1: last + 1 });
   done.sort((p, q) => p.k0 - q.k0 || p.i0 - q.i0);
-  for (const t of done) b.block(t.i0 * Q, F.y0 - SLAB, t.k0 * Q, t.i1 * Q, F.y0, t.k1 * Q, t.v[0], t.v[1]);
+  for (const t of done) b.block(t.i0 * Q, F.y0 - SLAB, t.k0 * Q, t.i1 * Q, F.y0, t.k1 * Q, t.v[0], t.v[1], true);
 }
 
 /** rails along a walkway's edges where `drop` (open air below), and beside a stair's opening but at its head, in runs */

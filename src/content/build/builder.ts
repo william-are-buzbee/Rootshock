@@ -171,11 +171,11 @@ export class LevelBuilder {
     return W;
   }
 
-  /** solid from (x0, y0, z0) to (x1, y1, z1): a platform, a step */
-  block(x0: number, y0: number, z0: number, x1: number, y1: number, z1: number, c: number | Colour, mat: Mat = 'concrete'): void {
+  /** solid from (x0, y0, z0) to (x1, y1, z1): a platform, a step; or a floor slab (BlockDef.slab) */
+  block(x0: number, y0: number, z0: number, x1: number, y1: number, z1: number, c: number | Colour, mat: Mat = 'concrete', slab = false): void {
     this.def.blocks.push({
       x0: Math.min(x0, x1), y0: Math.min(y0, y1), z0: Math.min(z0, z1),
-      x1: Math.max(x0, x1), y1: Math.max(y0, y1), z1: Math.max(z0, z1), colour: hex(c), mat,
+      x1: Math.max(x0, x1), y1: Math.max(y0, y1), z1: Math.max(z0, z1), colour: hex(c), mat, ...(slab ? { slab } : {}),
     });
   }
 

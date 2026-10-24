@@ -8,9 +8,9 @@ import { matId } from './shader';
 import { TEMPLATES } from './templates';
 
 /* The level's static mesh. Flat surfaces come from the grid: wherever open space meets solid, there is a face, coloured by
-   the room on the open side and by what the solid is (rock takes the room's palette; a block, its own colour). Faces are
-   merged into the largest flat rectangles that share a colour (within a chunk), then cut where the palette changes (the dado
-   and the stripe on walls). What a surface is made of draws its own joints; the first engine's 2 m checker on floors,
+   the room on the open side and by what the solid is (rock takes the room's palette; a block, its own colour, but for a
+   floor slab's top, which is the floor of the room on it). Faces are merged into the largest flat rectangles that share a
+   colour (within a chunk), then cut where the palette changes (the dado and the stripe on walls). What a surface is made of draws its own joints; the first engine's 2 m checker on floors,
    walls and the painted sky is gone. Sloped surfaces (ramps, cave floors and ceilings) are drawn from their
    own lattices, and walls at an angle from their turned boxes, each face finished as the room in front of it. Fixed
    props are added from their shapes; loose ones are drawn elsewhere, since they move.
@@ -204,7 +204,8 @@ export function buildLevelMesh(w: World, L: Lighting): LevelMesh {
   const face = (a: number, s: number, u0: number, u1: number, v0: number, v1: number, room: number, block: number, openUp: boolean) => {
     const R = w.rooms[room];
     if (a === 1 && covered(openUp, s, u0, u1, v0, v1)) return;
-    if (block >= 0) {
+    /* (a slab's top is the floor of the room on it, as rock's is) */
+    if (block >= 0 && !(a === 1 && openUp && w.blocks[block].slab)) {
       put(a, s, u0, u1, v0, v1, room, w.blocks[block].colour, 1, matId(w.blocks[block].mat));
       return;
     }

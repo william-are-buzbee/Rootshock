@@ -74,6 +74,9 @@ export interface BlockDef {
   x0: number; y0: number; z0: number; x1: number; y1: number; z1: number;
   colour: Colour;
   mat: Mat;
+  /** a floor slab under an upper floor: what stands on it is floored in the finish of the room over it, as on rock (its
+   *  colour and what it is made of are its underside's and its edges') */
+  slab?: boolean;
 }
 
 /** a wall at any angle on the plan: a straight run of solid from (ax, az) to (bx, bz), `t` thick about that line,

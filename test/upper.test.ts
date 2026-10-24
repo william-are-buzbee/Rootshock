@@ -6,6 +6,7 @@ import { noInput } from '../src/sim/input';
 import { reach } from '../src/sim/reach';
 import { Lighting, stationPower, fullPower } from '../src/world/light';
 import { buildLevelMesh } from '../src/present/render/levelMesh';
+import { matId } from '../src/present/render/shader';
 import { looseLights } from '../src/sim/sim';
 import { circle } from '../src/world/shapes';
 import { field } from '../src/world/nav';
@@ -117,6 +118,24 @@ describe('the upper station', () => {
     expect(room.size).toBe(1);
     expect(walk.size).toBe(1);
     expect([...room][0]).not.toBe([...walk][0]);
+  });
+
+  it('floors a fitted room upstairs in its own finish, not its slab\'s concrete', () => {
+    const mesh = buildLevelMesh(sim.world, new Lighting(sim.world, fullPower)), seen = new Map<string, Set<number>>();
+    const rooms = ['Checkpoint', 'Staff mess', 'Cargo control'].map(n => level.rooms.find(r => r.name === n)!);
+    for (const g of mesh.pieces) {
+      const P = g.getAttribute('position'), M = g.getAttribute('aMat');
+      for (let i = 0; i < P.count; i += 3) {
+        const y = (P.getY(i) + P.getY(i + 1) + P.getY(i + 2)) / 3, x = (P.getX(i) + P.getX(i + 1) + P.getX(i + 2)) / 3, z = (P.getZ(i) + P.getZ(i + 1) + P.getZ(i + 2)) / 3;
+        const R = rooms.find(q => Math.abs(y - q.y0) < 0.01 && x > q.x0 + 0.5 && x < q.x1 - 0.5 && z > q.z0 + 0.5 && z < q.z1 - 0.5);
+        if (R) seen.set(R.name, (seen.get(R.name) ?? new Set()).add(Math.round(M.getX(i))));
+      }
+    }
+    /* (what stands on the floor faces it from below, in its own material) */
+    for (const R of rooms) {
+      expect([...(seen.get(R.name) ?? [])], R.name).toContain(matId(R.mat.floor));
+      expect([...(seen.get(R.name) ?? [])], R.name).not.toContain(matId('concrete'));
+    }
   });
 
   it('sinks the muster court 1.25 m under the hall, with steps down both long sides, and lifts its ceiling to 8.5 m', () => {
