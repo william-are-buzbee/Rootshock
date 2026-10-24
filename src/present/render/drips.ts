@@ -52,7 +52,7 @@ void main(){
   vec3 p = iPos + vec3(position.x * iSize, 0.0, position.z * iSize);
   vec3 tc = cameraPosition - p; float d = length(tc);
   /* a ring on water is mostly what it catches: a little light of its own (iA > 0); a wet patch has none */
-  vC = iCol * (iL + carried(p, 1.0) + lying(p, vec3(0.0, 1.0, 0.0)) + (iA > 0.0 ? 0.12 : 0.0));
+  vC = iCol * (iL + carried(p, vec3(0.0, 1.0, 0.0), 1.0) + lying(p, vec3(0.0, 1.0, 0.0)) + (iA > 0.0 ? 0.12 : 0.0));
   vA = iA * exp(-d * uFog);
   vS = position.xz * 2.0;
   gl_Position = projectionMatrix * viewMatrix * vec4(p, 1.0);
@@ -75,7 +75,7 @@ ${LIGHTS}
 void main(){
   vec4 mv = modelViewMatrix * vec4(position, 1.0);
   vec3 tc = cameraPosition - position; float d = length(tc);
-  vC = vec3(0.7, 0.8, 0.85) * (aL + 0.6 * (held(position, 1.0) + lying(position, vec3(0.0))) + bounce(position) + 0.1);
+  vC = vec3(0.7, 0.8, 0.85) * (aL + 0.6 * (held(position, vec3(0.0), 1.0) + lying(position, vec3(0.0))) + bounce(position) + 0.1);
   vA = aA * exp(-d * uFog);
   gl_PointSize = floor(clamp(uPx / max(-mv.z, 0.1), 2.0, 6.0));
   gl_Position = projectionMatrix * mv;
