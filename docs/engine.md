@@ -1030,7 +1030,12 @@ sequence of inputs. The door rules, the labels and the answers are the first eng
   hand; taken again, it is on in your hand. The flashlight at the stair's foot is one (`ItemDef.on`: lying on, and its
   aim). A flashlight lying on is drawn with the same beam as yours (`FLASH` and `spot` in `world/light.ts`), from its
   lens, with a shadow map of its own (`render/beams.ts`, the two nearest you); what it throws back (`BOUNCE`, as yours
-  does) and a lantern lying on (`LANTERN`) go into the level's light field (`Lighting.lights`). Every shader draws every
+  does) and a lantern lying on (`LANTERN`) go into the level's light field (`Lighting.lights`). A point is looked up
+  in a beam's map off its surface by two of the map's texels as wide as they are there (`STANDOFF` in
+  `render/shader.ts`), yours as well: by a fixed few centimetres, a floor a beam raked from far off shadowed itself in
+  stripes, the map's rows and columns, that crawled as the beam moved. The night round's torch showed them across the
+  isolation suite and into the rooms off it (its map's texels are 5 cm across 10 m off), your own on a corridor's floor
+  15 m and more ahead. Every shader draws every
   light that is not the level's from one piece of GLSL (`LIGHTS` in `render/shader.ts`: yours, and those lying about),
   so each light is added once and is the same light on a wall, a body, a footprint or a speck of dust. Motes (`present/render/motes.ts`) hang in the air about you, square flecks lit as a surface is (by the room as much as by your beam, never brighter than the wall beside them): with a live circuit the air
   is drawn toward the room's ceiling grilles (`LevelDef.vents`: one at each end of a long fitted room, one in a short

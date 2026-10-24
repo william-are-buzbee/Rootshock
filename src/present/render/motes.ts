@@ -49,7 +49,7 @@ void main(){
   vec4 mv = modelViewMatrix * vec4(position, 1.0);
   vec3 tc = cameraPosition - position; float d = length(tc);
   /* a beam through dust shows it, softly: less than a wall would take */
-  vec3 light = aL + 0.45 * (held(position, 1.0) + lying(position, vec3(0.0))) + bounce(position) + 0.8 * lantern(position, 1.0);
+  vec3 light = aL + 0.45 * (held(position, vec3(0.0), 1.0) + lying(position, vec3(0.0))) + bounce(position) + 0.8 * lantern(position, 1.0);
   /* dust is never the brightest thing in view: bright light is given back softly, as the eye sees it */
   vec3 c = aCol * light * uExpo;
   vC = c / (1.0 + 0.35 * c) / uExpo;

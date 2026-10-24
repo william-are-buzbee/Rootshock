@@ -53,7 +53,7 @@ void main(){
   vec2 q = position.xz * iSize;
   vec3 p = iPos + vec3(q.x * c + q.y * s, 0.0, -q.x * s + q.y * c);
   vec3 tc = cameraPosition - p; float d = length(tc);
-  vC = iCol * (iL + carried(p, 1.0) + lying(p, vec3(0.0, 1.0, 0.0)));
+  vC = iCol * (iL + carried(p, vec3(0.0, 1.0, 0.0), 1.0) + lying(p, vec3(0.0, 1.0, 0.0)));
   vA = iA * exp(-d * uFog);
   gl_Position = projectionMatrix * viewMatrix * vec4(p, 1.0);
 }`;
