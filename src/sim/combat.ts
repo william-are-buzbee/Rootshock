@@ -3,7 +3,7 @@ import { clamp } from '../core/math';
 import { STEP } from '../core/loop';
 import type { Dyn } from '../world/world';
 import { hitMutant, type Mutant } from './cast';
-import { consume, log, makeNoise, say, sfx } from './game';
+import { consume, log, makeNoise, sfx } from './game';
 import { push } from './body';
 import { knockRag, ragOnLine } from './ragdoll';
 import { closing, DOWN, GLANCE, LAUNCH, POISE, react, REEL, regain, RISE, SHOVE, swingOf, type Swing } from './moves';
@@ -307,9 +307,9 @@ function landed(sim: Sim, k: number): void {
 function fire(sim: Sim, w: WeaponStats): void {
   const h = sim.hands, g = sim.game;
   if (h.gcd > 0) return;
-  if (sim.player.under) { say(g, 'It will not fire under water.'); h.gcd = 0.5; return; }
+  if (sim.player.under) { sfx(g, 'deny'); h.gcd = 0.5; return; }
   const i = g.inv.findIndex(s => s.id === w.ammo);
-  if (i < 0) { sfx(g, 'deny'); say(g, 'Empty.'); h.gcd = 0.5; return; }
+  if (i < 0) { sfx(g, 'deny'); h.gcd = 0.5; return; }
   consume(g, i);
   const big = w.dmg > 50, range = w.range ?? 20;
   h.gcd = w.cd ?? 0.5; h.kick = 1; h.muzzle = 0.06;

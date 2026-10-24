@@ -909,11 +909,12 @@ components, not code threaded through the frame loop:
   steps it and starts the count again.
 
 **As built in step 4.** The game's state is plain data in the sim (`sim/game.ts`): circuits and Gen-1, keys, what you
-carry (ten slots), lights and battery, what you wear, papers read, health, the run's keypad codes. What happens comes out
+carry (ten slots; a grid since, §11), lights and battery, what you wear, papers read, health, the run's keypad codes. What happens comes out
 as events (a message, a sound and where it came from, a note to show, a keypad, the power changing, the end); what the
 player chooses in a menu goes back in as commands, applied at the start of the next step, so a run is still only a
 sequence of inputs. The door rules, the labels and the answers are the first engine's, line for line
-(`sim/movers.ts`, `sim/interact.ts`). The world stands still while a menu is open, as it did.
+(`sim/movers.ts`, `sim/interact.ts`). The world stands still while a menu is open, as it did (all but what you carry,
+since: §11).
 
 ---
 
@@ -1134,14 +1135,48 @@ sequence of inputs. The door rules, the labels and the answers are the first eng
 - **Touch** (since; `present/touch.ts`): a phone or a tablet (`pointer: coarse`) is played on its side, the whole
   screen (asked for on the first tap, and pausing if left). The left of the screen is a stick, put down where the
   thumb lands: how far it is pushed is how fast you go, past its rim you run (loud, as Shift is). Anywhere else is
-  dragged to look (a speed of the player's own, on the title and pause screens). On the right, the hands (held to
-  load a swing and let go to throw it, as the mouse button; dragged, it looks too, so a swing is aimed as it loads;
-  Fire with a gun), use (lit when there is something to use), the light, jump and crouch (held, swim up and down); at
-  the top, what you carry and pause. The menus are tapped as they are clicked, with a Back button for Esc; the HUD
-  moves to the top left, out from under the thumbs; what the page says for keys it says for touch instead. Only feeds
-  Controls, as the keys and mouse do.
+  dragged to look (a speed of the player's own, in Settings). On the right, the hands (held to load a swing and let go
+  to throw it, as the mouse button; dragged, it looks too, so a swing is aimed as it loads; a sight with a gun), use
+  (lit when there is something to use), the light, jump and crouch (held, swim up and down); at the top, what you carry
+  and pause. Each button is a picture, not a word. The menus are tapped as they are clicked, with a back arrow for Esc;
+  the HUD moves to the top left, out from under the thumbs. Only feeds Controls, as the keys and mouse do.
 - **UI** stays in HTML over the canvas, with the current type and colours (Barlow Condensed, Newsreader, bone, ash,
-  hazard).
+  hazard). **As few words as will do** (since): everything that is not a paper is pared to what you cannot do without.
+  - The title is the name and a menu: Continue (with a run kept), New game, Settings. Pause is Resume, Settings, Quit
+    (to the title, the run kept: pausing saved it). Settings holds brightness, surface detail, look speed by touch, and
+    the controls, which no longer stand on the title. New game over a run in the page makes the run again in the page
+    (`fresh` in `main.ts`; what was drawn for the old one is let go, `LevelView.dispose`). The test bed, the lights on and
+    the first engine are linked from the title under `?dev` only. The end is its word (Surface, Grafted); the way out is
+    told as before, without the counts; a click goes back to the title.
+  - In play: no room or level name (you do not know where you are), nothing about what is in your hand (you can see it);
+    the bars, and the rounds left as a bare number while a gun is in hand. What you look at that can be used is named
+    under the dot, which grows a little: a thing's name, with no verb and no key (a state only where nothing in the
+    world shows it: a breaker's, a backup set's). A console's feed keeps what a monitor prints over it (its camera's
+    name, the clock) and says nothing of how to work it.
+  - What you carry is System Shock 2's (`present/ui/carried.ts`): Tab brings it up as a strip over the top of the game,
+    which **goes on** under it. With a mouse, the pointer leaves looking to work it (`Controls.free`: no look, no swing,
+    and its capture let go is not a pause) and you still walk; Tab again puts it away and takes the pointer back; Esc
+    pauses. By touch it is only shown, the stick and the buttons live beside it. A paper read from it opens over the
+    paused game, and puts you back in it after.
+  - It is a grid of 8 by 3 cells (`GRID`, `content/items.ts`), and each thing takes the cells of its `size`: most one;
+    the baton, the wrenches, the knife and the pistol two, standing; the pipe, the axe and the shotgun three; a vest
+    four, square; the fuse and the splice kit two, lying. Nothing shares a cell. What you take goes in the first place
+    it fits, down each column from the left; where it fits nowhere but there is room enough, everything is packed
+    again, the biggest first; only then are your hands full (`stow`, `sim/game.ts`). Dragged, a thing moves where it has
+    room (the `move` command; where it would land shows, yellow or red), onto you to wear it, or out of the strip to
+    put it down; a right click puts it down too. Clicked, it is used as before (a weapon into your hand, outlined;
+    food; a battery). Places carry over in a save; one from before the grid finds everything a place on load.
+  - Beside the grid, what you wear, one of each kind (`WornSlot`: body, head, eyes, breath) and your two lights; an
+    empty place shows faintly what goes there. A second vest is carried, not worn over the first; put on, the first
+    comes off into the grid. Under the grid, the keys you know (cards coloured by whose they are) and the papers read.
+  - The pictures (`present/ui/icons.ts`) are in colour, the colours each thing is drawn in where it lies
+    (`content/lying.ts`), shaped to its cells and outlined in ink. Each is named only while the pointer is on it (by
+    touch, the last tapped); counts are a number in the corner.
+  - What the sim says (`say`) is only what you could not see or hear for yourself, mostly what a thing wants that you
+    lack (No power. Not on the backup. Needs the Security keycard. Needs a splice kit. Hands full.). Taking something,
+    a switch thrown, a door unlocked, a keypad's code taken are heard, not said; the hints in the narrator's voice are
+    gone. What a level gives a place to say (a body searched, a sealed door, a look at a schedule, a ladderway) is the
+    level's writing and stays, as the papers do; its labels are names (Officer, IV bag, Breach).
 - **Dev tools** carry over (`?dev`, fly, god, level select, map), plus overlays for colliders, nav graph and noise.
 
 ---
@@ -1450,8 +1485,8 @@ their foot, in places brown streaks run down from the ceiling, blotches overhead
 bare concrete ceiling, 3 to 6 m high and at least 6 m long, get services along one long wall: a cable tray and two
 pipes on hangers, a quarter metre down. A suspended or plastered ceiling hides them.
 
-All of the look (and, since step 3, the sound) is surface detail, which the player can turn off (a checkbox by the
-brightness on the title and pause screens, kept between runs; `?detail=off` for one visit; M under `?dev`). Off, the
+All of the look (and, since step 3, the sound) is surface detail, which the player can turn off (a checkbox in
+Settings, kept between runs; `?detail=off` for one visit; M under `?dev`). Off, the
 shader skips the patterns, wear, bump and highlight, reckons the beam's facing from the eye, and the services (their own
 mesh) are hidden: the station as it looked before.
 

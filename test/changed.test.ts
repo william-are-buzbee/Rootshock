@@ -54,7 +54,7 @@ describe('they carry their cards', () => {
     expect(locked(d)).toBe(true);
     s.game.events.length = 0;
     doorAct(s, d);
-    expect(s.game.events.some(e => e.type === 'say' && /reader wants/.test(e.text))).toBe(true);
+    expect(s.game.events.some(e => e.type === 'say' && /^Needs the /.test(e.text))).toBe(true);
   });
 
   it('a dark reader reads no card: with the wing cut, the door holds them as it holds you', () => {

@@ -36,17 +36,17 @@ describe('save and load', () => {
 
   it('keeps what was taken, searched, unlocked and switched', () => {
     const a = makeSim(level, opts);
-    const body = a.usables.find(u => /Search the officer/.test(u.label() ?? ''))!;
+    const body = a.usables.find(u => /^Officer$/.test(u.label() ?? ''))!;
     body.act();
-    const item = a.usables.find(u => /Take flashlight/.test(u.label() ?? ''))!;
+    const item = a.usables.find(u => /^Flashlight$/.test(u.label() ?? ''))!;
     item.act();
     a.doors[14].unlocked = true;
     a.game.station!.circuits.CARGO.back = true;
     const b = load(level, JSON.parse(JSON.stringify(save(a))), opts);
     expect(b.game.keys).toContain('s');
     expect(b.game.tools).toContain('flash');
-    expect(b.usables.some(u => /Search the officer/.test(u.label() ?? '') && !u.off)).toBe(false);
-    expect(b.usables.some(u => /Take flashlight/.test(u.label() ?? ''))).toBe(false);
+    expect(b.usables.some(u => /^Officer$/.test(u.label() ?? '') && !u.off)).toBe(false);
+    expect(b.usables.some(u => /^Flashlight$/.test(u.label() ?? ''))).toBe(false);
     expect(b.doors[14].unlocked).toBe(true);
     expect(b.game.station!.circuits.CARGO.back).toBe(true);
     expect(b.game.notes.memo).toBeTruthy();

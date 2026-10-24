@@ -24,6 +24,9 @@ export class Controls {
   /** a drag in progress (drag-look): how far, since when. A short still click is a click. */
   private drag: { moved: number; t: number } | null = null;
   enabled = false;
+  /** the pointer is out, working what you carry (main.ts): it neither looks nor swings, and its capture let go is not a
+   *  pause. You still walk. */
+  free = false;
   /** played by touch (touch.ts): no mouse to capture. What the stick and the buttons hold: how far forward and to the
    *  side (-1 to 1), running, the hands, swimming up and down */
   touch: { forward: number; strafe: number; run: boolean; attack: boolean; rise: boolean; sink: boolean } | null = null;
@@ -38,21 +41,21 @@ export class Controls {
       else if (e.code === 'KeyC') this.press.crouch = true;
       else if (e.code === 'KeyF') this.press.light = true;
       else if (e.code === 'KeyE') this.press.use = true;
-      else if (e.code === 'KeyQ') { this.q = true; this.clicked = true; }
+      else if (e.code === 'KeyQ' && !this.free) { this.q = true; this.clicked = true; }
       else if (e.code === 'Escape' && this.dragLook) this.onUnlock(); // no capture to lose: Esc pauses
       this.onKey.get(e.code)?.();
     });
     window.addEventListener('keyup', e => { this.keys[e.code] = false; if (e.code === 'KeyQ') this.q = false; });
     window.addEventListener('blur', () => { this.keys = {}; this.mouse = false; this.q = false; });
     document.addEventListener('mousemove', e => {
-      if (!this.enabled || !(this.locked() || (this.dragLook && this.dragging))) return;
+      if (!this.enabled || this.free || !(this.locked() || (this.dragLook && this.dragging))) return;
       if (this.drag) this.drag.moved += Math.abs(e.movementX) + Math.abs(e.movementY);
       this.pending.yaw -= e.movementX * SENS;
       this.pending.pitch -= e.movementY * SENS;
     });
     /* captured, the button is the hands; dragging to look, a drag is looking and only a short still click is the hands */
     canvas.addEventListener('mousedown', e => {
-      if (!this.enabled) return;
+      if (!this.enabled || this.free) return;
       if (this.dragLook) { this.dragging = true; this.drag = { moved: 0, t: performance.now() }; return; }
       if (e.button === 0) { this.mouse = true; this.clicked = true; }
     });
@@ -65,7 +68,7 @@ export class Controls {
     });
     document.addEventListener('pointerlockchange', () => {
       if (this.locked()) this.everLocked = true;
-      else if (this.enabled && !this.dragLook) this.onUnlock();
+      else if (this.enabled && !this.dragLook && !this.free) this.onUnlock();
     });
     document.addEventListener('pointerlockerror', () => this.lockFail());
   }
@@ -89,7 +92,7 @@ export class Controls {
     if (this.everLocked) { if (this.enabled) this.onUnlock(); return; }
     if (this.dragLook) return;
     this.dragLook = true;
-    this.onHint('Mouse capture is unavailable here. Hold a mouse button and drag to look. Hold Q to load a swing.');
+    this.onHint('Drag to look. Hold Q to swing.');
   }
 
   /** touch: a press of one of these, as its key would be; the hands going down (a tap shorter than a step still counts) */
@@ -117,7 +120,7 @@ export class Controls {
     this.pending.yaw = 0; this.pending.pitch = 0;
     i.jump = this.press.jump; i.crouch = this.press.crouch; i.light = this.press.light; i.use = this.press.use;
     i.rise = !!(k.Space || t?.rise); i.sink = !!(k.KeyC || t?.sink);
-    i.attack = this.mouse || this.clicked || this.q || !!t?.attack;
+    i.attack = (!this.free && (this.mouse || this.clicked || this.q)) || !!t?.attack;
     this.clicked = false;
     this.press = { jump: false, crouch: false, light: false, use: false };
     return i;

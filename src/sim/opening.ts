@@ -1,7 +1,7 @@
 import { STEP } from '../core/loop';
 import { REEL } from './moves';
 import { leftGrafted, type Mutant } from './cast';
-import { say, sayOnce, sfx } from './game';
+import { say, sfx } from './game';
 import type { Input } from './input';
 import type { Sim } from './sim';
 
@@ -142,7 +142,6 @@ export function weakened(sim: Sim, input: Input): Input {
     h.stag = REEL.you;
     sfx(sim.game, 'reel');
     sim.game.events.push({ type: 'shake', k: 0.25 });
-    sayOnce(sim.game, 'weak', 'Your legs will not run. Not yet: days of lying still are in them.');
   }
   return { ...input, run: false };
 }

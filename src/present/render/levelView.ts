@@ -74,6 +74,13 @@ export class LevelView {
     this.volume.sync(L);
   }
 
+  /** done with (a new game, made in the page): what it put on the card, given back */
+  dispose(): void {
+    this.group.removeFromParent();
+    this.group.traverse(o => (o as THREE.Mesh).geometry?.dispose());
+    this.volume.dispose();
+  }
+
   update(alpha: number, eye: THREE.Camera): void {
     this.things.update();
     this.cast.update(alpha, eye);

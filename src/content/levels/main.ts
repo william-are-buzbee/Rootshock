@@ -65,7 +65,7 @@ export function buildMain(ladders: Record<string, LadderDef>): LevelDef {
     else if (v[1] === 'worm') { mut(D, 'worm', cx - 0.6, cz); mut(D, 'worm', cx + 0.6, cz + 0.4); mut(D, 'worm', cx + 1.4, cz); eggs(D, x0 + 1.6, back, 2); }
     else if (v[1] === 'nest') { eggs(D, cx - 0.8, cz, 3); eggs(D, x0 + 5, back, 3); mut(D, 'skitter', cx + 0.6, cz); }
     else if (v[1] === 'post') mut(D, 'husk', cx, cz, { post: 1, yaw: north ? PI : 0 });
-    else if (v[1] === 'body') corpse(D, cx + 0.4, cz, pick([0x4a5560, 0x6b6f5a, 0x7a5a50]), true, { label: 'Search the resident', say: 'A room card on a lanyard. Not for this flat.', keys: [v[3]] });
+    else if (v[1] === 'body') corpse(D, cx + 0.4, cz, pick([0x4a5560, 0x6b6f5a, 0x7a5a50]), true, { label: 'Resident', say: 'A room card on a lanyard. Not for this flat.', keys: [v[3]] });
   };
   /* cards lock six flats (two round the Square); each card lies on a body elsewhere */
   const RV: Record<string, Flat> = {
@@ -148,7 +148,7 @@ function flatRect(D: Deck, x: number, y: number, w: number, h: number, dx: numbe
   else if (v[1] === 'worm') { mut(D, 'worm', vx - 0.5, vz); mut(D, 'worm', vx + 0.5, vz); mut(D, 'worm', vx, cz); }
   else if (v[1] === 'nest') { eggs(D, vx, vz, 3); eggs(D, ox, oz - 0.3, 2); mut(D, 'skitter', vx, cz); }
   else if (v[1] === 'post') mut(D, 'husk', vx, vz, { post: 1, yaw: Math.atan2(dx - vx, dy - vz) });
-  else if (v[1] === 'body') corpse(D, vx, vz, pick([0x4a5560, 0x6b6f5a, 0x7a5a50]), true, { label: 'Search the resident', say: 'A room card on a lanyard. Not for this flat.', keys: [v[3]] });
+  else if (v[1] === 'body') corpse(D, vx, vz, pick([0x4a5560, 0x6b6f5a, 0x7a5a50]), true, { label: 'Resident', say: 'A room card on a lanyard. Not for this flat.', keys: [v[3]] });
 }
 
 /** a home's walls and ceiling over sheet vinyl: the street's rooms where food, water or sweat is */
@@ -171,7 +171,7 @@ function groundFloor(D: Deck, x0: number, north: boolean, k: number, HB: TRoomOp
     case 6: R('Post room'); shelf(D, x0 + 1.5, back + 0.1, 2.4, 0.5, { cols: [0xb9a98a, 0x8a7a6a] }); tbl(D, x0 + 4.5, mid, 2, 0.8); item(D, 'batt', x0 + 4.5, mid, 0.78); break;
     case 7: R('Recreation', { lit: 'none' }); bx(D, x0 + 2.5, mid, 2.4, 0.8, 1.3, 0x3a2e22); bx(D, x0 + 2.5, mid, 2.3, 0.04, 1.2, 0x2f5a40, { y: 0.8, c: 0 }); bx(D, x0 + 5.6, back, 2, 0.45, 0.8, 0x5a4a44);
       bx(D, x0 + 6.4, front, 0.9, 0.5, 0.6, 0x4a5238); item(D, 'goggles', x0 + 6.4, front, 0.5); item(D, 'batt', x0 + 0.6, back, 0.02);
-      corpse(D, x0 + 4.4, front, 0x6b6f5a, false, { label: 'Search the resident', say: 'Swimming trunks, a towel, a room card.', keys: ['C2'] }); eggs(D, x0 + 1, front, 4); mut(D, 'skitter', x0 + 3.6, mid); mut(D, 'skitter', x0 + 1.4, back + 0.4); break;
+      corpse(D, x0 + 4.4, front, 0x6b6f5a, false, { label: 'Resident', say: 'Swimming trunks, a towel, a room card.', keys: ['C2'] }); eggs(D, x0 + 1, front, 4); mut(D, 'skitter', x0 + 3.6, mid); mut(D, 'skitter', x0 + 1.4, back + 0.4); break;
   }
   else switch (k) {
     case 0: R('Gymnasium', { mat: VINYL }); bx(D, x0 + 2, mid, 3, 0.08, 2, 0x3a4a5a, { c: 0 }); for (let q = 0; q < 3; q++) P(D, 'cyl', x0 + 5 + q * 0.6, back, 0.4, 0.4, 0.4, 0x2a2c2e); mut(D, 'husk', x0 + 3.5, mid, { post: 1, yaw: 0 }); break;
@@ -195,7 +195,7 @@ function buildHorticulture(G: Deck, S2: Deck): void {
   const H: TRoomOpts = { ...HRT, c: 'HORT' };
   /* the post: the guard who kept his pass, the backup set that still runs, and the door into the labs */
   const post = room(G, 'Security post', 98, 12, 4, 6, { ...SEC, c: 'HORT', em: 1 }); desk(G, 100.6, 12.5, 1.8, 0.7); note(G, 'hsec', 100.2, 12.45, 0.78); genset(G, 'HORT', 101.3, 16.6, 100.7, 17.2);
-  corpse(G, 99.4, 16.4, 0x2c3440, true, { label: 'Search the guard', say: 'Horticulture had its own security. This one kept his pass.', keys: ['h'] });
+  corpse(G, 99.4, 16.4, 0x2c3440, true, { label: 'Guard', say: 'Horticulture had its own security. This one kept his pass.', keys: ['h'] });
   door(G, 102, 14, { card: 'h', sg: [['Labs', 'w'], ['Security', 'e']] });
   /* the cross passage, and the three galleries off it */
   const cross = room(G, 'Cross passage', 103, 6, 1, 18, { ...H, em: 1 });
@@ -237,7 +237,7 @@ function buildHorticulture(G: Deck, S2: Deck): void {
 
   /* the bulkhead to the cave, in the north wall: Horticulture drilled through it */
   room(G, 'Breach', 125, 3, 1, 2, { ...ROCKP, lit: 'none', nolamp: 1, noroam: 1 }); door(G, 125, 5, { stuck: true, sg: [['Cave', 's']] });
-  ladder(G, 'CV', 125.5, 3.5, 125.5, 4.4, PI, false, { bare: true, label: 'Crawl through the breach' });
+  ladder(G, 'CV', 125.5, 3.5, 125.5, 4.4, PI, false, { bare: true, label: 'Breach' });
   /* the green through the breach, on its walls */
   for (let k = 0; k < 6; k++) P(G, 'ico', 125 + (rnd(0.1, 0.9) < 0.5 ? 0.08 : 0.92), 3 + rnd(0, 2), rnd(0.3, 0.7), rnd(0.2, 0.5), rnd(0.3, 0.7), pick(GR), { c: 0, y: rnd(0, 1.6) });
   /* east: the exhaust shaft. Ladderway B up to Cargo, and on down to the plant level */

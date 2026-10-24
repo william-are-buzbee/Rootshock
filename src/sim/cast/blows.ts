@@ -2,7 +2,7 @@ import { angLerp } from '../../core/math';
 import { STEP } from '../../core/loop';
 import type { Dyn } from '../../world/world';
 import { impulse } from '../body';
-import { hurtBy, log, sayOnce, sfx } from '../game';
+import { hurtBy, log, sfx } from '../game';
 import { exposed, struck } from '../combat';
 import { closing, DOWN, FALL, LAUNCH, MOVES, react, RISE, SHOVE, type Move } from '../moves';
 import type { Sim } from '../sim';
@@ -258,7 +258,6 @@ export function hitMutant(sim: Sim, m: Mutant, w: Hit, k = 1): void {
     case 'swimmer': m.flee = 3.5; m.blow = null; break;
     case 'skitter': if (m.state === 'idle') { m.state = 'hunt'; m.lost = 0; } break;
     case 'thresher': if (['idle', 'patrol'].includes(m.state)) { m.state = 'wind'; m.st = 0.5; m.dest = -1; } break;
-    case 'bloat': sayOnce(g, 'bloat', 'It does not seem to notice.'); break;
     default: break;
   }
 }

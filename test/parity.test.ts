@@ -112,7 +112,7 @@ describe('the station', () => {
     const s = fresh();
     still(s);
     s.game.station!.circuits.CARGO.back = true;
-    const P = s.platforms[0], call = s.usables.find(u => /Call the cargo platform/.test(u.label() ?? '') && Math.abs(u.y - P.def.y1 - 1.1) < 0.1)!;
+    const P = s.platforms[0], call = s.usables.find(u => /^Cargo platform$/.test(u.label() ?? '') && Math.abs(u.y - P.def.y1 - 1.1) < 0.1)!;
     place(s, 'player', 136, 5, -6);
     s.game.events.length = 0;
     call.act();
@@ -122,14 +122,14 @@ describe('the station', () => {
     expect(sounds(s, 'thud').length).toBe(1);
   });
 
-  it('a wrong code is kept to be shown a moment; the ladder says where it goes; god mode hurts nothing', () => {
+  it('a wrong code is kept to be shown a moment; the ladder says which way it goes; god mode hurts nothing', () => {
     const s = fresh();
     s.game.pad = { code: '1234', typed: '', door: 0 };
     for (const k of '9999') s.game.commands.push({ type: 'pad', key: k });
     step(s, noInput());
     expect(s.game.pad?.typed).toBe('');
     expect(s.game.pad?.miss).toBe('9999');
-    expect(s.usables.some(u => u.label() === 'Ladder down: Main level')).toBe(true);
+    expect(s.usables.some(u => u.label() === 'Ladder down')).toBe(true);
     s.game.god = true;
     hurt(s.game, 500, 'no');
     expect(s.game.hp).toBe(100);

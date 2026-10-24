@@ -1,7 +1,7 @@
 import { angLerp } from '../../core/math';
 import { STEP } from '../../core/loop';
 import { staffField } from '../fields';
-import { power, sayOnce, sfx } from '../game';
+import { power, sfx } from '../game';
 import { occupied, type Door } from '../movers';
 import { MOVES } from '../moves';
 import { riders, type Sim } from '../sim';
@@ -168,8 +168,6 @@ function restore(sim: Sim, D: Drill): void {
   C.on = true;
   g.events.push({ type: 'power', loud: false });
   sfx(g, 'clang', { x: D.x, y: D.y, z: D.z });
-  const b = sim.player.body;
-  if (Math.hypot(b.x - D.x, b.z - D.z) < 24) sayOnce(g, 'drill', 'Somewhere close, a breaker slams home. They remember that much.');
 }
 
 export function updateDrills(sim: Sim): void {

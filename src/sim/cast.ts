@@ -3,7 +3,6 @@ import { clamp, PI, TAU } from '../core/math';
 import { STEP } from '../core/loop';
 import { fall, makeBody, push, settle, type Body } from './body';
 import { makeFields, refreshFields, type Walker } from './fields';
-import { sayOnce } from './game';
 import { DOWN, FALL, MOVES, POISE, regain } from './moves';
 import type { Sim } from './sim';
 import type { Rag } from './ragdoll';
@@ -316,7 +315,6 @@ const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
     if (d < 5 || (d < 13 && sight(sim, m))) {
       if (inStart(m, MOVES.worm)) {
         if (sim.wormN >= 2) { turnTo(sim, m, 8); if (m.cd <= 0) beginBlow(sim, m, MOVES.worm); }
-        else sayOnce(g, 'touched', 'It only touches you. Its hand is warm.');
       } else if (F) chase(sim, m, 1.25, F);
       return;
     }
@@ -353,7 +351,6 @@ const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
         m.cd = 2.4; m.grab = 1; m.tense = 0.01;
         strikes(sim, m, 20, 10);
         sim.player.slow = 1.4;
-        sayOnce(sim.game, 'grab', 'The arms are only arms. Whatever is holding on is above them.');
       }
     } else m.tense = Math.max(0, m.tense - dt * 2);
   },

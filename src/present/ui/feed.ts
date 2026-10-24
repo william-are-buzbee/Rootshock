@@ -4,7 +4,8 @@ import type { Sim } from '../../sim/sim';
 import { SHADOW_ONLY } from '../render/selfView';
 
 /* Sat at a console (sim/eyes.ts, watching): the view is the camera's, from its lens, grey and hard as a monitor's, with
-   the feed's name, the clock, and how to work it; a camera that sends nothing shows no signal. */
+   what the monitor itself prints over it, the feed's name and the clock; a camera that sends nothing shows no signal.
+   Nothing says how to work it: across for another camera, use to stand up. */
 
 const el = (id: string, cls = '') => { const d = document.createElement('div'); d.id = id; if (cls) d.className = cls; return d; };
 
@@ -20,10 +21,7 @@ export class Feed {
 
   constructor(private canvas: HTMLCanvasElement) {
     this.none.textContent = 'NO SIGNAL';
-    const hint = el('feedh');
-    hint.innerHTML = '<span class="keysonly"><kbd>A</kbd><kbd>D</kbd> camera &nbsp; <kbd>E</kbd> stand up</span>' +
-      '<span class="touchonly">Stick left or right: camera &nbsp; <kbd>Use</kbd> stand up</span>';
-    this.root.append(this.name, this.clock, this.none, hint);
+    this.root.append(this.name, this.clock, this.none);
     document.body.append(this.root);
   }
 
@@ -36,7 +34,7 @@ export class Feed {
     }
     this.on = true;
     this.root.classList.remove('hide');
-    document.body.classList.add('watching'); // no room name or aim of yours over the feed
+    document.body.classList.add('watching'); // no aim of yours over the feed
     cam.layers.enable(SHADOW_ONLY); // from out here, all of you: the head and arms the eye is not shown
     const C = s.cam.def;
     cam.position.set(C.x, C.y, C.z);

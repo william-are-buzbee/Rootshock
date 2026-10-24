@@ -1,30 +1,22 @@
 const $ = (id: string) => document.getElementById(id)!;
 
-/** The page around the canvas: title, pause, the room name, the dev readout. */
-export class Hud {
-  private room = '';
-  private roomTimer = 0;
+export type Screen = 'title' | 'pause' | 'settings';
 
-  show(id: 'title' | 'pause' | 'hud', on: boolean): void {
+/** The page around the canvas: the title, pause and settings menus, the dev readout. */
+export class Hud {
+  show(id: Screen | 'hud', on: boolean): void {
     $(id).classList.toggle('hide', !on);
   }
-  onClick(id: 'title' | 'pause', f: () => void): void {
-    $(id).addEventListener('click', f);
+  /** a menu's choice: its button's data-go */
+  onMenu(id: Screen, f: (go: string) => void): void {
+    $(id).addEventListener('click', e => {
+      const b = (e.target as HTMLElement).closest<HTMLElement>('[data-go]');
+      if (b) f(b.dataset.go!);
+    });
   }
-
-  /** fade the room's name in when you enter it, and out again */
-  setRoom(name: string, level: string, dt: number): void {
-    const el = $('roomn');
-    if (name && name + '|' + level !== this.room) {
-      this.room = name + '|' + level; // the same name on another level is another room
-      el.innerHTML = '';
-      el.append(name);
-      const s = document.createElement('small');
-      s.textContent = level;
-      el.append(s);
-      el.style.opacity = '1';
-      this.roomTimer = 2.6;
-    } else if (this.roomTimer > 0 && (this.roomTimer -= dt) <= 0) el.style.opacity = '0';
+  /** show a menu's entry, or not */
+  entry(id: Screen, go: string, on: boolean): void {
+    $(id).querySelector(`[data-go="${go}"]`)!.classList.toggle('hide', !on);
   }
 
   /** the breath bar: shown while it is not full */

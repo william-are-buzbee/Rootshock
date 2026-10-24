@@ -21,7 +21,7 @@ export function buildPlant(ladders: Record<string, LadderDef>): LevelDef {
   const shop = room(D, 'Machine shop', 14, 8, 9, 5, { ...E, ht: 4 }); door(D, 18, 13, { stuck: true, sg: [['Machine shop', 's']] });
   tbl(D, 15, 10, 0.9, 3.4, 0x54504a); bx(D, 19, 9, 1.8, 1.1, 0.9, 0x3f5148); P(D, 'cyl', 19, 9, 0.3, 0.5, 0.3, 0x2c3833, { y: 1.1, c: 0 }); bx(D, 21.6, 10.6, 0.9, 1.3, 1.8, 0x3f5148); shelf(D, 20.5, 12.7, 3, 0.5);
   item(D, 'adjwrench', 15, 9.4, 0.78); item(D, 'fuse', 15, 10.1, 0.78); note(D, 'work', 15, 10.7, 0.78); item(D, 'batt', 20.5, 12.65, 1.06, 2);
-  corpse(D, 18.4, 11.4, 0x6a5a34, false, { label: 'Search the engineer', say: 'Something has rooted through him. His card is still good.', keys: ['e'] });
+  corpse(D, 18.4, 11.4, 0x6a5a34, false, { label: 'Engineer', say: 'Something has rooted through him. His card is still good.', keys: ['e'] });
   room(D, 'Parts store', 24, 8, 6, 5, E); door(D, 26, 13, { card: 'e', sg: [['Parts', 's']] });
   shelf(D, 24.3, 10.4, 0.5, 4); shelf(D, 29.7, 10.4, 0.5, 4); shelf(D, 26.8, 8.3, 3, 0.5); item(D, 'kit', 24.35, 9.6, 1.06); item(D, 'kit', 29.65, 11.2, 1.06); item(D, 'batt', 26.8, 8.35, 1.06, 3); item(D, 'pipe', 26.8, 10.6, 0.02);
   room(D, 'Distribution', 31, 8, 8, 5, E); door(D, 34, 13, { sg: [['Distribution', 's']] });
