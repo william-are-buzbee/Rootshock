@@ -1436,7 +1436,8 @@ it), from one 256 x 256 texture of noise made at startup: formwork seams and tie
 coursed up from the floor, ceiling tiles on their T-bar grid, glazed tiles each laid a little out of true, paving
 flags, riveted plate, a grating's bars with the dark between, rock in strata. Each pattern gives a shade, a height
 and a gloss; the height tips the surface's facing (bump mapping from screen derivatives), and lines are filtered
-over the pixel and fade to their average once finer than one. Fine detail fades out between 9 and 26 m. The
+over the pixel and fade to their average once finer than one; noise and specks fade to theirs by their own size
+against the pixel's (since: step 4, *And floors and walls shimmered*). Fine detail fades out between 9 and 26 m. The
 flashlight's facing and highlight are reckoned from your hand, a little below and left of the eye (since, the beam
 itself too: §11), so it rakes across the relief of what is close and raises a highlight; the level's
 light favours a bump that faces up. Walls show wear: grime at
@@ -1471,7 +1472,7 @@ plates sprayed over (a raised square, the nut showing through), and under one in
 (drawn plain and dark, with rust under every other one, they read as sockets leaking); a coated slab with saw cuts on 4 m bays and scuffs that take
 its shine; vinyl flecked, its welded seams a roll's width (2 m) apart; carpet tiles 500 mm, each a quarter turn from the
 next, the pile running across one and along the next; terrazzo's chips dark, pale and a few rust-red, an inch across so
-they read further off (they fade to their average where a pixel spans 12 to 40 mm, finer specks sooner), brass strips on
+they read further off (each fades to its average by its size against the pixel's, finer specks sooner), brass strips on
 1.5 m bays; limestone panels 1.2 by 0.6 m, coursed half a panel along, tight joints, bedding and pits. A pattern can now
 tint as well as shade (`surface`'s `tint`: rust, a chip, a strip). The wear's water run down a wall says what it left
 (`Look.salt`): on bare cement (poured or sprayed) white salts, on paint and tile the brown tide mark as before.
@@ -1491,6 +1492,17 @@ joints read as brickwork too. The stone is hung as cladding now (1.5 by 0.75 m, 
 joints) to 4 m, plaster over it (`RoomMats.upper` above `datum`); the paint fills the block's joints, so its coursing shows
 faintly; the wing's two corridors are skim-coated (plaster over the block). The painted dado and stripe are drawn on
 painted block only, and nowhere else.
+
+And floors and walls shimmered as you moved, in streaks across the way a surface seen at a slant is stretched (a floor's
+across the screen, a wall's up it). The patterns' noise and specks faded by distance (9 to 26 m) or past one pixel width
+for all of them (`fine`), not by their own size against the pixel's, so near by, at a slant, one pixel spanned several of
+the vinyl's flecks or the block's stipple and caught a different one each frame. Each now fades to its average where a
+pixel is too wide for it (`keep` and `n3f` in `shader.ts`: all of it while it is four pixels across, half at two, none
+under one and a third, the pixel measured the way it is widest), blotches as well as specks, and the wear's streaks; a
+speck's average is its share of the surface, measured from the noise. Measured at 1920 by 1080 on the vinyl of the
+isolation room and the Retreat passage, how much a floor changes from one frame to the next as you move fell five to
+twelve times over, near what a plain surface shows. The vinyl's flecks (2 to 3 mm) and carpet's pile are finer than such
+a screen's pixel past your feet, so they read as their average tone there; drawn coarser, they would show further off.
 
 **Step 5 (built): doors.** Every door was a 2 m steel slab rising into a steel-lined tunnel. Now the kit says what
 each is (`doorway` in `content/build/tiles.ts`, from the rooms either side; `DoorDef.look`): a shutter between two dug
