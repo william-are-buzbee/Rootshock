@@ -1148,6 +1148,11 @@ since: §11).
     (`fresh` in `main.ts`; what was drawn for the old one is let go, `LevelView.dispose`). The test bed, the lights on and
     the first engine are linked from the title under `?dev` only. The end is its word (Surface, Grafted); the way out is
     told as before, without the counts; a click goes back to the title.
+  - Behind the title, a shot of the station. A run kept is shown where you left it. With none, a level made for the look
+    of it only (`shotRun` in `main.ts`, the power set for it and you stood at the camera; New game makes the real one):
+    the lobby lit end to end from the head of the grand stair, or the cargo bay dark, low by the door in from Security,
+    toward the nest's red glow on the floor; one or the other each visit (`?shot=lobby`, `?shot=cargo`). Your hands are
+    not in it. The title's shade is dark under the name and behind the menu, and light elsewhere.
   - In play: no room or level name (you do not know where you are), nothing about what is in your hand (you can see it);
     the bars, and the rounds left as a bare number while a gun is in hand. What you look at that can be used is named
     under the dot, which grows a little: a thing's name, with no verb and no key (a state only where nothing in the
@@ -1176,7 +1181,11 @@ since: §11).
     lack (No power. Not on the backup. Needs the Security keycard. Needs a splice kit. Hands full.). Taking something,
     a switch thrown, a door unlocked, a keypad's code taken are heard, not said; the hints in the narrator's voice are
     gone. What a level gives a place to say (a body searched, a sealed door, a look at a schedule, a ladderway) is the
-    level's writing and stays, as the papers do; its labels are names (Officer, IV bag, Breach).
+    level's writing; its labels are names (Officer, IV bag, Breach).
+  - **None of it is on the screen, for now** (since): the messages at the bottom left are gone, the level's writing
+    with them, until what it says can be shown in the world (on the thing itself, a screen, a sound). The sim still
+    says it (`say` events), for the tests and for when it is shown. What a paper says is read as before; a code read off
+    a body is among your papers. The drag-to-look hint for a browser that refuses the mouse's capture went with them.
 - **Dev tools** carry over (`?dev`, fly, god, level select, map), plus overlays for colliders, nav graph and noise.
 
 ---

@@ -1,7 +1,7 @@
 import { ITEMS } from '../../content/items';
 import type { Command, Game } from '../../sim/game';
 
-/* The HUD and the menus that stop the game: messages, the name of what you look at, health, breath and battery, the
+/* The HUD and the menus that stop the game: the name of what you look at, health, breath and battery, the
    rounds for a gun in hand; a note, a keypad, the lift panel, the end. (What you carry is carried.ts: it does not stop
    the game.) As few words as will do. They show the game's state and turn clicks into commands for the sim; they decide
    nothing. */
@@ -57,14 +57,6 @@ export class Panels {
   }
 
   /* ---- the HUD */
-  say(text: string): void {
-    const p = document.createElement('p'), box = $('msgs');
-    p.textContent = text;
-    box.appendChild(p);
-    while (box.children.length > 4) box.removeChild(box.firstChild!);
-    setTimeout(() => { p.style.opacity = '0'; }, 4800);
-    setTimeout(() => p.remove(), 5900);
-  }
   /** what you are looking at that can be used: its name, and the dot made bolder */
   prompt(text: string | null): void {
     const t = text ?? '';
