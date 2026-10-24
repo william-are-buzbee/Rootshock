@@ -107,17 +107,25 @@ export const SHADOW_CAM = { fov: 100, near: 0.05, far: 30 };
 /** the flashlight in your hand: its shadow map's size, finer than a beam lying about's, as it is the one you look along,
  *  and its camera's width, just past the spill's (spot is nothing outside FLASH.spill[0]) */
 export const HELD = { size: 1024, fov: 86 };
+/** how far a point is looked up off its surface in a beam's shadow map: `base` (m) for a beam lying about, and for any
+ *  beam `texels` of its map's texels as wide as they are there (a texel spans more the further it is from the lens: 5 cm
+ *  at 10 m from one lying about, 2 cm from yours). By a fixed few centimetres, a floor or a wall a beam rakes from far off
+ *  shadowed itself in stripes, the map's rows and columns laid over it, that crawled as the beam moved (the night round's
+ *  torch across the isolation suite, your own far down a corridor) */
+export const STANDOFF = { base: 0.04, texels: 2 };
+/** the standoff for each metre from the lens: so many texels of a map `fov` wide and `size` across */
+const perMetre = (fov: number, size: number) => ((STANDOFF.texels * 2 * Math.tan((fov * Math.PI) / 360)) / size).toFixed(5);
 
 /** your body's shadow from the fittings over you: how many capsules make you, how many fittings throw it, how much
  *  darker than the field's own reckoning it is drawn (the field's fill, light from everywhere, is mostly the fittings'
  *  too: by the field's numbers alone a shadow between two fittings was barely there), and the darkest it gets */
 export const SELF = { caps: 5, fix: 2, dark: 1.6, most: 0.8 };
 
-/** the lights that are not the level's, for any shader. Yours: `held(p, facing)` (the flashlight, from your hand),
- *  `bounce(p)` (what it throws back around you), `lantern(p, facing)`, and `carried(p, facing)` for all three. Lying
- *  about: `lying(p, n)`, flashlights put down on, with their shadows (n the surface's normal toward the eye, or zero for a
- *  speck of dust, which faces every way). A lantern lying on is in the level's light, as is what a beam lying on throws
- *  back */
+/** the lights that are not the level's, for any shader. Yours: `held(p, n, facing)` (the flashlight, from your hand),
+ *  `bounce(p)` (what it throws back around you), `lantern(p, facing)`, and `carried(p, n, facing)` for all three. Lying
+ *  about: `lying(p, n)`, flashlights put down on. Both beams throw shadows (n the surface's normal toward the eye, or zero
+ *  for a speck of dust, which faces every way). A lantern lying on is in the level's light, as is what a beam lying on
+ *  throws back */
 export const LIGHTS = /* glsl */ `
 uniform vec3 uFlashDir; uniform vec3 uFlashPos; uniform float uFlash; uniform float uLamp; uniform float uBounce;
 uniform vec4 uBeam[${BEAMS}]; uniform vec3 uBeamDir[${BEAMS}]; uniform mat4 uBeamM[${BEAMS}];
@@ -127,13 +135,14 @@ float spot(float ca){
   return 0.65 * smoothstep(${f3(FLASH.hot[0])}, ${f3(FLASH.hot[1])}, ca) + 0.42 * smoothstep(${f3(FLASH.spill[0])}, ${f3(FLASH.spill[1])}, ca) + 0.12 * exp(-rim * rim);
 }
 float unshadowed(sampler2D sm, mat4 M, vec3 p, float px);
-vec3 held(vec3 p, float facing){
+vec3 held(vec3 p, vec3 n, float facing){
   if (uFlash <= 0.0) return vec3(0.0);
   vec3 v = p - uFlashPos; float d = length(v); vec3 L = v / max(d, 0.001);
   float s = spot(dot(L, uFlashDir));
   if (s <= 0.0) return vec3(0.0);
-  /* (looked up a little toward the hand, so a surface does not shadow itself) */
-  s *= unshadowed(uShH, uHeldM, p - L * 0.05, ${(1 / HELD.size).toFixed(7)});
+  /* (looked up a little toward the hand, and off the surface by the map's texels there, so a surface does not shadow
+     itself: STANDOFF) */
+  s *= unshadowed(uShH, uHeldM, p - L * 0.05 + n * ${perMetre(HELD.fov, HELD.size)} * d, ${(1 / HELD.size).toFixed(7)});
   return uFlash * s * facing * ${f3(FLASH.gain)} / (1.0 + ${f3(FLASH.fall)} * d * d) * ${v3(FLASH.colour)};
 }
 vec3 bounce(vec3 p){
@@ -144,7 +153,7 @@ vec3 lantern(vec3 p, float facing){
   vec3 tc = cameraPosition - p;
   return uLamp * facing * ${f3(LANTERN.gain)} / (1.0 + ${f3(LANTERN.fall)} * dot(tc, tc)) * ${v3(LANTERN.colour)};
 }
-vec3 carried(vec3 p, float facing){ return held(p, facing) + bounce(p) + lantern(p, facing); }
+vec3 carried(vec3 p, vec3 n, float facing){ return held(p, n, facing) + bounce(p) + lantern(p, facing); }
 /* how much of a beam's light reaches p, by its shadow map (3 by 3 taps px apart, so the edge is soft) */
 float unshadowed(sampler2D sm, mat4 M, vec3 p, float px){
   vec4 c = M * vec4(p, 1.0);
@@ -164,10 +173,12 @@ vec3 beamOn(vec3 p, vec3 n, vec4 B, vec3 dir, float seen){
   float facing = dot(n, n) > 0.0 ? 0.35 + 0.65 * abs(dot(n, L)) : 1.0;
   return B.w * seen * spot(dot(L, dir)) * facing * ${f3(FLASH.gain)} / (1.0 + ${f3(FLASH.fall)} * d * d) * ${v3(FLASH.colour)};
 }
+/* p looked up off its surface (n) in the map of a beam lying about with its lens at B (STANDOFF) */
+vec3 offFor(vec3 p, vec3 n, vec3 B){ return p + n * (${f3(STANDOFF.base)} + ${perMetre(SHADOW_CAM.fov, SHADOW)} * length(p - B)); }
 vec3 lying(vec3 p, vec3 n){
-  vec3 q = p + n * 0.04, out3 = vec3(0.0);
-  if (uBeam[0].w > 0.0) out3 += beamOn(p, n, uBeam[0], uBeamDir[0], unshadowed(uSh0, uBeamM[0], q, ${(1 / SHADOW).toFixed(7)}));
-  if (uBeam[1].w > 0.0) out3 += beamOn(p, n, uBeam[1], uBeamDir[1], unshadowed(uSh1, uBeamM[1], q, ${(1 / SHADOW).toFixed(7)}));
+  vec3 out3 = vec3(0.0);
+  if (uBeam[0].w > 0.0) out3 += beamOn(p, n, uBeam[0], uBeamDir[0], unshadowed(uSh0, uBeamM[0], offFor(p, n, uBeam[0].xyz), ${(1 / SHADOW).toFixed(7)}));
+  if (uBeam[1].w > 0.0) out3 += beamOn(p, n, uBeam[1], uBeamDir[1], unshadowed(uSh1, uBeamM[1], offFor(p, n, uBeam[1].xyz), ${(1 / SHADOW).toFixed(7)}));
   return out3;
 }`;
 
@@ -548,7 +559,7 @@ void main(){
   lvl = vL - uLightF * 0.55 * uFlick; dl = uLightD;
   vec3 light = lvl * takes(nf, nb, dl, sh, rel);
 #endif
-  light += vec3(0.014) / (1.0 + 3.0 * d * d) + carried(vW, facing) + lying(vW, nf) + vec3(uBright);
+  light += vec3(0.014) / (1.0 + 3.0 * d * d) + carried(vW, nf, facing) + lying(vW, nf) + vec3(uBright);
   /* a light that is lit is brighter than white, the brightest the most */
   float top = max(base.r, max(base.g, base.b));
   vec3 c = mix(base * light, max(base, vec3(0.0)) * (1.0 + ${f3(EMIT.most - 1)} * smoothstep(${f3(EMIT.dim)}, ${f3(EMIT.bright)}, top)), em);
@@ -559,7 +570,7 @@ void main(){
     float sb = pow(max(dot(nb, normalize(Lf + Ld)), 0.0), tight), sl = pow(max(dot(nb, Ld), 0.0), tight);
     float sf = a > 1e-3 ? pow(max(dot(nb, normalize(dl / a + Ld)), 0.0), tight) * a * ${f3(DIR.sheen)} : 0.0;
     vec3 tint = mix(vec3(1.0), base * 2.2, vLA.z);
-    c += tint * vLA.x * gm * norm * (held(vW, 1.0) * sb + lantern(vW, 1.0) * sl + lvl * sf);
+    c += tint * vLA.x * gm * norm * (held(vW, nf, 1.0) * sb + lantern(vW, 1.0) * sl + lvl * sf);
   }
   c += uHit * vec3(0.45, 0.08, 0.06);
   c *= exp(-d * uFog);

@@ -98,9 +98,9 @@ void main(){
   vec3 base = t.rgb / max(t.a, 0.001);
   vec3 tc = cameraPosition - vW; float d = length(tc);
   float facing = 0.35 + 0.65 * max(dot(uN, tc / max(d, 0.001)), 0.0);
-  vec3 c = base * (uL + carried(vW, facing) + lying(vW, uN) + vec3(uBright));
+  vec3 c = base * (uL + carried(vW, uN, facing) + lying(vW, uN) + vec3(uBright));
   /* what is pale on it sends your beam straight back at you */
-  c += base * uRetro * dot(base, vec3(0.3, 0.59, 0.11)) * held(vW, 1.0);
+  c += base * uRetro * dot(base, vec3(0.3, 0.59, 0.11)) * held(vW, uN, 1.0);
   c *= exp(-d * uFog);
   gl_FragColor = vec4(c, 1.0);
 }`;
