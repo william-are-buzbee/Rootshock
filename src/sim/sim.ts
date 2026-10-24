@@ -10,7 +10,7 @@ import { floored, makeHands, pace, struck, updateHands, wstats, type Hands } fro
 import { SLAM } from './moves';
 import { shove } from './body';
 import { makeFields, refreshFields, updateFields, type Fields } from './fields';
-import { hurt, log, makeGame, makeNoise, power, runLight, toggleLight, unwear, useItem, type Command, type Game, type StationState, say, sfx } from './game';
+import { hurt, log, makeGame, makeNoise, moveSlot, power, runLight, toggleLight, unwear, useItem, type Command, type Game, type StationState, say, sfx } from './game';
 import type { Input } from './input';
 import { buildUsables, findUsable, itemUse, padKey, type Usable, type WorldItem } from './interact';
 import { LooseSet, makeLoose } from './loose';
@@ -176,6 +176,7 @@ function command(sim: Sim, c: Command): void {
       sfx(g, 'step');
       break;
     }
+    case 'move': moveSlot(g, c.slot, c.x, c.y); break;
     case 'light': toggleLight(g, c.tool, underWater(sim)); break;
     case 'unwear': unwear(g, c.id); break;
     case 'pad': padKey(g, sim, c.key); break;

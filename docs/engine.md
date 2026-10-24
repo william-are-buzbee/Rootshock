@@ -909,11 +909,12 @@ components, not code threaded through the frame loop:
   steps it and starts the count again.
 
 **As built in step 4.** The game's state is plain data in the sim (`sim/game.ts`): circuits and Gen-1, keys, what you
-carry (ten slots), lights and battery, what you wear, papers read, health, the run's keypad codes. What happens comes out
+carry (ten slots; a grid since, §11), lights and battery, what you wear, papers read, health, the run's keypad codes. What happens comes out
 as events (a message, a sound and where it came from, a note to show, a keypad, the power changing, the end); what the
 player chooses in a menu goes back in as commands, applied at the start of the next step, so a run is still only a
 sequence of inputs. The door rules, the labels and the answers are the first engine's, line for line
-(`sim/movers.ts`, `sim/interact.ts`). The world stands still while a menu is open, as it did.
+(`sim/movers.ts`, `sim/interact.ts`). The world stands still while a menu is open, as it did (all but what you carry,
+since: §11).
 
 ---
 
@@ -1152,10 +1153,25 @@ sequence of inputs. The door rules, the labels and the answers are the first eng
     under the dot, which grows a little: a thing's name, with no verb and no key (a state only where nothing in the
     world shows it: a breaker's, a backup set's). A console's feed keeps what a monitor prints over it (its camera's
     name, the clock) and says nothing of how to work it.
-  - The inventory is pictures in boxes (`present/ui/icons.ts`): your ten slots, and under them, smaller, your lights,
-    what you wear, the keys you know (cards marked by whose they are) and the papers you have read. Each is named only
-    while the pointer is on it (by touch, the last tapped). A click uses it as before; the arrow in a slot's corner, or
-    a right click, puts it down. Counts are a number in the corner.
+  - What you carry is System Shock 2's (`present/ui/carried.ts`): Tab brings it up as a strip over the top of the game,
+    which **goes on** under it. With a mouse, the pointer leaves looking to work it (`Controls.free`: no look, no swing,
+    and its capture let go is not a pause) and you still walk; Tab again puts it away and takes the pointer back; Esc
+    pauses. By touch it is only shown, the stick and the buttons live beside it. A paper read from it opens over the
+    paused game, and puts you back in it after.
+  - It is a grid of 8 by 3 cells (`GRID`, `content/items.ts`), and each thing takes the cells of its `size`: most one;
+    the baton, the wrenches, the knife and the pistol two, standing; the pipe, the axe and the shotgun three; a vest
+    four, square; the fuse and the splice kit two, lying. Nothing shares a cell. What you take goes in the first place
+    it fits, down each column from the left; where it fits nowhere but there is room enough, everything is packed
+    again, the biggest first; only then are your hands full (`stow`, `sim/game.ts`). Dragged, a thing moves where it has
+    room (the `move` command; where it would land shows, yellow or red), onto you to wear it, or out of the strip to
+    put it down; a right click puts it down too. Clicked, it is used as before (a weapon into your hand, outlined;
+    food; a battery). Places carry over in a save; one from before the grid finds everything a place on load.
+  - Beside the grid, what you wear, one of each kind (`WornSlot`: body, head, eyes, breath) and your two lights; an
+    empty place shows faintly what goes there. A second vest is carried, not worn over the first; put on, the first
+    comes off into the grid. Under the grid, the keys you know (cards coloured by whose they are) and the papers read.
+  - The pictures (`present/ui/icons.ts`) are in colour, the colours each thing is drawn in where it lies
+    (`content/lying.ts`), shaped to its cells and outlined in ink. Each is named only while the pointer is on it (by
+    touch, the last tapped); counts are a number in the corner.
   - What the sim says (`say`) is only what you could not see or hear for yourself, mostly what a thing wants that you
     lack (No power. Not on the backup. Needs the Security keycard. Needs a splice kit. Hands full.). Taking something,
     a switch thrown, a door unlocked, a keypad's code taken are heard, not said; the hints in the narrator's voice are

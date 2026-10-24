@@ -5,7 +5,7 @@ import { syncBody } from './body';
 import { restoreRoute } from './cast';
 import { layRag } from './ragdoll';
 import { restoreAlarms, saveAlarm, type SavedAlarm } from './eyes';
-import type { Game } from './game';
+import { settle, type Game } from './game';
 import { makeHands } from './combat';
 import { buildUsables, type WorldItem } from './interact';
 import { doorBox, placePlatform } from './movers';
@@ -38,7 +38,7 @@ const pick = <T extends object, K extends keyof T>(o: T, keys: readonly K[]): Pi
 };
 const put = <T extends object>(o: T, data: Partial<T>): void => { Object.assign(o, structuredClone(data)); };
 
-const GAME = ['inv', 'cap', 'tools', 'keys', 'worn', 'weapon', 'read', 'code', 'code2', 'hp', 'batt', 'light', 'lightOn', 'pad',
+const GAME = ['inv', 'tools', 'keys', 'worn', 'weapon', 'read', 'code', 'code2', 'hp', 'batt', 'light', 'lightOn', 'pad',
   'ended', 'time', 'noise', 'noiseI', 'noiseT', 'vis', 'once', 'kills', 'god'] as const;
 const PLAYER = ['yaw', 'pitch', 'crouch', 'wantStand', 'moved', 'impact', 'water', 'air', 'airMax', 'under', 'slow', 'load', 'slam',
   'running', 'jumped', 'stepD', 'fly'] as const;
@@ -143,7 +143,9 @@ export function load(level: LevelDef, data: Save, o: SimOpts = {}): Sim {
   sim.tick = data.tick;
   if (!shared) {
     sim.rng = new Rng(data.rng);
-    put(g, data.game as Partial<Game>);
+    const { cap: _, ...game } = data.game as Partial<Game> & { cap?: number }; // a save from before the grid counted slots
+    put(g, game);
+    settle(g);
     g.notes = NOTES(g.code, g.code2);
   }
 

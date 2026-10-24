@@ -25,6 +25,7 @@ import { Cascade } from './present/cascade';
 import { U, setDetail } from './present/render/shader';
 import { Hud } from './present/ui/hud';
 import { Panels } from './present/ui/panels';
+import { Carried } from './present/ui/carried';
 import { Feed } from './present/ui/feed';
 import { Meter } from './present/perf';
 import { Governor } from './present/quality';
@@ -130,10 +131,17 @@ const prev: Prev = { x: 0, y: 0, z: 0 };
 const fade = document.getElementById('fade')!;
 
 const controls = new Controls(canvas, () => { if (mode === 'play') setMode('pause'); }, text => panels.say(text));
-const panels = new Panels(c => sim.game.commands.push(c), () => sim.game, () => { if (mode === 'panel') { setMode('play'); controls.lock(); } });
+/** a menu that stops the game was opened over what you carry (a paper read from it): put away, it comes back */
+let carrying = false;
+const panels = new Panels(c => sim.game.commands.push(c), () => {
+  if (mode !== 'panel') return;
+  setMode('play');
+  if (carrying) { carrying = false; inventory(true); } else controls.lock();
+});
+const carried = new Carried(c => sim.game.commands.push(c), () => sim.game);
 panels.touch = TOUCH;
 const touch = TOUCH ? new Touch(controls, {
-  carry: () => { if (mode === 'play') openPanel(() => panels.show('inv')); },
+  carry: () => { if (mode === 'play') inventory(!carried.open); },
   pause: () => { if (mode === 'play') setMode('pause'); },
 }) : null;
 /* on a phone the game is the whole screen, on its side; leaving that (the back gesture) pauses it */
@@ -196,6 +204,7 @@ function track(dt: number): void {
 
 function setMode(m: typeof mode): void {
   if (m === 'pause') suspend();
+  if (m !== 'play' && carried.open) { carrying = m === 'panel'; carried.show(false); controls.free = false; }
   mode = m;
   controls.enabled = m === 'play';
   hud.show('title', m === 'title');
@@ -208,6 +217,17 @@ function setMode(m: typeof mode): void {
 function openPanel(fn: () => void): void {
   setMode('panel');
   fn();
+}
+/* what you carry (present/ui/carried.ts): up over the game, which goes on. With a mouse the pointer comes out of looking
+   to work it (you still walk), and goes back in when it is put away: Tab is a key pressed, so the capture may be asked
+   for then. By touch it is only shown, the stick and the buttons as they were. */
+function inventory(on: boolean): void {
+  if (carried.open === on) return;
+  carried.show(on);
+  controls.free = on && !TOUCH;
+  if (TOUCH) return;
+  if (on) { if (document.pointerLockElement) document.exitPointerLock(); }
+  else controls.lock();
 }
 
 /* brightness: the player's own setting, kept between runs. It is on the screen only: the cast and the cameras see by the
@@ -294,11 +314,13 @@ function fresh(): void {
   arrive();
 }
 
-/* keys the menus handle: Tab for what you carry, Esc and E to step back, digits on a keypad, R to start again */
+/* keys the menus handle: Tab for what you carry (Esc there pauses), Esc and E to step back, digits on a keypad, R to start
+   again */
 window.addEventListener('keydown', e => {
   if (e.repeat) return;
   const c = e.code;
-  if (mode === 'play' && (c === 'Tab' || c === 'KeyI')) { openPanel(() => panels.show('inv')); return; }
+  if (mode === 'play' && (c === 'Tab' || c === 'KeyI')) { inventory(!carried.open); return; }
+  if (mode === 'play' && carried.open && c === 'Escape') { setMode('pause'); return; }
   if (mode === 'end' && c === 'KeyR') { location.reload(); return; }
   if (c === 'Escape' && !document.getElementById('settings')!.classList.contains('hide')) { settings(false); return; }
   if (mode !== 'panel') return;
@@ -308,7 +330,7 @@ window.addEventListener('keydown', e => {
     if (m) sim.game.commands.push({ type: 'pad', key: m[1] });
     else if (c === 'Backspace') sim.game.commands.push({ type: 'pad', key: 'C' });
     else if (c === 'Escape' || c === 'Tab') panels.close();
-  } else if (c === 'Escape' || c === 'Tab' || c === 'KeyI' || (c === 'KeyE' && open !== 'inv') || (c === 'Space' && open === 'note')) panels.close();
+  } else if (c === 'Escape' || c === 'Tab' || c === 'KeyI' || c === 'KeyE' || (c === 'Space' && open === 'note')) panels.close();
 });
 
 /** the dev readout's lines for the fight: how you stand, the keys, and the last few blows */
@@ -398,7 +420,7 @@ function events(): void {
     }
   }
   if (panels.open === 'pad') { panels.renderPad(g); if (!g.pad) panels.close(); }
-  if (panels.open === 'inv') panels.renderInv();
+  if (carried.open) carried.render();
 }
 
 let last = 0, fps = 60, flick = 0, expo = 1;

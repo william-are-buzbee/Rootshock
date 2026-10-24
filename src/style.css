@@ -48,37 +48,36 @@ canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
 #o2w i { background: #7fb6c9; }
 #ammo { font-size: 17px; font-weight: 500; color: var(--bone); font-variant-numeric: tabular-nums; }
 .panel { position: fixed; inset: 0; display: flex; background: rgba(2, 3, 4, .82); align-items: center; justify-content: center; padding: 4vh 4vw; }
-#inv > div { width: min(640px, 100%); max-height: 100%; overflow: auto; padding-top: 34px; }
-/* the pictures (present/ui/icons.ts): lines, solid parts (f), heavy strokes (t), and faint ones (h) */
-.ico { display: block; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
-.ico .f { fill: var(--tint, currentColor); stroke: none; }
-.ico .t { stroke-width: 5; }
-.ico .t.w { stroke-width: 8; }
-.ico .h { opacity: .35; }
-.slots { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
-.slot { position: relative; aspect-ratio: 1; border: 1px solid rgba(217, 211, 193, .25); background: rgba(217, 211, 193, .04); color: var(--bone); }
-.slot button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
-.slot .use { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
-.slot .use:focus-visible { outline: none; }
-.slot > .ico, .slot .use .ico { width: 62%; height: 62%; }
-.slot .use .ico { margin: auto; }
-.slot > .ico { position: absolute; inset: 19%; }
-.slot em { position: absolute; right: 7px; bottom: 4px; font-style: normal; font-size: 17px; font-weight: 600; color: var(--hazard); }
-.slot .drop { position: absolute; right: 2px; top: 2px; width: 26px; height: 26px; color: var(--ash); opacity: 0; }
-.slot .drop .ico { width: 18px; height: 18px; margin: auto; }
-.slot:hover .drop, .slot:focus-within .drop, body.touch .slot .drop { opacity: 1; }
-.slot .drop:hover, .slot .drop:focus-visible { color: var(--hazard); outline: none; }
-.slot:hover, .slot:focus-within { border-color: var(--bone); }
-.slot.on { border-color: var(--hazard); background: rgba(201, 162, 39, .1); }
-.slot.lit { box-shadow: inset 0 0 18px rgba(201, 162, 39, .35); }
-.slot.empty { border-style: dashed; opacity: .5; }
-.row { display: flex; flex-wrap: wrap; gap: 8px 28px; margin-top: 22px; }
-.grp { display: flex; flex-wrap: wrap; gap: 6px; }
-.slot.sm { width: 58px; }
-.slot.sm .drop { width: 20px; height: 20px; right: 0; top: 0; }
-.slot.sm .drop .ico { width: 14px; height: 14px; }
-/* the name of what the pointer is on, over it */
-#tip { position: fixed; z-index: 2; pointer-events: none; font-size: 17px; font-weight: 600; letter-spacing: .04em; color: var(--bone); background: rgba(4, 5, 6, .92); border: 1px solid rgba(217, 211, 193, .3); padding: 3px 9px; white-space: nowrap; }
+/* what you carry (present/ui/carried.ts): a strip over the top of the game, which goes on under it. Cells of --c; a thing
+   takes the cells of its size; beside the grid what you wear and your lights, under it keys and papers */
+#inv { --c: 46px; position: fixed; z-index: 2; top: 12px; left: 50%; transform: translateX(-50%); padding: 8px; background: rgba(4, 5, 6, .9);
+  border: 1px solid rgba(217, 211, 193, .22); box-shadow: 0 8px 30px rgba(0, 0, 0, .55); }
+#invb { display: grid; grid-template-columns: auto auto; gap: 8px 14px; }
+#invb .grid, #invb .equip { display: grid; grid-template-columns: repeat(var(--w), var(--c)); grid-template-rows: repeat(3, var(--c)); }
+#invb .grid { --w: 8; }
+#invb .equip { --w: 3; gap: 0; }
+#invb .grid > i { border: 1px solid rgba(217, 211, 193, .09); background: rgba(217, 211, 193, .03); }
+#invb .it { position: relative; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(217, 211, 193, .28);
+  background: rgba(30, 33, 37, .9); color: var(--bone); cursor: pointer; touch-action: none; }
+#invb .equip .it { margin: 1px; }
+#invb .it:hover { border-color: var(--bone); }
+#invb .it.on { border-color: var(--hazard); box-shadow: inset 0 0 0 1px rgba(201, 162, 39, .5); }
+#invb .it.lit { background: rgba(201, 162, 39, .18); }
+#invb .it.ghost { background: none; border-style: dashed; border-color: rgba(217, 211, 193, .14); cursor: default; }
+#invb .it.ghost .pic { filter: grayscale(1) brightness(.55); opacity: .2; }
+#invb .it.lifted { opacity: .25; }
+#invb .pic { width: 100%; height: 100%; padding: 3px; display: block; pointer-events: none; }
+#invb .it em { position: absolute; left: 3px; top: 1px; font-style: normal; font-size: 13px; font-weight: 600; color: var(--bone); text-shadow: 0 1px 2px #000, 0 0 3px #000; pointer-events: none; }
+#invb .land { border: 2px solid var(--hazard); background: rgba(201, 162, 39, .14); pointer-events: none; z-index: 1; }
+#invb .land.no { border-color: #b8392b; background: rgba(184, 57, 43, .14); }
+#invb .row { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 3px; }
+#invb .it.sm { width: calc(var(--c) * .72); height: calc(var(--c) * .72); }
+#ghost { position: fixed; left: 0; top: 0; z-index: 4; pointer-events: none; opacity: .9; border: 1px solid var(--hazard); background: rgba(30, 33, 37, .75); }
+#ghost .pic { width: 100%; height: 100%; padding: 3px; display: block; }
+#ghost em { display: none; }
+#ghost.out { border-color: #b8392b; opacity: .6; }
+/* the name of what the pointer is on, under it */
+#tip { position: fixed; z-index: 3; pointer-events: none; font-size: 16px; font-weight: 600; letter-spacing: .04em; color: var(--bone); background: rgba(4, 5, 6, .92); border: 1px solid rgba(217, 211, 193, .3); padding: 2px 8px; white-space: nowrap; }
 #liftb { width: min(320px, 100%); }
 #liftb button { display: block; width: 100%; font: inherit; font-size: 22px; font-weight: 500; text-align: left; color: var(--bone); background: rgba(217, 211, 193, .05); border: 1px solid rgba(217, 211, 193, .25); padding: 10px 14px; margin: 0 0 6px; cursor: pointer; }
 #liftb button:disabled { opacity: .4; cursor: default; border-style: dashed; }
@@ -88,7 +87,7 @@ canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
 #padd { font-size: 44px; font-weight: 600; letter-spacing: .3em; text-align: center; height: 66px; border-bottom: 3px solid var(--hazard); margin-bottom: 12px; }
 #padk { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 #padk button { font: inherit; font-size: 26px; padding: 10px 0; background: rgba(217, 211, 193, .06); color: var(--bone); border: 1px solid rgba(217, 211, 193, .3); cursor: pointer; }
-#padk button .ico { width: 1.1em; height: 1.1em; margin: auto; }
+#padk button .ico { width: 1.1em; height: 1.1em; margin: auto; display: block; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 #padk button:hover, #padk button:focus-visible { border-color: var(--hazard); outline: none; }
 @media (prefers-reduced-motion: reduce) { #msgs p { transition: none; } }
 /* a console's feed (present/ui/feed.ts): a monitor's grain and lines over the view, its name, its clock */
@@ -126,6 +125,7 @@ body.touch .panel > div, body.touch #note article, body.touch .screen { touch-ac
 body.touch #stat { top: calc(14px + env(safe-area-inset-top)); bottom: auto; left: calc(18px + env(safe-area-inset-left)); width: 180px; }
 body.touch #msgs { top: calc(64px + env(safe-area-inset-top)); bottom: auto; left: calc(18px + env(safe-area-inset-left)); font-size: 16px; max-width: min(440px, 50vw); }
 body.touch #prompt { top: 60%; font-size: 18px; }
+body.touch #inv { left: calc(12px + env(safe-area-inset-left)); transform: none; top: calc(8px + env(safe-area-inset-top)); }
 body.touch #devtag { top: 54px; }
 #back { display: none; position: fixed; z-index: 2; bottom: calc(14px + env(safe-area-inset-bottom)); right: calc(16px + env(safe-area-inset-right)); width: 54px; height: 54px; padding: 0;
   color: var(--bone); background: rgba(4, 5, 6, .6); border: 2px solid rgba(217, 211, 193, .5); border-radius: 3px; }
@@ -141,9 +141,7 @@ body.touch.panelled #back { display: block; }
   .menu { font-size: 22px; right: 8vw; }
   #end p { font-size: 15px; line-height: 1.4; }
   .panel { padding: 2vh 3vw; }
-  #inv > div { width: min(480px, 100%); padding-top: 30px; }
-  .row { margin-top: 12px; }
-  .slot.sm { width: 46px; }
+  #inv { --c: 34px; padding: 6px; }
   #note article { padding: 22px 26px 18px; font-size: 16px; max-height: 92vh; }
   #pad > div { width: 220px; }
   #padd { font-size: 32px; height: 44px; margin-bottom: 8px; }

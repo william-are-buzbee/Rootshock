@@ -1,55 +1,24 @@
-import { ITEMS, keyName } from '../../content/items';
+import { ITEMS } from '../../content/items';
 import type { Command, Game } from '../../sim/game';
-import { DROP, icon, keyIcon } from './icons';
 
-/* The HUD and the menus: messages, the name of what you look at, health, breath and battery, the rounds for a gun in
-   hand; the inventory, a note, a keypad, the lift panel, the end. As few words as will do: the inventory is pictures,
-   each named only while the pointer is on it. They show the game's state and turn clicks into commands for the sim;
-   they decide nothing. */
+/* The HUD and the menus that stop the game: messages, the name of what you look at, health, breath and battery, the
+   rounds for a gun in hand; a note, a keypad, the lift panel, the end. (What you carry is carried.ts: it does not stop
+   the game.) As few words as will do. They show the game's state and turn clicks into commands for the sim; they decide
+   nothing. */
 
 const $ = (id: string) => document.getElementById(id)!;
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 /** the keypad's clear: a back-arrow with a cross in it */
 const CLEAR = '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h12v12H9l-6-6zM12.5 9.5l5 5M17.5 9.5l-5 5"/></svg>';
 
-export type Panel = 'inv' | 'note' | 'pad' | 'lift';
+export type Panel = 'note' | 'pad' | 'lift';
 
 export class Panels {
   open: Panel | null = null;
   private promptText = '';
   private ammoText = '';
-  private invHtml = '';
 
-  constructor(private send: (c: Command) => void, private game: () => Game, private onClose: () => void) {
-    $('invb').addEventListener('click', e => {
-      const t = e.target as HTMLElement;
-      const dr = t.closest<HTMLElement>('[data-d]'), pd = t.closest<HTMLElement>('[data-pt]'), tl = t.closest<HTMLElement>('[data-t]'), us = t.closest<HTMLElement>('[data-i]'), nt = t.closest<HTMLElement>('[data-n]');
-      const wn = t.closest<HTMLElement>('[data-w]');
-      if (dr) this.send({ type: 'drop', slot: +dr.dataset.d! });
-      else if (pd) this.send({ type: 'putDown', tool: pd.dataset.pt! });
-      else if (wn) this.send({ type: 'unwear', id: wn.dataset.w! });
-      else if (tl) this.send({ type: 'light', tool: tl.dataset.t! });
-      else if (us) this.send({ type: 'use', slot: +us.dataset.i! });
-      else if (nt) { this.send({ type: 'read', key: nt.dataset.n! }); return; }
-      else return;
-      setTimeout(() => this.renderInv(), 30);
-    });
-    /* a right click puts it down */
-    $('invb').addEventListener('contextmenu', e => {
-      e.preventDefault();
-      const [k, v] = ((e.target as HTMLElement).closest<HTMLElement>('[data-drop]')?.dataset.drop ?? '').split(':');
-      if (k === 'd') this.send({ type: 'drop', slot: +v });
-      else if (k === 'pt') this.send({ type: 'putDown', tool: v });
-      else return;
-      setTimeout(() => this.renderInv(), 30);
-    });
-    /* the name of what the pointer is on; by touch, of what was last tapped, until the next tap */
-    $('invb').addEventListener('pointerover', e => this.tip((e.target as HTMLElement).closest<HTMLElement>('[data-name]')));
-    $('invb').addEventListener('pointerout', e => {
-      const from = (e.target as HTMLElement).closest('[data-name]');
-      if (e.pointerType !== 'touch' && from && !from.contains(e.relatedTarget as Node | null)) this.tip(null);
-    });
-    $('invb').addEventListener('focusin', e => this.tip((e.target as HTMLElement).closest<HTMLElement>('[data-name]')));
+  constructor(private send: (c: Command) => void, private onClose: () => void) {
     $('note').addEventListener('click', () => this.close());
     let h = '';
     for (const k of ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0']) h += '<button data-k="' + k + '"' + (k === 'C' ? ' aria-label="Clear">' + CLEAR : '>' + k) + '</button>';
@@ -74,7 +43,6 @@ export class Panels {
     this.open = p;
     $(p).classList.remove('hide');
     document.body.classList.add('panelled');
-    if (p === 'inv') { this.invHtml = ''; this.renderInv(); }
     if (document.pointerLockElement) document.exitPointerLock();
   }
   close(): void {
@@ -83,23 +51,9 @@ export class Panels {
     this.onClose();
   }
   private closeAll(): void {
-    for (const id of ['inv', 'note', 'pad', 'lift']) $(id).classList.add('hide');
+    for (const id of ['note', 'pad', 'lift']) $(id).classList.add('hide');
     document.body.classList.remove('panelled');
     this.open = null;
-    this.tip(null);
-  }
-
-  /** what the name over the inventory is on */
-  private tipped: string | null = null;
-  private tip(el: HTMLElement | null): void {
-    const t = $('tip');
-    this.tipped = el?.dataset.name ?? null;
-    t.classList.toggle('hide', !el);
-    if (!el) return;
-    t.textContent = el.dataset.name!;
-    const r = el.getBoundingClientRect(), w = t.offsetWidth;
-    t.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2)) + 'px';
-    t.style.top = Math.max(8, r.top - t.offsetHeight - 6) + 'px';
   }
 
   /* ---- the HUD */
@@ -133,37 +87,6 @@ export class Panels {
   }
 
   /* ---- the menus */
-  /* What you carry, as pictures in boxes: your hands' slots, and under them, smaller, your lights, what you wear, the keys
-     you know and the papers you have read. A click uses it (takes it in hand, eats it, switches to it, takes it off, reads
-     it); the arrow in a slot's corner, or a right click, puts it down. */
-  renderInv(): void {
-    const g = this.game(), name = (n: string) => ' data-name="' + esc(n).replace(/"/g, '&quot;') + '"';
-    const put = (drop: string) => '<button class="drop" data-' + drop.replace(':', '="') + '" aria-label="Put down">' + DROP + '</button>';
-    let h = '<div class="slots">';
-    for (let i = 0; i < g.cap; i++) {
-      const s = g.inv[i];
-      if (s) {
-        h += '<div class="slot' + (g.weapon === s.id ? ' on' : '') + '" data-drop="d:' + i + '"' + name(ITEMS[s.id].n) + '><button class="use" data-i="' + i + '">' + icon(s.id) +
-          (s.n > 1 ? '<em>' + s.n + '</em>' : '') + '</button>' + put('d:' + i) + '</div>';
-      } else h += '<div class="slot empty"></div>';
-    }
-    h += '</div><div class="row">';
-    const group = (cells: string[]) => { if (cells.length) h += '<div class="grp">' + cells.join('') + '</div>'; };
-    group(g.tools.map(k => '<div class="slot sm' + (g.light === k ? ' on' : '') + (g.light === k && g.lightOn ? ' lit' : '') + '" data-drop="pt:' + k + '"' + name(ITEMS[k].n) +
-      '><button class="use" data-t="' + k + '">' + icon(k) + '</button>' + put('pt:' + k) + '</div>'));
-    group(g.worn.map(k => '<div class="slot sm"' + name(ITEMS[k].n) + '><button class="use" data-w="' + k + '">' + icon(k) + '</button></div>'));
-    group(g.keys.map(k => '<div class="slot sm"' + name(keyName(k)) + '>' + keyIcon(k) + '</div>'));
-    group(g.read.map(k => '<div class="slot sm"' + name(g.notes[k].t) + '><button class="use" data-n="' + k + '">' + icon('paper') + '</button></div>'));
-    h += '</div>';
-    /* drawn again only when it changes: drawn every frame, a button pressed for longer than a frame was gone before the
-       press ended, and the click never landed */
-    if (h === this.invHtml) return;
-    this.invHtml = h;
-    $('invb').innerHTML = h;
-    /* the name stays over what it was on, if that is still there */
-    const was = this.tipped;
-    this.tip(was ? [...$('invb').querySelectorAll<HTMLElement>('[data-name]')].find(e => e.dataset.name === was) ?? null : null);
-  }
   showNote(g: Game, key: string): void {
     const n = g.notes[key], art = $('notet');
     art.innerHTML = '<h2></h2><div></div>';

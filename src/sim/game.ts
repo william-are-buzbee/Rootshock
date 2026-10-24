@@ -1,5 +1,5 @@
 import type { CircuitDef, LadderDef } from '../content/types';
-import { ITEMS, keyName, wstats } from '../content/items';
+import { GRID, ITEMS, keyName, sizeOf, wstats } from '../content/items';
 import { NOTES, type Note } from '../content/notes';
 import type { Rng } from '../core/rng';
 import { circuitPower, type PowerLevel } from '../world/light';
@@ -9,7 +9,8 @@ import { circuitPower, type PowerLevel } from '../world/light';
    what the player asks of the menus comes back in as commands, applied at the start of the next step, so a run stays a
    sequence of inputs that can be replayed. */
 
-export interface Slot { id: string; n: number }
+/** a thing carried: what, how many, and the cell of the grid its top left is in (content/items.ts, GRID) */
+export interface Slot { id: string; n: number; x: number; y: number }
 
 export type SimEvent =
   | { type: 'say'; text: string }
@@ -37,10 +38,12 @@ export type SimEvent =
 export type Command =
   | { type: 'use'; slot: number }
   | { type: 'drop'; slot: number }
+  /** move a thing in the grid, its top left to (x, y), if there is room there */
+  | { type: 'move'; slot: number; x: number; y: number }
   | { type: 'light'; tool: string }
   /** put a light down (if it is on, it stays on where it lies) */
   | { type: 'putDown'; tool: string }
-  /** take off something worn, into a free hand */
+  /** take off something worn, into the grid where there is room */
   | { type: 'unwear'; id: string }
   | { type: 'pad'; key: string }
   | { type: 'padClose' }
@@ -62,7 +65,6 @@ export interface StationState {
 export interface Game {
   station: StationState | null;
   inv: Slot[];
-  cap: number;
   tools: string[];
   keys: string[];
   worn: string[];
@@ -101,7 +103,7 @@ export interface Game {
 export function makeGame(rng: Rng, station: StationState | null): Game {
   const code = String(1000 + rng.int(9000)), code2 = String(1000 + rng.int(9000));
   return {
-    station, inv: [], cap: 10, tools: [], keys: [], worn: [], weapon: null, notes: NOTES(code, code2), read: [], code, code2,
+    station, inv: [], tools: [], keys: [], worn: [], weapon: null, notes: NOTES(code, code2), read: [], code, code2,
     hp: 100, batt: 100, light: null, lightOn: false, pad: null, ended: null, travel: null, time: 0,
     noise: 0, noiseI: 0, noiseT: 0, vis: 1, once: [], kills: 0, god: false, events: [], commands: [],
   };
@@ -134,6 +136,61 @@ export function consume(g: Game, i: number): void {
 /** your hands are full: the one thing worth saying about taking something */
 const FULL = 'Hands full.';
 
+/* ---- the grid. A thing takes the cells of its size from its top left; none may share a cell or hang off the edge. */
+
+/** whether a thing w by h has room with its top left at (x, y), among all but `skip` */
+export function fits(g: Game, x: number, y: number, w: number, h: number, skip?: Slot): boolean {
+  if (x < 0 || y < 0 || x + w > GRID.w || y + h > GRID.h) return false;
+  return g.inv.every(q => {
+    if (q === skip) return true;
+    const [qw, qh] = sizeOf(q.id);
+    return x >= q.x + qw || q.x >= x + w || y >= q.y + qh || q.y >= y + h;
+  });
+}
+
+/** the first place a thing w by h has room, going down each column from the left, or null */
+function roomFor(g: Game, w: number, h: number): { x: number; y: number } | null {
+  for (let x = 0; x <= GRID.w - w; x++) for (let y = 0; y <= GRID.h - h; y++) if (fits(g, x, y, w, h)) return { x, y };
+  return null;
+}
+
+/** put a thing in the grid where it has room; if nowhere, everything packed again, the biggest first, and it with them.
+ *  False (and nothing moved) if it will not go even so */
+function stow(g: Game, s: Slot): boolean {
+  const [w, h] = sizeOf(s.id), at = roomFor(g, w, h);
+  if (at) { Object.assign(s, at); g.inv.push(s); return true; }
+  const all = [...g.inv, s], was = g.inv.map(q => ({ x: q.x, y: q.y })), keep = g.inv;
+  const area = (q: Slot) => { const [qw, qh] = sizeOf(q.id); return qw * qh * 10 + qh; };
+  g.inv = [];
+  for (const q of [...all].sort((a, b) => area(b) - area(a))) {
+    const [qw, qh] = sizeOf(q.id), p = roomFor(g, qw, qh);
+    if (!p) { g.inv = keep; keep.forEach((k, i) => Object.assign(k, was[i])); return false; }
+    Object.assign(q, p);
+    g.inv.push(q);
+  }
+  g.inv = all; // in the order they were taken
+  return true;
+}
+
+/** move what is in slot i so its top left is at (x, y), if it has room there */
+export function moveSlot(g: Game, i: number, x: number, y: number): void {
+  const s = g.inv[i];
+  if (!s) return;
+  const [w, h] = sizeOf(s.id);
+  if (fits(g, x, y, w, h, s)) { s.x = x; s.y = y; }
+}
+
+/** a save from before the grid: everything carried given a place */
+export function settle(g: Game): void {
+  const loose = g.inv.filter(q => q.x === undefined || q.y === undefined);
+  if (!loose.length) return;
+  g.inv = g.inv.filter(q => !loose.includes(q));
+  for (const q of loose) if (!stow(g, q)) { g.inv.push(q); q.x = q.y = 0; }
+}
+
+/** what is worn where this would go */
+const wornIn = (g: Game, id: string) => g.worn.find(k => ITEMS[k].worn === ITEMS[id].worn);
+
 export function giveKey(g: Game, k: string): void {
   if (!g.keys.includes(k)) g.keys.push(k);
   say(g, keyName(k) + '.');
@@ -146,8 +203,9 @@ export function give(g: Game, id: string, n = 1): boolean {
   /* nothing said: what you took was named while you looked at it */
   if (it.key) { if (!g.keys.includes(it.key)) g.keys.push(it.key); return true; }
   if (it.per) n *= it.per;
-  if (it.worn) {
-    if (!g.worn.includes(id)) g.worn.push(id);
+  /* on, if nothing is worn there; otherwise carried */
+  if (it.worn && !wornIn(g, id)) {
+    g.worn.push(id);
     return true;
   }
   if (it.tool) {
@@ -157,8 +215,7 @@ export function give(g: Game, id: string, n = 1): boolean {
   }
   const s = g.inv.find(q => q.id === id);
   if (s && it.stack) { s.n += n; return true; }
-  if (g.inv.length >= g.cap) { say(g, FULL); sfx(g, 'deny'); return false; }
-  g.inv.push({ id, n });
+  if (!stow(g, { id, n, x: 0, y: 0 })) { say(g, FULL); sfx(g, 'deny'); return false; }
   /* into your hand if it is empty, or if this hits harder than what is in it */
   if (it.w && (!g.weapon || wstats(id).dmg > wstats(g.weapon).dmg)) g.weapon = id;
   return true;
@@ -216,19 +273,24 @@ export function useItem(g: Game, i: number): void {
     if ((!has(g, 'flash') && !has(g, 'lantern')) || g.batt > 90) sfx(g, 'deny');
     else { g.batt = 100; consume(g, i); sfx(g, 'take'); }
   } else if (it.worn) {
-    consume(g, i);
-    if (!g.worn.includes(s.id)) g.worn.push(s.id);
+    /* on; what was worn there comes off into the grid, where this was if nowhere else */
+    const old = wornIn(g, s.id);
+    g.inv.splice(i, 1);
+    if (old) {
+      g.worn.splice(g.worn.indexOf(old), 1);
+      if (!stow(g, { id: old, n: 1, x: 0, y: 0 })) { g.worn.push(old); g.inv.splice(i, 0, s); say(g, FULL); sfx(g, 'deny'); return; }
+    }
+    g.worn.push(s.id);
     sfx(g, 'take');
   } else sfx(g, 'deny'); // used where it goes: a fuse, a kit; rounds go in a gun
 }
 
-/** take off something worn: it goes into your hands, if they have room */
+/** take off something worn: it goes into the grid, if there is room */
 export function unwear(g: Game, id: string): void {
   const k = g.worn.indexOf(id), it = ITEMS[id];
   if (k < 0 || !it) return;
-  if (g.inv.length >= g.cap) { say(g, FULL); sfx(g, 'deny'); return; }
+  if (!stow(g, { id, n: 1, x: 0, y: 0 })) { say(g, FULL); sfx(g, 'deny'); return; }
   g.worn.splice(k, 1);
-  g.inv.push({ id, n: 1 });
   sfx(g, 'take');
 }
 

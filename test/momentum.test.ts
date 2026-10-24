@@ -41,7 +41,7 @@ describe('momentum', () => {
 
   it('the axe in your hand makes you slower to get going', () => {
     const bare = course(), axe = course();
-    axe.game.inv.push({ id: 'axe', n: 1 }); axe.game.weapon = 'axe';
+    axe.game.inv.push({ id: 'axe', n: 1, x: 0, y: 0 }); axe.game.weapon = 'axe';
     hold(bare, 0.05, east); hold(axe, 0.05, east);
     expect(speed(axe)).toBeLessThan(speed(bare) * 0.9);
     expect(axe.player.body.mass).toBeGreaterThan(bare.player.body.mass);
