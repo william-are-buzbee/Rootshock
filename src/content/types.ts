@@ -41,7 +41,8 @@ export interface RoomDef {
   flick: boolean;
   /** a doorway: lit by the rooms either side of it */
   doorway: boolean;
-  /** a strip of a room reaching into a partition, or a partition's doorway or pane (content/build/tiles.ts, partition) */
+  /** more of a room past the rest of its side, reaching to a partition's face; or a partition's doorway or pane
+   *  (content/build/plan.ts, RoomOpts.part and compileDoor) */
   part?: boolean;
   /** for the cast: a refuge they do not enter (safe), a room they do not wander into (noroam) */
   safe: boolean;
@@ -221,7 +222,7 @@ export interface DoorDef {
   side?: -1 | 1;
   /** it slides sideways into the wall at `side`; else it rises, as a shutter does */
   slides?: boolean;
-  /** how it is drawn (content/build/tiles.ts says, from the rooms either side) */
+  /** how it is drawn (content/build/plan.ts says, from the rooms either side: lookOf) */
   look?: DoorLook;
   /** how deep its doorway is, wall face to wall face: 2 m through the rock, half a metre through a partition */
   depth?: number;

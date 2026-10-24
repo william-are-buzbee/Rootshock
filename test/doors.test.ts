@@ -4,7 +4,7 @@ import { levelDef } from '../src/sim/run';
 import { makeSim } from '../src/sim/sim';
 import { doorBox } from '../src/sim/movers';
 import { MT } from '../src/sim/cast';
-import { NARROW } from '../src/content/build/tiles';
+import { NARROW } from '../src/content/build/plan';
 import { checkProgress } from '../src/sim/progress';
 import { upper } from './kit';
 
