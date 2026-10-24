@@ -36,6 +36,21 @@ describe('the upper station', () => {
     expect(missing).toEqual(['Operations room', 'Phase 2']); // the operations room, its door grown shut
   });
 
+  it('walls what the 2 m layout left open: room 4\'s corner, the isolation hall\'s top, the upper corridor\'s side', () => {
+    const w = sim.world, r = 0.32;
+    /** how far a body gets walking from (ax, az) to (bx, bz) with its feet at y, as a share of the way */
+    const walk = (ax: number, az: number, bx: number, bz: number, y: number) => w.sweep(circle(ax, az, r), y + 0.1, y + 1.7, bx - ax, bz - az);
+    /* room 4 keeps its corner, and its partition meets the north side's: nobody walks round the end of it from the
+       stair's foot (they did, and its corner was the hall's) */
+    expect(w.roomAt(52.4, -4, -23.6)?.name).toBe('Isolation room 4');
+    expect(walk(53.6, -22.4, 51.2, -24.8, -4.5)).toBeLessThan(0.5);
+    /* from the check-in hall and screening, east into the isolation hall's upper half: a wall, not a 4.5 m drop */
+    for (const z of [-20.5, -16]) expect(walk(40, z, 44, z, 0) * 4).toBeCloseTo(1.5 - r, 1);
+    /* the upper corridor runs beside the lobby's air behind a wall, and opens only onto the gallery */
+    expect(walk(32, -9, 28, -9, 5) * 4).toBeCloseTo(1.5 - r, 1);
+    expect(walk(32, -3, 28, -3, 5)).toBe(1);
+  });
+
   it('lights in two halves: the wing dead behind its cut, Ops on its backup set, Cargo dark', () => {
     const at = (L: Lighting, name: string) => L.room(level.rooms.find(r => r.name === name)!.id);
     const L = new Lighting(sim.world, stationPower(STATION.circuits, STATION.main));

@@ -44,6 +44,9 @@ export interface RoomOpts {
   /** its floor this far over the floor's (under it, if negative): a sunken court. Its ceiling rides on its floor */
   dy?: number;
   nolamp?: number | boolean; noroam?: number | boolean; safe?: number | boolean;
+  /** more of a room drawn already (the same name and options): a strip of it reaching up to a partition's face where the
+   *  rest of that side of it does not. No fittings, grilles or services of its own: the room's own are where they were */
+  part?: number | boolean;
   /** armed by the lockdown (RoomDef.armed): hazard paint inside each door into it, and its signs read ALARMED AREA */
   armed?: number | boolean;
   /** the alarm zone it is in (RoomDef.zone) */
@@ -61,7 +64,7 @@ export interface PRoom {
   ht: number; dy: number; fl: number; wl: number; st: number;
   lit: LitRule; lc: Colour; em: boolean; batt?: Batt; c: string; flick: boolean;
   open: boolean; hole: 'st' | 'el' | null; cave: boolean; air: boolean; sky?: number; motes?: Motes; mat: RoomMats;
-  nolamp: boolean; noroam: boolean; safe: boolean; armed: boolean; zone?: string;
+  nolamp: boolean; noroam: boolean; safe: boolean; armed: boolean; zone?: string; part: boolean;
   walls?: boolean | WallOpts; openSides?: number[];
   /** a cave of any outline (caveShape): the terrain's cells marked with its id are its own, and its box bounds them */
   shaped?: boolean;
@@ -216,7 +219,7 @@ function makeRoom(F: Floor, name: string, x0: number, z0: number, x1: number, z1
     lit: o.lit ?? 'main', lc: o.lc ?? WHITE, em: !!o.em, ...(o.batt ? { batt: o.batt } : {}), c: o.c ?? F.c, flick: !!o.flick,
     open: !!o.open, hole: null, cave: !!o.cave, air: !!o.air, ...(o.sky !== undefined ? { sky: o.sky } : {}), ...(o.motes ? { motes: o.motes } : {}),
     mat: { ...(o.cave ? CAVERN : o.open ? WALKWAY : o.sky !== undefined ? STREET : FITTED), ...o.mat },
-    nolamp: !!o.nolamp, noroam: !!o.noroam, safe: !!o.safe, armed: !!o.armed, ...(o.zone ? { zone: o.zone } : {}),
+    nolamp: !!o.nolamp, noroam: !!o.noroam, safe: !!o.safe, armed: !!o.armed, ...(o.zone ? { zone: o.zone } : {}), part: !!o.part,
     ...(o.walls !== undefined ? { walls: o.walls } : {}), ...(o.openSides ? { openSides: o.openSides } : {}),
   };
   F.rooms.push(r);
@@ -530,7 +533,7 @@ const FRAME: Record<Exclude<DoorLook, 'shutter'>, [number, number, Mat]> = {
 const roomOpts = (R: PRoom) => ({
   pal: { fl: R.fl, wl: R.wl, st: R.st } as Palette, lit: R.lit, lc: R.lc, em: R.em, batt: R.batt, circuit: R.c, flick: R.flick,
   nolamp: true, plain: R.open || R.cave, safe: R.safe, noroam: R.noroam, armed: R.armed, zone: R.zone, ...(R.sky !== undefined ? { sky: R.sky } : {}), motes: R.motes,
-  mat: R.mat,
+  mat: R.mat, ...(R.part ? { part: true } : {}),
 });
 const DOORPAL = { fl: [0.2, 0.21, 0.22] as Colour, wl: [0.27, 0.28, 0.3] as Colour, st: [0.22, 0.23, 0.25] as Colour };
 const SLAB = 0.25;
@@ -672,7 +675,7 @@ export function finishLevel(start?: [number, number, number], on?: Floor) {
     /* ceiling fittings, every 6 m from 3 m in (one in the middle of a room 4 m or less across), on the ceiling as built
        (lid: a 3.2 m room's is at 3.25); and its air grilles */
     for (const R of F.rooms) {
-      if (R.nolamp || R.open || R.hole || R.cave || R.sky !== undefined || R.air) continue;
+      if (R.nolamp || R.part || R.open || R.hole || R.cave || R.sky !== undefined || R.air) continue;
       const top = lid(F.y0 + R.dy + R.ht), W = R.x1 - R.x0, D = R.z1 - R.z0;
       const along = (a0: number, L: number) => { if (L < 4 + 1e-6) return [a0 + L / 2]; const o: number[] = []; for (let p = 3; p <= L - 1 + 1e-6; p += 6) o.push(a0 + p); return o; };
       for (const z of along(R.z0, D))
@@ -699,7 +702,7 @@ export function finishLevel(start?: [number, number, number], on?: Floor) {
        clear the doors with room to spare, and not in the halls, whose ceilings are too far up to show them. */
     for (const R of F.rooms) {
       const W = R.x1 - R.x0, D = R.z1 - R.z0;
-      if (R.open || R.hole || R.cave || R.shaped || R.air || R.sky !== undefined || (R.mat.ceiling !== 'concrete' && R.mat.ceiling !== 'shot') || R.ht < 3 || R.ht > 6 || Math.max(W, D) < 6 - 1e-6) continue;
+      if (R.part || R.open || R.hole || R.cave || R.shaped || R.air || R.sky !== undefined || (R.mat.ceiling !== 'concrete' && R.mat.ceiling !== 'shot') || R.ht < 3 || R.ht > 6 || Math.max(W, D) < 6 - 1e-6) continue;
       /* up among the light fittings they would take the full glare of them: they are lit as if a little shaded */
       const long = W >= D, side = R.id % 2, top = lid(F.y0 + R.dy + R.ht), DIM = 0.5;
       /* a run's length, and where along and across the room it lies: `off` metres in from the wall on its side */
