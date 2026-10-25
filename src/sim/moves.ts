@@ -139,8 +139,8 @@ export interface Swing {
   miss: number;
   /** your say over your feet once it is done until it has settled (a share of it): no running, and you want that share
    *  of your pace and get to it that share as fast; going faster than that you slow as one thrown does. Until it is
-   *  done what you were doing goes on, whatever your keys say, so a blow run in lands harder. A heavy blow plants you;
-   *  fists hardly (engine.md §6, F2) */
+   *  done what you were doing goes on, whatever your keys say, so a blow run in lands harder. Every blow all but stops you;
+   *  a heavy one stiller and longer (engine.md §6, F2) */
   feet: number;
   /** how long after it is over your feet are still its (s), landed or not; one that met nothing keeps them while the
    *  arm comes back, if that is longer */
@@ -152,8 +152,8 @@ export function swingOf(kind: 'blunt' | 'edge' | 'fist' | 'gun', mass: number): 
     poise: kind === 'fist' ? 4 : kind === 'edge' ? 9 * mass : 12 * mass,
     lunge: 1 + 0.6 * mass,
     miss: 0.15 + 0.12 * mass,
-    feet: Math.max(0.3, 1 - 0.2 * mass),
-    settle: 0.15 + 0.1 * mass,
+    feet: Math.max(0.1, 0.45 - 0.12 * mass),
+    settle: 0.25 + 0.08 * mass,
   };
 }
 

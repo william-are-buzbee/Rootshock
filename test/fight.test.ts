@@ -148,7 +148,7 @@ describe('a blow commits', () => {
     expect(fists.share).toBeGreaterThan(axe.share * 2);
   });
 
-  it('sprinting, a blow carries your run until it is done, then brings you under a walk; once it has settled you run again', () => {
+  it('sprinting, a blow carries your run until it is done, then all but stops you; once it has settled you run again', () => {
     const sprint = (weapon: string) => {
       const s = hall();
       s.player.body.x = 3;
@@ -157,10 +157,15 @@ describe('a blow commits', () => {
       hold(s, 1.2, { ...run, attack: true });
       while (!s.hands.swing?.done) step(s, { ...noInput(), ...run });
       const atDone = Math.hypot(s.player.body.vx, s.player.body.vz);
-      let least = atDone;
-      while (s.hands.swing || s.hands.rec > 0 || s.hands.plant > 0) { step(s, { ...noInput(), ...run }); least = Math.min(least, Math.hypot(s.player.body.vx, s.player.body.vz)); }
+      let least = atDone, stopped = 0;
+      while (s.hands.swing || s.hands.rec > 0 || s.hands.plant > 0) {
+        step(s, { ...noInput(), ...run });
+        const v = Math.hypot(s.player.body.vx, s.player.body.vz);
+        least = Math.min(least, v);
+        if (v < 1.6) stopped += STEP;
+      }
       hold(s, 0.3, run);
-      return { atDone, least, after: Math.hypot(s.player.body.vx, s.player.body.vz) };
+      return { atDone, least, stopped, after: Math.hypot(s.player.body.vx, s.player.body.vz) };
     };
     const baton = sprint('baton'), axe = sprint('axe');
     for (const r of [baton, axe]) {
@@ -169,6 +174,9 @@ describe('a blow commits', () => {
     }
     expect(baton.least).toBeLessThan(3.2 * swingOf('blunt', 1.1).feet + 0.1);
     expect(axe.least).toBeLessThan(3.2 * swingOf('edge', 3.2).feet + 0.1);
+    /* a stop you feel: under half a walk a while, the baton a quarter second, the axe half a second */
+    expect(baton.stopped).toBeGreaterThan(0.25);
+    expect(axe.stopped).toBeGreaterThan(0.5);
   });
 
   it('a click while the arm is coming back is kept a moment, and is a blow when it is in', () => {
