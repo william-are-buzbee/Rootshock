@@ -37,6 +37,11 @@ const CARRY = { per: 0.12, sag: 0.05 };
 const ease = (t: number) => t * t * (3 - 2 * t);
 /** which way along its angles a path goes: drawn back, followed through and carried on are past its ends that way */
 const dir = (shape: Shape) => Math.sign(PATHS[shape].from - PATHS[shape].to) || 1;
+/** an edged thing (the axe, the knife) swung across is turned a quarter about its handle, so its edge leads: to the left
+ *  across from the right, to the right on a backhand. Held, loaded for a chop, or brought down, its edge is to the
+ *  floor; swung across so, it went flat side first */
+const lead = (shape: Shape, edge: boolean): number => (!edge ? 0 : shape === 'side' ? HALF : shape === 'back' ? -HALF : 0);
+const UP = new THREE.Vector3(0, 1, 0), QR = new THREE.Quaternion();
 const P0 = new THREE.Vector3(), P1 = new THREE.Vector3(), Q0 = new THREE.Quaternion(), Q1 = new THREE.Quaternion();
 const LOOK = new THREE.Euler(0, 0, 0, 'YXZ');
 
@@ -80,7 +85,7 @@ export class HandsView {
   private line = { yaw: 0, pitch: 0 };
   /** a swing over, being brought back: from where it was last drawn, over `dur` from the sim's step `t0` (or over the
    *  recovery, if `rec`); one that `missed` carried on along its way's path first, by what was swung */
-  private back: { at: THREE.Vector3; q: THREE.Quaternion; shape: Shape; fist: boolean; mass: number; missed: boolean; dur: number; t0: number; rec: boolean } | null = null;
+  private back: { at: THREE.Vector3; q: THREE.Quaternion; shape: Shape; fist: boolean; edge: boolean; mass: number; missed: boolean; dur: number; t0: number; rec: boolean } | null = null;
 
   constructor(camera: THREE.Camera, public sim: Sim, private L: Lighting) {
     /* turned first to point out from you, then swung about the up of the plane it sweeps in, then that plane tilted */
@@ -105,11 +110,11 @@ export class HandsView {
       this.vm.add(this.mesh);
     }
     lightMaterial(this.mat, this.L.atPoint(b.x, b.y + 1, b.z), this.L.flickAt(b.x, b.y + 1, b.z), this.L.towards(b.x, b.y + 1, b.z));
-    const w = wstats(g.weapon), fist = !g.weapon, sw = h.swing;
+    const w = wstats(g.weapon), fist = !g.weapon, edge = w.kind === 'edge', sw = h.swing;
     /* a swing just over is brought back from where it was last drawn */
     if (this.was && !sw) {
       const missed = !!this.was.missed && this.was.glance === undefined;
-      this.back = { at: vm.position.clone(), q: vm.quaternion.clone(), shape: wayNow(sim, w), fist, mass: w.mass, missed, dur: h.rec > 0 ? h.rec : BACK, t0: sim.tick, rec: h.rec > 0 };
+      this.back = { at: vm.position.clone(), q: vm.quaternion.clone(), shape: wayNow(sim, w), fist, edge, mass: w.mass, missed, dur: h.rec > 0 ? h.rec : BACK, t0: sim.tick, rec: h.rec > 0 };
     }
     if (sw) { this.back = null; if (h.line) { this.line.yaw = h.line.yaw; this.line.pitch = h.line.pitch; } }
     this.was = sw;
@@ -138,7 +143,7 @@ export class HandsView {
     } else if (sw) {
       const q = Math.min(1, sw.t / sw.dur), th = swept(way, q, sw.glance, sw.struck);
       const sh = sw.glance !== undefined && q > sw.glance ? Math.sin(time * 55) * 0.04 * (1 - q) : 0;
-      this.swung(way, q, th, sh, fist);
+      this.swung(way, q, th, sh, fist, lead(way, edge));
     } else {
       /* at rest, held as it is held; loading, taken from there to where its way starts (drawn back to the right for a
          side swing, to the left for a backhand, up over your head to come down, back for a thrust), and trembling once
@@ -151,6 +156,8 @@ export class HandsView {
       else this.swung(way, 0, swept(way, 0), 0, fist);
       vm.rotation.set(rx + (vm.rotation.x + tr - rx) * e, ry + (vm.rotation.y - ry) * e, rz + (vm.rotation.z - rz) * e);
       vm.position.lerpVectors(P0, vm.position, e);
+      /* the edge turned to lead as it is drawn back */
+      if (lead(way, edge)) vm.quaternion.multiply(QR.setFromAxisAngle(UP, lead(way, edge) * e));
     }
     /* reeling, still holding it up or still swinging it: it sags and shakes */
     if (!flung && h.stag > 0) { const sh = Math.sin(time * 31) * 0.02 * reel; vm.position.x += sh; vm.position.y += sh - 0.06 * reel; }
@@ -161,7 +168,7 @@ export class HandsView {
     if (B) {
       const k = clamp(B.rec ? 1 - h.rec / B.dur : sim.tick < B.t0 ? 1 : ((sim.tick - B.t0) * STEP) / B.dur, 0, 1), e = ease(B.missed ? clamp((k - 0.3) / 0.7, 0, 1) : k);
       P1.copy(vm.position); Q1.copy(vm.quaternion);
-      if (B.missed && B.shape !== 'thrust') this.swung(B.shape, 1, PATHS[B.shape].to - dir(B.shape) * (FOLLOW + CARRY.per * B.mass * Math.sin(Math.min(1, k / 0.4) * HALF)), 0, B.fist);
+      if (B.missed && B.shape !== 'thrust') this.swung(B.shape, 1, PATHS[B.shape].to - dir(B.shape) * (FOLLOW + CARRY.per * B.mass * Math.sin(Math.min(1, k / 0.4) * HALF)), 0, B.fist, lead(B.shape, B.edge));
       else { vm.position.copy(B.at); vm.quaternion.copy(B.q); }
       P0.copy(vm.position); Q0.copy(vm.quaternion);
       vm.position.lerpVectors(P0, P1, e);
@@ -192,8 +199,8 @@ export class HandsView {
 
   /** a swung thing `q` through its swing, at `th` along its path, shaking `sh`: brought straight down from over your
    *  head, in the one upright plane it was lifted in; across either way, pointing out from you, turned through the
-   *  sweep, in its plane. A fist points out along the forearm, not up a handle */
-  private swung(shape: Shape, q: number, th: number, sh: number, fist: boolean): void {
+   *  sweep, in its plane. A fist points out along the forearm, not up a handle. Turned `roll` about its handle (lead) */
+  private swung(shape: Shape, q: number, th: number, sh: number, fist: boolean, roll = 0): void {
     const vm = this.vm;
     if (shape === 'chop') {
       vm.rotation.set(th - HALF + sh, 0, -0.15);
@@ -202,5 +209,6 @@ export class HandsView {
       vm.rotation.set(-HALF + 0.35 - 0.25 * Math.min(1, q / ACTIVE.to) + sh + (fist ? HALF - 0.3 : 0), -th, -0.15);
       vm.position.set(0.16 + 0.14 * Math.sin(th), -0.28, -0.32);
     }
+    if (roll) vm.quaternion.multiply(QR.setFromAxisAngle(UP, roll));
   }
 }

@@ -107,6 +107,9 @@ export class Controls {
     this.pending.pitch += pitch;
   }
 
+  /** the sides a swing is sent from swapped (Settings: Swap swing sides) */
+  swap = false;
+
   /** the input for one sim step */
   take(): Input {
     const k = this.keys, i = noInput(), t = this.touch;
@@ -120,6 +123,7 @@ export class Controls {
     i.jump = this.press.jump; i.crouch = this.press.crouch; i.light = this.press.light; i.use = this.press.use;
     i.rise = !!(k.Space || t?.rise); i.sink = !!(k.KeyC || t?.sink);
     i.attack = (!this.free && (this.mouse || this.clicked || this.q)) || !!t?.attack;
+    i.swap = this.swap;
     this.clicked = false;
     this.press = { jump: false, crouch: false, light: false, use: false };
     return i;

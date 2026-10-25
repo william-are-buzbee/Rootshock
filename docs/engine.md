@@ -939,6 +939,9 @@ the mouse (it only aims) or more buttons; each weapon its natural ways; the path
   way. A key counts pushed past halfway, the stronger if both are (a stick held off straight). It is taken as you
   press, and a press kept while you are busy (`BUF`) goes the way it was pressed. The keys move you as they always
   did, so the way you step is the way the blow comes from. On a phone, the stick (index.html says so with the keys).
+- **Swap swing sides** (since; Settings, kept between runs): A sends it from your right and D from your left, the blow
+  going the way you step. The owner asked for it after playing. It comes to the sim with the keys (`Input.swap`), so a
+  run is played as it was whatever is set; the controls shown say which way it is.
 - **Only the path is chosen**: as hard, as quick, the same poise, shove, lunge and recovery whichever way (a test holds
   the damage and the swing's time equal). What differs is what the path meets. A backhand takes the one on your left
   first, as a side swing takes the one on your right, and shoves what it hits off to your right. Brought down over
@@ -963,11 +966,15 @@ the mouse (it only aims) or more buttons; each weapon its natural ways; the path
   anything tall; swung across (A or D), it meets the thing at the crosshair's height.
 - **Drawn** (`render/handsView.ts`): loading goes from how the thing is held at rest to where its way starts (drawn
   back to the right, to the left for a backhand, up over your head, back for a thrust), so anything can be sent any of
-  its ways without a jump at the press or as it is let go; a fist hooks pointing along its forearm. A test sends every
+  its ways without a jump at the press or as it is let go; a fist hooks pointing along its forearm. An edged thing
+  swung across (the axe, the knife) is turned a quarter about its handle as it is drawn back, so its edge leads, to the
+  left across from the right and to the right on a backhand (`lead`): at first it went flat side first, its edge to
+  the floor, as a chop holds it (the owner, playing). A test sends every
   weapon every way and holds each frame to what the swing itself moves in one (`test/hands.test.ts`). Looked at too,
   each way loaded and swung, in a browser. The dev readout's blow log names the way (`pipe back → husk`); the overlay
   (O) draws the path of the way the blow is going.
-- **Tests**: `test/sweep.test.ts`, *which way it goes*; `test/hands.test.ts`. No change to saves: the way is in
+- **Tests**: `test/sweep.test.ts`, *which way it goes* (the sides swapped too); `test/hands.test.ts` (the edge
+  leading too). No change to saves: the way is in
   `Hands`, which is saved whole, and an older save's is taken as the weapon's own.
 
 ---
@@ -1315,8 +1322,8 @@ since: §11).
 - **UI** stays in HTML over the canvas, with the current type and colours (Barlow Condensed, Newsreader, bone, ash,
   hazard). **As few words as will do** (since): everything that is not a paper is pared to what you cannot do without.
   - The title is the name and a menu: Continue (with a run kept), New game, Settings. Pause is Resume, Settings, Quit
-    (to the title, the run kept: pausing saved it). Settings holds brightness, surface detail, look speed by touch, and
-    the controls, which no longer stand on the title. New game over a run in the page makes the run again in the page
+    (to the title, the run kept: pausing saved it). Settings holds brightness, surface detail, look speed by touch,
+    which side A and D swing from (since), and the controls, which no longer stand on the title. New game over a run in the page makes the run again in the page
     (`fresh` in `main.ts`; what was drawn for the old one is let go, `LevelView.dispose`). The test bed, the lights on and
     the first engine are linked from the title under `?dev` only. The end is its word (Surface, Grafted); the way out is
     told as before, without the counts; a click goes back to the title.

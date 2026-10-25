@@ -19,6 +19,9 @@ export interface Input {
   sink: boolean;
   /** held: the mouse button. Hold to load a swing, let go to throw it; a gun fires as it goes down */
   attack: boolean;
+  /** the sides a swing is sent from swapped: stepping left sends it from your right (a setting, Swap swing sides;
+   *  sim/combat.ts, wayOf) */
+  swap: boolean;
 }
 
-export const noInput = (): Input => ({ forward: 0, strafe: 0, run: false, yaw: 0, pitch: 0, jump: false, crouch: false, light: false, use: false, rise: false, sink: false, attack: false });
+export const noInput = (): Input => ({ forward: 0, strafe: 0, run: false, yaw: 0, pitch: 0, jump: false, crouch: false, light: false, use: false, rise: false, sink: false, attack: false, swap: false });

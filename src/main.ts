@@ -275,6 +275,18 @@ for (const el of lookIn) {
   });
 }
 
+/* which side a swing is sent from by A and D (or the stick): from that side, or swapped, the way you step (sim/combat.ts,
+   wayOf). The player's own, kept between runs; the controls shown say which */
+const SWAP_KEY = 'rootshock-v2:swap', swapIn = [...document.querySelectorAll<HTMLInputElement>('input.swap')];
+function swapSides(on: boolean): void {
+  controls.swap = on;
+  for (const o of swapIn) o.checked = on;
+  for (const el of document.querySelectorAll<HTMLElement>('.keysonly .sides')) el.textContent = on ? 'from the right, the left' : 'from the left, the right';
+  for (const el of document.querySelectorAll<HTMLElement>('.touchonly .sides')) el.textContent = on ? 'from the other side' : 'from that side';
+}
+for (const el of swapIn) el.addEventListener('change', () => { swapSides(el.checked); writeStore(SWAP_KEY, el.checked ? 'on' : null); });
+swapSides(readStore(SWAP_KEY) === 'on');
+
 /* surface detail: what walls, floors and ceilings are made of, drawn on them and heard from them (footsteps, crates,
    blows), and the services under bare ceilings; the player's to turn off (title and pause screens, kept between runs; ?detail=off for one visit; ?dev, M), for the
    station as it looked before. Looks only. */

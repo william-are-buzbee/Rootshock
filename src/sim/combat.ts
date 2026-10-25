@@ -84,9 +84,10 @@ const BUF = 0.2;
 /** the way a press asks a swing to go, by what you hold as you press: from your left (A), a backhand across to your
  *  right; from your right (D), a side swing across to your left; forward (W), over your head and down for anything
  *  swung, or straight out for what is thrust (the knife, your fists); nothing, or back, the weapon's own way. A key
- *  counts pushed more than halfway (a stick need not be pushed all the way), the stronger if both are */
+ *  counts pushed more than halfway (a stick need not be pushed all the way), the stronger if both are. With the sides
+ *  swapped (Input.swap, a setting), A sends it from your right and D from your left: the blow goes the way you step */
 export function wayOf(w: WeaponStats, input: Input): Shape {
-  const s = input.strafe, f = input.forward;
+  const s = input.swap ? -input.strafe : input.strafe, f = input.forward;
   if (Math.abs(s) >= 0.5 && Math.abs(s) >= f) return s < 0 ? 'back' : 'side';
   if (f >= 0.5) return w.shape === 'thrust' ? 'thrust' : 'chop';
   return w.shape;
