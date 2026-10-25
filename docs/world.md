@@ -906,11 +906,17 @@ should be added. Below it, production (below).
 - **Patrols → their own senses.** Sight, light and sound, as everywhere else. They come to an alarm they can hear, not to you.
 - **Patrols walk lit rooms only (agreed: every husk, everywhere).** Husks hunt by sight, so they keep their rounds where they
   can see, and go to the light if they can. That is why the dead wing is quiet, and why mending the cut brings them into it
-  with no orders at all: lit, it is theirs to walk. One standing in the dark makes for the nearest light it can reach; with
-  none it can reach, it keeps still (Cargo's husks wait in the dark: the only light is behind Operations' card). Cutting the
-  power strands them. A husk on a post in the dark is a deliberate exception, and the more frightening for it. **Built.**
-  Note: on the main level before Gen-1 the only light is Horticulture's backup set, so the Commons' roaming husks drift
-  toward the green's territory (open: whether something should keep them out).
+  with no orders at all: lit, it is theirs to walk. One standing in the dark makes for the nearest light it can reach, if
+  it is near (within 40 m's walk: light it could know is there); with none, it keeps still (Cargo's husks wait in the
+  dark: the only light is behind Operations' card). Cutting the power strands them. A husk on a post in the dark is a
+  deliberate exception, and the more frightening for it. **Built.** On the main level before Gen-1 the only light is
+  Horticulture's backup set, past the end of the street: the Commons' husks used to walk the street's length to it and
+  crowd its airlock against the card door, and now keep still in the dark Commons.
+- **Rounds keep them apart (built).** Each goes next to a lit room it can get to (a locked door bars it, and it goes no
+  farther than a hunt would follow you, 90 m), the one the fewest of the others are in or on their way to. A room is
+  the room, not the boxes it is built from: the muster hall's four sides are one room and one chance, where they were four
+  and drew half of every round to the hall. Two that meet where neither can get by give their rounds up for others,
+  rather than standing face to face.
 - **The power-failure drill (agreed; built).** The staff were drilled for a dead circuit as for an alarm. When you open a
   breaker, each of the staff it leaves in the dark has a fair chance (a quarter) to go at once to the board and throw it back
   on, so a crowd nearly always sends someone and one alone may not. Any other still in the dark later may go, the odds

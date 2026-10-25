@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { simLighting, step, type Sim } from '../src/sim/sim';
+import { makeSim, simLighting, step, type Sim } from '../src/sim/sim';
 import { noInput } from '../src/sim/input';
 import { STEP } from '../src/core/loop';
 import { give } from '../src/sim/game';
 import { field, openRules } from '../src/world/nav';
 import { refreshFields } from '../src/sim/fields';
 import { hitMutant, rounds, type Mutant } from '../src/sim/cast';
+import { fieldTo, ROAM } from '../src/sim/cast/move';
+import { STATION } from '../src/content/station';
+import { levelDef } from '../src/sim/run';
 import { MOVES as BLOWS } from '../src/sim/moves';
 import { fresh, hold } from './kit';
 
@@ -37,6 +40,8 @@ function faceOff(s: Sim, m: Mutant, dist: number, at = 0.5): void {
 }
 /** everyone else stands still (stunned) so a test sees one at a time */
 const only = (s: Sim, keep: Mutant[]) => { for (const m of s.cast) if (!keep.includes(m)) m.stun = 1e9; };
+/** you, out of it: flying high over the level, where nothing sees or hears you */
+const away = (s: Sim) => { s.player.fly = true; s.player.body.y += 200; };
 /** look at a point from where you stand */
 function face(s: Sim, x: number, y: number, z: number): void {
   const b = s.player.body, dx = x - b.x, dz = z - b.z;
@@ -134,6 +139,45 @@ describe('their rounds', () => {
     s.game.station!.circuits.CARGO.back = true; s.lighting = null;
     hold(s, 30);
     expect(Math.hypot(m.x - x0, m.z - z0)).toBeGreaterThan(2);
+  });
+
+  it('one in the dark with the light far off keeps still: the dark Commons keeps its own, not sending them to Horticulture', () => {
+    const s = makeSim(levelDef(STATION, 'main'), { seed: 7, station: STATION }), m = s.cast.find(q => q.ai === 'husk' && !q.post && startRoom(s, q) === 'The Commons')!;
+    only(s, [m]);
+    away(s);
+    const x0 = m.x, z0 = m.z, nav = s.fields!.nav;
+    step(s, noInput());
+    /* Horticulture's backup set is lit, and there is a way to it, but it is the length of the street off */
+    const to = field(nav, m.spot, openRules(nav));
+    expect(Math.min(...rounds(s).flatMap(R => (nav.byRoom.get(R) ?? []).map(k => to[k])))).toBeGreaterThan(ROAM.light);
+    hold(s, 30);
+    expect(m.state).toBe('idle');
+    expect(Math.hypot(m.x - x0, m.z - z0)).toBeLessThan(0.3);
+  });
+
+  it('two of them in one room make for two others: their rounds keep them apart', () => {
+    const s = fresh(), [a, b] = s.cast.filter(m => m.ai === 'husk' && !m.post && startRoom(s, m) === 'Muster hall');
+    only(s, [a, b]);
+    away(s);
+    for (let t = 0; t < 8 && (a.dest < 0 || b.dest < 0); t += STEP) step(s, noInput());
+    const nav = s.fields!.nav, to = [a, b].map(m => s.world.rooms[nav.room[m.dest]].name);
+    expect(to[0]).not.toBe(to[1]);
+    expect(to).not.toContain('Muster hall');
+  });
+
+  it('two meeting head on where neither can get by do not stand there: each gives its round up for another', () => {
+    const s = fresh(), [a, b] = s.cast.filter(m => m.ai === 'husk' && !m.post && startRoom(s, m) === 'Muster hall');
+    only(s, [a, b]);
+    away(s);
+    place(s, a, 66, 0, 25.5); place(s, b, 72, 0, 25.5); // along the hall's north side, by the east bays, each going the other's way
+    step(s, noInput());
+    const nav = s.fields!.nav, goals = [nav.locate(78, 0, 25.5), nav.locate(58, 0, 25.5)];
+    [a, b].forEach((m, i) => { m.state = 'idle'; m.wt = 0; m.dest = goals[i]; m.F = fieldTo(s, m, goals[i]); m.near = 1e9; m.stk = 0; });
+    hold(s, 2.5);
+    expect(Math.hypot(a.x - b.x, a.z - b.z)).toBeLessThan(1.2); // met, and stopped there
+    hold(s, 5);
+    expect(a.dest).not.toBe(goals[0]);
+    expect(b.dest).not.toBe(goals[1]);
   });
 });
 

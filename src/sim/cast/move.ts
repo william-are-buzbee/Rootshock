@@ -227,29 +227,83 @@ export function mayRoute(sim: Sim): boolean {
 }
 
 
-/** staff still keep rounds, and keep to the light: they hunt by sight (world.md §8). A round goes to a lit room picked at
- *  random; one standing in the dark makes for the nearest lit room it can get to, and with none keeps still until the
- *  light comes. */
+/** how far a round goes (m, walked as the doors stand): as far as a hunt follows you (sim/fields.ts, LIMIT), so each
+ *  keeps to its own end of a level; and how near the light must be for one in the dark to make for it. Nearer, it knows
+ *  the light is there; farther, it does not, and keeps still (the dark Commons keeps its own, rather than sending them
+ *  all the length of the street to Horticulture's backup set) */
+export const ROAM = { reach: 90, light: 40 };
+
+/** staff still keep rounds, and keep to the light: they hunt by sight (world.md §8). A round goes to a lit room it can
+ *  get to as the doors stand (a locked door bars it), within ROAM.reach: one the fewest of the staff are in or making
+ *  for, so they keep apart, and at random among those. A room is the room, not its boxes: the muster hall's four sides
+ *  are one, and one chance, not four. One standing in the dark makes for a spot in the nearest lit room within
+ *  ROAM.light; with none, it keeps still until the light comes. Only the choice needs the doors; the route there is
+ *  made as any round's is, and a save keeps the choice. */
 function pickDest(sim: Sim, m: Mutant): void {
   const Fs = sim.fields;
   if (!Fs || m.spot < 0) { m.wt = 3; return; }
   if (!mayRoute(sim)) { m.wt = 0.05; return; }
-  const rooms = rounds(sim);
-  if (!lit(sim, m.x, m.y + 0.5, m.z)) {
-    const k = nearestIn(sim, m, rooms);
-    if (k < 0) { m.wt = 3; return; }
-    m.F = fieldTo(sim, m, k);
-    if (!Number.isFinite(m.F[m.spot])) { m.wt = 3; return; }
-    m.dest = k;
-    return;
+  const nav = Fs.nav, P = placeOf(sim), dark = !lit(sim, m.x, m.y + 0.5, m.z), reach = dark ? ROAM.light : ROAM.reach;
+  const from = fieldFrom(nav, m.spot, rulesFor(sim, Fs, m.walker, m.cards), undefined, reach);
+  /* the lit rooms in reach, each with its spots in reach */
+  const spots = new Map<number, number[]>();
+  for (const R of rounds(sim)) for (const k of nav.byRoom.get(R) ?? []) {
+    if (!(from[k] <= reach)) continue;
+    let s = spots.get(P[R]);
+    if (!s) spots.set(P[R], (s = []));
+    s.push(k);
   }
-  if (!rooms.length) { m.wt = 5; return; }
-  const R = sim.rng.pick(rooms), spots = Fs.nav.byRoom.get(R) ?? [];
-  if (!spots.length) { m.wt = 0.5; return; }
-  const k = sim.rng.pick(spots);
+  if (!spots.size) { m.wt = dark ? 3 : 5; return; }
+  let to: number[] = [];
+  if (dark) {
+    let best = Infinity;
+    for (const s of spots.values()) for (const k of s) if (from[k] < best) { best = from[k]; to = s; }
+  } else {
+    const kept = keptBy(sim, P);
+    let least = Infinity, fewest: number[][] = [];
+    for (const [p, s] of spots) {
+      const n = kept.get(p) ?? 0;
+      if (n < least) { least = n; fewest = []; }
+      if (n === least) fewest.push(s);
+    }
+    to = sim.rng.pick(fewest);
+  }
+  const k = sim.rng.pick(to);
   m.F = fieldTo(sim, m, k);
-  if (!m.F || !Number.isFinite(m.F[m.spot])) { m.wt = sim.rng.range(1, 3); return; }
+  if (!Number.isFinite(m.F[m.spot])) { m.wt = sim.rng.range(1, 3); return; }
   m.dest = k;
+}
+
+/** how many of the staff are in each room or making for it (one choosing counts where it stands: it has no way yet) */
+function keptBy(sim: Sim, P: Int32Array): Map<number, number> {
+  const nav = sim.fields!.nav, kept = new Map<number, number>();
+  const placeAt = (k: number) => (k >= 0 && nav.room[k] >= 0 ? P[nav.room[k]] : -1);
+  for (const o of sim.cast) {
+    if (o.dead || o.ai !== 'husk') continue;
+    const here = placeAt(o.spot), there = placeAt(o.dest);
+    if (here >= 0) kept.set(here, (kept.get(here) ?? 0) + 1);
+    if (there >= 0 && there !== here) kept.set(there, (kept.get(there) ?? 0) + 1);
+  }
+  return kept;
+}
+
+const places = new WeakMap<object, Int32Array>();
+/** each box's room, as a round takes rooms: boxes of one name that join are one (the muster hall's four sides), as
+ *  test/probes/loops.probe.ts takes them. A room is known by its lowest-numbered box */
+function placeOf(sim: Sim): Int32Array {
+  let P = places.get(sim.world);
+  if (P) return P;
+  const nav = sim.fields!.nav, rooms = sim.world.rooms, up = Int32Array.from(rooms, (_R, i) => i);
+  const find = (r: number): number => (up[r] === r ? r : (up[r] = find(up[r])));
+  for (let a = 0; a < nav.n; a++) for (let e = nav.start[a]; e < nav.start[a + 1]; e++) {
+    const r = nav.room[a], q = nav.room[nav.to[e]];
+    if (r < 0 || q < 0 || r === q || rooms[r].name !== rooms[q].name) continue;
+    const x = find(r), y = find(q);
+    if (x !== y) up[Math.max(x, y)] = Math.min(x, y);
+  }
+  P = up.map((_r, i) => find(i));
+  places.set(sim.world, P);
+  return P;
 }
 
 export function fieldTo(sim: Sim, m: Mutant, k: number): Float32Array {
@@ -267,15 +321,6 @@ export function rounds(sim: Sim): number[] {
   return roamRooms(sim).filter(R => litRoom(sim, R));
 }
 
-/** of these rooms, the spot nearest it can get to as the doors stand now (a locked door bars it), or -1. Only the choice
- *  needs the doors; the route there is made as any round's is, and a save keeps the choice. */
-function nearestIn(sim: Sim, m: Mutant, rooms: number[]): number {
-  const Fs = sim.fields!, from = fieldFrom(Fs.nav, m.spot, rulesFor(sim, Fs, m.walker, m.cards));
-  let best = -1;
-  for (const R of rooms) for (const k of Fs.nav.byRoom.get(R) ?? []) if (from[k] < (best < 0 ? Infinity : from[best])) best = k;
-  return best;
-}
-
 const roamCache = new WeakMap<object, number[]>();
 /** rooms worth a walk: not a refuge, not marked off, not armed, not a doorway, not a cupboard */
 function roamRooms(sim: Sim): number[] {
@@ -289,12 +334,15 @@ function roamRooms(sim: Sim): number[] {
 
 export function roam(sim: Sim, m: Mutant, spd: number): void {
   if (m.wt > 0) { m.wt -= dt; return; }
-  if (m.dest < 0) { pickDest(sim, m); return; }
-  if (m.spot === m.dest || (m.F && m.spot >= 0 && m.F[m.spot] < 1.2)) { m.dest = -1; m.wt = sim.rng.range(3, 10); return; }
-  if (!follow(sim, m, m.F!, spd, false)) {
-    m.stk += dt;
-    if (m.stk > 1.5) { m.stk = 0; m.dest = -1; m.ride = null; m.wt = sim.rng.range(1, 3); }
-  } else m.stk = 0;
+  if (m.dest < 0) { pickDest(sim, m); m.near = 1e9; m.stk = 0; return; }
+  const left = m.F && m.spot >= 0 ? m.F[m.spot] : Infinity;
+  if (m.spot === m.dest || left < 1.2) { m.dest = -1; m.wt = sim.rng.range(3, 10); return; }
+  const on = follow(sim, m, m.F!, spd, false);
+  /* getting on is coming to a spot nearer than any yet. Held up is the rest, but for waiting at a door or for a
+     platform: stopped on a locked door, wedged on a corner, or two of them meeting where there is no room to pass, each
+     stepping aside into the other's way and back. A while of it, and it gives the round up for another */
+  if (left < m.near || m.ride) { m.near = Math.min(m.near, left); m.stk = 0; }
+  else if (!(on && !m.mv) && (m.stk += dt) > 1.5) { m.stk = 0; m.dest = -1; m.ride = null; m.wt = sim.rng.range(1, 3); }
 }
 
 /** what slows one of the cast that something shoved (m/s²): sent back at 4 m/s, it goes about 0.3 m */

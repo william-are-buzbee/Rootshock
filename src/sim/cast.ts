@@ -119,6 +119,8 @@ export interface Mutant {
   dest: number;
   F: Float32Array | null;
   stk: number;
+  /** the least way left (m) a roam has come to on its route: one held up is told from one getting on by it */
+  near: number;
   fled: boolean;
   side: number;
   ride: Ride | null;
@@ -180,7 +182,7 @@ function makeMutant(sim: Sim, def: MutantDef, id: number): Mutant {
       round: (def.opts.round as RoundStop[] | undefined) ?? null, beat: 0, lap: 0, peered: 99, torch: !!S.torch, tp: ROUND.pitch,
       hide: (def.opts.hide as { x: number; z: number } | undefined) ?? null, drag: -1, trail: 0, graft: 0, grafted: false,
       wt: rnd(1, 5), wm: 0, wx: 0, wz: 0, tk: 0, lost: 0, bt: 0, burst: false, flee: 0, ct: rnd(6, 14), cdir: 0, tgt: false,
-      grab: 0, tense: 0, blow: null, dest: -1, F: null, stk: 0, fled: false, side: 0, ride: null, spot: -1,
+      grab: 0, tense: 0, blow: null, dest: -1, F: null, stk: 0, near: 1e9, fled: false, side: 0, ride: null, spot: -1,
       mv: 0, d: 99, dp: 99, dy: 0, los: false, losAt: -99, hit: 0, stop: 0, poise: poiseOf(def.type, S.ai, !!o.big), pmax: poiseOf(def.type, S.ai, !!o.big), calm: 99, reel: 0, pat: 0, down: 0, rise: 0, acc: S.acc, drove: false, ph: rnd(9), dead: false, gone: 0, rag: null, away: false, still: 0,
     };
     return m;
