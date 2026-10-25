@@ -88,6 +88,13 @@ export const IMPACT = { head: 11, least: 0.6, most: 1.8 };
 /** how hard a blow lands, as a share of one stood still, for how fast the two were closing along it (m/s) */
 export const closing = (v: number): number => Math.min(IMPACT.most, Math.max(IMPACT.least, 1 + v / IMPACT.head));
 
+/** a blow of yours that lands holds both still a moment, what struck and what it struck (hit-stop): your swing stops in
+ *  it, and it stands where it was hit, everything it was doing waiting, the shove it was given too. This long (s) for a
+ *  blow stood still, and this much more a kilogram swung; as much longer as it lands harder (closing). Fists 0.05, the
+ *  pipe 0.08, the axe 0.09, the axe run in at a sprint 0.14. A blow that glances off a wall holds your swing as long as
+ *  one stood still */
+export const HITSTOP = { base: 0.04, kg: 0.016 };
+
 /** the shove a blow of yours gives: kg m/s for each kilogram swung, an arm's 1.5 kg with it; and the fastest a blow
  *  sends anything (m/s), so a worm is thrown, not fired. The axe sends a husk (80 kg) back at 4 m/s, a thresher at 1.5,
  *  a bloat not at all */

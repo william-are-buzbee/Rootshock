@@ -94,6 +94,49 @@ describe('a blow lands by how fast you were closing', () => {
   });
 });
 
+describe('a blow that lands holds both still a moment (hit-stop)', () => {
+  /** a husk 1.6 m off, struck with `weapon` stood still (a click), or run in at from 7 m off; stepped to the step it lands */
+  function landing(weapon: string, run = false): Sim {
+    const s = hall(b => b.mutant('husk', 11.6, 0, 6), run ? [3, 6] : undefined), m = s.cast[0];
+    give(s.game, weapon);
+    for (let t = 0; t < 4 && lost(m) === 0; t += STEP) {
+      const up = s.hands.full && m.dp < AXE_REACH + m.r - 0.1;
+      step(s, { ...noInput(), forward: run ? 1 : 0, run, attack: run ? !up && !s.hands.swing : t === 0 });
+    }
+    expect(lost(s.cast[0])).toBeGreaterThan(0);
+    return s;
+  }
+
+  it('what it lands on stands where it was struck, the shove waiting, as long as your swing stops in it; then it goes', () => {
+    const s = landing('axe'), m = s.cast[0], x = m.x, z = m.z;
+    expect(m.stop).toBeCloseTo(s.hands.stop - STEP, 6);
+    expect(Math.hypot(m.body!.vx, m.body!.vz)).toBeGreaterThan(2);
+    let held = 0;
+    while (m.stop > 0) { step(s, noInput()); held++; expect(Math.hypot(m.x - x, m.z - z)).toBe(0); }
+    expect(held).toBeGreaterThanOrEqual(4);
+    hold(s, 0.3);
+    expect(Math.hypot(m.x - x, m.z - z)).toBeGreaterThan(0.15);
+  });
+
+  it('a heavier blow holds longer, and one run in longer again', () => {
+    const baton = landing('baton').hands.stop, axe = landing('axe').hands.stop, run = landing('axe', true).hands.stop;
+    expect(axe).toBeGreaterThan(baton * 1.3);
+    expect(run).toBeGreaterThan(axe * 1.2);
+  });
+
+  it('a body it kills is held where it was struck, then goes loose the way it was knocked', () => {
+    const s = hall(b => b.mutant('husk', 11.6, 0, 6)), m = s.cast[0];
+    m.hp = 1;
+    give(s.game, 'axe');
+    for (let t = 0; t < 4 && !m.dead; t += STEP) step(s, { ...noInput(), attack: t === 0 });
+    expect(m.rag).toBeTruthy();
+    const at = [...m.rag!.p];
+    while (m.stop > 0) { step(s, noInput()); expect(m.rag!.p).toEqual(at); }
+    hold(s, 0.2);
+    expect(Math.hypot(m.rag!.p[0] - at[0], m.rag!.p[2] - at[2])).toBeGreaterThan(0.1);
+  });
+});
+
 describe('their blows on you', () => {
   /** a husk at you from the east, run to where its wind-up has stopped turning */
   function committed() {

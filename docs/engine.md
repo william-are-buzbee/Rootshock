@@ -375,6 +375,14 @@ corpse worth throwing.
   back, not snapped to rest: in a sixth of a second after one that met something; after one that met nothing, carried
   on past its follow-through by its weight (0.12 rad a kilogram: the axe goes down past your knees) and brought back
   across the recovery, so the time you are locked out is the time you watch it come back. Looks only.
+- **Hit-stop, both sides** (since; `sim/moves.ts`, `HITSTOP`). A blow of yours that lands holds still both your swing
+  and what it struck: it stands where it was hit, shuddering, everything it was doing waiting, the shove it was given
+  too, which it goes with after. A body it kills or floors is held loose where it was struck the same way. 0.04 s and
+  0.016 s a kilogram swung, times how hard it landed (`closing`): fists 0.05, the pipe 0.08, the axe 0.09, the axe run
+  in 0.14. It was 0.07 s for every blow, and only your swing held still: the husk was shoved the same step, so the
+  stop read as your swing catching on air. Others of the cast are not held; a husk struck in its wind-up starts its
+  blow that much later, as your swing does. A blow glancing off a wall holds your swing as one stood still would.
+  Saves carry it (`Mutant.stop`); old saves load with none.
 - **Hits on you never take a load or a blow from you.** One that breaks your poise throws you back from it (2.5 m/s)
   and you reel 0.7 s: a third of your pace, the view jolted, the arm flung down, and no new load until you have your
   feet (a load already in hand, or a blow already thrown, goes on).

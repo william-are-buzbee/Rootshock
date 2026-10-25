@@ -513,6 +513,8 @@ export class CastView {
       /* a swimmer rides just under the surface of shallow water, and a little off the floor of deep (as before) */
       if (m.swim) { const d = w.waterAt(x, z) - y; if (d > 0) y += d < 2 ? Math.max(0, d - 0.23) : 0.3; }
       g.position.set(x, y, z);
+      /* held still by a blow that landed (sim/moves.ts, HITSTOP), it shudders where it stands */
+      if (m.stop > 0 && !m.rag) { const sh = Math.sin(t * 95) * 0.025; g.position.x += Math.cos(m.yaw) * sh; g.position.z -= Math.sin(m.yaw) * sh; }
       /* struck, it is rocked back on its heels and comes forward again (m.hit dies from 1 in a quarter second) */
       g.rotation.order = 'YXZ';
       g.rotation.y = m.yaw;

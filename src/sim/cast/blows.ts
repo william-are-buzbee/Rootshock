@@ -208,6 +208,8 @@ export interface Hit {
   dmg: number; poise: number; shove?: number; dir?: { x: number; z: number }; by?: string;
   /** where it landed, and the way what struck was going there: what a body killed by it goes loose with */
   at?: V3; way?: V3;
+  /** how long it holds it still (s): everything it was doing waits, and the shove it was given (sim/moves.ts, HITSTOP) */
+  stop?: number;
 }
 
 /** something hit it: a blow or a shot, landing `k` times as hard as one stood still (sim/moves.ts, closing). It is
@@ -219,6 +221,7 @@ export function hitMutant(sim: Sim, m: Mutant, w: Hit, k = 1): void {
   if (m.down > 0) k *= DOWN.more;
   m.hp -= w.dmg * k * (open ? OPEN.dmg : 1);
   m.hit = Math.max(m.hit, Math.min(1, k));
+  if (w.stop) m.stop = Math.max(m.stop, w.stop);
   sfx(g, 'hit');
   let v = 0, ux = 0, uz = 0;
   if (m.body && w.shove) {

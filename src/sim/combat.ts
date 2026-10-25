@@ -6,7 +6,7 @@ import { hitMutant, type Mutant } from './cast';
 import { consume, log, makeNoise, sfx } from './game';
 import { push } from './body';
 import { knockRag, ragOnLine } from './ragdoll';
-import { closing, DOWN, GLANCE, LAUNCH, POISE, react, REEL, regain, RISE, SHOVE, swingOf, type Swing } from './moves';
+import { closing, DOWN, GLANCE, HITSTOP, LAUNCH, POISE, react, REEL, regain, RISE, SHOVE, swingOf, type Swing } from './moves';
 import { ACTIVE, across, along, frame, meetsCylinder, type Frame, type V3 } from './sweep';
 import type { Input } from './input';
 import { eyeHeight } from './player';
@@ -73,6 +73,8 @@ const dt = STEP;
 const wet = (sim: Sim) => sim.player.water !== 'dry';
 export const loadTime = (sim: Sim, w: WeaponStats) => (w.time + 0.15) * (wet(sim) ? 1.3 : 1);
 const swingFor = (w: WeaponStats) => swingOf(w.kind, w.mass);
+/** how long a blow of it stood still holds still what it lands on, and itself (sim/moves.ts, HITSTOP) */
+const stopFor = (w: WeaponStats) => HITSTOP.base + HITSTOP.kg * w.mass;
 
 /** you are open: a blow of yours thrown, your arm coming back, or you reeling. What waits for its turn goes now. */
 export const exposed = (sim: Sim): boolean => {
@@ -254,7 +256,7 @@ function sweep(sim: Sim, w: WeaponStats, a0: number, a1: number): 'none' | 'hit'
     if (C && tw <= 1) {
       sfx(g, 'blow', C);
       makeNoise(g, 8);
-      landed(sim, 0.8);
+      landed(sim, 0.8, stopFor(w));
       /* it comes back at you: a heavy thing hard enough to knock the wind out of you */
       const r = struck(sim, swingFor(w).poise * GLANCE.poise, { x: C.x, z: C.z });
       log(g, `${sim.game.weapon ?? 'fists'} glanced off the wall  → ${r}  (poise ${(swingFor(w).poise * GLANCE.poise).toFixed(0)}, ${sim.hands.poise.toFixed(0)}/30 left)`);
@@ -293,14 +295,15 @@ function landOn(sim: Sim, w: WeaponStats, m: Mutant, A: V3, B: V3, at: V3): void
   const hl = Math.hypot(B.x - A.x, B.y - A.y, B.z - A.z) || 1;
   let dx = fx + (B.x - A.x) / hl, dz = fz + (B.z - A.z) / hl, dl = Math.hypot(dx, dz);
   if (dl < 0.1) { dx = fx; dz = fz; dl = 1; }
-  hitMutant(sim, m, { dmg: w.dmg, poise: swingFor(w).poise, shove: SHOVE.you * (w.mass + SHOVE.arm), dir: { x: dx / dl, z: dz / dl }, by: sim.game.weapon ?? 'fists', at, way: { x: B.x - A.x, y: B.y - A.y, z: B.z - A.z } }, closing(you + it));
+  const k = closing(you + it), stop = stopFor(w) * k;
+  hitMutant(sim, m, { dmg: w.dmg, poise: swingFor(w).poise, shove: SHOVE.you * (w.mass + SHOVE.arm), dir: { x: dx / dl, z: dz / dl }, by: sim.game.weapon ?? 'fists', at, way: { x: B.x - A.x, y: B.y - A.y, z: B.z - A.z }, stop }, k);
   makeNoise(sim.game, 10);
-  landed(sim, 1);
+  landed(sim, 1, stop);
 }
 
-/** a blow met something: the swing stops for a moment, and the view takes the jolt */
-function landed(sim: Sim, k: number): void {
-  sim.hands.stop = 0.035 + 0.035 * k;
+/** a blow met something: the swing stops in it `stop` seconds (hit-stop), and the view takes a jolt `k` (0..1) hard */
+function landed(sim: Sim, k: number, stop: number): void {
+  sim.hands.stop = stop;
   sim.game.events.push({ type: 'impact', k });
 }
 
