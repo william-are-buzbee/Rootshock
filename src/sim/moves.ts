@@ -88,6 +88,11 @@ export const IMPACT = { head: 11, least: 0.6, most: 1.8 };
 /** how hard a blow lands, as a share of one stood still, for how fast the two were closing along it (m/s) */
 export const closing = (v: number): number => Math.min(IMPACT.most, Math.max(IMPACT.least, 1 + v / IMPACT.head));
 
+/** the pace you were going along your facing when you pressed to swing goes into the blow, though the plant stops
+ *  your feet: it lands as if you were still going that fast (closing). Held up once the arm is, it leaks away, falling
+ *  to a third in this long (s): a sprint is not kept for later */
+export const BANK = { held: 0.36 };
+
 /** a blow of yours that lands holds both still a moment, what struck and what it struck (hit-stop): your swing stops in
  *  it, and it stands where it was hit, everything it was doing waiting, the shove it was given too. This long (s) for a
  *  blow stood still, and this much more a kilogram swung; as much longer as it lands harder (closing). Fists 0.05, the
@@ -133,27 +138,34 @@ export const GLANCE = { poise: 1.1 };
 export interface Swing {
   /** the poise a full blow takes */
   poise: number;
-  /** the step forward a full blow carries you (m/s, along the blow) */
+  /** the step forward a full blow that meets nothing carries you (m/s, along the blow): you swing out after it */
   lunge: number;
-  /** recovery after a full blow that met nothing (s): the weight of it carries on */
+  /** recovery after a full blow that met nothing (s): the weight of it carries on, and you with it */
   miss: number;
-  /** your say over your feet once it is done until it has settled (a share of it): no running, and you want that share
-   *  of your pace and get to it that share as fast; going faster than that you slow as one thrown does. Until it is
-   *  done what you were doing goes on, whatever your keys say, so a blow run in lands harder. Every blow all but stops you;
-   *  a heavy one stiller and longer (engine.md §6, F2) */
-  feet: number;
-  /** how long after it is over your feet are still its (s), landed or not; one that met nothing keeps them while the
-   *  arm comes back, if that is longer */
+  /** recovery after one that landed or glanced (s): what it met stops it, and what it carried goes through you */
   settle: number;
+  /** your feet while the arm comes up and while you recover, as a share of a walk: planted. Going faster than that you
+   *  slow as one thrown does: the plant takes what you were doing, and the blow keeps it (BANK) */
+  plant: number;
+  /** your feet with the load up and held, as a share of a walk: a shuffle, and no running */
+  held: number;
+  /** how fast the line of the blow follows your eyes from the press until it is let go (rad/s): your body turning
+   *  slower than your head, a heavy blow slower still */
+  turn: number;
 }
 
+/* A swing has your feet from the press (engine.md §6, F2): the arm comes up with your foot planted, and you hold it up
+   on a shuffle; let go, your keys do nothing until it is done, what you had going on; then you recover where you
+   stand, a moment if it landed, longer if it met nothing, before you move or swing again. */
 export function swingOf(kind: 'blunt' | 'edge' | 'fist' | 'gun', mass: number): Swing {
   return {
     poise: kind === 'fist' ? 4 : kind === 'edge' ? 9 * mass : 12 * mass,
     lunge: 1 + 0.6 * mass,
     miss: 0.15 + 0.12 * mass,
-    feet: Math.max(0.1, 0.45 - 0.12 * mass),
-    settle: 0.25 + 0.08 * mass,
+    settle: 0.1 + 0.05 * mass,
+    plant: Math.max(0.1, 0.45 - 0.12 * mass),
+    held: Math.max(0.3, 0.65 - 0.1 * mass),
+    turn: Math.max(1.2, 4 - 0.8 * mass),
   };
 }
 

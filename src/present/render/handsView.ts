@@ -15,9 +15,10 @@ import { parts, type Part } from './things';
    straight out. It crosses the middle of the view in the part of the swing that can land. It stops in what it hits,
    rocking back a little off it; one that glances off a wall jumps back further and shakes.
 
-   Thrown, a blow goes along the line it was let go on, wherever you look (sim/combat.ts), and it is drawn on that line:
-   look away and it goes on without you. Over, it is brought back to your hand, not put there: after one that met
-   nothing, over the time the sim keeps your arm coming back, carried on past the end of its swing first. */
+   A load, and a blow, go along the line of the blow (sim/combat.ts, line), and are drawn on it: loading, your body turns
+   after your eyes, so what you hold lags a quick look; thrown, look away and it goes on without you. Over, it is
+   brought back to your hand, not put there, over the time the sim keeps you recovering: after one that met nothing,
+   carried on past the end of its swing first. */
 
 const HALF = Math.PI / 2;
 /** how far past the start of its path a loaded swing is drawn back (radians): a side swing far enough to read as drawn,
@@ -107,7 +108,8 @@ export class HandsView {
       const missed = !!this.was.missed && this.was.glance === undefined;
       this.back = { at: vm.position.clone(), q: vm.quaternion.clone(), shape: w.shape, mass: w.mass, missed, dur: h.rec > 0 ? h.rec : BACK, t0: sim.tick, rec: h.rec > 0 };
     }
-    if (sw) { this.back = null; if (h.line) { this.line.yaw = h.line.yaw; this.line.pitch = h.line.pitch; } }
+    if (sw) this.back = null;
+    if (h.line) { this.line.yaw = h.line.yaw; this.line.pitch = h.line.pitch; }
     this.was = sw;
     const ld = h.chg >= 0 ? clamp(h.chg / loadTime(sim, w), 0, 1) : 0;
     const shape = w.shape, thrust = fist || shape === 'thrust', tilt = -0.15;
@@ -153,7 +155,7 @@ export class HandsView {
     if (!flung && h.stag > 0) { const sh = Math.sin(time * 31) * 0.02 * reel; vm.position.x += sh; vm.position.y += sh - 0.06 * reel; }
     /* a swing over, brought back to where the hand is wanted now: from where it was left, or, one that met nothing,
        carried on from there first, the weight of it still going */
-    let held = sw ? 1 : 0;
+    let held = sw || (h.chg >= 0 && h.line) ? 1 : 0;
     const B = this.back;
     if (B) {
       const k = clamp(B.rec ? 1 - h.rec / B.dur : sim.tick < B.t0 ? 1 : ((sim.tick - B.t0) * STEP) / B.dur, 0, 1), e = ease(B.missed ? clamp((k - 0.3) / 0.7, 0, 1) : k);
@@ -167,7 +169,8 @@ export class HandsView {
       held = 1 - e;
       if (k >= 1) this.back = null;
     }
-    /* a blow under way is drawn on the line it was thrown along, so a look away leaves it behind; it comes back to the
+    /* a load, and a blow under way, are drawn on the line of the blow (sim/combat.ts, line): loading, your body turns
+       after your eyes, and what you hold lags a quick look; thrown, a look away leaves it behind. It comes back to the
        view as it is brought back */
     if (held > 0) {
       Q0.setFromEuler(LOOK.set(look.pitch, look.yaw, 0)).invert().multiply(Q1.setFromEuler(LOOK.set(this.line.pitch, this.line.yaw, 0)));

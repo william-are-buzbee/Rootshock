@@ -30,7 +30,7 @@ function look(s: Sim, m: Mutant): void {
 }
 
 describe('a blow lands by how fast you were closing', () => {
-  it('run in and it lands harder; back off as you throw it and it lands softer', () => {
+  it('run in and it lands harder; back off as you press and it lands softer: the plant stops you, the blow keeps it', () => {
     const standing = (() => {
       const s = hall(b => b.mutant('husk', 11.6, 0, 6)), m = s.cast[0];
       give(s.game, 'axe');
@@ -39,20 +39,23 @@ describe('a blow lands by how fast you were closing', () => {
       return lost(m);
     })();
     const running = (() => {
+      /* sprinted at, and clicked as it comes into reach: the plant slides you into reach and stops you there */
       const s = hall(b => b.mutant('husk', 11.6, 0, 6), [3, 6]), m = s.cast[0];
       give(s.game, 'axe');
-      for (let t = 0; t < 3 && lost(m) === 0; t += STEP) {
-        const up = s.hands.full && m.dp < AXE_REACH + m.r - 0.1;
-        step(s, { ...noInput(), forward: 1, run: true, attack: !up && !s.hands.swing });
+      let at = -1;
+      for (let k = 0; k < 300 && lost(m) === 0; k++) {
+        if (at < 0 && m.dp < AXE_REACH + m.r + 0.3) at = k;
+        step(s, { ...noInput(), forward: at < 0 ? 1 : 0, run: at < 0, attack: k === at });
       }
       return lost(m);
     })();
     const backing = (() => {
-      const s = hall(b => b.mutant('husk', 10.75, 0, 6)), m = s.cast[0];
+      /* backing off, and clicked as you go */
+      const s = hall(b => b.mutant('husk', 11, 0, 6)), m = s.cast[0];
       give(s.game, 'axe');
-      hold(s, 1.2, { attack: true });
-      hold(s, 0.15, { attack: true, forward: -1 });
-      hold(s, 1, { forward: -1 });
+      hold(s, 0.25, { forward: -1 });
+      hold(s, STEP, { attack: true });
+      hold(s, 2);
       return lost(m);
     })();
     expect(standing).toBeGreaterThan(0);
@@ -95,13 +98,15 @@ describe('a blow lands by how fast you were closing', () => {
 });
 
 describe('a blow that lands holds both still a moment (hit-stop)', () => {
-  /** a husk 1.6 m off, struck with `weapon` stood still (a click), or run in at from 7 m off; stepped to the step it lands */
+  /** a husk 1.6 m off, struck with `weapon` stood still (a click), or sprinted at from 7 m off and clicked as it comes
+   *  into reach; stepped to the step it lands */
   function landing(weapon: string, run = false): Sim {
     const s = hall(b => b.mutant('husk', 11.6, 0, 6), run ? [3, 6] : undefined), m = s.cast[0];
     give(s.game, weapon);
-    for (let t = 0; t < 4 && lost(m) === 0; t += STEP) {
-      const up = s.hands.full && m.dp < AXE_REACH + m.r - 0.1;
-      step(s, { ...noInput(), forward: run ? 1 : 0, run, attack: run ? !up && !s.hands.swing : t === 0 });
+    let at = run ? -1 : 0;
+    for (let k = 0; k < 300 && lost(m) === 0; k++) {
+      if (at < 0 && m.dp < AXE_REACH + m.r + 0.3) at = k;
+      step(s, { ...noInput(), forward: at < 0 ? 1 : 0, run: at < 0, attack: k === at });
     }
     expect(lost(s.cast[0])).toBeGreaterThan(0);
     return s;

@@ -1,12 +1,12 @@
 import { wstats, type WeaponStats } from '../content/items';
-import { clamp } from '../core/math';
+import { angDiff, clamp } from '../core/math';
 import { STEP } from '../core/loop';
 import type { Dyn } from '../world/world';
 import { hitMutant, type Mutant } from './cast';
 import { consume, log, makeNoise, sfx } from './game';
 import { push } from './body';
 import { knockRag, ragOnLine } from './ragdoll';
-import { closing, DOWN, GLANCE, HITSTOP, LAUNCH, POISE, react, REEL, regain, RISE, SHOVE, swingOf, type Swing } from './moves';
+import { BANK, closing, DOWN, GLANCE, HITSTOP, LAUNCH, POISE, react, REEL, regain, RISE, SHOVE, swingOf, type Swing } from './moves';
 import { ACTIVE, across, along, frame, meetsCylinder, type Frame, type V3 } from './sweep';
 import type { Input } from './input';
 import { eyeHeight } from './player';
@@ -19,8 +19,10 @@ export { wstats, type WeaponStats };
    click, and it swings as soon as the arm is up; hold, and it stays up until you let go. There are no half blows. A
    blow that lands stops the swing for a moment (hit-stop), so you feel it land. A gun fires on the press.
 
-   Once thrown, a blow is committed (sim/moves.ts): it goes along the line you let it go on, wherever you look after;
-   a full one carries you a step forward, and one that meets nothing leaves you longer coming back. A load can be held
+   A swing has your feet from the press (sim/moves.ts, swingOf): planted while the arm comes up, the pace you had going
+   into the blow; a shuffle with it held up, its line turning after your eyes no faster than your body can. Once let
+   go it is committed: it goes along that line wherever you look after, your keys doing nothing till it is done; then
+   you recover where you stand, a moment if it landed, longer if it met nothing (swung out a step). A load can be held
    as long as you like, and nothing that hits you takes a load or a blow from you short of putting you on the floor. A
    hit takes poise, though: enough of it and you reel, thrown back and slowed, and cannot start another load until you
    have your feet; enough to floor you, and what was in your hands goes with your footing. A press while you are busy
@@ -36,12 +38,14 @@ export interface Hands {
    *  been traced (sim/sweep.ts); whether that part is over, and whether it ended meeting nothing but the world; and
    *  how far through it was when it glanced off something, or when it met one of the cast and stopped in it, if it did */
   swing: { t: number; dur: number; a: number; done: boolean; missed?: boolean; glance?: number; struck?: number; knocked?: number[] } | null;
-  /** the line a thrown blow goes along, fixed as you let it go */
+  /** the line the blow goes along: from the press, following your eyes as fast as your body turns (sim/moves.ts,
+   *  Swing.turn), and fixed once it is let go */
   line: { yaw: number; pitch: number } | null;
-  /** after a blow that met nothing, the arm coming back: no new swing until it is in */
+  /** the pace banked into the blow at the press (m/s along your facing), leaking while it is held up (sim/moves.ts,
+   *  BANK) */
+  carry: number;
+  /** after a blow, recovering: a moment if it landed, longer if it met nothing; no moving and no new swing till done */
   rec: number;
-  /** after any blow, seconds left that your feet are still its (sim/moves.ts, Swing.settle) */
-  plant: number;
   /** a blow has landed: the swing holds still this long */
   stop: number;
   /** a gun's cooldown */
@@ -65,7 +69,7 @@ export interface Hands {
 }
 
 export const makeHands = (): Hands => ({
-  chg: -1, full: false, go: false, swing: null, line: null, rec: 0, plant: 0, stop: 0, gcd: 0, kick: 0, muzzle: 0, held: false, buf: 0,
+  chg: -1, full: false, go: false, swing: null, line: null, carry: 0, rec: 0, stop: 0, gcd: 0, kick: 0, muzzle: 0, held: false, buf: 0,
   poise: POISE.you, calm: 99, stag: 0, down: 0, rise: 0, side: 1,
 });
 
@@ -85,24 +89,28 @@ export const exposed = (sim: Sim): boolean => {
   return h.rec > 0 || h.stag > 0 || !!h.swing?.done;
 };
 
-/** your pace as a share of it: none on the floor, a third while you reel or get up (sim/moves.ts, REEL, DOWN); loading
- *  does not slow you, and swinging takes your feet another way (feet) */
+/** your pace as a share of it: none on the floor, a third while you reel or get up (sim/moves.ts, REEL, DOWN); a swing
+ *  takes your feet another way (stance) */
 export const pace = (sim: Sim): number => {
   const h = sim.hands;
   return h.down > 0 ? 0 : h.stag > 0 || h.rise > 0 ? REEL.pace : 1;
 };
 
-/** your say over your feet, as a share of it (sim/moves.ts, Swing.feet): a blow of yours has them from letting it go
- *  until it has settled, and, one that met nothing, until the arm is in. Loading does not */
-export const feet = (sim: Sim): number => {
+/** what a swing has your feet doing (sim/moves.ts, swingOf; player.ts): free; planted, while the arm comes up and while
+ *  you recover; held, a shuffle with the load up; or striking, from letting go until it is done, your keys doing nothing
+ *  and what you had going on */
+export type Stance = 'free' | 'planted' | 'held' | 'striking';
+export const stance = (sim: Sim): Stance => {
   const h = sim.hands;
-  return h.swing || h.rec > 0 || h.plant > 0 ? swingFor(wstats(sim.game.weapon)).feet : 1;
+  if (h.swing) return h.swing.done ? 'planted' : 'striking';
+  if (h.chg >= 0) return h.full ? 'held' : 'planted';
+  return h.rec > 0 ? 'planted' : 'free';
 };
 
-/** the blow you let go is done, landed or not, and has your feet still: you are planted (player.ts) */
-export const planted = (sim: Sim): boolean => {
-  const h = sim.hands;
-  return h.swing ? h.swing.done : h.rec > 0 || h.plant > 0;
+/** your feet as a share of a walk, for the stance */
+export const feet = (sim: Sim, st = stance(sim)): number => {
+  const S = swingFor(wstats(sim.game.weapon));
+  return st === 'planted' ? S.plant : st === 'held' ? S.held : 1;
 };
 
 /** you are on the floor, or getting up from it */
@@ -114,7 +122,6 @@ export function updateHands(sim: Sim, input: Input): void {
   if (h.kick > 0) h.kick = Math.max(0, h.kick - dt * 5);
   if (h.muzzle > 0) h.muzzle -= dt;
   if (h.rec > 0) h.rec -= dt;
-  if (h.plant > 0) h.plant -= dt;
   if (h.stag > 0) h.stag = Math.max(0, h.stag - dt);
   if (h.down > 0) { h.down = Math.max(0, h.down - dt); if (h.down === 0) h.rise = DOWN.rise; }
   else if (h.rise > 0) h.rise = Math.max(0, h.rise - dt);
@@ -126,17 +133,28 @@ export function updateHands(sim: Sim, input: Input): void {
   if (w.gun) { h.chg = -1; h.swing = null; if (press && h.stag <= 0 && !floored(sim)) fire(sim, w); return; }
   const free = !h.swing && h.chg < 0 && h.rec <= 0 && h.stag <= 0 && !floored(sim);
   if (press && !free) h.buf = BUF;
-  /* a buffered press starts the load whether or not it is still held: let go already, it is a click */
-  if (free && (press || h.buf > 0)) { h.chg = 0; h.full = false; h.go = !input.attack; h.buf = 0; }
+  /* a buffered press starts the load whether or not it is still held: let go already, it is a click. The press plants
+     your foot: the pace you had along your facing goes into the blow (sim/moves.ts, BANK), and its line is where you
+     look */
+  if (free && (press || h.buf > 0)) {
+    const p = sim.player, b = p.body;
+    h.chg = 0; h.full = false; h.go = !input.attack; h.buf = 0;
+    h.line = { yaw: p.yaw, pitch: p.pitch };
+    h.carry = -(b.vx * Math.sin(p.yaw) + b.vz * Math.cos(p.yaw));
+  }
   if (h.chg >= 0) {
     h.chg += dt;
     if (release) h.go = true;
+    /* your body turns after your eyes, as fast as what you hold lets it */
+    const L = h.line!, k = S.turn * dt;
+    L.yaw += clamp(angDiff(L.yaw, sim.player.yaw), -k, k);
+    L.pitch += clamp(sim.player.pitch - L.pitch, -k, k);
+    if (h.full) h.carry *= Math.exp(-dt / BANK.held);
     if (h.chg >= loadTime(sim, w) && !h.full) { h.full = true; if (!h.go) sfx(g, 'load'); }
-    /* up, and let go of: down it comes, along the way you face now */
+    /* up, and let go of: down it comes, along the line your body is turned to */
     if (h.full && h.go) {
       h.chg = -1; h.full = false; h.go = false;
       h.swing = { t: 0, dur: (0.2 + 0.05 * w.mass) * (wet(sim) ? 1.3 : 1), a: 0, done: false };
-      h.line = { yaw: sim.player.yaw, pitch: sim.player.pitch };
       sfx(g, 'swing');
     }
   }
@@ -154,15 +172,14 @@ export function updateHands(sim: Sim, input: Input): void {
         s.done = true;
         s.missed = met !== 'hit';
         if (met === 'glance') s.glance = q;
-        /* it stops in what it hit: it does not go on through it */
+        /* it stops in what it hit: it does not go on through it. One that met nothing swings you out after it */
         if (met === 'hit') s.struck = q;
-        lunge(sim, S);
+        if (met === 'none') lunge(sim, S);
       }
     }
     if (q >= 1) {
-      h.swing = null; h.line = null;
-      if (s.missed) h.rec = S.miss;
-      h.plant = S.settle;
+      h.swing = null; h.line = null; h.carry = 0;
+      h.rec = s.missed && s.glance === undefined ? S.miss : S.settle;
     }
   }
 }
@@ -194,7 +211,7 @@ export function struck(sim: Sim, poise: number, from?: { x: number; z: number },
        your footing, the load you held up and the blow you threw. A button still held when you are up starts nothing:
        let go and press again */
     h.down = DOWN.time; h.rise = 0; h.stag = 0;
-    h.chg = -1; h.full = false; h.go = false; h.swing = null; h.line = null; h.buf = 0;
+    h.chg = -1; h.full = false; h.go = false; h.swing = null; h.line = null; h.carry = 0; h.buf = 0;
     if (from) { const r = { x: Math.cos(sim.player.yaw), z: -Math.sin(sim.player.yaw) }; h.side = (b.x - from.x) * r.x + (b.z - from.z) * r.z >= 0 ? 1 : -1; }
     if (dv >= LAUNCH.dv) push(b, 0, 0, LAUNCH.up * dv);
     sfx(g, 'reel');
@@ -302,7 +319,7 @@ function knock(sim: Sim, w: WeaponStats, m: Mutant, A: V3, B: V3, F: Frame, hx =
   const hl = Math.hypot(hx, hy, hz) || 1;
   /* half along the line it was thrown, half the way the head was going (hx, hy, hz), as a blow on the living goes */
   const way = { x: fx + hx / hl, y: hy / hl, z: fz + hz / hl };
-  knockRag(m.rag!, hit.at, way, SHOVE.you * (w.mass + SHOVE.arm) * closing(b.vx * fx + b.vz * fz), sim.tick);
+  knockRag(m.rag!, hit.at, way, SHOVE.you * (w.mass + SHOVE.arm) * closing(b.vx * fx + b.vz * fz + sim.hands.carry), sim.tick);
   sfx(sim.game, 'hit', hit.at);
   return true;
 }
@@ -312,7 +329,7 @@ function knock(sim: Sim, w: WeaponStats, m: Mutant, A: V3, B: V3, F: Frame, hx =
  *  worm off to your left) */
 function landOn(sim: Sim, w: WeaponStats, m: Mutant, A: V3, B: V3, at: V3): void {
   const b = sim.player.body, L = sim.hands.line ?? sim.player, fx = -Math.sin(L.yaw), fz = -Math.cos(L.yaw);
-  const you = b.vx * fx + b.vz * fz, it = m.fixed ? 0 : -((m.x - m.px) * fx + (m.z - m.pz) * fz) / dt;
+  const you = b.vx * fx + b.vz * fz + sim.hands.carry, it = m.fixed ? 0 : -((m.x - m.px) * fx + (m.z - m.pz) * fz) / dt;
   /* the head's way across the floor counts by how much of its going is across the floor: a chop coming down (or, low,
      back toward you) shoves along the line, not off it. (Each made a unit on its own, a chop landing below your eye
      summed to almost nothing, and the shove went whichever way what was left of it pointed) */
