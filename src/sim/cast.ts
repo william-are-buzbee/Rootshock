@@ -10,7 +10,7 @@ import { away, chargeMove, chase, drive, go, rnd, roomWp, step_, turnTo } from '
 import { hears, inBeam, seeP, sight } from './cast/senses';
 import { battered, beginBlow, blowKind, blowStep, frontOf, inStart, strikes, type Blow } from './cast/blows';
 import { husk, updateDrills } from './cast/husk';
-import { patient } from './cast/round';
+import { patient, ROUND, swingTorch } from './cast/round';
 
 /* The cast (engine.md §7, §8): what lives in the station, ported from the first engine's behaviours. Each is a body that
    walks like yours, so it has weight, falls, rides platforms and is stopped by what stops you; they block each other
@@ -103,8 +103,8 @@ export interface Mutant {
   drag: number; trail: number;
   /** seconds left of grafting what it took (the night round, world.md §8); the leaf in it (the other patient) */
   graft: number; grafted: boolean;
-  /** its flashlight is on in its hand */
-  torch: boolean;
+  /** its flashlight is on in its hand, and how far down it holds it (rad: cast/round.ts, swingTorch) */
+  torch: boolean; tp: number;
   /** where it started, which it keeps near */
   hx: number; hz: number;
   room: number;
@@ -177,7 +177,7 @@ function makeMutant(sim: Sim, def: MutantDef, id: number): Mutant {
       opens: !!S.opens, low: !!S.low, noDoors: !!S.noDoors, fixed: !!S.fixed, swim: !!S.swim, solid: !!S.solid,
       post: !!o.post, sit: !!o.sit, holt: !!o.holt, big: !!o.big, hx: def.x, hz: def.z, room,
       cards: !!sim.world.def.cards && !!S.opens && !!sim.world.rooms[room]?.zone, door: -1,
-      round: (def.opts.round as RoundStop[] | undefined) ?? null, beat: 0, lap: 0, peered: 99, torch: !!S.torch,
+      round: (def.opts.round as RoundStop[] | undefined) ?? null, beat: 0, lap: 0, peered: 99, torch: !!S.torch, tp: ROUND.pitch,
       hide: (def.opts.hide as { x: number; z: number } | undefined) ?? null, drag: -1, trail: 0, graft: 0, grafted: false,
       wt: rnd(1, 5), wm: 0, wx: 0, wz: 0, tk: 0, lost: 0, bt: 0, burst: false, flee: 0, ct: rnd(6, 14), cdir: 0, tgt: false,
       grab: 0, tense: 0, blow: null, dest: -1, F: null, stk: 0, fled: false, side: 0, ride: null, spot: -1,
@@ -402,6 +402,7 @@ export function updateCast(sim: Sim): void {
     m.drove = false;
     if (m.stun > 0) m.stun -= dt;
     else AI[m.ai](sim, m);
+    if (m.torch) swingTorch(sim, m);
     /* nothing it did moved it this step (it stands, winds up, reels, lies there): it comes to a stop on its own feet,
        or, faster than it would go, by friction; what it meets meanwhile, it shoves */
     if (mb && !m.dead && !m.drove) drive(sim, m, 0, 0);

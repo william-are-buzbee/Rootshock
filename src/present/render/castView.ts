@@ -274,7 +274,7 @@ export const ANIM: Record<string, (m: Mutant, M: Model, c: Ctx) => void> = {
       M.hd.rotation.z = 0.12;
     }
   },
-  husk(m, M, c) {
+  husk(m, M) {
     const mv = m.mv > 0, hunt = m.state === 'hunt', f = hunt ? 11 : 5;
     for (let k = 0; k < 2; k++) { M.legs[k].rotation.x = mv ? Math.sin(m.ph * f + k * PI) * (hunt ? 0.7 : 0.35) : 0; if (M.shins) M.shins[k].rotation.x = 0; }
     M.arms[0].rotation.x = hunt ? -1.1 + Math.sin(m.ph * f) * 0.2 : mv ? Math.sin(m.ph * f + PI) * 0.25 : 0;
@@ -314,7 +314,7 @@ export const ANIM: Record<string, (m: Mutant, M: Model, c: Ctx) => void> = {
     M.hd.rotation.z = 0.25 + Math.sin(m.ph * 0.7) * 0.1 + (Math.random() < 0.015 ? r(-0.5, 0.5) : 0);
     M.hd.rotation.y = Math.sin(m.ph * 0.5) * 0.25;
     /* the flashlight held out along its beam, whatever the other arm is doing (sim/cast.ts, torchRay) */
-    if (M.lens) M.arms[0].rotation.x = torchRay(c.sim, m).pitch - PI / 2;
+    if (M.lens) M.arms[0].rotation.x = torchRay(m).pitch - PI / 2;
     /* dragging the other patient by an ankle: the other arm down and back, the hand low behind it */
     if (m.drag >= 0) { M.arms[1].rotation.x = 0.6; M.arms[1].rotation.z = -0.15; }
     /* grafting: down on its knees over the body, bent to it, the free hand driving into the arm, again and again */

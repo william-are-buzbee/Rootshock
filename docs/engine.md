@@ -890,12 +890,24 @@ Each measured headless before it was touched (`test/probes/snap.probe.ts` for th
   rad in a frame; it was 0.28).
 - **The other patient, pointing at the balcony**, turns its head from you to it and back in a fifth of a second, not a
   frame.
+- **The night round's flashlight** went where its state put it the step it changed (down the way ahead, up onto you),
+  and with the arm drawn holding it eased, the two parted for a fifth of a second. Now the sim swings it: it holds its
+  light at a pitch of its own (`Mutant.tp`, saved) that goes toward where it wants it, most of the way in a fifth of a
+  second (`TORCH.swing`, `swingTorch` in `cast/round.ts`), and the beam, the light it puts on you for the cast, and the
+  arm drawn holding it all go from that one pitch. A rule changed with it, slightly: the beam takes that fifth of a
+  second to come onto you, so you are lit by it that much later. What its light throws back into the field
+  (`Lighting.lights`) was worked out again only when the light moved half a metre or turned 8° in a step, which one
+  carried about never did: it stayed where the beam was when it last jumped, 10 m behind the night round on average
+  and 26 m at worst. Its jumps are what had kept it anywhere near, and with them gone it would have stayed further
+  behind still. Now it is worked out again once the light has gone half a metre or turned 8° since it last was: never
+  more than 0.6 m behind, about three times a second, 26 bricks of the light field a second sent to the card (was 7).
 - **Measured** (the arena, struck every 1.5 s, you going from one end to the other every 2 s; the most a part moves in
   a frame, in the model's own frame): a husk 0.30 m (was 1.94: its arm thrown from overhead to its side, a walk begun
   at a pace not the one it stood at), a thresher 0.49 (was 1.98; its arms flail half a metre a frame winding up, as
   they always did), a worm 0.03 (was 0.21), a skitter 0.58 (as it was: the end of its strike, nose first, in a tenth of
   a second).
-- **Tests**: `test/fade.test.ts`; `test/ragdoll.test.ts`, *drawn going loose*.
+- **Tests**: `test/fade.test.ts`; `test/ragdoll.test.ts`, *drawn going loose*; `test/nightround.test.ts`, its beam
+  swung onto you and what it throws back going along with it.
 
 ---
 
@@ -1129,7 +1141,8 @@ since: §11).
   hand; taken again, it is on in your hand. The flashlight at the stair's foot is one (`ItemDef.on`: lying on, and its
   aim). A flashlight lying on is drawn with the same beam as yours (`FLASH` and `spot` in `world/light.ts`), from its
   lens, with a shadow map of its own (`render/beams.ts`, the two nearest you); what it throws back (`BOUNCE`, as yours
-  does) and a lantern lying on (`LANTERN`) go into the level's light field (`Lighting.lights`). A point is looked up
+  does) and a lantern lying on (`LANTERN`) go into the level's light field (`Lighting.lights`), worked out again once
+  the light has gone half a metre or turned 8° since it last was (`DRIFT`). A point is looked up
   in a beam's map off its surface by two of the map's texels as wide as they are there (`STANDOFF` in
   `render/shader.ts`), yours as well: by a fixed few centimetres, a floor a beam raked from far off shadowed itself in
   stripes, the map's rows and columns, that crawled as the beam moved. The night round's torch showed them across the

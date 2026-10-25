@@ -95,7 +95,7 @@ export function looseLights(sim: Sim): Loose[] {
   /* and the night round's, in its hand (sim/cast.ts, torchRay) */
   for (const m of sim.cast) {
     if (!m.torch || m.dead || m.away) continue;
-    const { x, y, z, dx, dy, dz } = torchRay(sim, m);
+    const { x, y, z, dx, dy, dz } = torchRay(m);
     out.push({ key: 'torch' + m.id, kind: 'flash', x, y, z, dx, dy, dz, k: 1 });
   }
   return out;
