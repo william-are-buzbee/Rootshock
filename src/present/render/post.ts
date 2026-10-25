@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { DEPTH_FIRST, U, depthFirstMaterial } from './shader';
+import { dbg } from '../debug';
 
 /* The picture, made from the scene once it is drawn. The scene is drawn into a target that holds light as it is, past
    white where it is brighter than that (a tube, the beam's hot centre close up), not clipped to what a screen can show;
@@ -101,7 +102,9 @@ void main(){
   vec3 h3 = fract(vec3(gl_FragCoord.xyx + floor(fract(uTime * 7.13) * 977.0)) * 0.1031);
   h3 += dot(h3, h3.yzx + 33.33);
   float gr = fract((h3.x + h3.y) * h3.z) - 0.5;
+#ifndef DBG_NOGRAIN
   c += gr * 0.022 * (1.0 - smoothstep(0.0, 0.35, dot(c, vec3(0.3, 0.59, 0.11))));
+#endif
   gl_FragColor = vec4(c, 1.0);
 }`;
 
@@ -126,14 +129,15 @@ export class Post {
   constructor(private renderer: THREE.WebGLRenderer) {
     const ext = renderer.extensions;
     this.type = ext.has('EXT_color_buffer_float') || ext.has('EXT_color_buffer_half_float') ? THREE.HalfFloatType : THREE.UnsignedByteType;
-    this.scene = new THREE.WebGLRenderTarget(1, 1, { type: this.type, samples: 4, depthBuffer: true });
+    this.scene = new THREE.WebGLRenderTarget(1, 1, { type: this.type, samples: dbg('nomsaa') ? 0 : 4, depthBuffer: true });
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.Float32BufferAttribute([-1, -1, 0, 3, -1, 0, -1, 3, 0], 3));
     const src = () => ({ uSrc: { value: null as THREE.Texture | null }, uPx: { value: new THREE.Vector2() } });
     this.first = pass(DOWN, { ...src(), uExpo: U.uExpo }, { defines: { FIRST: '' } });
     this.down = pass(DOWN, { ...src(), uExpo: U.uExpo });
     this.up = pass(UP, src(), { blending: THREE.AdditiveBlending, transparent: true });
-    this.final = pass(FINAL, { uScene: { value: this.scene.texture }, uGlow: { value: null }, uExpo: U.uExpo, uGlowK: { value: GLOW.gain / GLOW.steps }, uTime: U.uTime });
+    this.final = pass(FINAL, { uScene: { value: this.scene.texture }, uGlow: { value: null }, uExpo: U.uExpo, uGlowK: { value: GLOW.gain / GLOW.steps }, uTime: U.uTime },
+      { defines: dbg('nograin') ? { DBG_NOGRAIN: '' } : {} });
     this.quad = new THREE.Mesh(geo, this.final);
     this.quad.frustumCulled = false;
     this.stage.add(this.quad);
@@ -154,7 +158,7 @@ export class Post {
       if (sw <= 2 || sh <= 2) break;
     }
     this.final.uniforms.uGlow.value = this.steps[0].texture;
-    this.final.uniforms.uGlowK.value = GLOW.gain / this.steps.length;
+    this.final.uniforms.uGlowK.value = dbg('noglow') ? 0 : GLOW.gain / this.steps.length;
   }
 
   private draw(mat: THREE.ShaderMaterial, to: THREE.WebGLRenderTarget | null, src?: THREE.WebGLRenderTarget): void {
@@ -173,11 +177,14 @@ export class Post {
   render(scene: THREE.Scene, camera: THREE.Camera): void {
     const r = this.renderer, was = r.autoClear, layers = camera.layers.mask, over = scene.overrideMaterial;
     r.setRenderTarget(this.scene);
-    camera.layers.set(DEPTH_FIRST);
-    scene.overrideMaterial = this.depthFirst;
-    r.render(scene, camera);
-    scene.overrideMaterial = over;
-    camera.layers.mask = layers;
+    if (dbg('noprepass')) r.clear();
+    else {
+      camera.layers.set(DEPTH_FIRST);
+      scene.overrideMaterial = this.depthFirst;
+      r.render(scene, camera);
+      scene.overrideMaterial = over;
+      camera.layers.mask = layers;
+    }
     r.autoClear = false;
     r.render(scene, camera);
     const S = this.steps;

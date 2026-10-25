@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { BR, LCELL, LOFF } from '../../world/lightField';
 import { BOUNCE, FLASH, LANTERN, POOL } from '../../world/light';
 import { MATS, MAT_ORDER, type Mat, type Pattern } from '../../content/materials';
+import { dbgDefines } from '../debug';
 
 /* One shader for everything, carried over from the first engine.
    Light = the level's light (read point by point from its light field for the level itself, per object for things that
@@ -177,6 +178,9 @@ vec3 beamOn(vec3 p, vec3 n, vec4 B, vec3 dir, float seen){
 vec3 offFor(vec3 p, vec3 n, vec3 B){ return p + n * (${f3(STANDOFF.base)} + ${perMetre(SHADOW_CAM.fov, SHADOW)} * length(p - B)); }
 vec3 lying(vec3 p, vec3 n){
   vec3 out3 = vec3(0.0);
+#ifdef DBG_NOBEAMS
+  return out3;
+#endif
   if (uBeam[0].w > 0.0) out3 += beamOn(p, n, uBeam[0], uBeamDir[0], unshadowed(uSh0, uBeamM[0], offFor(p, n, uBeam[0].xyz), ${(1 / SHADOW).toFixed(7)}));
   if (uBeam[1].w > 0.0) out3 += beamOn(p, n, uBeam[1], uBeamDir[1], unshadowed(uSh1, uBeamM[1], offFor(p, n, uBeam[1].xyz), ${(1 / SHADOW).toFixed(7)}));
   return out3;
@@ -549,9 +553,21 @@ void main(){
   /* the level's light here, and which way it comes from */
   vec3 lvl = vec3(0.0), dl = vec3(0.0);
 #if defined(STATIC)
+#ifdef DBG_FLAT
+  vec3 fl = vec3(0.0), lv = vec3(0.3);
+#else
   float px = length(fwidth(vW));
   vec3 fl, lv = field(vW, nf, px, fl, dl);
-  lvl = (lv - fl * 0.55 * uFlick) * (vL.x > 1.0 ? vL.x * ${f3(EMIT.fitting)} : vL.x) * selfShade(vW, nf);
+#endif
+#ifdef DBG_NODIR
+  dl = vec3(0.0);
+#endif
+#ifdef DBG_NOSELF
+  float shade = 1.0;
+#else
+  float shade = selfShade(vW, nf);
+#endif
+  lvl = (lv - fl * 0.55 * uFlick) * (vL.x > 1.0 ? vL.x * ${f3(EMIT.fitting)} : vL.x) * shade;
   vec3 light = lvl * takes(nf, nb, dl, sh, rel);
 #elif defined(BAKED)
   vec3 light = vL * sh;
@@ -654,7 +670,7 @@ export const U = {
 /** what a vertex is made of, and its room's floor and ceiling, where its geometry does not say: nothing, and no room */
 const DEFAULTS = { aMat: [0], aRoomY: [0, 0] };
 function material(o: THREE.ShaderMaterialParameters): THREE.ShaderMaterial {
-  const m = new THREE.ShaderMaterial({ vertexShader: VS, fragmentShader: FS, side: THREE.DoubleSide, ...o });
+  const m = new THREE.ShaderMaterial({ vertexShader: VS, fragmentShader: FS, side: THREE.DoubleSide, ...o, defines: { ...dbgDefines(), ...o.defines } });
   m.defaultAttributeValues = { ...m.defaultAttributeValues, ...DEFAULTS };
   return m;
 }

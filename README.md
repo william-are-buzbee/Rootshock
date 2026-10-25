@@ -34,6 +34,13 @@ lets them go. The readout shows how you stand and the last few blows in numbers:
 shove, and what came of it. `?level=<id>` starts on another level (`upper`, `main`, `plant`, `sump`, `sumpdeep`, `cave`, or `testbed`);
 `?power=full` starts with everything on.
 
+For a fault in the picture that one card draws and another does not, `?dbg=` leaves stages of it out, comma-separated
+(`src/present/debug.ts`): `flat` (the level's light a plain grey, its light field not read), `nodir` (its light taken as
+coming from every way), `noself` (no shadow of your body from the fittings), `nobeams` (no light from beams lying about,
+the night round's torch among them), `noprepass` (the level's depth not drawn before it is lit), `noglow`, `nograin`,
+`nomsaa` (edges not smoothed). `?detail=off` leaves out what surfaces are made of. Whichever makes the fault go is the
+stage that draws it.
+
 | command | what it does |
 |---|---|
 | `npm run dev` | play it while you work on it |
