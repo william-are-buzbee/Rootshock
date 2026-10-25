@@ -6,7 +6,7 @@ import { hitMutant, type Mutant } from './cast';
 import { consume, log, makeNoise, sfx } from './game';
 import { push } from './body';
 import { knockRag, ragOnLine } from './ragdoll';
-import { closing, DOWN, GLANCE, LAUNCH, POISE, react, REEL, regain, RISE, SHOVE, swingOf, type Swing } from './moves';
+import { closing, DOWN, GLANCE, HITSTOP, LAUNCH, POISE, react, REEL, regain, RISE, SHOVE, swingOf, type Swing } from './moves';
 import { ACTIVE, across, along, frame, meetsCylinder, type Frame, type V3 } from './sweep';
 import type { Input } from './input';
 import { eyeHeight } from './player';
@@ -21,9 +21,10 @@ export { wstats, type WeaponStats };
 
    Once thrown, a blow is committed (sim/moves.ts): it goes along the line you let it go on, wherever you look after;
    a full one carries you a step forward, and one that meets nothing leaves you longer coming back. A load can be held
-   as long as you like, and nothing that hits you takes a load or a blow from you. A hit takes poise, though: enough of
-   it and you reel, thrown back and slowed, and cannot start another load until you have your feet. A press while you
-   are busy is kept a moment, so a blow can follow a blow. */
+   as long as you like, and nothing that hits you takes a load or a blow from you short of putting you on the floor. A
+   hit takes poise, though: enough of it and you reel, thrown back and slowed, and cannot start another load until you
+   have your feet; enough to floor you, and what was in your hands goes with your footing. A press while you are busy
+   is kept a moment, so a blow can follow a blow. */
 
 export interface Hands {
   /** seconds a swing has been loading; -1 when not */
@@ -39,6 +40,8 @@ export interface Hands {
   line: { yaw: number; pitch: number } | null;
   /** after a blow that met nothing, the arm coming back: no new swing until it is in */
   rec: number;
+  /** after any blow, seconds left that your feet are still its (sim/moves.ts, Swing.settle) */
+  plant: number;
   /** a blow has landed: the swing holds still this long */
   stop: number;
   /** a gun's cooldown */
@@ -62,7 +65,7 @@ export interface Hands {
 }
 
 export const makeHands = (): Hands => ({
-  chg: -1, full: false, go: false, swing: null, line: null, rec: 0, stop: 0, gcd: 0, kick: 0, muzzle: 0, held: false, buf: 0,
+  chg: -1, full: false, go: false, swing: null, line: null, rec: 0, plant: 0, stop: 0, gcd: 0, kick: 0, muzzle: 0, held: false, buf: 0,
   poise: POISE.you, calm: 99, stag: 0, down: 0, rise: 0, side: 1,
 });
 
@@ -73,6 +76,8 @@ const dt = STEP;
 const wet = (sim: Sim) => sim.player.water !== 'dry';
 export const loadTime = (sim: Sim, w: WeaponStats) => (w.time + 0.15) * (wet(sim) ? 1.3 : 1);
 const swingFor = (w: WeaponStats) => swingOf(w.kind, w.mass);
+/** how long a blow of it stood still holds still what it lands on, and itself (sim/moves.ts, HITSTOP) */
+const stopFor = (w: WeaponStats) => HITSTOP.base + HITSTOP.kg * w.mass;
 
 /** you are open: a blow of yours thrown, your arm coming back, or you reeling. What waits for its turn goes now. */
 export const exposed = (sim: Sim): boolean => {
@@ -81,10 +86,23 @@ export const exposed = (sim: Sim): boolean => {
 };
 
 /** your pace as a share of it: none on the floor, a third while you reel or get up (sim/moves.ts, REEL, DOWN); loading
- *  and swinging do not slow you */
+ *  does not slow you, and swinging takes your feet another way (feet) */
 export const pace = (sim: Sim): number => {
   const h = sim.hands;
   return h.down > 0 ? 0 : h.stag > 0 || h.rise > 0 ? REEL.pace : 1;
+};
+
+/** your say over your feet, as a share of it (sim/moves.ts, Swing.feet): a blow of yours has them from letting it go
+ *  until it has settled, and, one that met nothing, until the arm is in. Loading does not */
+export const feet = (sim: Sim): number => {
+  const h = sim.hands;
+  return h.swing || h.rec > 0 || h.plant > 0 ? swingFor(wstats(sim.game.weapon)).feet : 1;
+};
+
+/** the blow you let go is done, landed or not, and has your feet still: you are planted (player.ts) */
+export const planted = (sim: Sim): boolean => {
+  const h = sim.hands;
+  return h.swing ? h.swing.done : h.rec > 0 || h.plant > 0;
 };
 
 /** you are on the floor, or getting up from it */
@@ -96,6 +114,7 @@ export function updateHands(sim: Sim, input: Input): void {
   if (h.kick > 0) h.kick = Math.max(0, h.kick - dt * 5);
   if (h.muzzle > 0) h.muzzle -= dt;
   if (h.rec > 0) h.rec -= dt;
+  if (h.plant > 0) h.plant -= dt;
   if (h.stag > 0) h.stag = Math.max(0, h.stag - dt);
   if (h.down > 0) { h.down = Math.max(0, h.down - dt); if (h.down === 0) h.rise = DOWN.rise; }
   else if (h.rise > 0) h.rise = Math.max(0, h.rise - dt);
@@ -143,21 +162,25 @@ export function updateHands(sim: Sim, input: Input): void {
     if (q >= 1) {
       h.swing = null; h.line = null;
       if (s.missed) h.rec = S.miss;
+      h.plant = S.settle;
     }
   }
 }
 
-/** a blow carries you a step along it, once it is done */
+/** a blow carries you a step along it, once it is done: up to its pace along it, not on top of what you had (run in,
+ *  and it adds nothing; backing off, it takes you forward all the same) */
 function lunge(sim: Sim, S: Swing): void {
-  const L = sim.hands.line;
-  if (!L || !sim.player.body.ground) return;
-  push(sim.player.body, -Math.sin(L.yaw) * S.lunge, -Math.cos(L.yaw) * S.lunge);
+  const L = sim.hands.line, b = sim.player.body;
+  if (!L || !b.ground) return;
+  const fx = -Math.sin(L.yaw), fz = -Math.cos(L.yaw), dv = clamp(S.lunge - (b.vx * fx + b.vz * fz), 0, S.lunge);
+  push(b, fx * dv, fz * dv);
 }
 
-/** a blow lands on you, with `poise` behind it and shoving you at `dv` m/s: the ladder (sim/moves.ts). It takes no load
- *  and no blow from you. If it breaks your poise you reel: thrown back from it, slowed, no new load until you have
- *  your feet. If it breaks your poise and shoves you hard enough (DOWN.dv), you go down; harder still (LAUNCH.dv), you
- *  are thrown, and land down. Down, a hit takes no more footing from you; getting up, it has to get past RISE.guard. */
+/** a blow lands on you, with `poise` behind it and shoving you at `dv` m/s: the ladder (sim/moves.ts). Short of
+ *  flooring you, it takes no load and no blow from you. If it breaks your poise you reel: thrown back from it, slowed,
+ *  no new load until you have your feet. If it breaks your poise and shoves you hard enough (DOWN.dv), you go down, and
+ *  a load held up or a blow thrown is lost: there is no swinging from the floor; harder still (LAUNCH.dv), you are
+ *  thrown, and land down. Down, a hit takes no more footing from you; getting up, it has to get past RISE.guard. */
 export function struck(sim: Sim, poise: number, from?: { x: number; z: number }, dv = 0): string {
   const h = sim.hands, g = sim.game, b = sim.player.body;
   if (g.ended) return 'none';
@@ -167,8 +190,11 @@ export function struck(sim: Sim, poise: number, from?: { x: number; z: number },
   h.poise = R.left;
   if (R.r !== 'stagger') return R.r === 'flinch' ? 'shrugged off' : 'none';
   if (dv >= DOWN.dv) {
-    /* off your feet: over the way the blow sent you, and, hard enough, up and over */
+    /* off your feet: over the way the blow sent you, and, hard enough, up and over; what was in your hands goes with
+       your footing, the load you held up and the blow you threw. A button still held when you are up starts nothing:
+       let go and press again */
     h.down = DOWN.time; h.rise = 0; h.stag = 0;
+    h.chg = -1; h.full = false; h.go = false; h.swing = null; h.line = null; h.buf = 0;
     if (from) { const r = { x: Math.cos(sim.player.yaw), z: -Math.sin(sim.player.yaw) }; h.side = (b.x - from.x) * r.x + (b.z - from.z) * r.z >= 0 ? 1 : -1; }
     if (dv >= LAUNCH.dv) push(b, 0, 0, LAUNCH.up * dv);
     sfx(g, 'reel');
@@ -254,7 +280,7 @@ function sweep(sim: Sim, w: WeaponStats, a0: number, a1: number): 'none' | 'hit'
     if (C && tw <= 1) {
       sfx(g, 'blow', C);
       makeNoise(g, 8);
-      landed(sim, 0.8);
+      landed(sim, 0.8, stopFor(w));
       /* it comes back at you: a heavy thing hard enough to knock the wind out of you */
       const r = struck(sim, swingFor(w).poise * GLANCE.poise, { x: C.x, z: C.z });
       log(g, `${sim.game.weapon ?? 'fists'} glanced off the wall  → ${r}  (poise ${(swingFor(w).poise * GLANCE.poise).toFixed(0)}, ${sim.hands.poise.toFixed(0)}/30 left)`);
@@ -293,14 +319,15 @@ function landOn(sim: Sim, w: WeaponStats, m: Mutant, A: V3, B: V3, at: V3): void
   const hl = Math.hypot(B.x - A.x, B.y - A.y, B.z - A.z) || 1;
   let dx = fx + (B.x - A.x) / hl, dz = fz + (B.z - A.z) / hl, dl = Math.hypot(dx, dz);
   if (dl < 0.1) { dx = fx; dz = fz; dl = 1; }
-  hitMutant(sim, m, { dmg: w.dmg, poise: swingFor(w).poise, shove: SHOVE.you * (w.mass + SHOVE.arm), dir: { x: dx / dl, z: dz / dl }, by: sim.game.weapon ?? 'fists', at, way: { x: B.x - A.x, y: B.y - A.y, z: B.z - A.z } }, closing(you + it));
+  const k = closing(you + it), stop = stopFor(w) * k;
+  hitMutant(sim, m, { dmg: w.dmg, poise: swingFor(w).poise, shove: SHOVE.you * (w.mass + SHOVE.arm), dir: { x: dx / dl, z: dz / dl }, by: sim.game.weapon ?? 'fists', at, way: { x: B.x - A.x, y: B.y - A.y, z: B.z - A.z }, stop }, k);
   makeNoise(sim.game, 10);
-  landed(sim, 1);
+  landed(sim, 1, stop);
 }
 
-/** a blow met something: the swing stops for a moment, and the view takes the jolt */
-function landed(sim: Sim, k: number): void {
-  sim.hands.stop = 0.035 + 0.035 * k;
+/** a blow met something: the swing stops in it `stop` seconds (hit-stop), and the view takes a jolt `k` (0..1) hard */
+function landed(sim: Sim, k: number, stop: number): void {
+  sim.hands.stop = stop;
   sim.game.events.push({ type: 'impact', k });
 }
 

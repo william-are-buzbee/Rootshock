@@ -368,16 +368,43 @@ corpse worth throwing.
   the arm is up; hold and it stays up until you let go, as long as you like. There are no half blows (below).
 - **Your blow commits.** Its line is fixed as it is thrown: you can look away, and it lands where you sent it. It
   carries you a step along it (1 + 0.6 m/s a kilogram). One that meets nothing, not even a wall, leaves the arm
-  0.15 + 0.12 s a kilogram coming back (the axe half a second). Loading and swinging do not slow your feet. A click
-  while you are busy is kept 0.2 s, and is a blow when the arm is free.
+  0.15 + 0.12 s a kilogram coming back (the axe half a second). Loading does not slow your feet; a blow under way has
+  them (below). A click while you are busy is kept 0.2 s, and is a blow when the arm is free.
+- **A blow has your feet** (since; `sim/moves.ts`, `Swing.feet`, `Swing.settle`; `sim/combat.ts`, `feet`, `planted`).
+  Loading leaves them alone: the load is where you place yourself. From letting go, the blow has them, in two parts:
+  - *Until it is done* (lands, glances, or its part that can land is over), your keys do nothing: what you had goes on,
+    up to a run, so a blow run in lands as hard as you were going.
+  - *Once done you are planted*, for the rest of the swing and `settle` after it, landed or not (0.25 s and 0.08 s a
+    kilogram: the baton 0.34, the axe 0.51), or while the arm comes back from one that met nothing, if longer. No
+    running; you want a share of a walk and get to it that share as fast (0.45 less 0.12 a kilogram, not under 0.1:
+    fists 0.38, the baton 0.32, the pipe 0.16, the axe 0.1), and going faster than that you slow as one thrown does.
+  - The step a blow carries you is up to its pace along the line, not on top of yours: run in and it adds nothing.
+  Sprinting with the baton, you go on at a run until it is done, are brought to 1 m/s by 0.35 s after letting go and
+  held there to 0.6 s (under half a walk a third of a second), and run again by 0.75 s; the axe holds you at 0.3 m/s
+  for 0.6 s. Backed off from the moment it is let go, the baton gets you 0.3 m in all, the axe 0.05 (2.6 before).
+  Tried first, and too little to feel: a share of your pace from letting go, only while the blow was under way (a
+  sprinting baton went on at 4.4 m/s); then planted at 0.3 to 0.88 of a walk for 0.15 s and 0.1 s a kilogram (the
+  baton at 2.5 m/s, never under 1.6: "you don't perceptibly stop whatsoever"). In the duels (twelve layouts each) one
+  husk is still beaten untouched with anything, and two now cost every weapon: the axe is never untouched by two,
+  either side of you or in front (it was every time), though none dies.
 - **Drawn as it goes** (since; `present/render/handsView.ts`). What is in your hand is drawn on the line of the blow,
   not the view: look away mid-swing and it goes on without you, where the dev overlay's path goes. Over, it is brought
   back, not snapped to rest: in a sixth of a second after one that met something; after one that met nothing, carried
   on past its follow-through by its weight (0.12 rad a kilogram: the axe goes down past your knees) and brought back
   across the recovery, so the time you are locked out is the time you watch it come back. Looks only.
-- **Hits on you never take a load or a blow from you.** One that breaks your poise throws you back from it (2.5 m/s)
-  and you reel 0.7 s: a third of your pace, the view jolted, the arm flung down, and no new load until you have your
-  feet (a load already in hand, or a blow already thrown, goes on).
+- **Hit-stop, both sides** (since; `sim/moves.ts`, `HITSTOP`). A blow of yours that lands holds still both your swing
+  and what it struck: it stands where it was hit, shuddering, everything it was doing waiting, the shove it was given
+  too, which it goes with after. A body it kills or floors is held loose where it was struck the same way. 0.04 s and
+  0.016 s a kilogram swung, times how hard it landed (`closing`): fists 0.05, the pipe 0.08, the axe 0.09, the axe run
+  in 0.14. It was 0.07 s for every blow, and only your swing held still: the husk was shoved the same step, so the
+  stop read as your swing catching on air. Others of the cast are not held; a husk struck in its wind-up starts its
+  blow that much later, as your swing does. A blow glancing off a wall holds your swing as one stood still would.
+  Saves carry it (`Mutant.stop`); old saves load with none.
+- **Hits on you never take a load or a blow from you**, short of flooring you. One that breaks your poise throws you
+  back from it (2.5 m/s) and you reel 0.7 s: a third of your pace, the view jolted, the arm flung down, and no new load
+  until you have your feet (a load already in hand, or a blow already thrown, goes on, drawn going on). One that
+  floors you (*Knockdowns*) takes both (since): a load held up is dropped and a blow thrown is lost, so there is no
+  swinging from the floor, and a button still held once you are up starts nothing until it is let go and pressed again.
 - **Reach** is an arm (0.8 m) and what is in it, to a target's edge: the axe 1.7, the pipe 1.5, the baton 1.3, fists
   0.8. It was 1.3 and the weapon, which let the axe reach a husk's middle from 2.6 m, well outside anything a husk
   can do; the fight was won by spacing alone.

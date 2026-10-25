@@ -411,7 +411,8 @@ export function updateCorpses(sim: Sim): void {
     sleep(oldest);
     awake--;
   }
-  const live = dead.filter(m => m.rag!.awake).map(m => m.rag!);
+  /* one just struck is held still a moment (sim/moves.ts, HITSTOP): not moved, keeping the way it was knocked for after */
+  const live = dead.filter(m => m.rag!.awake && !(m.stop > 0)).map(m => m.rag!);
   for (const R of live) begin(sim, R, owner.get(R)!);
   /* what touches them: whoever walks into one (not its own feet), each other, and what moves into them */
   for (const R of live) for (const b of walkers) if (b !== owner.get(R)!.body) kicked(R, b);
@@ -420,12 +421,14 @@ export function updateCorpses(sim: Sim): void {
     const a = box.get(R)!;
     for (const m of dead) {
       const S = m.rag!, j = live.indexOf(S);
-      if (S !== R && (j < 0 || j > i) && meetsBox(a, box.get(S)!)) meet(R, S, sim.tick);
+      if (S !== R && (j < 0 || j > i) && !(m.stop > 0) && meetsBox(a, box.get(S)!)) meet(R, S, sim.tick);
     }
   });
   for (const R of live) for (const d of movers) pushedOut(R, d);
   for (const m of dead) {
     const R = m.rag!;
+    /* held: drawn where it is, its hold run down here (sim/cast.ts, updateCast) */
+    if (m.stop > 0) { m.stop = Math.max(0, m.stop - dt); for (let k = 0; k < R.p.length; k++) R.o[k] = R.p[k]; continue; }
     if (!R.awake) continue;
     if (scratch.has(R)) finish(sim, R, !m.dead);
     if (!m.dead) continue;

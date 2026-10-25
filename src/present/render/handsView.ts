@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { clamp } from '../../core/math';
+import { STEP } from '../../core/loop';
 import { loadTime, wstats, type Hands } from '../../sim/combat';
 import { ACTIVE, PATHS } from '../../sim/sweep';
 import type { Shape } from '../../content/items';
@@ -73,8 +74,8 @@ export class HandsView {
   /** the swing drawn last frame, and the line it was thrown along */
   private was: Hands['swing'] = null;
   private line = { yaw: 0, pitch: 0 };
-  /** a swing over, being brought back: from where it was last drawn, over `dur` from `t0` (or over the recovery, if
-   *  `rec`); one that `missed` carried on along its shape's path first, by what was swung */
+  /** a swing over, being brought back: from where it was last drawn, over `dur` from the sim's step `t0` (or over the
+   *  recovery, if `rec`); one that `missed` carried on along its shape's path first, by what was swung */
   private back: { at: THREE.Vector3; q: THREE.Quaternion; shape: Shape; mass: number; missed: boolean; dur: number; t0: number; rec: boolean } | null = null;
 
   constructor(camera: THREE.Camera, public sim: Sim, private L: Lighting) {
@@ -104,18 +105,21 @@ export class HandsView {
     /* a swing just over is brought back from where it was last drawn */
     if (this.was && !sw) {
       const missed = !!this.was.missed && this.was.glance === undefined;
-      this.back = { at: vm.position.clone(), q: vm.quaternion.clone(), shape: w.shape, mass: w.mass, missed, dur: h.rec > 0 ? h.rec : BACK, t0: time, rec: h.rec > 0 };
+      this.back = { at: vm.position.clone(), q: vm.quaternion.clone(), shape: w.shape, mass: w.mass, missed, dur: h.rec > 0 ? h.rec : BACK, t0: sim.tick, rec: h.rec > 0 };
     }
     if (sw) { this.back = null; if (h.line) { this.line.yaw = h.line.yaw; this.line.pitch = h.line.pitch; } }
     this.was = sw;
     const ld = h.chg >= 0 ? clamp(h.chg / loadTime(sim, w), 0, 1) : 0;
     const shape = w.shape, thrust = fist || shape === 'thrust', tilt = -0.15;
     vm.rotation.set(0, fist ? 0.12 : 0, -0.15);
-    if (h.stag > 0 || h.down > 0 || h.rise > 0) {
-      /* reeling, or on the floor: the arm flung down and out, shaking, until you have your feet again */
-      const e = h.down > 0 ? 1 : h.rise > 0 ? Math.min(1, h.rise / 0.3) : Math.min(1, h.stag / 0.25), sh = Math.sin(time * 31) * 0.02 * e;
-      vm.rotation.x = 0.7 * e + sh;
-      vm.position.set(0.34 + 0.06 * e, -0.36 - 0.18 * e + sh, -0.42 + 0.06 * e);
+    /* how shaken you are: reeling, on the floor, getting up. Reeling, a load in hand or a blow thrown goes on (sim/combat.ts,
+       struck), and is drawn going on, shaken; otherwise the arm is flung down and out until you have your feet again */
+    const reel = h.down > 0 ? 1 : h.rise > 0 ? Math.min(1, h.rise / 0.3) : Math.min(1, h.stag / 0.25);
+    const flung = h.down > 0 || h.rise > 0 || (h.stag > 0 && !sw && h.chg < 0);
+    if (flung) {
+      const sh = Math.sin(time * 31) * 0.02 * reel;
+      vm.rotation.x = 0.7 * reel + sh;
+      vm.position.set(0.34 + 0.06 * reel, -0.36 - 0.18 * reel + sh, -0.42 + 0.06 * reel);
     } else if (w.gun) {
       vm.rotation.x = h.kick * 0.5;
       vm.position.set(0.22, -0.3 + h.kick * 0.04 + Math.sin(bob) * 0.01, -0.42 + h.kick * 0.12);
@@ -145,12 +149,14 @@ export class HandsView {
       vm.rotation.set((-0.5 + Math.sin(bob * 0.5) * 0.02) * (1 - e) + (-HALF + 0.35) * e + tr, -back * e, -0.15 * (1 - e) + tilt * e);
       vm.position.set(0.3 - 0.14 * e + 0.14 * Math.sin(back) * e, -0.34 + 0.06 * e + Math.sin(bob) * 0.012 * (1 - e), -0.5 + 0.18 * e);
     }
+    /* reeling, still holding it up or still swinging it: it sags and shakes */
+    if (!flung && h.stag > 0) { const sh = Math.sin(time * 31) * 0.02 * reel; vm.position.x += sh; vm.position.y += sh - 0.06 * reel; }
     /* a swing over, brought back to where the hand is wanted now: from where it was left, or, one that met nothing,
        carried on from there first, the weight of it still going */
     let held = sw ? 1 : 0;
     const B = this.back;
     if (B) {
-      const k = clamp(B.rec ? 1 - h.rec / B.dur : (time - B.t0) / B.dur, 0, 1), e = ease(B.missed ? clamp((k - 0.3) / 0.7, 0, 1) : k);
+      const k = clamp(B.rec ? 1 - h.rec / B.dur : sim.tick < B.t0 ? 1 : ((sim.tick - B.t0) * STEP) / B.dur, 0, 1), e = ease(B.missed ? clamp((k - 0.3) / 0.7, 0, 1) : k);
       P1.copy(vm.position); Q1.copy(vm.quaternion);
       if (B.missed && B.shape !== 'thrust') this.swung(B.shape, 1, PATHS[B.shape].to - FOLLOW - CARRY.per * B.mass * Math.sin(Math.min(1, k / 0.4) * HALF), 0);
       else { vm.position.copy(B.at); vm.quaternion.copy(B.q); }

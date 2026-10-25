@@ -132,6 +132,8 @@ export interface Mutant {
   los: boolean; losAt: number;
   /** 1 when just hit, dying away */
   hit: number;
+  /** seconds left of being held still by a blow that landed (sim/moves.ts, HITSTOP) */
+  stop: number;
   /** what it can take before it reels (sim/moves.ts), seconds since it was last hit, and seconds left of reeling */
   poise: number; pmax: number; calm: number; reel: number;
   /** seconds it has held off, waiting for its turn at you (a husk while another is at you) */
@@ -179,7 +181,7 @@ function makeMutant(sim: Sim, def: MutantDef, id: number): Mutant {
       hide: (def.opts.hide as { x: number; z: number } | undefined) ?? null, drag: -1, trail: 0, graft: 0, grafted: false,
       wt: rnd(1, 5), wm: 0, wx: 0, wz: 0, tk: 0, lost: 0, bt: 0, burst: false, flee: 0, ct: rnd(6, 14), cdir: 0, tgt: false,
       grab: 0, tense: 0, blow: null, dest: -1, F: null, stk: 0, fled: false, side: 0, ride: null, spot: -1,
-      mv: 0, d: 99, dp: 99, dy: 0, los: false, losAt: -99, hit: 0, poise: poiseOf(def.type, S.ai, !!o.big), pmax: poiseOf(def.type, S.ai, !!o.big), calm: 99, reel: 0, pat: 0, down: 0, rise: 0, acc: S.acc, drove: false, ph: rnd(9), dead: false, gone: 0, rag: null, away: false, still: 0,
+      mv: 0, d: 99, dp: 99, dy: 0, los: false, losAt: -99, hit: 0, stop: 0, poise: poiseOf(def.type, S.ai, !!o.big), pmax: poiseOf(def.type, S.ai, !!o.big), calm: 99, reel: 0, pat: 0, down: 0, rise: 0, acc: S.acc, drove: false, ph: rnd(9), dead: false, gone: 0, rag: null, away: false, still: 0,
     };
     return m;
   }
@@ -367,6 +369,9 @@ export function updateCast(sim: Sim): void {
   sim.wormN = wn;
   for (const m of sim.cast) {
     m.px = m.x; m.py = m.y; m.pz = m.z;
+    /* held still by a blow that landed (sim/moves.ts, HITSTOP): nothing about it goes on, and the shove waits. One gone
+       loose is held, and its hold run down, with the loose bodies (sim/ragdoll.ts, updateCorpses) */
+    if (m.stop > 0) { if (!m.rag) m.stop = Math.max(0, m.stop - dt); continue; }
     if (m.hit > 0) m.hit = Math.max(0, m.hit - dt * 4);
     m.calm += dt;
     m.poise = regain(m.poise, m.pmax, m.calm, dt);
