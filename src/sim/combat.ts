@@ -84,10 +84,17 @@ export const exposed = (sim: Sim): boolean => {
 };
 
 /** your pace as a share of it: none on the floor, a third while you reel or get up (sim/moves.ts, REEL, DOWN); loading
- *  and swinging do not slow you */
+ *  does not slow you, and swinging takes your feet another way (feet) */
 export const pace = (sim: Sim): number => {
   const h = sim.hands;
   return h.down > 0 ? 0 : h.stag > 0 || h.rise > 0 ? REEL.pace : 1;
+};
+
+/** your say over your feet, as a share of it (sim/moves.ts, Swing.feet): a blow of yours under way has them, and, one
+ *  that met nothing, while the arm comes back. Loading does not */
+export const feet = (sim: Sim): number => {
+  const h = sim.hands;
+  return h.swing || h.rec > 0 ? swingFor(wstats(sim.game.weapon)).feet : 1;
 };
 
 /** you are on the floor, or getting up from it */

@@ -121,6 +121,26 @@ describe('a blow commits', () => {
     expect(back).toBeCloseTo(walk, 5);
   });
 
+  it('a blow under way has your feet, a heavy one more: back off as you let it go, and the axe keeps you; fists hardly', () => {
+    /** how far you back off from letting go until the arm is in again, against backing off as long with nothing thrown */
+    const kept = (weapon?: string) => {
+      const run = (swing: boolean, steps?: number) => {
+        const s = hall();
+        if (weapon) give(s.game, weapon);
+        hold(s, 1.4, { attack: swing });
+        const x = s.player.body.x;
+        let n = 0;
+        do { step(s, { ...noInput(), forward: -1 }); n++; } while (steps === undefined ? s.hands.swing || s.hands.rec > 0 : n < steps);
+        return { went: x - s.player.body.x, n };
+      };
+      const swung = run(true);
+      return swung.went / run(false, swung.n).went;
+    };
+    expect(kept('axe')).toBeLessThan(0.4);
+    expect(kept('pipe')).toBeLessThan(0.6);
+    expect(kept()).toBeGreaterThan(0.8);
+  });
+
   it('a click while the arm is coming back is kept a moment, and is a blow when it is in', () => {
     /* a blow at nothing: the arm half a second coming back */
     const missed = () => {

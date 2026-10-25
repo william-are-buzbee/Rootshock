@@ -137,6 +137,10 @@ export interface Swing {
   lunge: number;
   /** recovery after a full blow that met nothing (s): the weight of it carries on */
   miss: number;
+  /** your say over your feet while it is under way, and while the arm comes back from one that met nothing (a share
+   *  of it): you want that share of your pace and get to it that share as fast, so what you were doing, and the step
+   *  it carries you, goes on. A heavy blow has your feet; fists hardly (engine.md §6, F2) */
+  feet: number;
 }
 
 export function swingOf(kind: 'blunt' | 'edge' | 'fist' | 'gun', mass: number): Swing {
@@ -144,6 +148,7 @@ export function swingOf(kind: 'blunt' | 'edge' | 'fist' | 'gun', mass: number): 
     poise: kind === 'fist' ? 4 : kind === 'edge' ? 9 * mass : 12 * mass,
     lunge: 1 + 0.6 * mass,
     miss: 0.15 + 0.12 * mass,
+    feet: Math.max(0.3, 1 - 0.2 * mass),
   };
 }
 
