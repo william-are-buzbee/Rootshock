@@ -591,6 +591,15 @@ void main(){
   c += uHit * vec3(0.45, 0.08, 0.06);
   c *= exp(-d * uFog);
   c = max(mix(c, c * vec3(0.5, 0.85, 0.9), uWet), vec3(0.0));
+#if defined(DBG_UNLIT)
+  c = max(vC, vec3(0.0)) * 0.5;
+#elif defined(DBG_SHOWNORMAL)
+  c = (nf * 0.5 + 0.5) * 0.6;
+#elif defined(DBG_SHOWLIGHT)
+  c = lvl;
+#elif defined(DBG_SHOWSURF)
+  c = 0.15 + 0.45 * fract(vec3(vRY.x * 0.37 + vLB.x * 0.29, vL.x * 1.7 + vRY.y * 0.23, vLB.x * 0.61 + vC.r * 3.1));
+#endif
 #ifdef ALPHA
   gl_FragColor = vec4(c, ALPHA);
 #else
