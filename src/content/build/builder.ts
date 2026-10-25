@@ -2,7 +2,7 @@ import { Rng } from '../../core/rng';
 import { hex, scale3, type Colour } from '../../core/math';
 import { CAVERN, FITTED, type Mat, type RoomMats } from '../materials';
 import { lie, lyingCorners, lyingYaw, paperYaw } from '../lying';
-import { ICO, type Aim, type Batt, type DoorDef, type LevelDef, type LitRule, type Motes, type PropDef, type RoomDef, type Shape, type Start, type SurfaceDef } from '../types';
+import { ICO, WALL_MIN, roomHas, type Aim, type Batt, type DoorDef, type LevelDef, type LitRule, type Motes, type PropDef, type RoomDef, type Shape, type Start, type SurfaceDef, type WallDef } from '../types';
 
 /* The authoring kit. Levels are written as calls on a LevelBuilder; finish() returns plain data.
    Everything random comes from the level's own seed, so a level is dressed the same way every time. */
@@ -49,6 +49,14 @@ export interface RoomOpts {
   armed?: boolean;
   zone?: string;
 }
+
+/** a wall's: how thick (THIN unless it says), from where up to where (from the floor of the rooms either side to over
+ *  their ceilings, unless it says), and, if it is not to take the finish of the rooms in front of it, its own colour and
+ *  what it is made of */
+export interface WallOpts { t?: number; y0?: number; y1?: number; colour?: number | Colour; mat?: Mat }
+
+/** how thick a wall is unless it says: block and its finish, with services in it */
+export const THIN = 0.5;
 
 /** a door's rules, beyond where it is (see DoorDef) */
 export type DoorOpts = Partial<Omit<DoorDef, 'x0' | 'y0' | 'z0' | 'x1' | 'y1' | 'z1'>>;
@@ -118,11 +126,56 @@ export class LevelBuilder {
     return r;
   }
 
-  /** solid from (x0, y0, z0) to (x1, y1, z1): a platform, a step */
-  block(x0: number, y0: number, z0: number, x1: number, y1: number, z1: number, c: number | Colour, mat: Mat = 'concrete'): void {
+  /** a room of any outline: its corners on the plan, in order. Its sides at an angle are walled (WallOpts.t thick, at
+   *  least WALL_MIN, standing on the side's line) unless `walls` is false, but for the sides `open` lists (side k runs
+   *  from corner k to the next); a wall at a corner where the room turns outward runs on past it by half its thickness,
+   *  so the corner is closed. Where two outlines share a side at an angle, it is walled once; to make a way through it,
+   *  leave it open on both and put up its wall with a gap in it (wall(), twice) */
+  outline(name: string, pts: [number, number][], o: RoomOpts & { walls?: boolean | WallOpts; open?: number[] } = {}): RoomDef {
+    const xs = pts.map(p => p[0]), zs = pts.map(p => p[1]);
+    const r = this.room(name, Math.min(...xs), Math.min(...zs), Math.max(...xs), Math.max(...zs), o);
+    r.poly = pts.map(p => [p[0], p[1]]);
+    if (o.walls === false) return r;
+    const wo = typeof o.walls === 'object' ? o.walls : {}, t = Math.max(wo.t ?? THIN, WALL_MIN), n = pts.length;
+    let area = 0;
+    for (let i = 0; i < n; i++) area += pts[i][0] * pts[(i + 1) % n][1] - pts[(i + 1) % n][0] * pts[i][1];
+    /* does the outline turn outward at corner i (a corner of the room, not of what is outside it)? */
+    const outward = (i: number) => {
+      const [ax, az] = pts[(i + n - 1) % n], [bx, bz] = pts[i], [cx, cz] = pts[(i + 1) % n];
+      return ((bx - ax) * (cz - bz) - (bz - az) * (cx - bx)) * area > 0;
+    };
+    for (let i = 0; i < n; i++) {
+      const [ax, az] = pts[i], [bx, bz] = pts[(i + 1) % n], len = Math.hypot(bx - ax, bz - az);
+      if (len < 1e-9 || Math.abs(ax - bx) < 1e-9 || Math.abs(az - bz) < 1e-9 || o.open?.includes(i)) continue;
+      const ux = (bx - ax) / len, uz = (bz - az) / len, ea = outward(i) ? t / 2 : 0, eb = outward((i + 1) % n) ? t / 2 : 0;
+      this.wall(ax - ux * ea, az - uz * ea, bx + ux * eb, bz + uz * eb, { ...wo, t });
+    }
+    return r;
+  }
+
+  /** a wall at any angle, standing on the line from (ax, az) to (bx, bz) (WallDef). Unless it says, it runs from just
+   *  under the lowest floor of the rooms either side of it to just over the highest of their ceilings, buried a little
+   *  in each, so it meets them with no seam */
+  wall(ax: number, az: number, bx: number, bz: number, o: WallOpts = {}): WallDef {
+    const t = o.t ?? THIN, len = Math.hypot(bx - ax, bz - az), nx = -(bz - az) / len, nz = (bx - ax) / len;
+    let lo = Infinity, hi = -Infinity;
+    for (const f of [0.1, 0.5, 0.9])
+      for (const s of [-1, 1]) {
+        const x = ax + (bx - ax) * f + nx * s * (t / 2 + 0.1), z = az + (bz - az) * f + nz * s * (t / 2 + 0.1);
+        for (const r of this.def.rooms) if (!r.doorway && roomHas(r, x, z)) { lo = Math.min(lo, r.y0); hi = Math.max(hi, lid(r.y0 + r.ht)); }
+      }
+    const y0 = o.y0 ?? lo - GRID / 2, y1 = o.y1 ?? hi + GRID / 2;
+    if (!Number.isFinite(y0) || !Number.isFinite(y1)) throw new Error(`wall (${ax}, ${az})-(${bx}, ${bz}): no room beside it to stand it in; say y0 and y1`);
+    const W: WallDef = { ax, az, bx, bz, t, y0, y1, ...(o.colour !== undefined ? { colour: hex(o.colour) } : {}), ...(o.mat ? { mat: o.mat } : {}) };
+    (this.def.walls ??= []).push(W);
+    return W;
+  }
+
+  /** solid from (x0, y0, z0) to (x1, y1, z1): a platform, a step; or a floor slab (BlockDef.slab) */
+  block(x0: number, y0: number, z0: number, x1: number, y1: number, z1: number, c: number | Colour, mat: Mat = 'concrete', slab = false): void {
     this.def.blocks.push({
       x0: Math.min(x0, x1), y0: Math.min(y0, y1), z0: Math.min(z0, z1),
-      x1: Math.max(x0, x1), y1: Math.max(y0, y1), z1: Math.max(z0, z1), colour: hex(c), mat,
+      x1: Math.max(x0, x1), y1: Math.max(y0, y1), z1: Math.max(z0, z1), colour: hex(c), mat, ...(slab ? { slab } : {}),
     });
   }
 
@@ -256,7 +309,7 @@ export class LevelBuilder {
   /** the floor under (x, z): the highest room floor, block top or sloped floor there */
   floorAt(x: number, z: number): number {
     let y = -Infinity;
-    for (const r of this.def.rooms) if (x >= r.x0 && x < r.x1 && z >= r.z0 && z < r.z1) y = Math.max(y, r.y0);
+    for (const r of this.def.rooms) if (roomHas(r, x, z)) y = Math.max(y, r.y0);
     for (const b of this.def.blocks) if (x >= b.x0 && x < b.x1 && z >= b.z0 && z < b.z1 && b.y1 > y && b.y0 <= y + 0.01) y = b.y1;
     for (const s of this.def.surfaces) {
       if (s.kind !== 'floor') continue;
@@ -267,13 +320,28 @@ export class LevelBuilder {
   }
 
   finish(): LevelDef {
-    /* ceiling fittings: a strip light every 6 m, lit if the room is, on its ceiling as the world carves it */
+    /* ceiling fittings: a strip light every 6 m, lit if the room is, on its ceiling as the world carves it (in a room
+       of any outline, those that fall in it, or one in its middle if none does) */
     for (const r of this.def.rooms) {
       if (this.nolamp.has(r.id)) continue;
-      const dead = r.lit === 'none', w = r.x1 - r.x0, d = r.z1 - r.z0;
+      const dead = r.lit === 'none', w = r.x1 - r.x0, d = r.z1 - r.z0, at: [number, number][] = [];
       for (let z = r.z0 + Math.min(3, d / 2); z < r.z1; z += 6)
-        for (let x = r.x0 + Math.min(3, w / 2); x < r.x1; x += 6)
-          this.box(x, z, 1.1, 0.06, 0.3, dead ? 0x2a2c2e : 0xe8eef2, { y: lid(r.y0 + r.ht) - 0.07, glow: dead ? 1 : 3, solid: false });
+        for (let x = r.x0 + Math.min(3, w / 2); x < r.x1; x += 6) if (roomHas(r, x, z)) at.push([x, z]);
+      if (!at.length && r.poly) {
+        const cx = r.poly.reduce((a, p) => a + p[0], 0) / r.poly.length, cz = r.poly.reduce((a, p) => a + p[1], 0) / r.poly.length;
+        if (roomHas(r, cx, cz)) at.push([cx, cz]);
+      }
+      for (const [x, z] of at) this.box(x, z, 1.1, 0.06, 0.3, dead ? 0x2a2c2e : 0xe8eef2, { y: lid(r.y0 + r.ht) - 0.07, glow: dead ? 1 : 3, solid: false });
+    }
+    /* a wall put twice (on a side two outlines share) is one wall */
+    if (this.def.walls) {
+      const key = (W: WallDef) => [W.ax, W.az, W.bx, W.bz].map(v => v.toFixed(4)).join(','), seen = new Set<string>();
+      this.def.walls = this.def.walls.filter(W => {
+        const k = key(W), back = key({ ...W, ax: W.bx, az: W.bz, bx: W.ax, bz: W.az });
+        if (seen.has(k) || seen.has(back)) return false;
+        seen.add(k);
+        return true;
+      });
     }
     /* what lies about comes to rest on what is under it, and a shelf's dressing makes room for it */
     for (const it of this.def.items) this.settle(it, it.id);
@@ -289,7 +357,7 @@ export class LevelBuilder {
     const x = t.x, z = t.z, top = t.y + SETTLE.up;
     let y = -Infinity, on: PropDef | null = null;
     const over = (h: number) => h <= top && h > y;
-    for (const r of this.def.rooms) if (!r.doorway && x >= r.x0 && x < r.x1 && z >= r.z0 && z < r.z1 && r.y0 + r.ht > t.y && over(r.y0)) { y = r.y0; on = null; }
+    for (const r of this.def.rooms) if (!r.doorway && roomHas(r, x, z) && r.y0 + r.ht > t.y && over(r.y0)) { y = r.y0; on = null; }
     for (const b of this.def.blocks) if (x >= b.x0 && x < b.x1 && z >= b.z0 && z < b.z1 && over(b.y1)) { y = b.y1; on = null; }
     for (const s of this.def.surfaces) {
       const h = s.kind === 'floor' && !s.hidden ? surfaceAt(s, x, z) : null;

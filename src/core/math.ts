@@ -19,3 +19,13 @@ export function hex(c: number | Colour): Colour {
 }
 export const scale3 = (c: Colour, k: number): Colour => [c[0] * k, c[1] * k, c[2] * k];
 export const BLACK: Colour = [0, 0, 0];
+
+/** is (x, z) inside the outline (its corners in order, either way round)? */
+export function inPoly(pts: readonly [number, number][], x: number, z: number): boolean {
+  let inside = false;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const [xi, zi] = pts[i], [xj, zj] = pts[j];
+    if (zi > z !== zj > z && x < ((xj - xi) * (z - zi)) / (zj - zi) + xi) inside = !inside;
+  }
+  return inside;
+}

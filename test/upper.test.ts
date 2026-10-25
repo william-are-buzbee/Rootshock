@@ -6,6 +6,7 @@ import { noInput } from '../src/sim/input';
 import { reach } from '../src/sim/reach';
 import { Lighting, stationPower, fullPower } from '../src/world/light';
 import { buildLevelMesh } from '../src/present/render/levelMesh';
+import { matId } from '../src/present/render/shader';
 import { looseLights } from '../src/sim/sim';
 import { circle } from '../src/world/shapes';
 import { field } from '../src/world/nav';
@@ -34,6 +35,21 @@ describe('the upper station', () => {
     const named = new Set(level.rooms.map(R => R.name).filter(Boolean));
     const missing = [...named].filter(n => !r.rooms.has(n)).sort();
     expect(missing).toEqual(['Operations room', 'Phase 2']); // the operations room, its door grown shut
+  });
+
+  it('walls what the 2 m layout left open: room 4\'s corner, the isolation hall\'s top, the upper corridor\'s side', () => {
+    const w = sim.world, r = 0.32;
+    /** how far a body gets walking from (ax, az) to (bx, bz) with its feet at y, as a share of the way */
+    const walk = (ax: number, az: number, bx: number, bz: number, y: number) => w.sweep(circle(ax, az, r), y + 0.1, y + 1.7, bx - ax, bz - az);
+    /* room 4 keeps its corner, and its partition meets the north side's: nobody walks round the end of it from the
+       stair's foot (they did, and its corner was the hall's) */
+    expect(w.roomAt(52.4, -4, -23.6)?.name).toBe('Isolation room 4');
+    expect(walk(53.6, -22.4, 51.2, -24.8, -4.5)).toBeLessThan(0.5);
+    /* from the check-in hall and screening, east into the isolation hall's upper half: a wall, not a 4.5 m drop */
+    for (const z of [-20.5, -16]) expect(walk(40, z, 44, z, 0) * 4).toBeCloseTo(1.5 - r, 1);
+    /* the upper corridor runs beside the lobby's air behind a wall, and opens only onto the gallery */
+    expect(walk(32, -9, 28, -9, 5) * 4).toBeCloseTo(1.5 - r, 1);
+    expect(walk(32, -3, 28, -3, 5)).toBe(1);
   });
 
   it('lights in two halves: the wing dead behind its cut, Ops on its backup set, Cargo dark', () => {
@@ -102,6 +118,24 @@ describe('the upper station', () => {
     expect(room.size).toBe(1);
     expect(walk.size).toBe(1);
     expect([...room][0]).not.toBe([...walk][0]);
+  });
+
+  it('floors a fitted room upstairs in its own finish, not its slab\'s concrete', () => {
+    const mesh = buildLevelMesh(sim.world, new Lighting(sim.world, fullPower)), seen = new Map<string, Set<number>>();
+    const rooms = ['Checkpoint', 'Staff mess', 'Cargo control'].map(n => level.rooms.find(r => r.name === n)!);
+    for (const g of mesh.pieces) {
+      const P = g.getAttribute('position'), M = g.getAttribute('aMat');
+      for (let i = 0; i < P.count; i += 3) {
+        const y = (P.getY(i) + P.getY(i + 1) + P.getY(i + 2)) / 3, x = (P.getX(i) + P.getX(i + 1) + P.getX(i + 2)) / 3, z = (P.getZ(i) + P.getZ(i + 1) + P.getZ(i + 2)) / 3;
+        const R = rooms.find(q => Math.abs(y - q.y0) < 0.01 && x > q.x0 + 0.5 && x < q.x1 - 0.5 && z > q.z0 + 0.5 && z < q.z1 - 0.5);
+        if (R) seen.set(R.name, (seen.get(R.name) ?? new Set()).add(Math.round(M.getX(i))));
+      }
+    }
+    /* (what stands on the floor faces it from below, in its own material) */
+    for (const R of rooms) {
+      expect([...(seen.get(R.name) ?? [])], R.name).toContain(matId(R.mat.floor));
+      expect([...(seen.get(R.name) ?? [])], R.name).not.toContain(matId('concrete'));
+    }
   });
 
   it('sinks the muster court 1.25 m under the hall, with steps down both long sides, and lifts its ceiling to 8.5 m', () => {

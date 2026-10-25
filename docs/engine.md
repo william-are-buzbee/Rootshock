@@ -136,6 +136,34 @@ thing is added once.
   ceiling, from it up. They are answered exactly, not by the grid, so a ramp is smooth to walk and to look at. A cave
   is a room carved in the grid from its lowest floor to its highest ceiling, with a floor surface and a ceiling
   surface inside; the walls are grid walls, plain rock with no dado or stripe.
+- **Walls at an angle (built).** The grid's faces are its cells' faces, so a wall at an angle carved in it is a staircase.
+  Instead a wall is a solid of its own (`WallDef`, `LevelDef.walls`): a straight run from one point on the plan to
+  another, some thickness about that line, from one height to another. It is a turned box among the fixed solids, and
+  every query answers it exactly (`meetsTurned`, `segmentTurned` in `world/shapes.ts`), so a body stops at its face,
+  sight and a swing at its surface; the light field stamps it as it stamps a prop (light stops at it, though the cells
+  either side are open); the mesh draws each face in the finish of the room in front of it, dado and stripe and all, cut
+  where that room changes along it (`wallMesh` in `levelMesh.ts`); the shader lays a pattern along it, whichever way it
+  faces. A room can have any outline (`RoomDef.poly`): carved cell by cell, each cell whose middle is inside it. The
+  staircase its sides at an angle make is hidden by the walls standing on them: a wall at least `WALL_MIN` (0.36 m)
+  thick, centred on the side, covers half a cell's diagonal either way. `LevelBuilder.outline` walls an outline's sides
+  at an angle itself, closing its outward corners, and leaves open the sides it is told to (for a way through, put up
+  the wall with a gap in it: `wall()`, twice). The test bed's angled hall, south of the lab, is one, with an annex
+  through a gap in a wall at 127 degrees (`test/walls.test.ts`).
+- **Levels in metres (built).** Levels were laid out on the first engine's 2 m tiles (`tiles.ts`, retired), so every
+  room, wall and door was a tile or a run of them: walls 2 m thick unless marked as partitions, a single door's opening
+  set against one end of its tile, and anything where two tiles met decided by which tile it was in. They are written in
+  metres now, on `content/build/plan.ts` (and `furnish.ts`, the furniture): floors at their heights, rooms as boxes or
+  outlines anywhere on the quarter-metre grid, a door at the middle of its opening on whatever wall is there (`span`
+  for a single door's stretch of wall), a wall at any angle. A partition is two rooms drawn half a metre apart; a room
+  that reaches a partition past the rest of its side has a strip drawn as more of it (`RoomOpts.part`: no fittings of
+  its own). The compile paints each floor on the grid and asks it what is where, so doorways, slabs, rails and frames
+  follow what is drawn, not tiles. Ported level by level against a saved build of each (`test/probes/golden.probe.ts`,
+  `EQUIV`), then tidied of the tile units, build for build. On the way, walking every place where two rooms touch with
+  no wall found what the tiles had left open on the upper station: room 4's corner at the stair's foot (the partitions
+  never met, the bay holding the tile between), the isolation hall's upper half open to the check-in hall and screening
+  beside it, and the upper corridor open to the lobby's void (`test/upper.test.ts`); and on the main level the square's
+  shops and the flats over them, wall to wall with nothing between (flat C2's card lock kept nobody out of it). Every
+  contact left is listed in `test/contacts.test.ts` with why it is meant, and one that is not listed fails it.
 - **Small props** (crates, tables, shelves) are not stamped into the grid. They are boxes, oriented boxes or cylinders
   in a spatial hash, so they can later move.
 - **Everything that moves is a `Dyn`**: a box the sim keeps up to date in the world's list. Doors, platforms, loose
@@ -813,6 +841,10 @@ As built in step 5 (`world/nav.ts`, `sim/fields.ts`):
   every floor height (grid floors and sloped surfaces both), so one graph covers every layer of a level: a walkway and
   the hall under it are one place to the cast. Each spot knows its headroom, its room and the door it stands in, if
   any. Built once per level with everything that moves moved aside, and shared by every run of that level.
+- **Near a wall at an angle** a spot may stand off its square's middle, at the nearest point in the square the wall
+  leaves room for it (`NUDGE`). Walls on the grid's lines and the 1 m lattice agree; one at an angle, or a gap in one,
+  falls anywhere across them, and with spots only in the middle a 1.4 m gap could have none either side to take a body
+  through it. Nowhere near one, the lattice is as it was.
 - **Edges** go to the eight neighbouring columns: a walk (a step up to 0.5 m, as a body climbs), or a drop (down to
   2.5 m, one way). Diagonals only where both squares beside them are open, so no corner is cut through rock. A
   platform joins the spots on it at the bottom to the spots beside it at the top.
@@ -891,7 +923,7 @@ components, not code threaded through the frame loop:
   down: a door is in the zones of the rooms either side of it (`RoomDef.zone`, `doorZones`), and each in the zone that
   can move with the power it has is drawn (`Door.drawing`, `LOCKDOWN.draw`) and then bolted (`Door.down`, which
   `locked` counts, so it blocks the cast's ways too) while an alarm in one of its zones sounds and it keeps its power.
-  A call point is a use of kind `call` (`content/build/fittings.ts`, `callPoint`; its zone in its opts, which validation
+  A call point is a use of kind `call` (`content/build/furnish.ts`, `callPoint`; its zone in its opts, which validation
   checks has a speaker): used, it is spent (`Usable.off`, kept by saves as any spent use) and sounds its zone if the zone
   is `heard`; its pane is drawn until it is spent. Nobody is behind the screens: a camera
   needs only its power and to be whole. A smashed speaker mutes its zone (`Sim.mute`): nothing sounds there at all. (The
@@ -899,7 +931,7 @@ components, not code threaded through the frame loop:
   circuit), not from its room, and sounds only while that has power (`heard` in `sim/eyes.ts`); Security's is critical
   power, which nothing you can reach switches. Saves keep each camera's state, the muted zones and the alarms; the
   routes are made again. Doors keep their bolts.
-  A console is a use of kind `watch` (`monitors` in `content/build/fittings.ts`: a circuit, and its cameras by
+  A console is a use of kind `watch` (`monitors` in `content/build/furnish.ts`: a circuit, and its cameras by
   `CameraDef.name`, which validation checks are there). Sat at it, `Sim.watch` holds its feeds and the one on screen;
   each step `watching` (`sim/eyes.ts`) takes the input for itself (strafe for the next feed, a press at a time; use, a
   hurt, or the console's power going stands you up) and passes on none of it, and there is nothing to use. Saves do not
@@ -1226,8 +1258,8 @@ Each step ends with something you can open and play.
    - **Test bed lab wing** (through the door south of the hall): a ramp to a balcony, a lift to a gallery, a pool
      with a shallow shelf, crates to push, a cave. **Collider overlay**: `?dev`, then G.
 3. **The upper station, static. Done.**
-   - **The tile adapter** (`content/build/tiles.ts`, `fittings.ts`) keeps the first engine's way of laying out a
-     level: decks of 2 m tiles, rooms, doors, caves and terrain fields, walkways, platforms, and its furniture kit.
+   - **The tile adapter** (`content/build/tiles.ts`, `fittings.ts`; retired since for levels in metres, §4) kept the
+     first engine's way of laying out a level: decks of 2 m tiles, rooms, doors, caves and terrain fields, walkways, platforms, and its furniture kit.
      Levels port nearly line for line, then compile into v2 shapes: rooms, floor slabs under upper decks, rails on
      walkway edges, doorways with doors, cave surfaces from the terrain, ceiling fittings, props. A room can sit above
      or below its deck's floor (`dy`: the muster court, 1.25 m down; keep it to the grid's quarter metres), its ceiling
@@ -1384,7 +1416,7 @@ Each step ends with something you can open and play.
      (15 MB). The pool is real water you can wade and swim in; the first engine drew a dark disc and kept you out of
      it with a hidden kerb.
    - **Caves of any outline** (§14): built as the first engine wrote them (`caveShape`, `tunnel`, `chamber`, in
-     `tiles.ts`). Each is one room carved tile by tile, from just under its floor to just over its roof there
+     `tiles.ts` then, `plan.ts` now). Each is one room carved tile by tile, from just under its floor to just over its roof there
      (`RoomDef.cells`); a deck's caves share one floor and one roof, masked to their tiles (`SurfaceDef.mask`), so
      where a passage opens into a chamber there is no seam: the roof rises across the mouth instead of stepping. A
      cave's roof now rides on its floor, as in the first engine (over the arboretum's hills it had stayed level).
@@ -1515,18 +1547,20 @@ voice.
 
 **Step 4 (built): the station as built.** world.md §1, *The station as built*: mined at 400 m, the family's fabric
 from the 80s under a refit. Seven more materials: shotcrete (`shot`), plasterboard (`board`, which looks as plaster
-does and knocks hollow), a coated slab (`epoxy`), sheet vinyl, carpet tile, terrazzo, limestone (`stone`). Their
+does and knocks hollow), a coated slab (`epoxy`), sheet vinyl, carpet, terrazzo, limestone (`stone`). Their
 patterns: shotcrete lumpy at the rock's scale under the spray's grain, rock bolts every 1.5 m in staggered rows, their
 plates sprayed over (a raised square, the nut showing through), and under one in four on a wall a faint stain of rust
-(drawn plain and dark, with rust under every other one, they read as sockets leaking); a coated slab with saw cuts on 4 m bays and scuffs that take
-its shine; vinyl flecked, its welded seams a roll's width (2 m) apart; carpet tiles 500 mm, each a quarter turn from the
-next, the pile running across one and along the next; terrazzo's chips dark, pale and a few rust-red, an inch across so
-they read further off (each fades to its average by its size against the pixel's, finer specks sooner), brass strips on
-1.5 m bays; limestone panels 1.2 by 0.6 m, coursed half a panel along, tight joints, bedding and pits. A pattern can now
+(drawn plain and dark, with rust under every other one, they read as sockets leaking); a coated slab with scuffs that take its shine (its saw
+cuts on 4 m bays, since taken out, drew squares that met in crosses down every corridor); vinyl flecked, its welded seams a roll's width (2 m) apart; carpet laid wall to wall (it was tiles, 500 mm, each a
+quarter turn from the next, the pile running across one and along the next: squares again, and taken out); terrazzo's chips dark, pale and a few rust-red, an inch across so
+they read further off (each fades to its average by its size against the pixel's, finer specks sooner), poured in one
+(its brass strips on 1.5 m bays, since taken out, were another lattice of squares). Its chips, and vinyl's flecks, were
+noise cut off at a level, which comes out in crosses, Ts and Ls along the noise's own grid; they are chips now
+(`chip()`): one round a point jittered in each cell of a lattice, of a size, angle and stretch of its own; limestone panels 1.2 by 0.6 m, coursed half a panel along, tight joints, bedding and pits. A pattern can now
 tint as well as shade (`surface`'s `tint`: rust, a chip, a strip). The wear's water run down a wall says what it left
 (`Look.salt`): on bare cement (poured or sprayed) white salts, on paint and tile the brown tide mark as before.
 
-The palettes (`content/build/fittings.ts`) say what rooms are made of: `UTIL` is dug (`DUG`: shotcrete walls and crown on
+The palettes (`content/build/furnish.ts`) say what rooms are made of: `UTIL` is dug (`DUG`: shotcrete walls and crown on
 a poured floor), and so are the bays, Cargo's tiers and the sump; Security's floors are coated; offices, the briefing
 room, the operations room and Cargo's control room and office are `OFF` (board, carpet, a suspended ceiling); `OPS`
 halls are terrazzo; medical floors vinyl; homes carpeted; the lobby, its gallery and the surface landing `FAM`
@@ -1563,7 +1597,7 @@ multiplies by what it is handed. In the browser, every take of 1 put one float o
 nothing after. `?dbg=` (README) narrowed it to the light: the streaks showed in no view of what the picture is made of.
 
 **Step 5 (built): doors.** Every door was a 2 m steel slab rising into a steel-lined tunnel. Now the kit says what
-each is (`doorway` in `content/build/tiles.ts`, from the rooms either side; `DoorDef.look`): a shutter between two dug
+each is (`lookOf` in `content/build/plan.ts`, from the rooms either side; `DoorDef.look`): a shutter between two dug
 places or a dug place and a plain one, and anything jammed; else heavy if it is heavy; else by the grander side, the
 family's pair (`grand`) off limestone, a clinic's pair off glazed tile, an office door off board or carpet, painted
 steel otherwise. All but shutters, jammed doors, welded ones, the lift's and loose panels slide sideways (`slides`) into
@@ -1587,7 +1621,8 @@ wall's faces; a window in it (a glass door, as before) is a pane between a sill 
 on the Security corridor (windows either side of its doors), the briefing room's vestibule and the duty office on
 their halls, and on the main level the tissue lab's glass wall onto the north grow gallery and a window from the
 director of research's office. Three new windows on the upper station renumber the doors after them, which the
-progression tests name; what they say is unchanged.
+progression tests name; what they say is unchanged. (In metres now, §4: a partition is two rooms drawn half a metre
+apart, and the strips are `RoomOpts.part`, drawn only where a room reaches a partition past the rest of its side.)
 
 **Step 7 (built): single doors are single doors.** A steel or office door's opening is 1.2 m (`NARROW`), set against
 the end of its 2 m tile where its pocket is, the rest of the tile wall: there the nav graph's spot in that half of the
@@ -1596,6 +1631,8 @@ heavy doors, shutters and windows keep the whole 2 m. Its leaf, frame, sign, rea
 (`doorLook` undoes the door frame's scaling for what is fixed). The thresher and the bloat use no doors (`noDoors`, as
 before); everything that does fits, a skitter, the widest, with 10 cm either side (`test/doors.test.ts`, which also
 checks that every door on every level still has a spot in it). The progression checker's answers are unchanged.
+(In metres now, §4: a door is placed at its opening's middle, and `span` gives a single door the stretch of wall it
+hangs in, against the end with wall beyond to slide into.)
 
 **Step 8 (built): the rest of the glass.** Vision panels are holes in a door's leaf with glass in them, moving with it
 (`holed`, `Leaf.glass`, a see-through `dynamicMaterial`). Any prop made of glass is drawn see-through on its own
@@ -1614,7 +1651,7 @@ the atrium, the checkpoint); it is drawn now as block filled and painted smooth,
 every 6 m, no coursing. The Commons' paving, small flags half a flag along, read as a brick pavement; it is large square
 flags, joint to joint, quiet in tone. A partition's room reaches 0.75 m into the wall tile, which left what was fixed to
 the old face in the air (the wing's cut SEC connection, a call point, the infirmary's shelf): what stands within 0.6 m of
-the old face moves with it (`followFace` in `content/build/tiles.ts`). The loose crates are gone from the station (the
+the old face moves with it (`followFace` in `content/build/tiles.ts`; in metres now, each simply stands there). The loose crates are gone from the station (the
 testbed keeps its own for the tests that push them); a shelf's contents are laid in slots along each board, one a slot.
 
 **Then, where things are.** What you pick up and the papers were put down 2 cm over whatever they lay on (the first

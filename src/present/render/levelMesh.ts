@@ -8,11 +8,12 @@ import { matId } from './shader';
 import { TEMPLATES } from './templates';
 
 /* The level's static mesh. Flat surfaces come from the grid: wherever open space meets solid, there is a face, coloured by
-   the room on the open side and by what the solid is (rock takes the room's palette; a block, its own colour). Faces are
-   merged into the largest flat rectangles that share a colour (within a chunk), then cut where the palette changes (the dado
-   and the stripe on walls). What a surface is made of draws its own joints; the first engine's 2 m checker on floors,
+   the room on the open side and by what the solid is (rock takes the room's palette; a block, its own colour, but for a
+   floor slab's top, which is the floor of the room on it). Faces are merged into the largest flat rectangles that share a
+   colour (within a chunk), then cut where the palette changes (the dado and the stripe on walls). What a surface is made of draws its own joints; the first engine's 2 m checker on floors,
    walls and the painted sky is gone. Sloped surfaces (ramps, cave floors and ceilings) are drawn from their
-   own lattices. Fixed props are added from their shapes; loose ones are drawn elsewhere, since they move.
+   own lattices, and walls at an angle from their turned boxes, each face finished as the room in front of it. Fixed
+   props are added from their shapes; loose ones are drawn elsewhere, since they move.
 
    The light itself is read by the shader from the level's light field, pixel by pixel (lightVolume.ts); a vertex says
    only how much of it its surface takes (a ceiling less, a lit fitting more). When the power changes, only the fittings'
@@ -31,14 +32,29 @@ const PIECE = { across: 16, up: 8 };
 /** a vertex's light: which room it is in (for its fitting's colour), and how much it takes; and what it is made of */
 interface Src { room: number; m: number; mat: number }
 
+/** the corner each room's joints are laid from (the shader's aRoomO): the north-west corner of all of it, every piece
+ *  of a room that bears its name on its floor (a hall and its bay, the strips it reaches into a partition with), so a
+ *  floor's joints run on across its pieces and start again past its doorways */
+function corners(rooms: RoomDef[]): [number, number][] {
+  const at = new Map<string, [number, number]>();
+  const key = (R: RoomDef) => R.name + '@' + R.y0.toFixed(2);
+  for (const R of rooms) {
+    const c = at.get(key(R));
+    at.set(key(R), c ? [Math.min(c[0], R.x0), Math.min(c[1], R.z0)] : [R.x0, R.z0]);
+  }
+  return rooms.map(R => at.get(key(R))!);
+}
+
 class Out {
-  constructor(private rooms: RoomDef[]) {}
+  private corner: [number, number][];
+  constructor(private rooms: RoomDef[]) { this.corner = corners(rooms); }
   P: number[] = [];
   C: number[] = [];
   room: number[] = [];
   m: number[] = [];
   M: number[] = [];
   RY: number[] = [];
+  RO: number[] = [];
   /** fittings whose colour shows power: [first vertex, count, which] */
   pw: [number, number, [Colour, Colour], string][] = [];
   vert(x: number, y: number, z: number, c: Colour, src: Src): void {
@@ -48,12 +64,18 @@ class Out {
     const R = src.room >= 0 ? this.rooms[src.room] : null;
     this.M.push(src.mat);
     this.RY.push(R ? R.y0 : 0, R ? R.y0 + R.ht : 0);
+    const o = R ? this.corner[src.room] : null;
+    this.RO.push(o ? o[0] : 0, o ? o[1] : 0);
   }
   /** a rectangle on plane `a` (0 x, 1 y, 2 z) at `s`, spanning [u0, u1] x [v0, v1] on the other two axes in order */
   rect(a: number, s: number, u0: number, u1: number, v0: number, v1: number, c: Colour, room: number, m: number, mat = 0): void {
     const pt = (u: number, v: number): [number, number, number] =>
       a === 0 ? [s, u, v] : a === 1 ? [u, s, v] : [u, v, s];
     const q = [pt(u0, v0), pt(u1, v0), pt(u1, v1), pt(u0, v1)];
+    for (const k of [0, 1, 2, 0, 2, 3]) this.vert(q[k][0], q[k][1], q[k][2], c, { room, m, mat });
+  }
+  /** a four-cornered face, its corners in order round it */
+  quad(q: [number, number, number][], c: Colour, room: number, m: number, mat = 0): void {
     for (const k of [0, 1, 2, 0, 2, 3]) this.vert(q[k][0], q[k][1], q[k][2], c, { room, m, mat });
   }
   get count(): number { return this.P.length / 3; }
@@ -122,11 +144,12 @@ function cut(o: Out): { geometries: THREE.BufferGeometry[]; piece: Int32Array; a
     if (p === undefined) byBlock.set(key, (p = counts.push(0) - 1));
     for (let k = 0; k < 3; k++) { piece[v + k] = p; at[v + k] = counts[p]++; }
   }
-  const arrays = counts.map(c => ({ P: new Float32Array(c * 3), C: new Float32Array(c * 3), m: new Float32Array(c), M: new Float32Array(c), RY: new Float32Array(c * 2) }));
+  const arrays = counts.map(c => ({ P: new Float32Array(c * 3), C: new Float32Array(c * 3), m: new Float32Array(c), M: new Float32Array(c), RY: new Float32Array(c * 2), RO: new Float32Array(c * 2) }));
   for (let v = 0; v < n; v++) {
     const A = arrays[piece[v]], i = at[v];
     for (let k = 0; k < 3; k++) { A.P[i * 3 + k] = P[v * 3 + k]; A.C[i * 3 + k] = o.C[v * 3 + k]; }
     A.m[i] = o.m[v]; A.M[i] = o.M[v]; A.RY[i * 2] = o.RY[v * 2]; A.RY[i * 2 + 1] = o.RY[v * 2 + 1];
+    A.RO[i * 2] = o.RO[v * 2]; A.RO[i * 2 + 1] = o.RO[v * 2 + 1];
   }
   const geometries = arrays.map(A => {
     const g = new THREE.BufferGeometry();
@@ -135,6 +158,7 @@ function cut(o: Out): { geometries: THREE.BufferGeometry[]; piece: Int32Array; a
     g.setAttribute('aLight', new THREE.BufferAttribute(A.m, 1));
     g.setAttribute('aMat', new THREE.BufferAttribute(A.M, 1));
     g.setAttribute('aRoomY', new THREE.BufferAttribute(A.RY, 2));
+    g.setAttribute('aRoomO', new THREE.BufferAttribute(A.RO, 2));
     g.computeBoundingSphere();
     return g;
   });
@@ -180,7 +204,8 @@ export function buildLevelMesh(w: World, L: Lighting): LevelMesh {
   const face = (a: number, s: number, u0: number, u1: number, v0: number, v1: number, room: number, block: number, openUp: boolean) => {
     const R = w.rooms[room];
     if (a === 1 && covered(openUp, s, u0, u1, v0, v1)) return;
-    if (block >= 0) {
+    /* (a slab's top is the floor of the room on it, as rock's is) */
+    if (block >= 0 && !(a === 1 && openUp && w.blocks[block].slab)) {
       put(a, s, u0, u1, v0, v1, room, w.blocks[block].colour, 1, matId(w.blocks[block].mat));
       return;
     }
@@ -193,20 +218,12 @@ export function buildLevelMesh(w: World, L: Lighting): LevelMesh {
       else put(a, s, u0, u1, v0, v1, room, scale3(R.wall, 0.6), 0.8, matId(R.mat.ceiling));
       return;
     }
-    /* a wall. On plane x the axes are (y, z); on plane z, (x, y). High up a tall room, walls are darker (as before).
-       Painted block takes a darker dado and the stripe over it; nothing else is painted so. A room can be one thing
-       below its datum and another above it (the lobby's stone, plaster over it). */
+    /* a wall. On plane x the axes are (y, z); on plane z, (x, y) */
     const yAxisFirst = a === 0;
     const [y0, y1] = yAxisFirst ? [u0, u1] : [v0, v1], [h0, h1] = yAxisFirst ? [v0, v1] : [u0, u1];
-    const f = R.y0, wm = matId(R.mat.wall), painted = !R.plain && !R.doorway && R.mat.wall === 'block';
-    const up = R.mat.upper ? f + (R.mat.datum ?? 4) : Infinity;
-    for (const [ya, yb] of cuts(y0, y1, [f + 3.2, ...(painted ? [f + 0.9, f + 1.05] : []), ...(R.mat.upper ? [up] : [])])) {
-      const high = ya >= f + 3.2 - 1e-6;
-      const band = !painted || high ? 2 : yb <= f + 0.9 + 1e-6 ? 0 : yb <= f + 1.05 + 1e-6 ? 1 : 2;
-      const c = band === 0 ? scale3(R.wall, 0.78) : band === 1 ? R.stripe : R.wall;
-      const m = ya >= up - 1e-6 ? matId(R.mat.upper) : wm;
-      if (yAxisFirst) put(a, s, ya, yb, h0, h1, room, c, high ? 0.6 : 1, m);
-      else put(a, s, h0, h1, ya, yb, room, c, high ? 0.6 : 1, m);
+    for (const [ya, yb, c, m, mat] of bands(R, y0, y1)) {
+      if (yAxisFirst) put(a, s, ya, yb, h0, h1, room, c, m, mat);
+      else put(a, s, h0, h1, ya, yb, room, c, m, mat);
     }
   };
 
@@ -263,6 +280,7 @@ export function buildLevelMesh(w: World, L: Lighting): LevelMesh {
   });
 
   for (const sf of w.surfaces) if (!sf.def.hidden) surfaceMesh(o, w, sf);
+  w.walls.forEach((W, k) => wallMesh(o, w, W, k));
 
   /* fixed props, in the room they stand in; fittings show their circuit's power.
      Each is drawn a hair larger than it is (apart: see `apart`), so where two meet face to face, or one stands on the
@@ -298,6 +316,65 @@ export function propVerts(p: PropDef, put: (x: number, y: number, z: number) => 
  *  parts made flush (a button on its post, a box on a shelf, a crate on the floor) never share a plane. Everything is
  *  drawn two-sided, so a face pressed against another shows through it unless one stands clear. */
 export const apart = (k: number): number => 0.001 * (1 + (k % 7));
+
+/** a room's wall from y0 up to y1, in the bands it is finished in: [from, to, colour, how much light it takes, what it is
+ *  made of]. High up a tall room, walls are darker (as before). Painted block takes a darker dado and the stripe over
+ *  it; nothing else is painted so. A room can be one thing below its datum and another above it (the lobby's stone,
+ *  plaster over it). */
+function bands(R: RoomDef, y0: number, y1: number): [number, number, Colour, number, number][] {
+  const f = R.y0, wm = matId(R.mat.wall), painted = !R.plain && !R.doorway && R.mat.wall === 'block';
+  const up = R.mat.upper ? f + (R.mat.datum ?? 4) : Infinity;
+  return cuts(y0, y1, [f + 3.2, ...(painted ? [f + 0.9, f + 1.05] : []), ...(R.mat.upper ? [up] : [])]).map(([ya, yb]) => {
+    const high = ya >= f + 3.2 - 1e-6;
+    const band = !painted || high ? 2 : yb <= f + 0.9 + 1e-6 ? 0 : yb <= f + 1.05 + 1e-6 ? 1 : 2;
+    const c = band === 0 ? scale3(R.wall, 0.78) : band === 1 ? R.stripe : R.wall;
+    return [ya, yb, c, high ? 0.6 : 1, ya >= up - 1e-6 ? matId(R.mat.upper) : wm];
+  });
+}
+
+/** a wall at an angle (world.ts, walls): each face in the finish of the room in front of it, as a face of rock is, cut
+ *  where that room changes along it; or all of it its own colour, if it has one. Faces with nothing in front of them
+ *  (in rock, in another wall's side) are not drawn. It is drawn a hair larger than it is (apart), so a face in one
+ *  plane with one of the grid's, or with a floor or a ceiling, does not fight it */
+function wallMesh(o: Out, w: World, W: World['walls'][number], k: number): void {
+  const t = W.turn, e = apart(k), hu = t.hu + e, hv = t.hv + e, y0 = W.y0 - e, y1 = W.y1 + e;
+  const at = (u: number, v: number): [number, number] => [t.cx + t.c * u - t.s * v, t.cz + t.s * u + t.c * v];
+  const own = W.colour ? { c: W.colour, mat: matId(W.mat) } : null;
+  /* where the face stands: a body's height up it, or its middle if it is shorter */
+  const ys = Math.min(W.y0 + 1.2, (W.y0 + W.y1) / 2);
+  /* its sides, each from p to q with its outward facing n: along it either side, and its two ends */
+  const sides: [[number, number], [number, number], [number, number]][] = [
+    [at(-hu, hv), at(hu, hv), [-t.s, t.c]], [at(hu, -hv), at(-hu, -hv), [t.s, -t.c]],
+    [at(hu, hv), at(hu, -hv), [t.c, t.s]], [at(-hu, -hv), at(-hu, hv), [-t.c, -t.s]],
+  ];
+  for (const [p, q, n] of sides) {
+    const len = Math.hypot(q[0] - p[0], q[1] - p[1]), steps = Math.max(1, Math.ceil(len / 0.5));
+    /* the room in front of each half metre of it, and runs of the same room */
+    const rooms: number[] = [];
+    for (let i = 0; i < steps; i++) {
+      const f = (i + 0.5) / steps, x = p[0] + (q[0] - p[0]) * f + n[0] * 0.06, z = p[1] + (q[1] - p[1]) * f + n[1] * 0.06;
+      rooms.push(w.inWall(x, ys, z) ? -1 : w.roomAt(x, ys, z)?.id ?? -1);
+    }
+    for (let i = 0; i < steps; ) {
+      let j = i + 1;
+      while (j < steps && rooms[j] === rooms[i]) j++;
+      const r = rooms[i], fa = i / steps, fb = j / steps;
+      const a: [number, number] = [p[0] + (q[0] - p[0]) * fa, p[1] + (q[1] - p[1]) * fa], b: [number, number] = [p[0] + (q[0] - p[0]) * fb, p[1] + (q[1] - p[1]) * fb];
+      const face = (ya: number, yb: number, c: Colour, m: number, mat: number) => o.quad([[a[0], ya, a[1]], [b[0], ya, b[1]], [b[0], yb, b[1]], [a[0], yb, a[1]]], c, r, m, mat);
+      if (r >= 0) {
+        if (own) face(y0, y1, own.c, 1, own.mat);
+        else for (const [ya, yb, c, m, mat] of bands(w.rooms[r], y0, y1)) face(ya, yb, c, m, mat);
+      }
+      i = j;
+    }
+  }
+  /* its top and its foot, where they are in the open (a wall short of the ceiling, or hung off the floor) */
+  const corners = [at(-hu, -hv), at(hu, -hv), at(hu, hv), at(-hu, hv)];
+  for (const [y, d] of [[y1, 0.06], [y0, -0.06]] as const) {
+    const R = w.inWall(t.cx, y + d, t.cz) ? null : w.roomAt(t.cx, y + d, t.cz);
+    if (R) o.quad(corners.map(([x, z]) => [x, y, z] as [number, number, number]), own ? own.c : R.wall, R.id, 1, own ? own.mat : matId(R.mat.wall));
+  }
+}
 
 /** a sloped surface: its lattice as quads, and for a ramp its edges down to the base */
 function surfaceMesh(o: Out, w: World, sf: Surface): void {

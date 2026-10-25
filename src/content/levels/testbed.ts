@@ -75,6 +75,18 @@ export function testbed(): LevelDef {
   b.room('Arena corridor', 18, -11, 28, -9.4, { ht: 3, pal: UTIL, light: [0.45, 0.46, 0.5] });
   b.room('Low bay', -8, -14, -2, -6, { ht: 2.2, pal: UTIL, light: [0.45, 0.42, 0.38] });
 
+  /* walls at an angle (engine.md §4): south out of the lab, a passage into a hall of eight sides, and across its south-
+     east corner a wall at an angle (not a diagonal of the grid: 127 degrees) with a gap in it, into an annex, dark.
+     The hall is painted block, the annex glazed tile: the wall between them takes each on its own side */
+  b.room('Angle passage', 6.75, 34, 8.25, 37, { ht: 2.6, pal: UTIL, light: [0.4, 0.42, 0.45], nolamp: true });
+  b.outline('Angled hall', [[5, 37], [10, 37], [12.5, 39.5], [12.5, 41], [8, 47], [5, 47], [2.5, 44.5], [2.5, 39.5]],
+    { pal: OPS, light: [0.6, 0.6, 0.62], mat: { wall: 'block' }, open: [3] });
+  b.outline('Angled annex', [[12.5, 41], [12.5, 44.5], [10, 47], [8, 47]], { pal: SEC, light: DARK, mat: { wall: 'glazed', floor: 'vinyl' }, open: [3] });
+  /* the wall between, from rock to rock past either end, a gap 1.4 m wide in its middle */
+  const across = (f: number): [number, number] => [12.5 - 4.5 * f, 41 + 6 * f], gap = 0.7 / 7.5, past = 0.25 / 7.5;
+  b.wall(...across(-past), ...across(0.5 - gap)); b.wall(...across(0.5 + gap), ...across(1 + past));
+  b.box(4.6, 42, 1.8, 0.45, 0.45, 0x5f6266, { ry: PI / 4 }); // a bench, turned to the passage
+
   b.start(3, 3, -PI / 2);
   return b.finish();
 }

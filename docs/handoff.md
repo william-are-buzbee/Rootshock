@@ -71,7 +71,7 @@ use of kind `call`). Step 2 is done.
 
 Step 3's first half is done: the lobby (world.md §8, *The lobby*, *Where it goes*, for what was built and why the wing
 did not move), the second-floor checkpoint and surface landing, the surface cage moved up to +5, Goods inward for the
-hoist, and `grandStair` (`content/build/fittings.ts`). The booth's screens are done too: a console (`monitors`, a use of
+hoist, and `grandStair` (`content/build/furnish.ts`). The booth's screens are done too: a console (`monitors`, a use of
 kind `watch`), `Sim.watch` and `watching` in `sim/eyes.ts`, and the view in `present/ui/feed.ts`; the four cameras it shows
 are named (`CameraDef.name`). The wing's control room is the briefing room now, and the duty office's screen (a
 console with a sequencer, `dwell`) is done. Step 3 is done.
@@ -132,7 +132,7 @@ after its feet), leaving smears (`Sim.pools` kind `smear`), and grafted at a rou
 `present/flicker.ts`); then left out cold (patient state 'out', `lies`, `bleed`; `grafted`, drawn as a shelf of leaf
 on the forearm, the gown streaked). The rooms are walked into and looked right round (`RoundStop.about`, `ROUND.about`);
 a tries stop's `wait` is a pause before the card. Footprints through the new pools are the renderer's (`Prints.spilt`),
-now foot-shaped; every pool is discs (`SPLAT` in `castView.ts`, `blood()` in `content/build/fittings.ts`). The take
+now foot-shaped; every pool is discs (`SPLAT` in `castView.ts`, `blood()` in `content/build/furnish.ts`). The take
 respects god mode. Save version 11.
 
 **On the back burner** (the owner set Security aside here; pick these up with them, not unasked):
