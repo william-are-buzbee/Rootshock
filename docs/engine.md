@@ -470,7 +470,8 @@ corpse worth throwing.
 - **Shapes** (`content/items.ts`, `shape`): the pipe, the baton and the wrenches swing **side** to side, right to left
   across the way you face (40° each side of it); the axe **chops** straight down, in the upright plane of the way you
   face, from 50° above it to 40° below (at first it came from up and right to down and left, which read as a curve;
-  playing set it straight); fists and the knife **thrust** straight out. The path is laid on the line the blow was thrown
+  playing set it straight); fists and the knife **thrust** straight out (their own ways; since, any can be sent another
+  way: *Which way a swing goes, as built*). The path is laid on the line the blow was thrown
   along, pitch and all: look down at a worm and the swing goes low. Its reach across the floor is the weapon's, at any
   pitch (you lean into a low blow).
 - **Swept, not tested at an instant** (`sim/sweep.ts`; `combat.ts`, `sweep`): the part of a swing from a fifth to
@@ -923,6 +924,51 @@ Each measured headless before it was touched (`test/probes/snap.probe.ts` for th
   a second).
 - **Tests**: `test/fade.test.ts`; `test/ragdoll.test.ts`, *drawn going loose*; `test/nightround.test.ts`, its beam
   swung onto you and what it throws back going along with it.
+
+### Which way a swing goes, as built
+
+Asked for by the owner: the direction of a blow yours to choose. Chosen with them: by the keys held as you press, not
+the mouse (it only aims) or more buttons; each weapon its natural ways; the path chosen, not the numbers.
+
+- **What you hold as you press** (`wayOf` in `sim/combat.ts`): A, a backhand from your left across to your right
+  (`back` in `sim/sweep.ts`: the side swing in a mirror, rising from low on the left); D, a side swing from your right
+  across to your left; W, brought down over your head for anything swung, straight out for the knife and your fists;
+  nothing, or S, the weapon's own way (the pipe, the baton and the wrenches across from the right, the axe a chop, the
+  knife and fists a thrust). So each has its natural set: the pipe, the baton and the wrenches both sides and
+  overhead; the axe its chop and both sides; the knife a thrust and a slash either way; fists a jab and a hook either
+  way. A key counts pushed past halfway, the stronger if both are (a stick held off straight). It is taken as you
+  press, and a press kept while you are busy (`BUF`) goes the way it was pressed. The keys move you as they always
+  did, so the way you step is the way the blow comes from. On a phone, the stick (index.html says so with the keys).
+- **Only the path is chosen**: as hard, as quick, the same poise, shove, lunge and recovery whichever way (a test holds
+  the damage and the swing's time equal). What differs is what the path meets. A backhand takes the one on your left
+  first, as a side swing takes the one on your right, and shoves what it hits off to your right. Brought down over
+  your head a blow clears a corridor a side swing glances off; swung across, it clears a low ceiling a chop catches.
+- **Where each glances** (`test/probes/glance.probe.ts`: from every spot on the nav graph, facing eight ways with 1.6 m
+  clear ahead, the world alone; as a side swing, as a backhand, brought down):
+
+  | | pipe across | pipe down | baton across | baton down | axe across | axe down |
+  |---|---|---|---|---|---|---|
+  | upper | 7% | 4% | 6% | 2% | 13% | 8% |
+  | main | 9% | 5% | 8% | 4% | 17% | 6% |
+  | plant | 9% | 1% | 8% | 1% | 17% | 1% |
+  | sump | 7% | 2% | 6% | 1% | 12% | 2% |
+  | sumpdeep | 11% | 0% | 11% | 0% | 22% | 34% |
+  | cave | 5% | 5% | 5% | 2% | 11% | 9% |
+
+  A side swing and a backhand glance alike. Brought down, a blow glances in half the places across does or fewer,
+  but for the axe under the deep sump's and the cave's low roofs. The axe swung across, all 1.7 m of its reach, glances
+  in twice the places the pipe does. These count more cramped places than F3b's first count (the pipe's side swing
+  there 7, 10, 11, 6 and 1%): compare within the table.
+- **The axe's aim** (handoff, *Open* 1): its chop is left as it is, the owner's call. It still lands on the top of
+  anything tall; swung across (A or D), it meets the thing at the crosshair's height.
+- **Drawn** (`render/handsView.ts`): loading goes from how the thing is held at rest to where its way starts (drawn
+  back to the right, to the left for a backhand, up over your head, back for a thrust), so anything can be sent any of
+  its ways without a jump at the press or as it is let go; a fist hooks pointing along its forearm. A test sends every
+  weapon every way and holds each frame to what the swing itself moves in one (`test/hands.test.ts`). Looked at too,
+  each way loaded and swung, in a browser. The dev readout's blow log names the way (`pipe back → husk`); the overlay
+  (O) draws the path of the way the blow is going.
+- **Tests**: `test/sweep.test.ts`, *which way it goes*; `test/hands.test.ts`. No change to saves: the way is in
+  `Hands`, which is saved whole, and an older save's is taken as the weapon's own.
 
 ---
 

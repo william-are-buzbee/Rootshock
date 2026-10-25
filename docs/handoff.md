@@ -243,6 +243,8 @@ for the owner, since they are cosmology, not the level.
    - have the one under the crosshair met where the arc crosses the crosshair, the arc catching only others first;
    - leave it, and draw where it will land (the dev overlay already draws the path: `sweepPath`).
    The sideways shove (fixed here) will have made it feel worse than it is: try it again first.
+   **Decided** (the owner): the chop is left as it is. Swings can be sent another way now, by the keys held as you
+   press (engine.md §6, *Which way a swing goes, as built*): the axe swung across meets a tall thing at the crosshair.
 2. **The overseer's hit volume** is the grabber's old head ball, 2 m up, above a mound 1.6 m high. Probably the same
    fault; not reported, so not touched.
 3. **Knockdowns still turn some**: 118° in all while down across eighteen floorings, most of it lying and rolling
