@@ -370,6 +370,11 @@ corpse worth throwing.
   carries you a step along it (1 + 0.6 m/s a kilogram). One that meets nothing, not even a wall, leaves the arm
   0.15 + 0.12 s a kilogram coming back (the axe half a second). Loading and swinging do not slow your feet. A click
   while you are busy is kept 0.2 s, and is a blow when the arm is free.
+- **Drawn as it goes** (since; `present/render/handsView.ts`). What is in your hand is drawn on the line of the blow,
+  not the view: look away mid-swing and it goes on without you, where the dev overlay's path goes. Over, it is brought
+  back, not snapped to rest: in a sixth of a second after one that met something; after one that met nothing, carried
+  on past its follow-through by its weight (0.12 rad a kilogram: the axe goes down past your knees) and brought back
+  across the recovery, so the time you are locked out is the time you watch it come back. Looks only.
 - **Hits on you never take a load or a blow from you.** One that breaks your poise throws you back from it (2.5 m/s)
   and you reel 0.7 s: a third of your pace, the view jolted, the arm flung down, and no new load until you have your
   feet (a load already in hand, or a blow already thrown, goes on).

@@ -502,7 +502,7 @@ function frame(t: number): void {
   lighting.follow(k => sim.doors[k].t);
   lighting.lights(looseLights(sim));
   here.syncLight(lighting);
-  handsView.update(rig.bob, t / 1000);
+  handsView.update(rig.bob, t / 1000, rig.at);
   selfView.update(rig.at, rig.eye, dt);
   motes.resize(view.renderer.domElement.height, view.camera.fov);
   motes.update(sim, view.camera.position, mode === 'play' ? dt : 0);
