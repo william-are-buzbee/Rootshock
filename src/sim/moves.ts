@@ -93,6 +93,10 @@ export const closing = (v: number): number => Math.min(IMPACT.most, Math.max(IMP
  *  to a third in this long (s): a sprint is not kept for later */
 export const BANK = { held: 0.36 };
 
+/** how fast you stop as you let a blow go (m/s²): your foot planted, from a shuffle in a few hundredths of a second.
+ *  What you were still going goes into the blow (sim/combat.ts, carry) */
+export const PLANT = 40;
+
 /** a blow of yours that lands holds both still a moment, what struck and what it struck (hit-stop): your swing stops in
  *  it, and it stands where it was hit, everything it was doing waiting, the shove it was given too. This long (s) for a
  *  blow stood still, and this much more a kilogram swung; as much longer as it lands harder (closing). Fists 0.05, the
@@ -144,19 +148,20 @@ export interface Swing {
   miss: number;
   /** recovery after one that landed or glanced (s): what it met stops it, and what it carried goes through you */
   settle: number;
-  /** your feet while the arm comes up and while you recover, as a share of a walk: planted. Going faster than that you
-   *  slow as one thrown does: the plant takes what you were doing, and the blow keeps it (BANK) */
+  /** your feet while you recover, as a share of a walk: planted where the blow left you. Going faster than that you
+   *  slow as one thrown does */
   plant: number;
-  /** your feet with the load up and held, as a share of a walk: a shuffle, and no running */
+  /** your feet while the arm comes up and while it is held up, as a share of a walk: a shuffle, and no running. Going
+   *  faster than that (a press at a run) you slow as one thrown does, and the blow keeps it (BANK) */
   held: number;
   /** how fast the line of the blow follows your eyes from the press until it is let go (rad/s): your body turning
    *  slower than your head, a heavy blow slower still */
   turn: number;
 }
 
-/* A swing has your feet from the press (engine.md §6, F2): the arm comes up with your foot planted, and you hold it up
-   on a shuffle; let go, your keys do nothing until it is done, what you had going on; then you recover where you
-   stand, a moment if it landed, longer if it met nothing, before you move or swing again. */
+/* A swing has your feet from the press (engine.md §6, F2): you shuffle while the arm comes up and while you hold it up;
+   let go, you plant your foot (PLANT) as it comes down, and your keys do nothing until it is done; then you recover
+   where you stand, a moment if it landed, longer if it met nothing, before you move or swing again. */
 export function swingOf(kind: 'blunt' | 'edge' | 'fist' | 'gun', mass: number): Swing {
   return {
     poise: kind === 'fist' ? 4 : kind === 'edge' ? 9 * mass : 12 * mass,

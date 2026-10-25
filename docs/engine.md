@@ -367,33 +367,35 @@ corpse worth throwing.
   0.57, the baton 0.67, the pipe 0.93, the axe 1.09) and the blow comes down in full: click and it goes as soon as
   the arm is up; hold and it stays up until you let go, as long as you like. There are no half blows (below).
 - **Your blow commits.** Its line is fixed as it is thrown: you can look away, and it lands where you sent it. Until
-  then it follows your eyes no faster than your body turns (below). One that meets nothing, not even a wall, swings you
+  then it follows your eyes no faster than your body turns, and as it goes you plant your foot (below). One that meets nothing, not even a wall, swings you
   out a step along it (up to 1 + 0.6 m/s a kilogram) and leaves the arm 0.15 + 0.12 s a kilogram coming back (the axe
   half a second); one that lands or glances, 0.1 + 0.05 s a kilogram (the axe a quarter second). A click while you are
   busy is kept 0.2 s, and is a blow when the arm is free.
-- **A swing has your feet** (since; `sim/moves.ts`, `swingOf`, `BANK`; `sim/combat.ts`, `stance`, `feet`, `carry`). As the
-  owner put it, playing: you plant your foot, turn your hips and arms, and swing; it lands and the energy goes through
-  you, or it meets nothing and you swing out; then you move. In parts:
-  - *The arm coming up*: planted. The press plants your foot: you want a share of a walk (0.45 less 0.12 a kilogram,
-    not under 0.1: fists 0.38, the baton 0.32, the pipe 0.16, the axe 0.1), and faster than that you slow as one
-    thrown does. What you were going along your facing at the press is banked into the blow (`carry`): it lands as if
-    you were still going that fast (`closing`), so a sprint ended by a click as the husk comes into reach lands as hard
-    as running in did; backing off as you press, as soft.
-  - *Held up*: a shuffle, no running (0.65 less 0.1 a kilogram of a walk, not under 0.3: the baton 0.54, the axe 0.33).
-    What was banked leaks away, to a third in 0.36 s: a run is not kept for later. Your eyes are free; the line of the
-    blow follows them from the press no faster than your body turns (4 less 0.8 rad/s a kilogram, not under 1.2: the
-    baton 3.1, the axe 1.4), and what you hold is drawn on that line, lagging a quick look.
-  - *Let go, until it is done*: your keys do nothing, and what you had goes on.
-  - *Recovering*: planted again, and no new load, a moment after one that landed or glanced, longer after one that met
-    nothing, which swings you out a step first. You are open meanwhile (`exposed`): a husk waiting its turn comes in.
-  Sprinting with the baton and clicking: down to 1 m/s within 0.2 s, held through the 0.67 s the arm takes, the blow,
-  0.4 s recovering, and running again 1.2 s after the click; the axe at 0.3 m/s for 1.1 s. Tried before this, and
-  wrong by the owner's feel: slowed only after letting go (a share of the pace while the blow was under way, then
-  planted for a settle after it), which read as being slowed while waving the weapon like a fan, not as a plant.
-  The duels' scripted fighter loads early and gives ground while the arm comes up, which the plant forbids; by its
-  numbers (twelve layouts each) one husk still never kills you, the axe untouched in nine, the baton always hurt; two
-  cost the axe and the pipe most of your health and kill a quarter of the time when they flank you; the baton dies to
-  two every time. The fighter is no longer good play under these rules: what it shows is the old way no longer works.
+- **A swing has your feet** (since; `sim/moves.ts`, `swingOf`, `BANK`, `PLANT`; `sim/combat.ts`, `stance`, `feet`,
+  `carry`; `present/camera.ts`, `lean`). As the owner put it, playing: you plant your foot, turn your hips and arms,
+  and swing; it lands and the energy goes through you, or it meets nothing and you swing out; then you move. In parts:
+  - *The arm coming up, and held up*: a shuffle, no running (0.65 less 0.1 a kilogram of a walk, not under 0.3: the
+    baton 0.54, the axe 0.33); faster than that, as from a press at a run, you slow as one thrown does. What you were
+    going along your facing at the press is banked into the blow (`carry`), leaking once the arm is up and held, to a
+    third in 0.36 s: a run is not kept for later. Your eyes are free; the line of the blow follows them from the press
+    no faster than your body turns (4 less 0.8 rad/s a kilogram, not under 1.2: the baton 3.1, the axe 1.4), and
+    what you hold is drawn on that line, lagging a quick look.
+  - *Let go*: you plant your foot as it comes down, stopping at 40 m/s² whatever your keys say (from a shuffle in a few
+    hundredths of a second), what you still had going into the blow too. It lands as if you were going as fast as
+    what it banked (`closing`): a sprint ended by a click as the husk comes into reach lands as hard as running in
+    did; backing off as you press, as soft. A footfall is heard, and the view settles a few centimetres and leans into
+    the blow as it comes down (down, and round with one swung across), a heavier one more, easing back as you recover.
+  - *Recovering*: planted where it left you (0.45 less 0.12 a kilogram of a walk, not under 0.1), no new load, a moment
+    after one that landed or glanced (0.1 + 0.05 s a kilogram), longer after one that met nothing (the miss recovery),
+    which swings you out a step first. You are open meanwhile (`exposed`): a husk waiting its turn comes in.
+  Walking with the baton and clicking: a shuffle at 1.7 m/s while the arm comes up (0.67 s), stopped within a tenth of
+  a second of letting go, the blow, 0.4 s recovering, and walking again 1.2 s after the click. Tried before this, and
+  wrong by the owner's feel: slowed only after letting go (it read as waving the weapon like a fan); then planted from
+  the press, the arm coming up over a stop (the blow came down out of time with it: the stop belongs to the swing).
+  The duels' scripted fighter loads early and gives ground while the arm comes up, slower now; by its numbers (twelve
+  layouts each) one husk never kills you (the axe untouched in eleven, the baton always hurt); two cost the axe and
+  the pipe most of your health; the baton dies to two flanking you five times in twelve, in front nine. The fighter
+  is not good play under these rules: what it shows is the old way no longer works.
 - **Drawn as it goes** (since; `present/render/handsView.ts`). What is in your hand is drawn on the line of the blow,
   not the view: look away mid-swing and it goes on without you, where the dev overlay's path goes. Over, it is brought
   back, not snapped to rest: in a sixth of a second after one that met something; after one that met nothing, carried

@@ -6,6 +6,8 @@ import type { Dyn } from '../world/world';
 import { U } from './render/shader';
 import { BOUNCE } from '../world/light';
 import { DOWN } from '../sim/moves';
+import { wstats } from '../sim/combat';
+import { ACTIVE } from '../sim/sweep';
 
 /** what the beam's bounce passes through: the cast, not the walls */
 /** what sight goes through: bodies, and glass */
@@ -42,6 +44,10 @@ export class CameraRig {
   private jolt = { y: 0, p: 0, r: 0 };
   /** how far over you are (0 on your feet, 1 on the floor): quick to go, slower back up */
   private fall = 0;
+  /** your body in a blow of yours (sim/combat.ts, stance): planted as it is let go, the view settles (m, `y`) and leans
+   *  into it as it comes down (radians: `p` down; `t` round with one swung across, right to left), a heavier one more;
+   *  quick to go, easing back as you recover. Looks only: the blow's line is not touched */
+  private lean = { y: 0, p: 0, t: 0 };
 
   /** your blow landed, this hard (0..1): the view dips into it */
   impact(k: number): void {
@@ -82,7 +88,18 @@ export class CameraRig {
     cam.position.set(x + j(), this.cy + this.eye + Math.sin(this.bob) * 0.035 + j(), z + j());
     const J = this.jolt, ease = Math.exp(-dt * 9);
     J.y *= ease; J.p *= ease; J.r *= ease;
-    cam.rotation.set(pitch + J.p + 0.3 * this.fall, yaw + J.y, J.r - 0.45 * h.side * this.fall);
+    const sw = h.swing, w = wstats(sim.game.weapon), Ln = this.lean;
+    let ly = 0, lp = 0, lt = 0;
+    if (sw && !w.gun) {
+      const into = Math.sin(Math.min(1, sw.t / sw.dur / ACTIVE.to) * Math.PI / 2);
+      ly = -(0.02 + 0.008 * w.mass);
+      lp = -(0.012 + 0.01 * w.mass) * into;
+      if (w.shape === 'side') lt = (0.015 + 0.008 * w.mass) * into;
+    }
+    const toward = (want: number, at: number) => (want - at) * Math.min(1, dt * (Math.abs(want) > Math.abs(at) ? 22 : 6));
+    Ln.y += toward(ly, Ln.y); Ln.p += toward(lp, Ln.p); Ln.t += toward(lt, Ln.t);
+    cam.position.y += Ln.y;
+    cam.rotation.set(pitch + J.p + Ln.p + 0.3 * this.fall, yaw + J.y + Ln.t, J.r - 0.45 * h.side * this.fall);
     /* the flashlight is in your left hand (what you swing is in your right): a little below the eye and to the left, so
        its light rakes across what is close and what stands in it throws its shadow off to the right */
     U.uFlashPos.value.set(cam.position.x - Math.cos(yaw) * 0.22, cam.position.y - 0.3, cam.position.z + Math.sin(yaw) * 0.22);

@@ -109,31 +109,31 @@ describe('a blow commits', () => {
     expect(rec(true)).toBeLessThan(rec(false));
   });
 
-  it('the press plants your foot while the arm comes up; held up, you shuffle at a share of a walk and cannot run', () => {
+  it('loading, the arm coming up or held up, you shuffle at a share of a walk and cannot run', () => {
     const s = hall();
     give(s.game, 'pipe');
-    const x = s.player.body.x, S = swingOf('blunt', 2.4);
-    hold(s, 0.85, { forward: 1, run: true, attack: true });
+    const pace = 3.2 * swingOf('blunt', 2.4).held, v = () => Math.hypot(s.player.body.vx, s.player.body.vz);
+    hold(s, 0.5, { forward: 1, run: true, attack: true });
     expect(s.hands.full).toBe(false);
-    /* walked, 0.85 s is over 2.5 m */
-    expect(s.player.body.x - x).toBeLessThan(0.5);
-    hold(s, 0.4, { forward: 1, run: true, attack: true });
+    expect(v()).toBeCloseTo(pace, 1);
+    hold(s, 0.6, { forward: 1, run: true, attack: true });
     expect(s.hands.full).toBe(true);
-    expect(Math.hypot(s.player.body.vx, s.player.body.vz)).toBeCloseTo(3.2 * S.held, 1);
+    expect(v()).toBeCloseTo(pace, 1);
   });
 
-  it('let go, your keys do nothing until it is done; then you recover where you stand, unable to move or swing', () => {
+  it('let go, you plant your foot and stop whatever your keys say, the pace you had going into the blow; then you recover where you stand', () => {
     const s = hall();
     give(s.game, 'pipe');
     hold(s, 1.2, { forward: 1, attack: true });
-    step(s, { ...noInput(), forward: -1 });
     const v0 = s.player.body.vx;
     expect(v0).toBeGreaterThan(1);
-    for (let k = 0; k < 60; k++) {
-      step(s, { ...noInput(), forward: -1, strafe: 1 });
-      if (s.hands.swing!.done) break;
-      expect(s.player.body.vx).toBe(v0); expect(Math.abs(s.player.body.vz)).toBeLessThan(1e-9);
-    }
+    /* let go, and four steps later stopped, pushing on as you like */
+    for (let k = 0; k < 5; k++) step(s, { ...noInput(), forward: 1, run: true, strafe: 1 });
+    expect(s.hands.swing).not.toBeNull();
+    expect(Math.hypot(s.player.body.vx, s.player.body.vz)).toBeLessThan(0.01);
+    /* (a little more: what you had along your facing at the press, leaked) */
+    expect(s.hands.carry).toBeGreaterThan(v0 - 0.05);
+    expect(s.hands.carry).toBeLessThan(v0 + 0.3);
     /* met nothing: recovering, it brings you to a share of a walk however you push, and a press starts nothing */
     while (s.hands.swing) step(s, { ...noInput(), forward: -1 });
     hold(s, 0.15, { forward: -1, run: true });
@@ -143,8 +143,8 @@ describe('a blow commits', () => {
     expect(s.hands.chg).toBe(-1);
   });
 
-  it('sprinting, the press stops you, and the blow keeps your run; a load held up lets it go', () => {
-    const banked = (weapon: string, held: number) => {
+  it('sprinting, the press slows you to a shuffle and the blow keeps your run; held up, it leaks away', () => {
+    const banked = (weapon: string, kg: number, held: number) => {
       const s = hall();
       s.player.body.x = 3;
       give(s.game, weapon);
@@ -152,19 +152,17 @@ describe('a blow commits', () => {
       step(s, { ...noInput(), forward: 1, run: true, attack: true });
       const at = s.hands.carry;
       hold(s, 0.35, { forward: 1, run: true, attack: true });
-      const v = Math.hypot(s.player.body.vx, s.player.body.vz);
+      const v = Math.hypot(s.player.body.vx, s.player.body.vz), pace = 3.2 * swingOf(kg > 3 ? 'edge' : 'blunt', kg).held;
       while (!s.hands.full) step(s, { ...noInput(), forward: 1, run: true, attack: true });
       hold(s, held, { forward: 1, run: true, attack: true });
-      return { at, v, kept: s.hands.carry };
+      return { at, v, pace, kept: s.hands.carry };
     };
-    const baton = banked('baton', 0), axe = banked('axe', 0), held = banked('axe', 0.5);
+    const baton = banked('baton', 1.1, 0), axe = banked('axe', 3.2, 0), held = banked('axe', 3.2, 0.5);
     for (const r of [baton, axe]) {
       expect(r.at).toBeGreaterThan(5.3);
       expect(r.kept).toBeCloseTo(r.at, 5);
+      expect(r.v).toBeLessThan(r.pace + 0.1);
     }
-    /* stopped within a third of a second of the press: under half a walk */
-    expect(baton.v).toBeLessThan(1.6);
-    expect(axe.v).toBeLessThan(1.6);
     expect(held.kept).toBeLessThan(axe.kept * 0.3);
   });
 

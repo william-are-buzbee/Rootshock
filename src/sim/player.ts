@@ -1,6 +1,7 @@
 import { clamp } from '../core/math';
 import type { Hit, World } from '../world/world';
 import { fall, fits, footprint, makeBody, settle, slide, steer, STEP_UP, type Body } from './body';
+import { PLANT } from './moves';
 import type { Input } from './input';
 
 export const STAND = 1.8;
@@ -54,8 +55,8 @@ export interface Player {
   thrown: boolean;
   /** what is left of your pace while you reel (sim/combat.ts, pace); the sim sets it */
   pace: number;
-  /** what a swing of yours leaves of your feet, as a share of a walk (sim/combat.ts, feet: planted, or holding the load
-   *  up), and whether it is under way and not yet done, your keys doing nothing (striking); the sim sets both */
+  /** what a swing of yours leaves of your feet, as a share of a walk (sim/combat.ts, feet: loading, or recovering), and
+   *  whether it is let go and not yet done, your foot planted (striking); the sim sets both */
   feet: number;
   striking: boolean;
   /** knocked down, or getting up (sim/combat.ts, floored): you lie low and cannot jump; the sim sets it */
@@ -134,18 +135,18 @@ export function updatePlayer(w: World, p: Player, inp: Input, dt: number): { str
   const ox = b.x, oz = b.z;
   b.carried = false; // only the cast's friction asks it
   /* the pace you want, and how you get to it: as fast as your footing allows, or, thrown faster than you could go
-     yourself, only as fast as friction slows you. A swing of yours has your feet: planted, or with the load held up,
-     you want a share of a walk and get to it that share as fast, and faster than that is thrown (the blow keeps what
-     the plant took: sim/combat.ts, carry); let go, until it is done, what you had goes on whatever your keys say */
-  const striking = p.striking, own = speed * p.feet, could = striking ? Math.max(own, 5.6 * p.pace) : own;
+     yourself, only as fast as friction slows you. A swing of yours has your feet: loading or recovering, you want a
+     share of a walk and get to it that share as fast, and faster than that is thrown (the blow keeps it: sim/combat.ts,
+     carry); let go, until it is done, your foot is planted and you stop (PLANT), whatever your keys say */
+  const striking = p.striking, own = speed * p.feet, could = own;
   let tx = 0, tz = 0;
-  if (l > 0) {
+  if (l > 0 && !striking) {
     const fx = -Math.sin(p.yaw), fz = -Math.cos(p.yaw), rx = Math.cos(p.yaw), rz = -Math.sin(p.yaw), k = own / Math.max(1, l);
     tx = (fx * f + rx * s) * k; tz = (fz * f + rz * s) * k;
   }
   const thrown = Math.hypot(b.vx, b.vz) > could + 0.5;
   p.thrown = thrown;
-  steer(b, tx, tz, !thrown ? (striking ? 0 : accel(p) * p.feet) : b.ground || p.water !== 'dry' ? FRICTION : AIR_DRAG, dt);
+  steer(b, tx, tz, !b.ground && p.water === 'dry' && (thrown || striking) ? AIR_DRAG : thrown ? FRICTION : striking ? PLANT : accel(p) * p.feet, dt);
   const stride: Stride = { dx: b.vx * dt, dz: b.vz * dt, speed: Math.hypot(b.vx, b.vz), wx: tx, wz: tz };
   const { hit, slam } = slide(w, b, dt, swim ? CLIMB_OUT : STEP_UP);
   p.slam = slam;
