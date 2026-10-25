@@ -383,9 +383,11 @@ corpse worth throwing.
   stop read as your swing catching on air. Others of the cast are not held; a husk struck in its wind-up starts its
   blow that much later, as your swing does. A blow glancing off a wall holds your swing as one stood still would.
   Saves carry it (`Mutant.stop`); old saves load with none.
-- **Hits on you never take a load or a blow from you.** One that breaks your poise throws you back from it (2.5 m/s)
-  and you reel 0.7 s: a third of your pace, the view jolted, the arm flung down, and no new load until you have your
-  feet (a load already in hand, or a blow already thrown, goes on).
+- **Hits on you never take a load or a blow from you**, short of flooring you. One that breaks your poise throws you
+  back from it (2.5 m/s) and you reel 0.7 s: a third of your pace, the view jolted, the arm flung down, and no new load
+  until you have your feet (a load already in hand, or a blow already thrown, goes on, drawn going on). One that
+  floors you (*Knockdowns*) takes both (since): a load held up is dropped and a blow thrown is lost, so there is no
+  swinging from the floor, and a button still held once you are up starts nothing until it is let go and pressed again.
 - **Reach** is an arm (0.8 m) and what is in it, to a target's edge: the axe 1.7, the pipe 1.5, the baton 1.3, fists
   0.8. It was 1.3 and the weapon, which let the axe reach a husk's middle from 2.6 m, well outside anything a husk
   can do; the fight was won by spacing alone.

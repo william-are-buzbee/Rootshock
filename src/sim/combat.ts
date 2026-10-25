@@ -21,9 +21,10 @@ export { wstats, type WeaponStats };
 
    Once thrown, a blow is committed (sim/moves.ts): it goes along the line you let it go on, wherever you look after;
    a full one carries you a step forward, and one that meets nothing leaves you longer coming back. A load can be held
-   as long as you like, and nothing that hits you takes a load or a blow from you. A hit takes poise, though: enough of
-   it and you reel, thrown back and slowed, and cannot start another load until you have your feet. A press while you
-   are busy is kept a moment, so a blow can follow a blow. */
+   as long as you like, and nothing that hits you takes a load or a blow from you short of putting you on the floor. A
+   hit takes poise, though: enough of it and you reel, thrown back and slowed, and cannot start another load until you
+   have your feet; enough to floor you, and what was in your hands goes with your footing. A press while you are busy
+   is kept a moment, so a blow can follow a blow. */
 
 export interface Hands {
   /** seconds a swing has been loading; -1 when not */
@@ -156,10 +157,11 @@ function lunge(sim: Sim, S: Swing): void {
   push(sim.player.body, -Math.sin(L.yaw) * S.lunge, -Math.cos(L.yaw) * S.lunge);
 }
 
-/** a blow lands on you, with `poise` behind it and shoving you at `dv` m/s: the ladder (sim/moves.ts). It takes no load
- *  and no blow from you. If it breaks your poise you reel: thrown back from it, slowed, no new load until you have
- *  your feet. If it breaks your poise and shoves you hard enough (DOWN.dv), you go down; harder still (LAUNCH.dv), you
- *  are thrown, and land down. Down, a hit takes no more footing from you; getting up, it has to get past RISE.guard. */
+/** a blow lands on you, with `poise` behind it and shoving you at `dv` m/s: the ladder (sim/moves.ts). Short of
+ *  flooring you, it takes no load and no blow from you. If it breaks your poise you reel: thrown back from it, slowed,
+ *  no new load until you have your feet. If it breaks your poise and shoves you hard enough (DOWN.dv), you go down, and
+ *  a load held up or a blow thrown is lost: there is no swinging from the floor; harder still (LAUNCH.dv), you are
+ *  thrown, and land down. Down, a hit takes no more footing from you; getting up, it has to get past RISE.guard. */
 export function struck(sim: Sim, poise: number, from?: { x: number; z: number }, dv = 0): string {
   const h = sim.hands, g = sim.game, b = sim.player.body;
   if (g.ended) return 'none';
@@ -169,8 +171,11 @@ export function struck(sim: Sim, poise: number, from?: { x: number; z: number },
   h.poise = R.left;
   if (R.r !== 'stagger') return R.r === 'flinch' ? 'shrugged off' : 'none';
   if (dv >= DOWN.dv) {
-    /* off your feet: over the way the blow sent you, and, hard enough, up and over */
+    /* off your feet: over the way the blow sent you, and, hard enough, up and over; what was in your hands goes with
+       your footing, the load you held up and the blow you threw. A button still held when you are up starts nothing:
+       let go and press again */
     h.down = DOWN.time; h.rise = 0; h.stag = 0;
+    h.chg = -1; h.full = false; h.go = false; h.swing = null; h.line = null; h.buf = 0;
     if (from) { const r = { x: Math.cos(sim.player.yaw), z: -Math.sin(sim.player.yaw) }; h.side = (b.x - from.x) * r.x + (b.z - from.z) * r.z >= 0 ? 1 : -1; }
     if (dv >= LAUNCH.dv) push(b, 0, 0, LAUNCH.up * dv);
     sfx(g, 'reel');

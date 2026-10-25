@@ -4,7 +4,8 @@ import { STEP } from '../src/core/loop';
 import { hitMutant, type Mutant } from '../src/sim/cast';
 import { give } from '../src/sim/game';
 import { noInput } from '../src/sim/input';
-import { DOWN, MOVES, swingOf } from '../src/sim/moves';
+import { struck } from '../src/sim/combat';
+import { DOWN, LAUNCH, MOVES, swingOf } from '../src/sim/moves';
 import { makeSim, step, type Sim } from '../src/sim/sim';
 import { hold } from './kit';
 
@@ -137,6 +138,44 @@ describe('you knocked down', () => {
     for (let t = 0; t < 4; t += STEP) { step(s, noInput()); reeled ||= s.hands.stag > 0; down ||= s.hands.down > 0; }
     expect(reeled).toBe(true);
     expect(down).toBe(false);
+  });
+});
+
+describe('down, what was in your hands goes with your footing', () => {
+  /** floored from the east, by a shove that floors and does not throw */
+  const floor = (s: Sim) => struck(s, 100, { x: 11, z: 6 }, (DOWN.dv + LAUNCH.dv) / 2);
+
+  it('a load held up is dropped: let go on the floor and nothing is thrown; held on through, it starts nothing once up', () => {
+    const s = hall();
+    give(s.game, 'axe');
+    hold(s, 1.3, { attack: true });
+    expect(s.hands.full).toBe(true);
+    expect(floor(s)).toBe('down');
+    expect(s.hands.chg).toBe(-1);
+    hold(s, 0.3, { attack: true });
+    hold(s, 0.1);
+    expect(s.hands.swing).toBeNull();
+    expect(s.hands.chg).toBe(-1);
+    /* pressed again on the floor and held until you are up: still nothing, until let go and pressed again */
+    hold(s, DOWN.time + DOWN.rise, { attack: true });
+    expect(s.hands.down + s.hands.rise).toBe(0);
+    hold(s, 0.2, { attack: true });
+    expect(s.hands.chg).toBe(-1);
+    hold(s, STEP);
+    hold(s, 0.2, { attack: true });
+    expect(s.hands.chg).toBeGreaterThan(0);
+  });
+
+  it('a blow thrown as you go down is lost: it lands on nothing', () => {
+    const s = hall(b => b.mutant('husk', 11.6, 0, 6)), m = s.cast[0];
+    give(s.game, 'axe');
+    hold(s, 1.3, { attack: true });
+    hold(s, STEP);
+    expect(s.hands.swing).not.toBeNull();
+    floor(s);
+    expect(s.hands.swing).toBeNull();
+    hold(s, 1);
+    expect(lost(m)).toBe(0);
   });
 });
 
