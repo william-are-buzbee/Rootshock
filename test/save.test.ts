@@ -63,7 +63,7 @@ describe('save and load', () => {
       ],
       player: [
         'body', // saved apart
-        'thrown', 'pace', 'feet', 'down', // worked out again each step, before they are asked
+        'thrown', 'pace', 'feet', 'planted', 'down', // worked out again each step, before they are asked
       ],
       body: [
         'mass', 'r', // what it is (your mass with what you hold, each step)

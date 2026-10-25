@@ -121,24 +121,54 @@ describe('a blow commits', () => {
     expect(back).toBeCloseTo(walk, 5);
   });
 
-  it('a blow under way has your feet, a heavy one more: back off as you let it go, and the axe keeps you; fists hardly', () => {
-    /** how far you back off from letting go until the arm is in again, against backing off as long with nothing thrown */
+  it('a blow has your feet: until it is done your keys do nothing; then it plants you until it settles, a heavy one more', () => {
+    /** backing off from letting go until it has settled: how much your going changed after the step you let go on until
+     *  it was done, and how far you went in all, against backing off as long with nothing thrown */
     const kept = (weapon?: string) => {
       const run = (swing: boolean, steps?: number) => {
         const s = hall();
         if (weapon) give(s.game, weapon);
         hold(s, 1.4, { attack: swing });
         const x = s.player.body.x;
-        let n = 0;
-        do { step(s, { ...noInput(), forward: -1 }); n++; } while (steps === undefined ? s.hands.swing || s.hands.rec > 0 : n < steps);
-        return { went: x - s.player.body.x, n };
+        let n = 0, v0 = NaN, changed = 0;
+        do {
+          step(s, { ...noInput(), forward: -1 }); n++;
+          if (n === 1) v0 = s.player.body.vx;
+          else if (s.hands.swing && !s.hands.swing.done) changed = Math.max(changed, Math.abs(s.player.body.vx - v0));
+        } while (steps === undefined ? s.hands.swing || s.hands.rec > 0 || s.hands.plant > 0 : n < steps);
+        return { went: x - s.player.body.x, changed, n };
       };
       const swung = run(true);
-      return swung.went / run(false, swung.n).went;
+      return { changed: swung.changed, share: swung.went / run(false, swung.n).went };
     };
-    expect(kept('axe')).toBeLessThan(0.4);
-    expect(kept('pipe')).toBeLessThan(0.6);
-    expect(kept()).toBeGreaterThan(0.8);
+    const axe = kept('axe'), pipe = kept('pipe'), fists = kept();
+    for (const k of [axe, pipe, fists]) expect(k.changed).toBeLessThan(1e-9);
+    expect(axe.share).toBeLessThan(0.25);
+    expect(pipe.share).toBeLessThan(0.35);
+    expect(fists.share).toBeGreaterThan(axe.share * 2);
+  });
+
+  it('sprinting, a blow carries your run until it is done, then brings you under a walk; once it has settled you run again', () => {
+    const sprint = (weapon: string) => {
+      const s = hall();
+      s.player.body.x = 3;
+      give(s.game, weapon);
+      const run = { forward: 1, run: true };
+      hold(s, 1.2, { ...run, attack: true });
+      while (!s.hands.swing?.done) step(s, { ...noInput(), ...run });
+      const atDone = Math.hypot(s.player.body.vx, s.player.body.vz);
+      let least = atDone;
+      while (s.hands.swing || s.hands.rec > 0 || s.hands.plant > 0) { step(s, { ...noInput(), ...run }); least = Math.min(least, Math.hypot(s.player.body.vx, s.player.body.vz)); }
+      hold(s, 0.3, run);
+      return { atDone, least, after: Math.hypot(s.player.body.vx, s.player.body.vz) };
+    };
+    const baton = sprint('baton'), axe = sprint('axe');
+    for (const r of [baton, axe]) {
+      expect(r.atDone).toBeGreaterThan(5.3);
+      expect(r.after).toBeGreaterThan(5.3);
+    }
+    expect(baton.least).toBeLessThan(3.2 * swingOf('blunt', 1.1).feet + 0.1);
+    expect(axe.least).toBeLessThan(3.2 * swingOf('edge', 3.2).feet + 0.1);
   });
 
   it('a click while the arm is coming back is kept a moment, and is a blow when it is in', () => {

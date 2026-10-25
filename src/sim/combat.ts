@@ -40,6 +40,8 @@ export interface Hands {
   line: { yaw: number; pitch: number } | null;
   /** after a blow that met nothing, the arm coming back: no new swing until it is in */
   rec: number;
+  /** after any blow, seconds left that your feet are still its (sim/moves.ts, Swing.settle) */
+  plant: number;
   /** a blow has landed: the swing holds still this long */
   stop: number;
   /** a gun's cooldown */
@@ -63,7 +65,7 @@ export interface Hands {
 }
 
 export const makeHands = (): Hands => ({
-  chg: -1, full: false, go: false, swing: null, line: null, rec: 0, stop: 0, gcd: 0, kick: 0, muzzle: 0, held: false, buf: 0,
+  chg: -1, full: false, go: false, swing: null, line: null, rec: 0, plant: 0, stop: 0, gcd: 0, kick: 0, muzzle: 0, held: false, buf: 0,
   poise: POISE.you, calm: 99, stag: 0, down: 0, rise: 0, side: 1,
 });
 
@@ -90,11 +92,17 @@ export const pace = (sim: Sim): number => {
   return h.down > 0 ? 0 : h.stag > 0 || h.rise > 0 ? REEL.pace : 1;
 };
 
-/** your say over your feet, as a share of it (sim/moves.ts, Swing.feet): a blow of yours under way has them, and, one
- *  that met nothing, while the arm comes back. Loading does not */
+/** your say over your feet, as a share of it (sim/moves.ts, Swing.feet): a blow of yours has them from letting it go
+ *  until it has settled, and, one that met nothing, until the arm is in. Loading does not */
 export const feet = (sim: Sim): number => {
   const h = sim.hands;
-  return h.swing || h.rec > 0 ? swingFor(wstats(sim.game.weapon)).feet : 1;
+  return h.swing || h.rec > 0 || h.plant > 0 ? swingFor(wstats(sim.game.weapon)).feet : 1;
+};
+
+/** the blow you let go is done, landed or not, and has your feet still: you are planted (player.ts) */
+export const planted = (sim: Sim): boolean => {
+  const h = sim.hands;
+  return h.swing ? h.swing.done : h.rec > 0 || h.plant > 0;
 };
 
 /** you are on the floor, or getting up from it */
@@ -106,6 +114,7 @@ export function updateHands(sim: Sim, input: Input): void {
   if (h.kick > 0) h.kick = Math.max(0, h.kick - dt * 5);
   if (h.muzzle > 0) h.muzzle -= dt;
   if (h.rec > 0) h.rec -= dt;
+  if (h.plant > 0) h.plant -= dt;
   if (h.stag > 0) h.stag = Math.max(0, h.stag - dt);
   if (h.down > 0) { h.down = Math.max(0, h.down - dt); if (h.down === 0) h.rise = DOWN.rise; }
   else if (h.rise > 0) h.rise = Math.max(0, h.rise - dt);
@@ -153,15 +162,18 @@ export function updateHands(sim: Sim, input: Input): void {
     if (q >= 1) {
       h.swing = null; h.line = null;
       if (s.missed) h.rec = S.miss;
+      h.plant = S.settle;
     }
   }
 }
 
-/** a blow carries you a step along it, once it is done */
+/** a blow carries you a step along it, once it is done: up to its pace along it, not on top of what you had (run in,
+ *  and it adds nothing; backing off, it takes you forward all the same) */
 function lunge(sim: Sim, S: Swing): void {
-  const L = sim.hands.line;
-  if (!L || !sim.player.body.ground) return;
-  push(sim.player.body, -Math.sin(L.yaw) * S.lunge, -Math.cos(L.yaw) * S.lunge);
+  const L = sim.hands.line, b = sim.player.body;
+  if (!L || !b.ground) return;
+  const fx = -Math.sin(L.yaw), fz = -Math.cos(L.yaw), dv = clamp(S.lunge - (b.vx * fx + b.vz * fz), 0, S.lunge);
+  push(b, fx * dv, fz * dv);
 }
 
 /** a blow lands on you, with `poise` behind it and shoving you at `dv` m/s: the ladder (sim/moves.ts). Short of

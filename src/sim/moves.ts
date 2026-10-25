@@ -137,10 +137,14 @@ export interface Swing {
   lunge: number;
   /** recovery after a full blow that met nothing (s): the weight of it carries on */
   miss: number;
-  /** your say over your feet while it is under way, and while the arm comes back from one that met nothing (a share
-   *  of it): you want that share of your pace and get to it that share as fast, so what you were doing, and the step
-   *  it carries you, goes on. A heavy blow has your feet; fists hardly (engine.md §6, F2) */
+  /** your say over your feet once it is done until it has settled (a share of it): no running, and you want that share
+   *  of your pace and get to it that share as fast; going faster than that you slow as one thrown does. Until it is
+   *  done what you were doing goes on, whatever your keys say, so a blow run in lands harder. A heavy blow plants you;
+   *  fists hardly (engine.md §6, F2) */
   feet: number;
+  /** how long after it is over your feet are still its (s), landed or not; one that met nothing keeps them while the
+   *  arm comes back, if that is longer */
+  settle: number;
 }
 
 export function swingOf(kind: 'blunt' | 'edge' | 'fist' | 'gun', mass: number): Swing {
@@ -149,6 +153,7 @@ export function swingOf(kind: 'blunt' | 'edge' | 'fist' | 'gun', mass: number): 
     lunge: 1 + 0.6 * mass,
     miss: 0.15 + 0.12 * mass,
     feet: Math.max(0.3, 1 - 0.2 * mass),
+    settle: 0.15 + 0.1 * mass,
   };
 }
 

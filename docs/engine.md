@@ -370,15 +370,21 @@ corpse worth throwing.
   carries you a step along it (1 + 0.6 m/s a kilogram). One that meets nothing, not even a wall, leaves the arm
   0.15 + 0.12 s a kilogram coming back (the axe half a second). Loading does not slow your feet; a blow under way has
   them (below). A click while you are busy is kept 0.2 s, and is a blow when the arm is free.
-- **A blow has your feet** (since; `sim/moves.ts`, `Swing.feet`; `sim/combat.ts`, `feet`). From letting go until the
-  swing is over, and after one that met nothing until the arm is in, you want only a share of your pace and get to
-  it only that share as fast: 1 less 0.2 a kilogram swung, not under 0.3 (fists 0.88, the baton 0.78, the pipe 0.52,
-  the axe 0.36). What you were doing goes on, and so does the step the blow carries you: stood still, the axe takes
-  you 0.45 m on (0.14 before); backed off from the moment it is let go, you get 0.6 m in the swing and its recovery,
-  not 2.6; strafed, 1.0 m, not 2.8. Thrown is still thrown: being shoved is slowed by friction as before. Loading
-  is untouched: the load is where you place yourself, the blow is where you are committed. (The slower feet set aside
-  below slowed the load too, which can be held as long as you like; this does not.) In the duels the axe and the pipe
-  still beat two husks untouched almost every time: it does not make two a problem on its own.
+- **A blow has your feet** (since; `sim/moves.ts`, `Swing.feet`, `Swing.settle`; `sim/combat.ts`, `feet`, `planted`).
+  Loading leaves them alone: the load is where you place yourself. From letting go, the blow has them, in two parts:
+  - *Until it is done* (lands, glances, or its part that can land is over), your keys do nothing: what you had goes on,
+    up to a run, so a blow run in lands as hard as you were going.
+  - *Once done you are planted*, for the rest of the swing and `settle` after it, landed or not (0.15 s and 0.1 s a
+    kilogram: the baton 0.26, the axe 0.47), or while the arm comes back from one that met nothing, if longer. No
+    running; you want a share of a walk and get to it that share as fast (1 less 0.2 a kilogram, not under 0.3: fists
+    0.88, the baton 0.78, the pipe 0.52, the axe 0.36), and going faster than that you slow as one thrown does.
+  - The step a blow carries you is up to its pace along the line, not on top of yours: run in and it adds nothing.
+  Sprinting with the baton, you go on at a run until it is done, are brought to 2.5 m/s by 0.3 s after letting go and
+  held there to half a second, and run again by 0.6 s; the axe holds you at 1.2 m/s to nearly a second. Backed off
+  from the moment it is let go, the axe gets you 0.44 m in all (2.6 before), strafed 0.84 (2.8). A first try, which
+  took a share of your pace from the start and only while the blow was under way, left a sprinting baton at 4.4 m/s:
+  it hardly stopped you. In the duels, two husks either side of you now cost the axe (5 of 12 untouched, 12 before);
+  in front of you they do not.
 - **Drawn as it goes** (since; `present/render/handsView.ts`). What is in your hand is drawn on the line of the blow,
   not the view: look away mid-swing and it goes on without you, where the dev overlay's path goes. Over, it is brought
   back, not snapped to rest: in a sixth of a second after one that met something; after one that met nothing, carried

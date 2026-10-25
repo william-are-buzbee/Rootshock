@@ -6,7 +6,7 @@ import { clamp } from '../core/math';
 import { Lighting, type Loose } from '../world/light';
 import { castBodies, castMovers, makeCast, shoved, torchRay, updateCast, type Drill, type Mutant } from './cast';
 import { makeCams, updateEyes, watching, type Alarm, type Cam, type Watch } from './eyes';
-import { feet, floored, makeHands, pace, struck, updateHands, wstats, type Hands } from './combat';
+import { feet, floored, makeHands, pace, planted, struck, updateHands, wstats, type Hands } from './combat';
 import { SLAM } from './moves';
 import { shove } from './body';
 import { makeFields, refreshFields, updateFields, type Fields } from './fields';
@@ -228,8 +228,9 @@ export function step(sim: Sim, input: Input): void {
   b.mass = MASS + sim.player.load;
   /* reeling slows your feet; on the floor you lie low */
   sim.player.pace = pace(sim);
-  /* a blow of yours under way has your feet */
+  /* a blow of yours has your feet, and once it is done plants you */
   sim.player.feet = feet(sim);
+  sim.player.planted = planted(sim);
   /* weak from the weeks under, in the opening's first minute and a half */
   if (sim.opening) input = weakened(sim, input);
   sim.player.down = floored(sim);
