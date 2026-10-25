@@ -1553,6 +1553,15 @@ isolation room and the Retreat passage, how much a floor changes from one frame 
 twelve times over, near what a plain surface shows. The vinyl's flecks (2 to 3 mm) and carpet's pile are finer than such
 a screen's pixel past your feet, so they read as their average tone there; drawn coarser, they would show further off.
 
+And on one card (an NVIDIA RTX 4060, through ANGLE's Direct3D 11) floors and walls lit in streaks: short bright lines
+along the screen's rows, in patches with a triangle's straight edges, crawling as you looked about, worst on the lobby's
+pale terrazzo. A lit fitting takes its room's light many times over, and the shader told one from the rest pixel by
+pixel, by its take being over 1; most faces take exactly 1, and a 1 handed across a face can come out a hair over it,
+so there a pixel of floor was drawn as bright as a tube. It is told apart on the vertex now, from the take as the mesh
+has it (`EMIT.cut` in `shader.ts`, 1.25: between the rest's 1 and under and the painted sky's 1.5), and the pixel only
+multiplies by what it is handed. In the browser, every take of 1 put one float over 1 drew the same streaks before and
+nothing after. `?dbg=` (README) narrowed it to the light: the streaks showed in no view of what the picture is made of.
+
 **Step 5 (built): doors.** Every door was a 2 m steel slab rising into a steel-lined tunnel. Now the kit says what
 each is (`doorway` in `content/build/tiles.ts`, from the rooms either side; `DoorDef.look`): a shutter between two dug
 places or a dug place and a plain one, and anything jammed; else heavy if it is heavy; else by the grander side, the
