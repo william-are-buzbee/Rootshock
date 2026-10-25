@@ -102,8 +102,9 @@ export class Lighting {
   /** at each open point, the way the light comes from, by how bright it is (summed from each source's `dir`), made when
    *  first asked for */
   private dir: Float32Array | null = null;
-  /** the lights lying about, and what each adds to the field */
-  private loose = new Map<string, { L: Loose; pts: Int32Array; val: Float32Array; dir: Int8Array; c: Colour }>();
+  /** the lights lying about, and what each adds to the field: each as it is now (`L`), and as it was when what it throws
+   *  back was worked out (`at`) */
+  private loose = new Map<string, { L: Loose; at: Loose; pts: Int32Array; val: Float32Array; dir: Int8Array; c: Colour }>();
   /** the bricks whose light has changed since last asked (lightVolume.ts) */
   private dirty = new Set<number>();
   /** counts every change to the light anywhere, so what asks it about a place that has not moved can tell whether to
@@ -245,8 +246,10 @@ export class Lighting {
     const now = new Map(list.map(L => [L.key, L]));
     for (const [key, g] of this.loose) {
       const L = now.get(key);
-      /* moved only a little (a beam in a hand): the beam is where it is now, and what it throws back stays as it was */
-      if (L && (same(L, g.L) || near(L, g.L))) { g.L = L; now.delete(key); continue; }
+      /* moved only a little since what it throws back was worked out (a beam in a hand): the beam is where it is now, and
+         what it throws back stays as it was. A little since, not a little a step: by the step, one carried about or
+         swung (the night round's) never moved enough, and what it threw back stayed behind where it had been */
+      if (L && (same(L, g.L) || near(L, g.at))) { g.L = L; now.delete(key); continue; }
       if (this.col) this.add(g.pts, g.val, g.dir, g.c, -1, false);
       this.loose.delete(key);
     }
@@ -258,7 +261,7 @@ export class Lighting {
         gain = t < 1 ? (L.k * BOUNCE.gain) / (1 + BOUNCE.hit * (t * BOUNCE.reach) ** 2) : 0; fall = BOUNCE.fall; c = BOUNCE.colour;
       } else { gain = L.k * LANTERN.gain; fall = LANTERN.fall; c = LANTERN.colour; }
       const { pts, val, dir } = gain > 0 ? this.field.glow(L.x, L.y, L.z, GLOW_REACH, d => gain / (1 + fall * d * d)) : { pts: new Int32Array(0), val: new Float32Array(0), dir: new Int8Array(0) };
-      const g = { L, pts, val, dir, c };
+      const g = { L, at: L, pts, val, dir, c };
       this.loose.set(L.key, g);
       if (this.col) this.add(pts, val, dir, c, 1, false);
     }
@@ -348,8 +351,8 @@ export class Lighting {
   }
 }
 
-/** how far a light may move, and turn, before what it throws back is worked out again (m; the cosine) */
-const DRIFT = { move: 0.25, turn: 0.99 };
+/** how far a light may move, and turn, from where what it throws back was worked out, before it is again (m; the cosine) */
+const DRIFT = { move: 0.5, turn: 0.99 };
 const near = (a: Loose, b: Loose) =>
   a.kind === b.kind && a.k === b.k && Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z) < DRIFT.move && a.dx * b.dx + a.dy * b.dy + a.dz * b.dz > DRIFT.turn;
 const same = (a: Loose, b: Loose) =>

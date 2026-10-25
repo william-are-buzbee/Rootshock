@@ -1,9 +1,12 @@
-import { describe, expect, it } from 'vitest';
+import * as THREE from 'three';
+import { describe, expect, it, onTestFinished, vi } from 'vitest';
 import { STATION } from '../src/content/station';
-import { looseLights, step, type Sim } from '../src/sim/sim';
+import { looseLights, simLighting, step, type Sim } from '../src/sim/sim';
 import { noInput } from '../src/sim/input';
 import { STEP } from '../src/core/loop';
-import { ROUND, type Mutant } from '../src/sim/cast';
+import { ROUND, torchRay, type Mutant } from '../src/sim/cast';
+import type { Loose } from '../src/world/light';
+import { CastView } from '../src/present/render/castView';
 import { fresh, hold, upper } from './kit';
 
 /* The night round (world.md §8): one of the changed still walking the night shift's round with its flashlight on. It walks
@@ -116,6 +119,44 @@ describe('the night round', () => {
   it('slow on its round, slower after you than the rest', () => {
     expect(ROUND.pace).toBeLessThan(1.3); // the others' rounds
     expect(ROUND.hunt).toBeLessThan(3.5);
+  });
+
+  it('swings its beam onto you, not there in a step; the arm drawn holding it goes with it', () => {
+    const { s, m } = setUp();
+    place(s, m, 52, 0, -1); m.yaw = -Math.PI / 2; m.state = 'round'; m.stun = 1e9; // held in the wing's corridor, facing west
+    place(s, 'player', 51.1, 0, -1); // just in front of it
+    hold(s, 0.5);
+    expect(torchRay(m).pitch).toBeCloseTo(ROUND.pitch, 3); // down the way ahead
+    vi.spyOn(performance, 'now').mockReturnValue(0);
+    onTestFinished(() => { vi.restoreAllMocks(); });
+    const cv = new CastView(new THREE.Group(), s, simLighting(s)), eye = new THREE.PerspectiveCamera();
+    const arm = (cv as unknown as { shown: { m: Mutant; M: { arms: THREE.Object3D[] } }[] }).shown.find(x => x.m === m)!.M.arms[0];
+    /* after you: the beam up onto you. Before, it was there the step it knew you */
+    const at: number[] = [torchRay(m).pitch];
+    m.state = 'hunt';
+    for (let k = 0; k < 24; k++) {
+      step(s, noInput());
+      cv.update(1, eye);
+      at.push(torchRay(m).pitch);
+      expect(arm.rotation.x).toBeCloseTo(at[at.length - 1] - Math.PI / 2, 6); // held out along its beam, every frame
+    }
+    const aim = at[at.length - 1], steps = at.slice(1).map((p, i) => p - at[i]);
+    expect(aim - ROUND.pitch).toBeGreaterThan(0.2);
+    expect(Math.max(...steps)).toBeLessThan((aim - ROUND.pitch) * 0.3); // no step a third of the way
+    expect(Math.abs(at[12] - aim)).toBeLessThan(0.02); // most of the way in a fifth of a second
+  });
+
+  it('what its light throws back goes along with it as it walks, and is not left where it was', () => {
+    const { s, m } = setUp(), lit = s.lighting as unknown as { loose: Map<string, { at: Loose }> };
+    let worst = 0;
+    for (let t = 0; t < 30; t += STEP) {
+      step(s, noInput());
+      const g = lit.loose.get('torch' + m.id), r = torchRay(m);
+      if (g) worst = Math.max(worst, Math.hypot(g.at.x - r.x, g.at.y - r.y, g.at.z - r.z));
+    }
+    /* worked out again once it has gone half a metre (or turned 8°) since it last was: it was put where the beam was
+       when it last jumped, and was 10 m behind it on average, 26 m at worst */
+    expect(worst).toBeLessThan(0.6);
   });
 
   it('a save made on its round plays on the same', async () => {

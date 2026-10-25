@@ -348,15 +348,23 @@ export function glassSpot(sim: Sim, m: Mutant): { x: number; z: number } {
 }
 
 /** its flashlight: from its lens, in its left hand held out before it, along where it looks. Walking it holds the beam
- *  a little down the way ahead; after you, or looking in at you, on you. Drawn (castView.ts) from the same numbers */
-export const TORCH = { shoulder: [-0.27, 1.46] as const, arm: 0.66, lead: 0.06 };
-export function torchRay(sim: Sim, m: Mutant): { x: number; y: number; z: number; dx: number; dy: number; dz: number; pitch: number } {
+ *  a little down the way ahead; after you, or looking in at you, on you. It swings the beam there, most of the way in a
+ *  fifth of a second (`swing`, a share a second), not in a step. Drawn (castView.ts) from the same numbers */
+export const TORCH = { shoulder: [-0.27, 1.46] as const, arm: 0.66, lead: 0.06, swing: 15 };
+/** how far down it wants its flashlight (rad) */
+function torchAim(sim: Sim, m: Mutant): number {
   const b = sim.player.body;
-  let pitch = ROUND.pitch;
-  if (m.state === 'hunt' || m.state === 'peer') {
-    const d = Math.max(0.5, m.dp);
-    pitch = clamp(Math.atan2(m.y + TORCH.shoulder[1] - (b.y + 1.1), d), -0.6, 0.9);
-  } else if (m.graft > 0) pitch = clamp(Math.atan2(TORCH.shoulder[1] - 0.6, Math.max(0.4, Math.hypot(m.wx - m.x, m.wz - m.z))), 0, 1.1); // down on what it grafts
+  if (m.state === 'hunt' || m.state === 'peer') return clamp(Math.atan2(m.y + TORCH.shoulder[1] - (b.y + 1.1), Math.max(0.5, m.dp)), -0.6, 0.9);
+  if (m.graft > 0) return clamp(Math.atan2(TORCH.shoulder[1] - 0.6, Math.max(0.4, Math.hypot(m.wx - m.x, m.wz - m.z))), 0, 1.1); // down on what it grafts
+  return ROUND.pitch;
+}
+/** a step of its flashlight: swung toward where it wants it, which changes at once with what it is doing. The beam, the
+ *  light it puts on you for the cast, and the arm drawn holding it all go from this one pitch */
+export function swingTorch(sim: Sim, m: Mutant): void {
+  m.tp += (torchAim(sim, m) - m.tp) * Math.min(1, dt * TORCH.swing);
+}
+export function torchRay(m: Mutant): { x: number; y: number; z: number; dx: number; dy: number; dz: number; pitch: number } {
+  const pitch = m.tp;
   const s = Math.sin(m.yaw), c = Math.cos(m.yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
   const [ox, oy] = TORCH.shoulder, L = TORCH.arm + TORCH.lead; // the beam from just past the lens
   /* its own right is (cos, -sin) of where it faces (sin, cos); the shoulder to its left, the hand out along the beam */

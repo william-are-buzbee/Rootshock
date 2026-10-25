@@ -10,7 +10,8 @@ import type { Lighting, Loose } from '../../world/light';
 import { EMIT, SHADOW_CAM, U, dynamicMaterial, lightMaterial } from './shader';
 import { parts, type Part } from './things';
 import { BONE, DARK, FLESH, GOREC, GR, ORANGE, PALE, RAW, grp, merged, mk, seeded, shelf, type O3 } from './castKit';
-import { RIG, Rigged } from './rig';
+import { Fade } from './fade';
+import { BLEND, RIG, Rigged } from './rig';
 
 /* The cast, drawn: the first engine's models (BUILD) and their animation (ANIM), ported nearly line for line. Each is a
    tree of parts on one material, so it flashes when hit and is lit by the room it stands in. Looks only: the sim
@@ -259,7 +260,7 @@ export const ANIM: Record<string, (m: Mutant, M: Model, c: Ctx) => void> = {
       M.b.rotation.x = 0;
       M.arms[1].rotation.z = 2.3; M.arms[1].rotation.x = -0.35 + Math.sin(m.ph * 9) * 0.05; // out, up, and held there
       M.arms[0].rotation.x = 0;
-      M.hd.rotation.y = Math.sin(m.ph * 2.2) > 0 ? 0.7 : 0; // from you to it, and back
+      M.hd.rotation.y = 0.35 + 0.35 * Math.max(-1, Math.min(1, Math.sin(m.ph * 2.2) * 5)); // from you to it, and back, quickly
     } else if (m.state === 'hide') {
       M.b.rotation.x = 0.45;
       M.arms[0].rotation.x = M.arms[1].rotation.x = -2.6;
@@ -273,7 +274,7 @@ export const ANIM: Record<string, (m: Mutant, M: Model, c: Ctx) => void> = {
       M.hd.rotation.z = 0.12;
     }
   },
-  husk(m, M, c) {
+  husk(m, M) {
     const mv = m.mv > 0, hunt = m.state === 'hunt', f = hunt ? 11 : 5;
     for (let k = 0; k < 2; k++) { M.legs[k].rotation.x = mv ? Math.sin(m.ph * f + k * PI) * (hunt ? 0.7 : 0.35) : 0; if (M.shins) M.shins[k].rotation.x = 0; }
     M.arms[0].rotation.x = hunt ? -1.1 + Math.sin(m.ph * f) * 0.2 : mv ? Math.sin(m.ph * f + PI) * 0.25 : 0;
@@ -313,7 +314,7 @@ export const ANIM: Record<string, (m: Mutant, M: Model, c: Ctx) => void> = {
     M.hd.rotation.z = 0.25 + Math.sin(m.ph * 0.7) * 0.1 + (Math.random() < 0.015 ? r(-0.5, 0.5) : 0);
     M.hd.rotation.y = Math.sin(m.ph * 0.5) * 0.25;
     /* the flashlight held out along its beam, whatever the other arm is doing (sim/cast.ts, torchRay) */
-    if (M.lens) M.arms[0].rotation.x = torchRay(c.sim, m).pitch - PI / 2;
+    if (M.lens) M.arms[0].rotation.x = torchRay(m).pitch - PI / 2;
     /* dragging the other patient by an ankle: the other arm down and back, the hand low behind it */
     if (m.drag >= 0) { M.arms[1].rotation.x = 0.6; M.arms[1].rotation.z = -0.15; }
     /* grafting: down on its knees over the body, bent to it, the free hand driving into the arm, again and again */
@@ -412,6 +413,15 @@ export const ANIM: Record<string, (m: Mutant, M: Model, c: Ctx) => void> = {
 };
 ANIM.swimmer = ANIM.worm;
 
+/** what the animations switch on (ANIM): where any of it changes, the pose they give jumps, and the model is taken over
+ *  to the new one (fade.ts). What it is doing; walking or not (each at its own pace, so at its own place in the step); a
+ *  blow under way or not (begun, done, or cut short); thrown back on its heels; grafting, dragging, gripping; and the
+ *  other patient's fist coming off the glass as it lands */
+const SWITCHES = (m: Mutant) => ({ state: m.state, mv: m.mv, blow: m.blow, reel: m.reel, graft: m.graft, drag: m.drag, grab: m.grab, wt: m.wt });
+type Switches = ReturnType<typeof SWITCHES>;
+const switched = (w: Switches): string =>
+  `${w.state} ${w.mv > 0} ${!!w.blow} ${w.reel > 0} ${w.graft > 0} ${w.drag >= 0} ${w.grab > 0} ${w.state === 'bang' && w.wt > 0.5}`;
+
 /** a corpse bleeds once it has been loose `after` seconds and is on the floor slower than `speed` (m/s); its pool
  *  starts at `from` of its size and comes to the whole of it over `spread` seconds, most of it in the first */
 const BLEED = { after: 0.25, speed: 0.6, from: 0.15, spread: 3.5 };
@@ -424,11 +434,24 @@ const SPLAT = {
 /** `loose`: the rig has had its parts since the animation last did */
 interface Shown {
   m: Mutant; M: Model; mat: THREE.ShaderMaterial; blood: boolean; fall: number; rig: Rigged | null; loose: boolean;
+  /** it has been drawn standing: one that never was (a corpse from a save) has nothing to go loose from, and is laid as
+   *  it lies at once */
+  placed: boolean;
+  /** how far above its feet the light it is lit by is taken (LIFT), eased from one height to the other */
+  lift: number;
+  /** its animation, taken from one pose to the next where it jumps (fade.ts), and what it switched on last frame */
+  fade: Fade; was: Switches;
+  /** how far it is rocked back on its heels, struck (rad) */
+  tilt: number;
   /** asleep, all of it as one mesh where it lies, in place of its parts (rig.ts, bake) */
   baked: THREE.Mesh | null;
   /** how it was last drawn (SIGHT) */
   drawn: Drawn;
 }
+
+/** a body is lit by the light at its middle: lower once it lies loose. Eased from one to the other (castView, `lift`),
+ *  as a room's light can be half as bright 0.4 m lower, and the whole of it would change in a frame */
+const LIFT = (m: Mutant): number => (m.rag ? 0.4 : 0.8);
 
 /** what of the cast is out of your sight (out of view, or rock or a wall between, not a door) is drawn only where a
  *  shadow of it could show: into the beam in your hand's shadow if it stands in its cone, and into the shadows of the
@@ -467,7 +490,7 @@ export class CastView {
       const m = this.sim.cast[i], mat = dynamicMaterial(), M = BUILD[m.model](mat, m);
       const rig = rigOf(m, M, { sim: this.sim, dt: 1 / 60, L: this.L });
       this.scene.add(M.g);
-      this.shown.push({ m, M, mat, blood: false, fall: 0, rig, loose: false, baked: null, drawn: 'seen' });
+      this.shown.push({ m, M, mat, blood: false, fall: 0, rig, loose: false, placed: false, lift: LIFT(m), fade: new Fade(M), was: SWITCHES(m), tilt: 0, baked: null, drawn: 'seen' });
     }
   }
 
@@ -512,27 +535,38 @@ export class CastView {
       let y = m.py + (m.y - m.py) * alpha;
       /* a swimmer rides just under the surface of shallow water, and a little off the floor of deep (as before) */
       if (m.swim) { const d = w.waterAt(x, z) - y; if (d > 0) y += d < 2 ? Math.max(0, d - 0.23) : 0.3; }
-      g.position.set(x, y, z);
-      /* held still by a blow that landed (sim/moves.ts, HITSTOP), it shudders where it stands */
-      if (m.stop > 0 && !m.rag) { const sh = Math.sin(t * 95) * 0.025; g.position.x += Math.cos(m.yaw) * sh; g.position.z -= Math.sin(m.yaw) * sh; }
-      /* struck, it is rocked back on its heels and comes forward again (m.hit dies from 1 in a quarter second) */
-      g.rotation.order = 'YXZ';
-      g.rotation.y = m.yaw;
-      g.rotation.x = m.dead || m.fixed ? 0 : -0.32 * m.hit * m.hit / Math.max(1, m.mass);
       /* knocked down: over backward onto the floor, quickly, and back up as it gets up (sim/moves.ts, DOWN) */
       const down = m.down > 0 ? 1 : m.rise > 0 ? m.rise / DOWN.rise : 0;
       s.fall += (down - s.fall) * Math.min(1, c.dt * (down > s.fall ? 10 : 5));
       /* gone loose (sim/ragdoll.ts): its points have it, not a tip of the whole */
       if (m.rag && s.rig) s.fall = 0;
-      if (s.fall > 0.001 && !m.dead) { g.rotation.x -= s.fall * 1.45; g.position.y += s.fall * 0.15; }
+      /* struck, it is rocked back on its heels, quickly but not in a frame (the blow sets it going), and comes forward
+         again (m.hit dies from 1 in a quarter second), dead or not: one killed folds from where the blow left it */
+      s.tilt += ((m.fixed ? 0 : -0.32 * m.hit * m.hit / Math.max(1, m.mass)) - s.tilt) * Math.min(1, c.dt * 20);
+      /* lying loose, it is laid where its points are (rig.ts), and goes loose from where it was last drawn: it is not
+         placed again. Placed on the step it went loose it moved, by the struck's rock back or by where the sim says a
+         body is once dead (the middle of it, not its feet: a worm's is half its length off) */
+      const limp = !!m.rag && !!s.rig && (m.dead || m.down > 0);
+      if (!limp) {
+        s.placed = true;
+        g.position.set(x, y, z);
+        /* held still by a blow that landed (sim/moves.ts, HITSTOP), it shudders where it stands */
+        if (m.stop > 0 && !m.rag) { const sh = Math.sin(t * 95) * 0.025; g.position.x += Math.cos(m.yaw) * sh; g.position.z -= Math.sin(m.yaw) * sh; }
+        g.rotation.order = 'YXZ';
+        g.rotation.y = m.yaw;
+        g.rotation.x = s.tilt;
+        if (s.fall > 0.001 && !m.dead) { g.rotation.x -= s.fall * 1.45; g.position.y += s.fall * 0.15; }
+      }
       mat.uniforms.uHit.value = m.hit;
       const R = w.roomAt(x, y + 0.5, z) ?? w.roomAt(x, y + 1.2, z), none = [0, 0, 0];
-      const ly = y + (m.rag ? 0.4 : 0.8);
+      s.lift += (LIFT(m) - s.lift) * Math.min(1, c.dt / BLEND);
+      const ly = y + s.lift;
       lightMaterial(mat, R ? this.L.atPoint(x, ly, z) : none, R ? this.L.flickAt(x, ly, z) : none, R ? this.L.towards(x, ly, z) : none);
       if (m.dead && m.rag && s.rig) {
         /* gone loose: drawn as its points lie (rig.ts); it bleeds where it comes to rest */
-        s.rig.pose(m.rag, alpha, c.dt);
+        s.rig.pose(m.rag, alpha, s.placed ? c.dt : BLEND);
         s.loose = true;
+        s.fade.cut();
         if (s.rig.settled !== !!s.baked) s.rig.settled ? this.bake(s) : this.unbake(s);
         if (!s.blood && !m.swim && w.waterAt(m.x, m.z) < m.y && this.down(m)) { s.blood = true; this.blood(m); }
         continue;
@@ -546,10 +580,12 @@ export class CastView {
         continue;
       }
       /* knocked down, loose: lying as its points lie, until it gets up */
-      if (m.rag && s.rig && m.down > 0) { s.rig.pose(m.rag, alpha, c.dt); s.loose = true; continue; }
+      if (m.rag && s.rig && m.down > 0) { s.rig.pose(m.rag, alpha, s.placed ? c.dt : BLEND); s.loose = true; s.fade.cut(); continue; }
       if (s.loose) { s.rig!.restore(); s.loose = false; }
-      /* by its model, or else by its kind */
-      (ANIM[m.model] ?? ANIM[m.ai])?.(m, M, c);
+      /* by its model, or else by its kind; where what it switches on changes, not at once (fade.ts) */
+      const A = ANIM[m.model] ?? ANIM[m.ai], was = s.was, now = SWITCHES(m);
+      s.fade.run(g, c.dt, switched(now), then => A?.(then ? { ...m, ...was } : m, M, c));
+      s.was = now;
       /* getting up: from as its points lie into how it stands, as it rises */
       if (m.rag && s.rig) { s.rig.rise(m.rag, alpha, 1 - m.rise / DOWN.rise); s.loose = true; }
     }

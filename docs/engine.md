@@ -639,7 +639,13 @@ fall loose; corpses stay in the world (knocked about, saved); knockdowns as ragd
   from its points; a limb by the least turn from its parent that points it from one point to the next, so it does not
   twist on its own. Each is fixed to its frame as the model stands idle. What is not tied to a frame (a thresher's
   ribs, the hand's fingers' second joint, its head and eye) stays as it was the moment it died. Death is not a cut:
-  over 0.15 s the model goes from where it was drawn to where its points are. It bleeds where it comes to rest (the
+  over 0.15 s the model goes from where it was drawn to where its points are, and from where it was drawn last: once
+  loose it is not placed again (the sim's middle of a corpse is not its feet, and a worm's is half its length off),
+  and a corpse never drawn standing (from a save) is laid as it lies at once. For a while the pose it went from was
+  taken after the model had been put at the world's middle, and every body killed or knocked down came in from there
+  over the blend, a blink across the screen; a test now holds each kind to no jump on the frame it goes loose. The
+  light it is lit by is taken lower once it lies (0.4 m, not 0.8), eased there over the same 0.15 s, as a room's
+  light can be half as bright that much lower. It bleeds where it comes to rest (the
   pool waits until it is asleep). Asleep, it is laid once, not every frame, and drawn as one mesh of all its parts
   where they lie (one draw call, not one a part: a husk is 18, a thresher 47, the hand 81), its parts again once it
   wakes. Every part of the cast, living or dead, is culled by its own bounds by whichever camera draws it, a beam's
@@ -862,6 +868,46 @@ tests; README there).
 - **Tests**: `test/sweep.test.ts` (the chop shoves along your line, low and high; the grabber struck through its
   tentacles, and shot there), `test/ragdoll.test.ts` (killed by a real chop, the light ones drop where they were
   struck; the worm thrashes where it dies). The kill tests that carried a body with the axe now use the pipe.
+
+### Drawn without a jump, as built
+
+Found playing: a blink as a body went loose, and the living putting themselves from one pose into another in a frame.
+Each measured headless before it was touched (`test/probes/snap.probe.ts` for the living).
+
+- **Going loose**: *Bodies with physics*, *Drawn*, above. On the frame a body goes loose its parts move no more than
+  standing would (under 0.05 m; it was 9.7 m, to the world's middle and back over the blend).
+- **The living** (`render/fade.ts`). The animations are the first engine's, and go from one pose to another at once
+  wherever what they switch on does: what it is doing; walking or not (each at its own pace, so at its own place in the
+  step); a blow begun or cut short; thrown back on its heels; grafting, dragging, gripping; the other patient's fist
+  coming off the glass. Where any of that changes (`SWITCHES` in `castView.ts`), the animation is run twice that frame,
+  once as it was given things the frame before: the difference is what it jumped by, and the model is drawn as the
+  animation has it less that, dying away over 0.2 s (`SWITCH`). Not a blend of the two poses: what was moving anyway
+  is not held back (a husk's arm on its way down as its lunge sets it walking), so a blow lands when the sim has it
+  land (a test holds a husk's swing to its animation, off by no more than the wind-up's shake, 0.05 rad). Between
+  switches it is drawn as its animation has it; the cost is keeping what it last set, 2 µs a body a frame. The random
+  twitches each kind has are left as they were: sudden on purpose.
+- **Struck, rocked back** over a few frames, not one: toward how far the blow rocks it, at 20 a second (at most 0.08
+  rad in a frame; it was 0.28).
+- **The other patient, pointing at the balcony**, turns its head from you to it and back in a fifth of a second, not a
+  frame.
+- **The night round's flashlight** went where its state put it the step it changed (down the way ahead, up onto you),
+  and with the arm drawn holding it eased, the two parted for a fifth of a second. Now the sim swings it: it holds its
+  light at a pitch of its own (`Mutant.tp`, saved) that goes toward where it wants it, most of the way in a fifth of a
+  second (`TORCH.swing`, `swingTorch` in `cast/round.ts`), and the beam, the light it puts on you for the cast, and the
+  arm drawn holding it all go from that one pitch. A rule changed with it, slightly: the beam takes that fifth of a
+  second to come onto you, so you are lit by it that much later. What its light throws back into the field
+  (`Lighting.lights`) was worked out again only when the light moved half a metre or turned 8° in a step, which one
+  carried about never did: it stayed where the beam was when it last jumped, 10 m behind the night round on average
+  and 26 m at worst. Its jumps are what had kept it anywhere near, and with them gone it would have stayed further
+  behind still. Now it is worked out again once the light has gone half a metre or turned 8° since it last was: never
+  more than 0.6 m behind, about three times a second, 26 bricks of the light field a second sent to the card (was 7).
+- **Measured** (the arena, struck every 1.5 s, you going from one end to the other every 2 s; the most a part moves in
+  a frame, in the model's own frame): a husk 0.30 m (was 1.94: its arm thrown from overhead to its side, a walk begun
+  at a pace not the one it stood at), a thresher 0.49 (was 1.98; its arms flail half a metre a frame winding up, as
+  they always did), a worm 0.03 (was 0.21), a skitter 0.58 (as it was: the end of its strike, nose first, in a tenth of
+  a second).
+- **Tests**: `test/fade.test.ts`; `test/ragdoll.test.ts`, *drawn going loose*; `test/nightround.test.ts`, its beam
+  swung onto you and what it throws back going along with it.
 
 ---
 
@@ -1095,7 +1141,8 @@ since: §11).
   hand; taken again, it is on in your hand. The flashlight at the stair's foot is one (`ItemDef.on`: lying on, and its
   aim). A flashlight lying on is drawn with the same beam as yours (`FLASH` and `spot` in `world/light.ts`), from its
   lens, with a shadow map of its own (`render/beams.ts`, the two nearest you); what it throws back (`BOUNCE`, as yours
-  does) and a lantern lying on (`LANTERN`) go into the level's light field (`Lighting.lights`). A point is looked up
+  does) and a lantern lying on (`LANTERN`) go into the level's light field (`Lighting.lights`), worked out again once
+  the light has gone half a metre or turned 8° since it last was (`DRIFT`). A point is looked up
   in a beam's map off its surface by two of the map's texels as wide as they are there (`STANDOFF` in
   `render/shader.ts`), yours as well: by a fixed few centimetres, a floor a beam raked from far off shadowed itself in
   stripes, the map's rows and columns, that crawled as the beam moved. The night round's torch showed them across the
