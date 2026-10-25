@@ -11,7 +11,8 @@ import { begin, say } from './out';
    to the other every two seconds (so it walks, stops, swings), and struck every second and a half (so it flinches,
    reels, has its swing cut short); drawn a frame a step, halfway through it. Measured in the model's own frame, so
    walking across the floor is not counted; its rock back on its heels apart. None of the living's twitches (each
-   kind's random jerks, castView.ts ANIM): those are meant. KINDS=husk,worm for fewer. */
+   kind's random jerks, castView.ts twitch): they come at random, and test/fade.test.ts holds each to going out and
+   back. KINDS=husk,worm for fewer. */
 it('snap', () => {
   begin('snap');
   vi.spyOn(Math, 'random').mockReturnValue(0.5);

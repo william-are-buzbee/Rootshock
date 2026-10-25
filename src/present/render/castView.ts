@@ -17,8 +17,9 @@ import { BLEND, RIG, Rigged } from './rig';
    tree of parts on one material, so it flashes when hit and is lit by the room it stands in. Looks only: the sim
    decides where each is and what it is doing; this only shows it. */
 
-/** what a model's animation is given: the run, the time since it was last drawn, and the light */
-export interface Ctx { sim: Sim; dt: number; L: Lighting }
+/** what a model's animation is given: the run, the time since it was last drawn, the light, and which frame this is (a
+ *  twitch moves on once a frame, however many times the animation is run in it: fade.ts runs it twice where it switches) */
+export interface Ctx { sim: Sim; dt: number; L: Lighting; frame: number }
 
 const PI = Math.PI;
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -243,6 +244,27 @@ const r = (a: number, b: number) => a + Math.random() * (b - a);
 /** smoothstep, 0..1 */
 const ease = (t: number) => t * t * (3 - 2 * t);
 
+/** how much a wind-up trembles at its last (from `from` of the way through it): coming on, and gone again by the
+ *  strike, rather than there and gone in a frame */
+const tremble = (B: ReturnType<typeof blowAt>, from: number): number =>
+  (B?.ph === 'wind' ? ease(Math.max(0, Math.min(1, (B.q - from) / 0.1, (1 - B.q) / 0.05))) : 0);
+
+/** a twitch of the changed: now and then (`rate` a second), a part jerks by up to `amp` (rad) and comes back, quickly out
+ *  and less quickly back, over `dur` s. The first engine's were a frame long, out and back at once: at sixty frames a
+ *  second that read as the picture glitching, not the thing twitching. Kept on the model by `key`, moved on once a frame
+ *  (Ctx.frame); none while no time passes (the model stood up to be rigged: castView, rigOf) */
+function twitch(M: Model, key: string, c: Ctx, rate: number, amp: number, dur: number): number {
+  const T: { t: number; a: number; at: number } = ((M.twitch ??= {})[key] ??= { t: -1, a: 0, at: -1 });
+  if (T.at !== c.frame) {
+    T.at = c.frame;
+    if (T.t >= 0 && (T.t += c.dt) >= dur) T.t = -1;
+    if (T.t < 0 && c.dt > 0 && Math.random() < rate * c.dt) { T.t = 0; T.a = r(-amp, amp); }
+  }
+  if (T.t < 0) return 0;
+  const u = T.t / dur;
+  return T.a * (u < 0.3 ? ease(u / 0.3) : 1 - ease((u - 0.3) / 0.7));
+}
+
 export const ANIM: Record<string, (m: Mutant, M: Model, c: Ctx) => void> = {
   /* the other patient: slumped at its window, a hand on the glass; banging on it, both fists, each blow landing as the sim
      has it (m.wt, the time to the next); still, to you, an arm out to its left and up at the balcony, looking from you to
@@ -274,7 +296,7 @@ export const ANIM: Record<string, (m: Mutant, M: Model, c: Ctx) => void> = {
       M.hd.rotation.z = 0.12;
     }
   },
-  husk(m, M) {
+  husk(m, M, c) {
     const mv = m.mv > 0, hunt = m.state === 'hunt', f = hunt ? 11 : 5;
     for (let k = 0; k < 2; k++) { M.legs[k].rotation.x = mv ? Math.sin(m.ph * f + k * PI) * (hunt ? 0.7 : 0.35) : 0; if (M.shins) M.shins[k].rotation.x = 0; }
     M.arms[0].rotation.x = hunt ? -1.1 + Math.sin(m.ph * f) * 0.2 : mv ? Math.sin(m.ph * f + PI) * 0.25 : 0;
@@ -287,7 +309,7 @@ export const ANIM: Record<string, (m: Mutant, M: Model, c: Ctx) => void> = {
     if (B) {
       const top = -2.75, low = -0.15;
       if (B.ph === 'wind') {
-        const e = ease(B.q), shake = B.q > 0.7 ? Math.sin(m.ph * 45) * 0.05 : 0;
+        const e = ease(B.q), shake = Math.sin(m.ph * 45) * 0.05 * tremble(B, 0.7);
         M.arms[1].rotation.x = -1.3 + (top + 1.3) * e + shake;
         M.arms[0].rotation.x = -1.1 + 0.6 * e;
         M.b.rotation.x = 0.18 - 0.26 * e;
@@ -311,12 +333,14 @@ export const ANIM: Record<string, (m: Mutant, M: Model, c: Ctx) => void> = {
       M.arms[1].rotation.x = 0.2 * e + sh;
     }
     M.b.rotation.z = Math.sin(m.ph * (mv ? f : 0.8)) * 0.04;
-    M.hd.rotation.z = 0.25 + Math.sin(m.ph * 0.7) * 0.1 + (Math.random() < 0.015 ? r(-0.5, 0.5) : 0);
+    M.hd.rotation.z = 0.25 + Math.sin(m.ph * 0.7) * 0.1 + twitch(M, 'head', c, 0.9, 0.5, 0.2);
     M.hd.rotation.y = Math.sin(m.ph * 0.5) * 0.25;
     /* the flashlight held out along its beam, whatever the other arm is doing (sim/cast.ts, torchRay) */
     if (M.lens) M.arms[0].rotation.x = torchRay(m).pitch - PI / 2;
-    /* dragging the other patient by an ankle: the other arm down and back, the hand low behind it */
-    if (m.drag >= 0) { M.arms[1].rotation.x = 0.6; M.arms[1].rotation.z = -0.15; }
+    /* dragging the other patient by an ankle: the other arm down and back, the hand low behind it (and in to its side
+       again once it lets go: it stayed out) */
+    M.arms[1].rotation.z = m.drag >= 0 ? -0.15 : 0;
+    if (m.drag >= 0) M.arms[1].rotation.x = 0.6;
     /* grafting: down on its knees over the body, bent to it, the free hand driving into the arm, again and again */
     if (m.graft > 0) {
       for (let k = 0; k < 2; k++) { M.legs[k].rotation.x = -1.35; M.shins[k].rotation.x = 1.6; }
@@ -326,12 +350,12 @@ export const ANIM: Record<string, (m: Mutant, M: Model, c: Ctx) => void> = {
       M.hd.rotation.x = 0.5;
     }
   },
-  skitter(m, M) {
+  skitter(m, M, c) {
     const mv = m.mv > 0, q = m.state === 'idle' ? 0.4 : 1;
-    for (const o of M.limbs) o.l.rotation.y = o.s * Math.sin(m.ph * (mv ? 14 : 1.3) + o.k * 2.1 + (o.s > 0 ? PI : 0)) * (mv ? 0.5 : 0.1) + (Math.random() < 0.04 * q ? r(-0.3, 0.3) : 0);
-    M.hd.rotation.z = 2.5 + Math.sin(m.ph * 3.1) * 0.2 + (Math.random() < 0.05 * q ? r(-0.7, 0.7) : 0);
+    for (const o of M.limbs) o.l.rotation.y = o.s * Math.sin(m.ph * (mv ? 14 : 1.3) + o.k * 2.1 + (o.s > 0 ? PI : 0)) * (mv ? 0.5 : 0.1) + twitch(M, `leg${o.s}${o.k}`, c, 2.4 * q, 0.3, 0.14);
+    M.hd.rotation.z = 2.5 + Math.sin(m.ph * 3.1) * 0.2 + twitch(M, 'head', c, 3 * q, 0.7, 0.16);
     M.b.position.y = 0.55 + Math.sin(m.ph * (mv ? 20 : 2)) * 0.02;
-    M.b.rotation.z = Math.random() < 0.03 * q ? r(-0.12, 0.12) : 0;
+    M.b.rotation.z = twitch(M, 'body', c, 1.8 * q, 0.12, 0.14);
     /* the tell: it rears, front limbs spread, and holds there a beat before it comes down on you; it drops nose first
        through where you were, and stays down, flat, a moment before it gathers itself */
     const B = blowAt(m);
@@ -339,9 +363,10 @@ export const ANIM: Record<string, (m: Mutant, M: Model, c: Ctx) => void> = {
     M.b.rotation.x = -w * 0.75;
     M.b.position.y += w * (w > 0 ? 0.28 : 0.4);
     for (const o of M.limbs) {
-      if (w > 0 && o.k === 0) { o.l.rotation.z = o.s * w * 1.1 + Math.sin(m.ph * 40) * 0.06; o.l.rotation.y = o.s * -0.5 * w; }
-      else if (w < 0) { o.l.rotation.z = o.s * w * 0.6; }
-      else o.l.rotation.z = 0;
+      /* the front pair spread, trembling, out of its step as it rears and back into it as it comes down (put there at
+         once as it passed level, they jumped) */
+      if (w > 0 && o.k === 0) { o.l.rotation.z = (o.s * 1.1 + Math.sin(m.ph * 40) * 0.06) * w; o.l.rotation.y += (o.s * -0.5 - o.l.rotation.y) * w; }
+      else o.l.rotation.z = w < 0 ? o.s * w * 0.6 : 0;
     }
   },
   bloat(m, M) {
@@ -367,10 +392,10 @@ export const ANIM: Record<string, (m: Mutant, M: Model, c: Ctx) => void> = {
     const B = blowAt(m);
     if (B) {
       const e = B.ph === 'wind' ? ease(B.q) : B.ph === 'strike' ? 1 - 2 * B.q * B.q : -(1 - ease(Math.max(0, (B.q - 0.3) / 0.7)));
-      const shake = B.ph === 'wind' && B.q > 0.65;
+      const shake = tremble(B, 0.65);
       for (const o of M.doors) o.d.rotation.y = o.s * (0.3 + (e >= 0 ? 1.0 : -0.45) * e);
       for (const o of M.arms) {
-        o.a.rotation.x = e >= 0 ? -2.5 * e + (shake ? Math.sin(m.ph * 30 + o.s) * 0.08 : 0) : -0.4 * e;
+        o.a.rotation.x = e >= 0 ? -2.5 * e + Math.sin(m.ph * 30 + o.s) * 0.08 * shake : -0.4 * e;
         o.a.rotation.z = o.s * (e >= 0 ? 0.9 * e : 0);
         o.f.rotation.x = e >= 0 ? -0.4 * e : -0.2 * e;
       }
@@ -392,7 +417,7 @@ export const ANIM: Record<string, (m: Mutant, M: Model, c: Ctx) => void> = {
     M.hd.position.y = 0.22 + (e >= 0 ? 0.14 : 0.04) * e;
     M.hd.position.z = 0.3 - (e >= 0 ? 0.1 : 0.25) * e;
     M.hd.rotation.x = -(e >= 0 ? 0.45 : 0.25) * e;
-    M.hd.rotation.z = B?.ph === 'wind' && B.q > 0.5 ? Math.sin(m.ph * 40) * 0.08 : 0;
+    M.hd.rotation.z = Math.sin(m.ph * 40) * 0.08 * tremble(B, 0.5);
     M.hand.position.y = 0.1 + Math.max(0, e) * 0.15;
     if (B) M.hand.position.z = 0.12 - (e >= 0 ? 0.12 : 0.38) * e;
     M.segs[0].position.y += Math.max(0, e) * 0.1;
@@ -488,7 +513,7 @@ export class CastView {
   private more(): void {
     for (let i = this.shown.length; i < this.sim.cast.length; i++) {
       const m = this.sim.cast[i], mat = dynamicMaterial(), M = BUILD[m.model](mat, m);
-      const rig = rigOf(m, M, { sim: this.sim, dt: 1 / 60, L: this.L });
+      const rig = rigOf(m, M, { sim: this.sim, dt: 0, L: this.L, frame: 0 });
       this.scene.add(M.g);
       this.shown.push({ m, M, mat, blood: false, fall: 0, rig, loose: false, placed: false, lift: LIFT(m), fade: new Fade(M), was: SWITCHES(m), tilt: 0, baked: null, drawn: 'seen' });
     }
@@ -507,10 +532,11 @@ export class CastView {
   }
 
   private last = 0;
+  private frame = 0;
   /** draw everything where it is, `alpha` of the way through the step, seen from `eye` */
   update(alpha: number, eye: THREE.Camera): void {
     if (this.shown.length < this.sim.cast.length) this.more();
-    const w = this.sim.world, t = performance.now() / 1000, c: Ctx = { sim: this.sim, dt: this.last ? Math.min(0.1, t - this.last) : 0, L: this.L };
+    const w = this.sim.world, t = performance.now() / 1000, c: Ctx = { sim: this.sim, dt: this.last ? Math.min(0.1, t - this.last) : 0, L: this.L, frame: ++this.frame };
     this.last = t;
     this.spread();
     this.struck(c.dt);
