@@ -869,6 +869,34 @@ tests; README there).
   tentacles, and shot there), `test/ragdoll.test.ts` (killed by a real chop, the light ones drop where they were
   struck; the worm thrashes where it dies). The kill tests that carried a body with the axe now use the pipe.
 
+### Drawn without a jump, as built
+
+Found playing: a blink as a body went loose, and the living putting themselves from one pose into another in a frame.
+Each measured headless before it was touched (`test/probes/snap.probe.ts` for the living).
+
+- **Going loose**: *Bodies with physics*, *Drawn*, above. On the frame a body goes loose its parts move no more than
+  standing would (under 0.05 m; it was 9.7 m, to the world's middle and back over the blend).
+- **The living** (`render/fade.ts`). The animations are the first engine's, and go from one pose to another at once
+  wherever what they switch on does: what it is doing; walking or not (each at its own pace, so at its own place in the
+  step); a blow begun or cut short; thrown back on its heels; grafting, dragging, gripping; the other patient's fist
+  coming off the glass. Where any of that changes (`SWITCHES` in `castView.ts`), the animation is run twice that frame,
+  once as it was given things the frame before: the difference is what it jumped by, and the model is drawn as the
+  animation has it less that, dying away over 0.2 s (`SWITCH`). Not a blend of the two poses: what was moving anyway
+  is not held back (a husk's arm on its way down as its lunge sets it walking), so a blow lands when the sim has it
+  land (a test holds a husk's swing to its animation, off by no more than the wind-up's shake, 0.05 rad). Between
+  switches it is drawn as its animation has it; the cost is keeping what it last set, 2 µs a body a frame. The random
+  twitches each kind has are left as they were: sudden on purpose.
+- **Struck, rocked back** over a few frames, not one: toward how far the blow rocks it, at 20 a second (at most 0.08
+  rad in a frame; it was 0.28).
+- **The other patient, pointing at the balcony**, turns its head from you to it and back in a fifth of a second, not a
+  frame.
+- **Measured** (the arena, struck every 1.5 s, you going from one end to the other every 2 s; the most a part moves in
+  a frame, in the model's own frame): a husk 0.30 m (was 1.94: its arm thrown from overhead to its side, a walk begun
+  at a pace not the one it stood at), a thresher 0.49 (was 1.98; its arms flail half a metre a frame winding up, as
+  they always did), a worm 0.03 (was 0.21), a skitter 0.58 (as it was: the end of its strike, nose first, in a tenth of
+  a second).
+- **Tests**: `test/fade.test.ts`; `test/ragdoll.test.ts`, *drawn going loose*.
+
 ---
 
 ## 7. Navigation

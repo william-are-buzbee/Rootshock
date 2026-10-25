@@ -14,6 +14,10 @@ were written for were found by measuring, not by looking, and the next one will 
 - `down.probe.ts`: the axe flooring a husk (as hard as one run into): how far its shoulders turn on the plan while it
   is down, and how far its hips go out. `TRACE=1` prints one fall step by step.
 
+- `snap.probe.ts`: how far each kind's pose jumps in a frame while it fights you in the arena (struck every second and
+  a half, you stepping from end to end every two), in the model's own frame: the median, 99th and worst, and the worst
+  frames with what it was doing either side of them. `KINDS=husk,worm` for fewer.
+
 - `step.probe.ts`: what a sim step costs on each level (mean, median, 95th, worst), walking; and the page's share of
   the light each frame.
 - `placement.probe.ts`: everything `test/placement.ts` finds on every level, in the room it is in: things you pick up
