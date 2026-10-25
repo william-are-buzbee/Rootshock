@@ -1550,11 +1550,13 @@ from the 80s under a refit. Seven more materials: shotcrete (`shot`), plasterboa
 does and knocks hollow), a coated slab (`epoxy`), sheet vinyl, carpet tile, terrazzo, limestone (`stone`). Their
 patterns: shotcrete lumpy at the rock's scale under the spray's grain, rock bolts every 1.5 m in staggered rows, their
 plates sprayed over (a raised square, the nut showing through), and under one in four on a wall a faint stain of rust
-(drawn plain and dark, with rust under every other one, they read as sockets leaking); a coated slab with saw cuts on 4 m bays and scuffs that take
-its shine; vinyl flecked, its welded seams a roll's width (2 m) apart; carpet tiles 500 mm, each a quarter turn from the
+(drawn plain and dark, with rust under every other one, they read as sockets leaking); a coated slab with scuffs that take its shine (its saw
+cuts on 4 m bays, since taken out, drew squares that met in crosses down every corridor); vinyl flecked, its welded seams a roll's width (2 m) apart; carpet tiles 500 mm, each a quarter turn from the
 next, the pile running across one and along the next; terrazzo's chips dark, pale and a few rust-red, an inch across so
-they read further off (each fades to its average by its size against the pixel's, finer specks sooner), brass strips on
-1.5 m bays; limestone panels 1.2 by 0.6 m, coursed half a panel along, tight joints, bedding and pits. A pattern can now
+they read further off (each fades to its average by its size against the pixel's, finer specks sooner), poured in one
+(its brass strips on 1.5 m bays, since taken out, were another lattice of squares). Its chips, and vinyl's flecks, were
+noise cut off at a level, which comes out in crosses, Ts and Ls along the noise's own grid; they are chips now
+(`chip()`): one round a point jittered in each cell of a lattice, of a size, angle and stretch of its own; limestone panels 1.2 by 0.6 m, coursed half a panel along, tight joints, bedding and pits. A pattern can now
 tint as well as shade (`surface`'s `tint`: rust, a chip, a strip). The wear's water run down a wall says what it left
 (`Look.salt`): on bare cement (poured or sprayed) white salts, on paint and tile the brown tide mark as before.
 

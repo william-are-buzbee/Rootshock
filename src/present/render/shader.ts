@@ -56,6 +56,12 @@ export const matId = (m?: Mat): number => (m ? MAT_IDS.get(m)! : 0);
 const P = (p: Pattern) => PATTERNS.indexOf(p);
 const f3 = (x: number) => x.toFixed(4);
 const v3 = (c: readonly number[]) => `vec3(${c.map(f3).join(', ')})`;
+/** the chips set in a matrix (chip() in the shader), measured there by sampling it at 400,000 points: the share of a
+ *  surface they cover, and of that, the share whose kind is under each number. What a surface fades to where they are
+ *  too fine to draw */
+const CHIP_COVER = 0.2345, CHIP_KIND: Record<number, number> = { 0.35: 0.0772, 0.45: 0.1023, 0.55: 0.1275, 0.8: 0.1901, 0.9: 0.2127 };
+/** terrazzo's chips of a size, faded: how much is chips, and how much each kind (dark, pale, rust) */
+const TERRAZZO = `vec4(${f3(CHIP_COVER)}, ${f3(CHIP_KIND[0.35])}, ${f3(CHIP_KIND[0.8] - CHIP_KIND[0.35])}, ${f3(CHIP_KIND[0.9] - CHIP_KIND[0.8])})`;
 
 /** every material's look, by number, written into the shader (a table sent as a uniform was sent, and checked, for every
  *  draw): (gloss, tightness, metal, bump) and (pattern, wear, salt) */
@@ -233,6 +239,26 @@ float along(vec2 q, vec3 n){
   vec2 t = normalize(vec2(-n.z, n.x));
   return dot(q, t.x < 0.0 ? -t : t);
 }
+/* chips set in a matrix (terrazzo's marble, vinyl's flecks): round a point jittered in each cell of a lattice k a
+   metre, a chip of a size, an angle and a stretch of its own, angular more than round, so that none of them lines up
+   with the lattice (noise cut off at a level, as they were, came out in crosses, Ts and Ls along its own grid). How much
+   of a pixel px wide the nearest chip covers, and which it is (0 to 1, to tell kinds by). A quarter of the surface or
+   so is chips: CHIP_COVER, and the shares of it below a kind's number in CHIP_KIND */
+vec2 chip(vec2 q, float k, float seed, float px){
+  vec2 c = floor(q * k), f = fract(q * k);
+  float best = -1e3, r0 = 1.0, kind = 0.0;
+  for (int j = -1; j <= 1; j++) for (int i = -1; i <= 1; i++) {
+    vec2 o = vec2(float(i), float(j)), id = c + o + seed;
+    float h1 = hash(id), h2 = hash(id + 17.31), h3 = hash(id + 41.7), h4 = hash(id + 73.13);
+    vec2 v = f - o - vec2(h1, h2);
+    float cs = cos(h3 * 6.2832), sn = sin(h3 * 6.2832);
+    v = vec2(cs * v.x - sn * v.y, (sn * v.x + cs * v.y) * (1.0 + 0.6 * h4));
+    float r = 0.2 + 0.22 * fract(h1 * 7.13 + h2), b = 1.0 - (0.5 * length(v) + 0.4 * (abs(v.x) + abs(v.y))) / r;
+    if (b > best) { best = b; r0 = r; kind = fract(h4 * 13.7 + h3); }
+  }
+  float e = px * k / r0;
+  return vec2(smoothstep(-0.5 * e, 0.5 * e, best), kind);
+}
 void surface(int pat, vec3 p, vec3 n, float up, vec2 at, float det, out float alb, out float h, out float gm, out vec3 tint){
   alb = 1.0; h = 0.0; gm = 1.0; tint = vec3(1.0);
   vec3 an = abs(n);
@@ -359,19 +385,19 @@ void surface(int pat, vec3 p, vec3 n, float up, vec2 at, float det, out float al
       tint = mix(mix(vec3(1.0), vec3(1.0, 0.9, 0.8), nut), vec3(1.2, 0.9, 0.7), 0.45 * tear);
     }
   } else if (pat == ${P('epoxy')}) {
-    /* a coated slab: the coat smooth and a little uneven in tone, saw cuts between 4 m bays (a few millimetres, the
-       coat run into them: darker, and duller than the coat, not black), scuffs where wheels and feet went, which take
-       the shine off it */
-    float m = n3f(p, 0.45, px), cut = max(grid(uv.x, 4.0, 0.002), grid(uv.y, 4.0, 0.002));
+    /* a coated slab: the coat smooth and a little uneven in tone, scuffs where wheels and feet went, which take the
+       shine off it. No saw cuts: a lattice of them across every corridor read as tiles, the squares they made meeting
+       in crosses under your feet */
+    float m = n3f(p, 0.45, px);
     float scuff = mix(0.05, smoothstep(0.6, 0.8, n3(vec3(uv.x * 1.5, uv.y * 9.0, 7.7))) * smoothstep(0.45, 0.7, n3(p * 0.3 + 3.0)), keep(0.5 / 9.0, px));
-    alb = (1.0 + 0.08 * (m - 0.5) - 0.14 * scuff * det) * (1.0 - 0.3 * cut);
-    h = -0.002 * cut;
-    gm = (1.0 - 0.6 * scuff) * (1.0 - 0.6 * cut);
+    alb = 1.0 + 0.08 * (m - 0.5) - 0.14 * scuff * det;
+    gm = 1.0 - 0.6 * scuff;
   } else if (pat == ${P('vinyl')}) {
     /* sheet vinyl: flecked dark and light, the seams welded every 2 m along the roll, with a rod of the same colour: a
        hairline, all but gone but where the light catches it */
-    float f1 = mix(0.14, smoothstep(0.68, 0.74, n3(p * 140.0)), keep(0.5 / 140.0, px));
-    float f2 = mix(0.12, smoothstep(0.7, 0.76, n3(p * 110.0 + 5.0)), keep(0.5 / 110.0, px));
+    float kf = keep(0.5 / 120.0, px);
+    vec2 fk = kf > 0.0 ? chip(horiz ? p.xz : vec2(along(p.xz, n), p.y), 120.0, 5.0, px) : vec2(0.0);
+    float f1 = mix(${f3(CHIP_KIND[0.45])}, fk.x * step(fk.y, 0.45), kf), f2 = mix(${f3(CHIP_COVER - CHIP_KIND[0.55])}, fk.x * step(0.55, fk.y), kf);
     float seam = grid(uv.x, 2.0, 0.001), m = n3f(p, 0.6, px);
     alb = 1.0 + 0.05 * (m - 0.5) + (0.12 * f2 - 0.14 * f1) * det - 0.05 * seam;
     h = -0.0003 * seam;
@@ -387,16 +413,23 @@ void surface(int pat, vec3 p, vec3 n, float up, vec2 at, float det, out float al
     h = 0.0008 * pile - 0.001 * j;
     gm = 0.0;
   } else if (pat == ${P('terrazzo')}) {
-    /* marble chips in cement, ground flat and polished: dark, pale and a few rust-red ones, an inch or so across, so
-       they read further off than the finer specks elsewhere; brass strips between bays 1.5 m square */
-    float c1 = mix(0.13, smoothstep(0.7, 0.74, n3(p * 34.0)), keep(0.5 / 34.0, px));
-    float c2 = mix(0.19, smoothstep(0.66, 0.7, n3(p * 27.0 + 11.0)), keep(0.5 / 27.0, px));
-    float c3 = mix(0.06, smoothstep(0.77, 0.81, n3(p * 40.0 + 23.0)), keep(0.5 / 40.0, px)), grain = n3f(p, 90.0, px);
-    float strip = max(grid(uv.x, 1.5, 0.0015), grid(uv.y, 1.5, 0.0015)), m = n3f(p, 0.5, px);
-    alb = mix((1.0 + 0.06 * (m - 0.5) + 0.06 * (grain - 0.5)) * (1.0 - 0.3 * c1) * (1.0 + 0.14 * c2), 1.04, strip);
-    tint = mix(mix(vec3(1.0), vec3(1.18, 0.9, 0.76), c3), vec3(1.15, 1.03, 0.8), strip);
-    h = 0.0002 * (c2 - c1) + 0.0004 * strip;
-    gm = 1.0 + 1.5 * strip;
+    /* marble chips in cement, ground flat and polished: dark, pale and a few rust-red ones, an inch or so across and
+       smaller between, so they read further off than the finer specks elsewhere. Poured in one, with no brass strips
+       between bays: their lattice across a floor read as tiles */
+    vec2 q = horiz ? p.xz : vec2(along(p.xz, n), p.y);
+    float ka = keep(0.5 / 26.0, px), kb = keep(0.5 / 52.0, px);
+    vec2 a = ka > 0.0 ? chip(q, 26.0, 0.0, px) : vec2(0.0), b = kb > 0.0 ? chip(q, 52.0, 311.0, px) : vec2(0.0);
+    /* (each size of chip by its kind: dark under 0.35, pale under 0.8, rust under 0.9, the rest the cement's own colour;
+       faded to its share where too fine to show, the big ones over the small) */
+    vec4 A = mix(${TERRAZZO},
+      a.x * vec4(1.0, step(a.y, 0.35), step(0.35, a.y) * step(a.y, 0.8), step(0.8, a.y) * step(a.y, 0.9)), ka);
+    vec4 B = mix(${TERRAZZO},
+      b.x * vec4(1.0, step(b.y, 0.35), step(0.35, b.y) * step(b.y, 0.8), step(0.8, b.y) * step(b.y, 0.9)), kb);
+    vec3 cs = A.yzw + (1.0 - A.x) * B.yzw;
+    float grain = n3f(p, 90.0, px), m = n3f(p, 0.5, px);
+    alb = (1.0 + 0.06 * (m - 0.5) + 0.06 * (grain - 0.5)) * (1.0 - 0.3 * cs.x) * (1.0 + 0.14 * cs.y);
+    tint = mix(vec3(1.0), vec3(1.18, 0.9, 0.76), cs.z);
+    h = 0.0002 * (cs.y - cs.x);
   } else if (pat == ${P('stone')}) {
     /* honed limestone hung as cladding: panels 1.5 m long and 0.75 high stacked joint over joint (set half a panel
        along, as masonry is, it reads as brick), hairline joints; its bedding planes, and pits where a fossil fell out */

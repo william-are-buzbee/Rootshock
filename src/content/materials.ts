@@ -70,14 +70,14 @@ export const MATS: Record<Mat, MatDef> = {
   shot: { n: 'Shotcrete', ring: ring(100, [[1, 1, 0.06], [2.1, 0.3, 0.035]], 650, 0.05, 'solid', 1), look: look('shot', 0.05, 10, 0, 0.8, 1, 1) },
   /** plasterboard on steel studs, painted: the refit's partitions. Looks as plaster does; knocks hollow */
   board: { n: 'Plasterboard', ring: ring(170, [[1, 1, 0.08], [2.3, 0.3, 0.04]], 520, 0.04, 'hollow'), look: look('plaster', 0.16, 12, 0, 0.1) },
-  /** a slab sealed with a coat of epoxy: smooth, with a sheen, saw cuts between its bays and scuffs where things went */
+  /** a slab sealed with a coat of epoxy: smooth, with a sheen, and scuffs where things went */
   epoxy: { n: 'Coated concrete', ring: ring(115, [[1, 1, 0.06], [2.2, 0.3, 0.035]], 1100, 0.035, 'solid'), look: look('epoxy', 0.35, 30, 0, 0.15) },
   /** sheet vinyl, flecked, its welded seams a roll's width apart: the refit's medical floor */
   vinyl: { n: 'Sheet vinyl', ring: ring(110, [[1, 0.8, 0.05]], 520, 0.05, 'solid'), look: look('vinyl', 0.25, 22, 0, 0.1) },
   /** carpet tile, each laid a quarter turn from the next, so the pile catches the light in a checker. It hushes a
    *  step */
   carpet: { n: 'Carpet tile', ring: ring(90, [[1, 0.3, 0.035]], 300, 0.06, 'solid'), look: look('carpet', 0, 8, 0, 0.25) },
-  /** terrazzo: chips of marble poured in cement, ground and polished in place, brass strips between its bays. The
+  /** terrazzo: chips of marble poured in cement, ground and polished in place, in one pour. The
    *  family's floor: it came down the shaft in bags */
   terrazzo: { n: 'Terrazzo', ring: ring(140, [[1, 1, 0.06], [2.5, 0.35, 0.035]], 1400, 0.03, 'solid'), look: look('terrazzo', 0.55, 45, 0, 0.12) },
   /** honed limestone, hung in panels on the walls the family's visitors saw */
