@@ -158,14 +158,17 @@ export class Rigged {
     /* woken since (even if asleep again by now, between two frames) */
     if (R.awake || R.woke !== this.woke) this.still = false;
     this.woke = R.woke;
-    g.position.set(0, 0, 0); g.rotation.set(0, 0, 0); g.scale.set(1, 1, 1);
-    /* asleep, blended in and laid as it lies: its points do not move until it wakes, so neither does it */
-    if (this.still) return;
+    /* where it was drawn, taken while the model still stands where it was last placed (castView.ts places it no more
+       once it is loose): taken once it is laid in the world's own frame, it was taken at the world's middle, and the
+       body came in from there over BLEND */
     if (!this.from) {
       g.updateMatrixWorld(true);
       this.from = this.bound.map(b => b.obj.matrixWorld.clone());
       this.t = 0;
     }
+    g.position.set(0, 0, 0); g.rotation.set(0, 0, 0); g.scale.set(1, 1, 1);
+    /* asleep, blended in and laid as it lies: its points do not move until it wakes, so neither does it */
+    if (this.still) return;
     this.t = Math.min(BLEND, this.t + dt);
     g.updateMatrix(); g.updateMatrixWorld(true);
     const k = this.t / BLEND;

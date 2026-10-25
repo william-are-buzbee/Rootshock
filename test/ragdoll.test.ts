@@ -8,6 +8,7 @@ import { noInput, type Input } from '../src/sim/input';
 import { bones, RAG, ragAt, REFLEX, SKEL, STAGGER } from '../src/sim/ragdoll';
 import { load, save } from '../src/sim/save';
 import { makeSim, simLighting, step, type Sim } from '../src/sim/sim';
+import type { Lighting } from '../src/world/light';
 import { BUILD, CastView } from '../src/present/render/castView';
 import { RIG, Rigged } from '../src/present/render/rig';
 import { hold } from './kit';
@@ -676,6 +677,77 @@ describe('knocked down, loose', () => {
       return [m.x, m.z, m.down, m.rise, m.rag?.p ?? null];
     };
     expect(run(30)).toEqual(run(null));
+  });
+});
+
+describe('drawn going loose', () => {
+  /** drawn a frame a step, `alpha` of the way through it as the page has it, and lit by a light as bright as it is high
+   *  above the floor, so how high its light is taken shows: `act` done after a second, then drawn on. Each frame, the
+   *  most any part of it moved and how much its light changed; and the frame `act` came before */
+  const watch = (s: Sim, m: Mutant, act: () => void) => {
+    const L = { looseLights: [], atPoint: (_x: number, y: number) => [y, y, y], flickAt: () => [0, 0, 0], towards: () => [0, 0, 0] } as unknown as Lighting;
+    const cv = new CastView(new THREE.Group(), s, L), eye = new THREE.PerspectiveCamera(72, 16 / 9, 0.06, 140), b = s.player.body;
+    let now = 0;
+    vi.spyOn(performance, 'now').mockImplementation(() => now);
+    /* none of the living's twitches (castView.ts, ANIM): what moves is what going loose moves */
+    vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    onTestFinished(() => { vi.restoreAllMocks(); });
+    const S = (cv as unknown as { shown: { m: Mutant; M: { g: THREE.Group }; mat: THREE.ShaderMaterial }[] }).shown.find(x => x.m === m)!;
+    const at = () => { const out: THREE.Vector3[] = []; S.M.g.traverse(o => { if ((o as THREE.Mesh).isMesh) out.push(o.getWorldPosition(new THREE.Vector3())); }); return out; };
+    const moved: number[] = [], lit: number[] = [];
+    let was = at(), light = 0;
+    const frame = () => {
+      step(s, noInput());
+      now += 1000 / 60;
+      eye.position.set(b.x, b.y + 1.6, b.z); eye.lookAt(m.x, m.y + 0.5, m.z);
+      cv.update(0.5, eye);
+      const p = at(), l = (S.mat.uniforms.uLight.value as THREE.Vector3).x;
+      moved.push(Math.max(...p.map((v, i) => v.distanceTo(was[i])))); lit.push(Math.abs(l - light));
+      was = p; light = l;
+    };
+    for (let k = 0; k < 60; k++) frame();
+    act();
+    const k0 = moved.length;
+    for (let k = 0; k < 60; k++) frame();
+    return { moved, lit, k0 };
+  };
+  /** on the frame it went loose, no part of it moved more than standing would; through the blend into its points
+   *  (rig.ts, BLEND), none jumped; and its light came down to where the middle of one lying is (castView.ts, LIFT) over
+   *  the blend too, not in a frame */
+  const smooth = (r: ReturnType<typeof watch>, what: string) => {
+    expect(r.moved[r.k0], `${what}: the frame it went loose`).toBeLessThan(0.1);
+    expect(Math.max(...r.moved.slice(r.k0, r.k0 + 20)), `${what}: going loose`).toBeLessThan(0.5);
+    expect(Math.max(...r.lit.slice(1)), `${what}: its light`).toBeLessThan(0.1);
+  };
+
+  it('killed, a body goes loose from where it was drawn: it does not jump, nor come in from the world\'s middle', () => {
+    for (const kind of ['husk', 'thresher', 'skitter', 'worm']) {
+      const s = arena(), m = stood(s, kind, 8, 0, -6, 0);
+      smooth(watch(s, m, () => strike(s, m, PIPE({ x: 0, z: -1 }))), kind);
+      expect(m.dead).toBe(true);
+    }
+  });
+
+  it('knocked down, the same: it goes down from where it stood, struck back on its heels or not', () => {
+    const s = arena(), m = stood(s, 'husk', 8, 0, -6, 0);
+    smooth(watch(s, m, () => {
+      m.stun = 0;
+      hitMutant(s, m, { dmg: 10, poise: 500, shove: 1500, dir: { x: 0, z: -1 }, at: { x: m.x, y: m.y + m.body!.h * 0.75, z: m.z + 0.4 }, way: { x: 0, y: -1, z: -0.3 } }, 1);
+      expect(m.down).toBeGreaterThan(0);
+    }), 'knocked down');
+  });
+
+  it('one never drawn standing (a corpse in a save) is laid as it lies at once, with nothing to go loose from', () => {
+    const s = arena(), m = stood(s, 'husk', 8, 0, -6);
+    killAll(s);
+    hold(s, 3);
+    vi.spyOn(performance, 'now').mockReturnValue(0);
+    onTestFinished(() => { vi.restoreAllMocks(); });
+    const cv = new CastView(new THREE.Group(), s, simLighting(s));
+    cv.update(1, new THREE.PerspectiveCamera());
+    const S = (cv as unknown as { shown: { m: Mutant; M: { hd: THREE.Object3D } }[] }).shown.find(x => x.m === m)!;
+    const h = S.M.hd.getWorldPosition(new THREE.Vector3()), p = pt(m, 'head');
+    expect(Math.hypot(h.x - p.x, h.y - p.y, h.z - p.z)).toBeLessThan(0.15);
   });
 });
 

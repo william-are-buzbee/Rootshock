@@ -639,7 +639,13 @@ fall loose; corpses stay in the world (knocked about, saved); knockdowns as ragd
   from its points; a limb by the least turn from its parent that points it from one point to the next, so it does not
   twist on its own. Each is fixed to its frame as the model stands idle. What is not tied to a frame (a thresher's
   ribs, the hand's fingers' second joint, its head and eye) stays as it was the moment it died. Death is not a cut:
-  over 0.15 s the model goes from where it was drawn to where its points are. It bleeds where it comes to rest (the
+  over 0.15 s the model goes from where it was drawn to where its points are, and from where it was drawn last: once
+  loose it is not placed again (the sim's middle of a corpse is not its feet, and a worm's is half its length off),
+  and a corpse never drawn standing (from a save) is laid as it lies at once. For a while the pose it went from was
+  taken after the model had been put at the world's middle, and every body killed or knocked down came in from there
+  over the blend, a blink across the screen; a test now holds each kind to no jump on the frame it goes loose. The
+  light it is lit by is taken lower once it lies (0.4 m, not 0.8), eased there over the same 0.15 s, as a room's
+  light can be half as bright that much lower. It bleeds where it comes to rest (the
   pool waits until it is asleep). Asleep, it is laid once, not every frame, and drawn as one mesh of all its parts
   where they lie (one draw call, not one a part: a husk is 18, a thresher 47, the hand 81), its parts again once it
   wakes. Every part of the cast, living or dead, is culled by its own bounds by whichever camera draws it, a beam's
