@@ -148,6 +148,19 @@ describe('which way it goes: what you hold as you press', () => {
     expect([way('pipe', { strafe: -0.7, forward: 0.6 }), way('pipe', { strafe: -0.4, forward: 0.9 }), way('pipe', { strafe: 0.3, forward: 0.3 })]).toEqual(['back', 'chop', 'side']);
   });
 
+  it('with the sides swapped (a setting), A sends it from your right and D from your left; W and the rest as they were', () => {
+    const swapped = (id: string | null, keys: Partial<Input>) => way(id, { ...keys, swap: true });
+    expect([swapped('pipe', A), swapped('pipe', D), swapped('pipe', W), swapped('pipe', {})]).toEqual(['side', 'back', 'chop', 'side']);
+    expect([swapped('axe', A), swapped('axe', D), swapped('axe', {})]).toEqual(['side', 'back', 'chop']);
+    expect([swapped(null, A), swapped(null, D), swapped(null, W)]).toEqual(['side', 'back', 'thrust']);
+    /* and in the fight: stepping left with it swapped, the one on your right is struck */
+    const s = room(12, 4, (b, z) => { b.mutant('worm', 11.2, 0, z + 0.45); b.mutant('worm', 11.2, 0, z - 0.45); });
+    const [right, left] = s.cast;
+    s.player.pitch = -0.7;
+    swing(s, 'pipe', { ...A, swap: true });
+    expect({ right: right.hp < right.max, left: left.hp < left.max }).toEqual({ right: true, left: false });
+  });
+
   it('a backhand takes the one on your left first, as a side swing takes the one on your right', () => {
     const hits = (keys: Partial<Input>) => {
       const s = room(12, 4, (b, z) => { b.mutant('worm', 11.2, 0, z + 0.45); b.mutant('worm', 11.2, 0, z - 0.45); });

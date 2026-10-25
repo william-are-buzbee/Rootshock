@@ -6,6 +6,7 @@ import { give } from '../src/sim/game';
 import { noInput, type Input } from '../src/sim/input';
 import { makeSim, simLighting, step } from '../src/sim/sim';
 import { HandsView } from '../src/present/render/handsView';
+import type { Shape } from '../src/content/items';
 
 /* Your hands, drawn (render/handsView.ts), whichever way a swing is sent (sim/combat.ts, wayOf): from how a thing is held
    at rest, loaded to where its way starts, swung along it, and brought back, with no jump between. */
@@ -50,5 +51,26 @@ describe('your hands, drawn', () => {
       if (r.turned > 0.45 || r.moved > 0.2) jumps.push(`${id ?? 'fists'} ${name}: turned ${r.turned.toFixed(3)} rad (${r.when}), moved ${r.moved.toFixed(3)} m`);
     }
     expect(jumps).toEqual([]);
+  });
+
+  it('an edged thing swung across leads with its edge: to the left from the right, to the right on a backhand; brought down, to the floor', () => {
+    /* where the edge faces (the axe's head, and the knife's blade, are to -z of the handle), in the view, as it crosses
+       the middle of the swing */
+    const facing = (id: string, way: Shape, q: number) => {
+      const s = makeSim(testbed(), { seed: 3 });
+      give(s.game, id);
+      s.game.weapon = id;
+      const hv = new HandsView(new THREE.PerspectiveCamera(), s, simLighting(s)), h = s.hands;
+      h.way = way; h.swing = { t: q * 0.3, dur: 0.3, a: 0, done: false }; h.line = { yaw: 0, pitch: 0 };
+      hv.update(0, 0, { yaw: 0, pitch: 0 });
+      const mesh = (hv as unknown as { mesh: THREE.Mesh }).mesh;
+      mesh.updateWorldMatrix(true, false);
+      return new THREE.Vector3(0, 0, -1).applyQuaternion(mesh.getWorldQuaternion(new THREE.Quaternion()));
+    };
+    for (const id of ['axe', 'knife']) {
+      expect(facing(id, 'side', 0.4).x, `${id} across from the right`).toBeLessThan(-0.6);
+      expect(facing(id, 'back', 0.4).x, `${id} backhand`).toBeGreaterThan(0.6);
+    }
+    expect(facing('axe', 'chop', 0.45).y).toBeLessThan(-0.6);
   });
 });
