@@ -1007,9 +1007,13 @@ As built in step 5 (`world/nav.ts`, `sim/fields.ts`):
 - **Flow fields to the player**, one for each kind of body and one for sound, by Dijkstra over the graph. One is
   refreshed each step in turn (about 2.5 ms each on the upper station's 7,600 spots), so each is at most four steps
   old and no step pays for all of them. A roam (a husk keeping its rounds) gets a field of its own to a room lit as
-  the power stands, picked at random, one new route a step across the whole cast (`rounds` in `sim/cast/move.ts`).
-  One standing in the dark makes for the nearest lit room it can get to as the doors stand now (a locked door bars it),
-  and with none keeps still until the light comes.
+  the power stands, one new route a step across the whole cast (`rounds`, `pickDest` in `sim/cast/move.ts`): of the lit
+  rooms it can get to as the doors stand now (a locked door bars it) within `ROAM.reach`, one the fewest of the staff
+  are in or making for, at random among those, so they keep apart. A room is its boxes of one name that join
+  (`placeOf`), so a hall built of four is one choice. One standing in the dark makes for a spot in the nearest lit room
+  within `ROAM.light`, and with none keeps still until the light comes. A roam that comes no nearer its goal for a
+  second and a half (waiting at a door or for a platform aside) gives it up for another (`Mutant.near`): two meeting
+  head on used to sidestep into each other's way and back for good.
 - **Agreed: mutants use stairs and elevators.** Stairs, ramps, walkways and drops are walked like any floor.
   Platforms: anything rides one that goes by itself; a husk calls one that has power, walks to its middle, rides it,
   and steps off at the top (tested: Cargo on backup, a husk follows you up to Tier 1). **Ladders**: the cast needs

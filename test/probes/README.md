@@ -33,6 +33,10 @@ were written for were found by measuring, not by looking, and the next one will 
   the dead ends, and what cannot be walked to from the rest. A loop is a way round, which is what a patrol needs to be
   gone round rather than waited out. `LEVEL=upper` for one; `LINKS=1` lists every link.
 
+- `patrols.probe.ts`: where the changed keep their rounds, each level left to itself for some minutes with you out of
+  it: the rooms they were in, how many others each had within 6 m and how often two or more, the most in one room at
+  once, and the rooms their rounds made for. `LEVEL=main`, `SEED=3`, `MINUTES=8`, `POWER=full` (everything on).
+
 - `golden.probe.ts`: every level as compiled, to compare with after a change to how levels are written that should
   change nothing, or only what it says. `SAVE=<dir>` writes each level's definition and grid there (before the change);
   `CHECK=<dir>` builds them again and lists what differs: by part, the first few things in each, and how many cells of
