@@ -7,6 +7,9 @@ import { give } from '../src/sim/game';
 import { noInput } from '../src/sim/input';
 import { Lighting, fullPower, spot } from '../src/world/light';
 import { Cascade } from '../src/present/cascade';
+import { buildLevelMesh } from '../src/present/render/levelMesh';
+import { EMIT } from '../src/present/render/shader';
+import { levelDef } from '../src/sim/run';
 
 /* Light on the upper station. Power coming on, room by room (present/cascade.ts): it starts where you are, reaches the
    far end last, ends exactly as the new power lights it, and going dark is not staged. Light in pools under the ceiling
@@ -345,5 +348,19 @@ describe('which way the light comes from', () => {
     void a.directions;
     expect(close(a.colours, b.colours)).toBe(0);
     for (const R of w.rooms.slice(0, 40)) expect(a.atPoint(...mid(R.id))).toEqual(b.atPoint(...mid(R.id)));
+  });
+});
+
+describe('a lit fitting, as drawn', () => {
+  it('is told from the rest by a take clear of the cut, so no face of the rest is lit as one', () => {
+    /* the shader tells them apart by a vertex's own take (EMIT.cut); across a face a take of 1 came out a hair over 1
+       on an NVIDIA card, and floors drew in streaks of a fitting's brightness while it was tested there */
+    const near = (t: number) => Math.abs(t - EMIT.cut) < 0.2, lm = buildLevelMesh(w, lit), takes = new Set<number>();
+    for (const g of [...lm.pieces, ...lm.services]) for (const t of g.getAttribute('aLight').array as Float32Array) takes.add(t);
+    expect([...takes].filter(near)).toEqual([]);
+    expect(takes.has(1)).toBe(true);
+    expect([...takes].some(t => t > EMIT.cut)).toBe(true); // its fittings
+    /* what the mesh takes of its own is the same on every level; a prop's take is the level's to say */
+    for (const { id } of STATION.levels) expect(levelDef(STATION, id).props.map(p => p.glow).filter(near), id).toEqual([]);
   });
 });

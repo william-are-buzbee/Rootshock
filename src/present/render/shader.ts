@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { BR, LCELL, LOFF } from '../../world/lightField';
 import { BOUNCE, FLASH, LANTERN, POOL } from '../../world/light';
 import { MATS, MAT_ORDER, type Mat, type Pattern } from '../../content/materials';
+import { dbgDefines } from '../debug';
 
 /* One shader for everything, carried over from the first engine.
    Light = the level's light (read point by point from its light field for the level itself, per object for things that
@@ -53,12 +54,23 @@ const MAT_IDS = new Map<Mat, number>(MAT_ORDER.map((m, k) => [m, k + 1]));
 /** a material's number for the shader (aMat): 0 for a thing that says nothing of what it is */
 export const matId = (m?: Mat): number => (m ? MAT_IDS.get(m)! : 0);
 const P = (p: Pattern) => PATTERNS.indexOf(p);
+const f3 = (x: number) => x.toFixed(4);
+const v3 = (c: readonly number[]) => `vec3(${c.map(f3).join(', ')})`;
 
 /** every material's look, by number, written into the shader (a table sent as a uniform was sent, and checked, for every
  *  draw): (gloss, tightness, metal, bump) and (pattern, wear, salt) */
 const look = (f: (L: (typeof MATS)[Mat]['look']) => number[]) =>
   `vec4[${NM}](vec4(0.0), ${MAT_ORDER.map(m => `vec4(${f(MATS[m].look).map(x => x.toFixed(4)).join(', ')})`).join(', ')})`;
 const LOOK_A = look(L => [L.gloss, L.tight, L.metal, L.bump]), LOOK_B = look(L => [P(L.pattern), L.wear, L.salt, 0]);
+
+/** how much brighter than white a light is drawn, so it glows: a fitting lit by its room's light (`glow` over `cut`: a
+ *  tube's 3, a painted sky's 1.5) `fitting` times over what it was; something emissive, `most` times its colour for
+ *  the brightest, by its brightest channel from `dim` up to `bright`, and a dimmer one (a screen, a pilot light) as it
+ *  was. The light in the room is the light field's: this is only how the light itself looks. `cut` lies between the
+ *  takes of the fittings and of the rest (1 and under), clear of both, and is tested on a vertex's own take: across a
+ *  face, a take of 1 can come out a hair over 1 (an NVIDIA card's, through ANGLE, did), and tested there, pixel by
+ *  pixel, it lit a floor in streaks of a fitting's brightness */
+export const EMIT = { fitting: 2.4, cut: 1.25, most: 3.2, dim: 0.72, bright: 0.92 };
 
 const VS = /* glsl */ `
 attribute vec3 aCol; attribute float aMat; attribute vec2 aRoomY; attribute vec2 aRoomO;
@@ -76,7 +88,7 @@ void main(){
   vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; vO = position; vC = aCol;
   int k = int(aMat + 0.5); vLA = LOOK_A[k]; vLB = LOOK_B[k]; vRY = aRoomY; vRO = aRoomO;
 #if defined(STATIC)
-  vL = vec3(aLight, 0.0, 0.0);
+  vL = vec3(aLight > ${f3(EMIT.cut)} ? aLight * ${f3(EMIT.fitting)} : aLight, 0.0, 0.0);
 #elif defined(BAKED)
   vL = aLight.rgb;
 #else
@@ -85,12 +97,6 @@ void main(){
   gl_Position = projectionMatrix * viewMatrix * w;
 }`;
 
-/** how much brighter than white a light is drawn, so it glows: a fitting lit by its room's light (`glow` over 1, a tube)
- *  `fitting` times over what it was; something emissive, `most` times its colour for the brightest, by its brightest
- *  channel from `dim` up to `bright`, and a dimmer one (a screen, a pilot light) as it was. The light in the room is the
- *  light field's: this is only how the light itself looks */
-export const EMIT = { fitting: 2.4, most: 3.2, dim: 0.72, bright: 0.92 };
-
 /** how a surface takes the level's light by which way it comes from (the field's direction): facing straight into it
  *  `base` + `slope`, side on `base`, facing away `base` - `slope`; a bump tipped toward it by `relief` more; and the
  *  sheen it gives what has gloss, against the carried lights' highlight */
@@ -98,8 +104,6 @@ export const DIR = { base: 0.76, slope: 0.6, relief: 1.1, sheen: 0.5 };
 
 /** the brightest light the field holds: what is over it is held at it */
 export const LIGHT_RANGE = 4;
-const f3 = (x: number) => x.toFixed(4);
-const v3 = (c: readonly number[]) => `vec3(${c.map(f3).join(', ')})`;
 
 /** how many flashlights lying on are drawn with their beams, and their shadow maps' size */
 export const BEAMS = 2, SHADOW = 512;
@@ -178,6 +182,9 @@ vec3 beamOn(vec3 p, vec3 n, vec4 B, vec3 dir, float seen){
 vec3 offFor(vec3 p, vec3 n, vec3 B){ return p + n * (${f3(STANDOFF.base)} + ${perMetre(SHADOW_CAM.fov, SHADOW)} * length(p - B)); }
 vec3 lying(vec3 p, vec3 n){
   vec3 out3 = vec3(0.0);
+#ifdef DBG_NOBEAMS
+  return out3;
+#endif
   if (uBeam[0].w > 0.0) out3 += beamOn(p, n, uBeam[0], uBeamDir[0], unshadowed(uSh0, uBeamM[0], offFor(p, n, uBeam[0].xyz), ${(1 / SHADOW).toFixed(7)}));
   if (uBeam[1].w > 0.0) out3 += beamOn(p, n, uBeam[1], uBeamDir[1], unshadowed(uSh1, uBeamM[1], offFor(p, n, uBeam[1].xyz), ${(1 / SHADOW).toFixed(7)}));
   return out3;
@@ -566,9 +573,21 @@ void main(){
   /* the level's light here, and which way it comes from */
   vec3 lvl = vec3(0.0), dl = vec3(0.0);
 #if defined(STATIC)
+#ifdef DBG_FLAT
+  vec3 fl = vec3(0.0), lv = vec3(0.3);
+#else
   float px = length(fwidth(vW));
   vec3 fl, lv = field(vW, nf, px, fl, dl);
-  lvl = (lv - fl * 0.55 * uFlick) * (vL.x > 1.0 ? vL.x * ${f3(EMIT.fitting)} : vL.x) * selfShade(vW, nf);
+#endif
+#ifdef DBG_NODIR
+  dl = vec3(0.0);
+#endif
+#ifdef DBG_NOSELF
+  float shade = 1.0;
+#else
+  float shade = selfShade(vW, nf);
+#endif
+  lvl = (lv - fl * 0.55 * uFlick) * vL.x * shade;
   vec3 light = lvl * takes(nf, nb, dl, sh, rel);
 #elif defined(BAKED)
   vec3 light = vL * sh;
@@ -592,6 +611,15 @@ void main(){
   c += uHit * vec3(0.45, 0.08, 0.06);
   c *= exp(-d * uFog);
   c = max(mix(c, c * vec3(0.5, 0.85, 0.9), uWet), vec3(0.0));
+#if defined(DBG_UNLIT)
+  c = max(vC, vec3(0.0)) * 0.5;
+#elif defined(DBG_SHOWNORMAL)
+  c = (nf * 0.5 + 0.5) * 0.6;
+#elif defined(DBG_SHOWLIGHT)
+  c = lvl;
+#elif defined(DBG_SHOWSURF)
+  c = 0.15 + 0.45 * fract(vec3(vRY.x * 0.37 + vLB.x * 0.29, vL.x * 1.7 + vRY.y * 0.23, vLB.x * 0.61 + vC.r * 3.1));
+#endif
 #ifdef ALPHA
   gl_FragColor = vec4(c, ALPHA);
 #else
@@ -672,7 +700,7 @@ export const U = {
  *  does not say: nothing, and no room */
 const DEFAULTS = { aMat: [0], aRoomY: [0, 0], aRoomO: [0, 0] };
 function material(o: THREE.ShaderMaterialParameters): THREE.ShaderMaterial {
-  const m = new THREE.ShaderMaterial({ vertexShader: VS, fragmentShader: FS, side: THREE.DoubleSide, ...o });
+  const m = new THREE.ShaderMaterial({ vertexShader: VS, fragmentShader: FS, side: THREE.DoubleSide, ...o, defines: { ...dbgDefines(), ...o.defines } });
   m.defaultAttributeValues = { ...m.defaultAttributeValues, ...DEFAULTS };
   return m;
 }
