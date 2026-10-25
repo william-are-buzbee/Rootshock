@@ -32,7 +32,7 @@ describe('save and load', () => {
     for (let k = 1500; k < 2700; k++) { step(a, script(k)); step(b, script(k)); }
     expect(state(b)).toBe(state(a));
     expect(a.cast.some(m => m.state !== 'idle' || Math.hypot(m.x - m.hx, m.z - m.hz) > 1)).toBe(true); // they did something
-  });
+  }, 30_000); // about 9 s on CI, near half of it the upper station's light made the first time: over the usual limit by a little noise
 
   it('keeps what was taken, searched, unlocked and switched', () => {
     const a = makeSim(level, opts);
