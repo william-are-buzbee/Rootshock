@@ -22,7 +22,7 @@ export interface Ring { base: number; modes: [number, number, number][]; click: 
 /** what is drawn on it, from where it is in the world (render/shader.ts): poured concrete's blotches and formwork, a
  *  wall of painted block, smooth paint, a suspended ceiling's tiles, glazed tile, paving flags, steel plate with its
  *  seams, an open steel mesh, raw rock, boards; shotcrete over the rock with its bolts, a coated slab, sheet vinyl,
- *  carpet tile, terrazzo, stone cladding; or nothing */
+ *  carpet, terrazzo, stone cladding; or nothing */
 export type Pattern = 'none' | 'cast' | 'block' | 'plaster' | 'tiles' | 'glazed' | 'flags' | 'plate' | 'mesh' | 'rock' | 'boards'
   | 'shot' | 'epoxy' | 'vinyl' | 'carpet' | 'terrazzo' | 'stone';
 
@@ -74,9 +74,8 @@ export const MATS: Record<Mat, MatDef> = {
   epoxy: { n: 'Coated concrete', ring: ring(115, [[1, 1, 0.06], [2.2, 0.3, 0.035]], 1100, 0.035, 'solid'), look: look('epoxy', 0.35, 30, 0, 0.15) },
   /** sheet vinyl, flecked, its welded seams a roll's width apart: the refit's medical floor */
   vinyl: { n: 'Sheet vinyl', ring: ring(110, [[1, 0.8, 0.05]], 520, 0.05, 'solid'), look: look('vinyl', 0.25, 22, 0, 0.1) },
-  /** carpet tile, each laid a quarter turn from the next, so the pile catches the light in a checker. It hushes a
-   *  step */
-  carpet: { n: 'Carpet tile', ring: ring(90, [[1, 0.3, 0.035]], 300, 0.06, 'solid'), look: look('carpet', 0, 8, 0, 0.25) },
+  /** carpet, laid wall to wall. It hushes a step */
+  carpet: { n: 'Carpet', ring: ring(90, [[1, 0.3, 0.035]], 300, 0.06, 'solid'), look: look('carpet', 0, 8, 0, 0.25) },
   /** terrazzo: chips of marble poured in cement, ground and polished in place, in one pour. The
    *  family's floor: it came down the shaft in bags */
   terrazzo: { n: 'Terrazzo', ring: ring(140, [[1, 1, 0.06], [2.5, 0.35, 0.035]], 1400, 0.03, 'solid'), look: look('terrazzo', 0.55, 45, 0, 0.12) },

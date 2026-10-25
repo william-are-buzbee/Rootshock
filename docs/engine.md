@@ -1547,12 +1547,12 @@ voice.
 
 **Step 4 (built): the station as built.** world.md §1, *The station as built*: mined at 400 m, the family's fabric
 from the 80s under a refit. Seven more materials: shotcrete (`shot`), plasterboard (`board`, which looks as plaster
-does and knocks hollow), a coated slab (`epoxy`), sheet vinyl, carpet tile, terrazzo, limestone (`stone`). Their
+does and knocks hollow), a coated slab (`epoxy`), sheet vinyl, carpet, terrazzo, limestone (`stone`). Their
 patterns: shotcrete lumpy at the rock's scale under the spray's grain, rock bolts every 1.5 m in staggered rows, their
 plates sprayed over (a raised square, the nut showing through), and under one in four on a wall a faint stain of rust
 (drawn plain and dark, with rust under every other one, they read as sockets leaking); a coated slab with scuffs that take its shine (its saw
-cuts on 4 m bays, since taken out, drew squares that met in crosses down every corridor); vinyl flecked, its welded seams a roll's width (2 m) apart; carpet tiles 500 mm, each a quarter turn from the
-next, the pile running across one and along the next; terrazzo's chips dark, pale and a few rust-red, an inch across so
+cuts on 4 m bays, since taken out, drew squares that met in crosses down every corridor); vinyl flecked, its welded seams a roll's width (2 m) apart; carpet laid wall to wall (it was tiles, 500 mm, each a
+quarter turn from the next, the pile running across one and along the next: squares again, and taken out); terrazzo's chips dark, pale and a few rust-red, an inch across so
 they read further off (each fades to its average by its size against the pixel's, finer specks sooner), poured in one
 (its brass strips on 1.5 m bays, since taken out, were another lattice of squares). Its chips, and vinyl's flecks, were
 noise cut off at a level, which comes out in crosses, Ts and Ls along the noise's own grid; they are chips now

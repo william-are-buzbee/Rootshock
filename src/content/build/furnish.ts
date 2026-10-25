@@ -17,7 +17,7 @@ export const HAB: RoomOpts = { fl: 0x7b7568, wl: 0x9a9588, st: 0x3f7f6b, mat: { 
 export const MED: RoomOpts = { fl: 0x9aa39d, wl: 0xb9c4bd, st: 0x8c2f24, mat: { floor: 'vinyl', wall: 'glazed', ceiling: 'tiles' } };
 export const SEC: RoomOpts = { fl: 0x4e555e, wl: 0x70747a, st: 0x39485a, mat: { floor: 'epoxy', wall: 'block' } };
 export const OPS: RoomOpts = { fl: 0x847c70, wl: 0x8c887e, st: 0x8a7a4a, mat: { floor: 'terrazzo', wall: 'block', ceiling: 'tiles' } };
-/** an office, refitted: plasterboard, carpet tile, a suspended ceiling */
+/** an office, refitted: plasterboard, carpet, a suspended ceiling */
 export const OFF: RoomOpts = { fl: 0x4a4f58, wl: 0x9a968c, st: 0x5a6a7a, mat: { floor: 'carpet', wall: 'board', ceiling: 'tiles' } };
 /** where the family's visitors walked: terrazzo, limestone to 4 m and plaster over it, a plastered ceiling */
 export const FAM: RoomOpts = { fl: 0x8a8070, wl: 0xa3967e, st: 0x7a5a30, mat: { floor: 'terrazzo', wall: 'stone', ceiling: 'plaster', upper: 'plaster' } };

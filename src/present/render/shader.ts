@@ -403,14 +403,11 @@ void surface(int pat, vec3 p, vec3 n, float up, vec2 at, float det, out float al
     h = -0.0003 * seam;
     gm = 1.0 - 0.2 * seam;
   } else if (pat == ${P('carpet')}) {
-    /* carpet tile, 500 mm, each laid a quarter turn from the next, so the pile takes the light one way or the other;
-       worn paler where the feet went */
-    vec2 cell = floor(uv / 0.5);
-    float turn = mod(cell.x + cell.y, 2.0);
-    float pile = mix(0.5, n3(turn > 0.5 ? vec3(uv.x * 200.0, uv.y * 60.0, 1.0) : vec3(uv.x * 60.0, uv.y * 200.0, 1.0)), keep(1.0 / 200.0, px));
-    float j = max(grid(uv.x, 0.5, 0.001), grid(uv.y, 0.5, 0.001)), worn = n3f(p, 0.7, px);
-    alb = (1.0 + 0.04 * (turn - 0.5) + 0.14 * (pile - 0.5) * det + 0.08 * (worn - 0.5)) * (1.0 - 0.1 * j);
-    h = 0.0008 * pile - 0.001 * j;
+    /* carpet laid wall to wall, its pile, and worn paler where the feet went. (It was tiles, 500 mm, each a quarter turn
+       from the next: one more lattice of squares over a floor) */
+    float pile = n3f(p, 160.0, px), worn = n3f(p, 0.7, px);
+    alb = 1.0 + 0.14 * (pile - 0.5) * det + 0.08 * (worn - 0.5);
+    h = 0.0008 * pile;
     gm = 0.0;
   } else if (pat == ${P('terrazzo')}) {
     /* marble chips in cement, ground flat and polished: dark, pale and a few rust-red ones, an inch or so across and
