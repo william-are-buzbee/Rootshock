@@ -3,14 +3,15 @@ import { LevelBuilder } from '../src/content/build/builder';
 import { STEP } from '../src/core/loop';
 import type { Mutant } from '../src/sim/cast';
 import { give } from '../src/sim/game';
-import { noInput } from '../src/sim/input';
+import { noInput, type Input } from '../src/sim/input';
+import { wayOf, wstats } from '../src/sim/combat';
 import { MOVES, POISE } from '../src/sim/moves';
 import { makeSim, step, type Sim } from '../src/sim/sim';
 import { hold } from './kit';
 
 /* Blows traced through the world (engine.md §6, F3b). You stand at x 10, in the middle of a room's width, facing east;
-   your right is south (+z). The pipe and the baton swing side to side, right to left; the axe chops, from up and right
-   down to the left. */
+   your right is south (+z). The pipe and the baton swing side to side, right to left, and the axe chops straight down,
+   unless sent another way by the keys held as you press (which way it goes, below). */
 function room(w: number, ht: number, build: (b: LevelBuilder, z: number) => void = () => {}): Sim {
   const b = new LevelBuilder('room', 'Room');
   b.room('Room', 0, 0, 20, w, { ht });
@@ -22,12 +23,13 @@ function room(w: number, ht: number, build: (b: LevelBuilder, z: number) => void
   return s;
 }
 const heard = (s: Sim, name: string) => s.game.events.some(e => e.type === 'sfx' && e.name === name);
-/** a click, and what came of it: whether it glanced, whether you reeled */
-function swing(s: Sim, id: string) {
+/** a click (with `keys` held as you press: which way it goes), and what came of it: whether it glanced, whether you
+ *  reeled */
+function swing(s: Sim, id: string, keys: Partial<Input> = {}) {
   give(s.game, id);
   s.game.events.length = 0;
   let reeled = false;
-  hold(s, STEP, { attack: true });
+  hold(s, STEP, { ...keys, attack: true });
   for (let t = 0; t < 2; t += STEP) { step(s, noInput()); reeled ||= s.hands.stag > 0; }
   return { glanced: heard(s, 'blow'), reeled };
 }
@@ -131,5 +133,78 @@ describe('a swing meets the cast', () => {
     const open = blow(12);
     expect(open.took).toBeGreaterThan(0);
     expect(open.glanced).toBe(false);
+  });
+});
+
+describe('which way it goes: what you hold as you press', () => {
+  const A = { strafe: -1 }, D = { strafe: 1 }, W = { forward: 1 }, S = { forward: -1 };
+  const way = (id: string | null, keys: Partial<Input>) => wayOf(wstats(id), { ...noInput(), ...keys });
+
+  it('A from your left, D from your right, W over your head or straight out; nothing, or S, the weapon\'s own way', () => {
+    for (const id of ['pipe', 'baton', 'wrench']) expect([way(id, {}), way(id, A), way(id, D), way(id, W), way(id, S)], id).toEqual(['side', 'back', 'side', 'chop', 'side']);
+    expect([way('axe', {}), way('axe', A), way('axe', D), way('axe', W)]).toEqual(['chop', 'back', 'side', 'chop']);
+    for (const id of ['knife', null]) expect([way(id, {}), way(id, A), way(id, D), way(id, W)], `${id}`).toEqual(['thrust', 'back', 'side', 'thrust']);
+    /* a stick pushed off straight: the stronger way, and only past halfway */
+    expect([way('pipe', { strafe: -0.7, forward: 0.6 }), way('pipe', { strafe: -0.4, forward: 0.9 }), way('pipe', { strafe: 0.3, forward: 0.3 })]).toEqual(['back', 'chop', 'side']);
+  });
+
+  it('a backhand takes the one on your left first, as a side swing takes the one on your right', () => {
+    const hits = (keys: Partial<Input>) => {
+      const s = room(12, 4, (b, z) => { b.mutant('worm', 11.2, 0, z + 0.45); b.mutant('worm', 11.2, 0, z - 0.45); });
+      const [right, left] = s.cast;
+      s.player.pitch = -0.7;
+      swing(s, 'pipe', keys);
+      return { right: right.hp < right.max, left: left.hp < left.max };
+    };
+    expect(hits(D)).toEqual({ right: true, left: false });
+    expect(hits({})).toEqual({ right: true, left: false });
+    expect(hits(A)).toEqual({ right: false, left: true });
+  });
+
+  it('a backhand sends what it hits off to your right, the way it was going', () => {
+    const s = room(12, 4, (b, z) => b.mutant('worm', 11.3, 0, z));
+    const m = s.cast[0], x = m.x, z = m.z;
+    s.player.pitch = -0.7;
+    swing(s, 'pipe', A);
+    expect(m.hp).toBeLessThan(m.max);
+    expect(m.x - x).toBeGreaterThan(0.1);
+    expect(m.z - z).toBeGreaterThan(0.1); // south: your right
+  });
+
+  it('in a corridor the pipe brought down over your head clears what its side swing glances off; under a low ceiling the axe swung across clears what its chop catches', () => {
+    expect(swing(room(1.6, 4), 'pipe', W).glanced).toBe(false);
+    expect(swing(room(1.6, 4), 'pipe', A).glanced).toBe(true);
+    expect(swing(room(12, 2.2), 'axe', D).glanced).toBe(false);
+    expect(swing(room(12, 2.2), 'pipe', W).glanced).toBe(true);
+  });
+
+  it('only the path is chosen: the blow is as hard and as quick whichever way it comes', () => {
+    const blow = (keys: Partial<Input>) => {
+      const s = room(12, 4, (b, z) => b.mutant('husk', 11.4, 0, z)), m = s.cast[0];
+      s.player.pitch = Math.atan2(1.1 - 1.6, 1.4);
+      give(s.game, 'pipe');
+      hold(s, STEP, { ...keys, attack: true });
+      let dur = 0;
+      for (let t = 0; t < 2; t += STEP) { step(s, noInput()); dur ||= s.hands.swing?.dur ?? 0; }
+      return { took: Math.round((m.max - m.hp) * 1e6) / 1e6, dur };
+    };
+    const side = blow(D);
+    expect(side.took).toBeGreaterThan(0);
+    expect(blow(A)).toEqual(side);
+    expect(blow(W)).toEqual(side);
+  });
+
+  it('a press kept while you are busy goes the way it asked for as it was pressed, whatever is held when it starts', () => {
+    const s = room(12, 4), h = s.hands;
+    give(s.game, 'pipe');
+    hold(s, STEP, { attack: true });
+    /* pressed with A held just before the arm is back in from a swing that met nothing (BUF, 0.2 s), then let go of */
+    for (let k = 0; k < 200 && (h.swing || h.chg >= 0 || h.rec > 0.1); k++) step(s, noInput());
+    expect(h.swing === null && h.chg < 0 && h.rec > 0).toBe(true);
+    hold(s, STEP, { ...A, attack: true });
+    expect(h.chg).toBeLessThan(0); // busy: kept
+    for (let k = 0; k < 20 && h.chg < 0; k++) step(s, noInput()); // nothing held when the load begins
+    expect(h.chg).toBeGreaterThanOrEqual(0);
+    expect(h.way).toBe('back');
   });
 });

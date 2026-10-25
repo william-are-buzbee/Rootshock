@@ -1,4 +1,4 @@
-import { wstats, type WeaponStats } from '../content/items';
+import { wstats, type Shape, type WeaponStats } from '../content/items';
 import { clamp } from '../core/math';
 import { STEP } from '../core/loop';
 import type { Dyn } from '../world/world';
@@ -24,7 +24,12 @@ export { wstats, type WeaponStats };
    as long as you like, and nothing that hits you takes a load or a blow from you short of putting you on the floor. A
    hit takes poise, though: enough of it and you reel, thrown back and slowed, and cannot start another load until you
    have your feet; enough to floor you, and what was in your hands goes with your footing. A press while you are busy
-   is kept a moment, so a blow can follow a blow. */
+   is kept a moment, so a blow can follow a blow.
+
+   Which way it goes is what you hold as you press (wayOf): from your left or your right, over your head, or the
+   weapon's own way. Only the path is yours to choose: the blow is the same blow, as hard and as quick, whichever way
+   it comes. What it meets on the way is what differs (a side swing glances in a corridor a chop clears, and takes the
+   one on your flank first). */
 
 export interface Hands {
   /** seconds a swing has been loading; -1 when not */
@@ -53,6 +58,10 @@ export interface Hands {
   held: boolean;
   /** a press while busy, kept this much longer */
   buf: number;
+  /** the way the last press asked for (wayOf), and the way the load or blow under way goes, taken from it as the load
+   *  begins; null before any */
+  want: Shape | null;
+  way: Shape | null;
   /** your poise, seconds since you were last hit, and seconds left of reeling */
   poise: number;
   calm: number;
@@ -65,12 +74,30 @@ export interface Hands {
 }
 
 export const makeHands = (): Hands => ({
-  chg: -1, full: false, go: false, swing: null, line: null, rec: 0, plant: 0, stop: 0, gcd: 0, kick: 0, muzzle: 0, held: false, buf: 0,
+  chg: -1, full: false, go: false, swing: null, line: null, rec: 0, plant: 0, stop: 0, gcd: 0, kick: 0, muzzle: 0, held: false, buf: 0, want: null, way: null,
   poise: POISE.you, calm: 99, stag: 0, down: 0, rise: 0, side: 1,
 });
 
 /** how long a press is kept while you are busy (s) */
 const BUF = 0.2;
+
+/** the way a press asks a swing to go, by what you hold as you press: from your left (A), a backhand across to your
+ *  right; from your right (D), a side swing across to your left; forward (W), over your head and down for anything
+ *  swung, or straight out for what is thrust (the knife, your fists); nothing, or back, the weapon's own way. A key
+ *  counts pushed more than halfway (a stick need not be pushed all the way), the stronger if both are */
+export function wayOf(w: WeaponStats, input: Input): Shape {
+  const s = input.strafe, f = input.forward;
+  if (Math.abs(s) >= 0.5 && Math.abs(s) >= f) return s < 0 ? 'back' : 'side';
+  if (f >= 0.5) return w.shape === 'thrust' ? 'thrust' : 'chop';
+  return w.shape;
+}
+
+/** the way the load or blow under way goes: as it was asked to, if what is in your hand goes that way (it may have
+ *  been changed since), else that thing's own way */
+export function wayNow(sim: Sim, w = wstats(sim.game.weapon)): Shape {
+  const way = sim.hands.way;
+  return way === 'side' || way === 'back' || way === (w.shape === 'thrust' ? 'thrust' : 'chop') ? way : w.shape;
+}
 
 const dt = STEP;
 const wet = (sim: Sim) => sim.player.water !== 'dry';
@@ -125,9 +152,11 @@ export function updateHands(sim: Sim, input: Input): void {
   h.held = input.attack;
   if (w.gun) { h.chg = -1; h.swing = null; if (press && h.stag <= 0 && !floored(sim)) fire(sim, w); return; }
   const free = !h.swing && h.chg < 0 && h.rec <= 0 && h.stag <= 0 && !floored(sim);
+  if (press) h.want = wayOf(w, input);
   if (press && !free) h.buf = BUF;
-  /* a buffered press starts the load whether or not it is still held: let go already, it is a click */
-  if (free && (press || h.buf > 0)) { h.chg = 0; h.full = false; h.go = !input.attack; h.buf = 0; }
+  /* a buffered press starts the load whether or not it is still held: let go already, it is a click. It goes the way
+     it asked for as it was pressed, whatever is held now */
+  if (free && (press || h.buf > 0)) { h.chg = 0; h.full = false; h.go = !input.attack; h.buf = 0; h.way = h.want; }
   if (h.chg >= 0) {
     h.chg += dt;
     if (release) h.go = true;
@@ -237,7 +266,7 @@ const headReach = (sim: Sim, w: WeaponStats): number => w.reach / Math.max(0.6, 
 export function sweepPath(sim: Sim, n = 16): V3[] | null {
   if (!sim.hands.swing || sim.hands.swing.done) return null;
   const w = wstats(sim.game.weapon), F = blowFrame(sim), R = headReach(sim, w), out: V3[] = [];
-  for (let i = 0; i <= n; i++) out.push(along(F, w.shape, R, i / n));
+  for (let i = 0; i <= n; i++) out.push(along(F, wayNow(sim, w), R, i / n));
   return out;
 }
 
@@ -250,7 +279,7 @@ const ray = (sim: Sim, a: V3, b: V3) => sim.world.raycast(a.x, a.y, a.z, b.x, b.
    one hard enough to knock the wind out of you). The floor it scrapes along. A thing on the far side of a wall is not
    reached through it. */
 function sweep(sim: Sim, w: WeaponStats, a0: number, a1: number): 'none' | 'hit' | 'glance' {
-  const g = sim.game, b = sim.player.body, F = blowFrame(sim), R = headReach(sim, w), sh = w.shape;
+  const g = sim.game, b = sim.player.body, F = blowFrame(sim), R = headReach(sim, w), sh = wayNow(sim, w);
   const n = Math.max(1, Math.ceil((a1 - a0) * 8));
   for (let i = 0; i < n; i++) {
     const u0 = a0 + ((a1 - a0) * i) / n, u1 = a0 + ((a1 - a0) * (i + 1)) / n;
@@ -283,7 +312,7 @@ function sweep(sim: Sim, w: WeaponStats, a0: number, a1: number): 'none' | 'hit'
       landed(sim, 0.8, stopFor(w));
       /* it comes back at you: a heavy thing hard enough to knock the wind out of you */
       const r = struck(sim, swingFor(w).poise * GLANCE.poise, { x: C.x, z: C.z });
-      log(g, `${sim.game.weapon ?? 'fists'} glanced off the wall  → ${r}  (poise ${(swingFor(w).poise * GLANCE.poise).toFixed(0)}, ${sim.hands.poise.toFixed(0)}/30 left)`);
+      log(g, `${sim.game.weapon ?? 'fists'} ${sh} glanced off the wall  → ${r}  (poise ${(swingFor(w).poise * GLANCE.poise).toFixed(0)}, ${sim.hands.poise.toFixed(0)}/30 left)`);
       return 'glance';
     }
   }
@@ -320,7 +349,7 @@ function landOn(sim: Sim, w: WeaponStats, m: Mutant, A: V3, B: V3, at: V3): void
   let dx = fx + (B.x - A.x) / hl, dz = fz + (B.z - A.z) / hl, dl = Math.hypot(dx, dz);
   if (dl < 0.1) { dx = fx; dz = fz; dl = 1; }
   const k = closing(you + it), stop = stopFor(w) * k;
-  hitMutant(sim, m, { dmg: w.dmg, poise: swingFor(w).poise, shove: SHOVE.you * (w.mass + SHOVE.arm), dir: { x: dx / dl, z: dz / dl }, by: sim.game.weapon ?? 'fists', at, way: { x: B.x - A.x, y: B.y - A.y, z: B.z - A.z }, stop }, k);
+  hitMutant(sim, m, { dmg: w.dmg, poise: swingFor(w).poise, shove: SHOVE.you * (w.mass + SHOVE.arm), dir: { x: dx / dl, z: dz / dl }, by: `${sim.game.weapon ?? 'fists'} ${wayNow(sim, w)}`, at, way: { x: B.x - A.x, y: B.y - A.y, z: B.z - A.z }, stop }, k);
   makeNoise(sim.game, 10);
   landed(sim, 1, stop);
 }

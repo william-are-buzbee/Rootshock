@@ -9,14 +9,14 @@ export const GRID = { w: 8, h: 3 };
 export type WornSlot = 'body' | 'head' | 'eyes' | 'breath';
 export const WORN_SLOTS: WornSlot[] = ['body', 'head', 'eyes', 'breath'];
 
-/** the way a swung thing travels (engine.md §6, F3b): side to side, right to left; a chop, straight down from over
- *  your head; or straight out, a thrust */
-export type Shape = 'side' | 'chop' | 'thrust';
+/** the way a swung thing travels (engine.md §6, F3b): side to side, right to left, or back the other way, left to
+ *  right (a backhand); a chop, straight down from over your head; or straight out, a thrust */
+export type Shape = 'side' | 'back' | 'chop' | 'thrust';
 
 export interface WeaponDef {
   mass: number;
   type?: 'blunt' | 'edge' | 'fist';
-  /** how it is swung: side by default */
+  /** how it is swung when you choose no other way (sim/combat.ts, wayOf): side by default */
   shape?: Shape;
   len?: number;
   gun?: boolean;

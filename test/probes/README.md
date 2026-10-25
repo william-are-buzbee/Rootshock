@@ -14,6 +14,10 @@ were written for were found by measuring, not by looking, and the next one will 
 - `down.probe.ts`: the axe flooring a husk (as hard as one run into): how far its shoulders turn on the plan while it
   is down, and how far its hips go out. `TRACE=1` prints one fall step by step.
 
+- `glance.probe.ts`: where each way of swinging glances, by level: from every spot on the nav graph, facing eight ways
+  with 1.6 m clear ahead, the world alone; a side swing, a backhand and one brought down, for each weapon.
+  `WEAPONS=pipe,axe` for the weapons.
+
 - `snap.probe.ts`: how far each kind's pose jumps in a frame while it fights you in the arena (struck every second and
   a half, you stepping from end to end every two), in the model's own frame: the median, 99th and worst, and the worst
   frames with what it was doing either side of them. `KINDS=husk,worm` for fewer.
