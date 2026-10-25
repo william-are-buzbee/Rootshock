@@ -884,19 +884,34 @@ Each measured headless before it was touched (`test/probes/snap.probe.ts` for th
   animation has it less that, dying away over 0.2 s (`SWITCH`). Not a blend of the two poses: what was moving anyway
   is not held back (a husk's arm on its way down as its lunge sets it walking), so a blow lands when the sim has it
   land (a test holds a husk's swing to its animation, off by no more than the wind-up's shake, 0.05 rad). Between
-  switches it is drawn as its animation has it; the cost is keeping what it last set, 2 µs a body a frame. The random
-  twitches each kind has are left as they were: sudden on purpose.
+  switches it is drawn as its animation has it; the cost is keeping what it last set, 2 µs a body a frame.
 - **Struck, rocked back** over a few frames, not one: toward how far the blow rocks it, at 20 a second (at most 0.08
   rad in a frame; it was 0.28).
 - **The other patient, pointing at the balcony**, turns its head from you to it and back in a fifth of a second, not a
   frame.
+- **Twitches and trembles.** The changed twitch at random (a husk's head; a skitter's legs, head and body), and each
+  twitch was a frame long, out and back at once: at sixty frames a second that read as the picture glitching. Now each
+  jerks out quickly and comes back less quickly, over a fifth of a second for a husk's head and a seventh for a
+  skitter (`twitch` in `castView.ts`), as often a second as they came a frame at sixty (a husk's head 0.9 times; a
+  skitter's leg 2.4, its head 3, its body 1.8, fewer stood idle), so no more often on a faster screen; and none while
+  a model is stood up to be rigged, where one would have been laid into every pose it went loose in. The tremble at
+  the top of a wind-up (a husk's, a thresher's, a worm's) came on partway through and stopped at the strike, a jump
+  each way; now it comes on and goes (`tremble`). A skitter's front legs left their step as it reared, and dropped back
+  into it the instant its strike passed level (0.46 rad); now they go out of it and back as it rears and comes down.
+  The night round's right arm stayed out from its side once it let go of what it dragged; now it comes in.
+- **Found by a test, not by looking** (`test/fade.test.ts`, *each animation, what it switches on held*): every
+  animation run at 2000 frames a second, what it switches on held, or going as it goes (a blow from wind-up to
+  recovery, reeling running out), from two places in its cycles, with twitches made to come every few tenths of a
+  second; no part may turn 0.03 rad or move 1.5 cm from one frame to the next (a husk's arm coming down, the fastest
+  thing any of them does, turns 0.022). What does is a jump that `fade.ts` cannot see, as nothing it switches on
+  changed. It found the trembles and the skitter's legs; with the twitches, 43 of its runs failed before.
 - **The night round's flashlight** went where its state put it the step it changed (down the way ahead, up onto you),
   and with the arm drawn holding it eased, the two parted for a fifth of a second. Now the sim swings it: it holds its
   light at a pitch of its own (`Mutant.tp`, saved) that goes toward where it wants it, most of the way in a fifth of a
   second (`TORCH.swing`, `swingTorch` in `cast/round.ts`), and the beam, the light it puts on you for the cast, and the
   arm drawn holding it all go from that one pitch. A rule changed with it, slightly: the beam takes that fifth of a
   second to come onto you, so you are lit by it that much later. What its light throws back into the field
-  (`Lighting.lights`) was worked out again only when the light moved half a metre or turned 8° in a step, which one
+  (`Lighting.lights`) was worked out again only when the light moved a quarter of a metre or turned 8° in a step, which one
   carried about never did: it stayed where the beam was when it last jumped, 10 m behind the night round on average
   and 26 m at worst. Its jumps are what had kept it anywhere near, and with them gone it would have stayed further
   behind still. Now it is worked out again once the light has gone half a metre or turned 8° since it last was: never
