@@ -397,9 +397,9 @@ describe('stagger steps', () => {
 });
 
 describe('corpses stay in the world', () => {
-  /** a husk killed and left to settle, lying north of you */
-  const lying = (s: Sim, x = 8, z = -6) => {
-    const m = stood(s, 'husk', x, 0, z);
+  /** a husk (or another) killed and left to settle, lying north of you */
+  const lying = (s: Sim, x = 8, z = -6, kind = 'husk') => {
+    const m = stood(s, kind, x, 0, z);
     killAll(s);
     hold(s, 3);
     expect(m.rag!.awake).toBe(false);
@@ -432,15 +432,42 @@ describe('corpses stay in the world', () => {
     expect(a0.z - ragAt(m.rag!).z).toBeGreaterThan(0.03);
   });
 
-  it('walked into, it is shoved aside by what you weigh, and you are not stopped', () => {
+  it('walked into, it is kicked aside by your legs, not carried off before you, and you are not stopped', () => {
+    for (const run of [false, true]) {
+      const s = arena(), m = lying(s), a0 = ragAt(m.rag!), b = s.player.body;
+      b.x = a0.x; b.z = a0.z + 2; b.sync(); s.player.yaw = 0;
+      hold(s, 1.5, { forward: 1, run });
+      expect(b.z).toBeLessThan(a0.z - 0.5); // you went on past it
+      const a = ragAt(m.rag!), moved = Math.hypot(a.x - a0.x, a.z - a0.z);
+      expect(moved, `run ${run}`).toBeGreaterThan(0.03);
+      expect(moved, `run ${run}`).toBeLessThan(0.3); // it went 2.6 m before you, 4 run into, when you shoved it by all you weigh
+      hold(s, 3);
+      expect(m.rag!.awake).toBe(false); // and it settles again
+    }
+  });
+
+  it('walked into, the heavier it is the less it goes: a thresher\'s hardly, a worm\'s furthest, none carried off', () => {
+    const moved: Record<string, number> = {};
+    for (const kind of ['thresher', 'husk', 'worm']) {
+      const s = arena(), m = lying(s, 8, -6, kind), a0 = ragAt(m.rag!), b = s.player.body;
+      b.x = a0.x; b.z = a0.z + 2.5; b.sync(); s.player.yaw = 0;
+      hold(s, 1.6, { forward: 1 });
+      hold(s, 2);
+      const a = ragAt(m.rag!);
+      moved[kind] = Math.hypot(a.x - a0.x, a.z - a0.z);
+    }
+    expect(moved.thresher).toBeLessThan(0.06);
+    expect(moved.thresher).toBeLessThan(moved.husk);
+    expect(moved.husk).toBeLessThan(moved.worm);
+    expect(moved.worm).toBeLessThan(1);
+  });
+
+  it('lying in one who stands still, it is left as it lies, asleep: it is not kicked', () => {
     const s = arena(), m = lying(s), a0 = ragAt(m.rag!), b = s.player.body;
-    b.x = a0.x; b.z = a0.z + 2; b.sync(); s.player.yaw = 0;
-    hold(s, 1.5, { forward: 1 });
-    expect(b.z).toBeLessThan(a0.z - 0.5); // you went on past it
-    const a = ragAt(m.rag!);
-    expect(Math.hypot(a.x - a0.x, a.z - a0.z)).toBeGreaterThan(0.1);
-    hold(s, 3);
-    expect(m.rag!.awake).toBe(false); // and it settles again
+    b.x = a0.x; b.z = a0.z; b.sync();
+    hold(s, 2);
+    expect(m.rag!.awake).toBe(false);
+    expect(ragAt(m.rag!)).toEqual(a0);
   });
 
   it('is drawn where it lies while it sleeps, though it is laid only once, and again where it goes once woken', () => {
@@ -486,13 +513,16 @@ describe('corpses stay in the world', () => {
     S.M.g.visible = false;
     expect(parts.min.distanceTo(one.min) + parts.max.distanceTo(one.max)).toBeLessThan(1e-5);
     expect(S.baked!.geometry.getAttribute('position').count).toBe(n);
-    /* walked through, it wakes: its parts again, and the mesh gone */
+    /* walked through, it wakes: its parts again, and the mesh gone, while it is awake */
     const b = s.player.body, a0 = ragAt(m.rag!);
     b.x = a0.x; b.z = a0.z + 2; b.sync(); s.player.yaw = 0;
-    for (let t = 0; t < 1.5; t += STEP) { step(s, { ...noInput(), forward: 1 }); draw(); }
-    expect(m.rag!.awake).toBe(true);
-    expect(S.baked).toBe(null);
-    expect(S.M.g.visible).toBe(true);
+    let woke = 0, apart = 0;
+    for (let t = 0; t < 1.5; t += STEP) {
+      step(s, { ...noInput(), forward: 1 }); draw();
+      if (m.rag!.awake) { woke++; if (S.baked === null && S.M.g.visible) apart++; }
+    }
+    expect(woke).toBeGreaterThan(10);
+    expect(apart).toBe(woke);
     hold(s, 3);
     draw(15);
     expect(S.baked).not.toBe(null); // and again, once it settles
@@ -516,15 +546,16 @@ describe('corpses stay in the world', () => {
     expect(S.baked!.visible).toBe(true);
   });
 
-  it('one of the cast walking through one shoves it too', () => {
+  it('one of the cast walking through one kicks it too', () => {
     const s = arena(), m = lying(s), a0 = ragAt(m.rag!), b = s.player.body;
     b.x = a0.x; b.z = a0.z - 5; b.sync(); s.player.yaw = Math.PI;
     const h = spawn(s, 'husk', a0.x, 0, a0.z + 3)!;
     s.game.god = true;
     hold(s, 3);
     expect(h.z).toBeLessThan(a0.z);
-    const a = ragAt(m.rag!);
-    expect(Math.hypot(a.x - a0.x, a.z - a0.z)).toBeGreaterThan(0.1);
+    const a = ragAt(m.rag!), moved = Math.hypot(a.x - a0.x, a.z - a0.z);
+    expect(moved).toBeGreaterThan(0.03);
+    expect(moved).toBeLessThan(0.3);
   });
 
   it('one falls on another: they lie one on the other, not through it', () => {

@@ -676,7 +676,9 @@ fall loose; corpses stay in the world (knocked about, saved); knockdowns as ragd
   own blows do not move corpses yet.
 - **Walked into**, by you or one of the cast: the points in the walker's way are put out of it by its share of the
   two weights (yours on a husk's corpse, 75 to 80: about half; a worm on a thresher's, a tenth), and keep that as
-  their speed; the walker is not slowed. You walk through a husk's body and leave it shoved off its blood.
+  their speed; the walker is not slowed. You walk through a husk's body and leave it shoved off its blood. (Since,
+  kicked by the walker's legs, no faster than their share of its pace, and left a hand's breadth from where it lay:
+  *Walked into, as built*.)
 - **Against each other**: their points pushed apart, the lighter more, and dragging on each other by how hard they
   press (`RAG.rub`, 0.8), so one that falls on another lies on it; without the drag it slid off onto the floor. One
   asleep is woken only by a push of more than 3 cm (`RAG.stir`): at 1 cm, a body lying on another woke it with its
@@ -976,6 +978,50 @@ the mouse (it only aims) or more buttons; each weapon its natural ways; the path
 - **Tests**: `test/sweep.test.ts`, *which way it goes* (the sides swapped too); `test/hands.test.ts` (the edge
   leading too). No change to saves: the way is in
   `Hands`, which is saved whole, and an older save's is taken as the weapon's own.
+
+### Walked into, as built
+
+Found playing (the owner): walked into, a body went off before you as if it weighed nothing. Traced headless first
+(`test/probes/tread.probe.ts`: each kind killed with no blow and asleep in the arena, walked and run through its middle,
+along it and across it).
+
+- **What it did.** The points in a walker's way were put out of it by the walker's share of the two weights (yours on
+  a husk's, about half) every step, and kept that as their speed: a push as steady as the walker's going, which the
+  floor's hold never beat once the body was moving. So it was carried off before you at near your pace: walked
+  through, a husk went 2.6 m; run through, 4 to 5.7; a skitter up to 6.5; a thresher, 220 kg, 3.5 m along its length.
+- **Kicked by legs, now** (`kicked` in `sim/ragdoll.ts`, `RAG.kick`). What meets a body is a walker's legs, one at a
+  time, not all of it: a quarter of what it weighs. Each point in the walker's way is brought up to the share that and
+  the body's weight make of how fast the walker comes at it, no faster, and no further than out of the walker; so the
+  walker goes on through it and leaves it about where it lay. By you, a husk's is kicked to a fifth of your pace, a
+  skitter's to under a third, a worm's to two fifths, a thresher's to a twelfth. One standing still in a body does not
+  move it, nor wake it (`treads`: only a walker coming at it).
+- **What it looks like** (how far its middle went, by weight; before, in brackets):
+
+  | | walked across | walked along | run across | run along | a husk walking through |
+  |---|---|---|---|---|---|
+  | husk | 0.07 m (2.57) | 0.19 (2.76) | 0.07 (3.94) | 0.18 (5.69) | 0.10 (2.81) |
+  | thresher | 0.01 (1.17) | 0.05 (3.50) | 0.01 (0.42) | 0.05 (3.03) | 0.02 (0.46) |
+  | skitter | 0.24 (2.49) | 0.34 (3.51) | 0.24 (6.54) | 0.34 (4.73) | 0.26 (1.21) |
+  | worm | 0.13 (2.37) | 0.77 (2.07) | 0.16 (3.98) | 0.89 (2.47) | 0.16 (0.82) |
+
+  Each is awake about a second and asleep again. Run into, a body goes about as far as walked into: it is kicked
+  faster, and you are through it sooner. Walking the length of a worm scuffs it along most, as it would.
+- **Tried and set aside**: a cap on how hard a walker pushes, as a share of its own weight (what it leans on what is
+  in its way), with the push as before: whatever it outweighed enough to beat the floor's hold was still carried off
+  (at its weight, a skitter 3.6 m, a worm 2.4) while a husk below that hardly stirred, and a body run into went less
+  far than one walked into, the walker through it sooner at the same push. That cap by the two weights' share, so no
+  walker beats the floor: nothing was carried, and nothing moved (a husk's trunk not at all, its furthest point 0.1 to
+  0.2 m), a ghost walked through. The pace capped by the whole walker's share of the two weights, not its legs': a
+  worm still went 1.6 m along, 3.4 run. A walker standing still taken to come at what lies in it at a metre a second,
+  to ease it out: the points behind a walker were pushed back against its going, and one stood in a skitter's body
+  slid it 2.5 m in a tug of war. Without that, and before `treads` asked for a walker coming at it, a body lying in
+  someone still woke and slept again every half second, drawn as its parts and laid as one mesh by turns.
+- **Not built**: stepping over or onto a body (the walker still goes through it); the walker slowed by it (a corpse is
+  still in nobody's way).
+- **Tests**: `test/ragdoll.test.ts`, *corpses stay in the world*: a husk's body walked and run into goes between 3 and
+  30 cm; a thresher's less than a husk's, a worm's more, none a metre; one stood in is left as it lies, asleep; a husk
+  walking through one kicks it too, as little. The test of a body drawn as one mesh and woken counts its frames
+  awake, since it is asleep again within the second and a half it was held awake for before.
 
 ---
 

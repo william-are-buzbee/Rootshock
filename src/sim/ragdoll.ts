@@ -255,6 +255,9 @@ export const RAG = {
   floored: true,
   /** the share of the way to its feet a body knocked down is drawn each step (sim/cast.ts has its feet) */
   held: 0.2,
+  /** walked into: the share of a walker that meets what it walks into (its legs, one at a time). A body is kicked to
+   *  what that and its own weight would share of the walker's pace: by you, a husk's a fifth, a thresher's a twelfth */
+  kick: 0.25,
   /** how far one corpse has to push into a sleeping one to wake it (m) */
   stir: 0.03,
   /** a point landing harder than this (m/s) is heard, at most every `gap` seconds a body */
@@ -472,30 +475,35 @@ function moving(sim: Sim): Box[] {
   return out;
 }
 
-/** a walker is in it: some point of it more than a centimetre inside the walker */
+/** a walker is walking into it: some point of it more than a centimetre inside the walker, which is coming at it (one
+ *  standing still in it does not wake it: it is not kicked) */
 function treads(R: Rag, b: Body): boolean {
   const B = bones(R.kind), { p } = R;
   for (let i = 0; i < B.names.length; i++) {
-    const k = i * 3;
-    if (p[k + 1] + B.r[i] < b.y || p[k + 1] - B.r[i] > b.y + b.h) continue;
-    if (Math.hypot(p[k] - b.x, p[k + 2] - b.z) < b.r + B.r[i] - RAG.stir) return true;
+    const k = i * 3, dx = p[k] - b.x, dz = p[k + 2] - b.z;
+    if (p[k + 1] + B.r[i] < b.y || p[k + 1] - B.r[i] > b.y + b.h || b.vx * dx + b.vz * dz <= 0) continue;
+    if (Math.hypot(dx, dz) < b.r + B.r[i] - RAG.stir) return true;
   }
   return false;
 }
 
-/** whoever walks into it shoves the points in their way aside, as two bodies meeting share their momentum: a husk walks
- *  a husk's body along at half its pace, a worm hardly moves a thresher's. The walker is not slowed: a corpse is not in
- *  anyone's way (engine.md §6, bodies with physics, as built) */
+/** whoever walks into it kicks the points in their way aside, as its legs meeting the body would share their momentum:
+ *  brought up to that share of how fast the walker comes at them, no faster, so the walker goes on through it rather
+ *  than carrying it off before it, and one standing still in it does not move it. The walker is not slowed: a corpse
+ *  is not in anyone's way (engine.md §6, bodies with physics, as built) */
 function kicked(R: Rag, b: Body): void {
   if (!Number.isFinite(b.mass)) return;
-  const B = bones(R.kind), share = b.mass / (b.mass + B.mass), { p } = R;
+  const B = bones(R.kind), legs = RAG.kick * b.mass, share = legs / (legs + B.mass), { p, o } = R;
   for (let i = 0; i < B.names.length; i++) {
     const k = i * 3, y = p[k + 1];
     if (y + B.r[i] < b.y || y - B.r[i] > b.y + b.h) continue;
     const dx = p[k] - b.x, dz = p[k + 2] - b.z, d = Math.hypot(dx, dz), over = b.r + B.r[i] - d;
     if (over <= 0 || d < 1e-6) continue;
-    /* pushed out by its share of the overlap: what moves it this step is its speed after */
-    p[k] += (dx / d) * over * share; p[k + 2] += (dz / d) * over * share;
+    /* what it is going away from the walker this step, against what it should: pushed the rest, and no further than
+       out of the walker; what moves it this step is its speed after */
+    const nx = dx / d, nz = dz / d, going = (p[k] - o[k]) * nx + (p[k + 2] - o[k + 2]) * nz;
+    const push = Math.min(over, share * (b.vx * nx + b.vz * nz) * dt - going);
+    if (push > 0) { p[k] += nx * push; p[k + 2] += nz * push; }
   }
 }
 
