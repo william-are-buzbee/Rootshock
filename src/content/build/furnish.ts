@@ -10,15 +10,19 @@ import { P, bx, colT, door, holds, item, mut, owns, pick, rnd, room, stain, stai
    room is a box built inside the rock. The family's own fabric, from the 80s, is where people walked: terrazzo
    underfoot, painted block in Security, glazed tile where things are washed down, plaster in homes, limestone where
    visitors came. The refit since laid its own over it: coated floors in Security and Horticulture, sheet vinyl in
-   medical rooms, plasterboard and carpet in offices. */
+   medical rooms, plasterboard and carpet in offices. One house throughout: the colours stay warm wherever people walked,
+   and a cold or bare room is one behind a door with a practical job (world.md §1, *Finish by route*). */
 export const CELL: RoomOpts = { fl: 0x4e5052, wl: 0x666a6e, st: 0xa8521e };
 export const UTIL: RoomOpts = { fl: 0x505254, wl: 0x6a6d6c, st: 0xb89b2e, mat: DUG };
 export const HAB: RoomOpts = { fl: 0x7b7568, wl: 0x9a9588, st: 0x3f7f6b, mat: { floor: 'carpet', wall: 'plaster', ceiling: 'plaster' } };
 export const MED: RoomOpts = { fl: 0x9aa39d, wl: 0xb9c4bd, st: 0x8c2f24, mat: { floor: 'vinyl', wall: 'glazed', ceiling: 'tiles' } };
-export const SEC: RoomOpts = { fl: 0x4e555e, wl: 0x70747a, st: 0x39485a, mat: { floor: 'epoxy', wall: 'block' } };
+/** Security: a notch under Operations, not another house. The refit's coated floor and the painted block in warm greys,
+ *  under tubes of a neutral white rather than a cold one, and navy only in its stripe and its signs' bar */
+export const SEC: RoomOpts = { fl: 0x645d55, wl: 0x8a8378, st: 0x39485a, lc: [0.86, 0.84, 0.78], mat: { floor: 'epoxy', wall: 'block' } };
 export const OPS: RoomOpts = { fl: 0x847c70, wl: 0x8c887e, st: 0x8a7a4a, mat: { floor: 'terrazzo', wall: 'block', ceiling: 'tiles' } };
-/** an office, refitted: plasterboard, carpet, a suspended ceiling */
-export const OFF: RoomOpts = { fl: 0x4a4f58, wl: 0x9a968c, st: 0x5a6a7a, mat: { floor: 'carpet', wall: 'board', ceiling: 'tiles' } };
+/** an office, refitted: plasterboard, carpet, a suspended ceiling; a taupe carpet, a shade under the check-in hall's,
+ *  and a warm white */
+export const OFF: RoomOpts = { fl: 0x5a5148, wl: 0x9e9688, st: 0x6e5a40, lc: [0.88, 0.84, 0.76], mat: { floor: 'carpet', wall: 'board', ceiling: 'tiles' } };
 /** where the family's visitors walked: terrazzo, limestone to 4 m and plaster over it, a plastered ceiling */
 export const FAM: RoomOpts = { fl: 0x8a8070, wl: 0xa3967e, st: 0x7a5a30, mat: { floor: 'terrazzo', wall: 'stone', ceiling: 'plaster', upper: 'plaster' } };
 /** Horticulture: the green's own, and its air is full of spores */

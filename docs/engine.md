@@ -1848,7 +1848,9 @@ nothing after. `?dbg=` (README) narrowed it to the light: the streaks showed in 
 each is (`lookOf` in `content/build/plan.ts`, from the rooms either side; `DoorDef.look`): a shutter between two dug
 places or a dug place and a plain one, and anything jammed; else heavy if it is heavy; else by the grander side, the
 family's pair (`grand`) off limestone, a clinic's pair off glazed tile, an office door off board or carpet, painted
-steel otherwise. All but shutters, jammed doors, welded ones, the lift's and loose panels slide sideways (`slides`) into
+steel otherwise, or where a door says it is `plain` (a service door off a grand hall: the plant stair's, off the upper
+corridor). A single door is 1.2 m, so its middle wants to be where the nav graph's spots are (a metre apart, on the
+half: `NAV`), or nothing has anywhere in it to stand (`test/doors.test.ts`). All but shutters, jammed doors, welded ones, the lift's and loose panels slide sideways (`slides`) into
 the end of the doorway that is rock (`side`; a door with no rock at either end rises). `doorBox` moves a sliding door
 along its length by its width; a pair of leaves both slide into the wall at the pocket, the far leaf all the way and the
 near one half (`Leaf.f` in `render/things.ts`), so they block exactly what one slab would and the sim is unchanged. The

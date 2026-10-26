@@ -85,6 +85,8 @@ export interface DoorOpts {
   sg?: [string, Dir][];
   /** how wide its opening is (m), if not as wide as a door of its look is (NARROW for a single door, 2 m for the rest) */
   w?: number;
+  /** a plain service door where its sides would make it another: painted steel into a plant room off a grand hall */
+  plain?: boolean;
   /** the stretch of wall it stands in, this long about its place: a single door is hung against the end of it that has
    *  wall beyond to slide into (the far end, if both have); a wider one fills the middle of it */
   span?: number;
@@ -867,7 +869,7 @@ function lookOf(A: PRoom | null, B: PRoom | null, o: DoorOpts): { look: DoorLook
   const kind = (R: PRoom | null): DoorLook => !R || R.open || dug(R) ? 'steel' : R.mat.wall === 'stone' ? 'grand' : R.mat.wall === 'glazed' ? 'clinic'
     : R.mat.wall === 'board' || R.mat.floor === 'carpet' ? 'office' : 'steel';
   const shutter = !!o.stuck || (dug(A) || dug(B)) && kind(G) === 'steel' && !(A?.open || B?.open);
-  return { look: shutter ? 'shutter' : o.kind === 'heavy' ? 'heavy' : kind(G), lining: shutter || !G || G.open || dug(G) ? null : G };
+  return { look: shutter ? 'shutter' : o.kind === 'heavy' ? 'heavy' : o.plain ? 'steel' : kind(G), lining: shutter || !G || G.open || dug(G) ? null : G };
 }
 
 /** a door, as hung: its doorway (lined with the finish of the grander side, or, for a shutter, bare steel and concrete
