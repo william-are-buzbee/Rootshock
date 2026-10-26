@@ -9,14 +9,25 @@ import type { Dyn, World } from './world';
    it stands in, if any (the door's state decides at run time who may pass). Platforms join their two ends.
 
    Built once per level with everything that moves moved out of the way; the sim keeps it, and fields over it say how far
-   each spot is from the player: by foot for each kind of body, and for sound, which closed doors muffle. */
+   each spot is from the player: by foot for each kind of body, and for sound, which closed doors muffle.
+
+   Size (engine.md §7, size): every spot and link is clear for a body NAV_R across that steps up STEP_UP and drops DROP.
+   A bigger body is kept off what it does not fit by a mask over the graph (sim/fields.ts): spots and links narrower than
+   it (`fitting`, worked out the first time something that wide asks), and steps higher or drops deeper than it takes.
+   When some way climbs higher or drops further than that, the graph has the links for it too (`most` to buildNav), each
+   knowing the step it climbs (`Nav.climb`). */
 
 export const NAV = 1;
-const R = 0.3;
+/** the radius every spot, and the way between two, is clear for */
+export const NAV_R = 0.3;
+const R = NAV_R;
 /** a spot needs this much headroom at least (a crouch, or something low) */
 const LOW = 1.0;
-const STEP_UP = 0.5; // as a body walks: body.ts STEP_UP
-const DROP = 2.5;
+/** the step a body walks up, and the drop it takes, as a husk does (body.ts STEP_UP) */
+export const STEP_UP = 0.5;
+export const DROP = 2.5;
+/** a body's width is looked for room for up to this height above the floor: what is higher does not stop it */
+const CLEAR_H = 2;
 /** where in its square a spot may stand, if a wall at an angle is in the way of its middle: the nearest of these to the
  *  middle that is clear. (Lattice squares and walls on the grid's lines agree; a wall at an angle, and a gap in one,
  *  fall anywhere across them, and a spot only in the middle would leave a way through a gap with no spot to take it) */
@@ -47,11 +58,15 @@ export class Nav {
   lift: Int16Array;
   /** how far along the floor (a lift's ride counts its height) */
   len: Float32Array;
+  /** the step a link climbs (m): a step up; none for a smooth slope, a step down, a drop or a ride */
+  climb: Float32Array;
+  /** the highest step and deepest drop any link here takes: what it was built for */
+  most = { climb: STEP_UP, drop: DROP };
   /** the spots in each room */
   byRoom = new Map<number, number[]>();
   private cols = new Map<number, number[]>();
 
-  constructor(spots: { x: number; y: number; z: number; head: number; room: number; door: number }[], edges: [number, number, Edge, number, number][]) {
+  constructor(spots: { x: number; y: number; z: number; head: number; room: number; door: number }[], edges: [number, number, Edge, number, number, number][]) {
     const n = (this.n = spots.length);
     this.x = new Float32Array(n); this.y = new Float32Array(n); this.z = new Float32Array(n);
     this.head = new Float32Array(n); this.room = new Int16Array(n); this.door = new Int16Array(n);
@@ -66,10 +81,11 @@ export class Nav {
     edges.sort((a, b) => a[0] - b[0]);
     this.start = new Int32Array(n + 1);
     this.to = new Int32Array(edges.length); this.kind = new Uint8Array(edges.length); this.lift = new Int16Array(edges.length); this.len = new Float32Array(edges.length);
+    this.climb = new Float32Array(edges.length);
     let e = 0;
     for (let i = 0; i < n; i++) {
       this.start[i] = e;
-      while (e < edges.length && edges[e][0] === i) { this.to[e] = edges[e][1]; this.kind[e] = edges[e][2]; this.lift[e] = edges[e][3]; this.len[e] = edges[e][4]; e++; }
+      while (e < edges.length && edges[e][0] === i) { this.to[e] = edges[e][1]; this.kind[e] = edges[e][2]; this.lift[e] = edges[e][3]; this.len[e] = edges[e][4]; this.climb[e] = edges[e][5]; e++; }
     }
     this.start[n] = e;
   }
@@ -96,19 +112,24 @@ export class Nav {
 
 const colKey = (ix: number, iz: number) => (ix + 32768) * 65536 + (iz + 32768);
 
-/** build the graph for a world. Doors and platforms are passed so their spots and links can be marked. */
-export function buildNav(w: World, doors: NavDoor[], lifts: NavLift[]): Nav {
-  /* everything that moves is out of the way while the graph is made: doors open, crates and bodies gone */
+/** build the graph for a world. Doors and platforms are passed so their spots and links can be marked; `most`, the
+ *  highest step any way walks up and the deepest drop any takes (sim/fields.ts, WAYS), if more than a husk's */
+export function buildNav(w: World, doors: NavDoor[], lifts: NavLift[], most: { climb?: number; drop?: number } = {}): Nav {
+  return emptied(w, () => build(w, doors, lifts, Math.max(STEP_UP, most.climb ?? 0), Math.max(DROP, most.drop ?? 0)));
+}
+
+/** with everything that moves out of the way: doors open, crates and bodies gone */
+function emptied<T>(w: World, f: () => T): T {
   const saved = w.dyn.map(d => [d.y0, d.y1] as const);
   for (const d of w.dyn) { d.y0 = d.y1 = -1e6; }
   try {
-    return build(w, doors, lifts);
+    return f();
   } finally {
     w.dyn.forEach((d: Dyn, i) => { d.y0 = saved[i][0]; d.y1 = saved[i][1]; });
   }
 }
 
-function build(w: World, doors: NavDoor[], lifts: NavLift[]): Nav {
+function build(w: World, doors: NavDoor[], lifts: NavLift[], CLIMB: number, FALL: number): Nav {
   /* the level's extent, from its chunks */
   let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity, y0 = Infinity, y1 = -Infinity;
   w.grid.forEachChunk((cx, cy, cz) => {
@@ -168,7 +189,7 @@ function build(w: World, doors: NavDoor[], lifts: NavLift[]): Nav {
     return Math.abs(y - B.y) < 0.1;
   };
   /* links between neighbouring spots: a step up or down, or a drop one way; the way between must be clear */
-  const edges: [number, number, Edge, number, number][] = [];
+  const edges: [number, number, Edge, number, number, number][] = [];
   for (const [k, list] of byCol) {
     const ix = Math.floor(k / 65536) - 32768, iz = (k % 65536) - 32768;
     for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) {
@@ -179,12 +200,12 @@ function build(w: World, doors: NavDoor[], lifts: NavLift[]): Nav {
         for (const b of other) {
           const A = spots[a], B = spots[b], rise = B.y - A.y;
           const slope = Math.abs(rise) > STEP_UP && Math.abs(rise) < 2 * STEP_UP * (diag ? Math.SQRT2 : 1) && (rise > 0 ? smooth(A, B) : smooth(B, A));
-          if (!slope && (rise > STEP_UP || -rise > DROP || (diag && Math.abs(rise) > STEP_UP))) continue;
+          if (!slope && (rise > CLIMB || -rise > FALL || (diag && Math.abs(rise) > STEP_UP))) continue;
           const top = Math.max(A.y, B.y), mx = (A.x + B.x) / 2, mz = (A.z + B.z) / 2;
           /* the way between must be clear: on a diagonal, the corner it cuts and both squares beside it */
           if (w.overlap(circle(mx, mz, R), top + 0.01, top + LOW)) continue;
           if (diag && !(near(byCol.get(colKey(ix + dx, iz)), A.y) && near(byCol.get(colKey(ix, iz + dz)), A.y))) continue;
-          edges.push([a, b, -rise > STEP_UP && !slope ? Edge.Drop : Edge.Walk, -1, diag ? Math.SQRT2 * NAV : NAV]);
+          edges.push([a, b, -rise > STEP_UP && !slope ? Edge.Drop : Edge.Walk, -1, diag ? Math.SQRT2 * NAV : NAV, !slope && rise > 0 ? rise : 0]);
         }
     }
   }
@@ -199,33 +220,92 @@ function build(w: World, doors: NavDoor[], lifts: NavLift[]): Nav {
       if (near && !on && Math.abs(s.y - L.y1) < 0.4) top.push(i);
     });
     const ride = Math.abs(L.y1 - L.y0) + 4; // the ride, and the wait for it
-    for (const b of bottom) for (const t of top) { edges.push([b, t, Edge.Lift, li, ride]); edges.push([t, b, Edge.Lift, li, ride]); }
+    for (const b of bottom) for (const t of top) { edges.push([b, t, Edge.Lift, li, ride, 0]); edges.push([t, b, Edge.Lift, li, ride, 0]); }
   });
 
-  return new Nav(spots, edges);
+  const nav = new Nav(spots, edges);
+  nav.most = { climb: CLIMB, drop: FALL };
+  return nav;
 }
+
+/** where a body `r` across fits (1) and where it does not (0): each spot, and each link; and where in each spot's square
+ *  it stands (`at`: x and z from the spot, the nearest its middle that fits). It fits at a spot if it can stand somewhere
+ *  in the spot's square on the floor there (the highest under it within a step: the next tread of a stair, the ground
+ *  rising on a slope) with room over that up to the spot's headroom, or CLEAR_H; it walks a link if it fits at both ends
+ *  and somewhere across the way between. Somewhere, not at the middle: in a corridor 2 m wide every spot is half a metre
+ *  from a wall, and a body 1.5 m across goes down the middle between them, making for where it fits in each square
+ *  (sim/cast/move.ts, follow). Made once a graph and size, with everything that moves out of the way as the graph was;
+ *  anything no wider than NAV_R fits everywhere, at the middle */
+export interface Fit { spot: Uint8Array; edge: Uint8Array; at: Float32Array }
+const fitted = new WeakMap<Nav, Map<number, Fit>>();
+export function fitting(w: World, nav: Nav, r: number): Fit {
+  let byR = fitted.get(nav);
+  if (!byR) fitted.set(nav, (byR = new Map()));
+  let F = byR.get(r);
+  if (F) return F;
+  F = emptied(w, () => {
+    /* the first of `offs` it fits at, or -1 */
+    const fits = (x: number, z: number, y: number, up: number, offs: readonly (readonly [number, number])[]) => {
+      for (let k = 0; k < offs.length; k++) {
+        const f = circle(x + offs[k][0], z + offs[k][1], r), g = w.groundBelow(f, y + STEP_UP);
+        if (g >= y - STEP_UP && !w.overlap(f, g + 0.01, g + up)) return k;
+      }
+      return -1;
+    };
+    const up = (i: number) => Math.max(LOW, Math.min(nav.head[i], CLEAR_H) - 0.01);
+    const spot = new Uint8Array(nav.n), edge = new Uint8Array(nav.to.length), at = new Float32Array(nav.n * 2), between = new Map<number, number>();
+    for (let i = 0; i < nav.n; i++) {
+      const k = fits(nav.x[i], nav.z[i], nav.y[i], up(i), SQUARE);
+      if (k < 0) continue;
+      spot[i] = 1; at[i * 2] = SQUARE[k][0]; at[i * 2 + 1] = SQUARE[k][1];
+    }
+    for (let a = 0; a < nav.n; a++)
+      for (let e = nav.start[a]; e < nav.start[a + 1]; e++) {
+        const b = nav.to[e];
+        if (!spot[a] || !spot[b]) continue;
+        if (nav.kind[e] === Edge.Lift) { edge[e] = 1; continue; }
+        /* the way between is the same both ways: looked at once */
+        const key = Math.min(a, b) * nav.n + Math.max(a, b);
+        let ok = between.get(key);
+        if (ok === undefined) {
+          const dx = nav.x[b] - nav.x[a], dz = nav.z[b] - nav.z[a], d = Math.hypot(dx, dz) || 1, across = ACROSS.map(k => [(-dz / d) * k, (dx / d) * k] as const);
+          ok = fits((nav.x[a] + nav.x[b]) / 2, (nav.z[a] + nav.z[b]) / 2, Math.max(nav.y[a], nav.y[b]), Math.min(up(a), up(b)), across) >= 0 ? 1 : 0;
+          between.set(key, ok);
+        }
+        edge[e] = ok;
+      }
+    return { spot, edge, at };
+  });
+  byR.set(r, F);
+  return F;
+}
+/** where in a spot's square, and how far across a link's way, a body is looked for: the middle first */
+const ACROSS = [0, 0.25, -0.25, 0.5, -0.5];
+const SQUARE = ACROSS.flatMap(x => ACROSS.map(z => [x, z] as const)).sort((p, q) => Math.hypot(p[0], p[1]) - Math.hypot(q[0], q[1]));
 
 /* ---- fields: distance from one spot to every other, by a rule for who may pass where */
 
 /** who may go where, as arrays (no call per edge): spots that may not be entered, what entering a spot costs on top of
- *  the way there (a shut door muffling a sound), which platforms may be ridden, what a drop costs on top */
+ *  the way there (a shut door muffling a sound), which platforms may be ridden, what a drop costs on top, and the links
+ *  that may be taken at all, by size (null: every one) */
 export interface Rules {
   blocked: Uint8Array;
   enter: Float32Array | null;
   lifts: Uint8Array;
   drop: number;
+  edges: Uint8Array | null;
 }
 
 /** anywhere, on foot: every spot, every platform */
 export function openRules(nav: Nav): Rules {
   let lifts = 0;
   for (let e = 0; e < nav.lift.length; e++) lifts = Math.max(lifts, nav.lift[e] + 1);
-  return { blocked: new Uint8Array(nav.n), enter: null, lifts: new Uint8Array(lifts).fill(1), drop: 0 };
+  return { blocked: new Uint8Array(nav.n), enter: null, lifts: new Uint8Array(lifts).fill(1), drop: 0, edges: null };
 }
 
 /** may the edge e (from spot a into spot b) be taken under these rules? null if not; else what it costs */
 export function edgeCost(nav: Nav, R: Rules, e: number, b: number): number | null {
-  if (R.blocked[b]) return null;
+  if (R.blocked[b] || (R.edges && !R.edges[e])) return null;
   const k = nav.kind[e];
   if (k === Edge.Lift && !R.lifts[nav.lift[e]]) return null;
   return nav.len[e] + (k === Edge.Drop ? R.drop : 0) + (R.enter ? R.enter[b] : 0);
@@ -239,7 +319,7 @@ export function field(nav: Nav, from: number, R: Rules, out?: Float32Array, limi
   if (from < 0) return d;
   /* the graph's edges run forward; a field to `from` needs them backward. Built once per nav. */
   const rev = reverse(nav), heap = heapFor(nav);
-  const { blocked, enter, lifts, drop } = R, kind = nav.kind, lift = nav.lift, len = nav.len;
+  const { blocked, enter, lifts, drop, edges } = R, kind = nav.kind, lift = nav.lift, len = nav.len;
   heap.size = 0;
   d[from] = 0;
   heap.push(from, 0);
@@ -252,6 +332,7 @@ export function field(nav: Nav, from: number, R: Rules, out?: Float32Array, limi
     for (let e = rev.start[b]; e < rev.start[b + 1]; e++) {
       const a = rev.from[e], fe = rev.edge[e], k = kind[fe];
       if (k === Edge.Lift && !lifts[lift[fe]]) continue;
+      if (edges && !edges[fe]) continue;
       const nd = db + len[fe] + eb + (k === Edge.Drop ? drop : 0);
       if (nd < d[a]) { d[a] = nd; heap.push(a, nd); }
     }

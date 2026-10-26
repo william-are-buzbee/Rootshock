@@ -154,7 +154,9 @@ export function follow(sim: Sim, m: Mutant, F: Float32Array, spd: number, away: 
     const p = sim.platforms[L];
     if (p.moving || p.y > p.def.y0 + 0.01) { callLift(sim, m, L, 0); m.mv = 0; return true; }
   }
-  return go(sim, m, nav.x[best], nav.z[best], spd);
+  /* to the spot; a body wider than the graph is made for, to where in its square it fits */
+  const at = Fs.at[m.walker];
+  return go(sim, m, nav.x[best] + (at ? at[best * 2] : 0), nav.z[best] + (at ? at[best * 2 + 1] : 0), spd);
 }
 
 /** a hand on the call button: send a platform to one end, if it has power and is not already on its way */

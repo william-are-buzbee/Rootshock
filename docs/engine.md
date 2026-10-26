@@ -618,14 +618,14 @@ and what it does with them is the behaviour's:
   for one thing. A night round put down in the arena with no round went after you at a husk's pace, because its
   slowness was keyed on having a round; it is its kind's now. In the game it always has a round.
 - **A new kind** is then: a row in `MT` (its body, `ai` for the behaviour it shares, `model`); a row in `GAIT` if it
-  moves unlike that behaviour's kind; a row in `WAYS` if it gets about unlike any there; and, if it fights, its blow
+  moves unlike that behaviour's kind; a row in `WAYS` if it gets about unlike any there (by its headroom, width, step,
+  drop and doors: one it fits, which a test holds it to); and, if it fights, its blow
   (`MOVES`, `blowKind`), poise (`POISE`) and death line (`DEATH`). A behaviour of its own is a function in `AI`
   (`sim/cast.ts`), and what it does when hit or walked into is in `hitMutant` and `shoved` (`cast/blows.ts`). Drawn, it
   is a model in `BUILD` and `ANIM` (`render/castView.ts`); gone loose, a skeleton in `SKEL` (`sim/ragdoll.ts`);
   walking, prints in `GAIT` (`render/prints.ts`).
-- **Not yet**: the nav graph's step up (0.5 m) and drop (2.5 m) are the same for every way, and it does not know how
-  wide a body is (a spot is a spot to a bloat as to a worm). The fight's
-  part of a kind (its blow, its poise, what it does when hit) is still in switches on its behaviour.
+- **Not yet**: the fight's part of a kind (its blow, its poise, what it does when hit) is still in switches on its
+  behaviour. (How wide a body is, and the step it climbs and the drop it takes, are its way's now: §7, *Size, as built*.)
 - **Tests**: `test/gait.test.ts`. A kind made in the test from rows alone (tall, slow, walking where it faces, with the
   husk's behaviour and a way of its own): it gets a field for its way where none walked it, keeps out of a passage too
   low for it that a husk takes, goes after you at its own pace, turns no faster than its gait, and stands to turn when
@@ -1179,6 +1179,44 @@ As built in step 5 (`world/nav.ts`, `sim/fields.ts`):
 - **Fields are cheap** (step 6): each is made from arrays of who may enter which spot (no call per edge), only when you
   have moved or a door or platform has changed, and only as far out as anything could use it (90 m for a hunt, 40 for
   sound).
+
+### Size, as built
+
+The graph is made for a husk: every spot, and the way between two, clear for a body 0.3 m in radius (`NAV_R`), that
+steps up 0.5 m and drops 2.5. A body bigger, or one that climbs or drops more or less, now has its own say:
+
+- **A way's size** (`WAYS`, `sim/fields.ts`): with its headroom, its radius (`r`), the step it climbs and the drop it
+  takes. Each way gets a mask over the graph once (`sized`): spots too low or too narrow for it, and the links it may not
+  take (too narrow, too high a step, too deep a drop). A way the graph is made for needs no mask; the three there are
+  need none, so they walk exactly as before.
+- **Where a wide body fits** (`fitting`, `world/nav.ts`): worked out once per level and radius, the first time something
+  that wide is on the level. A body fits at a spot if it can stand somewhere in the spot's square (on the highest floor
+  under it within a step: a stair's next tread, a slope's rise) with room over that to 2 m; and walks a link if it fits
+  at both ends and somewhere across the way between. Somewhere, not at the middle: the lattice puts every spot in a 2 m
+  corridor half a metre from a wall, and at the middle of its square a body 1.5 m across fits at none of them. So the
+  graph also keeps where in its square each fits (`Fit.at`), and a wide body follows its field to there, not to the
+  spot (`follow`, `cast/move.ts`). Tried and set aside: a circle at the spot's own floor height (every body wider than
+  a husk was cut off from most of every level by its stairs and slopes), and a body at the middle of the square only
+  (shut out of every 2 m corridor by the lattice).
+- **Its cost**: half a second for a husk's width on the upper station or main, two for a body 1.8 m across; once, on
+  the level it walks. Nothing on any level now pays it.
+- **Steps and drops**: the graph has links for the highest step and deepest drop any way takes (`Nav.most`; each link
+  knows the step it climbs, `Nav.climb`), and a way that takes less is masked off the rest. Sound goes over the steps
+  and drops a husk does, whatever else is walked. A body climbs what its way does (`Body.climb`, from `WAYS`, for the
+  step it walks up and the floor it follows down; yours and a husk's are 0.5).
+- **The ones there are**: the three ways keep the graph's 0.3 m. At their kinds' true widths (a husk 0.34, a skitter 0.4,
+  the thresher 0.5) husks lose nothing anywhere; skitters lose 27 spots on the upper station and 102 cut off on the
+  plant; the thresher 6 spots on main, where it lives, and 668 cut off in the cave, where it does not. Not worth
+  changing how they go, nor half a second on every level they are on. A test holds every kind to a way it fits, within
+  0.1 m, but for the thresher and the bloat (which keeps to its room and never asks the way).
+- **What did not change**: the trace probe is the same to the bit on every level, and again with a way added that climbs
+  1.2 m and drops 4 (so every level's graph has links for it): the three ways are masked off them, and go as before.
+- **Not yet**: no way of the game's is wider than the graph or climbs more; the first will be the big ones' (the bone
+  mother's, the bloats that walk). The headroom between two spots is not looked at, only at each. A wide body follows
+  the spots; it does not cut corners the way a smoother path would, and turns them as a husk does.
+- **Tests** (`test/gait.test.ts`, *size*): a kind 1.6 m across, made from rows, keeps out of a 1 m slot a husk goes down
+  and goes down a 2 m lane, its body too; climbs a 0.75 m ledge after you that a husk cannot, its body too; a way that
+  drops 0.4 m will not come down off it.
 
 ---
 

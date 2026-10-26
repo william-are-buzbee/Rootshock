@@ -16,6 +16,9 @@ export interface Body extends Rider {
   carried: boolean;
   r: number;
   h: number;
+  /** the highest edge it walks up without jumping, and follows the floor down without falling: a husk's STEP_UP, or as
+   *  far as its kind's way goes (sim/fields.ts, WAYS) */
+  climb: number;
   ground: boolean;
   /** what it moves through: its own box, and whatever else its kind passes */
   skip: Ignore;
@@ -26,10 +29,10 @@ export const STEP_UP = 0.5;
 export const GRAVITY = 20;
 const EPS = 1e-3;
 
-export function makeBody(w: World, x: number, y: number, z: number, r: number, h: number, mass = 75): Body {
+export function makeBody(w: World, x: number, y: number, z: number, r: number, h: number, mass = 75, climb = STEP_UP): Body {
   const dyn: Dyn = { kind: 'body', id: w.newId(), x0: 0, y0: 0, z0: 0, x1: 0, y1: 0, z1: 0 };
   const b: Body = {
-    x, y, z, vx: 0, vz: 0, vy: 0, mass, carried: false, r, h, ground: true, on: null, dyn, skip: dyn,
+    x, y, z, vx: 0, vz: 0, vy: 0, mass, carried: false, r, h, climb, ground: true, on: null, dyn, skip: dyn,
     sync: () => syncBody(b),
     clear: (dx, dy, dz) => fits(w, b, b.x + dx, b.z + dz, b.y + dy),
   };
@@ -51,8 +54,8 @@ export function fits(w: World, b: Body, x: number, z: number, y: number, h = b.h
 }
 
 /** move across the floor by (dx, dz): each axis on its own, so a wall stops one and you slide along the other.
- *  An edge up to `climb` high is climbed in passing. Returns what stopped it, if anything did. */
-export function walk(w: World, b: Body, dx: number, dz: number, climb = STEP_UP): Hit {
+ *  An edge up to `climb` high (its own, unless said) is climbed in passing. Returns what stopped it, if anything did. */
+export function walk(w: World, b: Body, dx: number, dz: number, climb = b.climb): Hit {
   let hit: Hit = null;
   if (dx) hit = tryMove(w, b, b.x + dx, b.z, climb) ?? hit;
   if (dz) hit = tryMove(w, b, b.x, b.z + dz, climb) ?? hit;
@@ -131,7 +134,7 @@ export interface Slid {
 }
 
 /** move by its velocity for dt, sliding along what it meets; what a wall stopped is taken from the velocity */
-export function slide(w: World, b: Body, dt: number, climb = STEP_UP): Slid {
+export function slide(w: World, b: Body, dt: number, climb = b.climb): Slid {
   const wx = b.vx * dt, wz = b.vz * dt;
   if (!wx && !wz) return { hit: null, slam: 0 };
   const ox = b.x, oz = b.z, hit = walk(w, b, wx, wz, climb);
@@ -154,7 +157,7 @@ export function fall(w: World, b: Body, dt: number, gravity = GRAVITY): Landing 
   b.vy -= gravity * dt;
   let ny = b.y + b.vy * dt;
   const f = footprint(b), g = w.groundBelow(f, b.y + EPS, b.skip);
-  if (ny <= g || (b.ground && b.vy <= 0 && b.y - g <= STEP_UP + 0.05)) {
+  if (ny <= g || (b.ground && b.vy <= 0 && b.y - g <= b.climb + 0.05)) {
     if (!b.ground) out.impact = -b.vy;
     ny = g; b.vy = 0; b.ground = true;
   } else b.ground = false;

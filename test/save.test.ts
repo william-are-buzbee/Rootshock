@@ -66,7 +66,7 @@ describe('save and load', () => {
         'thrown', 'pace', 'feet', 'planted', 'down', // worked out again each step, before they are asked
       ],
       body: [
-        'mass', 'r', // what it is (your mass with what you hold, each step)
+        'mass', 'r', 'climb', // what it is (your mass with what you hold, each step)
         'carried', // worked out again each step
         'on', // saved apart, by id (Save.on)
         'dyn', 'skip', 'sync', 'clear', // made with it

@@ -2,7 +2,7 @@ import type { MutantDef, RoundStop } from '../content/types';
 import { clamp, PI, TAU } from '../core/math';
 import { STEP } from '../core/loop';
 import { fall, makeBody, push, settle, type Body } from './body';
-import { makeFields, refreshFields, walkedHere, type Walker } from './fields';
+import { makeFields, refreshFields, walkedHere, WAYS, type Walker } from './fields';
 import { DOWN, FALL, MOVES, POISE, regain } from './moves';
 import type { Sim } from './sim';
 import { layDead, type Rag } from './ragdoll';
@@ -34,7 +34,7 @@ export { BANG, BEAT, BLOOD, GRAFT, leftGrafted, noiseAt, PEER, READER, ROUND, st
 
 export type Ai = 'husk' | 'skitter' | 'bloat' | 'thresher' | 'worm' | 'swimmer' | 'grabber' | 'patient' | 'dead';
 
-interface Stats {
+export interface Stats {
   ai?: Ai; model?: string; green?: boolean;
   hp: number; r: number; cr: number; mass: number;
   /** what its body weighs (kg), for shoving and being shoved; Infinity for one rooted where it sits */
@@ -181,20 +181,26 @@ export function makeCast(sim: Sim, defs: MutantDef[]): Mutant[] {
   return defs.filter(d => MT[d.type]).map((def, id) => makeMutant(sim, def, id));
 }
 
+/** the way a kind gets about: its own, or by default none through doors if it does not fit them, any a hand works if it
+ *  opens them, and under the jammed ones if neither */
+export const wayOf = (S: Stats): Walker => S.way ?? (S.noDoors ? 'big' : S.opens ? 'hands' : 'crawl');
+
 /** one of the cast, as a level places it, numbered `id` */
 function makeMutant(sim: Sim, def: MutantDef, id: number): Mutant {
   /* the station's dead draw nothing from the run's chance, so what lies about does not change what the living do */
   const S = MT[def.type], dead = def.type === 'dead', rnd = (a: number, b?: number) => (dead ? a : sim.rng.range(a, b));
   {
     const o = def.opts as Record<string, number | undefined>;
-    /* every body stops every other, yours too (engine.md §6, F1b); they stop short of you, and shove you when they do not */
-    const body = S.fixed ? null : makeBody(sim.world, def.x, def.y, def.z, S.cr, S.h, S.kg);
+    /* every body stops every other, yours too (engine.md §6, F1b); they stop short of you, and shove you when they do not.
+       It climbs what its way does */
+    const walker = wayOf(S);
+    const body = S.fixed ? null : makeBody(sim.world, def.x, def.y, def.z, S.cr, S.h, S.kg, WAYS[walker].climb);
     const room = sim.world.roomAt(def.x, def.y + 0.5, def.z)?.id ?? -1;
     const m: Mutant = {
       id, type: def.type, ai: S.ai ?? (def.type as Ai), model: S.model ?? def.type, green: !!S.green, body,
       x: def.x, y: def.y, z: def.z, px: def.x, py: def.y, pz: def.z, yaw: o.yaw ?? rnd(TAU), state: (def.opts.state as string | undefined) ?? 'idle', st: 0, cd: 0, stun: 0,
       hp: S.hp, max: S.hp, mass: S.mass, r: S.r,
-      walker: S.way ?? (S.noDoors ? 'big' : S.opens ? 'hands' : 'crawl'),
+      walker,
       opens: !!S.opens, low: !!S.low, noDoors: !!S.noDoors, fixed: !!S.fixed, swim: !!S.swim, solid: !!S.solid,
       post: !!o.post, sit: !!o.sit, holt: !!o.holt, big: !!o.big, hx: def.x, hz: def.z, room,
       cards: !!sim.world.def.cards && !!S.opens && !!sim.world.rooms[room]?.zone, door: -1,

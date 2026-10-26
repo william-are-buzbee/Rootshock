@@ -1,4 +1,4 @@
-import { buildNav, field, type Nav, type Rules } from '../world/nav';
+import { buildNav, DROP, Edge, field, fitting, NAV_R, STEP_UP, type Nav, type Rules } from '../world/nav';
 import { power } from './game';
 import { locked, type Door, type Platform } from './movers';
 import type { Sim } from './sim';
@@ -6,10 +6,11 @@ import type { Sim } from './sim';
 /* How far every spot is from you, for each way of getting about, and for sound (engine.md §7, §8). Kept fresh in
    rotation: one field a step, so each is at most a few steps old and no single step pays for all of them.
 
-   A way (WAYS) is what a body needs and can do to get about: the headroom it needs, the doors it gets through, and
-   whether it can call a platform. Each kind of the cast walks one (sim/cast.ts, MT); a new kind that fits none of
-   these is a new row, and gets a field of its own on a level whose cast walks it. Who passes a door (as the first engine
-   had it):
+   A way (WAYS) is what a body needs and can do to get about: the headroom it needs, how wide it is, the step it walks up
+   and the drop it takes, the doors it gets through, and whether it can call a platform. Each kind of the cast walks one
+   (sim/cast.ts, MT); a new kind that fits none of these is a new row, and gets a field of its own on a level whose cast
+   walks it. Its size keeps it to where it fits (`sized`); its body climbs what its way does (body.ts, `climb`). Who
+   passes a door (as the first engine had it):
    - under: a door that is open, or jammed part open (they go under), or one that opens by itself for anything near;
    - hands: any door a hand can work: not welded, not a panel, not the lift's, not jammed, not heavy, not locked;
    - none: no doors at all. They are too big for the frames.
@@ -19,6 +20,10 @@ import type { Sim } from './sim';
 export interface Way {
   /** the headroom it needs (m): no spot lower than this is on its way anywhere */
   head: number;
+  /** how wide it is (m, a radius): no spot or link narrower is on its way. The graph is made for NAV_R (world/nav.ts) */
+  r: number;
+  /** the highest step it walks up, and the deepest drop it takes (m) */
+  climb: number; drop: number;
   doors: 'none' | 'under' | 'hands';
   /** it calls a platform with power to it */
   call: boolean;
@@ -26,11 +31,11 @@ export interface Way {
 
 export const WAYS = {
   /* skitters, worms */
-  crawl: { head: 1, doors: 'under', call: false },
+  crawl: { head: 1, r: NAV_R, climb: STEP_UP, drop: DROP, doors: 'under', call: false },
   /* Security's staff */
-  hands: { head: 1.8, doors: 'hands', call: true },
+  hands: { head: 1.8, r: NAV_R, climb: STEP_UP, drop: DROP, doors: 'hands', call: true },
   /* the bloats, the thresher */
-  big: { head: 2.2, doors: 'none', call: false },
+  big: { head: 2.2, r: NAV_R, climb: STEP_UP, drop: DROP, doors: 'none', call: false },
 } satisfies Record<string, Way>;
 export type Walker = keyof typeof WAYS;
 
@@ -50,8 +55,10 @@ export interface Fields {
   /** the spot you were on when they were made */
   from: number;
   turn: number;
-  /** for each way, the spots too low for it */
+  /** for each way, the spots too low or too narrow for it; and for a way wider than the graph's own, where in each spot's
+   *  square it stands (world/nav.ts, fitting) */
   low: Record<string, Uint8Array>;
+  at: Record<string, Float32Array | null>;
   /** the spots in each door */
   doorSpots: number[][];
   /** the rules each way walks by, made once a step at most; one that carries its card has its own ('hands+cards') */
@@ -64,9 +71,11 @@ export interface Fields {
 const navs = new WeakMap<object, Nav>();
 
 export function makeFields(sim: Sim): Fields {
-  const def = sim.world.def;
+  const def = sim.world.def, all: Way[] = Object.values(WAYS);
   let nav = navs.get(def);
-  if (!nav) navs.set(def, (nav = buildNav(sim.world, sim.doors.map(d => d.def), sim.platforms.map(p => p.def))));
+  /* the graph has the links for the highest step and deepest drop of any way there is */
+  const most = { climb: Math.max(...all.map(W => W.climb)), drop: Math.max(...all.map(W => W.drop)) };
+  if (!nav) navs.set(def, (nav = buildNav(sim.world, sim.doors.map(d => d.def), sim.platforms.map(p => p.def), most)));
   const n = nav.n;
   const onLift = new Int16Array(n).fill(-1);
   for (let i = 0; i < n; i++) {
@@ -78,31 +87,58 @@ export function makeFields(sim: Sim): Fields {
   const doorSpots: number[][] = sim.doors.map(() => []);
   for (let i = 0; i < n; i++) if (nav.door[i] >= 0) doorSpots[nav.door[i]].push(i);
   const F: Fields = {
-    nav, ways: {}, sound: new Float32Array(n).fill(Infinity), order: ['sound'], onLift, from: -1, turn: 0, low: {}, doorSpots,
+    nav, ways: {}, sound: new Float32Array(n).fill(Infinity), order: ['sound'], onLift, from: -1, turn: 0, low: {}, at: {}, doorSpots,
     rules: new Map([['sound', blank(sim, n, true)]]), made: {},
   };
+  F.rules.get('sound')!.R.edges = sized(sim, nav, SOUND).edges;
   const walked = new Set<string>(sim.cast.map(m => m.walker));
-  for (const w of Object.keys(WAYS) as Walker[]) if (KEPT.includes(w) || walked.has(w)) addWay(F, w);
+  for (const w of Object.keys(WAYS) as Walker[]) if (KEPT.includes(w) || walked.has(w)) addWay(sim, F, w);
   return F;
 }
 
 /** rules with nothing in them yet: who may not enter where, what entering costs (sound only), which platforms */
-const blank = (sim: Sim, n: number, enter: boolean) => ({ tick: -1, R: { blocked: new Uint8Array(n), enter: enter ? new Float32Array(n) : null, lifts: new Uint8Array(sim.platforms.length), drop: enter ? 0 : 0.5 } });
+const blank = (sim: Sim, n: number, enter: boolean): { tick: number; R: Rules } => ({ tick: -1, R: { blocked: new Uint8Array(n), enter: enter ? new Float32Array(n) : null, lifts: new Uint8Array(sim.platforms.length), drop: enter ? 0 : 0.5, edges: null } });
+
+/** sound goes over the steps and drops a husk walks, as it always has, whatever else is walked */
+const SOUND: Way = { head: 0, r: 0, climb: STEP_UP, drop: DROP, doors: 'none', call: false };
+
+/** where a way's size keeps it off: the spots too low or too narrow for it, and the links it may take (null: every one).
+ *  By the level's shape alone, so made once a graph and way. A way no wider than the graph's own and taking every step
+ *  and drop the graph has needs no list of links, and asks nothing of where a wider body fits (world/nav.ts, fitting) */
+const sizes = new WeakMap<Nav, Map<Way, { low: Uint8Array; edges: Uint8Array | null; at: Float32Array | null }>>();
+export function sized(sim: Sim, nav: Nav, W: Way): { low: Uint8Array; edges: Uint8Array | null; at: Float32Array | null } {
+  let byWay = sizes.get(nav);
+  if (!byWay) sizes.set(nav, (byWay = new Map()));
+  let S = byWay.get(W);
+  if (S) return S;
+  const wide = W.r > NAV_R, C = wide ? fitting(sim.world, nav, W.r) : null, low = new Uint8Array(nav.n);
+  for (let i = 0; i < nav.n; i++) if (nav.head[i] < W.head || (C && !C.spot[i])) low[i] = 1;
+  let edges: Uint8Array | null = null;
+  if (wide || W.climb < nav.most.climb || W.drop < nav.most.drop) {
+    edges = new Uint8Array(nav.to.length);
+    for (let a = 0; a < nav.n; a++)
+      for (let e = nav.start[a]; e < nav.start[a + 1]; e++) {
+        const fall = nav.kind[e] === Edge.Drop ? nav.y[a] - nav.y[nav.to[e]] : 0;
+        edges[e] = nav.climb[e] <= W.climb && fall <= W.drop && (!C || C.edge[e]) ? 1 : 0;
+      }
+  }
+  byWay.set(W, (S = { low, edges, at: C ? C.at : null }));
+  return S;
+}
 
 /** a field for a way, if there is none yet: made in its turn, before sound's */
-function addWay(F: Fields, w: Walker): void {
+function addWay(sim: Sim, F: Fields, w: Walker): void {
   if (F.ways[w]) return;
-  const nav = F.nav, a = new Uint8Array(nav.n);
-  for (let i = 0; i < nav.n; i++) if (nav.head[i] < WAYS[w].head) a[i] = 1;
-  F.ways[w] = new Float32Array(nav.n).fill(Infinity);
-  F.low[w] = a;
+  F.ways[w] = new Float32Array(F.nav.n).fill(Infinity);
+  const S = sized(sim, F.nav, WAYS[w]);
+  F.low[w] = S.low; F.at[w] = S.at;
   F.order.splice(F.order.length - 1, 0, w);
 }
 
 /** one of the cast put down on a level that walks a way the level's own did not (dev, the arena): its field, made now */
 export function walkedHere(sim: Sim, F: Fields, w: Walker): void {
   if (F.ways[w]) return;
-  addWay(F, w);
+  addWay(sim, F, w);
   if (F.from >= 0) field(F.nav, F.from, rulesFor(sim, F, w), F.ways[w], LIMIT.walk);
 }
 
@@ -148,7 +184,7 @@ export function liftPasses(sim: Sim, p: Platform, who: Walker): boolean {
 export function rulesFor(sim: Sim, F: Fields, who: Walker, cards = false): Rules {
   const staff = cards && WAYS[who].doors === 'hands', key = staff ? `${who}+cards` : who;
   let c = F.rules.get(key);
-  if (!c) F.rules.set(key, (c = blank(sim, F.nav.n, false)));
+  if (!c) { F.rules.set(key, (c = blank(sim, F.nav.n, false))); c.R.edges = sized(sim, F.nav, WAYS[who]).edges; }
   if (c.tick === sim.tick) return c.R;
   const R = c.R;
   R.blocked.set(F.low[who]);
@@ -166,7 +202,7 @@ export function routeRules(sim: Sim, F: Fields, who: Walker): Rules {
   let c = routes.get(F);
   if (!c) routes.set(F, (c = {}));
   return (c[who] ??= {
-    blocked: F.low[who], enter: null, drop: 0.5,
+    blocked: F.low[who], enter: null, drop: 0.5, edges: sized(sim, F.nav, WAYS[who]).edges,
     lifts: Uint8Array.from(sim.platforms, p => (!p.def.call || WAYS[who].call ? 1 : 0)),
   });
 }

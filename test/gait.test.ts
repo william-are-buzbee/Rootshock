@@ -2,9 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { LevelBuilder } from '../src/content/build/builder';
 import { STEP } from '../src/core/loop';
 import { angDiff } from '../src/core/math';
-import { GAIT, MT, pace, spawn, type Mutant } from '../src/sim/cast';
+import { GAIT, MT, pace, spawn, wayOf, type Mutant } from '../src/sim/cast';
 import { fieldTo } from '../src/sim/cast/move';
-import { WAYS, type Walker, type Way } from '../src/sim/fields';
+import { refreshFields, sized, WAYS, type Walker, type Way } from '../src/sim/fields';
+import { field, openRules } from '../src/world/nav';
 import { noInput } from '../src/sim/input';
 import { makeSim, step, type Sim } from '../src/sim/sim';
 import { hold } from './kit';
@@ -14,15 +15,25 @@ import { hold } from './kit';
 
 /* a kind made here and nowhere else: tall, slow, walking where it faces, with the husk's behaviour, and a way of its
    own (it needs 2.6 m of headroom and takes no doors). Made as a new kind would be: rows, no code */
-(WAYS as Record<string, Way>).tall = { head: 2.6, doors: 'none', call: false };
+(WAYS as Record<string, Way>).tall = { head: 2.6, r: 0.45, climb: 0.5, drop: 2.5, doors: 'none', call: false };
 MT.strider = { ai: 'husk', model: 'husk', hp: 200, r: 0.5, cr: 0.45, mass: 3, kg: 260, h: 2.5, way: 'tall' as Walker };
 GAIT.strider = { pace: { walk: 0.8, hunt: 2 }, acc: 6, turn: 8, heading: 1.2, feet: { sound: 'hstep', walk: 0.9, fast: 0.6, big: true } };
+/* and one broad (1.6 m across) that climbs a metre and drops no more than one; and a way that drops less than a step and
+   a half, walked by nothing */
+(WAYS as Record<string, Way>).broad = { head: 2.2, r: 0.8, climb: 1, drop: 1, doors: 'none', call: false };
+(WAYS as Record<string, Way>).careful = { head: 1.8, r: 0.3, climb: 0.5, drop: 0.4, doors: 'hands', call: false };
+MT.lumber = { ai: 'husk', model: 'husk', hp: 300, r: 0.8, cr: 0.75, mass: 4, kg: 400, h: 2, way: 'broad' as Walker };
+GAIT.lumber = { pace: { walk: 0.6, hunt: 1.8 }, acc: 5, turn: 8 };
 
-/** a hall 20 by 12 m, 4 m high, you at (5, 6) facing east; and east of it a passage 2.2 m high, a dead end */
+/** a hall 20 by 12 m, 4 m high, you at (5, 6) facing east. Off its east end, dead ends: a passage 2.2 m high and 2 m
+ *  wide, a lane 4 m high and 2 m wide, and a slot 4 m high and 1 m wide. In its north-west corner a ledge 0.75 m high */
 function hall(build: (b: LevelBuilder) => void = () => {}): Sim {
   const b = new LevelBuilder('hall', 'Hall');
   b.room('Hall', 0, 0, 20, 12, { ht: 4 });
   b.room('Passage', 20, 5, 30, 7, { ht: 2.2 });
+  b.room('Lane', 20, 1, 30, 3, { ht: 4 });
+  b.room('Slot', 20, 9, 30, 10, { ht: 4 });
+  b.block(1, 0, 8, 6, 0.75, 12, 0x808080);
   build(b);
   b.start(5, 6, -Math.PI / 2);
   const s = makeSim(b.finish());
@@ -82,6 +93,60 @@ describe('a kind is its rows', () => {
     hunting(m);
     hold(s, 0.25);
     expect(v(m)).toBeGreaterThan(2.5);
+  });
+});
+
+describe('size', () => {
+  /** you, put somewhere, and the ways to you made again */
+  const put = (s: Sim, x: number, y: number, z: number) => { const b = s.player.body; b.x = x; b.y = y; b.z = z; b.vy = 0; b.sync(); refreshFields(s, s.fields!); };
+  const at = (s: Sim, x: number, y: number, z: number) => s.fields!.nav.locate(x, y, z);
+
+  it('a broad one keeps out of what is too narrow for it, and goes down a lane it fits that a husk would think no wider', () => {
+    const s = hall(b => b.mutant('lumber', 15, 0, 6)), F = s.fields!;
+    hold(s, 0.1);
+    expect(F.ways.hands[at(s, 27, 0, 9.5)]).toBeLessThan(40); // a husk goes down the slot
+    expect(F.ways.broad[at(s, 27, 0, 9.5)]).toBe(Infinity); // it does not
+    expect(F.ways.broad[at(s, 27, 0, 2)]).toBeLessThan(40); // the lane, it does
+    expect(F.ways.broad[at(s, 27, 0, 6)]).toBeLessThan(40); // and the passage, 2.2 m high as its way needs
+  });
+
+  it('and its body goes where its way does: down the lane after you, not into the slot', () => {
+    const lane = hall(b => b.mutant('lumber', 14, 0, 2.5)), m = lane.cast[0];
+    put(lane, 28, 0, 2); hunting(m);
+    hold(lane, 14);
+    expect(m.x).toBeGreaterThan(25);
+    const slot = hall(b => b.mutant('lumber', 14, 0, 9.5)), q = slot.cast[0];
+    put(slot, 28, 0, 9.5); hunting(q);
+    hold(slot, 8);
+    expect(q.x).toBeLessThan(20); // at the slot's mouth at most: the 1 m slot does not take it
+  });
+
+  it('it climbs what its way climbs, and its body does; a husk, a step as it always has', () => {
+    const s = hall(b => { b.mutant('lumber', 12, 0, 6); b.mutant('husk', 12, 0, 3); }), [m, h] = s.cast;
+    put(s, 3.5, 0.75, 10); // up on the ledge
+    expect(s.fields!.ways.hands[at(s, 10, 0, 6)]).toBe(Infinity); // no way up it for a husk
+    expect(s.fields!.ways.broad[at(s, 10, 0, 6)]).toBeLessThan(15);
+    hunting(m); hunting(h);
+    hold(s, 12);
+    expect(m.y).toBeCloseTo(0.75, 2); // up after you
+    expect(h.y).toBe(0); // still on the floor
+  });
+
+  it('it drops no further than its way does', () => {
+    const s = hall(b => b.mutant('husk', 15, 0, 6)), nav = s.fields!.nav, down = at(s, 3.5, 0.75, 10), floor = at(s, 10, 0, 6);
+    const way = (W: Way) => { const S = sized(s, nav, W), R = openRules(nav); R.blocked.set(S.low); R.edges = S.edges; return field(nav, floor, R); };
+    expect(way(WAYS.hands)[down]).toBeLessThan(15); // off the ledge: a drop of 0.75 m
+    expect(way((WAYS as Record<string, Way>).careful)[down]).toBe(Infinity);
+  });
+
+  it('every kind fits the way it walks, give or take a squeeze, but for those named here', () => {
+    /* the first engine's big ones walk a way made for a husk: the bloat keeps to its room and never asks the way, and
+       on main, where the thresher lives, six spots in all are too narrow for it (engine.md §7, size) */
+    const SQUEEZE = 0.1, named = ['thresher', 'bloat'];
+    for (const [k, S] of Object.entries(MT)) {
+      if (S.fixed || named.includes(k)) continue;
+      expect(S.cr, k).toBeLessThanOrEqual(WAYS[wayOf(S)].r + SQUEEZE);
+    }
   });
 });
 
