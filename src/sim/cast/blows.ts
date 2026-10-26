@@ -11,6 +11,7 @@ import type { Ai, Mutant } from '../cast';
 import { drive, go, step_, turnTo, turnToward } from './move';
 import { pace } from './gait';
 import { beaten } from './round';
+import { rouse, temperOf } from './husk';
 
 /* The cast's side of the fight (engine.md §6): what lands on you, taking turns at you, a blow wound up, thrown and
    recovered from, and what a blow, a fall or a wall does to one of them. */
@@ -254,8 +255,8 @@ export function hitMutant(sim: Sim, m: Mutant, w: Hit, k = 1): void {
   said(`${m.down > 0 ? (v >= LAUNCH.dv ? 'thrown' : 'down') : R.r}  (poise ${hitPoise.toFixed(0)}, ${R.left.toFixed(0)}/${m.pmax} left)`);
   switch (m.ai) {
     case 'husk':
-      if (m.state === 'idle' || m.state === 'lurk') { m.state = 'hunt'; m.lost = 0; m.post = false; }
-      else if (m.hp < m.max * 0.4 && !m.fled && sim.rng.chance(0.5)) { m.state = 'flee'; m.st = 7; m.fled = true; m.blow = null; step_(sim, m, 'moan'); }
+      if (m.state === 'idle' || m.state === 'lurk') { m.state = 'hunt'; m.lost = 0; m.post = false; rouse(sim, m); }
+      else if (m.hp < m.max * temperOf(m).flee && !m.fled && sim.rng.chance(0.5)) { m.state = 'flee'; m.st = 7; m.fled = true; m.blow = null; step_(sim, m, 'moan'); }
       if (R.r === 'stagger') step_(sim, m, 'moan');
       break;
     case 'worm': m.flee = 5; m.blow = null; break;
@@ -302,7 +303,7 @@ export function battered(sim: Sim, m: Mutant, over: number, r: { dmg: number; po
 /** you walked into it: what was not already after you is now */
 export function shoved(sim: Sim, m: Mutant): void {
   if (m.dead) return;
-  if (m.ai === 'husk' && m.state !== 'hunt' && m.state !== 'flee') { m.state = 'hunt'; m.lost = 0; m.post = false; m.dest = -1; step_(sim, m, 'moan'); }
+  if (m.ai === 'husk' && m.state !== 'hunt' && m.state !== 'flee') { m.state = 'hunt'; m.lost = 0; m.post = false; m.dest = -1; step_(sim, m, 'moan'); rouse(sim, m); }
   else if (m.ai === 'skitter' && m.state === 'idle') { m.state = 'hunt'; m.lost = 0; m.bt = 0; step_(sim, m, 'skit'); }
 }
 

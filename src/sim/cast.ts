@@ -34,8 +34,12 @@ export { BANG, BEAT, BLOOD, GRAFT, leftGrafted, noiseAt, PEER, READER, ROUND, st
 
 export type Ai = 'husk' | 'skitter' | 'bloat' | 'thresher' | 'worm' | 'swimmer' | 'grabber' | 'patient' | 'dead';
 
+/** whose child it is (world.md §10, Pia's young gods): the bone mother's, the bloat god's, the bush's. Its temper goes by
+ *  it (cast/husk.ts, TEMPER), and its look (render/castView.ts) */
+export type Line = 'bone' | 'bloat' | 'bush';
+
 export interface Stats {
-  ai?: Ai; model?: string; green?: boolean;
+  ai?: Ai; model?: string; green?: boolean; line?: Line;
   hp: number; r: number; cr: number; mass: number;
   /** what its body weighs (kg), for shoving and being shoved; Infinity for one rooted where it sits */
   kg: number;
@@ -52,12 +56,16 @@ export interface Stats {
 }
 
 export const MT: Record<string, Stats> = {
-  husk: { hp: 75, r: 0.38, cr: 0.34, mass: 1.2, kg: 80, h: 1.8, opens: true },
+  /* the bone mother's young: the Commons' husks, Cargo's, the plant's (world.md §10, the bone line, young) */
+  husk: { line: 'bone', hp: 75, r: 0.38, cr: 0.34, mass: 1.2, kg: 80, h: 1.8, opens: true },
+  /* Security's staff, the bush's children: the changed (world.md §8). The husk's body and behaviour, their own temper */
+  changed: { ai: 'husk', model: 'husk', line: 'bush', hp: 75, r: 0.38, cr: 0.34, mass: 1.2, kg: 80, h: 1.8, opens: true },
   /* one of the changed still walking the night shift's round, its flashlight on (world.md §8, the night round) */
-  nightround: { ai: 'husk', model: 'husk', hp: 75, r: 0.38, cr: 0.34, mass: 1.2, kg: 80, h: 1.8, opens: true, torch: true },
+  nightround: { ai: 'husk', model: 'husk', line: 'bush', hp: 75, r: 0.38, cr: 0.34, mass: 1.2, kg: 80, h: 1.8, opens: true, torch: true },
   skitter: { hp: 60, r: 0.5, cr: 0.4, mass: 1, kg: 45, h: 0.9, low: true },
-  bloat: { hp: 600, r: 1, cr: 0.9, mass: 8, kg: Infinity, h: 2.4, noDoors: true, solid: true },
-  thresher: { hp: 150, r: 0.6, cr: 0.5, mass: 2.5, kg: 220, h: 2.1, solid: true, noDoors: true },
+  bloat: { line: 'bloat', hp: 600, r: 1, cr: 0.9, mass: 8, kg: Infinity, h: 2.4, noDoors: true, solid: true },
+  /* the bone mother's, halfway (world.md §10, the bone line, middle years) */
+  thresher: { line: 'bone', hp: 150, r: 0.6, cr: 0.5, mass: 2.5, kg: 220, h: 2.1, solid: true, noDoors: true },
   /* 0.6 high: higher than a step, so you go round one rather than up onto it */
   worm: { hp: 40, r: 0.35, cr: 0.3, mass: 1, kg: 25, h: 0.6, low: true },
   rootworm: { ai: 'worm', model: 'worm', green: true, hp: 40, r: 0.35, cr: 0.3, mass: 1, kg: 25, h: 0.6, low: true },
@@ -160,6 +168,8 @@ export interface Mutant {
   drove: boolean;
   /** how high it sees from (m) */
   eye: number;
+  /** whose child it is (Line), if the game says */
+  line: Line | null;
   /** time, for its animation */
   ph: number;
   dead: boolean;
@@ -209,7 +219,7 @@ function makeMutant(sim: Sim, def: MutantDef, id: number): Mutant {
       wt: rnd(1, 5), wm: 0, wx: 0, wz: 0, tk: 0, lost: 0, bt: 0, burst: false, flee: 0, ct: rnd(6, 14), cdir: 0, tgt: false,
       grab: 0, tense: 0, blow: null, dest: -1, F: null, stk: 0, near: 1e9, fled: false, side: 0, ride: null, spot: -1,
       mv: 0, d: 99, dp: 99, dy: 0, los: false, losAt: -99, hit: 0, stop: 0, poise: poiseOf(def.type, S.ai, !!o.big), pmax: poiseOf(def.type, S.ai, !!o.big), calm: 99, reel: 0, pat: 0, down: 0, rise: 0, gait: gaitOf(def.type, S.ai ?? def.type, !!o.big, o.walk, o.steps), drove: false,
-      eye: S.eye ?? (S.fixed ? 2.0 : Math.min(1.6, S.h * 0.85)), ph: rnd(9), dead: false, gone: 0, rag: null, away: false, still: 0, wear: o.c ?? 0,
+      eye: S.eye ?? (S.fixed ? 2.0 : Math.min(1.6, S.h * 0.85)), line: S.line ?? null, ph: rnd(9), dead: false, gone: 0, rag: null, away: false, still: 0, wear: o.c ?? 0,
     };
     /* laid out where it was found: out of the world, as the dead are, and lying as its points do */
     if (dead) {

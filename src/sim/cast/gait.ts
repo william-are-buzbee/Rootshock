@@ -38,11 +38,12 @@ export interface Gait {
   scale?: number; stride?: number; cadence?: number;
 }
 
-/* Security's staff (cast/husk.ts): on their rounds and at their posts, a hurry to an alarm (faster again, `rally`, with
-   another in sight hurrying), slowly to a board or a door left open, more slowly looking about, and after you; circling
-   while another is at you (`hover`); away when hurt, and lying low after. A round is walked slowly (cast/round.ts) */
+/* Security's staff and the Commons' husks (cast/husk.ts): on their rounds and at their posts (shifting about one,
+   `shift`), a hurry to an alarm (faster again, `rally`, with another in sight hurrying), slowly to a board or a door
+   left open, more slowly looking about, and after you; circling while another is at you (`hover`); away when hurt, and
+   lying low after. A round is walked slowly (cast/round.ts) */
 const HUSK: Gait = {
-  pace: { walk: 1.3, round: 1.0, search: 1.2, shut: 1.4, fix: 1.6, lurk: 1.6, hover: 1.3, answer: 2.6, rally: 3.4, hunt: 3.5, flee: 4.2 },
+  pace: { walk: 1.3, shift: 0.6, round: 1.0, search: 1.2, shut: 1.4, fix: 1.6, lurk: 1.6, hover: 1.3, answer: 2.6, rally: 3.4, hunt: 3.5, flee: 4.2 },
   acc: 18, turn: 8, feet: { sound: 'hstep', walk: 0.58, fast: 0.3, over: 2 },
 };
 

@@ -80,7 +80,7 @@ describe('save and load', () => {
       ],
       mutant: [
         /* what it is, from the level and its kind */
-        'id', 'type', 'ai', 'model', 'green', 'max', 'mass', 'r', 'pmax', 'gait', 'eye', 'walker', 'opens', 'low', 'noDoors', 'fixed',
+        'id', 'type', 'ai', 'model', 'green', 'max', 'mass', 'r', 'pmax', 'gait', 'eye', 'line', 'walker', 'opens', 'low', 'noDoors', 'fixed',
         'swim', 'solid', 'sit', 'holt', 'big', 'hx', 'hz', 'room', 'cards', 'round', 'hide', 'wear',
         'F', // its route, made again on load (restoreRoute)
         'd', 'dp', 'dy', 'drove', // worked out again each step

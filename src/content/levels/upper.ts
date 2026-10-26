@@ -42,7 +42,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   bx(D, 22, 8.8, 3.6, 0.9, 0.7, 0x4a4f55);
   /* the oldest of the changed, rooting at its post: each of Security's seven walks at its own pace and steps, the bench's
      (mockups/mutants.html, Security's seven; sim/cast/gait.ts) */
-  mut(D, 'husk', 18, 6.8, { post: 1, yaw: PI / 2, walk: 0.25, steps: 50 });
+  mut(D, 'changed', 18, 6.8, { post: 1, yaw: PI / 2, walk: 0.25, steps: 50 });
 
   /* People came up the shaft to the second floor: off the surface cage, a landing, and the checkpoint (world.md §8,
      The lobby). Everyone off the surface came through here: the bag scanner and its belt, the arch, the turnstiles, and
@@ -298,7 +298,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   /* the second leg: south from the atrium between the offices, and out into the muster hall */
   room(D, 'Operations corridor', 74, 12, 6, 12, { ...OPS, ht: 4.5, em: 1, mat: SKIM(OPS) });
   /* the Operations zone sounds here: the corridor, and the hall's east bays */
-  speaker(D, 'ops', 77, 20, 'CRIT'); mut(D, 'husk', 77, 18, { walk: 0.7, steps: 88 }); mut(D, 'husk', 72, 7, { walk: 0.85, steps: 84 }); blood(D, 76, 15.4, 1.2);
+  speaker(D, 'ops', 77, 20, 'CRIT'); mut(D, 'changed', 77, 18, { walk: 0.7, steps: 88 }); mut(D, 'changed', 72, 7, { walk: 0.85, steps: 84 }); blood(D, 76, 15.4, 1.2);
   /* the chief's office is armed, its camera in the far corner on the door */
   for (const [nm, x, z, dopt, east] of [['Office: operations', 64, 14, { open: true }, false], ['Office: chief of security', 82, 14, { card: 'o' }, true]] as const) {
     room(D, nm, x, z, 8, 8, { ...OFF, c: 'OPS', lc: [0.85, 0.78, 0.62], armed: east }); door(D, east ? x - 1 : x + 9, z + 3, { ...east ? { ...dopt, sg: [['Chief of security', 'w']] } : dopt, span: 2 });
@@ -401,7 +401,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   door(T1, 63, 63.4, { seal: true, msg: 'Bodies. Grown into the frame and into each other, floor to lintel, faces turned in. Something behind them is breathing.' });
   for (const z of [41.2, 43.6, 46]) blood(D, 66.8 + (z - 42) * 0.15, z, 1.1); eggs(D, 64.6, 46.6, 3); eggs(D, 69.2, 45.2, 2);
   for (const z of [52, 56, 59.2]) { eggs(D, 64.9, z, 2); eggs(D, 69.2, z + 1, 2); }
-  eggs(T1, 64.8, 63, 4); eggs(T1, 69, 64.6, 3); gore(T1, 65.2, 64.4, 3); mut(T1, 'husk', 67.2, 63.2, { post: 1, yaw: PI / 2, walk: 0.4, steps: 66 });
+  eggs(T1, 64.8, 63, 4); eggs(T1, 69, 64.6, 3); gore(T1, 65.2, 64.4, 3); mut(T1, 'changed', 67.2, 63.2, { post: 1, yaw: PI / 2, walk: 0.4, steps: 66 });
   /* the operations room, over the hall's south side: a wall of glass on the court, and along the back wall its screens,
      what was left of its staff at each (below). Its door is grown shut, so it is no round's to walk to (the way toward it
      is up the armed stair, which the rounds keep out of) */
@@ -443,7 +443,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
     T1.lamps.push({ x, z, r: 4.5, c: [0.5, 0.17, 0.1], h: 0.4 });
   }
   /* and two of the staff on their rounds of the hall */
-  mut(D, 'husk', 31, 28, { walk: 1, steps: 100 }); mut(D, 'husk', 67, 44, { walk: 0.9, steps: 98 });
+  mut(D, 'changed', 31, 28, { walk: 1, steps: 100 }); mut(D, 'changed', 67, 44, { walk: 0.9, steps: 98 });
   /* break-glass call points, one a zone, by its way out: the wing's by the checkpoint, the atrium's by the way south,
      the hall's at its west end by the electrical room and the range, Operations' in its corridor by the speaker */
   callPoint(D, 35, 2.75, 'n', 'wing'); callPoint(D, 71, 12, 'n', 'atrium'); callPoint(D, 22, 42, 'e', 'muster'); callPoint(D, 74, 21, 'e', 'ops');

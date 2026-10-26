@@ -379,11 +379,12 @@ function roamRooms(sim: Sim): number[] {
   return r;
 }
 
-export function roam(sim: Sim, m: Mutant, spd: number): void {
+/** a step of a roam at `spd`, standing `rest` seconds (at random between the two) when it gets there */
+export function roam(sim: Sim, m: Mutant, spd: number, rest: readonly [number, number] = [3, 10]): void {
   if (m.wt > 0) { m.wt -= dt; return; }
   if (m.dest < 0) { pickDest(sim, m); m.near = 1e9; m.stk = 0; return; }
   const left = m.F && m.spot >= 0 ? m.F[m.spot] : Infinity;
-  if (m.spot === m.dest || left < 1.2) { m.dest = -1; m.wt = sim.rng.range(3, 10); return; }
+  if (m.spot === m.dest || left < 1.2) { m.dest = -1; m.wt = sim.rng.range(rest[0], rest[1]); return; }
   const on = follow(sim, m, m.F!, spd, false);
   /* getting on is coming to a spot nearer than any yet. Held up is the rest, but for waiting at a door or for a
      platform: stopped on a locked door, wedged on a corner, or two of them meeting where there is no room to pass, each

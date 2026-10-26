@@ -1180,6 +1180,28 @@ As built in step 5 (`world/nav.ts`, `sim/fields.ts`):
   have moved or a door or platform has changed, and only as far out as anything could use it (90 m for a hunt, 40 for
   sound).
 
+### Two lines, one body, as built
+
+Security's changed and the Commons' husks were one kind, `husk`, told apart by whether it carried a card. They are two
+now (`husk`, `changed`; the night round is one of the changed), each knowing its line (`MT.line`: whose child it is,
+world.md §10), and one behaviour takes them by their temper (`TEMPER`, `cast/husk.ts`):
+
+| | the changed (bush) | the husks (bone) |
+|---|---|---|
+| `flee`: may run below this share of health | 0.4, as before | never |
+| `rest`: stands between rounds (s) | 3 to 10, as before | 0.5 to 2 |
+| `fidget`: at a post, shifts about it (m) | stands | 1.5 either way, at its `shift` pace (0.6 m/s) |
+| `rouse`: turning on you sets off its line in earshot (m of air) | none | 14 |
+
+- **Drawn** by line, not by card: the bush's line as the changed (`changed()`), the bone line's as the husk.
+- **Rousing** (`rouse`): a sound field from the one that turned (noticed you, or was struck or walked into), out to
+  14 m; every other of its line in it not already after you, running, or stunned, turns too, and rouses in turn. On
+  main, walking the street a minute: three or four after you at once, four or five in all, where it was two.
+- **What did not change**: with the bone line given the changed's temper, the trace probe is the same to the bit on
+  every level and the opening, so the split alone changes nothing; the four rows are the whole of the difference.
+- **Dev**: key 6 in the arena puts down one of the changed.
+- **Tests**: `test/lines.test.ts`.
+
 ### Size, as built
 
 The graph is made for a husk: every spot, and the way between two, clear for a body 0.3 m in radius (`NAV_R`), that

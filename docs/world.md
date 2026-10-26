@@ -642,8 +642,9 @@ wins; the older text stays only because it describes what is built, until the le
   grows from a stump; glassy eyes. Plants growing through and out of people is the level's disgust, more than raw flesh.
   (Supersedes *drills, not instructions* and *how much wit the staff have*, below. The power-failure drill stays as something
   one of them chooses: someone goes to the board, slowly, and looks about for who threw it.)
-  - *The look (built).* Security's staff (those that carry cards) are drawn as the changed; the husk's old look, an arm
-    gone to raw flesh, stays on the cast elsewhere. Still a person's outline, about two in three in uniform (a navy
+  - *The look (built).* Security's staff are drawn as the changed (a kind of their own in the code now, `changed`, the
+    bush's line: *Temper*, §10); the husk's old look, an arm gone to raw flesh, stays on the bone mother's young
+    elsewhere. Still a person's outline, about two in three in uniform (a navy
     shirt, its badge the one thing on it), the night round always. No raw flesh: tobacco leaf comes out of the back of
     the neck and the right shoulder from woody knots, in tiers stacked like a bracket fungus, one broad slab of leaf a
     tier, green going to the curing barn's yellow; more on some than others, most on the night round, down the right of
@@ -1394,9 +1395,9 @@ of each gap (*Pia's lines*, in its Saved tab).
 
 | Line | Young | Middle years | Old | Young god |
 |---|---|---|---|---|
-| Bone (the bone mother's) | the husks (built) | the thresher (built) | the bone elders (none) | the bone mother (none) |
+| Bone (the bone mother's) | the husks (built; their temper too) | the thresher (built) | the bone elders (none) | the bone mother (none) |
 | Bloat (the bloat god's) | still walking, swelling, baby-headed (none) | bigger, slower, dopier (none) | the bloats, sat (built) | the bloat god (none) |
-| Plant (the bush's) | Security's changed (built) | heavier, greener, the face going under (none) | | the bush (none) |
+| Plant (the bush's) | Security's changed (built; their temper too) | heavier, greener, the face going under (none) | | the bush (none) |
 
 - **What each fears, and how the body answers it.** Every organ makes a problem and the body grows a way round it (rule
   3); in Pia's lines the problem is the fear. The bone line fears being hurt and hunted: it armours, reaches, patrols. The
@@ -1451,6 +1452,15 @@ and drift. (The rules are §10's; this is how they add up.) Which line it is com
   it, a week at most, changed together: its fear and its stupor both, nothing drifted, the first grafted the most plant.
   The other patient, one graft further, out cold and then alone: afraid of you when it wakes (§8), and left alone long
   enough, it might drift calm.
+- **Built: the two lines that walk as husks.** One body and one behaviour, two tempers (`TEMPER`, `sim/cast/husk.ts`; each
+  kind knows its line, `MT.line`). Security's changed, the bush's, fear held down: as they were, standing a long while
+  between rounds, keeping their posts still, running when badly hurt. The Commons' husks, the bone mother's young (and
+  Cargo's, and the plant's), fear with nothing holding it: they never run, however hurt (they ignore their own pain);
+  they barely rest between rounds, and at a post they shift about it, never still; and one that turns on you (it saw or
+  heard you, or you struck it or walked into it) moans, and every other of the bone line that hears it, through the air
+  and muffled by shut doors, out to 14 m, turns on you too and moans in turn. Walking the Commons' street for a minute,
+  that is three or four after you at once where it was two. *Open:* whether Cargo's are the bone line's (as they are
+  drawn) or the bush's (their territory is Security's, §2).
 
 ### Grafting as treatment
 

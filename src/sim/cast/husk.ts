@@ -1,21 +1,42 @@
 import { STEP } from '../../core/loop';
-import { staffField } from '../fields';
+import { field as fieldFrom } from '../../world/nav';
+import { soundRules, staffField } from '../fields';
 import { power, sfx } from '../game';
 import { occupied, type Door } from '../movers';
 import { MOVES } from '../moves';
 import { riders, type Sim } from '../sim';
 import type { Mutant } from '../cast';
-import { away, chase, fieldTo, follow, go, own, rnd, roam, step_, turnTo, turnToward } from './move';
+import { away, chase, fieldTo, follow, go, own, rnd, roam, step_, turnTo, turnToward, wander, type Wander } from './move';
 import { footfall, pace } from './gait';
 import { hears, lit, seeP, seeThrough } from './senses';
 import { beginBlow, blowStep, hover, inStart, WAIT, waits } from './blows';
 import { glassSpot, PEER, reaches, takesYou, triesYours, walkRound } from './round';
 
-/* Security's staff (world.md §8, the changed; the code keeps the name husk): what makes one notice you and hunt
-   you, look for whoever threw a breaker, shut a door left open, answer an alarm, or go to throw a breaker back on.
-   The night round is one of them, on a round of its own (round.ts). */
+/* Security's staff (world.md §8, the changed) and the bone mother's young (the Commons' husks), who walk alike: what
+   makes one notice you and hunt you, look for whoever threw a breaker, shut a door left open, answer an alarm, or go to
+   throw a breaker back on. The night round is one of the changed, on a round of its own (round.ts). The two lines take
+   it differently (TEMPER). */
 
 const dt = STEP;
+
+/** how each line takes it (world.md §10, Temper). Below `flee` of its health it may run (0: it never does); it stands
+ *  `rest` seconds between one round and the next; at its post it shifts about it, `fidget` metres either way (0: it
+ *  stands); and after you, it sets off every other of its line that hears its moan, `rouse` metres through the air
+ *  (0: none) */
+export interface Temper { flee: number; rest: readonly [number, number]; fidget: number; rouse: number }
+export const TEMPER: Record<string, Temper> = {
+  /* the bush's: Security's changed. Fear held down by the opiate: slow and watchful. They stand a long while, keep their
+     posts still, taking root, and run when badly hurt */
+  bush: { flee: 0.4, rest: [3, 10], fidget: 0, rouse: 0 },
+  /* the bone mother's young: the Commons' husks, many grafts from Pia's frightened days, changed in a crowd. Fear with
+     nothing holding it: never still, they ignore their own pain, and one that has you sets off the crowd */
+  bone: { flee: 0, rest: [0.5, 2], fidget: 1.5, rouse: 14 },
+};
+/** its line's temper; one with no line, the changed's */
+export const temperOf = (m: Mutant): Temper => TEMPER[m.line ?? ''] ?? TEMPER.bush;
+
+/** shifting about its post: a step or two to one side, a while, and to another (cast/move.ts, wander) */
+const FIDGET: Omit<Wander, 'near'> = { every: [1.5, 4], for: [0.6, 1.6] };
 
 /** a husk at rest or on its way somewhere notices you: in front of it and seen, or heard. Then it hunts. */
 function notices(sim: Sim, m: Mutant): boolean {
@@ -35,7 +56,22 @@ function hunt(sim: Sim, m: Mutant): boolean {
     return true;
   }
   m.state = 'hunt'; m.lost = 0; m.post = false; m.dest = -1; step_(sim, m, 'moan');
+  rouse(sim, m);
   return true;
+}
+
+/** one that has you (it noticed you, or you struck it or walked into it) sets off the rest of its line in earshot:
+ *  every other that hears its moan as the air carries it (shut doors muffle it), not already after you or running, is
+ *  after you too, and moans in turn (world.md §10: fear turned outward, in a crowd) */
+export function rouse(sim: Sim, m: Mutant): void {
+  const far = temperOf(m).rouse, Fs = sim.fields;
+  if (!far || !Fs || m.spot < 0) return;
+  const heard = fieldFrom(Fs.nav, m.spot, soundRules(sim, Fs), undefined, far);
+  for (const o of sim.cast) {
+    if (o === m || o.dead || o.ai !== 'husk' || o.line !== m.line || o.stun > 0 || o.spot < 0) continue;
+    if (o.state === 'hunt' || o.state === 'flee' || !(heard[o.spot] < far)) continue;
+    hunt(sim, o);
+  }
 }
 
 /** looking for whoever threw the breaker: a while about the board, slowly (its `search` pace), a spot at a time,
@@ -198,7 +234,9 @@ export function husk(sim: Sim, m: Mutant): void {
       if (notices(sim, m) || noticesDoor(sim, m)) break;
       /* one with a round goes back to it, where it left off */
       if (m.round) { m.state = 'round'; m.dest = -1; m.wt = 0; m.st = 0; break; }
-      if (!m.post) roam(sim, m, pace(m, 'walk'));
+      const T = temperOf(m);
+      if (!m.post) roam(sim, m, pace(m, 'walk'), T.rest);
+      else if (T.fidget) wander(sim, m, { ...FIDGET, near: [T.fidget, T.fidget] }, pace(m, 'shift'));
       break;
     }
     case 'round': {
@@ -284,7 +322,7 @@ export function husk(sim: Sim, m: Mutant): void {
     }
     case 'hunt':
       if (blowStep(sim, m)) break;
-      if (m.hp < m.max * 0.4 && !m.fled && d > 2.8) { m.state = 'flee'; m.st = 7; m.fled = true; step_(sim, m, 'moan'); break; }
+      if (m.hp < m.max * temperOf(m).flee && !m.fled && d > 2.8) { m.state = 'flee'; m.st = 7; m.fled = true; step_(sim, m, 'moan'); break; }
       if (seeP(sim, m, 22)) m.lost = 0; else m.lost += dt;
       if (m.lost > 8) { m.state = 'idle'; m.dest = -1; m.wt = rnd(sim, 2, 5); break; }
       if (inStart(m, MOVES.husk) && takesYou(sim, m)) break;
@@ -300,7 +338,7 @@ export function husk(sim: Sim, m: Mutant): void {
       break;
     case 'lurk':
       m.st -= dt;
-      roam(sim, m, pace(m, 'lurk'));
+      roam(sim, m, pace(m, 'lurk'), temperOf(m).rest);
       if (m.st < 0) { m.state = 'idle'; m.hp = Math.min(m.max, m.hp + 20); m.fled = false; }
       break;
   }

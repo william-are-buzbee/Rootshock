@@ -161,10 +161,10 @@ function deadModel(mat: THREE.Material, m: Mutant): Model {
 export const BUILD: Record<string, (mat: THREE.Material, m: Mutant) => Model> = {
   patient: mat => patientModel(mat),
   dead: (mat, m) => deadModel(mat, m),
-  /* staff, early in the Regimen: still a person's outline, one arm already something else. Security's own are the
-     changed, and look it (changed(), below) */
+  /* the bone mother's young: still a person's outline, one arm already something else. The bush's children walk as they
+     do, and are the changed, and look it (changed(), above) */
   husk(mat, m) {
-    if (m.cards) return changed(mat, m);
+    if (m.line === 'bush') return changed(mat, m);
     const R = seeded(m.id), g = new THREE.Group(), cl = R.pick([0xbfc3c0, 0x4a5560, 0x39485a, 0x6b6f5a, 0x7a5a50]), tr = 0x2b2e34;
     /* each leg in two at the knee, which only a body gone loose bends (rig.ts) */
     const legs: O3[] = [], shins: O3[] = [];
