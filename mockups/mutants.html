@@ -45,6 +45,7 @@ button { cursor: pointer; }
 #tools button:hover { border-color: var(--line2); }
 #tools button[aria-pressed="true"] { border-color: var(--hazard); color: var(--hazard); }
 #tools button.grow[aria-pressed="true"] { border-color: var(--leaf); color: var(--leaf); }
+#tools button.flesh[aria-pressed="true"] { border-color: var(--blood); color: var(--blood); }
 #tools button.bone[aria-pressed="true"] { border-color: var(--bone); color: var(--bone); background: rgba(217, 211, 193, .12); }
 #tools .k { position: absolute; right: 3px; bottom: 1px; font-size: 11px; color: var(--ash); }
 #tools svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
@@ -132,6 +133,7 @@ textarea { width: 100%; background: var(--raise); border: 1px solid var(--line);
 .items .dot.eye { background: var(--bone); }
 .items .dot.pustule { background: #d9d0ad; }
 .items .dot.spike, .items .dot.plate { background: #ddd6c0; border-radius: 1px; }
+.items .dot.flesh { background: var(--blood); }
 .items li.on .nm { color: var(--leaf); }
 .items .nm { font-size: 15px; font-weight: 500; cursor: pointer; }
 .legend { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 10px; margin: 6px 0 4px; font-size: 15px; }
@@ -181,6 +183,7 @@ textarea { width: 100%; background: var(--raise); border: 1px solid var(--line);
         <button class="chip" data-light="game" aria-pressed="false" title="The station dark, a flashlight from your eye">Game<span class="lg"> light</span></button>
       </div>
       <button class="chip" id="person" aria-pressed="true" title="A 1.8 m person beside it">Person</button>
+      <button class="chip" id="fine" aria-pressed="false" title="The finer kit: lids and glints on the eyes, leaves with veins, thumbs and toes">Fine detail</button>
       <button class="chip" id="lineup" aria-pressed="false" title="Everything saved, side by side (L)">Line-up</button>
       <div id="readout"></div>
     </div>
@@ -375,6 +378,9 @@ const VCMAT = new THREE.ShaderMaterial({ uniforms: { ...U, uCol: { value: new TH
 /* parts are built onto groups; while a model is built, PART names the part being made (so a click on it knows where it
    landed), ITEM the growth being made, and SINK collects them for picking */
 let PART = null, ITEM = null, SINK = null;
+/* the kit is low-poly by default, as the game's older cast is (a pale head, black dots for eyes, raw lumps): each growth a
+   few plain shapes. FINE draws the finer kit instead (lids, glints, veins, more leaves), for comparing */
+let FINE = false;
 function mk(parent, shape, c, sx, sy, sz, x = 0, y = 0, z = 0) {
   const m = new THREE.Mesh(GEO[shape], matFor(c));
   m.scale.set(Math.max(sx, 1e-4), Math.max(sy, 1e-4), Math.max(sz, 1e-4));
@@ -420,7 +426,7 @@ function seeded(id) {
 
 /* ---------------------------------------------------------------------------------------------------------------- */
 /* colours: castView's and castKit's, and what the dress adds */
-const DARK = 0x140c0d, KNOT = 0x4e4028, KNOT2 = 0x5e5038, LSTALK = 0x5e5a38, VEIN = 0x8a8c5a;
+const RAW = 0x8c4a44, GOREC = 0x4e1616, DARK = 0x140c0d, KNOT = 0x4e4028, KNOT2 = 0x5e5038, LSTALK = 0x5e5a38, VEIN = 0x8a8c5a;
 const LEAF = [0x4b5c2a, 0x5a6630, 0x6e6a2c, 0x7e7430], CURED = [0x8a7428, 0x987c2e, 0xa88a36, 0xb4943e];
 const UNIFORM = 0x2c3440, TROUSERS = 0x23262b, BELT = 0x15181b, BRIEFS = 0xb6b0a0, GLAZE = [1.1, 1.08, 0.98];
 const SHIRTS = { navy: [UNIFORM, 'Navy'], grey: [0x4a5560, 'Grey'], slate: [0x39485a, 'Slate'], olive: [0x6b6f5a, 'Olive'], white: [0xbfc3c0, 'White'], scrubs: [0x4f7c82, 'Scrubs'] };
@@ -439,7 +445,7 @@ function skinOf(K) {
 /* ---------------------------------------------------------------------------------------------------------------- */
 /* what grows on them: the kinds, their sizes, and what each takes besides */
 const KINDS = {
-  eye: { name: 'Eye', size: 0.058, min: 0.02, max: 0.25, extra: { look: 'glassy', lid: 0.55 }, key: '1' },
+  eye: { name: 'Eye', size: 0.045, min: 0.015, max: 0.25, extra: { look: 'dot', lid: 0.55 }, key: '1' },
   pustule: { name: 'Pustule', size: 0.045, min: 0.015, max: 0.2, extra: { tint: 'milky', cluster: false }, key: '2' },
   leaf: { name: 'Leaf shelf', size: 0.28, min: 0.08, max: 0.8, extra: { tiers: 3 }, key: '3' },
   stalk: { name: 'Stalk', size: 0.4, min: 0.1, max: 1.2, extra: { bend: 0.5, flower: true }, key: '4' },
@@ -447,6 +453,7 @@ const KINDS = {
   knot: { name: 'Knot', size: 0.12, min: 0.04, max: 0.4, extra: { form: 'burl' }, key: '6' },
   spike: { name: 'Bone spike', size: 0.14, min: 0.03, max: 0.9, extra: { row: false, bend: 0.3 }, key: '7' },
   plate: { name: 'Bone plate', size: 0.2, min: 0.06, max: 0.8, extra: { rows: 2 }, key: '8' },
+  flesh: { name: 'Raw flesh', size: 0.14, min: 0.03, max: 0.6, extra: {}, key: '9' },
 };
 const PARTS = {
   torso: 'the torso', neck: 'the neck', head: 'the head', pelvis: 'the hips',
@@ -468,7 +475,7 @@ function hem(g, c, w, dp, y, n, R) {
 }
 /** cloth torn open round where something came out through it, r from its middle, the flaps lifted off the skin */
 function tear(G, c, r, s, R) {
-  const n = 7;
+  const n = FINE ? 7 : 4;
   for (let k = 0; k < n; k++) {
     const a = (k / n) * TAU + R.rnd(-0.3, 0.3), len = Math.max(0.025, s * R.rnd(0.12, 0.22)), fw = Math.max(0.02, s * R.rnd(0.08, 0.14));
     const o = grp(G, Math.cos(a) * r, Math.sin(a) * r, 0.004);
@@ -496,6 +503,16 @@ const leafCol = (M, i) => mix(LEAF[i % 4], CURED[i % 4], M.cure);
 const BUILD = {
   /* wet, the pupil pinned whatever the light, the lid heavy over it, the rim red under it (castView, changed) */
   eye(G, it, M) {
+    if (!FINE || it.look === 'dot') {
+      /* a black dot, as the older cast have; glassy, a pale ball with one; milky, the pale ball alone */
+      const s = it.size, look = it.look || 'dot';
+      if (look === 'dot' || look === 'black') mk(G, 'ico', DARK, s, s * 0.9, s * 0.6, 0, 0, s * 0.08);
+      else {
+        mk(G, 'ico', look === 'milky' ? 0xd6d2c4 : GLAZE, s, s * 0.72, s * 0.62, 0, 0, s * 0.08);
+        if (look === 'glassy') mk(G, 'ico', DARK, s * 0.3, s * 0.3, s * 0.2, 0, 0, s * 0.36);
+      }
+      return;
+    }
     const s = it.size, lid = it.lid ?? 0.55, look = it.look || 'glassy';
     mk(G, 'ico', look === 'milky' ? 0xd6d2c4 : look === 'black' ? 0x0d0a0b : GLAZE, s, s * 0.72, s * 0.62, 0, 0, s * 0.08);
     if (look === 'glassy') mk(G, 'ico', DARK, s * 0.17, s * 0.17, s * 0.17, 0, -s * 0.02, s * 0.36);
@@ -505,6 +522,12 @@ const BUILD = {
   },
   /* Pia's (world.md §10): the angry skin round it, the head of it paler */
   pustule(G, it, M, R) {
+    if (!FINE) {
+      const s = it.size, c = { milky: 0xd9d0ad, yellow: 0xc8ac48, raw: 0xa04a3a }[it.tint] ?? 0xd9d0ad;
+      mk(G, 'ico', c, s, s * 0.9, s * 0.75, 0, 0, s * 0.2);
+      if (it.cluster) for (let k = 0; k < 2; k++) { const a = k * 2.4 + R.rnd(-0.4, 0.4), q = s * R.rnd(0.45, 0.6); mk(G, 'ico', c, q, q * 0.9, q * 0.75, Math.cos(a) * s * 0.95, Math.sin(a) * s * 0.95, q * 0.2); }
+      return;
+    }
     const s = it.size, T = { milky: [0xd9d0ad, 0xeee8d2], yellow: [0xc8ac48, 0xe2d27e], raw: [0xa04a3a, 0xc87a62] }[it.tint] ?? [0xd9d0ad, 0xeee8d2];
     const one = (x, y, q) => {
       mk(G, 'ico', 0x8c4a44, q * 1.4, q * 1.4, q * 0.32, x, y, 0);
@@ -516,6 +539,7 @@ const BUILD = {
   },
   /* a shelf of leaf, the way a bracket fungus stacks out of a stump, from a woody knot (castKit.ts, shelf) */
   leaf(G, it, M, R) {
+    if (!FINE) { shelfSimple(G, it.size, Math.min(it.tiers ?? 3, 4), M, R, { rise: it.rise, lean: it.lean }); return; }
     const s = it.size, tiers = it.tiers ?? 3, rise = it.rise ?? s * 0.25, fan = it.fan ?? 0.42, lean = it.lean ?? 0;
     mk(G, 'ico', KNOT, s * 0.45, rise * (tiers - 0.4), s * 0.4, 0, rise * (tiers - 1) / 2, 0);
     for (let j = 0; j < tiers; j++)
@@ -524,8 +548,25 @@ const BUILD = {
         leaf(G, 0, j * rise, lean * j, i * fan + R.rnd(-0.12, 0.12), s * k * R.rnd(0.85, 1.1), R.rnd(-0.05, 0.14), leafCol(M, i + j + 4));
       }
   },
+  /* raw flesh come up through the skin, the older cast's way: a lump, and a darker one in it */
+  flesh(G, it, M, R) {
+    const s = it.size;
+    mk(G, 'ico', RAW, s, s * 0.85, s * 0.6, 0, 0, s * 0.12);
+    mk(G, 'ico', GOREC, s * 0.45, s * 0.4, s * 0.3, s * R.rnd(-0.15, 0.15), s * R.rnd(-0.1, 0.15), s * 0.3);
+    if (FINE) for (let k = 0; k < 2; k++) { const a = k * 3 + R.rnd(-0.5, 0.5); mk(G, 'ico', RAW, s * 0.4, s * 0.35, s * 0.3, Math.cos(a) * s * 0.5, Math.sin(a) * s * 0.45, s * 0.1); }
+  },
   /* the bone mother's: bone come out through the skin, comfortably, numb as they are; one spike, or a ridge of three */
   spike(G, it, M) {
+    if (!FINE) {
+      /* a spindle of bone, or a ridge of three */
+      const s = it.size, n = it.row ? 3 : 1;
+      for (let k = 0; k < n; k++) {
+        const q = n > 1 ? 1 - Math.abs(k - 1) * 0.25 : 1, g = grp(G, 0, (k - (n - 1) / 2) * s * 0.5, 0);
+        g.rotation.x = -(it.bend ?? 0.3) * 0.4;
+        mk(g, 'ico', BONE, s * q * 0.24, s * q * 0.24, s * q, 0, 0, s * q * 0.42);
+      }
+      return;
+    }
     const s = it.size, n = it.row ? 3 : 1, bend = it.bend ?? 0.3;
     for (let k = 0; k < n; k++) {
       const q = n > 1 ? 1 - Math.abs(k - 1) * 0.25 : 1, y = (k - (n - 1) / 2) * s * 0.5;
@@ -542,6 +583,10 @@ const BUILD = {
   },
   /* bone in plates, overlapping down the body in rows, the way her elders armour */
   plate(G, it, M, R) {
+    if (!FINE) {
+      for (let r = 0; r < (it.rows ?? 2); r++) { const p = mk(G, 'box', r % 2 ? BONE2 : BONE, it.size, it.size * 0.32, it.size * 0.08, 0, -r * it.size * 0.27, it.size * 0.04 + r * 0.004); p.rotation.x = -0.25; }
+      return;
+    }
     const s = it.size, rows = it.rows ?? 2;
     for (let r = 0; r < rows; r++)
       for (let c = -1; c <= 1; c++) {
@@ -552,6 +597,18 @@ const BUILD = {
   /* a stalk come out through the skin and turning up to the light, ribbed, a leaf or two, and on the end the plant's
      flowers, or a bud */
   stalk(G, it, M, R) {
+    if (!FINE) {
+      const s = it.size, seg = s / 2;
+      let g = G;
+      for (let k = 0; k < 2; k++) {
+        const sg = grp(g, 0, 0, k ? seg : 0);
+        sg.rotation.x = -(it.bend ?? 0.5) * (k ? 0.6 : 0.3);
+        mk(sg, 'cyl', 0x8aa060, s * 0.13 * (1 - k * 0.3), seg * 1.05, s * 0.13 * (1 - k * 0.3), 0, 0, seg / 2).rotation.x = PI / 2;
+        g = sg;
+      }
+      mk(g, 'ico', it.flower ? 0xe2e0a8 : 0x7a9a50, s * 0.2, s * 0.2, s * 0.16, 0, 0, seg);
+      return;
+    }
     const s = it.size, bend = it.bend ?? 0.5, n = 4, seg = s / n;
     mk(G, 'ico', KNOT, s * 0.22, s * 0.22, s * 0.1, 0, 0, 0);
     let g = G;
@@ -574,6 +631,20 @@ const BUILD = {
   /* roots out of it, out from the skin and then down, the way a cutting roots in water: most of them stand still and
      take root (world.md §2, the Security flesh) */
   roots(G, it, M, R) {
+    if (!FINE) {
+      const s = it.size, n = Math.min(it.count ?? 4, 5), w = 0.016 * Math.sqrt(s / 0.45);
+      for (let k = 0; k < n; k++) {
+        let g = grp(G, 0, 0, 0);
+        g.rotation.set(-1.1 + R.rnd(-0.3, 0.3), ((k / Math.max(1, n - 1)) - 0.5) * 1.4, 0);
+        for (let j = 0; j < 2; j++) {
+          const len = (s / 2) * R.rnd(0.8, 1.15);
+          mk(g, 'box', KNOT, w * (1 - 0.3 * j), len, w * (1 - 0.3 * j), 0, -len / 2, 0);
+          g = grp(g, 0, -len, 0);
+          g.rotation.x = 0.7;
+        }
+      }
+      return;
+    }
     const s = it.size, n = it.count ?? 5, w = 0.013 * Math.sqrt(s / 0.45);
     mk(G, 'ico', KNOT, s * 0.16, s * 0.12, s * 0.09, 0, 0, 0);
     for (let k = 0; k < n; k++) {
@@ -591,6 +662,11 @@ const BUILD = {
   /* where the wood comes through: a burl, or the skin gone to bark in plates */
   knot(G, it, M, R) {
     const s = it.size;
+    if (!FINE) {
+      if (it.form === 'bark') for (let k = 0; k < 3; k++) mk(G, 'box', k % 2 ? 0x5a4a34 : 0x4a3c2a, s * 0.55, s * 0.3, s * 0.07, 0, (k - 1) * s * 0.3, s * 0.02).rotation.z = R.rnd(-0.3, 0.3);
+      else mk(G, 'ico', KNOT, s, s * 0.8, s * 0.55, 0, 0, s * 0.05);
+      return;
+    }
     if (it.form === 'bark') for (let k = 0; k < 9; k++) {
       const p = mk(G, 'box', R.pick([0x5a4a34, 0x6a5a40, 0x4a3c2a]), s * R.rnd(0.25, 0.45), s * R.rnd(0.15, 0.3), s * 0.07, R.rnd(-0.4, 0.4) * s, R.rnd(-0.4, 0.4) * s, s * 0.02);
       p.rotation.z = R.rnd(-0.6, 0.6);
@@ -602,9 +678,19 @@ const BUILD = {
   },
 };
 /** how far from its middle each kind tears the cloth it comes through, by its size; an eye or a pustule tears none */
-const GROWS = { leaf: 0.24, stalk: 0.12, roots: 0.1, knot: 0.45, spike: 0.15, plate: 0.5 };
+/** a shelf, low-poly: the knot and one broad flat slab of leaf a tier, the lowest the widest */
+function shelfSimple(G, s, tiers, M, R, o = {}) {
+  const rise = o.rise ?? s * 0.28;
+  if (!o.bare) mk(G, 'ico', KNOT, s * 0.4, rise * (tiers - 0.3), s * 0.34, 0, (rise * (tiers - 1)) / 2, 0);
+  for (let j = 0; j < tiers; j++) {
+    const k = 1 - j * (0.45 / tiers), g = grp(G, 0, j * rise, (o.lean ?? 0) * j);
+    g.rotation.set(R.rnd(0.02, 0.12), R.rnd(-0.2, 0.2), 0);
+    mk(g, 'ico', leafCol(M, j + 4), s * 1.3 * k, s * 0.1, s * 0.75 * k, 0, 0, s * 0.42 * k);
+  }
+}
+const GROWS = { leaf: 0.24, stalk: 0.12, roots: 0.1, knot: 0.45, spike: 0.15, plate: 0.5, flesh: 0.4 };
 /** about how big each looks, for the ring round the one picked */
-const RADIUS = { eye: 0.75, pustule: 0.8, leaf: 0.9, stalk: 0.6, roots: 0.6, knot: 0.7, spike: 0.6, plate: 0.6 };
+const RADIUS = { eye: 0.75, pustule: 0.8, leaf: 0.9, stalk: 0.6, roots: 0.6, knot: 0.7, spike: 0.6, plate: 0.6, flesh: 0.7 };
 
 const _x = new THREE.Vector3(), _y = new THREE.Vector3(), _ref = new THREE.Vector3(), _m4 = new THREE.Matrix4();
 /** a frame with +z along n and +y as near the part's up as n allows (its forward, where n is up or down) */
@@ -722,15 +808,23 @@ function buildModel(d) {
     /* the bone mother's elders: the flesh gone from the face and the skull grown out over it, one fused, simple shape;
        blind, the sockets closed over, the teeth showing */
     mk(H, 'ico', BONE2, hw * 1.1, hh, hd * 1.08, 0, hh * 0.06, -hd * 0.02);
+    if (!FINE) {
+      /* low-poly: the skull, two dark hollows, the mouth */
+      for (const s of [-1, 1]) mk(H, 'ico', BONEDK, hw * 0.2, hh * 0.12, hd * 0.12, s * hw * 0.2, hh * 0.02, hd * 0.42);
+      mk(H, 'box', 0x2a201c, hw * 0.36, hh * (0.06 + 0.08 * B.jaw), hd * 0.1, 0, -hh * 0.3, hd * 0.4);
+    } else {
     mk(H, 'box', BONE, hw * 0.94, hh * 0.13, hd * 0.24, 0, hh * 0.1, hd * 0.36);
     mk(H, 'box', BONE2, hw * 0.74, hh * 0.46, hd * 0.3, 0, -hh * 0.2, hd * 0.28);
     for (const s of [-1, 1]) mk(H, 'box', BONEDK, hw * 0.2, hh * 0.08, 0.01, s * hw * 0.2, 0, hd * 0.44);
     mk(H, 'box', 0x2a201c, hw * 0.36, hh * (0.06 + 0.08 * B.jaw), hd * 0.1, 0, -hh * 0.36, hd * 0.38);
     mk(H, 'box', 0xe4ddc8, hw * 0.34, hh * 0.05, hd * 0.11, 0, -hh * 0.31, hd * 0.39);
+    }
   } else {
   mk(H, 'ico', skin, hw, hh, hd);
-  for (const s of [-1, 1]) mk(H, 'ico', skinDk, hw * 0.14, hh * 0.25, hd * 0.2, s * hw * 0.48, -hh * 0.02, -hd * 0.04);
-  mk(H, 'box', skinDk, hw * 0.13, hh * 0.17, hd * 0.16, 0, -hh * 0.06, hd * 0.42);
+  if (FINE) {
+    for (const s of [-1, 1]) mk(H, 'ico', skinDk, hw * 0.14, hh * 0.25, hd * 0.2, s * hw * 0.48, -hh * 0.02, -hd * 0.04);
+    mk(H, 'box', skinDk, hw * 0.13, hh * 0.17, hd * 0.16, 0, -hh * 0.06, hd * 0.42);
+  }
   mk(H, 'box', 0x3a2622, hw * 0.33, hh * (0.07 + 0.12 * B.jaw), hd * 0.12, 0, -hh * (0.27 + 0.05 * B.jaw), hd * 0.4); // the mouth, slack
   const hair = Rh.pick([0x1c1a18, 0x2a2420, 0x4a3a2c, 0x6a6058, 0x8a8478]);
   if (D.hair === 'short') mk(H, 'ico', hair, hw * 1.05, hh * 0.6, hd * 1.06, 0, hh * 0.22, -hd * 0.05);
@@ -771,7 +865,7 @@ function buildModel(d) {
     const hl = 0.1 * Math.sqrt(at / 0.11), Hg = grp(Eg, 0, -fa, 0);
     part('hand' + nm, Hg, [0, -hl / 2, 0], [at * 0.8, hl, at * 0.48]);
     mk(Hg, 'box', skin, at * 0.8, hl, at * 0.48, 0, -hl / 2, 0);
-    mk(Hg, 'box', skin, at * 0.24, hl * 0.6, at * 0.26, -s * at * 0.3, -hl * 0.35, at * 0.22); // the thumb
+    if (FINE) mk(Hg, 'box', skin, at * 0.24, hl * 0.6, at * 0.26, -s * at * 0.3, -hl * 0.35, at * 0.22); // the thumb
     if (D.torch && i === 1) {
       /* the night round's flashlight, in the hand that is still a hand */
       mk(Hg, 'cyl', 0x2a2c2e, 0.05, 0.24, 0.05, 0, -hl * 0.6, at * 0.34);
@@ -812,7 +906,7 @@ function buildModel(d) {
       part('foot' + nm, An, [0, -0.03, 0.05], [lt * 0.72, 0.06, 0.24]);
       mk(An, 'ico', skinDk, lt * 0.5, 0.07, lt * 0.5);
       mk(An, 'box', skin, lt * 0.72, 0.06, 0.24, 0, -0.03, 0.05);
-      for (let t = 0; t < 4; t++) mk(An, 'box', skinDk, lt * 0.14, 0.035, 0.04, (t - 1.5) * lt * 0.17, -0.042, 0.18);
+      if (FINE) for (let t = 0; t < 4; t++) mk(An, 'box', skinDk, lt * 0.14, 0.035, 0.04, (t - 1.5) * lt * 0.17, -0.042, 0.18);
     }
   }
 
@@ -913,15 +1007,17 @@ function overgrow(M, d) {
   for (const [part, spots] of Object.entries(SPOTS)) {
     const f = M.parts[part], take = [];
     /* each spot its own numbers, so a spot is where it was however far the rest have spread */
-    for (const sp of spots) { const r = seeded(d.seed * 131 + si++ * 977 + 7); if (sp.w + r.rnd(-0.12, 0.12) < over * 1.05) take.push([sp, r]); }
+    /* low-poly, half the spots, bigger */
+    for (const sp of spots) { const r = seeded(d.seed * 131 + si++ * 977 + 7); if (sp.w + r.rnd(-0.12, 0.12) < over * 1.05 && (FINE || si % 2)) take.push([sp, r]); }
     if (!f || !take.length) continue;
     const big = part === 'torso' ? 0.32 : part === 'head' || part === 'neck' ? 0.2 : 0.24;
     merged(f.g, G => {
       for (const [sp, r] of take) {
         const { G: g, q } = itemGroup(f, { p: sp.p, n: sp.n, spin: r.rnd(-0.35, 0.35) }), s = big * (0.7 + 0.5 * over) * r.rnd(0.85, 1.15);
         G.add(g);
-        shelfLite(g, s, over > 0.6 ? 3 : 2, M, r);
-        if (torn) { const c = M.clothAt(part, q); if (c != null) tear(g, c, s * 0.22, s, r); }
+        if (FINE) shelfLite(g, s, over > 0.6 ? 3 : 2, M, r);
+        else shelfSimple(g, s * 1.75, 2, M, r, { bare: true });
+        if (torn && FINE) { const c = M.clothAt(part, q); if (c != null) tear(g, c, s * 0.22, s, r); }
       }
     });
   }
@@ -1016,7 +1112,7 @@ function base() {
     items: [],
   };
 }
-const EYES = () => [it('eye', 'head', [0.229, 0.089, 0.45], [0.25, 0.1, 0.96], 0.058), it('eye', 'head', [-0.229, 0.089, 0.45], [-0.25, 0.1, 0.96], 0.058)];
+const EYES = () => [it('eye', 'head', [0.229, 0.089, 0.45], [0.25, 0.1, 0.96], 0.042), it('eye', 'head', [-0.229, 0.089, 0.45], [-0.25, 0.1, 0.96], 0.042)];
 /* castView's changed(): up the back of the neck, its side under the jaw, out of the shoulder, and on the most grown down
    the back, each where the game puts it */
 const SHELVES = grown => [
@@ -1034,16 +1130,12 @@ const PRESETS = [
     Object.assign(d.dress, { shirt: 'tornL', sleeveR: 'rolled', legL: 'torn', bootL: 'bare', belt: 'loose', lanyard: true, radio: false, stain: 0.5, hair: 'thin' });
     Object.assign(d.skin, { tone: 4, sallow: 0.55 });
     d.items = withIds([...EYES(),
-      it('leaf', 'torso', [0.46, 0.42, -0.05], [1, 0, -0.1], 0.36, { tiers: 4 }),
-      it('leaf', 'uarmL', [0.5, -0.25, 0], [1, 0, 0], 0.26, { tiers: 3 }),
-      it('leaf', 'torso', [-0.071, 0.467, -0.417], [-0.476, 0, -0.879], 0.3, { tiers: 4, rise: 0.07, fan: 0.45 }),
+      it('leaf', 'torso', [0.46, 0.42, -0.05], [1, 0, -0.1], 0.36, { tiers: 3 }),
+      it('leaf', 'torso', [-0.071, 0.467, -0.417], [-0.476, 0, -0.879], 0.3, { tiers: 3 }),
       it('stalk', 'torso', [0.3, 0.05, 0.5], [0.3, 0, 1], 0.42, { bend: 0.6 }),
-      it('pustule', 'torso', [0.3, 0.62, 0.5], [0, 0, 1], 0.04, { cluster: true }),
-      it('pustule', 'neck', [0.3, 0.2, 0.45], [0.6, 0, 0.8], 0.035),
-      it('roots', 'footL', [0, -0.1, 0.5], [0, -0.2, 1], 0.5, { count: 6 }),
-      it('knot', 'shinL', [0.1, 0.42, 0.5], [0, 0, 1], 0.1, { form: 'bark' }),
-      it('eye', 'uarmL', [0.5, 0.3, 0.3], [1, 0, 0.4], 0.05, { lid: 0.7 }),
-    ]);
+      it('flesh', 'torso', [0.42, 0.6, 0.3], [0.6, 0.5, 0.6], 0.16),
+      it('roots', 'footL', [0, -0.1, 0.5], [0, -0.2, 1], 0.5, { count: 4 }),
+      it('eye', 'uarmL', [0.5, 0.3, 0.3], [1, 0, 0.4], 0.045)]);
     return d;
   }],
   ['day', 'Day shift, as built', () => {
@@ -1069,12 +1161,8 @@ const PRESETS = [
     Object.assign(d.skin, { tone: 1, sallow: 0.7, cure: 0.4 });
     d.items = withIds([...EYES(),
       it('leaf', 'torso', [0, 0.3, -0.5], [0, 0, -1], 0.3, { tiers: 3 }),
-      it('leaf', 'torso', [0.1, -0.1, -0.5], [0.2, 0, -1], 0.26, { tiers: 2 }),
       it('stalk', 'head', [0.1, 0.48, 0], [0.2, 1, 0], 0.35, { bend: 0.3 }),
-      it('pustule', 'farmR', [-0.5, 0.2, 0.1], [-1, 0, 0.2], 0.03),
-      it('pustule', 'farmR', [-0.5, -0.1, 0.2], [-1, 0, 0.3], 0.025),
-      it('pustule', 'farmR', [-0.4, -0.35, 0.5], [-0.5, 0, 1], 0.035),
-    ]);
+      it('flesh', 'farmR', [-0.5, 0, 0.2], [-1, 0, 0.3], 0.12)]);
     return d;
   }],
   ['wide', 'Wide', () => {
@@ -1085,14 +1173,11 @@ const PRESETS = [
     Object.assign(d.dress, { shirt: 'tied', cap: 'back', badge: false, lanyard: true, stain: 0.35 });
     Object.assign(d.skin, { tone: 5, sallow: 0.5 });
     d.items = withIds([...EYES(),
-      it('leaf', 'torso', [0.45, 0.42, -0.25], [0.8, 0.1, -0.6], 0.38, { tiers: 4, rise: 0.08 }),
-      it('leaf', 'torso', [-0.45, 0.38, -0.25], [-0.8, 0.1, -0.6], 0.32, { tiers: 3, rise: 0.075 }),
-      it('leaf', 'torso', [0, 0.3, -0.5], [0, 0, -1], 0.34, { tiers: 4, rise: 0.08 }),
-      it('pustule', 'torso', [0.25, 0.3, 0.5], [0, 0, 1], 0.05, { tint: 'yellow' }),
-      it('pustule', 'torso', [0.12, 0.38, 0.5], [0, 0, 1], 0.03, { tint: 'yellow', cluster: true }),
-      it('pustule', 'torso', [-0.3, 0.2, 0.5], [0, 0, 1], 0.04, { tint: 'yellow' }),
-      it('roots', 'handL', [0, -0.5, 0], [0, -1, 0], 0.5, { count: 5 }),
-    ]);
+      it('leaf', 'torso', [0.45, 0.42, -0.25], [0.8, 0.1, -0.6], 0.38, { tiers: 3 }),
+      it('leaf', 'torso', [-0.45, 0.38, -0.25], [-0.8, 0.1, -0.6], 0.32, { tiers: 3 }),
+      it('leaf', 'torso', [0, 0.3, -0.5], [0, 0, -1], 0.34, { tiers: 3 }),
+      it('pustule', 'torso', [0.25, 0.3, 0.5], [0, 0, 1], 0.06, { tint: 'yellow' }),
+      it('roots', 'handL', [0, -0.5, 0], [0, -1, 0], 0.5, { count: 4 })]);
     return d;
   }],
 ];
@@ -1110,7 +1195,7 @@ const CAST = [
     Object.assign(d.gait, { stride: 1.2, spm: 100, knee: 0.45, armSwing: 0.26, elbow: 0.15, hang: 0.02, sway: 0.03, shamble: 0.25, loll: 0.06 });
     Object.assign(d.dress, { cap: 'askew', lanyard: true, stain: 0.05 });
     Object.assign(d.skin, { tone: 0, sallow: 0.35 });
-    d.items = withIds([...EYES().map(e => ({ ...e, lid: 0.42 })),
+    d.items = withIds([...EYES().map(e => ({ ...e, size: 0.036 })),
       it('leaf', 'torso', [-0.071, 0.467, -0.417], [-0.476, 0, -0.879], 0.22, { tiers: 2, rise: 0.06 })]);
     return d;
   }],
@@ -1122,43 +1207,38 @@ const CAST = [
     Object.assign(d.dress, { shirt: 'tornL', sleeveR: 'short', bootL: 'bare', stain: 0.25, hair: 'short' });
     Object.assign(d.skin, { tone: 3, sallow: 0.5 });
     d.items = withIds([...EYES(),
-      it('leaf', 'uarmL', [0.5, -0.05, -0.15], [1, 0, -0.3], 0.26, { tiers: 3 }),
-      it('leaf', 'farmL', [0.5, 0.15, -0.1], [1, 0, -0.4], 0.2, { tiers: 2 }),
+      it('leaf', 'uarmL', [0.5, -0.05, -0.15], [1, 0, -0.3], 0.28, { tiers: 3 }),
       it('stalk', 'torso', [0.46, 0.5, 0.05], [0.4, 1, 0.1], 0.36, { bend: 0.3 }),
-      it('leaf', 'torso', [-0.071, 0.467, -0.417], [-0.476, 0, -0.879], 0.26, { tiers: 3, rise: 0.065 }),
-      it('pustule', 'farmL', [0.4, -0.3, 0.5], [0.4, 0, 1], 0.03, { cluster: true })]);
+      it('flesh', 'farmL', [0.45, -0.2, 0.4], [0.5, 0, 1], 0.1)]);
     return d;
   }],
   ['opsoff', 'Ops, offices', () => {
     const d = base();
-    Object.assign(d, { name: 'Ops, offices', seed: 13, notes: 'The Operations corridor, by the offices (upper.ts: 72, 7). Long in the arm: the hands hang at its knees and come up a little ahead of it. Narrow with it. Down to its vest, stained; Pia\'s pustules in clusters up both forearms, a shelf between the shoulder blades. 0.85 m/s, a long loping stride, the arms swinging.' });
+    Object.assign(d, { name: 'Ops, offices', seed: 13, notes: 'The Operations corridor, by the offices (upper.ts: 72, 7). Long in the arm: the hands hang at its knees and come up a little ahead of it. Narrow with it. Down to its vest, stained; Pia\'s pustules up both arms, a shelf between the shoulder blades. 0.85 m/s, a long loping stride, the arms swinging.' });
     Object.assign(d.body, { torsoW: 0.36, torsoD: 0.22, torsoL: 0.62, shoulder: 0.05, uArm: 0.5, fArm: 0.48, armT: 0.095, hunch: 0.22, tilt: 0.2, droop: 0.18, jaw: 0.4 });
     Object.assign(d.gait, { stride: 1.2, spm: 84, knee: 0.4, armSwing: 0.42, elbow: 0.35, hang: 0.2, sway: 0.05, shamble: 0.35, loll: 0.12 });
     Object.assign(d.dress, { shirt: 'vest', vestCol: 'stained', belt: 'loose', radio: false, stain: 0.45, hair: 'thin' });
     Object.assign(d.skin, { tone: 2, sallow: 0.6 });
     d.items = withIds([...EYES(),
       it('leaf', 'torso', [0.05, 0.62, -0.5], [0, 0, -1], 0.3, { tiers: 3 }),
-      it('pustule', 'farmL', [0.5, 0.25, 0.1], [1, 0, 0.2], 0.04, { cluster: true }),
-      it('pustule', 'farmL', [0.45, -0.2, 0.3], [1, 0, 0.5], 0.032),
-      it('pustule', 'farmR', [-0.5, 0.1, 0.15], [-1, 0, 0.2], 0.042, { cluster: true }),
-      it('pustule', 'farmR', [-0.4, -0.35, 0.4], [-1, 0, 0.6], 0.03),
-      it('pustule', 'uarmR', [-0.5, -0.3, 0.2], [-1, 0, 0.3], 0.036)]);
+      it('pustule', 'farmL', [0.5, 0.15, 0.1], [1, 0, 0.2], 0.045),
+      it('pustule', 'farmR', [-0.5, -0.1, 0.15], [-1, 0, 0.2], 0.05),
+      it('pustule', 'uarmR', [-0.5, -0.3, 0.2], [-1, 0, 0.3], 0.04)]);
     return d;
   }],
   ['opsspk', 'Ops, speaker', () => {
     const d = base();
-    Object.assign(d, { name: 'Ops, speaker', seed: 14, notes: 'The Operations corridor, under the zone\'s speaker (upper.ts: 77, 18). Operations watched the cameras, and the body grows what you do (world.md §10, rule 1): its head swelled, too heavy for the neck, and grew eyes, two on the brow, one at the temple, one at the back of the skull. Shirt hanging open, sleeves rolled; it still carries its card and its radio. 0.7 m/s, careful with the weight of its head.' });
+    Object.assign(d, { name: 'Ops, speaker', seed: 14, notes: 'The Operations corridor, under the zone\'s speaker (upper.ts: 77, 18). Operations watched the cameras, and the body grows what you do (world.md §10, rule 1): its head swelled, too heavy for the neck, and grew eyes: black dots, two on the brow, one at the temple, one at the back of the skull. Shirt hanging open, sleeves rolled; it still carries its card and its radio. 0.7 m/s, careful with the weight of its head.' });
     Object.assign(d.body, { headSize: 1.3, headW: 1.1, headH: 1.12, neckL: 0.07, hunch: 0.16, tilt: 0.32, droop: 0.28, jaw: 0.35, torsoW: 0.44 });
     Object.assign(d.gait, { stride: 0.95, spm: 88, knee: 0.3, armSwing: 0.16, elbow: 0.3, hang: 0.1, sway: 0.08, shamble: 0.5, loll: 0.14 });
     Object.assign(d.dress, { shirt: 'open', shirtCol: 'slate', sleeveL: 'rolled', sleeveR: 'rolled', lanyard: true, epaulettes: false, stain: 0.2, hair: 'none' });
     Object.assign(d.skin, { tone: 5, sallow: 0.55 });
     d.items = withIds([...EYES(),
-      it('eye', 'head', [0.13, 0.3, 0.41], [0.25, 0.45, 0.86], 0.04, { lid: 0.35 }),
-      it('eye', 'head', [-0.11, 0.33, 0.4], [-0.2, 0.5, 0.84], 0.034, { lid: 0.4 }),
-      it('eye', 'head', [0.46, 0.12, 0.14], [1, 0.2, 0.35], 0.042, { lid: 0.5 }),
-      it('eye', 'head', [0.02, 0.0, -0.48], [0, 0, -1], 0.05, { lid: 0.3 }),
-      it('leaf', 'torso', [-0.071, 0.467, -0.417], [-0.476, 0, -0.879], 0.28, { tiers: 3, rise: 0.065 }),
-      it('leaf', 'torso', [-0.476, 0.3, -0.083], [-0.996, 0, -0.086], 0.26, { tiers: 3 })]);
+      it('eye', 'head', [0.13, 0.3, 0.41], [0.25, 0.45, 0.86], 0.036),
+      it('eye', 'head', [-0.11, 0.33, 0.4], [-0.2, 0.5, 0.84], 0.03),
+      it('eye', 'head', [0.46, 0.12, 0.14], [1, 0.2, 0.35], 0.038),
+      it('eye', 'head', [0.02, 0, -0.48], [0, 0, -1], 0.045),
+      it('leaf', 'torso', [-0.071, 0.467, -0.417], [-0.476, 0, -0.879], 0.28, { tiers: 3, rise: 0.065 })]);
     return d;
   }],
   ['stair', 'Ops stair', () => {
@@ -1168,15 +1248,12 @@ const CAST = [
     Object.assign(d.gait, { stride: 0.75, spm: 66, knee: 0.22, armSwing: 0.15, elbow: 0.3, hang: 0.12, sway: 0.1, shamble: 0.6, loll: 0.06 });
     Object.assign(d.dress, { shirt: 'tied', legL: 'rolled', legR: 'rolled', bootL: 'bare', bootR: 'bare', cap: 'back', badge: false, radio: false, stain: 0.4 });
     Object.assign(d.skin, { tone: 6, sallow: 0.45, cure: 0.15 });
-    d.items = withIds([...EYES().map((e, i) => ({ ...e, lid: 0.7, ...(i ? { look: 'milky', size: 0.038, lid: 0.75 } : {}) })),
-      it('leaf', 'torso', [0.45, 0.42, -0.25], [0.8, 0.1, -0.6], 0.36, { tiers: 4, rise: 0.08 }),
+    d.items = withIds([EYES()[0], { ...EYES()[1], look: 'milky', size: 0.034 },
+      it('leaf', 'torso', [0.45, 0.42, -0.25], [0.8, 0.1, -0.6], 0.36, { tiers: 3, rise: 0.08 }),
       it('leaf', 'torso', [-0.45, 0.38, -0.25], [-0.8, 0.1, -0.6], 0.32, { tiers: 3, rise: 0.075 }),
-      it('leaf', 'torso', [0, 0.3, -0.5], [0, 0, -1], 0.32, { tiers: 4, rise: 0.08 }),
-      it('leaf', 'torso', [0, -0.1, -0.5], [0, 0, -1], 0.26, { tiers: 2 }),
-      it('pustule', 'torso', [0.24, 0.3, 0.5], [0, 0, 1], 0.045),
-      it('pustule', 'torso', [0.12, 0.4, 0.5], [0, 0, 1], 0.03, { cluster: true }),
-      it('pustule', 'torso', [-0.28, 0.22, 0.5], [0, 0, 1], 0.038),
-      it('pustule', 'torso', [-0.16, 0.42, 0.5], [0, 0, 1], 0.026),
+      it('leaf', 'torso', [0, 0.3, -0.5], [0, 0, -1], 0.32, { tiers: 3, rise: 0.08 }),
+      it('pustule', 'torso', [0.24, 0.3, 0.5], [0, 0, 1], 0.055),
+      it('pustule', 'torso', [-0.28, 0.22, 0.5], [0, 0, 1], 0.045),
       it('knot', 'farmL', [0.5, 0, 0.1], [1, 0, 0.2], 0.12, { form: 'bark' })]);
     return d;
   }],
@@ -1187,34 +1264,26 @@ const CAST = [
     Object.assign(d.gait, { stride: 1.45, spm: 83, knee: 0.45, armSwing: 0.15, elbow: 0.45, hang: 0.28, sway: 0.03, shamble: 0.15, loll: 0.08 });
     Object.assign(d.dress, { cap: 'on', torch: true, lanyard: true, stain: 0.2 });
     Object.assign(d.skin, { tone: 1, sallow: 0.7, cure: 0.1 });
-    d.items = withIds([...EYES(), ...SHELVES(3),
-      it('leaf', 'torso', [0.15, 0.15, -0.5], [0.3, 0, -1], 0.26, { tiers: 3 })]);
+    d.items = withIds([...EYES(), ...SHELVES(3)]);
     return d;
   }],
   ['goods', 'Goods inward', () => {
     const d = base();
-    Object.assign(d, { name: 'Goods inward', seed: 17, notes: 'On post at the freight door in Goods inward (upper.ts: 18, 6.8). The oldest of them, and the most plant: it stopped here early and has been taking root since, out of both feet and a hand. Long in the body, short in the leg, bent over; the shirt gone, the trousers torn at both knees, the leaf curing yellow, bark through the shins and an arm, a stalk flowering from the crown, leaf out of the side of its face. Its eyes are going milky. If it walks at all it is a quarter of a metre a second, and it drags its feet.' });
+    Object.assign(d, { name: 'Goods inward', seed: 17, notes: 'On post at the freight door in Goods inward (upper.ts: 18, 6.8). The oldest of them, and the most plant: it stopped here early and has been taking root since, out of both feet and a hand. Long in the body, short in the leg, bent over; the shirt gone, the trousers torn at both knees, the leaf curing yellow, bark through a shin, a stalk flowering from the crown, leaf out of the side of its face. Its eyes are going milky. If it walks at all it is a quarter of a metre a second, and it drags its feet.' });
     Object.assign(d.body, { torsoL: 0.84, torsoW: 0.44, torsoD: 0.26, thigh: 0.4, shin: 0.4, legT: 0.17, uArm: 0.4, fArm: 0.38, hunch: 0.5, tilt: -0.35, droop: 0.4, jaw: 0.7, neckL: 0.18 });
     Object.assign(d.gait, { stride: 0.55, spm: 50, knee: 0.08, armSwing: 0.06, elbow: 0.15, hang: 0.05, sway: 0.12, shamble: 0.9, loll: 0.2 });
     Object.assign(d.dress, { shirt: 'none', legL: 'torn', legR: 'torn', bootL: 'bare', bootR: 'bare', belt: 'loose', radio: false, badge: false, epaulettes: false, hair: 'thin', stain: 0.6 });
     Object.assign(d.skin, { tone: 4, sallow: 0.9, cure: 0.7 });
-    d.items = withIds([...EYES().map(e => ({ ...e, look: 'milky', lid: 0.8 })),
-      it('leaf', 'torso', [-0.071, 0.467, -0.417], [-0.476, 0, -0.879], 0.34, { tiers: 5, rise: 0.07, fan: 0.45 }),
-      it('leaf', 'torso', [0.45, 0.4, -0.15], [0.85, 0.1, -0.5], 0.34, { tiers: 4 }),
-      it('leaf', 'torso', [-0.45, 0.35, -0.15], [-0.85, 0.1, -0.5], 0.3, { tiers: 4 }),
-      it('leaf', 'torso', [0, 0.05, -0.5], [0, 0, -1], 0.32, { tiers: 4 }),
-      it('leaf', 'thighR', [-0.5, 0.15, 0], [-1, 0, -0.2], 0.24, { tiers: 3 }),
+    d.items = withIds([...EYES().map(e => ({ ...e, look: 'milky' })),
+      it('leaf', 'torso', [-0.071, 0.467, -0.417], [-0.476, 0, -0.879], 0.34, { tiers: 4, rise: 0.07, fan: 0.45 }),
+      it('leaf', 'torso', [0.45, 0.4, -0.15], [0.85, 0.1, -0.5], 0.34, { tiers: 3 }),
+      it('leaf', 'torso', [0, 0.05, -0.5], [0, 0, -1], 0.32, { tiers: 3 }),
+      it('leaf', 'head', [0.48, -0.05, -0.1], [1, -0.2, -0.2], 0.2, { tiers: 2 }),
       it('stalk', 'head', [0.05, 0.48, -0.05], [0.1, 1, -0.15], 0.42, { bend: 0.25 }),
-      it('leaf', 'head', [0.48, -0.05, -0.1], [1, -0.2, -0.2], 0.2, { tiers: 3 }),
-      it('leaf', 'head', [-0.4, 0.05, 0.25], [-0.8, 0.1, 0.55], 0.13, { tiers: 2 }),
       it('knot', 'shinL', [0.1, 0.1, 0.5], [0, 0, 1], 0.12, { form: 'bark' }),
-      it('knot', 'shinR', [-0.1, 0.25, 0.5], [0, 0, 1], 0.1, { form: 'bark' }),
-      it('knot', 'uarmL', [0.5, 0, 0], [1, 0, 0], 0.11, { form: 'burl' }),
-      it('roots', 'footL', [0.25, 0.5, 0.2], [0.5, 0.8, 0.6], 0.5, { count: 7 }),
-      it('roots', 'footR', [-0.25, 0.5, 0.2], [-0.5, 0.8, 0.6], 0.46, { count: 6 }),
-      it('roots', 'shinL', [0.5, -0.4, 0], [1, 0.1, 0], 0.4, { count: 4 }),
-      it('roots', 'handL', [0, -0.5, 0], [0, -1, 0], 0.5, { count: 5 }),
-      it('pustule', 'neck', [0.3, 0.1, 0.45], [0.6, 0, 0.8], 0.03, { cluster: true })]);
+      it('roots', 'footL', [0.25, 0.5, 0.2], [0.5, 0.8, 0.6], 0.5, { count: 4 }),
+      it('roots', 'footR', [-0.25, 0.5, 0.2], [-0.5, 0.8, 0.6], 0.46, { count: 4 }),
+      it('roots', 'handL', [0, -0.5, 0], [0, -1, 0], 0.5, { count: 4 })]);
     return d;
   }],
 ];
@@ -1225,18 +1294,16 @@ const both = (kind, part, p, n, size, extra = {}) => [it(kind, part + 'L', p, n,
 const LINES = [
   ['husk', 'Bone, young', () => {
     const d = base();
-    Object.assign(d, { name: 'Bone, young', seed: 31, notes: 'The bone mother\'s, young in it: the husk as it should become. The fear for good, and slow, but quick to answer: intelligent, aggressive, reactive. The bone comes out comfortably, numb as they all are: out of the elbows and a shoulder, a ridge down the spine, a claw of bone past the fingers, the first plates on a forearm. The eyes wide. A Commons resident\'s clothes, torn where the bone came through.' });
+    Object.assign(d, { name: 'Bone, young', seed: 31, notes: 'The bone mother\'s, young in it: the husk as it should become. The fear for good, and slow, but quick to answer: intelligent, aggressive, reactive. The bone comes out comfortably, numb as they all are: out of the elbows, a ridge down the spine, a claw of bone past the fingers; the shoulder gone raw where it began. Black eyes, set and still. A Commons resident\'s clothes, torn where the bone came through.' });
     Object.assign(d.body, { hunch: 0.28, tilt: 0.1, droop: -0.05, jaw: 0.35, uArm: 0.4, fArm: 0.4, shoulder: 0.03 });
     Object.assign(d.gait, { stride: 1.15, spm: 90, knee: 0.5, armSwing: 0.2, elbow: 0.55, hang: 0.45, sway: 0.03, shamble: 0.15, loll: 0.04 });
     Object.assign(d.dress, { shirt: 'tornR', shirtCol: 'grey', legR: 'torn', bootR: 'bare', belt: 'off', badge: false, epaulettes: false, radio: false, stain: 0.4 });
     Object.assign(d.skin, { tone: 2, sallow: 0.35 });
-    d.items = withIds([...EYES().map(e => ({ ...e, lid: 0.12 })),
+    d.items = withIds([...EYES(),
       ...both('spike', 'farm', [0, 0.45, -0.5], [0, 0.3, -1], 0.2),
       it('spike', 'torso', [0, 0.2, -0.5], [0, 0, -1], 0.17, { row: true }),
-      it('spike', 'torso', [-0.45, 0.48, 0], [-0.6, 0.8, 0], 0.17),
       it('spike', 'handR', [0, -0.5, 0.2], [0, -1, 0.3], 0.26, { bend: 0.1 }),
-      it('plate', 'farmR', [-0.5, 0.05, 0.1], [-1, 0, 0.2], 0.14, { rows: 2 }),
-      it('spike', 'shinR', [0, 0.35, 0.5], [0, 0.2, 1], 0.11)]);
+      it('flesh', 'torso', [-0.42, 0.5, 0], [-0.7, 0.7, 0], 0.18)]);
     return d;
   }],
   ['bonemid', 'Bone, middle years', () => {
@@ -1246,14 +1313,10 @@ const LINES = [
     Object.assign(d.gait, { stride: 1.5, spm: 92, knee: 0.6, armSwing: 0.35, elbow: 0.3, hang: 0.35, sway: 0.05, shamble: 0.15, loll: 0.05 });
     Object.assign(d.dress, { shirt: 'none', legL: 'torn', legR: 'torn', bootL: 'bare', bootR: 'bare', belt: 'loose', badge: false, epaulettes: false, radio: false, hair: 'thin', stain: 0.3 });
     Object.assign(d.skin, { tone: 3, sallow: 0.45 });
-    d.items = withIds([...EYES().map(e => ({ ...e, size: 0.045, lid: 0.3 })),
+    d.items = withIds([...EYES().map(e => ({ ...e, size: 0.034 })),
       it('plate', 'torso', [0, 0.32, 0.5], [0, 0, 1], 0.3, { rows: 3 }),
-      ...both('plate', 'farm', [0.5, 0.25, 0], [1, 0, 0.1], 0.13, { rows: 2 }),
-      ...both('spike', 'farm', [0.5, -0.1, -0.1], [1, 0, -0.3], 0.11, { row: true }),
-      it('spike', 'torso', [0, 0.25, -0.5], [0, 0, -1], 0.16, { row: true }),
-      it('spike', 'torso', [0, -0.15, -0.5], [0, 0, -1], 0.13, { row: true }),
-      it('spike', 'torso', [0.45, 0.48, -0.05], [0.6, 0.8, -0.1], 0.16), it('spike', 'torso', [-0.45, 0.48, -0.05], [-0.6, 0.8, -0.1], 0.16),
-      ...both('plate', 'shin', [0, 0.2, 0.5], [0, 0, 1], 0.14, { rows: 2 })]);
+      ...both('spike', 'farm', [0.5, -0.1, -0.1], [1, 0, -0.3], 0.12, { row: true }),
+      it('spike', 'torso', [0, 0.25, -0.5], [0, 0, -1], 0.17, { row: true })]);
     return d;
   }],
   ['boneold', 'Bone elder', () => {
@@ -1264,32 +1327,25 @@ const LINES = [
     Object.assign(d.dress, { shirt: 'none', legL: 'bare', legR: 'bare', bootL: 'bare', bootR: 'bare', belt: 'off', badge: false, epaulettes: false, radio: false, hair: 'none', stain: 0 });
     Object.assign(d.skin, { tone: 4, sallow: 0.5 });
     d.items = withIds([
-      it('plate', 'torso', [0.42, 0.45, -0.1], [0.6, 0.7, -0.3], 0.32, { rows: 3 }), it('plate', 'torso', [-0.42, 0.45, -0.1], [-0.6, 0.7, -0.3], 0.32, { rows: 3 }),
-      it('plate', 'torso', [0, 0.35, -0.5], [0, 0, -1], 0.36, { rows: 4 }), it('plate', 'torso', [0, -0.15, -0.5], [0, 0, -1], 0.32, { rows: 3 }),
-      it('plate', 'torso', [0, 0.3, 0.5], [0, 0, 1], 0.32, { rows: 3 }),
-      ...both('plate', 'farm', [0.5, 0.2, 0], [1, 0, 0.1], 0.2, { rows: 3 }), ...both('plate', 'uarm', [0.5, 0.1, 0], [1, 0, 0], 0.2, { rows: 2 }),
-      ...both('plate', 'thigh', [0.5, 0.2, 0], [1, 0, 0], 0.22, { rows: 3 }), ...both('plate', 'shin', [0, 0.3, 0.5], [0, 0, 1], 0.18, { rows: 4 }),
-      it('spike', 'torso', [0, 0.48, -0.5], [0, 0.3, -1], 0.2, { row: true }),
-      it('spike', 'head', [0, 0.45, -0.15], [0, 1, -0.4], 0.16, { row: true }),
-      ...both('spike', 'farm', [0, 0.45, -0.5], [0, 0.3, -1], 0.18)]);
+      it('plate', 'torso', [0.42, 0.45, -0.1], [0.6, 0.7, -0.3], 0.34, { rows: 2 }), it('plate', 'torso', [-0.42, 0.45, -0.1], [-0.6, 0.7, -0.3], 0.34, { rows: 2 }),
+      it('plate', 'torso', [0, 0.3, -0.5], [0, 0, -1], 0.38, { rows: 3 }), it('plate', 'torso', [0, 0.3, 0.5], [0, 0, 1], 0.34, { rows: 3 }),
+      ...both('plate', 'farm', [0.5, 0.2, 0], [1, 0, 0.1], 0.22, { rows: 2 }), ...both('plate', 'shin', [0, 0.3, 0.5], [0, 0, 1], 0.2, { rows: 3 }),
+      it('spike', 'head', [0, 0.45, -0.15], [0, 1, -0.4], 0.16, { row: true })]);
     return d;
   }],
   ['bonemother', 'The bone mother', () => {
     const d = base();
-    Object.assign(d, { name: 'The bone mother', seed: 34, notes: 'A young god (world.md §10): the woman who poked the bony post where Pia\'s index finger had been. The eldest of her line, so the first to lose her face. Drawn out on long bones, legs nearly twice a person\'s, plated down the shins and the forearms, ridges down her spine, a crest on the skull and horns at its sides, bone claws past the fingers. About 4.8 m. Like Pia, she has older children and younger ones.' });
+    Object.assign(d, { name: 'The bone mother', seed: 34, notes: 'A young god (world.md §10): the woman who poked the bony post where Pia\'s index finger had been. The eldest of her line, so the first to lose her face. Drawn out on long bones, legs nearly twice a person\'s, plated down the shins, a ridge down her spine, a crest on the skull, bone out of the elbows and claws past the fingers. About 4.8 m. Like Pia, she has older children and younger ones.' });
     Object.assign(d.body, { scale: 1.55, torsoW: 0.4, torsoD: 0.26, torsoL: 0.78, shoulder: 0.02, uArm: 0.56, fArm: 0.62, armT: 0.1, thigh: 0.82, shin: 0.9, legT: 0.14, head: 'skull', headSize: 1.2, headW: 0.95, headH: 1.25, neckL: 0.3, hunch: 0.25, tilt: 0.15, droop: 0.15, jaw: 0.4 });
     Object.assign(d.gait, { stride: 2.2, spm: 46, knee: 0.5, armSwing: 0.1, elbow: 0.4, hang: 0.3, sway: 0.03, shamble: 0.1, loll: 0.05 });
     Object.assign(d.dress, { shirt: 'none', legL: 'bare', legR: 'bare', bootL: 'bare', bootR: 'bare', belt: 'off', badge: false, epaulettes: false, radio: false, hair: 'none', stain: 0 });
     Object.assign(d.skin, { tone: 3, sallow: 0.55 });
     d.items = withIds([
-      it('plate', 'torso', [0, 0.3, 0.5], [0, 0, 1], 0.28, { rows: 3 }),
-      it('spike', 'torso', [0, 0.35, -0.5], [0, 0, -1], 0.22, { row: true }), it('spike', 'torso', [0, 0, -0.5], [0, 0, -1], 0.2, { row: true }), it('spike', 'torso', [0, -0.32, -0.5], [0, 0, -1], 0.18, { row: true }),
+      it('plate', 'torso', [0, 0.3, 0.5], [0, 0, 1], 0.3, { rows: 3 }),
+      it('spike', 'torso', [0, 0.25, -0.5], [0, 0, -1], 0.24, { row: true }),
       it('spike', 'head', [0, 0.45, -0.15], [0, 1, -0.4], 0.2, { row: true }),
-      it('spike', 'head', [0.45, 0.2, -0.1], [1, 0.5, -0.3], 0.18), it('spike', 'head', [-0.45, 0.2, -0.1], [-1, 0.5, -0.3], 0.18),
-      ...both('spike', 'farm', [0, 0.45, -0.5], [0, 0.3, -1], 0.3), ...both('spike', 'shin', [0, 0.47, 0.5], [0, 0.4, 1], 0.18),
-      ...both('plate', 'shin', [0, 0.15, 0.5], [0, 0, 1], 0.16, { rows: 4 }), ...both('plate', 'thigh', [0.5, 0.2, 0], [1, 0, 0], 0.2, { rows: 3 }),
-      ...both('plate', 'farm', [0.5, 0.2, 0], [1, 0, 0.1], 0.16, { rows: 3 }),
-      ...both('spike', 'hand', [0, -0.5, 0.2], [0, -1, 0.2], 0.35, { bend: 0.1 })]);
+      ...both('spike', 'farm', [0, 0.45, -0.5], [0, 0.3, -1], 0.32), ...both('plate', 'shin', [0, 0.15, 0.5], [0, 0, 1], 0.18, { rows: 3 }),
+      ...both('spike', 'hand', [0, -0.5, 0.2], [0, -1, 0.2], 0.36, { bend: 0.1 })]);
     return d;
   }],
   ['bloatyoung', 'Bloat, young', () => {
@@ -1299,8 +1355,7 @@ const LINES = [
     Object.assign(d.gait, { stride: 0.75, spm: 92, knee: 0.3, armSwing: 0.2, elbow: 0.35, hang: 0.2, sway: 0.14, shamble: 0.35, loll: 0.15 });
     Object.assign(d.dress, { shirt: 'vest', vestCol: 'stained', legL: 'rolled', legR: 'rolled', bootL: 'bare', bootR: 'bare', belt: 'off', badge: false, epaulettes: false, radio: false, hair: 'thin', stain: 0.35 });
     Object.assign(d.skin, { tone: 1, sallow: 0.3 });
-    d.items = withIds([...EYES().map(e => ({ ...e, look: 'black', size: 0.036, lid: 0.15 })),
-      it('pustule', 'neck', [0.4, 0, 0.3], [1, 0, 0.6], 0.035), it('pustule', 'farmL', [0.5, -0.1, 0.2], [1, 0, 0.3], 0.03, { cluster: true })]);
+    d.items = withIds([...EYES().map(e => ({ ...e, size: 0.03 })), it('pustule', 'neck', [0.4, 0, 0.3], [1, 0, 0.6], 0.045)]);
     return d;
   }],
   ['bloatold', 'Bloat, older', () => {
@@ -1310,19 +1365,18 @@ const LINES = [
     Object.assign(d.gait, { stride: 0.5, spm: 52, knee: 0.15, armSwing: 0.1, elbow: 0.2, hang: 0.1, sway: 0.18, shamble: 0.7, loll: 0.3 });
     Object.assign(d.dress, { shirt: 'none', legL: 'bare', legR: 'bare', bootL: 'bare', bootR: 'bare', belt: 'off', badge: false, epaulettes: false, radio: false, hair: 'none', stain: 0.2 });
     Object.assign(d.skin, { tone: 4, sallow: 0.35 });
-    d.items = withIds([...EYES().map(e => ({ ...e, look: 'black', size: 0.034, lid: 0.65 })),
-      it('pustule', 'torso', [0.2, 0, 0.52], [0.2, 0, 1], 0.05), it('pustule', 'torso', [-0.18, 0.18, 0.5], [-0.2, 0.2, 1], 0.04, { cluster: true }), it('pustule', 'torso', [0.05, -0.25, 0.48], [0, -0.2, 1], 0.045)]);
+    d.items = withIds([...EYES().map(e => ({ ...e, size: 0.03 })),
+      it('pustule', 'torso', [0.2, 0, 0.52], [0.2, 0, 1], 0.06), it('flesh', 'torso', [-0.18, 0.18, 0.5], [-0.2, 0.2, 1], 0.14)]);
     return d;
   }],
   ['bloatgod', 'The bloat god', () => {
     const d = base();
-    Object.assign(d, { name: 'The bloat god', seed: 37, notes: 'A young god (world.md §10): the nurse, a man, whose arm Pia grabbed. Larger than any of his line, the bloats come from him. About 4 m: not Pia\'s size, but big. Still in what is left of his scrubs, stretched round him; the pustules where her hand closed on his arm. Barely moves; dopey, as his children become.' });
+    Object.assign(d, { name: 'The bloat god', seed: 37, notes: 'A young god (world.md §10): the nurse, a man, whose arm Pia grabbed. Larger than any of his line, the bloats come from him. About 4 m: not Pia\'s size, but big. Still in what is left of his scrubs, stretched round him; raw where her hand closed on his arm. Barely moves; dopey, as his children become.' });
     Object.assign(d.body, { scale: 2.5, torsoW: 0.46, torsoD: 0.3, torsoL: 0.62, swell: 1, gut: 1, hipW: 0.28, headSize: 1.5, headW: 1.25, headH: 0.95, neckL: 0.04, uArm: 0.3, fArm: 0.28, armT: 0.12, armL: 1.1, thigh: 0.34, shin: 0.3, legT: 0.2, hunch: 0.02, tilt: 0.2, droop: 0.25, jaw: 0.6, splay: 0.1 });
     Object.assign(d.gait, { stride: 0.4, spm: 36, knee: 0.1, armSwing: 0.05, elbow: 0.25, hang: 0.15, sway: 0.2, shamble: 0.85, loll: 0.35 });
     Object.assign(d.dress, { shirt: 'uniform', shirtCol: 'scrubs', sleeveL: 'short', sleeveR: 'torn', legL: 'full', legR: 'full', bootL: 'bare', bootR: 'bare', belt: 'off', badge: false, epaulettes: false, radio: false, hair: 'thin', stain: 0.5 });
     Object.assign(d.skin, { tone: 3, sallow: 0.3 });
-    d.items = withIds([...EYES().map(e => ({ ...e, look: 'black', size: 0.032, lid: 0.55 })),
-      it('pustule', 'farmL', [0.5, 0.2, 0.2], [1, 0, 0.3], 0.05, { cluster: true }), it('pustule', 'farmL', [0.4, -0.15, 0.4], [1, 0, 0.6], 0.04, { tint: 'raw' })]);
+    d.items = withIds([...EYES().map(e => ({ ...e, size: 0.028 })), it('flesh', 'farmL', [0.5, 0.15, 0.2], [1, 0, 0.3], 0.16)]);
     return d;
   }],
   ['plantold', 'Plant, old', () => {
@@ -1332,7 +1386,7 @@ const LINES = [
     Object.assign(d.gait, { stride: 0.7, spm: 56, knee: 0.15, armSwing: 0.08, elbow: 0.2, hang: 0.1, sway: 0.1, shamble: 0.75, loll: 0.15 });
     Object.assign(d.dress, { shirt: 'tornR', legL: 'torn', bootL: 'bare', belt: 'loose', badge: false, radio: false, hair: 'thin', stain: 0.5 });
     Object.assign(d.skin, { tone: 2, sallow: 0.8, cure: 0.3, green: 0.45, over: 0.55 });
-    d.items = withIds([{ ...EYES()[0], lid: 0.7 }, it('pustule', 'neck', [0.3, 0.2, 0.45], [0.6, 0, 0.8], 0.03, { cluster: true })]);
+    d.items = withIds([EYES()[0], it('pustule', 'neck', [0.3, 0.2, 0.45], [0.6, 0, 0.8], 0.04)]);
     return d;
   }],
   ['bush', 'The bush', () => {
@@ -1570,7 +1624,7 @@ const LEGS = [['full', 'Full'], ['rolled', 'Rolled'], ['torn', 'Torn at knee'], 
 {
   const P = $('p-growth');
   const legend = el('div', 'legend');
-  legend.innerHTML = Object.entries(KINDS).map(([k, K]) => `<b>${K.key}</b><span><i style="color:var(--bone);font-style:normal">${K.name}</i> · ${({ eye: 'glassy, the pupil pinned', pustule: 'milky, alone or in a cluster', leaf: 'tobacco leaf in tiers, out of a knot', stalk: 'a stalk turning up, flowering', roots: 'out and down, taking root', knot: 'a burl, or skin gone to bark', spike: 'bone out through the skin, one or a ridge', plate: 'bone in overlapping plates' })[k]}</span>`).join('') +
+  legend.innerHTML = Object.entries(KINDS).map(([k, K]) => `<b>${K.key}</b><span><i style="color:var(--bone);font-style:normal">${K.name}</i> · ${({ eye: 'a black dot, or glassy, or milky', pustule: 'milky, alone or in a cluster', leaf: 'tobacco leaf in tiers, out of a knot', stalk: 'a stalk turning up, flowering', roots: 'out and down, taking root', knot: 'a burl, or skin gone to bark', spike: 'bone out through the skin, one or a ridge', plate: 'bone in overlapping plates', flesh: 'raw, as the older husks have' })[k]}</span>`).join('') +
     `<b>V</b><span><i style="color:var(--bone);font-style:normal">Pick</i> · click one to change it</span><b>M</b><span><i style="color:var(--bone);font-style:normal">Mirror</i> · put a twin on its other side</span>`;
   const tones = seg('skin.tone', 'Skin', TONES.map((c, i) => [i, '', null]));
   tones.querySelector('.seg').classList.add('tones');
@@ -1650,6 +1704,7 @@ const ICONS = {
   knot: '<path d="M12 4c5 0 8 3.4 8 8s-3 8-8 8-8-3.4-8-8 3-8 8-8z"/><path d="M8.5 10c2.2 1 4.6-.4 7 1.6M8.5 15c2.2-1 4.4.2 6-.8"/>',
   spike: '<path d="M4 20h16"/><path d="M7 20l3-9 1 9"/><path d="M12 20l4-15 1.6 15"/>',
   plate: '<path d="M4 6.5c3-2.4 13-2.4 16 0v3.5c-3-2.4-13-2.4-16 0z"/><path d="M4 12.5c3-2.4 13-2.4 16 0V16c-3-2.4-13-2.4-16 0z"/>',
+  flesh: '<path d="M6 14c-1.5-4 2-8 6-7.5 4.5-.5 7.5 3 6 7.5-1.2 3.6-4 5-6.5 4.5C9 19 7 17 6 14z"/><path d="M10.5 12.5c1-1 3-1 3.6.6"/>',
   mirror: '<path d="M12 3v18" stroke-dasharray="2 2.2"/><path d="M9 7l-5 5 5 5zM15 7l5 5-5 5z"/>',
 };
 {
@@ -1661,7 +1716,7 @@ const ICONS = {
     return b;
   };
   btn('select', 'Pick', 'V').addEventListener('click', () => setTool('select'));
-  for (const [k, K] of Object.entries(KINDS)) btn(k, K.name, K.key, k === 'spike' || k === 'plate' ? 'bone' : 'grow').addEventListener('click', () => setTool(k));
+  for (const [k, K] of Object.entries(KINDS)) btn(k, K.name, K.key, k === 'spike' || k === 'plate' ? 'bone' : k === 'flesh' ? 'flesh' : 'grow').addEventListener('click', () => setTool(k));
   T.append(el('hr'));
   btn('mirror', 'Mirror: put a twin on its other side', 'M').addEventListener('click', () => { S.mirror = !S.mirror; syncButtons(); });
 }
@@ -1680,6 +1735,7 @@ function syncButtons() {
   document.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === S.mode)));
   document.querySelectorAll('[data-light]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.light === S.light)));
   $('person').setAttribute('aria-pressed', String(S.person));
+  $('fine').setAttribute('aria-pressed', String(!!S.fine));
   $('lineup').setAttribute('aria-pressed', String(!!S.lineup));
   $('tools').hidden = !!S.lineup;
   $('lgroups').hidden = !S.lineup;
@@ -1697,6 +1753,13 @@ function renderHint() {
 document.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => { S.mode = b.dataset.mode; syncButtons(); renderReadout(); }));
 document.querySelectorAll('[data-light]').forEach(b => b.addEventListener('click', () => { S.light = b.dataset.light; syncButtons(); }));
 $('person').addEventListener('click', () => { S.person = !S.person; syncButtons(); });
+$('fine').addEventListener('click', () => {
+  S.fine = FINE = !S.fine;
+  try { localStorage.setItem('rs-mutant-fine', FINE ? '1' : ''); } catch {}
+  rebuild();
+  if (S.lineup) { toggleLineup(); toggleLineup(); }
+  syncButtons();
+});
 $('lineup').addEventListener('click', () => toggleLineup());
 $('undo').addEventListener('click', undo);
 $('redo').addEventListener('click', redo);
@@ -1765,7 +1828,7 @@ ghost.gs.forEach((g, i) => { g.add(ghost.rings[i]); g.visible = false; });
 function updateGhost() {
   const h = S.hover, on = !S.lineup && S.tool !== 'select' && h && h.part && S.M;
   if (!on) { ghost.gs.forEach(g => (g.visible = false)); return; }
-  const a = itemFrom(h, S.tool, S.size[S.tool]), b = S.mirror ? twinOf(a) : null, key = `${S.tool}|${S.size[S.tool]}|${S.M.d.seed}`;
+  const a = itemFrom(h, S.tool, S.size[S.tool]), b = S.mirror ? twinOf(a) : null, key = `${S.tool}|${S.size[S.tool]}|${S.M.d.seed}|${FINE}`;
   [a, b].forEach((x, i) => {
     const g = ghost.gs[i];
     if (!x || !S.M.parts[x.part]) { g.visible = false; return; }
@@ -1854,7 +1917,7 @@ function renderSel(sizeOnly = false) {
   };
   ctl('Size', 'sel-size', K.min, K.max, 0.001, x.size, v => `${(v * 100).toFixed(1)} cm`, v => (x.size = v));
   ctl('Turn', 'sel-spin', -PI, PI, 0.01, x.spin || 0, v => `${Math.round((v * 180) / PI)}°`, v => (x.spin = v));
-  if (x.kind === 'eye') { opts('Look', 'sel-look', [['glassy', 'Glassy'], ['milky', 'Milky'], ['black', 'Black']], x.look, v => (x.look = v)); ctl('Lid', 'sel-lid', 0, 1, 0.01, x.lid, v => `${Math.round(v * 100)}%`, v => (x.lid = v)); }
+  if (x.kind === 'eye') { opts('Look', 'sel-look', [['dot', 'Black dot'], ['glassy', 'Glassy'], ['milky', 'Milky']], x.look === 'black' ? 'dot' : x.look, v => (x.look = v)); if (FINE && x.look !== 'dot') ctl('Lid', 'sel-lid', 0, 1, 0.01, x.lid, v => `${Math.round(v * 100)}%`, v => (x.lid = v)); }
   if (x.kind === 'pustule') { opts('Colour', 'sel-tint', [['milky', 'Milky'], ['yellow', 'Yellow'], ['raw', 'Raw']], x.tint, v => (x.tint = v)); opts('Form', 'sel-cluster', [[false, 'One'], [true, 'Cluster']], !!x.cluster, v => (x.cluster = v === true || v === 'true')); }
   if (x.kind === 'leaf') ctl('Tiers', 'sel-tiers', 1, 6, 1, x.tiers, v => `${v}`, v => (x.tiers = v));
   if (x.kind === 'stalk') { ctl('Bend up', 'sel-bend', 0, 1, 0.01, x.bend, v => `${Math.round(v * 100)}%`, v => (x.bend = v)); opts('End', 'sel-flower', [[true, 'Flowering'], [false, 'Bud']], !!x.flower, v => (x.flower = v === true || v === 'true')); }
@@ -2231,6 +2294,7 @@ function loop(now) {
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) S.mode = 'stand';
   rebuild(); syncUI(); commit(); renderSel(); renderHint(); syncButtons();
   let tab = 'body';
+  try { S.fine = FINE = !!localStorage.getItem('rs-mutant-fine'); } catch {}
   try { tab = localStorage.getItem('rs-mutant-tab') || 'body'; S.lgroup = localStorage.getItem('rs-mutant-lgroup') || 'all'; } catch {}
   showTab(TABS.includes(tab) ? tab : 'body');
   resize();
