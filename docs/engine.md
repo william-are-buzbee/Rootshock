@@ -1385,6 +1385,14 @@ since: §11).
   it hangs on: bronze letters straight on the family's limestone; a small dark plate with a bar of the room's stripe
   colour on block, plaster and board; a white plate with a coloured band on glazed tile; the name stencilled in worn
   paint on concrete and shotcrete. Drawn at 420 px a metre and sized to their words, so short names have short plates.
+- **The exhibit's boards** (since; `present/render/exhibit.ts`, the words in `content/exhibit.ts`, hung by `exhibit()`
+  in `content/build/plan.ts`): printed boards, lit as the signs are (their material, `faceMaterial`), matt, so they send
+  only a quarter as much of your beam back. Each is drawn on a canvas from its board's data, its picture in flat paths
+  (`ART`), 300 px a metre (fewer on a long one, to stay under 2048 across). What is read off a board is a bare note on
+  its face, one a stage on the long one. *Found building it:* a board 4 mm in front of a solid backing was lost
+  entirely to the level's depth, drawn first and pushed back a hair (`depthFirstMaterial`), and z-fought it with that
+  pass off. So a board stands 3 cm off the bare wall as a sign does, and its bronze frame is four bars round its edge:
+  nothing of the level lies just behind it.
 - **What a frame costs** (since; measured in headless Chromium on a software GPU, so the counts and the main thread's
   share are real and the GPU's times only relative). The sim was never the trouble: a step is about 0.9 ms (99 in
   100 under 2 ms) on any level, the slow ones only in its first second. A frame was, three ways. It made too many

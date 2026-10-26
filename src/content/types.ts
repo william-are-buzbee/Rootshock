@@ -166,6 +166,15 @@ export interface SignDef {
   circuit: string;
 }
 
+/** a board of the family's exhibit on a wall (content/exhibit.ts): what is drawn on it (`key`: a board's, or 'process'
+ *  for the growing process, all its stages across one), its middle, which way it faces (yaw, as a sign's), and its size */
+export interface ExhibitDef {
+  key: string;
+  x: number; y: number; z: number;
+  yaw: number;
+  w: number; h: number;
+}
+
 /** a sloped or uneven surface: a ramp, a cave's floor or ceiling. Heights are given on a lattice of `res` metres
  *  (nx by nz corners, row by row from (x0, z0)) and blended between. A floor is solid from `base` up to it;
  *  a ceiling is solid from it up to `base`. */
@@ -320,6 +329,8 @@ export interface LevelDef {
   cameras?: CameraDef[];
   speakers?: SpeakerDef[];
   signs: SignDef[];
+  /** the family's exhibit, its boards on the walls (present/render/exhibit.ts) */
+  exhibits?: ExhibitDef[];
   items: ItemDef[];
   notes: NoteDef[];
   mutants: MutantDef[];

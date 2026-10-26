@@ -284,6 +284,9 @@ export class LevelBuilder {
   sign(text: string, x: number, y: number, z: number, yaw: number, circuit = this.def.circuit): void {
     this.def.signs.push({ text, x, y, z, yaw, circuit });
   }
+  exhibit(key: string, x: number, y: number, z: number, yaw: number, w: number, h: number): void {
+    (this.def.exhibits ??= []).push({ key, x, y, z, yaw, w, h });
+  }
   item(id: string, x: number, y: number, z: number, n = 1, on?: Aim): void { this.def.items.push({ id, x, y, z, n, ...(on ? { on } : {}) }); }
   note(key: string, x: number, y: number, z: number, bare = false): void { this.def.notes.push({ key, x, y, z, ...(bare ? { bare } : {}) }); }
   mutant(type: string, x: number, y: number, z: number, opts: Record<string, unknown> = {}): void { this.def.mutants.push({ type, x, y, z, opts }); }

@@ -600,6 +600,21 @@ wins; the older text stays only because it describes what is built, until the le
     runs on into it, limestone to a dado, plaster over it and on the ceiling, a warm light; walnut pairs into the mess
     and administration, plain steel into the plant stair. It comes out onto the atrium's gallery, terrazzo now with the
     lobby's glass and bronze, and its stair is stone.
+  - *The exhibit (agreed; built; the names and dates are placeholders).* What a family company does with a long corridor
+    between its lobby and its offices: tells its own story, in its own voice, the corporate version. Optional lore, read
+    off each board (a note on its face). The house's board faces you as you step in off the gallery (its mark, a leaf in
+    a ring; ASHCOMBE, LEAF COMPANY, SINCE 1891; Lowfield Station). Along the corridor's south wall, which has no doors,
+    the timeline from the lobby end, so walking on is walking forward in time: *The Low Field* (1891), *Cured by Hand*
+    (1923), *Blue Mould* (1979: the blight that took the crop and the reason they went down), *Going Down* (1981),
+    *A Sky of Our Own* (1986: the station opens; "the crop has never seen the sky"), *The Lowfield Range* (today: the
+    product line in marketing language; "accelerated breeding" is the only hint of the mutagen), and *Phase 2* (coming
+    soon), across the atrium from the door welded shut and stencilled NOT COMMISSIONED. On the atrium gallery's back
+    wall, where the corridor comes out, *From Seed to Leaf*: the growing process in six stages, one of them transplant
+    shock ("gardeners call it root shock"; "our seedlings take in a day"). The corridor's boards are on the wing's dead
+    feed, read by your beam until the mend; the process is on Ops' power and lit from the start. The family (Ashcombe),
+    the man who planted the field (Thomas Ashcombe), the company and every date are placeholders, in one file
+    (`content/exhibit.ts`), to be retooled once the lore is down (§6, question 1). The house's mark is a candidate for
+    the statue's logo.
   - *Over the sky, +13.5.* The lobby's air plant, at +10, and steps from it up into the space over the false sky: half
     a metre over the lobby's roof, a dark plenum of grating between the backs of the ceiling's light boxes. A way over
     the lobby, for whoever finds it.

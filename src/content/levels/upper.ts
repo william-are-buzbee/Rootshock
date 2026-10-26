@@ -1,8 +1,9 @@
 import { PI, type Colour } from '../../core/math';
 import type { LevelDef, LadderDef } from '../types';
 import {
-  arch, beginLevel, bx, cave, colT, door, elev, finishLevel, flight, item, ladder, floor, mut, note, P, roughen, room, stack, stairs, use, type Floor, type LevelInfo, type RoomOpts,
+  arch, beginLevel, bx, cave, colT, door, elev, exhibit, finishLevel, flight, item, ladder, floor, mut, note, P, roughen, room, stack, stairs, use, type Floor, type LevelInfo, type RoomOpts,
 } from '../build/plan';
+import { HISTORY, STAGES, WELCOME, stageAt } from '../exhibit';
 import {
   BAY, FAM, MED, OFF, OPS, SEC, UTIL, WALK, blood, callPoint, camera, container, corpse, desk, eggs, exitSign, forklift, genset, gore, grandStair, liftRoom, medbed, monitors, panel, POLE, shelf, speaker, tbl,
 } from '../build/furnish';
@@ -284,6 +285,9 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   }
   const GW: RoomOpts = { ...WALK, ht: 4.5, c: 'OPS', fl: OPS.fl, wl: OPS.wl, lc: AT.lc, mat: { floor: 'terrazzo', wall: 'block' } };
   room(T1, 'Gallery', 68, -12, 20, 4, GW); room(T1, 'Gallery', 84, -8, 4, 20, GW);
+  /* and where the corridor comes out onto it, the growing process across the gallery's back wall, the length of the
+     gallery ahead of you as you come out; on Ops' power, so lit from the start */
+  exhibit(T1, 'process', 77, -12, 2, 's', 10, 2.2, STAGES.map((s, k) => [s.key, stageAt(k, 10)]));
   /* the atrium's eye: one on the threshold from the south-west corner, which only records (the atrium is not armed);
      its speaker high in the well by the east gallery's rail, out of reach but from there */
   speaker(D, 'atrium', 83.4, 9.2, 'CRIT'); camera(D, 68.6, 11.2, 3.8, PI, 'OPS', 'atrium');
@@ -594,6 +598,11 @@ function buildHub(B: Floor, D: Floor, T1: Floor, T2: Floor): void {
   const UC: RoomOpts = { ...FAM, ...wing, ht: 3.5, lc: [0.92, 0.86, 0.74], mat: { ...FAM.mat, datum: 1.2 } };
   /* a wall between it and the lobby's air, but where it meets the gallery */
   room(T1, 'Upper corridor', 30.5, -12, 3.5, 10, UC); room(T1, 'Upper corridor', 30, -6, 0.5, 4, { ...UC, part: 1 }); room(T1, 'Upper corridor', 34, -12, 34, 4, UC);
+  /* the family's exhibit (world.md §8, The exhibit; content/exhibit.ts): the house's board facing you as you come in off
+     the gallery, and the company's story along the south wall, which has no doors, from the lobby end: walking on is
+     walking forward in time. On the wing's feed with the rest, so read by your beam until the mend */
+  exhibit(T1, WELCOME.key, 34, -4.6, 1.75, 'w', 2.8, 2.2);
+  HISTORY.forEach((b, k) => exhibit(T1, b.key, 37.5 + k * 4.5, -8, 1.75, 'n', 1.4, 2));
   const PL: RoomOpts = { ...UTIL, ...wing, ht: 3.5, noroam: 1 };
   room(T1, 'Plant stair', 32, -26, 8, 12, PL); room(T1, 'Plant stair', 40, -26, 2, 12, { ...PL, ht: 7.5 }); // the stairwell, up to the plant
   door(T1, 35.5, -13, { plain: true, sg: [['Plant room', 's']] }); stairs(T1, T2, 40, -26, 2, 10, 'n');

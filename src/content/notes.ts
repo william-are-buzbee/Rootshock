@@ -1,5 +1,8 @@
+import { EXHIBIT_NOTES } from './exhibit';
+
 /* The papers, as the first engine had them. Two of them carry codes that change every run (the Armory keypad, and
-   Holt's office keypad on floor 4); the sim draws them from the run's seed. */
+   Holt's office keypad on floor 4); the sim draws them from the run's seed. And the family's exhibit, read off its
+   boards (content/exhibit.ts). */
 
 export interface Note { t: string; b: string }
 
@@ -24,5 +27,6 @@ export const NOTES = (code: string, code2: string): Record<string, Note> => ({
   work:{t:'Work order 2217',b:`GEN-1 MAIN FUSE: BLOWN (third time)\n\nOne spare on the bench in the machine shop. One more in a crate that never came down from Cargo.\n\nSeat the fuse in the socket on the generator hall board, THEN throw the breaker. The breaker goes both ways.\n\nGen-1 feeds every floor through the board in Distribution. A closed switch takes power. An open one does not. Cargo was opened on purpose and should probably stay that way. Hydro's feed burned through when the bottom level flooded: it wants a splice kit, and even then you will only light the top half. Nothing lights what is under water.\n\nKits are in the parts store. The parts store is on my card.\n\nThe green stuff from the west stair is in the shop now. Do not walk under the hanging ones.`},
   route:{t:'Chalked on the floor, Distribution',b:`1 OPS .... closed\n2 CARGO .. OPEN (leave it)\n3 RES .... closed\n4 HORT ... closed\n6 HYDRO .. BURNED\n\nEach floor also has its own backup set. Half-light, sliding doors, card readers. No heavy doors. No lifts.`},
   hydro:{t:'Pump control, last entry',b:`Lower level is gone. Both shafts are full to the hatch.\n\nAldana went down shaft A after the pump crew with a torch. Torches die under water. I told her. The dive lantern is on this desk because she would not take it.\n\nIf you have to go after her: shaft B in the filter room comes out much nearer the sluice than A does. On one breath, B is possible and A is not. With a rebreather either will do. The rebreathers are in the hazard store on 1, naturally.\n\nYou will not see your hand without goggles. Somebody in Recreation on 3 used to swim.\n\nLight brings the swimmers.`},
-  code:{t:'Written on Aldana\'s hand',b:`ARMORY\n\n${code}`}
+  code:{t:'Written on Aldana\'s hand',b:`ARMORY\n\n${code}`},
+  ...EXHIBIT_NOTES,
 });
