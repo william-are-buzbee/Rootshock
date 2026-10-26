@@ -1403,9 +1403,9 @@ const LINES = [
   }],
   ['bloatgod', 'The bloat god', () => {
     const d = base();
-    Object.assign(d, { name: 'The bloat god', seed: 37, notes: 'A young god (world.md §10): the nurse, a man, whose arm Pia grabbed. The bloats come from him. Sat on the floor as his line sit, and twice the size of the oldest of them; a band of his scrubs still round him, raw where her hand closed on his arm. He does not get up.' });
+    Object.assign(d, { name: 'The bloat god', seed: 37, notes: 'A young god (world.md §10): the nurse, a man, whose arm Pia grabbed. The bloats come from him. Sat on the floor as his line sit, and twice the size of the oldest of them; nothing left on him of his scrubs, raw where her hand closed on his arm. He does not get up.' });
     Object.assign(d.body, { plan: 'bloat', rest: 'sit', scale: 1.5, headSize: 0.95, jaw: 0.5, tilt: 0.5 });
-    Object.assign(d.dress, { shirt: 'uniform', shirtCol: 'scrubs' });
+    Object.assign(d.dress, { shirt: 'none' });
     Object.assign(d.skin, { tone: 3, sallow: 0.3 });
     d.items = withIds([...BLOATEYES(), it('flesh', 'uarmL', [0.5, -0.1, 0.2], [1, 0, 0.3], 0.28)]);
     return d;
