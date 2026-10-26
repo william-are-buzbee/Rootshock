@@ -28,8 +28,9 @@ import { makeSim, type Sim, type SimOpts } from './sim';
  *  9: the opening's second pass: the suite laid out again, and the night round's drag
  *  10: the opening in the dark: the suite on its own backup set, the light switches gone, and blood on the floor
  *  11: the graft: the other patient grafted and left out cold, and the smear of their dragging
- *  12: the station's dead, bodies now: a level's cast is more by the guards and residents lying in it */
-export const SAVE_VERSION = 12;
+ *  12: the station's dead, bodies now: a level's cast is more by the guards and residents lying in it
+ *  13: the skitter on four legs: a skitter's body is fewer points */
+export const SAVE_VERSION = 13;
 
 /** copy the named fields of an object */
 const pick = <T extends object, K extends keyof T>(o: T, keys: readonly K[]): Pick<T, K> => {

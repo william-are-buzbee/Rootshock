@@ -609,8 +609,8 @@ fall loose; corpses stay in the world (knocked about, saved); knockdowns as ragd
 - **Skeletons** (`SKEL`), from the models: a point for each joint and end, with a radius and a weight (they weigh what
   the body does), held by sticks; a torso is held rigid (four points to each other, the rest to those four); `apart`
   keeps pairs a share of their length apart, which is how far a hip or an elbow folds; a `hinge` bends one way (a
-  knee back, a thresher's elbow forward). A husk is 12 points, a thresher 14, a skitter 14 (each leg one bent piece,
-  as drawn), a worm 7 (a chain), the hand 33 (its body, four legs with knees, the four in front, the tail and head,
+  knee back, a thresher's elbow forward). A husk is 12 points, a thresher 14, a skitter 10 (four legs, each one bent
+  piece, as drawn), a worm 7 (a chain), the hand 33 (its body, four legs with knees, the four in front, the tail and head,
   the arms). A bloat, the grabbers and the overseer fold as before: nothing moves a bloat, and the rest are part of a
   wall.
 - **Knees.** A husk's legs and a thresher's were one box each: dead, a body could only go over like a plank, and one
@@ -1055,9 +1055,10 @@ walked through as through a rug. Now each is a body like any other.
   and a body falling on it lies on it, as with any corpse.
 - **A person** (`SKEL.dead`): the other patient's skeleton at a grown person's 75 kg, drawn as it is, part for part
   (`deadModel` in `render/castView.ts`; `RIG.dead`): slacks and shoes, a shirt in what the level says they wore (a
-  guard in Security's uniform, badge and epaulettes), grey in the face, the eyes near shut and the jaw dropped, the shirt
+  guard in Security's uniform, its badge the one thing on it), grey in the face, the eyes near shut and the jaw dropped, the shirt
   stiff with dried blood front or back. It does not bleed again: its blood is the level's pool under it, laid as
-  before.
+  before. Each was grafted where it lies, so not necessarily dead (world.md §10): a small shelf of leaf comes out of one
+  forearm in a raw knot, as on the other patient, which arm by the body.
 - **Searched where it lies.** A body to search is still a use of the level's (`UseDef`, so the progression checker
   and the validator read it as they did), and is the one of the dead laid out from its spot: the prompt and its reach
   go where the body is, kicked or knocked (`interact.ts`).
