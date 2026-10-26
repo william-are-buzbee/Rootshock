@@ -3,6 +3,7 @@ import { LevelBuilder } from '../src/content/build/builder';
 import { STEP } from '../src/core/loop';
 import { angDiff } from '../src/core/math';
 import { GAIT, MT, pace, spawn, type Mutant } from '../src/sim/cast';
+import { fieldTo } from '../src/sim/cast/move';
 import { WAYS, type Walker, type Way } from '../src/sim/fields';
 import { noInput } from '../src/sim/input';
 import { makeSim, step, type Sim } from '../src/sim/sim';
@@ -94,6 +95,17 @@ describe('one of the cast given its own pace by the level', () => {
     hunting(slow);
     hold(s, 0.6);
     expect(v(slow)).toBeCloseTo(GAIT.husk.pace.hunt / 2, 1);
+  });
+
+  it('keeps to its way somewhere however slowly it goes: coming a spot nearer takes it longer, and it is not held up for that', () => {
+    const s = hall(b => b.mutant('husk', 2, 0, 6, { walk: 0.3 })), m = s.cast[0], nav = s.fields!.nav;
+    s.player.fly = true; s.player.body.y += 200; // you, out of it
+    const goal = nav.locate(18, 0, 6);
+    m.wt = 0; m.dest = goal; m.F = fieldTo(s, m, goal); m.near = 1e9; m.stk = 0;
+    let gaveUp = false;
+    for (let t = 0; t < 70 && m.dest === goal; t += STEP) { step(s, noInput()); if (m.dest !== goal && m.F![m.spot] > 1.2) gaveUp = true; }
+    expect(gaveUp).toBe(false);
+    expect(Math.hypot(m.x - 18, m.z - 6)).toBeLessThan(1.5); // there, at its 0.3 m/s
   });
 
   it('asked for a pace its kind has none for, walks', () => {

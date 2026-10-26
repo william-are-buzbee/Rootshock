@@ -166,9 +166,12 @@ function callLift(sim: Sim, m: Mutant, li: number, end: 0 | 1): void {
   sfx(sim.game, 'door', { x: (p.def.x0 + p.def.x1) / 2, y: p.y, z: (p.def.z0 + p.def.z1) / 2 });
 }
 
+/** the pace on and off a platform (m/s); one given its own pace by the level, as much slower or faster */
+const RIDE = 1.8;
+
 /** riding a platform: get on at the near end (calling it if it can), ride, and step off to the spot past it */
 function ride(sim: Sim, m: Mutant, Fs: Fields): boolean {
-  const R = m.ride!, p = sim.platforms[R.lift], D = p.def, b = m.body!, nav = Fs.nav;
+  const R = m.ride!, p = sim.platforms[R.lift], D = p.def, b = m.body!, nav = Fs.nav, spd = RIDE * (m.gait.scale ?? 1);
   const near: 0 | 1 = R.up ? 0 : 1, far: 0 | 1 = R.up ? 1 : 0, farY = far ? D.y1 : D.y0;
   const at = (end: 0 | 1) => !p.moving && Math.abs(p.y - (end ? D.y1 : D.y0)) < 0.01;
   R.t += dt;
@@ -176,15 +179,15 @@ function ride(sim: Sim, m: Mutant, Fs: Fields): boolean {
   const s = nav.locate(b.x, b.y, b.z);
   if (s === R.to || (s >= 0 && Math.abs(nav.y[s] - farY) < 0.4 && Fs.onLift[s] !== R.lift && b.on !== p.dyn)) { m.ride = null; return true; }
   if (b.on === p.dyn) {
-    if (at(far)) return go(sim, m, nav.x[R.to], nav.z[R.to], 1.8);
+    if (at(far)) return go(sim, m, nav.x[R.to], nav.z[R.to], spd);
     /* to the middle first: at the edge it would catch on the floor above, and the platform would turn back */
     const cx = (D.x0 + D.x1) / 2, cz = (D.z0 + D.z1) / 2;
-    if (Math.hypot(b.x - cx, b.z - cz) > 0.25) return go(sim, m, cx, cz, 1.8);
+    if (Math.hypot(b.x - cx, b.z - cz) > 0.25) return go(sim, m, cx, cz, spd);
     if (!p.moving) callLift(sim, m, R.lift, far); // a platform that goes by itself goes once stood on
     m.mv = 0;
     return true;
   }
-  if (at(near)) return go(sim, m, (D.x0 + D.x1) / 2, (D.z0 + D.z1) / 2, 1.8);
+  if (at(near)) return go(sim, m, (D.x0 + D.x1) / 2, (D.z0 + D.z1) / 2, spd);
   callLift(sim, m, R.lift, near);
   m.mv = 0;
   return true;
@@ -269,8 +272,11 @@ export function mayRoute(sim: Sim): boolean {
 /** how far a round goes (m, walked as the doors stand): as far as a hunt follows you (sim/fields.ts, LIMIT), so each
  *  keeps to its own end of a level; and how near the light must be for one in the dark to make for it. Nearer, it knows
  *  the light is there; farther, it does not, and keeps still (the dark Commons keeps its own, rather than sending them
- *  all the length of the street to Horticulture's backup set) */
-export const ROAM = { reach: 90, light: 40 };
+ *  all the length of the street to Horticulture's backup set). How long it can come no nearer its goal before it is held
+ *  up (s): `held`, or as long as walking `heldM` metres takes it, if that is longer. Nearer is a spot nearer, and a spot
+ *  is a metre, so one slower than a husk (which walks 1.95 m in 1.5 s) takes longer to come nearer and is not held up
+ *  for that */
+export const ROAM = { reach: 90, light: 40, held: 1.5, heldM: 1.95 };
 
 /** staff still keep rounds, and keep to the light: they hunt by sight (world.md §8). A round goes to a lit room it can
  *  get to as the doors stand (a locked door bars it), within ROAM.reach: one the fewest of the staff are in or making
@@ -381,7 +387,7 @@ export function roam(sim: Sim, m: Mutant, spd: number): void {
      platform: stopped on a locked door, wedged on a corner, or two of them meeting where there is no room to pass, each
      stepping aside into the other's way and back. A while of it, and it gives the round up for another */
   if (left < m.near || m.ride) { m.near = Math.min(m.near, left); m.stk = 0; }
-  else if (!(on && !m.mv) && (m.stk += dt) > 1.5) { m.stk = 0; m.dest = -1; m.ride = null; m.wt = sim.rng.range(1, 3); }
+  else if (!(on && !m.mv) && (m.stk += dt) > Math.max(ROAM.held, ROAM.heldM / spd)) { m.stk = 0; m.dest = -1; m.ride = null; m.wt = sim.rng.range(1, 3); }
 }
 
 /** what slows one of the cast that something shoved (m/s²): sent back at 4 m/s, it goes about 0.3 m */

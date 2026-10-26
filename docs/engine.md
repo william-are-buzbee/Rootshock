@@ -592,8 +592,16 @@ and what it does with them is the behaviour's:
   walk. A kind with no row takes its behaviour's (the rootworm the worm's), a big one its own if there is one
   (`bigSkitter`), a fixed one none. The night round is the husk's row, slower to get going and slower after you.
 - **Its own pace, from the level**: `walk` (m/s) in `mut()`'s options scales every pace of its kind's to it, the hunt
-  with the walk, so a slow one is slow at everything. Security's seven on the mutants bench (`mockups/mutants.html`)
-  each have one (0.25 to 1 m/s against the 1.3 they all walk now); none is set yet.
+  with the walk, so a slow one is slow at everything; and `steps` (a minute, walking) its cadence, from which its
+  stride follows. Without `steps`, a slower one takes fewer steps and shorter, each by the square root of how much
+  slower. Its footfalls come as often as its steps; the husk's walk is drawn (`ANIM.husk`) and its prints laid
+  (`render/prints.ts`) by its stride and cadence against its kind's (`Gait.stride`, `cadence`), so a slow one shuffles
+  rather than skating; it rides on and off a platform as much slower (`RIDE`). Security's seven have the bench's
+  (`mockups/mutants.html`): 0.25 to 1 m/s and 50 to 100 steps a minute, against the 1.3 the rest walk (`upper.ts`).
+- **Held up, by distance** (`ROAM.held`, `heldM`): a roam gave its route up after 1.5 s coming no nearer, and nearer is a
+  spot nearer, a metre: a husk at 0.7 m/s often takes longer than that, and gave up its route every couple of metres, and
+  one at 0.25 would never have got anywhere. It is held up now after as long as 1.95 m takes it (what a husk walks in
+  1.5 s), and 1.5 s at least, so nothing at the old paces changed.
 - **Walking where it faces** (`heading`, rad/s): for a big body. It turns toward its way no faster than that, goes only
   as much of its pace as it faces the way, and turns where it stands to a way behind it. A husk, without it, steps any
   way at once and turns as it goes, as every kind did; no kind has it yet.
@@ -616,12 +624,14 @@ and what it does with them is the behaviour's:
   is a model in `BUILD` and `ANIM` (`render/castView.ts`); gone loose, a skeleton in `SKEL` (`sim/ragdoll.ts`);
   walking, prints in `GAIT` (`render/prints.ts`).
 - **Not yet**: the nav graph's step up (0.5 m) and drop (2.5 m) are the same for every way, and it does not know how
-  wide a body is (a spot is a spot to a bloat as to a worm); the ride on a platform is at 1.8 m/s for everyone. The fight's
+  wide a body is (a spot is a spot to a bloat as to a worm). The fight's
   part of a kind (its blow, its poise, what it does when hit) is still in switches on its behaviour.
 - **Tests**: `test/gait.test.ts`. A kind made in the test from rows alone (tall, slow, walking where it faces, with the
   husk's behaviour and a way of its own): it gets a field for its way where none walked it, keeps out of a passage too
   low for it that a husk takes, goes after you at its own pace, turns no faster than its gait, and stands to turn when
-  you are behind it. A husk given its own pace is slow at everything.
+  you are behind it. A husk given its own pace is slow at everything, and one at 0.3 m/s keeps to its route the length
+  of a hall. Four tests that had a husk's 1.3 m/s in them (`cast.test.ts`, `eyes.test.ts`) ask it of each one's own pace.
+  With the seven slowed, the trace probe is the same as before on every level but the upper station.
 
 ### Bodies with physics, as built
 

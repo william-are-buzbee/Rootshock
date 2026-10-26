@@ -331,10 +331,11 @@ export const ANIM: Record<string, (m: Mutant, M: Model, c: Ctx) => void> = {
     }
   },
   husk(m, M) {
-    const mv = m.mv > 0, hunt = m.state === 'hunt', f = hunt ? 11 : 5;
-    for (let k = 0; k < 2; k++) { M.legs[k].rotation.x = mv ? Math.sin(m.ph * f + k * PI) * (hunt ? 0.7 : 0.35) : 0; if (M.shins) M.shins[k].rotation.x = 0; }
-    M.arms[0].rotation.x = hunt ? -1.1 + Math.sin(m.ph * f) * 0.2 : mv ? Math.sin(m.ph * f + PI) * 0.25 : 0;
-    M.arms[1].rotation.x = hunt ? -1.3 + Math.sin(m.ph * f + 2) * 0.25 : mv ? Math.sin(m.ph * f) * 0.2 : Math.sin(m.ph * 0.9) * 0.06;
+    /* its steps as often, and as long, as its own gait has them against its kind's (sim/cast/gait.ts): a slow one shuffles */
+    const mv = m.mv > 0, hunt = m.state === 'hunt', f = (hunt ? 11 : 5) * (m.gait.cadence ?? 1), sw = m.gait.stride ?? 1;
+    for (let k = 0; k < 2; k++) { M.legs[k].rotation.x = mv ? Math.sin(m.ph * f + k * PI) * (hunt ? 0.7 : 0.35) * sw : 0; if (M.shins) M.shins[k].rotation.x = 0; }
+    M.arms[0].rotation.x = hunt ? -1.1 + Math.sin(m.ph * f) * 0.2 * sw : mv ? Math.sin(m.ph * f + PI) * 0.25 * sw : 0;
+    M.arms[1].rotation.x = hunt ? -1.3 + Math.sin(m.ph * f + 2) * 0.25 * sw : mv ? Math.sin(m.ph * f) * 0.2 * sw : Math.sin(m.ph * 0.9) * 0.06;
     M.b.rotation.x = m.state === 'flee' ? 0.4 : hunt ? 0.18 : 0.06;
     /* its blow, as the sim has it: the arm drawn up and back, the body leaning away (shaking at the top, the last of
        the wind-up, when it has stopped turning); brought down through you and past, the body following it over; then

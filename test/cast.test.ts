@@ -5,7 +5,7 @@ import { STEP } from '../src/core/loop';
 import { give } from '../src/sim/game';
 import { field, openRules } from '../src/world/nav';
 import { refreshFields } from '../src/sim/fields';
-import { hitMutant, rounds, type Mutant } from '../src/sim/cast';
+import { GAIT, hitMutant, pace, rounds, type Mutant } from '../src/sim/cast';
 import { fieldTo, ROAM } from '../src/sim/cast/move';
 import { STATION } from '../src/content/station';
 import { levelDef } from '../src/sim/run';
@@ -124,7 +124,7 @@ describe('their rounds', () => {
     place(s, m, 35, 0, 55); // in the firing range: no emergency lights, dark on the backup set
     const lum = () => Math.max(...simLighting(s).atPoint(m.x, m.y + 0.5, m.z));
     expect(lum()).toBe(0);
-    hold(s, 20);
+    hold(s, 20 * (GAIT.husk.pace.walk / pace(m, 'walk'))); // 20 s at a husk's walk; this one walks at its own
     expect(m.state).toBe('idle'); // not hunting you: going to the light
     expect(lum()).toBeGreaterThan(0.05); // well in it (the cast count anything over 0.02 as lit)
   });
@@ -173,7 +173,7 @@ describe('their rounds', () => {
     step(s, noInput());
     const nav = s.fields!.nav, goals = [nav.locate(78, 0, 25.5), nav.locate(58, 0, 25.5)];
     [a, b].forEach((m, i) => { m.state = 'idle'; m.wt = 0; m.dest = goals[i]; m.F = fieldTo(s, m, goals[i]); m.near = 1e9; m.stk = 0; });
-    hold(s, 2.5);
+    hold(s, 2.5 * (2 * GAIT.husk.pace.walk) / (pace(a, 'walk') + pace(b, 'walk'))); // 2.5 s at a husk's walk; these at their own
     expect(Math.hypot(a.x - b.x, a.z - b.z)).toBeLessThan(1.2); // met, and stopped there
     hold(s, 5);
     expect(a.dest).not.toBe(goals[0]);

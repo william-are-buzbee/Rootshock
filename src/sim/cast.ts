@@ -202,7 +202,7 @@ function makeMutant(sim: Sim, def: MutantDef, id: number): Mutant {
       hide: (def.opts.hide as { x: number; z: number } | undefined) ?? null, drag: -1, trail: 0, graft: 0, grafted: false,
       wt: rnd(1, 5), wm: 0, wx: 0, wz: 0, tk: 0, lost: 0, bt: 0, burst: false, flee: 0, ct: rnd(6, 14), cdir: 0, tgt: false,
       grab: 0, tense: 0, blow: null, dest: -1, F: null, stk: 0, near: 1e9, fled: false, side: 0, ride: null, spot: -1,
-      mv: 0, d: 99, dp: 99, dy: 0, los: false, losAt: -99, hit: 0, stop: 0, poise: poiseOf(def.type, S.ai, !!o.big), pmax: poiseOf(def.type, S.ai, !!o.big), calm: 99, reel: 0, pat: 0, down: 0, rise: 0, gait: gaitOf(def.type, S.ai ?? def.type, !!o.big, o.walk), drove: false,
+      mv: 0, d: 99, dp: 99, dy: 0, los: false, losAt: -99, hit: 0, stop: 0, poise: poiseOf(def.type, S.ai, !!o.big), pmax: poiseOf(def.type, S.ai, !!o.big), calm: 99, reel: 0, pat: 0, down: 0, rise: 0, gait: gaitOf(def.type, S.ai ?? def.type, !!o.big, o.walk, o.steps), drove: false,
       eye: S.eye ?? (S.fixed ? 2.0 : Math.min(1.6, S.h * 0.85)), ph: rnd(9), dead: false, gone: 0, rag: null, away: false, still: 0, wear: o.c ?? 0,
     };
     /* laid out where it was found: out of the world, as the dead are, and lying as its points do */

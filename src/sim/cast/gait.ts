@@ -10,7 +10,11 @@ import { step_ } from './move';
    anything walks. A kind with no row takes its behaviour's; one fixed where it is, none.
 
    One of the cast can be given its own pace by the level (`walk`, m/s, in mut()'s options): every pace of its kind's is
-   scaled to it, the hunt as well as the walk, so a slow one is slow at everything. */
+   scaled to it, the hunt as well as the walk, so a slow one is slow at everything. And its own steps (`steps`, a minute,
+   walking): with the pace they make its stride. Not given, a slower one takes fewer steps and shorter, each by the square
+   root of how much slower it is, as a slow walk does. Its footfalls come as often as its steps; its walk is drawn, and its
+   prints laid, by its stride and steps against its kind's (`stride`, `cadence`), so a slow one shuffles and does not
+   skate. Security's seven have theirs from the bench (mockups/mutants.html). */
 
 const dt = STEP;
 
@@ -30,6 +34,8 @@ export interface Gait {
    *  the way, and turns where it stands to a way behind it. Without it, it steps any way at once and turns as it goes */
   heading?: number;
   feet?: Feet;
+  /** one given its own pace: that pace, how long its steps are, and how many it takes, each against its kind's */
+  scale?: number; stride?: number; cadence?: number;
 }
 
 /* Security's staff (cast/husk.ts): on their rounds and at their posts, a hurry to an alarm (faster again, `rally`, with
@@ -63,13 +69,15 @@ export const GAIT: Record<string, Gait> = {
 };
 
 /** a kind's gait: its own row, a big one's if it is big and there is one (the big skitter), else its behaviour's; and
- *  scaled to its own walking pace, if the level gives it one */
-export function gaitOf(type: string, ai: string, big: boolean, walk?: number): Gait {
+ *  scaled to its own walking pace and steps, if the level gives it them */
+export function gaitOf(type: string, ai: string, big: boolean, walk?: number, steps?: number): Gait {
   const G = (big && GAIT['big' + ai[0].toUpperCase() + ai.slice(1)]) || GAIT[type] || GAIT[ai] || STILL;
   if (walk === undefined || !G.pace.walk) return G;
-  const k = walk / G.pace.walk, pace = { ...G.pace };
+  const k = walk / G.pace.walk, pace = { ...G.pace }, F = G.feet;
   for (const p of Object.keys(pace)) pace[p] *= k;
-  return { ...G, pace };
+  const c = steps !== undefined && F ? (steps / 60) * F.walk : Math.sqrt(k);
+  const feet = F && { ...F, walk: F.walk / c, fast: F.fast / c, ...(F.over !== undefined ? { over: F.over * k } : {}) };
+  return { ...G, pace, ...(feet ? { feet } : {}), scale: k, stride: k / c, cadence: c };
 }
 
 /** its pace (m/s) for what it is doing, by name */

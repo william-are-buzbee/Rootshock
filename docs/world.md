@@ -660,10 +660,13 @@ wins; the older text stays only because it describes what is built, until the le
     (*Security's seven*) is one for each the upper station has, the newest first.
   - *No twitch (agreed; built).* None of Pia's line twitches: the head lolls, and moves slowly, with nobody much behind
     it. (The skitter keeps its twitch for now.)
-  - *Size is the sim's too (agreed; to do).* One that differs in size differs in the sim: its skeleton (`SKEL.husk`, which
-    the model is drawn to), its height and reach, the doors it fits, its stride at the sim's pace (1.3 m/s on its rounds;
-    the bench shows the steps a minute each stride means at that pace). The cast's bodies and movement want rewriting by
-    size before the changed can differ in the game.
+  - *Size is the sim's too (agreed; pace built, the rest to do).* One that differs in size differs in the sim: its
+    skeleton (`SKEL.husk`, which the model is drawn to), its height and reach, the doors it fits, and its pace. *Built:*
+    the pace. Each of Security's seven walks at the bench's pace and steps a minute (Goods inward 0.25 m/s, the Ops stair
+    0.4, the Ops speaker 0.7, the Ops offices 0.85, the hall's east end 0.9, its west end 1; the night round's round was
+    1 already), and everything it does goes as much slower than the rest (1.3 m/s on their rounds, 3.5 after you): the
+    slowest after you at two thirds of a metre a second. Its legs, its footfalls and its prints go by its own stride and
+    steps. The rest waits on bodies rewritten by size.
   - *The word.* "Husk" is never said in the game (it was only ever a name in the code, which keeps it, and in the dev
     tools, which say "changed" now).
   - *Cards (built).* Security's own staff carry their cards: those that start in one of Security's alarm zones. A card

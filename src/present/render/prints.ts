@@ -218,7 +218,7 @@ export class Prints {
       if (!F) this.feet.set(m, (F = Prints.feet(m.x, m.z, !!m.green)));
       const mb = m.body, face = m.yaw + Math.PI, wet = w.waterAt(m.x, m.z) > m.y + 0.05, firm = !mb || (mb.ground && !mb.on);
       const feet = F;
-      this.walked(feet, m.x, m.z, G.pace, () => this.step(sim, feet, G, m.x, m.y, m.z, face, wet, firm));
+      this.walked(feet, m.x, m.z, G.pace * (m.gait.stride ?? 1), () => this.step(sim, feet, G, m.x, m.y, m.z, face, wet, firm)); // its own steps' length (sim/cast/gait.ts)
       F.x = m.x; F.z = m.z;
     }
     /* drying: water goes, blood and sap stay; prints fainter as the sole ran out */
