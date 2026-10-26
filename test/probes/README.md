@@ -12,8 +12,9 @@ were written for were found by measuring, not by looking, and the next one will 
 - `kill.probe.ts`: where what a real swing kills lies, axe and pipe: how far its middle went along your line, across
   it, and how high it rose.
 - `tread.probe.ts`: walking into a body on the floor: each kind killed with no blow and asleep, walked and run through
-  by you along it and across it, walked through by a husk, and stood in: how far its middle, its trunk and its
-  furthest point went, how long it was awake. `KINDS=husk,worm` for fewer.
+  by you across it (through its middle, its legs, its head), along it, and past it at its side, walked through by a
+  husk, and stood in: how far its middle, its trunk and its furthest point went, how long it was awake. Then the
+  station's own, on a level (`LEVEL=main`), each killed where it stands and walked through. `KINDS=husk,worm` for fewer.
 - `down.probe.ts`: the axe flooring a husk (as hard as one run into): how far its shoulders turn on the plan while it
   is down, and how far its hips go out. `TRACE=1` prints one fall step by step.
 
