@@ -161,11 +161,11 @@ The testers and those they turned, centred on Horticulture.
   what makes it the first thing to fear. Its touch is Pia's, the opiate: whoever it touches goes slack, and it takes them
   (§8, *The opening*). Where it takes them, and what they become, is the wing's to tell.
 - **Flesh and plant both (agreed; sharpens the above).** Pia was flesh first and grew into the tree, and a child of hers is
-  what she was on the day it was grafted (§10, *Pia's line*). What reached Security came from when the plant had begun to
-  come out of her, carried by a mutant already old in its own change. So the wing's changed are not the flesh of her early
-  children but a hybrid: tobacco leaf in shelves out of the skin; her line's size and shape gone wrong, one thing in each,
-  muted beside what the Commons will show; and her stupor, the slowness. The longer one has been changing, the more plant
-  it is (§8, *The changed*).
+  what she was on the day it was grafted (§10, *Pia's first children*). What reached Security was the half-and-half, her
+  child from the middle of her change, and it colonised the wing itself. So the wing's changed are a hybrid, as it is:
+  tobacco leaf in shelves out of the skin and the face; on the flesh side, a little of the bone mother's and the bloat
+  ancestor's (limbs drawn long, a body or a head swollen), one thing in each, muted beside what the Commons will show; and
+  Pia's stupor, the slowness. The longer one has been changing, the more plant it is (§8, *The changed*).
 - **Character.** The most technologically able of the flesh. They kept the station's systems running from habit; the cameras
   watch for them on a lockdown protocol, with nobody behind the screens (see §8).
 - **The survivors.** A smaller group of Security's staff, still human, sectioned themselves off from the changed ones. The changed
@@ -643,7 +643,8 @@ wins; the older text stays only because it describes what is built, until the le
     the back of the neck and the right shoulder from woody knots, in tiers stacked like a bracket fungus, green going to
     the curing barn's yellow; more on some than others, most on the night round, down the right of the back. Sallow
     skin; the eyes glassy, wet and pale, the pupils pinned, the lids heavy, the rims red; the mouth slack.
-  - *The look, next (agreed; mocked up, not built).* Pia's line shows in their build (§10, *Pia's line*): each has one
+  - *The look, next (agreed; mocked up, not built).* The half-and-half's shows in their build (§10, *Pia's first
+    children*): leaf out of the face as well as the body, and each has one
     thing in its size or shape gone wrong (a long neck, one arm grown, a head too heavy for it, arms to the knee, a long
     body on short legs), never as far as the Commons'. They have stopped dressing for work: shirts open, torn away where
     the leaf came through, tied round the waist, gone; a boot lost; the newest still button theirs, and the night round
@@ -1234,22 +1235,34 @@ Nobody expected worse than a bad night.
   opiate, not the tree. Grafting her takes the edge off, and you lose something you do not miss. *Children:* by her age
   (below). Old Pias grow faster as they age, so the tree is a clock. *Tell:* milky sap.
 
-  *Pia's line (agreed; supersedes her children as first written: early, the dazed and husk-like; mid, half stalk and half
-  flesh; late, sessile).* She was flesh, all of her, before she was a tree, and a child is what she was on the day it was
-  grafted (rule 1), so her line divides by her age. The opiate is in all of it: numb, slow, the pupils pinned, the
-  pustules. None of it twitches.
+  *Pia's first children (agreed; supersedes Pia's line, which had superseded her children as first written).* She was
+  flesh, all of her, before she was a tree. Early she was not violent, but she was frightened and confused, and always
+  under the opiate. For her that was a phase; for a child grafted in it, it is for good (rule 1), and the child grows
+  further into the stage it was given than she ever went: her flesh children grew larger than she was in her flesh days,
+  and her half-plant ones become more plant than she was in the middle of her change, but never the tree. "Pia's
+  children" covers too much to be useful, so each first child is the head of a line of its own, and a mutant is placed by
+  which. Six. The opiate is in all of them (numb, slow, the pupils pinned, the pustules), and none of them twitches.
 
-  - *Her early children are flesh,* with only a touch of the plant it all began from, and their mutation is size: one thing
-    grown too big or too long, or the body's plan changed. A long torso, long legs, a huge head. The bloats are the eldest
-    of them, huge and soft, with the look of babies (built; they stay as they are). One became a spider: the skitter, on
-    four legs (the model has six for now). One grew its bone out through its skin: a person in a shell of its own.
-  - *The shell's line is bone.* Its children are the husks, and any mutant with a bone spike or a bone gone wrong; the
-    husks are the least of it, and grow in stages (open: what the stages are). The thresher, its ribcage opened into
-    doors, is bone gone wrong, so it is the shell's.
-  - *Her later children are flesh and plant,* from when the plant had begun to come out of her: the size and shape gone
-    wrong, but muted; leaf out of the skin; slow. Security's changed came from one of these, old in its own change (§2,
-    *The Security flesh*), and the longer each has been changing, the more plant it is. Latest of all, sessile, quietly
-    euphoric, still feeling: nearly all plant, as she is now.
+  - *The bone mother.* Flesh. Her bone grew out: extended, plated, augmented, the bone pushed out through the skin. Her
+    line is a whole cast of bone: legs drawn out on long bones, plates, spikes, anything open-ended in bone. Like Pia she
+    has older children and younger ones, each what she was when it was grafted. Hers are the husks (in stages of
+    growth; open: what the stages are) and any mutant with a bone spike or a bone gone wrong; the thresher, its ribcage
+    opened into doors, is bone gone wrong. They stay humanoid, drawn long or with the bone expanding out.
+  - *The bloat ancestor.* Flesh, one alone: larger than any of its line, which it grafted. Where the bloats come from: Pia's
+    direct children all look different, so three of them could not look alike, but one line can. The bloats keep their
+    look, huge and soft, the look of babies (built; they stay as they are).
+  - *The half-and-half.* Flesh and plant about evenly, from the middle of her change. Its flesh side has something of the
+    bone mother and the bloat ancestor; the rest is shelves of leaf, out of its face and its body, that will cover it
+    almost entirely; and, unlike Pia, it never loses the ability to move. A more intense Pia-in-transition, held there. It
+    colonised Security (§2, *The Security flesh*): the wing's changed are its line.
+  - *The flower child.* Flesh and plant again, nearer seventy to thirty, the other way: it came out different, more plainly
+    human to look at, its plant mostly flower, and the flowers grow off roots. A plant's structure can mutate as well as a
+    body's.
+  - *The root ancestor.* A plant ancestor: it grafted Pia's roots. Small Pias that look nothing like her. The early ones
+    have roots coming out of their bodies; later ones sink into the ground and plant themselves, the person the top of
+    the plant, perhaps the head the only part still human, green on it; their roots crawl up the walls.
+  - *The bark ancestor.* A plant ancestor: it grafted Pia's bark. A person whose flesh turns to bark, plated, almost an
+    insect: someone grown into something much worse. Armoured another way from the bone line, which stays humanoid.
 - **Ines Calder (hallucinogen).** She never stops seeing. Her brain grows until it can carry the visions without believing
   them, and what is left is lucid and finds patterns in everything. Very tall (about 7 m), lanky, with a big head: the growth
   went to the head and to what perceives. Human and fleshy, in her own skin, and reads as an ordinary mutant: no plant shows on her at
@@ -1339,13 +1352,55 @@ Nobody expected worse than a bad night.
   | 4 | the Commons bloc | walk, track you with their heads | some | strong |
   | 5 | Commons husks | act; ignore their own pain | faint | strong, and turned outward |
 
-  Husks of any generation are of the shell's line (*Pia's line*, above).
+  Husks of any generation are the bone mother's line (*Pia's first children*, above). Her first children are generation
+  3: read *the dazed* as the bloat ancestor; whether the founder is the bone mother is open (proposed: she is, below).
 
 - **The mother.** A woman of the Commons bloc whose graft took in the womb; touch her and you lay eggs too. Her hatchlings have
   no host and lose most of the human look. She lays in Cargo, where nothing green can reach.
 - **Security's first.** Taken by a hatchling in Cargo, so it inherited no fear and no thought, only drills; it sits up out of
   the middle of the overseer (§8). Hatchlings imprint on whoever tends the clutch, so Security raises the Commons' young, guards
   a nest it cannot add to, and wants a mother of its own.
+
+### Temper: when, how far, how long (proposed)
+
+What a mutant is like, and what it does about you, is read by asking when, mostly; then how far, and how long. Proximity
+and drift. (The rules are §10's; this is how they add up.)
+
+1. **When: what its grafter was going through that day.** A child takes the state of mind of the stage its grafter was
+   in, and keeps it, growing further into it (rule 1; *Pia's first children*). Pia's stages, in order: all flesh,
+   frightened and confused, under the opiate; the plant coming out of her, the fear easing, the stupor deep; the tree,
+   calm, euphoric, still.
+2. **How far: grafts from the source.** The opiate is a drug an organ makes (§1, *A seed takes root*), and each graft
+   carries less of it: it dulls with distance. The state of mind does not dull; it hardens, an idea in the parent an
+   instinct in the child (rule 6). A child of a late child of Pia is two grafts from her already.
+3. **How long, and with whom: drift.** Time does two things. To the body, more of the same: further into its stage. To
+   the mind, drift (rule 2): changing alone, a strain wanders from its parent and can lose what it was given, its fear
+   among it, given long enough; changing in a crowd, it drifts with the crowd and keeps what the crowd has.
+
+- **What comes of it.** Fear held down by the opiate is slow and watchful, and kills what it is afraid of when it has to:
+  Security's changed. Fear with nothing holding it down is violence: the Commons' husks, many grafts from Pia's frightened
+  days, changed in a crowd (the table above: the opiate dulls, the fear does not). Fear drifted out, or never given (a
+  graft from the tree: old tissue carries the cure, rule 4), leaves something that does not want you dead. So any of them
+  can be made to leave you alone, but only when *when, how far, how long* says so.
+- **Left alone is not left be.** The calm still carry Pia's touch. One that does not fear you has no reason to kill you,
+  and every reason the cosmology gives to graft you: here is the answer to being taken rather than killed (§6, question
+  8), the calm ones.
+- **Read by how it moves, not how it looks** (*Tells*: behaviour is stage). Never still is fear with nothing holding it;
+  slow and watching is fear held down; still is past fearing. The worst-looking can be the calmest (the bark ancestor's).
+
+| First child | When (proposed) | Temper it carries | In the game |
+|---|---|---|---|
+| The bone mother | early: flesh, frightened, confused | fear, hardening to instinct down the line | husks, the thresher: far from her and in a crowd, violent |
+| The bloat ancestor | early | the stupor above all, the fear buried under it | the bloats: they sit, and fill corridors |
+| The half-and-half | the middle of her change | fear easing, stupor deep: slow, watchful | Security's changed: fear held down |
+| The flower child | later in the change | less fear, more of the euphoria | none yet |
+| The root ancestor | the tree: her roots | calm (the cure in old tissue); planting itself | none yet |
+| The bark ancestor | the tree: her bark | calm, whatever it looks like | none yet |
+
+- **The changed, read so.** The half-and-half took the wing in a week, so Security's changed are one to three grafts from
+  it, a week at most, changed together: its fear and its stupor both, nothing drifted, the first grafted the most plant.
+  The other patient, one graft further, out cold and then alone: afraid of you when it wakes (§8), and left alone long
+  enough, it might drift calm.
 
 ### Grafting as treatment
 
@@ -1371,8 +1426,11 @@ The player is never told any of this; they read it.
 - **Fluid colour is lineage:** Pia milk, Dale nicotine, Ines her own pigment, Tom spore-yellow, Holt green, Sam a glow.
   Two colours on one body is a hybrid.
 - **Behaviour is stage:** never still means crisis; sitting means past it.
-- **Size is age,** in each elder's own silhouette; in Pia's line, size is the mutation itself, one thing too big or too long.
-- **Bone is the shell's line;** leaf out of flesh is Pia's later children.
+- **Size is age,** in each elder's own silhouette; in Pia's flesh lines, size is the mutation itself, one thing too big or
+  too long.
+- **What grows is the line.** Bone is the bone mother's; a swollen body the bloat ancestor's; shelves of leaf out of flesh,
+  the half-and-half's; flowers off roots, the flower child's; roots, the root ancestor's; plates of bark, the bark
+  ancestor's.
 - **Motif is descent from Ines,** degrading by generation.
 - **Scars** show which crisis it survived.
 - **An offered wrist,** cut open and held out, is a graft offered, in every lineage.
@@ -1381,7 +1439,8 @@ The player is never told any of this; they read it.
 
 - Holt: what marks her work, and how she can be hurt.
 - Is the founder the thresher? What do the young gods look like?
-- The shell: who it was, where it is, and the husks' stages of growth.
+- Pia's first children: who each was (names), where each is now, and whether the bone mother is the founder. The husks'
+  stages of growth. The skitter's line: the bone mother's (long bone legs), or the mother's hatchlings, as §10 has it.
 - Where Ines paints. (Dale: the curing hall: §8, *Production*.)
 - **The mass (proposed, moved from Security).** A room grown shut, its glass sweating, something pressed flat against it that
   you never see whole, the changed feeding at its door: a late child of Pia's, sessile, in the Commons or wherever her people
