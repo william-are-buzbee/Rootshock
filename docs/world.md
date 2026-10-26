@@ -1017,6 +1017,38 @@ floor. Drying, **curing**, the extraction labs, the packing line.
   remembers them. The guilt is why he inoculates.
 - **The sleepless here:** chaos, not order (§10, *The sleepless*).
 
+### The cave from above, and Phase 2 (proposed; after Security)
+
+Caves become a bigger part of the game later, once Security and the upper floors play as a sandbox. Two ideas for then,
+written down so they wait here. Neither is canon until agreed.
+
+- **Why there are caves: the window.** The builders found a limestone stream cave (§1); they did not make it. A family
+  that hung a false sky over its lobby would not leave a real cavern unseen. A wall of glass onto a high chamber of the
+  system, floodlit, would be the showpiece, as show caves are. It justifies the caves before you set foot in one: you
+  see them from the front door.
+- **One system, many heights.** The cave as built is near the bottom of the station, and the lobby is at 400 m. Limestone
+  systems run up as well as along: avens (shafts rising from below) and chambers stacked over one another. The window
+  looks into a high chamber of the same system, and the way down from it is a climb that comes out in the cave we have.
+- **Ways in from the lobby.** A service door, for whoever lit the chamber and kept the glass clean. Or the glass itself:
+  a showpiece window is ordinary glass, not armoured, so it breaks, and loudly. That is the cost (§4), and the noise
+  brings the changed. Armoured glass stays a wall. Wants breakable glass, which is not built: glass now only stops rays.
+- **An alternate route.** Down through the cave, not the shafts: a second way through the game. It must not skip what
+  gates the main way (§6, question 9), and the progression checker holds it to that.
+- **Phase 2.** The atrium's heavy door, welded and stencilled PHASE 2. NOT COMMISSIONED (built). The exhibit promises
+  it: deeper galleries, a second aquifer, four times the growing floor; "Lowfield grows down" (*The exhibit*, §8).
+  Proposed: Phase 2 was dug, and it broke into the cave system where Horticulture recovered the tissue (§10, *The
+  mutagen is a graft*), which is why it was welded. §10 says the tissue came out of the aquifer core; this says where
+  the core is. Find a way through, and past the door is a vast underground of horticulture gone wild: Holt's body
+  (§10, *The elders*), the green gone further down than the station was ever paid to dig. The root got there before the
+  building did. Then the welded door, the window on the cavern and the start of the mutagen all point at one hole.
+- **The station as a root system (the theme).** The facility is rooting, as the game is about being rooted through.
+  The shafts are a taproot, the galleries its laterals, and the finish thins the deeper you go: not decay, but roots
+  are not made to be seen (*Finish by route*, §1). The exhibit says it in the company's own voice, as a slogan.
+- **Open:** where the window is (the lobby's north wall; or the retreat's lounge, whose window is a lit panel of sky now
+  and could become a real cavern); what is in the chamber, and whether it is lit; how glass breaks (a blow, a thrown
+  thing, how loud, what hears it); whether Phase 2 is reached from the atrium or meets the cave route below; and the
+  order of it all in the progression.
+
 ---
 
 ## 9. Immersion (brainstorm; for reference)
