@@ -1055,7 +1055,7 @@ walked through as through a rug. Now each is a body like any other.
   and a body falling on it lies on it, as with any corpse.
 - **A person** (`SKEL.dead`): the other patient's skeleton at a grown person's 75 kg, drawn as it is, part for part
   (`deadModel` in `render/castView.ts`; `RIG.dead`): slacks and shoes, a shirt in what the level says they wore (a
-  guard in Security's uniform, badge and epaulettes), grey in the face, the eyes near shut and the jaw dropped, the shirt
+  guard in Security's uniform, its badge the one thing on it), grey in the face, the eyes near shut and the jaw dropped, the shirt
   stiff with dried blood front or back. It does not bleed again: its blood is the level's pool under it, laid as
   before. Each was grafted where it lies, so not necessarily dead (world.md §10): a small shelf of leaf comes out of one
   forearm in a raw knot, as on the other patient, which arm by the body.

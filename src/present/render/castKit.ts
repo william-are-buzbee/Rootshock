@@ -68,30 +68,20 @@ export function merged(parent: O3, mat: THREE.Material, build: (g: THREE.Group) 
   return mesh;
 }
 
-/* the plant on the changed (world.md §8): wild tobacco, Nicotiana rustica, its leaf broad and rounded on a short stalk,
-   green going yellow at the edges, the colour of the leaf in the curing barn; and where it comes out, a woody knot */
-export const LEAF = [0x4b5c2a, 0x5a6630, 0x6e6a2c, 0x7e7430], VEIN = 0x8a8c5a, LSTALK = 0x5e5a38, KNOT = 0x4e4028;
-/** a leaf, out along yaw from (x, y, z), `len` long, its tip drooping by `droop` */
-export function leaf(parent: O3, mat: THREE.Material, x: number, y: number, z: number, yaw: number, len: number, droop: number, c: number): void {
-  const g = grp(parent, x, y, z);
-  g.rotation.set(droop * 0.6, yaw, 0);
-  mk(g, mat, 'box', LSTALK, 0.08 * len, 0.07 * len, 0.26 * len, 0, 0, 0.13 * len);
-  mk(g, mat, 'ico', c, 0.7 * len, 0.09 * len, 0.62 * len, 0, 0, 0.5 * len);
-  mk(g, mat, 'box', VEIN, 0.03 * len, 0.095 * len, 0.5 * len, 0, 0.01 * len, 0.5 * len);
-  const o = grp(g, 0, 0, 0.72 * len);
-  o.rotation.x = droop;
-  mk(o, mat, 'ico', c, 0.62 * len, 0.08 * len, 0.6 * len, 0, 0, 0.22 * len);
-}
+/* the plant on the changed (world.md §8): wild tobacco, Nicotiana rustica, green going yellow, the colour of the leaf in
+   the curing barn; and where it comes out, a woody knot */
+export const LEAF = [0x4b5c2a, 0x5a6630, 0x6e6a2c, 0x7e7430], KNOT = 0x4e4028;
 /** a shelf of leaf out of the body along yaw, the way a bracket fungus stacks out of a stump: from a woody knot, tiers
- *  climbing `rise` metres a tier (and leaning `lean` toward yaw as they climb), each a fan of nearly flat leaves `fan`
- *  radians either side, the lowest the widest. `rnd` for the small differences, the same each time for the same one */
+ *  climbing `rise` metres a tier (and leaning `lean` toward yaw as they climb), each one broad, flat slab of leaf, the
+ *  lowest the widest. Low-poly, as the cast are (mockups/mutants.html). `rnd` for the small differences, the same each
+ *  time for the same one */
 export function shelf(parent: O3, mat: THREE.Material, x: number, y: number, z: number, yaw: number, tiers: number, len: number,
-  rnd: (a: number, b: number) => number, o: { rise?: number; lean?: number; fan?: number } = {}): void {
-  const rise = o.rise ?? len * 0.3, lean = o.lean ?? 0, fan = o.fan ?? 0.4, sx = Math.sin(yaw), sz = Math.cos(yaw);
+  rnd: (a: number, b: number) => number, o: { rise?: number; lean?: number } = {}): void {
+  const rise = o.rise ?? len * 0.3, lean = o.lean ?? 0, sx = Math.sin(yaw), sz = Math.cos(yaw);
   mk(parent, mat, 'ico', KNOT, len * 0.45, rise * (tiers - 0.4), len * 0.4, x, y + rise * (tiers - 1) / 2, z);
-  for (let j = 0; j < tiers; j++)
-    for (let i = -1; i <= 1; i++) {
-      const k = 1 - j * (0.5 / tiers);
-      leaf(parent, mat, x + sx * lean * j, y + j * rise, z + sz * lean * j, yaw + i * fan + rnd(-0.12, 0.12), len * k * rnd(0.85, 1.1), rnd(-0.05, 0.14), LEAF[(i + j + 4) % 4]);
-    }
+  for (let j = 0; j < tiers; j++) {
+    const k = 1 - j * (0.45 / tiers), g = grp(parent, x + sx * lean * j, y + j * rise, z + sz * lean * j);
+    g.rotation.set(rnd(0.02, 0.12), yaw + rnd(-0.2, 0.2), 0);
+    mk(g, mat, 'ico', LEAF[(j + 4) % 4], len * 1.3 * k, len * 0.1, len * 0.75 * k, 0, 0, len * 0.42 * k);
+  }
 }
