@@ -126,8 +126,10 @@ function patientModel(mat: THREE.Material): Model {
 }
 
 /* the station's dead, the guards and the residents (sim/cast.ts, MT.dead): dressed as they were (a guard in Security's
-   uniform, the rest in what the level says they wore), days dead, grey in the face, the shirt stiff with what came out
-   of them. Built as the other patient is, part for part, so it lies as its points do (rig.ts); never stood up */
+   uniform, the rest in what the level says they wore), grey in the face, the shirt stiff with what came out of them. Not
+   necessarily dead (world.md §10, Pia): every one of them was grafted where it lies, a small shelf of leaf out of a
+   forearm, a raw knot round it, as the night round grafts the other patient. Built as the other patient is, part for
+   part, so it lies as its points do (rig.ts); never stood up */
 const DEAD = 0xa58a78, SLACKS = 0x30333a, DRIED = 0x2e0909;
 function deadModel(mat: THREE.Material, m: Mutant): Model {
   const R = seeded(m.id + 1), g = new THREE.Group(), cl = m.wear || 0x4a5560, guard = cl === UNIFORM, legs: O3[] = [], shins: O3[] = [];
@@ -157,6 +159,11 @@ function deadModel(mat: THREE.Material, m: Mutant): Model {
     const a = grp(b, s * 0.25, 0.56, 0); mk(a, mat, 'box', cl, 0.11, 0.34, 0.12, 0, -0.17, 0); mk(a, mat, 'box', DEAD, 0.07, 0.34, 0.07, 0, -0.5, 0);
     arms.push(a);
   }
+  /* the graft, in one forearm or the other, the leaf come up out of it */
+  merged(arms[R.rnd(0, 1) < 0.5 ? 0 : 1], mat, G => {
+    mk(G, mat, 'ico', 0x6a2820, 0.1, 0.12, 0.1, 0, -0.42, 0.03);
+    shelf(G, mat, 0, -0.44, 0.04, 0, 2, 0.16, R.rnd, { rise: 0.05, fan: 0.5 });
+  });
   return { g, b, hd, legs, shins, arms };
 }
 
@@ -332,7 +339,7 @@ export const ANIM: Record<string, (m: Mutant, M: Model, c: Ctx) => void> = {
       M.hd.rotation.z = 0.12;
     }
   },
-  husk(m, M, c) {
+  husk(m, M) {
     const mv = m.mv > 0, hunt = m.state === 'hunt', f = hunt ? 11 : 5;
     for (let k = 0; k < 2; k++) { M.legs[k].rotation.x = mv ? Math.sin(m.ph * f + k * PI) * (hunt ? 0.7 : 0.35) : 0; if (M.shins) M.shins[k].rotation.x = 0; }
     M.arms[0].rotation.x = hunt ? -1.1 + Math.sin(m.ph * f) * 0.2 : mv ? Math.sin(m.ph * f + PI) * 0.25 : 0;
@@ -369,7 +376,8 @@ export const ANIM: Record<string, (m: Mutant, M: Model, c: Ctx) => void> = {
       M.arms[1].rotation.x = 0.2 * e + sh;
     }
     M.b.rotation.z = Math.sin(m.ph * (mv ? f : 0.8)) * 0.04;
-    M.hd.rotation.z = 0.25 + Math.sin(m.ph * 0.7) * 0.1 + twitch(M, 'head', c, 0.9, 0.5, 0.2);
+    /* the head lolled and moving slowly, nobody much behind it; none of Pia's line twitches (world.md §10) */
+    M.hd.rotation.z = 0.25 + Math.sin(m.ph * 0.7) * 0.1;
     M.hd.rotation.y = Math.sin(m.ph * 0.5) * 0.25;
     /* the flashlight held out along its beam, whatever the other arm is doing (sim/cast.ts, torchRay) */
     if (M.lens) M.arms[0].rotation.x = torchRay(m).pitch - PI / 2;
