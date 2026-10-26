@@ -8,7 +8,8 @@ import { MOVES } from '../moves';
 import type { Sim } from '../sim';
 import { bones, knockRag, layRag, makeRag, ragAt } from '../ragdoll';
 import type { Mutant } from '../cast';
-import { fieldTo, follow, go, mayRoute, rnd, step_ } from './move';
+import { fieldTo, follow, go, mayRoute, rnd, step_, turnToward } from './move';
+import { pace } from './gait';
 import { beginBlow } from './blows';
 import { doorMid, SEARCH } from './husk';
 
@@ -23,13 +24,12 @@ const dt = STEP;
    a stop it stands and plays its beam about; at a door on its round it tries the reader with its card, which beeps green
    or red. Taken off its round (it saw you, an alarm, a breaker), it comes back to it where it left off. */
 
-/** its pace on the round (m/s), slow: it is sedated as they all are; after you, slower than the rest; at a stop, how long
- *  it looks about if the stop does not say, how far its beam swings either way (radians) and how fast; between tries at a
- *  reader, and how far either way it sweeps its beam about a room it has opened, or one it has gone into to search; how
- *  far below level it holds the beam
- *  walking; and, drawn off a stop by a noise, how long it stands looking toward it first, its beam on it (sound before
- *  sight: the opening) */
-export const ROUND = { pace: 1.0, hunt: 3.0, look: 2.5, sweep: 0.55, into: 0.5, about: 1.5, swing: 1.1, beep: 0.8, pitch: 0.14, roused: 4.5 };
+/** at a stop, how long it looks about if the stop does not say, how far its beam swings either way (radians) and how
+ *  fast; between tries at a reader, and how far either way it sweeps its beam about a room it has opened, or one it has
+ *  gone into to search; how far below level it holds the beam walking; and, drawn off a stop by a noise, how long it
+ *  stands looking toward it first, its beam on it (sound before sight: the opening). Its paces are its gait's
+ *  (cast/gait.ts, nightround): slow on its round, sedated as they all are; after you, slower than the rest */
+export const ROUND = { look: 2.5, sweep: 0.55, into: 0.5, about: 1.5, swing: 1.1, beep: 0.8, pitch: 0.14, roused: 4.5 };
 
 /** the door a stop tries: the nearest within reach of it (not a pane of glass), or -1 */
 function stopDoor(sim: Sim, P: RoundStop): number {
@@ -73,9 +73,9 @@ export function walkRound(sim: Sim, m: Mutant): void {
     else if (k >= 0) {
       /* at the reader; through a door it opened, its beam swept about the room, side to side */
       const at = doorMid(sim.doors[k]), to = Math.atan2(at.x - m.x, at.z - m.z), sweep = m.st <= 0 && sim.doors[k].open ? Math.sin(m.ph * ROUND.swing * 1.6) * ROUND.into : 0;
-      m.yaw = angLerp(m.yaw, to + sweep, Math.min(1, dt * 4));
-    } else if (P.about) m.yaw = angLerp(m.yaw, m.wm + Math.sin(m.ph * ROUND.swing * 0.8) * ROUND.about, Math.min(1, dt * 2.5)); // right round the room
-    else m.yaw = angLerp(m.yaw, m.wm + Math.sin(m.ph * ROUND.swing) * ROUND.sweep, Math.min(1, dt * 3));
+      turnToward(m, to + sweep, 4);
+    } else if (P.about) turnToward(m, m.wm + Math.sin(m.ph * ROUND.swing * 0.8) * ROUND.about, 2.5); // right round the room
+    else turnToward(m, m.wm + Math.sin(m.ph * ROUND.swing) * ROUND.sweep, 3);
     if ((m.wt -= dt) > 0) return;
     if (P.take) {
       /* the other patient, where they hide: struck, and struck again, and then taken */
@@ -110,7 +110,7 @@ export function walkRound(sim: Sim, m: Mutant): void {
     if (m.wt <= 0) next();
     return;
   }
-  if (follow(sim, m, m.F!, P.pace ?? ROUND.pace, false)) m.stk = 0;
+  if (follow(sim, m, m.F!, P.pace ?? pace(m, 'round'), false)) m.stk = 0;
   else if ((m.stk += dt) > 4) next(); // it cannot get there as things stand: on to the next
 }
 
@@ -168,7 +168,7 @@ function graftHere(sim: Sim, m: Mutant): void {
 }
 /** a step of it: down over the body, its beam on it; the body jerking, and bleeding */
 function grafting(sim: Sim, m: Mutant): void {
-  m.yaw = angLerp(m.yaw, Math.atan2(m.wx - m.x, m.wz - m.z), Math.min(1, dt * 4));
+  turnToward(m, Math.atan2(m.wx - m.x, m.wz - m.z), 4);
   const q = sim.cast.find(o => o.grafted && o.state === 'out' && Math.hypot(o.x - m.wx, o.z - m.wz) < 2);
   if (!q?.rag) return;
   bleed(sim, q, 0.3);
@@ -241,7 +241,7 @@ export function patient(sim: Sim, m: Mutant): void {
   const opened = sim.doors.some(d => d.t > 0.3 && !d.def.glass && !d.def.open && Math.hypot((d.def.x0 + d.def.x1) / 2 - m.x, (d.def.z0 + d.def.z1) / 2 - m.z) < 3);
   if (opened && (m.state === 'wait' || m.state === 'bang' || m.state === 'warn')) m.state = 'hide';
   const face = (x: number, z: number, k = 3) => { m.yaw = angLerp(m.yaw, Math.atan2(x - m.x, z - m.z), Math.min(1, dt * k)); };
-  const to = (P: { x: number; z: number } | null) => !P || Math.hypot(P.x - m.x, P.z - m.z) < 0.25 || (go(sim, m, P.x, P.z, 1.3), m.mv = 1.3, false);
+  const to = (P: { x: number; z: number } | null) => !P || Math.hypot(P.x - m.x, P.z - m.z) < 0.25 || (go(sim, m, P.x, P.z, pace(m, 'walk')), m.mv = pace(m, 'walk'), false);
   switch (m.state) {
     case 'bang': {
       /* at the glass, toward you: struck, and struck again, until the noise brings something; and a moment more, the time
@@ -325,7 +325,7 @@ export function triesYours(sim: Sim, m: Mutant): boolean {
 export function reaches(sim: Sim, m: Mutant): boolean {
   const Fs = sim.fields;
   if (!Fs || m.spot < 0 || Fs.from < 0) return false;
-  if (Number.isFinite(Fs.hands[m.spot])) return true;
+  if (Number.isFinite(Fs.ways[m.walker][m.spot])) return true;
   if (m.cards && m.walker === 'hands') return Number.isFinite(staffField(sim, Fs)[m.spot]);
   return Number.isFinite(fieldFrom(Fs.nav, Fs.from, rulesFor(sim, Fs, m.walker, m.cards), undefined, 90)[m.spot]);
 }

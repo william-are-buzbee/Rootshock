@@ -1,4 +1,3 @@
-import { angLerp } from '../../core/math';
 import { STEP } from '../../core/loop';
 import type { Dyn } from '../../world/world';
 import { impulse } from '../body';
@@ -9,7 +8,8 @@ import type { Sim } from '../sim';
 import { knockRag, makeRag, RAG, REFLEX, type Killing } from '../ragdoll';
 import type { V3 } from '../sweep';
 import type { Ai, Mutant } from '../cast';
-import { drive, go, step_, turnTo } from './move';
+import { drive, go, step_, turnTo, turnToward } from './move';
+import { pace } from './gait';
 import { beaten } from './round';
 
 /* The cast's side of the fight (engine.md §6): what lands on you, taking turns at you, a blow wound up, thrown and
@@ -75,7 +75,7 @@ export function waits(sim: Sim, m: Mutant): boolean {
 export function hover(sim: Sim, m: Mutant, ring: number): void {
   const p = sim.player.body, d = m.dp || 1, ux = (m.x - p.x) / d, uz = (m.z - p.z) / d;
   const a = m.id % 2 ? 0.35 : -0.35, c = Math.cos(a), sn = Math.sin(a);
-  go(sim, m, p.x + (ux * c - uz * sn) * ring, p.z + (ux * sn + uz * c) * ring, 1.3);
+  go(sim, m, p.x + (ux * c - uz * sn) * ring, p.z + (ux * sn + uz * c) * ring, pace(m, 'hover'));
   turnTo(sim, m, 8);
 }
 
@@ -159,7 +159,7 @@ export function blowStep(sim: Sim, m: Mutant): boolean {
   /* at another of the cast: turned to them, and it lands where they are, for sure */
   const q = B.at === undefined ? null : sim.cast[B.at];
   if (q) {
-    if (B.ph !== 'after') m.yaw = angLerp(m.yaw, Math.atan2(q.x - m.x, q.z - m.z), Math.min(1, dt * K.turn));
+    if (B.ph !== 'after') turnToward(m, Math.atan2(q.x - m.x, q.z - m.z), K.turn);
     if (B.ph === 'wind' && B.t >= K.wind) { B.ph = 'strike'; B.t = 0; step_(sim, m, 'swing', K.big); }
     else if (B.ph === 'strike' && B.t >= K.strike) { B.hit = true; beaten(sim, q); B.ph = 'after'; B.t = 0; }
     else if (B.ph === 'after' && B.t >= K.rec) m.blow = null;

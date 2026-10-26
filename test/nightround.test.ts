@@ -4,7 +4,7 @@ import { STATION } from '../src/content/station';
 import { looseLights, simLighting, step, type Sim } from '../src/sim/sim';
 import { noInput } from '../src/sim/input';
 import { STEP } from '../src/core/loop';
-import { ROUND, torchRay, type Mutant } from '../src/sim/cast';
+import { GAIT, ROUND, torchRay, type Mutant } from '../src/sim/cast';
 import type { Loose } from '../src/world/light';
 import { CastView } from '../src/present/render/castView';
 import { fresh, hold, upper } from './kit';
@@ -117,8 +117,8 @@ describe('the night round', () => {
   });
 
   it('slow on its round, slower after you than the rest', () => {
-    expect(ROUND.pace).toBeLessThan(1.3); // the others' rounds
-    expect(ROUND.hunt).toBeLessThan(3.5);
+    expect(GAIT.nightround.pace.round).toBeLessThan(GAIT.husk.pace.walk); // the others' rounds
+    expect(GAIT.nightround.pace.hunt).toBeLessThan(GAIT.husk.pace.hunt);
   });
 
   it('swings its beam onto you, not there in a step; the arm drawn holding it goes with it', () => {

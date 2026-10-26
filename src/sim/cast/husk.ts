@@ -1,4 +1,3 @@
-import { angLerp } from '../../core/math';
 import { STEP } from '../../core/loop';
 import { staffField } from '../fields';
 import { power, sfx } from '../game';
@@ -6,10 +5,11 @@ import { occupied, type Door } from '../movers';
 import { MOVES } from '../moves';
 import { riders, type Sim } from '../sim';
 import type { Mutant } from '../cast';
-import { away, chase, fieldTo, follow, go, rnd, roam, step_, turnTo } from './move';
+import { away, chase, fieldTo, follow, go, own, rnd, roam, step_, turnTo, turnToward } from './move';
+import { footfall, pace } from './gait';
 import { hears, lit, seeP, seeThrough } from './senses';
 import { beginBlow, blowStep, hover, inStart, WAIT, waits } from './blows';
-import { glassSpot, PEER, reaches, ROUND, takesYou, triesYours, walkRound } from './round';
+import { glassSpot, PEER, reaches, takesYou, triesYours, walkRound } from './round';
 
 /* Security's staff (world.md §8, the changed; the code keeps the name husk): what makes one notice you and hunt
    you, look for whoever threw a breaker, shut a door left open, answer an alarm, or go to throw a breaker back on.
@@ -38,15 +38,15 @@ function hunt(sim: Sim, m: Mutant): boolean {
   return true;
 }
 
-/** looking for whoever threw the breaker: a while about the board, slowly, a spot at a time, stopping to look round.
- *  It sees farther than on its rounds, and all round: it is looking (world.md §8, the changed) */
-export const SEARCH = { time: [14, 20] as const, reach: 6, pace: 1.2, see: 18, look: [1.5, 3] as const };
+/** looking for whoever threw the breaker: a while about the board, slowly (its `search` pace), a spot at a time,
+ *  stopping to look round. It sees farther than on its rounds, and all round: it is looking (world.md §8, the changed) */
+export const SEARCH = { time: [14, 20] as const, reach: 6, see: 18, look: [1.5, 3] as const };
 
 /** a door left open: one that does not shut itself (slid open by hand with no power to it, or a heavy one left open), was
  *  shut when the place was new, and is open now. One of the staff on its rounds that sees one goes to it, looks through,
  *  and shuts it (world.md §8, the changed). It sees one this far, in front of it, lit, and in plain view, if it is not at
- *  it already; and looks for one every so often, not every step */
-const LEFT = { see: 14, near: 2.5, every: 30, look: 2, pace: 1.4 };
+ *  it already; and looks for one every so often, not every step. It goes to it at its `shut` pace */
+const LEFT = { see: 14, near: 2.5, every: 30, look: 2 };
 
 export const doorMid = (d: Door) => ({ x: (d.def.x0 + d.def.x1) / 2, y: d.def.y0 + 1.2, z: (d.def.z0 + d.def.z1) / 2 });
 
@@ -59,14 +59,13 @@ function leftOpen(sim: Sim, d: Door): boolean {
 /** one on its rounds sees a door left open that nobody is seeing to, and goes to shut it */
 function noticesDoor(sim: Sim, m: Mutant): boolean {
   if (!m.cards || m.post || m.spot < 0 || (sim.tick + m.id) % LEFT.every || !sim.fields) return false;
-  const eye = Math.min(1.6, (m.body?.h ?? 1) * 0.85);
   for (let k = 0; k < sim.doors.length; k++) {
     const d = sim.doors[k];
     if (!leftOpen(sim, d) || sim.cast.some(q => q.door === k && q.state === 'shut' && !q.dead)) continue;
     const at = doorMid(d), dx = at.x - m.x, dz = at.z - m.z, dp = Math.hypot(dx, dz);
     /* not one it is at: that one it has just opened to go through */
     if (dp < LEFT.near || dp > LEFT.see || Math.abs(at.y - 1.2 - m.y) > 2.5 || (dx * Math.sin(m.yaw) + dz * Math.cos(m.yaw)) / (dp || 1) < 0.35) continue;
-    if (!lit(sim, at.x, at.y, at.z) || sim.world.raycast(m.x, m.y + eye, m.z, at.x, at.y, at.z, seeThrough) < 0.97) continue;
+    if (!lit(sim, at.x, at.y, at.z) || sim.world.raycast(m.x, m.y + m.eye, m.z, at.x, at.y, at.z, seeThrough) < 0.97) continue;
     /* to its near side, a step back from the doorway */
     const o = 1.3, D = d.def, s = D.alongX ? Math.sign(m.z - at.z) || 1 : Math.sign(m.x - at.x) || 1;
     const spot = sim.fields.nav.locate(at.x + (D.alongX ? 0 : s * o), at.y - 1.2, at.z + (D.alongX ? s * o : 0));
@@ -92,9 +91,9 @@ function searchSpot(sim: Sim, m: Mutant): number {
 /** one of the staff that would answer an alarm: a husk on its rounds or its post, or on its way to one already */
 export const free = (m: Mutant): boolean => !m.dead && m.ai === 'husk' && (m.state === 'idle' || m.state === 'round' || m.state === 'lurk' || m.state === 'answer') && m.spot >= 0;
 
-/** the pace they go to an alarm at (m/s): a hurry; faster again with another of them in sight hurrying too, within
- *  `see` metres: one starts and the rest catch it */
-const ANSWER = { pace: 2.6, caught: 3.4, see: 16 };
+/** they go to an alarm in a hurry (their `answer` pace); faster again (`rally`) with another of them in sight hurrying
+ *  too, within `see` metres: one starts and the rest catch it */
+const ANSWER = { see: 16 };
 
 /** a zone alarm it hears (sim/eyes.ts): a husk not already after you leaves its rounds, or its post, and hurries to the
  *  speaker, as Security's staff were drilled to. The way there is the alarm's, copied: a round makes its next route in
@@ -109,11 +108,10 @@ export function answer(sim: Sim, m: Mutant, spot: number, route: Float32Array): 
 
 /** another of them hurrying to an alarm is in its sight: on its way, and going at a hurry's pace */
 function hurried(sim: Sim, m: Mutant): boolean {
-  const eye = Math.min(1.6, (m.body?.h ?? 1) * 0.85);
   for (const o of sim.cast) {
-    if (o === m || o.dead || o.state !== 'answer' || !o.body || Math.hypot(o.body.vx, o.body.vz) < ANSWER.pace * 0.8) continue;
+    if (o === m || o.dead || o.state !== 'answer' || !o.body || Math.hypot(o.body.vx, o.body.vz) < pace(o, 'answer') * 0.8) continue;
     if (Math.hypot(o.x - m.x, o.z - m.z) > ANSWER.see) continue;
-    if (sim.world.raycast(m.x, m.y + eye, m.z, o.x, o.y + eye, o.z, seeThrough) >= 1) return true;
+    if (sim.world.raycast(m.x, m.y + m.eye, m.z, o.x, o.y + o.eye, o.z, seeThrough) >= 1) return true;
   }
   return false;
 }
@@ -193,14 +191,14 @@ export function updateDrills(sim: Sim): void {
 /** a step of one of Security's staff: at rest, on its round, at the glass, answering an alarm, at a board, shutting a
  *  door, searching, after you, fleeing, or lying low */
 export function husk(sim: Sim, m: Mutant): void {
-  const F = sim.fields?.hands, d = m.d;
+  const F = own(sim, m), d = m.d;
   if (m.round) m.peered += dt;
   switch (m.state) {
     case 'idle': {
       if (notices(sim, m) || noticesDoor(sim, m)) break;
       /* one with a round goes back to it, where it left off */
       if (m.round) { m.state = 'round'; m.dest = -1; m.wt = 0; m.st = 0; break; }
-      if (!m.post) roam(sim, m, 1.3);
+      if (!m.post) roam(sim, m, pace(m, 'walk'));
       break;
     }
     case 'round': {
@@ -212,7 +210,7 @@ export function husk(sim: Sim, m: Mutant): void {
     case 'peer': {
       /* at the glass, its face to it, looking in at you; then on with its round, past the stop it was at */
       m.peered = 0;
-      if (Math.hypot(m.wx - m.x, m.wz - m.z) > 0.15) go(sim, m, m.wx, m.wz, ROUND.pace);
+      if (Math.hypot(m.wx - m.x, m.wz - m.z) > 0.15) go(sim, m, m.wx, m.wz, pace(m, 'round'));
       else turnTo(sim, m, 3);
       if ((m.st -= dt) > 0) break;
       const R = m.round!, P = R[m.beat % R.length];
@@ -224,7 +222,7 @@ export function husk(sim: Sim, m: Mutant): void {
       /* to the alarm, in a hurry; there, it stands and looks about a while before its rounds again */
       if (notices(sim, m)) break;
       if (!m.F || m.dest < 0 || m.spot === m.dest || m.F[m.spot] < 1.5) { m.state = 'idle'; m.dest = -1; m.wt = rnd(sim, 6, 12); break; }
-      if (follow(sim, m, m.F, hurried(sim, m) ? ANSWER.caught : ANSWER.pace, false)) m.stk = 0;
+      if (follow(sim, m, m.F, pace(m, hurried(sim, m) ? 'rally' : 'answer'), false)) m.stk = 0;
       else if ((m.stk += dt) > 3) { m.stk = 0; m.state = 'idle'; m.dest = -1; m.wt = rnd(sim, 2, 4); }
       break;
     }
@@ -244,7 +242,7 @@ export function husk(sim: Sim, m: Mutant): void {
         break;
       }
       m.st = 1.2;
-      if (follow(sim, m, m.F, 1.6, false)) m.stk = 0; // to the board, slowly
+      if (follow(sim, m, m.F, pace(m, 'fix'), false)) m.stk = 0; // to the board, slowly
       else if ((m.stk += dt) > 4) { m.stk = 0; m.state = 'idle'; m.dest = -1; m.wt = rnd(sim, 2, 4); }
       break;
     }
@@ -256,14 +254,14 @@ export function husk(sim: Sim, m: Mutant): void {
       if (!d || !leftOpen(sim, d) || !m.F || m.dest < 0) { done(rnd(sim, 2, 4)); break; }
       if (m.spot === m.dest || m.F[m.spot] < 1.2) {
         const at = doorMid(d);
-        m.yaw = angLerp(m.yaw, Math.atan2(at.x - m.x, at.z - m.z), Math.min(1, dt * 4));
+        turnToward(m, Math.atan2(at.x - m.x, at.z - m.z), 4);
         if ((m.st -= dt) > 0) break;
         if (occupied(d, riders(sim))) { m.st = 0.5; break; }
         if (d.def.kind !== 'heavy' || power(sim.game, d.def.circuit) >= 2) { d.open = false; sfx(sim.game, 'door', { ...at, y: d.def.y0 }); }
         done(rnd(sim, 3, 6));
         break;
       }
-      if (follow(sim, m, m.F, LEFT.pace, false)) m.stk = 0;
+      if (follow(sim, m, m.F, pace(m, 'shut'), false)) m.stk = 0;
       else if ((m.stk += dt) > 3) done(rnd(sim, 2, 4));
       break;
     }
@@ -271,7 +269,7 @@ export function husk(sim: Sim, m: Mutant): void {
       if (notices(sim, m) || (seeP(sim, m, SEARCH.see) && hunt(sim, m))) break;
       if ((m.st -= dt) <= 0) { m.state = 'idle'; m.dest = -1; m.wt = rnd(sim, 2, 4); break; }
       /* stopped, looking round: it turns to look one way, slowly */
-      if (m.wt > 0) { m.wt -= dt; m.yaw = angLerp(m.yaw, m.wm, Math.min(1, dt * 1.6)); break; }
+      if (m.wt > 0) { m.wt -= dt; turnToward(m, m.wm, 1.6); break; }
       if (m.dest < 0 || !m.F) {
         const k = searchSpot(sim, m);
         if (k < 0) { m.wt = 1; break; }
@@ -280,7 +278,7 @@ export function husk(sim: Sim, m: Mutant): void {
         m.dest = k;
       }
       if (m.spot === m.dest || m.F[m.spot] < 1.2) { m.dest = -1; m.wt = rnd(sim, SEARCH.look[0], SEARCH.look[1]); m.wm = m.yaw + rnd(sim, -2.2, 2.2); break; }
-      if (follow(sim, m, m.F, SEARCH.pace, false)) m.stk = 0;
+      if (follow(sim, m, m.F, pace(m, 'search'), false)) m.stk = 0;
       else if ((m.stk += dt) > 2) { m.stk = 0; m.dest = -1; m.wt = 1; }
       break;
     }
@@ -293,18 +291,18 @@ export function husk(sim: Sim, m: Mutant): void {
       if (inStart(m, MOVES.husk)) { turnTo(sim, m, 10); if (m.cd <= 0) { beginBlow(sim, m, MOVES.husk); m.pat = 0; } }
       else if (waits(sim, m)) { m.pat += dt; hover(sim, m, WAIT.ring); }
       /* one that carries its card comes through the card doors between, if that is the way to you */
-      else if (F) chase(sim, m, m.round ? ROUND.hunt : 3.5, m.cards && !Number.isFinite(F[m.spot]) && sim.fields ? staffField(sim, sim.fields) : F);
+      else if (F) chase(sim, m, pace(m, 'hunt'), m.cards && !Number.isFinite(F[m.spot]) && sim.fields ? staffField(sim, sim.fields) : F);
       break;
     case 'flee':
       m.st -= dt;
-      away(sim, m, 4.2, F);
+      away(sim, m, pace(m, 'flee'), F);
       if (m.st < 0) { m.state = 'lurk'; m.st = rnd(sim, 14, 22); m.dest = -1; m.wt = 0; }
       break;
     case 'lurk':
       m.st -= dt;
-      roam(sim, m, 1.6);
+      roam(sim, m, pace(m, 'lurk'));
       if (m.st < 0) { m.state = 'idle'; m.hp = Math.min(m.max, m.hp + 20); m.fled = false; }
       break;
   }
-  if (m.mv > 0 && (m.tk -= dt) < 0) { m.tk = m.mv > 2 ? 0.3 : 0.58; step_(sim, m, 'hstep'); }
+  if (m.mv > 0) footfall(sim, m);
 }

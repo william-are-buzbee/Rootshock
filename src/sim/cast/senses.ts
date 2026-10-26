@@ -15,8 +15,8 @@ export const seeThrough = (d: Dyn) => d.kind === 'body' || !!d.glass;
 export function sight(sim: Sim, m: Mutant): boolean {
   if (sim.tick - m.losAt < 6) return m.los;
   m.losAt = sim.tick;
-  const b = sim.player.body, eye = m.fixed ? 2.0 : Math.min(1.6, (m.body?.h ?? 1) * 0.85);
-  m.los = sim.world.raycast(m.x, m.y + eye, m.z, b.x, b.y + eyeHeight(sim.player) * 0.9, b.z, seeThrough) >= 1;
+  const b = sim.player.body;
+  m.los = sim.world.raycast(m.x, m.y + m.eye, m.z, b.x, b.y + eyeHeight(sim.player) * 0.9, b.z, seeThrough) >= 1;
   return m.los;
 }
 

@@ -3,38 +3,59 @@ import { power } from './game';
 import { locked, type Door, type Platform } from './movers';
 import type { Sim } from './sim';
 
-/* How far every spot is from you, for each kind of body, and for sound (engine.md §7, §8). Kept fresh in rotation: one
-   field a step, so each is at most a few steps old and no single step pays for all of them.
+/* How far every spot is from you, for each way of getting about, and for sound (engine.md §7, §8). Kept fresh in
+   rotation: one field a step, so each is at most a few steps old and no single step pays for all of them.
 
-   Who passes a door (as the first engine had it):
-   - crawl: a door that is open, or jammed part open (they go under), or one that opens by itself for anything near;
+   A way (WAYS) is what a body needs and can do to get about: the headroom it needs, the doors it gets through, and
+   whether it can call a platform. Each kind of the cast walks one (sim/cast.ts, MT); a new kind that fits none of
+   these is a new row, and gets a field of its own on a level whose cast walks it. Who passes a door (as the first engine
+   had it):
+   - under: a door that is open, or jammed part open (they go under), or one that opens by itself for anything near;
    - hands: any door a hand can work: not welded, not a panel, not the lift's, not jammed, not heavy, not locked;
-   - big: no doors at all. They are too big for the frames.
+   - none: no doors at all. They are too big for the frames.
    Platforms: anything rides one that goes by itself; a hand can call one that has power.
    A refuge (`safe`) is only kept out of the cast's rounds; a hunter follows you into one, as it always did. */
 
-export type Walker = 'crawl' | 'hands' | 'big';
-/** the headroom each needs */
-export const HEAD: Record<Walker, number> = { crawl: 1, hands: 1.8, big: 2.2 };
+export interface Way {
+  /** the headroom it needs (m): no spot lower than this is on its way anywhere */
+  head: number;
+  doors: 'none' | 'under' | 'hands';
+  /** it calls a platform with power to it */
+  call: boolean;
+}
+
+export const WAYS = {
+  /* skitters, worms */
+  crawl: { head: 1, doors: 'under', call: false },
+  /* Security's staff */
+  hands: { head: 1.8, doors: 'hands', call: true },
+  /* the bloats, the thresher */
+  big: { head: 2.2, doors: 'none', call: false },
+} satisfies Record<string, Way>;
+export type Walker = keyof typeof WAYS;
+
+/** the ways every level keeps a field for, walked or not, as the first engine did; any other only where it is walked */
+const KEPT: Walker[] = ['crawl', 'hands', 'big'];
 
 export interface Fields {
   nav: Nav;
-  crawl: Float32Array;
-  hands: Float32Array;
-  big: Float32Array;
+  /** how far each spot is from you by foot, for each way walked on this level */
+  ways: Record<string, Float32Array>;
   /** how far a sound made where you are travels to each spot: closed doors muffle it */
   sound: Float32Array;
+  /** the fields made in turn, one a step: the ways, then sound */
+  order: string[];
   /** spots on a platform at its low end: which platform, or -1 */
   onLift: Int16Array;
   /** the spot you were on when they were made */
   from: number;
   turn: number;
-  /** for each kind of body, the spots too low for it */
-  low: Record<Walker, Uint8Array>;
+  /** for each way, the spots too low for it */
+  low: Record<string, Uint8Array>;
   /** the spots in each door */
   doorSpots: number[][];
-  /** the rules each kind walks by, made once a step at most; 'staff' are hands that carry their cards */
-  rules: Record<Walker | 'sound' | 'staff', { tick: number; R: Rules }>;
+  /** the rules each way walks by, made once a step at most; one that carries its card has its own ('hands+cards') */
+  rules: Map<string, { tick: number; R: Rules }>;
   /** what each field was last made from */
   made: Record<string, string>;
 }
@@ -46,7 +67,7 @@ export function makeFields(sim: Sim): Fields {
   const def = sim.world.def;
   let nav = navs.get(def);
   if (!nav) navs.set(def, (nav = buildNav(sim.world, sim.doors.map(d => d.def), sim.platforms.map(p => p.def))));
-  const n = nav.n, inf = () => new Float32Array(n).fill(Infinity);
+  const n = nav.n;
   const onLift = new Int16Array(n).fill(-1);
   for (let i = 0; i < n; i++) {
     sim.platforms.forEach((p, k) => {
@@ -54,15 +75,35 @@ export function makeFields(sim: Sim): Fields {
       if (nav.x[i] > D.x0 && nav.x[i] < D.x1 && nav.z[i] > D.z0 && nav.z[i] < D.z1 && Math.abs(nav.y[i] - D.y0) < 0.4) onLift[i] = k;
     });
   }
-  const lowFor = (h: number) => { const a = new Uint8Array(n); for (let i = 0; i < n; i++) if (nav.head[i] < h) a[i] = 1; return a; };
   const doorSpots: number[][] = sim.doors.map(() => []);
   for (let i = 0; i < n; i++) if (nav.door[i] >= 0) doorSpots[nav.door[i]].push(i);
-  const rules = (enter: boolean) => ({ tick: -1, R: { blocked: new Uint8Array(n), enter: enter ? new Float32Array(n) : null, lifts: new Uint8Array(sim.platforms.length), drop: enter ? 0 : 0.5 } });
-  return {
-    nav, crawl: inf(), hands: inf(), big: inf(), sound: inf(), onLift, from: -1, turn: 0,
-    low: { crawl: lowFor(HEAD.crawl), hands: lowFor(HEAD.hands), big: lowFor(HEAD.big) }, doorSpots,
-    rules: { crawl: rules(false), hands: rules(false), big: rules(false), sound: rules(true), staff: rules(false) }, made: {},
+  const F: Fields = {
+    nav, ways: {}, sound: new Float32Array(n).fill(Infinity), order: ['sound'], onLift, from: -1, turn: 0, low: {}, doorSpots,
+    rules: new Map([['sound', blank(sim, n, true)]]), made: {},
   };
+  const walked = new Set<string>(sim.cast.map(m => m.walker));
+  for (const w of Object.keys(WAYS) as Walker[]) if (KEPT.includes(w) || walked.has(w)) addWay(F, w);
+  return F;
+}
+
+/** rules with nothing in them yet: who may not enter where, what entering costs (sound only), which platforms */
+const blank = (sim: Sim, n: number, enter: boolean) => ({ tick: -1, R: { blocked: new Uint8Array(n), enter: enter ? new Float32Array(n) : null, lifts: new Uint8Array(sim.platforms.length), drop: enter ? 0 : 0.5 } });
+
+/** a field for a way, if there is none yet: made in its turn, before sound's */
+function addWay(F: Fields, w: Walker): void {
+  if (F.ways[w]) return;
+  const nav = F.nav, a = new Uint8Array(nav.n);
+  for (let i = 0; i < nav.n; i++) if (nav.head[i] < WAYS[w].head) a[i] = 1;
+  F.ways[w] = new Float32Array(nav.n).fill(Infinity);
+  F.low[w] = a;
+  F.order.splice(F.order.length - 1, 0, w);
+}
+
+/** one of the cast put down on a level that walks a way the level's own did not (dev, the arena): its field, made now */
+export function walkedHere(sim: Sim, F: Fields, w: Walker): void {
+  if (F.ways[w]) return;
+  addWay(F, w);
+  if (F.from >= 0) field(F.nav, F.from, rulesFor(sim, F, w), F.ways[w], LIMIT.walk);
 }
 
 const isOpen = (d: Door) => d.t > 0.9;
@@ -85,25 +126,29 @@ export const carded = (sim: Sim, d: Door): boolean => {
     && power(sim.game, D.circuit) >= (D.kind === 'heavy' ? 2 : 1);
 };
 
-/** may a body of this kind enter the door it is walking into? One that carries its card, a card door it can show it to */
+/** may a body that gets about this way enter the door it is walking into? One with hands that carries its card, a card
+ *  door it can show it to */
 export function doorPasses(sim: Sim, d: Door, who: Walker, cards = false): boolean {
-  if (who === 'big') return false;
+  const W = WAYS[who];
+  if (W.doors === 'none') return false;
   if (isOpen(d)) return true;
   const pw = power(sim.game, d.def.circuit);
   if (opensItself(d, pw)) return true;
-  if (cards && who === 'hands' && carded(sim, d)) return true;
-  return who === 'crawl' ? d.def.stuck : !doorShut(d);
+  if (cards && W.doors === 'hands' && carded(sim, d)) return true;
+  return W.doors === 'under' ? d.def.stuck : !doorShut(d);
 }
 
 /** may it take this platform? */
 export function liftPasses(sim: Sim, p: Platform, who: Walker): boolean {
   if (!p.def.call) return true;
-  return who === 'hands' && power(sim.game, p.def.call.circuit) > 0;
+  return WAYS[who].call && power(sim.game, p.def.call.circuit) > 0;
 }
 
-/** the rules for one kind of body as the doors and platforms stand now: made once a step at most, and shared */
+/** the rules for one way as the doors and platforms stand now: made once a step at most, and shared */
 export function rulesFor(sim: Sim, F: Fields, who: Walker, cards = false): Rules {
-  const staff = cards && who === 'hands', c = F.rules[staff ? 'staff' : who];
+  const staff = cards && WAYS[who].doors === 'hands', key = staff ? `${who}+cards` : who;
+  let c = F.rules.get(key);
+  if (!c) F.rules.set(key, (c = blank(sim, F.nav.n, false)));
   if (c.tick === sim.tick) return c.R;
   const R = c.R;
   R.blocked.set(F.low[who]);
@@ -122,13 +167,13 @@ export function routeRules(sim: Sim, F: Fields, who: Walker): Rules {
   if (!c) routes.set(F, (c = {}));
   return (c[who] ??= {
     blocked: F.low[who], enter: null, drop: 0.5,
-    lifts: Uint8Array.from(sim.platforms, p => (!p.def.call || who === 'hands' ? 1 : 0)),
+    lifts: Uint8Array.from(sim.platforms, p => (!p.def.call || WAYS[who].call ? 1 : 0)),
   });
 }
 
 /** sound goes where air goes: through open doors freely, through shut ones muffled; not up a lift shaft's ride */
 export function soundRules(sim: Sim, F: Fields): Rules {
-  const R = F.rules.sound.R, e = R.enter!;
+  const R = F.rules.get('sound')!.R, e = R.enter!;
   sim.doors.forEach((d, k) => {
     const v = d.t > 0.5 ? 0 : d.def.kind === 'heavy' || d.def.seal ? 12 : 6;
     for (const i of F.doorSpots[k]) e[i] = v;
@@ -138,15 +183,13 @@ export function soundRules(sim: Sim, F: Fields): Rules {
 
 /** how far out each field is worth making: past it nothing could use it. A hunt is given up long before 90 m of
  *  corridor; the loudest thing you do (a gun) carries 36. */
-const LIMIT = { crawl: 90, hands: 90, big: 90, sound: 40 } as const;
-type Which = keyof typeof LIMIT;
-const ORDER: Which[] = ['crawl', 'hands', 'big', 'sound'];
+const LIMIT = { walk: 90, sound: 40 } as const;
 
 /** what a field was last made from: where you stood and how the doors and platforms stood */
-function stateKey(sim: Sim, F: Fields, w: Which): string {
+function stateKey(sim: Sim, F: Fields, w: string): string {
   let k = String(F.from);
   if (w === 'sound') { for (const d of sim.doors) k += d.t > 0.5 ? '1' : '0'; return k; }
-  const R = rulesFor(sim, F, w);
+  const R = rulesFor(sim, F, w as Walker);
   sim.doors.forEach((_d, i) => { const s = F.doorSpots[i]; k += s.length && R.blocked[s[0]] ? '0' : '1'; });
   for (const l of R.lifts) k += l;
   return k;
@@ -157,10 +200,11 @@ export function updateFields(sim: Sim, F: Fields): void {
   const b = sim.player.body, at = F.nav.locate(b.x, b.y, b.z);
   if (at >= 0) F.from = at;
   if (F.from < 0) return;
-  const w = ORDER[F.turn++ % 4], key = stateKey(sim, F, w);
+  const w = F.order[F.turn++ % F.order.length], key = stateKey(sim, F, w);
   if (F.made[w] === key) return;
   F.made[w] = key;
-  field(F.nav, F.from, w === 'sound' ? soundRules(sim, F) : rulesFor(sim, F, w), F[w], LIMIT[w]);
+  if (w === 'sound') field(F.nav, F.from, soundRules(sim, F), F.sound, LIMIT.sound);
+  else field(F.nav, F.from, rulesFor(sim, F, w as Walker), F.ways[w], LIMIT.walk);
 }
 
 /** the hands' field for those who carry their cards, through the card doors their cards open: made when one of them
@@ -174,11 +218,11 @@ export function staffField(sim: Sim, F: Fields): Float32Array {
   for (const l of R.lifts) k += l;
   let c = staffs.get(F);
   if (!c) staffs.set(F, (c = { key: '', F: new Float32Array(F.nav.n) }));
-  if (c.key !== k) { c.key = k; field(F.nav, F.from, R, c.F, LIMIT.hands); }
+  if (c.key !== k) { c.key = k; field(F.nav, F.from, R, c.F, LIMIT.walk); }
   return c.F;
 }
 
-/** all four now (at the start, or after a jump in place) */
+/** every field now (at the start, or after a jump in place) */
 export function refreshFields(sim: Sim, F: Fields): void {
-  for (let k = 0; k < 4; k++) updateFields(sim, F);
+  for (let k = 0; k < F.order.length; k++) updateFields(sim, F);
 }

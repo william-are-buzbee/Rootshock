@@ -578,6 +578,51 @@ corpse worth throwing.
   pipe; the baton takes one each side for a fifth of your health, and dies to two in front of it.
 - **Tests**: `test/momentum.test.ts`, *the cast on their own feet*.
 
+### How the cast move, as built
+
+The cast moved by their own feet already (above), but what each did with them was the husk's, or written into each
+behaviour as it came: every pace a number in the middle of the code (1.3 for a husk's round, 3.5 after you, 4.3 for a
+big skitter), every kind turning the same way, footfalls timed in each behaviour, the nav graph's three kinds of body
+in a type, an eye no higher than a person's. A new kind meant a change to each of them. Now how a kind moves is rows,
+and what it does with them is the behaviour's:
+
+- **A gait** (`GAIT`, `sim/cast/gait.ts`): its paces by name (`walk`, and any others its behaviour asks for: `hunt`,
+  `flee`, `search`, `charge`), how fast it changes pace (`acc`, out of `MT`), how it turns, and its feet (the sound, the
+  time between footfalls walking and going fast). A behaviour asks `pace(m, 'hunt')`; a pace a kind has none for is its
+  walk. A kind with no row takes its behaviour's (the rootworm the worm's), a big one its own if there is one
+  (`bigSkitter`), a fixed one none. The night round is the husk's row, slower to get going and slower after you.
+- **Its own pace, from the level**: `walk` (m/s) in `mut()`'s options scales every pace of its kind's to it, the hunt
+  with the walk, so a slow one is slow at everything. Security's seven on the mutants bench (`mockups/mutants.html`)
+  each have one (0.25 to 1 m/s against the 1.3 they all walk now); none is set yet.
+- **Walking where it faces** (`heading`, rad/s): for a big body. It turns toward its way no faster than that, goes only
+  as much of its pace as it faces the way, and turns where it stands to a way behind it. A husk, without it, steps any
+  way at once and turns as it goes, as every kind did; no kind has it yet.
+- **A way** (`WAYS`, `sim/fields.ts`; §7): what it needs and can do to get about. `MT.way` names it; by default it is
+  worked out from the flags, as before (`noDoors` big, `opens` hands, else crawl). Each behaviour follows its own way's
+  field (`own`, `cast/move.ts`), not a field named in its code.
+- **Wandering** (`wander`, `cast/move.ts`): five behaviours ambled about where they lived, each with its own copy of
+  the same few lines. One now, with how each does it in a table (`IDLE`, `sim/cast.ts`): how often, how far from where
+  it started or anywhere in its room, and for how long.
+- **Its eye** (`MT.eye`, `Mutant.eye`): by default as it was, a little below the top of its body and no higher than
+  1.6 m. A tall one can be given its own.
+- **What did not change**: how anything moves. `test/probes/trace.probe.ts` ran every level, as it begins and with
+  everything on, the opening, and each kind in the arena, a step at a time, before and after: the same, to the bit, but
+  for one thing. A night round put down in the arena with no round went after you at a husk's pace, because its
+  slowness was keyed on having a round; it is its kind's now. In the game it always has a round.
+- **A new kind** is then: a row in `MT` (its body, `ai` for the behaviour it shares, `model`); a row in `GAIT` if it
+  moves unlike that behaviour's kind; a row in `WAYS` if it gets about unlike any there; and, if it fights, its blow
+  (`MOVES`, `blowKind`), poise (`POISE`) and death line (`DEATH`). A behaviour of its own is a function in `AI`
+  (`sim/cast.ts`), and what it does when hit or walked into is in `hitMutant` and `shoved` (`cast/blows.ts`). Drawn, it
+  is a model in `BUILD` and `ANIM` (`render/castView.ts`); gone loose, a skeleton in `SKEL` (`sim/ragdoll.ts`);
+  walking, prints in `GAIT` (`render/prints.ts`).
+- **Not yet**: the nav graph's step up (0.5 m) and drop (2.5 m) are the same for every way, and it does not know how
+  wide a body is (a spot is a spot to a bloat as to a worm); the ride on a platform is at 1.8 m/s for everyone. The fight's
+  part of a kind (its blow, its poise, what it does when hit) is still in switches on its behaviour.
+- **Tests**: `test/gait.test.ts`. A kind made in the test from rows alone (tall, slow, walking where it faces, with the
+  husk's behaviour and a way of its own): it gets a field for its way where none walked it, keeps out of a passage too
+  low for it that a husk takes, goes after you at its own pace, turns no faster than its gait, and stands to turn when
+  you are behind it. A husk given its own pace is slow at everything.
+
 ### Bodies with physics, as built
 
 The cast's bodies are physical while they live (velocity, mass, shoves, slams, falls); their deaths were drawn: a model
@@ -1101,10 +1146,14 @@ As built in step 5 (`world/nav.ts`, `sim/fields.ts`):
   - **hands** (husks): any door a hand can work: not welded, panelled, jammed, heavy, locked or the lift's. A husk
     slides a dead light door open by hand and comes through;
   - **big** (bloat, thresher): no doors at all.
-  Headroom filters too: 1 m to crawl, 1.8 m for a husk, 2.2 m for the big ones.
-- **Flow fields to the player**, one for each kind of body and one for sound, by Dijkstra over the graph. One is
+  Headroom filters too: 1 m to crawl, 1.8 m for a husk, 2.2 m for the big ones. These three are rows of `WAYS`
+  (`sim/fields.ts`: headroom, doors none, under or by hand, whether it calls a platform); a kind that gets about unlike
+  any of them is a new row (§6, *How the cast move, as built*).
+- **Flow fields to the player**, one for each way walked and one for sound, by Dijkstra over the graph. One is
   refreshed each step in turn (about 2.5 ms each on the upper station's 7,600 spots), so each is at most four steps
-  old and no step pays for all of them. A roam (a husk keeping its rounds) gets a field of its own to a room lit as
+  old and no step pays for all of them. Every level keeps the three the first engine had; a way of any other row only
+  where some of the level's cast walk it (or one is put down there, in the arena), so a new way costs nothing where it
+  is not walked, and on a level where it is, each field is a step older. A roam (a husk keeping its rounds) gets a field of its own to a room lit as
   the power stands, one new route a step across the whole cast (`rounds`, `pickDest` in `sim/cast/move.ts`): of the lit
   rooms it can get to as the doors stand now (a locked door bars it) within `ROAM.reach`, one the fewest of the staff
   are in or making for, at random among those, so they keep apart. A room is its boxes of one name that join

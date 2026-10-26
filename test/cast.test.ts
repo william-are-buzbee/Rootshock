@@ -62,14 +62,14 @@ describe('the nav graph', () => {
 
   it('a field for each kind of body: big ones keep out of doors; shut doors muffle sound; none runs on for ever', () => {
     const s = fresh(), F = s.fields!, nav = F.nav;
-    expect(F.hands[nav.locate(150, 0, -1)]).toBe(Infinity); // 90 m and more from your cell: beyond any hunt
+    expect(F.ways.hands[nav.locate(150, 0, -1)]).toBe(Infinity); // 90 m and more from your cell: beyond any hunt
     place(s, 'player', 102, 0, -1); // by the Cargo door, dead at the start
     refreshFields(s, F);
     const spot = nav.locate(114, 0, -1); // just through it
-    expect(F.hands[spot]).toBeLessThan(20); // a hand slides it
-    expect(F.crawl[spot]).toBe(Infinity); // what has no hands waits behind it
-    expect(F.big[spot]).toBe(Infinity); // the big ones take no doors
-    expect(F.sound[spot]).toBeGreaterThan(F.hands[spot]); // and it muffles what you do
+    expect(F.ways.hands[spot]).toBeLessThan(20); // a hand slides it
+    expect(F.ways.crawl[spot]).toBe(Infinity); // what has no hands waits behind it
+    expect(F.ways.big[spot]).toBe(Infinity); // the big ones take no doors
+    expect(F.sound[spot]).toBeGreaterThan(F.ways.hands[spot]); // and it muffles what you do
   });
 });
 

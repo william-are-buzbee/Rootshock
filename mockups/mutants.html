@@ -2000,7 +2000,7 @@ function renderItems() {
 
 /* ---------------------------------------------------------------------------------------------------------------- */
 /* what the readout says: how tall, its reach, its stride and pace, and what that stride means at the game's paces
-   (sim/cast/husk.ts: 1.3 m/s on its rounds, 3.5 after you), where the pace is the sim's and the steps follow from it */
+   (sim/cast/gait.ts, husk: 1.3 m/s on its rounds, 3.5 after you), where the pace is the sim's and the steps follow from it */
 function renderReadout() {
   if (!S.d) return;
   const d = S.d, B = d.body, g = d.gait, h = S.M?.height ?? 0;
