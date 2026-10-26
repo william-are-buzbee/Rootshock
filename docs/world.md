@@ -48,6 +48,16 @@ What the walls are, and why, before what colour they are. Plausibility first; th
   painted block and a coated floor are an institution; board, carpet and a suspended ceiling an office; glazed tile and
   coved vinyl are hygiene (money buys stainless, not marble); terrazzo is old money; stone, brushed metal and bronze are
   the lobby. Light is the finish too: expensive is concealed and warm, cheap is a bare tube.
+- **Finish by route (agreed).** One house, read along the way you walk, not room by room. A route's through-spaces (its
+  halls, corridors and galleries) keep to one family of finish, and the step down comes at a door, never partway along a
+  walk. On the upper station, three tiers: *the family's front* (the lobby, its gallery, the surface landing, the upper
+  corridor, the atrium's gallery and stair, check-in, the retreat), terrazzo, limestone, bronze and walnut; *Security
+  and Operations* (the wing's corridor, the atrium, the muster hall, the offices), an institution done properly, a notch
+  down: the refit's coated floors and painted block, but in warm greys under a neutral white, Security's navy only in
+  its stripe and its signs; and *the practical rooms behind doors* (plant, goods inward, the hazard store, the electrical
+  room, Maintenance), shotcrete on a poured slab, ugly on purpose. A service door off a grand hall is plain painted
+  steel, not the hall's walnut. Neglect is the story's to show (the bodies, the ops stair, the green's spread), in a
+  handful of places; a cold palette is not how a place says it is bad.
 - **Doors (agreed).** Where rooms were dug apart, the rock between them is metres thick and a doorway is a short
   passage, lined with the finish of the grander side, its door in the middle sliding sideways into the rock. Each door
   says where it is: the family's walnut pairs trimmed in bronze off the lobby; a clinic's pale pair with windows, wide
@@ -586,7 +596,25 @@ wins; the older text stays only because it describes what is built, until the le
     side (wants a door that opens one way, and the progression checker taught it).
   - *Over the wing, +5.* The second floor long asked for (*The layout*, below), cut to what makes it work: a corridor
     from the lobby's gallery to the atrium's, so the wing can be gone round upstairs; off it the staff mess,
-    administration, and the plant stair.
+    administration, and the plant stair. **Built** in the family's finish (*Finish by route*): the gallery's terrazzo
+    runs on into it, limestone to a dado, plaster over it and on the ceiling, a warm light; walnut pairs into the mess
+    and administration, plain steel into the plant stair. It comes out onto the atrium's gallery, terrazzo now with the
+    lobby's glass and bronze, and its stair is stone.
+  - *The exhibit (agreed; built; the names and dates are placeholders).* What a family company does with a long corridor
+    between its lobby and its offices: tells its own story, in its own voice, the corporate version. Optional lore, read
+    off each board (a note on its face). The house's board faces you as you step in off the gallery (its mark, a leaf in
+    a ring; ASHCOMBE, LEAF COMPANY, SINCE 1891; Lowfield Station). Along the corridor's south wall, which has no doors,
+    the timeline from the lobby end, so walking on is walking forward in time: *The Low Field* (1891), *Cured by Hand*
+    (1923), *Blue Mould* (1979: the blight that took the crop and the reason they went down), *Going Down* (1981),
+    *A Sky of Our Own* (1986: the station opens; "the crop has never seen the sky"), *The Lowfield Range* (today: the
+    product line in marketing language; "accelerated breeding" is the only hint of the mutagen), and *Phase 2* (coming
+    soon), across the atrium from the door welded shut and stencilled NOT COMMISSIONED. On the atrium gallery's back
+    wall, where the corridor comes out, *From Seed to Leaf*: the growing process in six stages, one of them transplant
+    shock ("gardeners call it root shock"; "our seedlings take in a day"). The corridor's boards are on the wing's dead
+    feed, read by your beam until the mend; the process is on Ops' power and lit from the start. The family (Ashcombe),
+    the man who planted the field (Thomas Ashcombe), the company and every date are placeholders, in one file
+    (`content/exhibit.ts`), to be retooled once the lore is down (§6, question 1). The house's mark is a candidate for
+    the statue's logo.
   - *Over the sky, +13.5.* The lobby's air plant, at +10, and steps from it up into the space over the false sky: half
     a metre over the lobby's roof, a dark plenum of grating between the backs of the ceiling's light boxes. A way over
     the lobby, for whoever finds it.

@@ -105,6 +105,26 @@ void main(){
   gl_FragColor = vec4(c, 1.0);
 }`;
 
+/** a face drawn on a wall, lit as a sign is: facing (nx, nz), sending `retro` of your beam back off its pale parts,
+ *  and only where it is drawn if `cut` (the exhibit's boards, render/exhibit.ts, take one too) */
+export function faceMaterial(nx: number, nz: number, retro: number, cut: boolean): THREE.ShaderMaterial {
+  return new THREE.ShaderMaterial({
+    vertexShader: VS, fragmentShader: FS,
+    uniforms: {
+      ...lightUniforms(), uFog: U.uFog, uBright: U.uBright,
+      uMap: { value: null as THREE.Texture | null }, uL: { value: new THREE.Vector3() }, uN: { value: new THREE.Vector3(nx, 0, nz) },
+      uRetro: { value: retro }, uCut: { value: cut ? 1 : 0 },
+    },
+  });
+}
+
+/** a drawing as a texture: a canvas drawn again at another width cannot go into the old one's storage */
+export function faceTexture(c: HTMLCanvasElement): THREE.Texture {
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.NoColorSpace; t.anisotropy = 4; t.premultiplyAlpha = true;
+  return t;
+}
+
 interface Hung { mat: THREE.ShaderMaterial; at: [number, number, number]; draw: () => void }
 
 export class SignView {
@@ -121,20 +141,7 @@ export class SignView {
     /* the room it is read from, half a metre out from the wall it hangs on */
     const nx = Math.sin(s.yaw), nz = Math.cos(s.yaw);
     const R = w.roomAt(s.x + nx * 0.5, s.y - 1, s.z + nz * 0.5), st = styleOf(R?.mat.wall), S = STYLE[st];
-    /* a texture a drawing: a canvas drawn again at another width cannot go into the old one's storage */
-    const texture = (c: HTMLCanvasElement) => {
-      const t = new THREE.CanvasTexture(c);
-      t.colorSpace = THREE.NoColorSpace; t.anisotropy = 4; t.premultiplyAlpha = true;
-      return t;
-    };
-    const mat = new THREE.ShaderMaterial({
-      vertexShader: VS, fragmentShader: FS,
-      uniforms: {
-        ...lightUniforms(), uFog: U.uFog, uBright: U.uBright,
-        uMap: { value: null as THREE.Texture | null }, uL: { value: new THREE.Vector3() }, uN: { value: new THREE.Vector3(nx, 0, nz) },
-        uRetro: { value: S.retro }, uCut: { value: S.cut ? 1 : 0 },
-      },
-    });
+    const mat = faceMaterial(nx, nz, S.retro, S.cut);
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, S.h), mat);
     /* a plate stands off the wall a little; paint and letters are on it */
     const off = S.cut ? -0.02 : 0;
@@ -145,7 +152,7 @@ export class SignView {
       const c = document.createElement('canvas');
       mesh.scale.x = draw(c, s.text, st, band, k + 1);
       (mat.uniforms.uMap.value as THREE.Texture | null)?.dispose();
-      mat.uniforms.uMap.value = texture(c);
+      mat.uniforms.uMap.value = faceTexture(c);
     };
     redraw();
     scene.add(mesh);

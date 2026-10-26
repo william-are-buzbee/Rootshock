@@ -1,8 +1,9 @@
 import { PI, type Colour } from '../../core/math';
 import type { LevelDef, LadderDef } from '../types';
 import {
-  arch, beginLevel, bx, cave, colT, door, elev, finishLevel, flight, item, ladder, floor, mut, note, P, roughen, room, stack, stairs, use, type Floor, type LevelInfo, type RoomOpts,
+  arch, beginLevel, bx, cave, colT, door, elev, exhibit, finishLevel, flight, item, ladder, floor, mut, note, P, roughen, room, stack, stairs, use, type Floor, type LevelInfo, type RoomOpts,
 } from '../build/plan';
+import { HISTORY, STAGES, WELCOME, stageAt } from '../exhibit';
 import {
   BAY, FAM, MED, OFF, OPS, SEC, UTIL, WALK, blood, callPoint, camera, container, corpse, desk, eggs, exitSign, forklift, genset, gore, grandStair, liftRoom, medbed, monitors, panel, POLE, shelf, speaker, tbl,
 } from '../build/furnish';
@@ -272,9 +273,21 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   room(D, 'Security elevator', 76, -4, 4, 4, { ...SEC, c: 'SEC', em: 1, noroam: 1 }); door(D, 75, -0.6, { sg: [['Security elevator', 'w']] });
   bx(D, 79.97, -2, 0.06, 0.5, 0.4, 0x2c2f33, { y: 1.1, c: 0 }); use(D, 'elev', 79.8, -2, 1.3, { c: 'SEC', to: 'main' }); D.marks['elev:main'] = [78, -2, PI / 2];
   room(D, 'Phase 2', 76, -18, 4, 4, { ...UTIL, lit: 'none', nolamp: 1, noroam: 1 }); door(D, 77, -13, { kind: 'heavy', seal: true, msg: 'Welded shut. Stencilled across it: PHASE 2. NOT COMMISSIONED.', sg: [['Phase 2', 's']] });
-  stairs(D, T1, 82, -8, 2, 12, 'n');
-  const GW: RoomOpts = { ...WALK, ht: 4.5, c: 'OPS', mat: { wall: 'block' } };
+  /* the stair up the core, and the gallery it climbs to: where the family's upper corridor comes out, so theirs too.
+     Stone treads, a stone balustrade on the atrium side that rises with it to the gallery's slab, where the gallery's
+     glass takes over; against the core, a balustrade only where the core does not reach (the foot, and the head) */
+  stairs(D, T1, 82, -8, 2, 12, 'n', true);
+  for (let q = 0, N = 24; q < N; q++) {
+    const sh = ((q + 1) / N) * 5, z = 4 - ((q + 0.5) / N) * 12, d = 12 / N, o = { y: -0.005, flush: true };
+    bx(D, 83, z, 2, sh + 0.005, d, q % 2 ? 0xb3ab9c : 0xa9a192, { ...o, c: 0 });
+    bx(D, 84.16, z, 0.32, Math.min(sh + 1.05, 4.75) + 0.005, d, 0x8f877a, o);
+    if (z < -6 || z > 2) bx(D, 81.84, z, 0.32, sh + 1.05 + 0.005, d, 0x8f877a, o);
+  }
+  const GW: RoomOpts = { ...WALK, ht: 4.5, c: 'OPS', fl: OPS.fl, wl: OPS.wl, lc: AT.lc, mat: { floor: 'terrazzo', wall: 'block' } };
   room(T1, 'Gallery', 68, -12, 20, 4, GW); room(T1, 'Gallery', 84, -8, 4, 20, GW);
+  /* and where the corridor comes out onto it, the growing process across the gallery's back wall, the length of the
+     gallery ahead of you as you come out; on Ops' power, so lit from the start */
+  exhibit(T1, 'process', 77, -12, 2, 's', 10, 2.2, STAGES.map((s, k) => [s.key, stageAt(k, 10)]));
   /* the atrium's eye: one on the threshold from the south-west corner, which only records (the atrium is not armed);
      its speaker high in the well by the east gallery's rail, out of reach but from there */
   speaker(D, 'atrium', 83.4, 9.2, 'CRIT'); camera(D, 68.6, 11.2, 3.8, PI, 'OPS', 'atrium');
@@ -580,13 +593,19 @@ function buildHub(B: Floor, D: Floor, T1: Floor, T2: Floor): void {
 
   /* Over the wing, at +5: the floor world.md has long asked for. A corridor from the lobby's gallery to the atrium's,
      so the wing can be gone round upstairs; off it the mess and the station's administration, and the stair up to the
-     plant that keeps the lobby's air */
-  const UC: RoomOpts = { ...SEC, ...wing, ht: 3.5, mat: SKIM(SEC) };
+     plant that keeps the lobby's air. The family's corridor, not Security's: the gallery's terrazzo runs on into it,
+     its limestone comes down to a dado, plaster over it, and the services are behind a plastered ceiling */
+  const UC: RoomOpts = { ...FAM, ...wing, ht: 3.5, lc: [0.92, 0.86, 0.74], mat: { ...FAM.mat, datum: 1.2 } };
   /* a wall between it and the lobby's air, but where it meets the gallery */
   room(T1, 'Upper corridor', 30.5, -12, 3.5, 10, UC); room(T1, 'Upper corridor', 30, -6, 0.5, 4, { ...UC, part: 1 }); room(T1, 'Upper corridor', 34, -12, 34, 4, UC);
+  /* the family's exhibit (world.md §8, The exhibit; content/exhibit.ts): the house's board facing you as you come in off
+     the gallery, and the company's story along the south wall, which has no doors, from the lobby end: walking on is
+     walking forward in time. On the wing's feed with the rest, so read by your beam until the mend */
+  exhibit(T1, WELCOME.key, 34, -4.6, 1.75, 'w', 2.8, 2.2);
+  HISTORY.forEach((b, k) => exhibit(T1, b.key, 37.5 + k * 4.5, -8, 1.75, 'n', 1.4, 2));
   const PL: RoomOpts = { ...UTIL, ...wing, ht: 3.5, noroam: 1 };
   room(T1, 'Plant stair', 32, -26, 8, 12, PL); room(T1, 'Plant stair', 40, -26, 2, 12, { ...PL, ht: 7.5 }); // the stairwell, up to the plant
-  door(T1, 35, -13, { sg: [['Plant room', 's']] }); stairs(T1, T2, 40, -26, 2, 10, 'n');
+  door(T1, 35.5, -13, { plain: true, sg: [['Plant room', 's']] }); stairs(T1, T2, 40, -26, 2, 10, 'n');
   bx(T1, 33.2, -24.8, 1, 3.4, 1, 0x6b6e70, { mat: 'steel' }); // the lobby's air, in its riser
   room(T1, 'Staff mess', 44, -26, 10, 12, { ...OFF, ...wing, mat: { floor: 'vinyl', wall: 'plaster', ceiling: 'tiles' } }); door(T1, 47.4, -13, { sg: [['Mess', 's']] });
   for (const x of [46.4, 50.8]) for (const z of [-21.6, -17.6]) { tbl(T1, x, z, 1.6, 0.8, 0x8a8e8c); for (const s of [-1, 1]) seat(T1, x, z + s * 0.9, 0x3a3d40); }

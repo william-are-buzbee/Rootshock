@@ -1385,6 +1385,14 @@ since: §11).
   it hangs on: bronze letters straight on the family's limestone; a small dark plate with a bar of the room's stripe
   colour on block, plaster and board; a white plate with a coloured band on glazed tile; the name stencilled in worn
   paint on concrete and shotcrete. Drawn at 420 px a metre and sized to their words, so short names have short plates.
+- **The exhibit's boards** (since; `present/render/exhibit.ts`, the words in `content/exhibit.ts`, hung by `exhibit()`
+  in `content/build/plan.ts`): printed boards, lit as the signs are (their material, `faceMaterial`), matt, so they send
+  only a quarter as much of your beam back. Each is drawn on a canvas from its board's data, its picture in flat paths
+  (`ART`), 300 px a metre (fewer on a long one, to stay under 2048 across). What is read off a board is a bare note on
+  its face, one a stage on the long one. *Found building it:* a board 4 mm in front of a solid backing was lost
+  entirely to the level's depth, drawn first and pushed back a hair (`depthFirstMaterial`), and z-fought it with that
+  pass off. So a board stands 3 cm off the bare wall as a sign does, and its bronze frame is four bars round its edge:
+  nothing of the level lies just behind it.
 - **What a frame costs** (since; measured in headless Chromium on a software GPU, so the counts and the main thread's
   share are real and the GPU's times only relative). The sim was never the trouble: a step is about 0.9 ms (99 in
   100 under 2 ms) on any level, the slow ones only in its first second. A frame was, three ways. It made too many
@@ -1848,7 +1856,9 @@ nothing after. `?dbg=` (README) narrowed it to the light: the streaks showed in 
 each is (`lookOf` in `content/build/plan.ts`, from the rooms either side; `DoorDef.look`): a shutter between two dug
 places or a dug place and a plain one, and anything jammed; else heavy if it is heavy; else by the grander side, the
 family's pair (`grand`) off limestone, a clinic's pair off glazed tile, an office door off board or carpet, painted
-steel otherwise. All but shutters, jammed doors, welded ones, the lift's and loose panels slide sideways (`slides`) into
+steel otherwise, or where a door says it is `plain` (a service door off a grand hall: the plant stair's, off the upper
+corridor). A single door is 1.2 m, so its middle wants to be where the nav graph's spots are (a metre apart, on the
+half: `NAV`), or nothing has anywhere in it to stand (`test/doors.test.ts`). All but shutters, jammed doors, welded ones, the lift's and loose panels slide sideways (`slides`) into
 the end of the doorway that is rock (`side`; a door with no rock at either end rises). `doorBox` moves a sliding door
 along its length by its width; a pair of leaves both slide into the wall at the pocket, the far leaf all the way and the
 near one half (`Leaf.f` in `render/things.ts`), so they block exactly what one slab would and the sim is unchanged. The

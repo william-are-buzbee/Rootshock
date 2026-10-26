@@ -85,6 +85,8 @@ export interface DoorOpts {
   sg?: [string, Dir][];
   /** how wide its opening is (m), if not as wide as a door of its look is (NARROW for a single door, 2 m for the rest) */
   w?: number;
+  /** a plain service door where its sides would make it another: painted steel into a plant room off a grand hall */
+  plain?: boolean;
   /** the stretch of wall it stands in, this long about its place: a single door is hung against the end of it that has
    *  wall beyond to slide into (the far end, if both have); a wider one fills the middle of it */
   span?: number;
@@ -137,6 +139,8 @@ export interface Floor {
   flights: { x0: number; z0: number; x1: number; z1: number; y0: number; y1: number; n: number; dir: Dir; c: number }[];
   items: { id: string; x: number; z: number; y: number; n: number; on?: Aim }[];
   notes: { key: string; x: number; z: number; y: number; bare?: boolean }[];
+  /** the family's exhibit: boards on the walls, their middles y over the floor, facing yaw */
+  exhibits: { key: string; x: number; z: number; y: number; yaw: number; w: number; h: number }[];
   muts: { type: string; x: number; z: number; o: Record<string, unknown> }[];
   uses: { kind: string; x: number; z: number; y: number; o: Record<string, unknown> }[];
   marks: Record<string, [number, number, number]>;
@@ -172,7 +176,7 @@ export function floor(lv: LevelInfo, o: { y0?: number; li?: number; wet?: number
     rooms: [], doors: [], claims: [], above: null, below: null,
     terrain: t ? { x0: t[0], z0: t[1], res, nx: Math.round((t[2] - t[0]) / res) + 1, nz: Math.round((t[3] - t[1]) / res) + 1 } : null,
     hf: null, cf: null, hset: null, owner: null,
-    props: [], cols: [], lamps: [], cams: [], speakers: [], stains: [], elevs: [], stairs: [], flights: [], items: [], notes: [], muts: [], uses: [], marks: {}, walls: [], water: [],
+    props: [], cols: [], lamps: [], cams: [], speakers: [], stains: [], elevs: [], stairs: [], flights: [], items: [], notes: [], exhibits: [], muts: [], uses: [], marks: {}, walls: [], water: [],
   };
   C().floors.push(F);
   return F;
@@ -298,6 +302,20 @@ export function item(F: Floor, id: string, x: number, z: number, y = 0, n = 1): 
 }
 /** a paper to read at (x, z), y over the floor; `bare`: no paper of its own, it is written on what is there (a whiteboard) */
 export function note(F: Floor, key: string, x: number, z: number, y = 0, bare = false): void { F.notes.push({ key, x, z, y, ...(bare ? { bare } : {}) }); }
+/** a board of the family's exhibit (content/exhibit.ts) on the wall whose face is at (x, z), facing `face`, its middle y
+ *  over the floor, w by h: a bronze frame, the board drawn on it (present/render/exhibit.ts), and what is read off it
+ *  (`reads`: each note's key and how far along the board from its middle, to the reader's right) */
+export function exhibit(F: Floor, key: string, x: number, z: number, y: number, face: Dir, w: number, h: number, reads: [string, number][] = [[key, 0]]): void {
+  /* the board stands off the wall as a sign does (3 cm), and its frame is four bars round its edge, a little prouder: nothing
+     of the level lies just behind the board, where the level's depth, drawn first (render/post.ts), would win */
+  const [nx, nz] = { n: [0, -1], s: [0, 1], e: [1, 0], w: [-1, 0] }[face], ns = nz !== 0, T = 0.045, B = 0.04;
+  const bar = (along: number, up: number, len: number, tall: number) =>
+    bx(F, x + nx * T / 2 + (ns ? along : 0), z + nz * T / 2 + (ns ? 0 : along), ns ? len : T, tall, ns ? T : len, 0x5e4424, { y: up, c: 0, mat: 'steel' });
+  for (const s of [-1, 1]) { bar(0, s < 0 ? y - h / 2 - B : y + h / 2, w + 2 * B, B); bar(s * (w / 2 + B / 2), y - h / 2, B, h); }
+  F.exhibits.push({ key, x: x + nx * 0.03, z: z + nz * 0.03, y, yaw: Math.atan2(nx, nz), w, h });
+  /* the reader's right, facing the board: the board's own left to right */
+  for (const [k, a] of reads) note(F, k, x + nx * 0.04 + nz * a, z + nz * 0.04 - nx * a, y, true);
+}
 export function mut(F: Floor, type: string, x: number, z: number, o: Record<string, unknown> = {}): void { F.muts.push({ type, x, z, o }); }
 /** a place for one of the cast on its floor, as an option to mut(): a stop on a guard's round (types.ts, RoundStop),
  *  given as `round`; a spot to hide in; or where it stands, if on another floor than the one it is listed on (`at`) */
@@ -763,6 +781,7 @@ export function finishLevel(start?: [number, number, number], on?: Floor) {
     for (const K of F.cams) b.camera(K.x, floorAt(F, K.x, K.z) + K.h, K.z, K.yaw, { fov: K.fov, range: K.range, circuit: K.c, zone: K.zone, ...(K.name ? { name: K.name } : {}) });
     for (const S of F.speakers) b.speaker(S.zone, S.x, floorAt(F, S.x, S.z), S.z, S.pa ? { pa: S.pa } : {});
     for (const nt of F.notes) b.note(nt.key, nt.x, floorAt(F, nt.x, nt.z) + nt.y, nt.z, nt.bare);
+    for (const E of F.exhibits) b.exhibit(E.key, E.x, floorAt(F, E.x, E.z) + E.y, E.z, E.yaw, E.w, E.h);
     for (const m of F.muts) {
       /* places in its options (a round's stops, a spot to hide in), each on its own floor */
       const plan = ({ F: S, x, z, ...o }: TStop) => ({ x, y: floorAt(S, x, z), z, ...o });
@@ -867,7 +886,7 @@ function lookOf(A: PRoom | null, B: PRoom | null, o: DoorOpts): { look: DoorLook
   const kind = (R: PRoom | null): DoorLook => !R || R.open || dug(R) ? 'steel' : R.mat.wall === 'stone' ? 'grand' : R.mat.wall === 'glazed' ? 'clinic'
     : R.mat.wall === 'board' || R.mat.floor === 'carpet' ? 'office' : 'steel';
   const shutter = !!o.stuck || (dug(A) || dug(B)) && kind(G) === 'steel' && !(A?.open || B?.open);
-  return { look: shutter ? 'shutter' : o.kind === 'heavy' ? 'heavy' : kind(G), lining: shutter || !G || G.open || dug(G) ? null : G };
+  return { look: shutter ? 'shutter' : o.kind === 'heavy' ? 'heavy' : o.plain ? 'steel' : kind(G), lining: shutter || !G || G.open || dug(G) ? null : G };
 }
 
 /** a door, as hung: its doorway (lined with the finish of the grander side, or, for a shutter, bare steel and concrete

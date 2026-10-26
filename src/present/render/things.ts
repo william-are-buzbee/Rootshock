@@ -12,6 +12,7 @@ import { LENS, itemParts, lyingYaw, paperYaw, type Part } from '../../content/ly
 import { TEMPLATES } from './templates';
 import { dynamicMaterial, glassMaterial, lightMaterial, matId } from './shader';
 import { SignView } from './signs';
+import { ExhibitView } from './exhibit';
 
 /* What moves, drawn where the sim says it is: doors, platforms, loose crates. And the water, which does not move but
    is see-through, so it is drawn on its own. Each moving thing is lit by the room it is in. */
@@ -185,11 +186,13 @@ function coloured(src: Float32Array, c: Colour, mat = 0): THREE.BufferGeometry {
 export class Things {
   private list: Moving[] = [];
   private signs: SignView;
+  private exhibit: ExhibitView;
 
-  /** the power changed: signs take the light where they hang (door lights follow in update) */
+  /** the power changed: signs and the exhibit's boards take the light where they hang (door lights follow in update) */
   setLighting(L: Lighting): void {
     this.L = L;
     this.signs?.setLighting(L);
+    this.exhibit?.setLighting(L);
   }
 
   constructor(private scene: THREE.Object3D, private sim: Sim, private L: Lighting) {
@@ -284,6 +287,7 @@ export class Things {
       });
     }
     this.signs = new SignView(scene, w, L);
+    this.exhibit = new ExhibitView(scene, w, L);
     this.setLighting(L);
     sim.loose.all.forEach((o, k) => {
       /* a hair larger than it is, so a crate on the floor or on another does not fight it (levelMesh's apart) */
