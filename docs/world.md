@@ -160,6 +160,12 @@ The testers and those they turned, centred on Horticulture.
   taking root, slow and a little sedated. The night round is the exception, still walking its round from habit, which is
   what makes it the first thing to fear. Its touch is Pia's, the opiate: whoever it touches goes slack, and it takes them
   (§8, *The opening*). Where it takes them, and what they become, is the wing's to tell.
+- **Flesh and plant both (agreed; sharpens the above).** Pia was flesh first and grew into the tree, and a child of hers is
+  what she was on the day it was grafted (§10, *Pia's line*). What reached Security came from when the plant had begun to
+  come out of her, carried by a mutant already old in its own change. So the wing's changed are not the flesh of her early
+  children but a hybrid: tobacco leaf in shelves out of the skin; her line's size and shape gone wrong, one thing in each,
+  muted beside what the Commons will show; and her stupor, the slowness. The longer one has been changing, the more plant
+  it is (§8, *The changed*).
 - **Character.** The most technologically able of the flesh. They kept the station's systems running from habit; the cameras
   watch for them on a lockdown protocol, with nobody behind the screens (see §8).
 - **The survivors.** A smaller group of Security's staff, still human, sectioned themselves off from the changed ones. The changed
@@ -637,6 +643,19 @@ wins; the older text stays only because it describes what is built, until the le
     the back of the neck and the right shoulder from woody knots, in tiers stacked like a bracket fungus, green going to
     the curing barn's yellow; more on some than others, most on the night round, down the right of the back. Sallow
     skin; the eyes glassy, wet and pale, the pupils pinned, the lids heavy, the rims red; the mouth slack.
+  - *The look, next (agreed; mocked up, not built).* Pia's line shows in their build (§10, *Pia's line*): each has one
+    thing in its size or shape gone wrong (a long neck, one arm grown, a head too heavy for it, arms to the knee, a long
+    body on short legs), never as far as the Commons'. They have stopped dressing for work: shirts open, torn away where
+    the leaf came through, tied round the waist, gone; a boot lost; the newest still button theirs, and the night round
+    keeps its uniform from habit. The longer one has been changing, the more plant: the leaf curing yellow, bark through
+    the skin, roots out of the feet, the eyes going milky. `mockups/mutants.html` is the bench for them, and its line-up
+    (*Security's seven*) is one for each the upper station has, the newest first.
+  - *No twitch (agreed; built).* None of Pia's line twitches: the head lolls, and moves slowly, with nobody much behind
+    it. (The skitter keeps its twitch for now.)
+  - *Size is the sim's too (agreed; to do).* One that differs in size differs in the sim: its skeleton (`SKEL.husk`, which
+    the model is drawn to), its height and reach, the doors it fits, its stride at the sim's pace (1.3 m/s on its rounds;
+    the bench shows the steps a minute each stride means at that pace). The cast's bodies and movement want rewriting by
+    size before the changed can differ in the game.
   - *The word.* "Husk" is never said in the game (it was only ever a name in the code, which keeps it, and in the dev
     tools, which say "changed" now).
   - *Cards (built).* Security's own staff carry their cards: those that start in one of Security's alarm zones. A card
@@ -1144,6 +1163,11 @@ levels are built. None of it has to reach the player: the game plays without it,
   grafts apart they are.
 - **It keeps you changing, not alive.** It cannot raise the dead or stop a bleed, and it slows without new grafts. Things die
   when they are killed. New grafts are the only way to speed up, which is a reason to infect.
+- **The bodies on the floor are grafted (agreed).** Every body the station lays out where it fell (the guards, the
+  residents, the officer by the cut, the dead in the gore rooms and the chapel) was grafted where it lies, as the other
+  patient is: not necessarily dead. *Built:* the graft shows on each, a small shelf of leaf out of one forearm in a raw
+  knot (`deadModel` in `render/castView.ts`). *Open:* which of them still breathe, and whether any wake (§8, the other
+  patient's *open, for later*).
 - **The plant.** Every green form is wild tobacco, *Nicotiana rustica*, mutated its own way: Pia took its stalk, leaves and
   flowers and grew into a tree; Dale wears its leaves, in shelves, the colour of nicotine; Holt breeds the whole plant for
   structure. Not every line shows the plant: Ines shows none. The rest are to be worked out the same way: which part of the plant, and what it became.
@@ -1207,9 +1231,25 @@ Nobody expected worse than a bad night.
   speak. A living god to both tribes: the flesh tolerate a plant because it is their mother, and tap her for milk. *Spreads:*
   early, by a touch in her stupor, with an ordinary arm (nothing about the arm is special; it is only what she touched people
   with); late, by a cutting from the tree laid on you. What the Commons carry is that early snapshot of her, the flesh and the
-  opiate, not the tree. Grafting her takes the edge off, and you lose something you do not miss. *Children:* early, the dazed,
-  husk-like; mid, half stalk and half flesh, Pia caught mid-change; late, sessile, quietly euphoric, still feeling. Old Pias grow
-  faster as they age, so the tree is a clock. *Tell:* milky sap.
+  opiate, not the tree. Grafting her takes the edge off, and you lose something you do not miss. *Children:* by her age
+  (below). Old Pias grow faster as they age, so the tree is a clock. *Tell:* milky sap.
+
+  *Pia's line (agreed; supersedes her children as first written: early, the dazed and husk-like; mid, half stalk and half
+  flesh; late, sessile).* She was flesh, all of her, before she was a tree, and a child is what she was on the day it was
+  grafted (rule 1), so her line divides by her age. The opiate is in all of it: numb, slow, the pupils pinned, the
+  pustules. None of it twitches.
+
+  - *Her early children are flesh,* with only a touch of the plant it all began from, and their mutation is size: one thing
+    grown too big or too long, or the body's plan changed. A long torso, long legs, a huge head. The bloats are the eldest
+    of them, huge and soft, with the look of babies (built; they stay as they are). One became a spider: the skitter, on
+    four legs (the model has six for now). One grew its bone out through its skin: a person in a shell of its own.
+  - *The shell's line is bone.* Its children are the husks, and any mutant with a bone spike or a bone gone wrong; the
+    husks are the least of it, and grow in stages (open: what the stages are). The thresher, its ribcage opened into
+    doors, is bone gone wrong, so it is the shell's.
+  - *Her later children are flesh and plant,* from when the plant had begun to come out of her: the size and shape gone
+    wrong, but muted; leaf out of the skin; slow. Security's changed came from one of these, old in its own change (§2,
+    *The Security flesh*), and the longer each has been changing, the more plant it is. Latest of all, sessile, quietly
+    euphoric, still feeling: nearly all plant, as she is now.
 - **Ines Calder (hallucinogen).** She never stops seeing. Her brain grows until it can carry the visions without believing
   them, and what is left is lucid and finds patterns in everything. Very tall (about 7 m), lanky, with a big head: the growth
   went to the head and to what perceives. Human and fleshy, in her own skin, and reads as an ordinary mutant: no plant shows on her at
@@ -1299,6 +1339,8 @@ Nobody expected worse than a bad night.
   | 4 | the Commons bloc | walk, track you with their heads | some | strong |
   | 5 | Commons husks | act; ignore their own pain | faint | strong, and turned outward |
 
+  Husks of any generation are of the shell's line (*Pia's line*, above).
+
 - **The mother.** A woman of the Commons bloc whose graft took in the womb; touch her and you lay eggs too. Her hatchlings have
   no host and lose most of the human look. She lays in Cargo, where nothing green can reach.
 - **Security's first.** Taken by a hatchling in Cargo, so it inherited no fear and no thought, only drills; it sits up out of
@@ -1329,7 +1371,8 @@ The player is never told any of this; they read it.
 - **Fluid colour is lineage:** Pia milk, Dale nicotine, Ines her own pigment, Tom spore-yellow, Holt green, Sam a glow.
   Two colours on one body is a hybrid.
 - **Behaviour is stage:** never still means crisis; sitting means past it.
-- **Size is age,** in each elder's own silhouette.
+- **Size is age,** in each elder's own silhouette; in Pia's line, size is the mutation itself, one thing too big or too long.
+- **Bone is the shell's line;** leaf out of flesh is Pia's later children.
 - **Motif is descent from Ines,** degrading by generation.
 - **Scars** show which crisis it survived.
 - **An offered wrist,** cut open and held out, is a graft offered, in every lineage.
@@ -1338,6 +1381,7 @@ The player is never told any of this; they read it.
 
 - Holt: what marks her work, and how she can be hurt.
 - Is the founder the thresher? What do the young gods look like?
+- The shell: who it was, where it is, and the husks' stages of growth.
 - Where Ines paints. (Dale: the curing hall: §8, *Production*.)
 - **The mass (proposed, moved from Security).** A room grown shut, its glass sweating, something pressed flat against it that
   you never see whole, the changed feeding at its door: a late child of Pia's, sessile, in the Commons or wherever her people
