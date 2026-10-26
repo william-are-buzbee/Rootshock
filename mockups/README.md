@@ -11,6 +11,7 @@ browser (three.js comes from a CDN), and each has been published as a private cl
   their walk (the floor moves at the walk's pace, so a planted foot should hold still), what they still wear, and growth
   clicked onto them (eyes, pustules, leaf shelves, stalks, roots, knots; the wheel sizes them). Saves designs as JSON
   (`rootshock-changed/1`, described at the top of its script); the published copy keeps them where Claude can read them.
+  *Security's seven* (the Saved tab) is a line-up of the upper station's changed, one for each, newest to oldest.
   `window.__rs` in the console exposes the state.
 - `lineage.html`: the family tree and an entry for each elder. Generated: edit `lineage/template.html` (the cards) or
   `lineage/build.py` (the tree's nodes), then run `python3 mockups/lineage/build.py`.

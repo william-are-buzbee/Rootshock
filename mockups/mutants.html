@@ -211,6 +211,10 @@ textarea { width: 100%; background: var(--raise); border: 1px solid var(--line);
       <div class="state" id="store-state"></div>
       <div class="group">Saved</div>
       <ul class="list" id="lib"></ul>
+      <div class="group">Security's seven</div>
+      <p class="note">Claude's line-up of the changed the upper station has, one for each, in order of how long each has been changing: the newest first, the oldest the most plant. The notes on each say where it stands and why it looks as it does.</p>
+      <div class="btns" id="cast"></div>
+      <div class="btns"><button class="btn" id="castsave">Save all seven</button></div>
       <div class="group">Start from an example</div>
       <p class="note">These are examples to begin from, not saved designs. Opening one replaces what is on the bench (Undo brings it back).</p>
       <div class="btns" id="presets"></div>
@@ -778,14 +782,6 @@ function buildItem(M, it) {
 /* its walk. A stride is a full one, both feet; each foot is on the floor half of it, going back under the hip in a
    straight line at the walk's pace (so the floor, moving at that pace, holds still under it), and through the air the
    other half, the knee bent as far as it lifts. The hip rises and falls over the foot it stands on */
-function twitch(A, key, dt, rate, amp, dur) {
-  const T = ((A.tw ??= {})[key] ??= { t: -1, a: 0 });
-  if (T.t >= 0 && (T.t += dt) >= dur) T.t = -1;
-  if (T.t < 0 && dt > 0 && Math.random() < rate * dt) { T.t = 0; T.a = (Math.random() * 2 - 1) * amp; }
-  if (T.t < 0) return 0;
-  const u = T.t / dur;
-  return T.a * (u < 0.3 ? ease(u / 0.3) : 1 - ease((u - 0.3) / 0.7));
-}
 /** a gait's stride and steps a second, as it moves in `mode` */
 function paceOf(d, mode) {
   let S = d.gait.stride, f = d.gait.spm / 120;
@@ -834,9 +830,9 @@ function pose(M, A, mode, dt) {
     M.E[k].rotation.x = -(G.elbow + (walk && !hunt ? 0.15 * Math.max(0, -fwd) * G.armSwing : 0));
   }
   M.T.rotation.set(B.hunch + (hunt ? 0.18 : 0) + (walk ? 0.03 : 0), walk ? -0.08 * Math.cos(TAU * p) * G.armSwing : 0, walk ? Math.sin(TAU * p) * G.sway : Math.sin(t * 0.6) * G.sway * 0.6);
-  /* the head lolled to one side, hung, and moving with nobody much behind it; now and then it twitches */
+  /* the head lolled to one side, hung, and moving slowly with nobody much behind it; none of Pia's line twitches */
   M.H.rotation.set(B.droop - B.hunch * 0.5 + (hunt ? -0.25 : 0) + Math.sin(t * 0.45) * G.loll * 0.4,
-    Math.sin(t * 0.5) * 0.2, B.tilt + Math.sin(t * 0.7) * G.loll + twitch(A, 'head', dt, 0.9, 0.5, 0.2));
+    Math.sin(t * 0.5) * 0.2, B.tilt + Math.sin(t * 0.7) * G.loll);
 }
 
 /* ---------------------------------------------------------------------------------------------------------------- */
@@ -938,6 +934,127 @@ const PRESETS = [
   }],
 ];
 
+/* Security's changed, the seven the upper station has (content/levels/upper.ts), as Claude proposes them: Pia's line
+   from when the plant had begun to come out of her (world.md §10), so leaf shelves out of the skin, her line's size and
+   shape gone wrong in each a different way (muted beside what the Commons will show), and slow; in order of how long
+   each has been changing, the newest first, the oldest the most plant */
+const CAST = [
+  ['hallw', 'Hall, west', () => {
+    const d = base();
+    Object.assign(d, { name: 'Hall, west', seed: 11, notes: 'On its rounds of the muster hall, the west end (upper.ts: 31, 28). The newest: changed a week at most, still nearly a person, and still buttons its shirt. One small shelf at the back of the neck. Its wrongness is a long neck and a long, narrow head, enough to read wrong across the hall before you can say why. The quickest of them, and still slow: 1 m/s (the sim gives them all 1.3).' });
+    Object.assign(d.body, { torsoW: 0.4, neckL: 0.26, headW: 0.9, headH: 1.18, hunch: 0.04, tilt: 0.15, droop: 0.05, jaw: 0.15 });
+    Object.assign(d.gait, { stride: 1.2, spm: 100, knee: 0.45, armSwing: 0.26, elbow: 0.15, hang: 0.02, sway: 0.03, shamble: 0.25, loll: 0.06 });
+    Object.assign(d.dress, { cap: 'askew', lanyard: true, stain: 0.05 });
+    Object.assign(d.skin, { tone: 0, sallow: 0.35 });
+    d.items = withIds([...EYES().map(e => ({ ...e, lid: 0.42 })),
+      it('leaf', 'torso', [-0.071, 0.467, -0.417], [-0.476, 0, -0.879], 0.22, { tiers: 2, rise: 0.06 })]);
+    return d;
+  }],
+  ['halle', 'Hall, east', () => {
+    const d = base();
+    Object.assign(d, { name: 'Hall, east', seed: 12, notes: 'On its rounds of the muster hall, the east end (upper.ts: 67, 44). Its left arm grew, a third again, and split the shirt down that side; the leaf comes down the outside of it in shelves and a stalk flowers off the shoulder. It favours its right leg. A boot lost on the left. 0.9 m/s.' });
+    Object.assign(d.body, { armL: 1.38, shoulder: 0.02, hunch: 0.12, tilt: -0.28, droop: 0.08, jaw: 0.3 });
+    Object.assign(d.gait, { stride: 1.1, spm: 98, knee: 0.35, armSwing: 0.2, elbow: 0.25, hang: 0.08, sway: 0.06, shamble: 0.4, limp: 0.4, loll: 0.1 });
+    Object.assign(d.dress, { shirt: 'tornL', sleeveR: 'short', bootL: 'bare', stain: 0.25, hair: 'short' });
+    Object.assign(d.skin, { tone: 3, sallow: 0.5 });
+    d.items = withIds([...EYES(),
+      it('leaf', 'uarmL', [0.5, -0.05, -0.15], [1, 0, -0.3], 0.26, { tiers: 3 }),
+      it('leaf', 'farmL', [0.5, 0.15, -0.1], [1, 0, -0.4], 0.2, { tiers: 2 }),
+      it('stalk', 'torso', [0.46, 0.5, 0.05], [0.4, 1, 0.1], 0.36, { bend: 0.3 }),
+      it('leaf', 'torso', [-0.071, 0.467, -0.417], [-0.476, 0, -0.879], 0.26, { tiers: 3, rise: 0.065 }),
+      it('pustule', 'farmL', [0.4, -0.3, 0.5], [0.4, 0, 1], 0.03, { cluster: true })]);
+    return d;
+  }],
+  ['opsoff', 'Ops, offices', () => {
+    const d = base();
+    Object.assign(d, { name: 'Ops, offices', seed: 13, notes: 'The Operations corridor, by the offices (upper.ts: 72, 7). Long in the arm: the hands hang at its knees and come up a little ahead of it. Narrow with it. Down to its vest, stained; Pia\'s pustules in clusters up both forearms, a shelf between the shoulder blades. 0.85 m/s, a long loping stride, the arms swinging.' });
+    Object.assign(d.body, { torsoW: 0.36, torsoD: 0.22, torsoL: 0.62, shoulder: 0.05, uArm: 0.5, fArm: 0.48, armT: 0.095, hunch: 0.22, tilt: 0.2, droop: 0.18, jaw: 0.4 });
+    Object.assign(d.gait, { stride: 1.2, spm: 84, knee: 0.4, armSwing: 0.42, elbow: 0.35, hang: 0.2, sway: 0.05, shamble: 0.35, loll: 0.12 });
+    Object.assign(d.dress, { shirt: 'vest', vestCol: 'stained', belt: 'loose', radio: false, stain: 0.45, hair: 'thin' });
+    Object.assign(d.skin, { tone: 2, sallow: 0.6 });
+    d.items = withIds([...EYES(),
+      it('leaf', 'torso', [0.05, 0.62, -0.5], [0, 0, -1], 0.3, { tiers: 3 }),
+      it('pustule', 'farmL', [0.5, 0.25, 0.1], [1, 0, 0.2], 0.04, { cluster: true }),
+      it('pustule', 'farmL', [0.45, -0.2, 0.3], [1, 0, 0.5], 0.032),
+      it('pustule', 'farmR', [-0.5, 0.1, 0.15], [-1, 0, 0.2], 0.042, { cluster: true }),
+      it('pustule', 'farmR', [-0.4, -0.35, 0.4], [-1, 0, 0.6], 0.03),
+      it('pustule', 'uarmR', [-0.5, -0.3, 0.2], [-1, 0, 0.3], 0.036)]);
+    return d;
+  }],
+  ['opsspk', 'Ops, speaker', () => {
+    const d = base();
+    Object.assign(d, { name: 'Ops, speaker', seed: 14, notes: 'The Operations corridor, under the zone\'s speaker (upper.ts: 77, 18). Operations watched the cameras, and the body grows what you do (world.md §10, rule 1): its head swelled, too heavy for the neck, and grew eyes, two on the brow, one at the temple, one at the back of the skull. Shirt hanging open, sleeves rolled; it still carries its card and its radio. 0.7 m/s, careful with the weight of its head.' });
+    Object.assign(d.body, { headSize: 1.3, headW: 1.1, headH: 1.12, neckL: 0.07, hunch: 0.16, tilt: 0.32, droop: 0.28, jaw: 0.35, torsoW: 0.44 });
+    Object.assign(d.gait, { stride: 0.95, spm: 88, knee: 0.3, armSwing: 0.16, elbow: 0.3, hang: 0.1, sway: 0.08, shamble: 0.5, loll: 0.14 });
+    Object.assign(d.dress, { shirt: 'open', shirtCol: 'slate', sleeveL: 'rolled', sleeveR: 'rolled', lanyard: true, epaulettes: false, stain: 0.2, hair: 'none' });
+    Object.assign(d.skin, { tone: 5, sallow: 0.55 });
+    d.items = withIds([...EYES(),
+      it('eye', 'head', [0.13, 0.3, 0.41], [0.25, 0.45, 0.86], 0.04, { lid: 0.35 }),
+      it('eye', 'head', [-0.11, 0.33, 0.4], [-0.2, 0.5, 0.84], 0.034, { lid: 0.4 }),
+      it('eye', 'head', [0.46, 0.12, 0.14], [1, 0.2, 0.35], 0.042, { lid: 0.5 }),
+      it('eye', 'head', [0.02, 0.0, -0.48], [0, 0, -1], 0.05, { lid: 0.3 }),
+      it('leaf', 'torso', [-0.071, 0.467, -0.417], [-0.476, 0, -0.879], 0.28, { tiers: 3, rise: 0.065 }),
+      it('leaf', 'torso', [-0.476, 0.3, -0.083], [-0.996, 0, -0.086], 0.26, { tiers: 3 })]);
+    return d;
+  }],
+  ['stair', 'Ops stair', () => {
+    const d = base();
+    Object.assign(d, { name: 'Ops stair', seed: 15, notes: 'On post on the Operations stair, at the door grown shut with bodies, among the eggs (upper.ts: 67.2, 63.2, the landing). Wide and heavy, short in the leg, its right arm grown thick; it keeps the door it helped close. The shirt tied round its waist by the sleeves, bare-chested, Pia\'s pustules over the chest; leaf out of both shoulders and down the spine, bark coming through on the left forearm. One eye gone small and milky. Barefoot in the gore. 0.4 m/s when it moves at all.' });
+    Object.assign(d.body, { scale: 1.06, torsoW: 0.66, torsoD: 0.34, torsoL: 0.6, gut: 0.45, hipW: 0.3, uArm: 0.34, fArm: 0.32, armT: 0.15, armR: 1.3, thigh: 0.38, shin: 0.38, legT: 0.22, neckL: 0.07, headW: 1.12, hunch: 0.14, tilt: 0.12, droop: 0.22, jaw: 0.55, splay: 0.06 });
+    Object.assign(d.gait, { stride: 0.75, spm: 66, knee: 0.22, armSwing: 0.15, elbow: 0.3, hang: 0.12, sway: 0.1, shamble: 0.6, loll: 0.06 });
+    Object.assign(d.dress, { shirt: 'tied', legL: 'rolled', legR: 'rolled', bootL: 'bare', bootR: 'bare', cap: 'back', badge: false, radio: false, stain: 0.4 });
+    Object.assign(d.skin, { tone: 6, sallow: 0.45, cure: 0.15 });
+    d.items = withIds([...EYES().map((e, i) => ({ ...e, lid: 0.7, ...(i ? { look: 'milky', size: 0.038, lid: 0.75 } : {}) })),
+      it('leaf', 'torso', [0.45, 0.42, -0.25], [0.8, 0.1, -0.6], 0.36, { tiers: 4, rise: 0.08 }),
+      it('leaf', 'torso', [-0.45, 0.38, -0.25], [-0.8, 0.1, -0.6], 0.32, { tiers: 3, rise: 0.075 }),
+      it('leaf', 'torso', [0, 0.3, -0.5], [0, 0, -1], 0.32, { tiers: 4, rise: 0.08 }),
+      it('leaf', 'torso', [0, -0.1, -0.5], [0, 0, -1], 0.26, { tiers: 2 }),
+      it('pustule', 'torso', [0.24, 0.3, 0.5], [0, 0, 1], 0.045),
+      it('pustule', 'torso', [0.12, 0.4, 0.5], [0, 0, 1], 0.03, { cluster: true }),
+      it('pustule', 'torso', [-0.28, 0.22, 0.5], [0, 0, 1], 0.038),
+      it('pustule', 'torso', [-0.16, 0.42, 0.5], [0, 0, 1], 0.026),
+      it('knot', 'farmL', [0.5, 0, 0.1], [1, 0, 0.2], 0.12, { form: 'bark' })]);
+    return d;
+  }],
+  ['night', 'Night round', () => {
+    const d = base();
+    Object.assign(d, { name: 'Night round', seed: 16, notes: 'The night round (upper.ts: 51, -9.4, and its round). Always in uniform, the cap on, from habit: the habit is what keeps it walking. Tall, long in the leg and the body, so it looms in its own beam; the leaf thickest on it of those that walk, the game\'s four shelves and one more down its back. The flashlight in the hand that is still a hand, its card on the lanyard: the card you take. 1 m/s, the round\'s pace.' });
+    Object.assign(d.body, { scale: 1.05, torsoL: 0.68, thigh: 0.52, shin: 0.54, legT: 0.15, torsoW: 0.41, uArm: 0.39, fArm: 0.37, hunch: 0.1, tilt: 0.22, droop: 0.12, jaw: 0.3 });
+    Object.assign(d.gait, { stride: 1.45, spm: 83, knee: 0.45, armSwing: 0.15, elbow: 0.45, hang: 0.28, sway: 0.03, shamble: 0.15, loll: 0.08 });
+    Object.assign(d.dress, { cap: 'on', torch: true, lanyard: true, stain: 0.2 });
+    Object.assign(d.skin, { tone: 1, sallow: 0.7, cure: 0.1 });
+    d.items = withIds([...EYES(), ...SHELVES(3),
+      it('leaf', 'torso', [0.15, 0.15, -0.5], [0.3, 0, -1], 0.26, { tiers: 3 })]);
+    return d;
+  }],
+  ['goods', 'Goods inward', () => {
+    const d = base();
+    Object.assign(d, { name: 'Goods inward', seed: 17, notes: 'On post at the freight door in Goods inward (upper.ts: 18, 6.8). The oldest of them, and the most plant: it stopped here early and has been taking root since, out of both feet and a hand. Long in the body, short in the leg, bent over; the shirt gone, the trousers torn at both knees, the leaf curing yellow, bark through the shins and an arm, a stalk flowering from the crown, leaf out of the side of its face. Its eyes are going milky. If it walks at all it is a quarter of a metre a second, and it drags its feet.' });
+    Object.assign(d.body, { torsoL: 0.84, torsoW: 0.44, torsoD: 0.26, thigh: 0.4, shin: 0.4, legT: 0.17, uArm: 0.4, fArm: 0.38, hunch: 0.5, tilt: -0.35, droop: 0.4, jaw: 0.7, neckL: 0.18 });
+    Object.assign(d.gait, { stride: 0.55, spm: 50, knee: 0.08, armSwing: 0.06, elbow: 0.15, hang: 0.05, sway: 0.12, shamble: 0.9, loll: 0.2 });
+    Object.assign(d.dress, { shirt: 'none', legL: 'torn', legR: 'torn', bootL: 'bare', bootR: 'bare', belt: 'loose', radio: false, badge: false, epaulettes: false, hair: 'thin', stain: 0.6 });
+    Object.assign(d.skin, { tone: 4, sallow: 0.9, cure: 0.7 });
+    d.items = withIds([...EYES().map(e => ({ ...e, look: 'milky', lid: 0.8 })),
+      it('leaf', 'torso', [-0.071, 0.467, -0.417], [-0.476, 0, -0.879], 0.34, { tiers: 5, rise: 0.07, fan: 0.45 }),
+      it('leaf', 'torso', [0.45, 0.4, -0.15], [0.85, 0.1, -0.5], 0.34, { tiers: 4 }),
+      it('leaf', 'torso', [-0.45, 0.35, -0.15], [-0.85, 0.1, -0.5], 0.3, { tiers: 4 }),
+      it('leaf', 'torso', [0, 0.05, -0.5], [0, 0, -1], 0.32, { tiers: 4 }),
+      it('leaf', 'thighR', [-0.5, 0.15, 0], [-1, 0, -0.2], 0.24, { tiers: 3 }),
+      it('stalk', 'head', [0.05, 0.48, -0.05], [0.1, 1, -0.15], 0.42, { bend: 0.25 }),
+      it('leaf', 'head', [0.48, -0.05, -0.1], [1, -0.2, -0.2], 0.2, { tiers: 3 }),
+      it('leaf', 'head', [-0.4, 0.05, 0.25], [-0.8, 0.1, 0.55], 0.13, { tiers: 2 }),
+      it('knot', 'shinL', [0.1, 0.1, 0.5], [0, 0, 1], 0.12, { form: 'bark' }),
+      it('knot', 'shinR', [-0.1, 0.25, 0.5], [0, 0, 1], 0.1, { form: 'bark' }),
+      it('knot', 'uarmL', [0.5, 0, 0], [1, 0, 0], 0.11, { form: 'burl' }),
+      it('roots', 'footL', [0.25, 0.5, 0.2], [0.5, 0.8, 0.6], 0.5, { count: 7 }),
+      it('roots', 'footR', [-0.25, 0.5, 0.2], [-0.5, 0.8, 0.6], 0.46, { count: 6 }),
+      it('roots', 'shinL', [0.5, -0.4, 0], [1, 0.1, 0], 0.4, { count: 4 }),
+      it('roots', 'handL', [0, -0.5, 0], [0, -1, 0], 0.5, { count: 5 }),
+      it('pustule', 'neck', [0.3, 0.1, 0.45], [0.6, 0, 0.8], 0.03, { cluster: true })]);
+    return d;
+  }],
+];
+
 /** a design read from anywhere, made whole: anything missing from the defaults, and numbers where numbers go */
 function sanitize(x) {
   const d = base();
@@ -976,7 +1093,7 @@ controls.target.set(0, 0.95, 0);
 controls.enableDamping = true;
 controls.dampingFactor = 0.12;
 controls.minDistance = 0.6;
-controls.maxDistance = 16;
+controls.maxDistance = 40;
 controls.maxPolarAngle = PI * 0.55;
 controls.zoomSpeed = 0.8;
 
@@ -1269,6 +1386,7 @@ function syncButtons() {
   document.querySelectorAll('[data-light]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.light === S.light)));
   $('person').setAttribute('aria-pressed', String(S.person));
   $('lineup').setAttribute('aria-pressed', String(!!S.lineup));
+  $('tools').hidden = !!S.lineup;
 }
 function renderHint() {
   const h = $('hint');
@@ -1504,6 +1622,7 @@ function toast(t) { const e = $('toast'); e.textContent = t; e.hidden = false; c
    browser only */
 const store = { mode: 'connecting', list: [], db: null, err: '' };
 const newId = () => 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const sortRecs = list => list.sort((a, b) => (a.order ?? 1e9) - (b.order ?? 1e9) || (b.updated ?? 0) - (a.updated ?? 0));
 function readLocal() { try { return JSON.parse(localStorage.getItem('rs-mutant-lib') || '[]'); } catch { return []; } }
 function writeLocal(list) { try { localStorage.setItem('rs-mutant-lib', JSON.stringify(list)); return true; } catch { return false; } }
 async function initStore() {
@@ -1512,22 +1631,23 @@ async function initStore() {
   if (db) {
     store.db = db; store.mode = 'db';
     db.collection('mutants').onSnapshot(snap => {
-      store.list = snap.docs.map(x => ({ id: x.id, ...clone(x.data()) })).sort((a, b) => (b.updated ?? 0) - (a.updated ?? 0));
+      store.list = sortRecs(snap.docs.map(x => ({ id: x.id, ...clone(x.data()) })));
       renderLib();
     }, err => { store.mode = 'error'; store.err = err?.message || err?.code || 'unknown'; renderLib(); });
-  } else { store.mode = 'local'; store.list = readLocal(); }
+  } else { store.mode = 'local'; store.list = sortRecs(readLocal()); }
   renderLib();
 }
 async function saveRec(asNew) {
   const design = exported(S.d), id = (!asNew && S.libId) || newId();
-  const rec = { name: S.d.name.trim() || 'Untitled', notes: S.d.notes, design, updated: Date.now() };
+  const was = store.list.find(r => r.id === id);
+  const rec = { name: S.d.name.trim() || 'Untitled', notes: S.d.notes, design, updated: Date.now(), ...(was?.order != null ? { order: was.order } : {}) };
   try {
     if (store.mode === 'db') await store.db.collection('mutants').doc(id).set(rec);
     else {
       const list = readLocal().filter(r => r.id !== id);
       list.unshift({ id, ...rec });
       if (!writeLocal(list)) throw new Error('this browser will not keep it');
-      store.list = list;
+      store.list = sortRecs(list);
     }
     S.libId = id; S.saved = JSON.stringify(design);
     saveDraft(); renderState(); renderLib();
@@ -1572,6 +1692,38 @@ function buildStats(d) {
   const B = d.body, hh = 0.28 * B.headSize * B.headH;
   return { h: (B.thigh + B.shin + 0.06 + B.torsoL - 0.03 + B.neckL + hh * 0.68) * B.scale };
 }
+{
+  const P = $('cast');
+  for (const [k, name, make] of CAST) {
+    const b = el('button', 'btn sm', name);
+    b.type = 'button'; b.id = 'cast-' + k;
+    b.addEventListener('click', () => { open(make(), store.list.some(r => r.id === 'cast-' + k) ? 'cast-' + k : null); toast(`Opened “${name}”`); });
+    P.append(b);
+  }
+}
+/** the seven as saved records, under ids of their own, in their order */
+const castRecs = () => CAST.map(([k, , make], i) => { const d = make(); return { id: 'cast-' + k, name: d.name, notes: d.notes, design: exported(d), order: i, updated: Date.now() }; });
+async function saveCast() {
+  for (const { id, ...rec } of castRecs()) {
+    try {
+      if (store.mode === 'db') await store.db.collection('mutants').doc(id).set(rec);
+      else { const list = readLocal().filter(r => r.id !== id); list.push({ id, ...rec }); writeLocal(list); store.list = sortRecs(list); }
+    } catch (e) { toast(`Could not save “${rec.name}”: ${e?.message || e?.code || e}`); return; }
+  }
+  renderLib();
+  toast('Saved all seven: Line-up shows them');
+}
+/* straight away when none of them is saved yet; a second click first when it would replace one */
+{
+  const b = $('castsave'), label = b.textContent;
+  let t = 0;
+  b.addEventListener('click', () => {
+    const some = store.list.some(r => r.id.startsWith('cast-'));
+    if (!some || b.dataset.armed) { clearTimeout(t); delete b.dataset.armed; b.textContent = label; saveCast(); return; }
+    b.dataset.armed = '1'; b.textContent = 'Replace the ones already saved?';
+    t = setTimeout(() => { delete b.dataset.armed; b.textContent = label; }, 3000);
+  });
+}
 $('save').addEventListener('click', () => saveRec(false));
 $('saveas').addEventListener('click', () => saveRec(true));
 {
@@ -1612,7 +1764,7 @@ $('imp-add').addEventListener('click', async () => {
     const rec = { name: d.name || 'Untitled', notes: d.notes, design: exported(d), updated: Date.now() }, id = newId();
     try {
       if (store.mode === 'db') await store.db.collection('mutants').doc(id).set(rec);
-      else { const list = readLocal(); list.unshift({ id, ...rec }); writeLocal(list); store.list = list; }
+      else { const list = readLocal(); list.unshift({ id, ...rec }); writeLocal(list); store.list = sortRecs(list); }
     } catch (e) { toast(`Could not add “${rec.name}”: ${e?.message || e?.code || e}`); return; }
   }
   renderLib();
@@ -1659,11 +1811,11 @@ function toggleLineup() {
 }
 function fitLineup() {
   if (!S.lineup) return;
-  const xs = [S.lineup.x0, ...S.lineup.models.map(m => m.M.root.position.x)], w = Math.max(...xs) - Math.min(...xs) + 2.5;
+  const xs = [S.lineup.x0, ...S.lineup.models.map(m => m.M.root.position.x)], w = Math.max(...xs) - Math.min(...xs) + 2.4;
   const h = Math.max(S.M.height, ...S.lineup.models.map(m => m.M.height));
-  controls.target.set(0, h * 0.5, 0);
-  const dist = Math.max(w / (2 * Math.tan((camera.fov * PI) / 360) * camera.aspect), h * 1.6) * 1.05;
-  camera.position.set(0, h * 0.75, dist);
+  controls.target.set(0, h * 0.62, 0);
+  const dist = Math.max(w / (2 * Math.tan((camera.fov * PI) / 360) * camera.aspect), h * 1.6);
+  camera.position.set(0, h * 0.8, dist);
 }
 function openLineup(i) {
   if (i < 0) { toggleLineup(); return; }
@@ -1738,7 +1890,7 @@ function loop(now) {
   U.uRoom.value.set(...(game ? [0.05, 0.055, 0.06] : [0.6, 0.58, 0.55]));
   U.uKey.value = game ? 0 : 0.55;
   U.uFlash.value = game ? 1.15 : 0.22;
-  U.uFog.value = game ? 0.07 : 0.03;
+  U.uFog.value = game ? 0.07 : S.lineup ? 0.012 : 0.03;
   U.uFlashPos.value.copy(camera.position);
   camera.getWorldDirection(U.uFlashDir.value);
   U.uTime.value = now / 1000;
@@ -1747,7 +1899,7 @@ function loop(now) {
   if (S.lineup) {
     const r = canvas.getBoundingClientRect(), Ms = [S.M, ...S.lineup.models.map(m => m.M)];
     Ms.forEach((M, i) => {
-      _v.set(M.root.position.x, M.height + 0.18, 0).project(camera);
+      _v.set(M.root.position.x, M.height + (i % 2 ? 0.5 : 0.2), 0).project(camera);
       const e = S.lineup.labels[i];
       if (e) { e.style.left = `${((_v.x + 1) / 2) * r.width}px`; e.style.top = `${((1 - _v.y) / 2) * r.height}px`; e.hidden = _v.z > 1; }
     });
@@ -1769,6 +1921,6 @@ function loop(now) {
   frame();
   requestAnimationFrame(loop);
   initStore();
-  window.__rs = { S, open, PRESETS, sanitize, exported, camera, controls, pickAt, setTool };
+  window.__rs = { S, open, PRESETS, CAST, castRecs, sanitize, exported, camera, controls, pickAt, setTool };
 }
 </script>
