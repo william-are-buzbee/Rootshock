@@ -55,8 +55,8 @@ export const RIG: Record<string, { parts: Part[]; rest?: number }> = {
   },
   skitter: {
     parts: [
-      { at: M => M.b, frame: [['fl', 'fr', 'bl', 'br'], ['fl', 'fr', 'bl', 'br'], 'top', ['fl', 'ml', 'bl'], ['fr', 'mr', 'br']] },
-      ...['fl', 'ml', 'bl', 'fr', 'mr', 'br'].map((root, k): Part => ({ at: M => M.limbs[k].l, bone: [root, 'f' + k], parent: 0 })),
+      { at: M => M.b, frame: [['fl', 'fr', 'bl', 'br'], ['fl', 'fr', 'bl', 'br'], 'top', ['fl', 'bl'], ['fr', 'br']] },
+      ...['fl', 'bl', 'fr', 'br'].map((root, k): Part => ({ at: M => M.limbs[k].l, bone: [root, 'f' + k], parent: 0 })),
     ],
   },
   worm: {

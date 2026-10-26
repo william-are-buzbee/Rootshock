@@ -50,7 +50,7 @@ export interface Skel {
 }
 
 /* The skeletons, from the models in castView.ts (test/ragdoll.test.ts holds them to each other). A husk's legs and
-   arms are one box each, so one bone each; a thresher's arms bend at the elbow; a skitter's six legs are each one bent
+   arms are one box each, so one bone each; a thresher's arms bend at the elbow; a skitter's four legs are each one bent
    piece; a worm is a chain. */
 export const SKEL: Record<string, Skel> = {
   husk: {
@@ -100,20 +100,19 @@ export const SKEL: Record<string, Skel> = {
   },
   skitter: {
     pts: {
-      fl: [-0.2, 0.55, 0.38, 0.13, 5], fr: [0.2, 0.55, 0.38, 0.13, 5], bl: [-0.2, 0.55, -0.38, 0.13, 5], top: [0, 0.66, 0, 0.12, 6],
-      br: [0.2, 0.55, -0.38, 0.13, 5], ml: [-0.2, 0.55, 0, 0.13, 3], mr: [0.2, 0.55, 0, 0.13, 3],
-      head: [0, 0.57, 0.62, 0.15, 4],
-      /* its feet, out and down, front to back on each side */
-      f0: [-0.56, 0.05, 0.38, 0.05, 1.5], f1: [-0.56, 0.05, 0, 0.05, 1.5], f2: [-0.56, 0.05, -0.38, 0.05, 1.5],
-      f3: [0.56, 0.05, 0.38, 0.05, 1.5], f4: [0.56, 0.05, 0, 0.05, 1.5], f5: [0.56, 0.05, -0.38, 0.05, 1.5],
+      fl: [-0.2, 0.55, 0.38, 0.13, 6.5], fr: [0.2, 0.55, 0.38, 0.13, 6.5], bl: [-0.2, 0.55, -0.38, 0.13, 6.5], top: [0, 0.66, 0, 0.12, 8],
+      br: [0.2, 0.55, -0.38, 0.13, 6.5],
+      head: [0, 0.57, 0.62, 0.15, 5],
+      /* its feet, out and down, front then back on each side */
+      f0: [-0.56, 0.05, 0.38, 0.05, 1.5], f1: [-0.56, 0.05, -0.38, 0.05, 1.5],
+      f2: [0.56, 0.05, 0.38, 0.05, 1.5], f3: [0.56, 0.05, -0.38, 0.05, 1.5],
     },
-    rigid: [['fl', 'fr', 'bl', 'top', 'br', 'ml', 'mr', 'head']],
-    sticks: [['fl', 'f0'], ['ml', 'f1'], ['bl', 'f2'], ['fr', 'f3'], ['mr', 'f4'], ['br', 'f5']],
-    apart: [['f0', 'top', 0.75], ['f1', 'top', 0.75], ['f2', 'top', 0.75], ['f3', 'top', 0.75], ['f4', 'top', 0.75], ['f5', 'top', 0.75],
-      ['f0', 'f1', 0.5], ['f1', 'f2', 0.5], ['f3', 'f4', 0.5], ['f4', 'f5', 0.5]],
+    rigid: [['fl', 'fr', 'bl', 'top', 'br', 'head']],
+    sticks: [['fl', 'f0'], ['bl', 'f1'], ['fr', 'f2'], ['br', 'f3']],
+    apart: [['f0', 'top', 0.75], ['f1', 'top', 0.75], ['f2', 'top', 0.75], ['f3', 'top', 0.75], ['f0', 'f1', 0.5], ['f2', 'f3', 0.5]],
     mid: ['fl', 'fr', 'bl', 'br'],
     core: ['fl', 'fr', 'bl'],
-    tone: { f0: 0.8, f1: 0.8, f2: 0.8, f3: 0.8, f4: 0.8, f5: 0.8 },
+    tone: { f0: 0.8, f1: 0.8, f2: 0.8, f3: 0.8 },
   },
   worm: {
     pts: {

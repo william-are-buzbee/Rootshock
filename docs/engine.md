@@ -609,8 +609,8 @@ fall loose; corpses stay in the world (knocked about, saved); knockdowns as ragd
 - **Skeletons** (`SKEL`), from the models: a point for each joint and end, with a radius and a weight (they weigh what
   the body does), held by sticks; a torso is held rigid (four points to each other, the rest to those four); `apart`
   keeps pairs a share of their length apart, which is how far a hip or an elbow folds; a `hinge` bends one way (a
-  knee back, a thresher's elbow forward). A husk is 12 points, a thresher 14, a skitter 14 (each leg one bent piece,
-  as drawn), a worm 7 (a chain), the hand 33 (its body, four legs with knees, the four in front, the tail and head,
+  knee back, a thresher's elbow forward). A husk is 12 points, a thresher 14, a skitter 10 (four legs, each one bent
+  piece, as drawn), a worm 7 (a chain), the hand 33 (its body, four legs with knees, the four in front, the tail and head,
   the arms). A bloat, the grabbers and the overseer fold as before: nothing moves a bloat, and the rest are part of a
   wall.
 - **Knees.** A husk's legs and a thresher's were one box each: dead, a body could only go over like a plank, and one

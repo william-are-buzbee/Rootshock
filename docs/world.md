@@ -1267,7 +1267,7 @@ Nobody expected worse than a bad night.
   - *The bloat god: a nurse, a man, whose arm she grabbed.* Larger than any of his line, though nowhere near her size.
     The bloats come from him, which is why they look alike when her own children do not. His line is drawn as the
     built bloats are, one great soft body and a baby's head, the young smaller and still on their feet, the older
-    sat down for good, bigger, slower and dopier, like their patron; he lies on his back on the floor. They fear
+    sat down for good, bigger, slower and dopier, like their patron; he sits as they do, the biggest of them, and does not get up. They fear
     other things than the bone line does (proposed: going without; *Pia's lines, filled in*, below), but fear drives them
     as much.
   - *The bush: a doctor who leaned in too close and breathed a spore off her shoulder.* Flesh and plant about evenly. A
@@ -1403,7 +1403,7 @@ of each gap (*Pia's lines*, in its Saved tab).
   whose graft took in the womb: make her a cross of the bloat line and the bone, the swelling making the eggs and the
   bone the legs. Her hatchlings have no host, so what hatches is the lines' instinct with no person under it, and it grows
   as an insect does, in stages: the egg; the worm, a larva with no legs yet (the flesh worms, built); the skitter, on four
-  long legs of bone (built with six; four to come); the big skitter (built). The green worms stay the plants'. Security's
+  long legs of bone (built); the big skitter (built). The green worms stay the plants'. Security's
   first, taken by a hatchling, is then the lines' grandchild by an egg.
 
 ### Temper: when, how far, how long (proposed)

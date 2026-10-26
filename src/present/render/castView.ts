@@ -190,8 +190,8 @@ export const BUILD: Record<string, (mat: THREE.Material, m: Mutant) => Model> = 
     mk(hd, mat, 'ico', PALE, 0.3, 0.36, 0.3, 0, 0, 0); mk(hd, mat, 'box', DARK, 0.16, 0.07, 0.05, 0, -0.09, 0.13); mk(hd, mat, 'ico', DARK, 0.06, 0.06, 0.06, -0.07, 0.06, 0.13); mk(hd, mat, 'ico', DARK, 0.06, 0.06, 0.06, 0.08, 0.04, 0.13);
     hd.rotation.z = 2.5;
     const limbs: { l: O3; s: number; k: number }[] = [];
-    for (const s of [-1, 1]) for (let k = 0; k < 3; k++) {
-      const l = grp(b, s * 0.2, 0, 0.38 - k * 0.38), u = mk(l, mat, 'box', FLESH, 0.6, 0.08, 0.08, s * 0.28, 0.13, 0);
+    for (const s of [-1, 1]) for (let k = 0; k < 2; k++) {
+      const l = grp(b, s * 0.2, 0, 0.38 - k * 0.76), u = mk(l, mat, 'box', FLESH, 0.6, 0.08, 0.08, s * 0.28, 0.13, 0);
       u.rotation.z = s * 0.45;
       mk(l, mat, 'box', PALE, 0.07, 0.82, 0.07, s * 0.56, -0.14, 0); mk(l, mat, 'box', RAW, 0.11, 0.05, 0.16, s * 0.56, -0.53, 0.03);
       limbs.push({ l, s, k });
@@ -387,7 +387,7 @@ export const ANIM: Record<string, (m: Mutant, M: Model, c: Ctx) => void> = {
   },
   skitter(m, M, c) {
     const mv = m.mv > 0, q = m.state === 'idle' ? 0.4 : 1;
-    for (const o of M.limbs) o.l.rotation.y = o.s * Math.sin(m.ph * (mv ? 14 : 1.3) + o.k * 2.1 + (o.s > 0 ? PI : 0)) * (mv ? 0.5 : 0.1) + twitch(M, `leg${o.s}${o.k}`, c, 2.4 * q, 0.3, 0.14);
+    for (const o of M.limbs) o.l.rotation.y = o.s * Math.sin(m.ph * (mv ? 14 : 1.3) + (o.k + (o.s > 0 ? 1 : 0)) * PI) * (mv ? 0.5 : 0.1) + twitch(M, `leg${o.s}${o.k}`, c, 2.4 * q, 0.3, 0.14);
     M.hd.rotation.z = 2.5 + Math.sin(m.ph * 3.1) * 0.2 + twitch(M, 'head', c, 3 * q, 0.7, 0.16);
     M.b.position.y = 0.55 + Math.sin(m.ph * (mv ? 20 : 2)) * 0.02;
     M.b.rotation.z = twitch(M, 'body', c, 1.8 * q, 0.12, 0.14);
