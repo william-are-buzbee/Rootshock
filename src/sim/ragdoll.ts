@@ -141,6 +141,9 @@ SKEL.patient = { ...SKEL.husk, pts: weigh(55, {
     shL: [-0.25, 1.46, 0, 0.11, 8], shR: [0.25, 1.46, 0, 0.11, 8], head: [0, 1.66, 0, 0.13, 6],
     handL: [-0.25, 0.78, 0, 0.05, 3], handR: [0.25, 0.78, 0, 0.05, 3],
   }) };
+/* the station's dead, the guards and the residents (sim/cast.ts, MT.dead): a person, as the other patient is, at a
+   grown person's weight */
+SKEL.dead = { ...SKEL.patient, pts: weigh(75, SKEL.patient.pts) };
 
 /** a skeleton made ready: points by number, and its sticks with their lengths */
 export interface Bones {
@@ -152,6 +155,9 @@ export interface Bones {
   /** 1 / kg, for sharing a correction */
   w: number[];
   mass: number;
+  /** what each point takes with it when it is walked into: a limb's its own weight, the trunk's the whole body (and
+   *  all of a body with no trunk, a worm) */
+  carry: number[];
   /** a, b, length, for each stick; and for each pair kept apart, its least distance */
   sticks: number[];
   apart: number[];
@@ -192,11 +198,12 @@ export function bones(kind: string): Bones {
   for (const [a, b, k] of S.apart) apart.push(at[a], at[b], len(at[a], at[b]) * k);
   let lo = Infinity, hi = -Infinity;
   for (let i = 0; i < names.length; i++) { lo = Math.min(lo, rest[i * 3 + 1] - r[i]); hi = Math.max(hi, rest[i * 3 + 1] + r[i]); }
+  const mass = kg.reduce((a, b) => a + b, 0), limb = (n: string) => S.rigid.length > 0 && !S.rigid.some(c => c.includes(n));
   const hinge = (S.hinge ?? []).flatMap(([a, b, c, s0, s1, way]) => [at[a], at[b], at[c], at[s0], at[s1], way]);
   const core = S.core ? S.core.map(n => at[n]) : null;
   const c0 = core ? [0, 1, 2].map(k => (rest[core[0] * 3 + k] + rest[core[1] * 3 + k] + rest[core[2] * 3 + k]) / 3) : [0, 0, 0];
   B = {
-    names, at, rest, r, kg, w: kg.map(k => 1 / k), mass: kg.reduce((a, b) => a + b, 0), sticks, apart, hinge, mid: S.mid.map(n => at[n]), ht: hi - lo,
+    names, at, rest, r, kg, w: kg.map(k => 1 / k), mass, carry: names.map((n, i) => (limb(n) ? kg[i] : mass)), sticks, apart, hinge, mid: S.mid.map(n => at[n]), ht: hi - lo,
     core, frame0: core ? frameOf(rest, core) : [], c0, tone: names.map(n => S.tone?.[n] ?? 1),
     hands: (S.hands ?? []).map(([h, f]) => ({ hand: at[h], from: at[f], reach: len(at[h], at[f]) })),
     writhe: !!S.writhe,
@@ -255,6 +262,10 @@ export const RAG = {
   floored: true,
   /** the share of the way to its feet a body knocked down is drawn each step (sim/cast.ts has its feet) */
   held: 0.2,
+  /** walked into: the share of a walker that meets what it walks into (its legs, one at a time), and the most of the
+   *  walker's pace anything is kicked to. A point goes to the share of the pace that and what it carries would make:
+   *  by you, a husk's hand half, its trunk a fifth, a thresher's trunk a twelfth */
+  kick: { legs: 0.25, most: 0.5 },
   /** how far one corpse has to push into a sleeping one to wake it (m) */
   stir: 0.03,
   /** a point landing harder than this (m/s) is heard, at most every `gap` seconds a body */
@@ -314,6 +325,19 @@ export function layRag(m: Mutant): Rag | null {
   if (!m.body || !SKEL[m.model] || !Number.isFinite(m.body.mass)) return null;
   const B = bones(m.model), p: number[] = [];
   for (let i = 0; i < B.names.length; i++) p.push(...place(B.rest[i * 3], B.rest[i * 3 + 1], B.rest[i * 3 + 2], m.yaw, m.x, m.y, m.z, true));
+  return { kind: m.model, p, q: p.slice(), o: p.slice(), awake: false, still: 0, t: 0, woke: 0, heard: 99, age: 99 };
+}
+
+/** one of the station's dead, laid out where it was found: flat on its back, its feet where it stands and its head the
+ *  way its back is to, each point on the floor under it, asleep */
+export function layDead(m: Mutant, w: World): Rag | null {
+  if (!m.body || !SKEL[m.model]) return null;
+  const B = bones(m.model), p: number[] = [], c = Math.cos(m.yaw), s = Math.sin(m.yaw);
+  for (let i = 0; i < B.names.length; i++) {
+    /* turned over backward a quarter turn about its feet: how tall a point stood is how far behind them it lies */
+    const x = B.rest[i * 3], z = -B.rest[i * 3 + 1], px = m.x + x * c + z * s, pz = m.z - x * s + z * c, r = B.r[i];
+    p.push(px, w.groundBelow(rect(px, pz, r * 0.6, r * 0.6), m.y + 0.5, passes) + r, pz);
+  }
   return { kind: m.model, p, q: p.slice(), o: p.slice(), awake: false, still: 0, t: 0, woke: 0, heard: 99, age: 99 };
 }
 
@@ -472,30 +496,37 @@ function moving(sim: Sim): Box[] {
   return out;
 }
 
-/** a walker is in it: some point of it more than a centimetre inside the walker */
+/** a walker is walking into it: some point of it more than a centimetre inside the walker, which is coming at it (one
+ *  standing still in it does not wake it: it is not kicked) */
 function treads(R: Rag, b: Body): boolean {
   const B = bones(R.kind), { p } = R;
   for (let i = 0; i < B.names.length; i++) {
-    const k = i * 3;
-    if (p[k + 1] + B.r[i] < b.y || p[k + 1] - B.r[i] > b.y + b.h) continue;
-    if (Math.hypot(p[k] - b.x, p[k + 2] - b.z) < b.r + B.r[i] - RAG.stir) return true;
+    const k = i * 3, dx = p[k] - b.x, dz = p[k + 2] - b.z;
+    if (p[k + 1] + B.r[i] < b.y || p[k + 1] - B.r[i] > b.y + b.h || b.vx * dx + b.vz * dz <= 0) continue;
+    if (Math.hypot(dx, dz) < b.r + B.r[i] - RAG.stir) return true;
   }
   return false;
 }
 
-/** whoever walks into it shoves the points in their way aside, as two bodies meeting share their momentum: a husk walks
- *  a husk's body along at half its pace, a worm hardly moves a thresher's. The walker is not slowed: a corpse is not in
- *  anyone's way (engine.md §6, bodies with physics, as built) */
+/** whoever walks into it kicks the points in their way aside, as its legs and what they meet would share their
+ *  momentum: a limb by what it weighs, so it is swept aside, and the trunk by the whole body, so it shifts. Each is
+ *  brought up to that share of how fast the walker comes at it, and to no more than half, so the walker goes on through
+ *  rather than carrying it off before it; one standing still in it does not move it. The walker is not slowed: a corpse
+ *  is not in anyone's way (engine.md §6, bodies with physics, as built) */
 function kicked(R: Rag, b: Body): void {
   if (!Number.isFinite(b.mass)) return;
-  const B = bones(R.kind), share = b.mass / (b.mass + B.mass), { p } = R;
+  const B = bones(R.kind), legs = RAG.kick.legs * b.mass, { p, o } = R;
   for (let i = 0; i < B.names.length; i++) {
     const k = i * 3, y = p[k + 1];
     if (y + B.r[i] < b.y || y - B.r[i] > b.y + b.h) continue;
     const dx = p[k] - b.x, dz = p[k + 2] - b.z, d = Math.hypot(dx, dz), over = b.r + B.r[i] - d;
     if (over <= 0 || d < 1e-6) continue;
-    /* pushed out by its share of the overlap: what moves it this step is its speed after */
-    p[k] += (dx / d) * over * share; p[k + 2] += (dz / d) * over * share;
+    /* what it is going away from the walker this step, against what it should: pushed the rest, and no further than
+       out of the walker; what moves it this step is its speed after */
+    const nx = dx / d, nz = dz / d, going = (p[k] - o[k]) * nx + (p[k + 2] - o[k + 2]) * nz;
+    const share = Math.min(RAG.kick.most, legs / (legs + B.carry[i]));
+    const push = Math.min(over, share * (b.vx * nx + b.vz * nz) * dt - going);
+    if (push > 0) { p[k] += nx * push; p[k + 2] += nz * push; }
   }
 }
 

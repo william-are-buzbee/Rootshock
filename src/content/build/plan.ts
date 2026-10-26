@@ -777,6 +777,8 @@ export function finishLevel(start?: [number, number, number], on?: Floor) {
   }
   if (start) b.start(start[0], start[1], start[2], on ? floorAt(on, start[0], start[1]) : undefined);
   const level = b.finish();
+  /* the station's dead after the living, so the living keep their numbers whatever lies about (a stable sort) */
+  level.mutants.sort((p, q) => +(p.type === 'dead') - +(q.type === 'dead'));
   cur = null;
   return level;
 }

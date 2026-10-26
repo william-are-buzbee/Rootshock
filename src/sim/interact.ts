@@ -9,6 +9,7 @@ import { riders } from './sim';
 import { heard, sitAt, soundZone, speakerY } from './eyes';
 import { drill } from './cast';
 import { silencePump } from './opening';
+import { ragAt } from './ragdoll';
 
 /* What you can use, and what using it does: E on whatever you are looking at. A label is the thing's name, and a state
    only where nothing in the world shows it (a breaker's); what using it says is only what you could not see or hear for
@@ -65,8 +66,16 @@ export function buildUsables(sim: Sim): Usable[] {
     const base = { x: u.x, y: u.y, z: u.z, r: 2.4, key: 'use' + ui };
     switch (u.kind) {
       case 'body': {
+        /* searched where it lies: the one of the station's dead laid out from here (MT.dead), wherever it has been
+           kicked or knocked to since; here, if there is none */
+        const j = L.mutants.findIndex(d => d.type === 'dead' && (d.opts.lies as number[] | undefined)?.[0] === u.x && (d.opts.lies as number[])[1] === u.z);
+        const at = () => { const R = sim.cast[j]?.rag; return R ? ragAt(R) : null; };
         const use: Usable = {
-          ...base, label: () => (o.label as string) ?? 'Body',
+          ...base,
+          get x() { return at()?.x ?? u.x; },
+          get y() { const a = at(); return a ? a.y + 0.3 : u.y; },
+          get z() { return at()?.z ?? u.z; },
+          label: () => (o.label as string) ?? 'Body',
           act: () => {
             use.off = true;
             if (o.say) say(g, o.say);
