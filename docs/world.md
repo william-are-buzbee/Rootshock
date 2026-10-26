@@ -643,17 +643,19 @@ wins; the older text stays only because it describes what is built, until the le
   (Supersedes *drills, not instructions* and *how much wit the staff have*, below. The power-failure drill stays as something
   one of them chooses: someone goes to the board, slowly, and looks about for who threw it.)
   - *The look (built).* Security's staff (those that carry cards) are drawn as the changed; the husk's old look, an arm
-    gone to raw flesh, stays on the cast elsewhere. Still a person's outline, about two in three in uniform (navy shirt,
-    badge, epaulettes, a duty belt with a dead radio), the night round always. No raw flesh: tobacco leaf comes out of
-    the back of the neck and the right shoulder from woody knots, in tiers stacked like a bracket fungus, green going to
-    the curing barn's yellow; more on some than others, most on the night round, down the right of the back. Sallow
-    skin; the eyes glassy, wet and pale, the pupils pinned, the lids heavy, the rims red; the mouth slack.
+    gone to raw flesh, stays on the cast elsewhere. Still a person's outline, about two in three in uniform (a navy
+    shirt, its badge the one thing on it), the night round always. No raw flesh: tobacco leaf comes out of the back of
+    the neck and the right shoulder from woody knots, in tiers stacked like a bracket fungus, one broad slab of leaf a
+    tier, green going to the curing barn's yellow; more on some than others, most on the night round, down the right of
+    the back. Sallow skin; the eyes black, nothing in them; the mouth slack. (Low-poly, as the bench draws them:
+    supersedes the glassy eyes under heavy lids, the epaulettes, the belt and its radio, and the leaves on stalks.)
   - *The look, next (agreed; mocked up, not built).* The bush's line shows in their build (§10, *Pia's young
     gods*): leaf out of the face as well as the body, and each has one
     thing in its size or shape gone wrong (a long neck, one arm grown, a head too heavy for it, arms to the knee, a long
     body on short legs), never as far as the Commons'. They have stopped dressing for work: shirts open, torn away where
     the leaf came through, tied round the waist, gone; a boot lost; the newest still button theirs, and the night round
-    keeps its uniform from habit. The longer one has been changing, the more plant: the leaf curing yellow, bark through
+    keeps its uniform from habit. What they wear is plain: one thing on it at most (a badge, a card, a cap), never a
+    kit of them. The longer one has been changing, the more plant: the leaf curing yellow, bark through
     the skin, roots out of the feet, the eyes going milky. `mockups/mutants.html` is the bench for them, and its line-up
     (*Security's seven*) is one for each the upper station has, the newest first.
   - *No twitch (agreed; built).* None of Pia's line twitches: the head lolls, and moves slowly, with nobody much behind
@@ -1248,24 +1250,30 @@ Nobody expected worse than a bad night.
   temper (*Temper*, below). For her it was a phase; for a child it is for good (rule 1), and the child grows further
   into the stage it was given than she ever went, though never past it: her flesh lines grew larger than she ever was,
   her plant line more plant than she was then, but never the tree. Three of them founded the Commons between them. The
-  opiate is in all of them (numb, slow, the pupils pinned, the pustules), and none twitches.
+  opiate is in all of them (numb, slow, the pustules), and none twitches. Their eyes are black, empty (*Tells*).
 
   - *The bone mother: a woman who poked the bony post where Pia's index finger had been.* Her bone grows out: drawn
     long, plated, augmented, pushed out through the skin, anything open-ended in bone; her line stays humanoid. She has
     older children and younger, each what she was when it was grafted. Hers, by how long they have been changing:
+    Not armour: a person whose skeleton is winning, and in the end has won. Built as the husk is (fleshy, raw, one arm
+    drawn out long and ending in a point of bone, no hand), more of it bone the longer it has been changing.
     - *young: the husks,* her direct children among them. The fear for good, and the slowness, but intelligent,
       aggressive and quick to answer; the bones expanding outward, comfortably (numb).
-    - *middle years: the thresher,* and others like it.
-    - *old: the bone elders.* Slower; the flesh gone from the face and the skull grown out over it into one fused,
-      simple shape; blind, armoured, numb, less afraid but still afraid. Tall or wide, they patrol large areas.
+    - *middle years: the thresher,* and others like it: halfway, the face still there, an arm gone to bone, the ribs
+      out through raw flesh.
+    - *old: the bone elders.* The skeleton has won: the limbs bone, raw at the joints, the ribs and spine out through
+      what is left of the flesh. No face at all: the skull one smooth shape, nothing on it. Slower; blind, numb, less
+      afraid but still afraid. Tall, they patrol large areas.
   - *The bloat god: a nurse, a man, whose arm she grabbed.* Larger than any of his line, though nowhere near her size.
-    The bloats come from him, which is why they look alike when her own children do not. His line swells: the young
-    still walk; the older are bigger, slower and dopier, like their patron; the bloats as built are old ones. They fear
+    The bloats come from him, which is why they look alike when her own children do not. His line is drawn as the
+    built bloats are, one great soft body and a baby's head, the young smaller and still on their feet, the older
+    sat down for good, bigger, slower and dopier, like their patron; he lies on his back on the floor. They fear
     other things than the bone line does (proposed: going without; *Pia's lines, filled in*, below), but fear drives them
     as much.
   - *The bush: a doctor who leaned in too close and breathed a spore off her shoulder.* Flesh and plant about evenly. A
     huge person, the body swollen about half as far as a bloat's or a bone child's would go, every bit of it under rows
-    on rows of tobacco shelves, green through; no features, the face tucked away somewhere behind the leaf. It stands like
+    on rows of tobacco shelves, green through; nothing left on it that was ever clothes; no features, the face tucked
+    away somewhere behind the leaf. Gigantic by now. It stands like
     a bush until it does not, and unlike Pia it never loses the ability to move. Its children keep a person's shape, the
     plant growing through them, not over them: Security's changed (it colonised the wing, §2).
   - *Later, and not among the Commons' founders:* three more, grafted when more of her was plant.
@@ -1466,6 +1474,9 @@ The player is never told any of this; they read it.
 - **Behaviour is stage:** never still means crisis; sitting means past it.
 - **Size is age,** in each elder's own silhouette; in Pia's flesh lines, size is the mutation itself, one thing too big or
   too long.
+- **The eyes (agreed).** Pia's lines have black eyes, empty, the creepiest thing about them: no white, no pupil, nothing
+  looking out. The white of an eye is a person's, still human (the other patient), and is used sparingly. *Built:* the
+  changed, the husks, the bloats; the other patient's whites.
 - **What grows is the line.** Bone is the bone mother's; a swollen body the bloat god's; shelves of leaf out of flesh,
   the bush's; flowers off roots, the flower child's; roots, the root ancestor's; plates of bark, the bark
   ancestor's.

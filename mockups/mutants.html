@@ -19,6 +19,7 @@ body { height: 100%; margin: 0; background: var(--pitch); color: var(--bone); fo
 button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
 [hidden] { display: none !important; }
+body:not(.fine) .fineonly { display: none !important; }
 :focus-visible { outline: 2px solid var(--hazard); outline-offset: 2px; }
 
 #app { height: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 360px; }
@@ -431,7 +432,7 @@ const LEAF = [0x4b5c2a, 0x5a6630, 0x6e6a2c, 0x7e7430], CURED = [0x8a7428, 0x987c
 const UNIFORM = 0x2c3440, TROUSERS = 0x23262b, BELT = 0x15181b, BRIEFS = 0xb6b0a0, GLAZE = [1.1, 1.08, 0.98];
 const SHIRTS = { navy: [UNIFORM, 'Navy'], grey: [0x4a5560, 'Grey'], slate: [0x39485a, 'Slate'], olive: [0x6b6f5a, 'Olive'], white: [0xbfc3c0, 'White'], scrubs: [0x4f7c82, 'Scrubs'] };
 /* bone (castView's BONE), and the plant come through the skin */
-const BONE = 0xddd6c0, BONE2 = 0xc6bca2, BONEDK = 0x6f6857, PLANTSKIN = 0x56693a;
+const BONE = 0xddd6c0, BONE2 = 0xc6bca2, BONEDK = 0x6f6857, PLANTSKIN = 0x56693a, FLESHC = 0xb08572;
 const VESTS = { white: [0xcdc8b8, 'White'], grey: [0x8c8c86, 'Grey'], stained: [0xb3a47c, 'Stained'] };
 /* any human skin (world.md §10, the people): a mutant keeps its host's */
 const TONES = [0xe3c1a5, 0xcfa184, 0xb98762, 0x9a6a49, 0x7a4e35, 0x5c3a28, 0x42291d];
@@ -718,6 +719,56 @@ function itemGroup(f, it) {
 /* ---------------------------------------------------------------------------------------------------------------- */
 /* the model: castView's husk, part for part (the legs in two at the knee, the arms here in two at the elbow), made to
    the design's measures, dressed in what it still wears, and grown on */
+/* the bloat god's line, drawn as the game draws its bloats (castView.ts, bloat): one great soft body, a head on it like
+   a baby's, arms hanging, stubs of legs; stood, sat, or lying on its back on the floor. What it still wears is one band
+   of it round the body, if anything */
+function buildBloat(M, d, skin, skinDk) {
+  const B = d.body, D = d.dress, rest = B.rest || 'stand', sit = rest === 'sit', hs = B.headSize;
+  const part = (name, g, c, s) => { M.parts[name] = { g, c, s }; PART = name; };
+  M.bloat = true; M.hipH = 0; M.L = 1;
+  M.root.scale.setScalar(B.scale);
+  const g = (M.P = grp(M.root)), b = (M.T = grp(g, 0, sit ? 1.05 : 1.75, 0));
+  part('torso', b, [0, 0, 0], [1.9, 2.1, 1.7]);
+  mk(b, 'ico', skin, 1.9, 2.1, 1.7);
+  mk(b, 'ico', skinDk, 1.3, 1, 1.2, 0, -0.6, 0.3);
+  if (D.shirt !== 'none') mk(b, 'ico', D.shirt === 'vest' ? (VESTS[D.vestCol] ?? VESTS.white)[0] : (SHIRTS[D.shirtCol] ?? SHIRTS.navy)[0], 1.96, 0.5, 1.76, 0, -0.15, 0);
+  const H = (M.H = grp(b, 0, 1.4, 0.1));
+  part('head', H, [0, 0, 0], [1.25 * hs, 1.35 * hs, 1.2 * hs]);
+  mk(H, 'ico', skin, 1.25 * hs, 1.35 * hs, 1.2 * hs);
+  mk(H, 'box', DARK, 0.16 * hs, (0.03 + 0.06 * B.jaw) * hs, 0.04, 0, -0.38 * hs, 0.5 * hs);
+  for (const [i, s] of [[0, 1], [1, -1]]) {
+    const nm = i ? 'R' : 'L', A = grp(b, s * 0.98, 0.35, 0);
+    part('uarm' + nm, A, [0, -0.5, 0], [0.22, 1, 0.22]);
+    mk(A, 'box', skinDk, 0.22, 1, 0.22, 0, -0.5, 0);
+    M.A.push(A);
+    const Lg = grp(g, s * 0.45, sit ? 0.2 : 1, sit ? 0.85 : 0);
+    if (sit) { part('thigh' + nm, Lg, [0, 0, 0], [0.42, 0.4, 1.3]); mk(Lg, 'box', skinDk, 0.42, 0.4, 1.3); }
+    else { part('thigh' + nm, Lg, [0, -0.5, 0], [0.5, 1, 0.5]); mk(Lg, 'box', skinDk, 0.5, 1, 0.5, 0, -0.5, 0); }
+    M.Lg.push(Lg);
+  }
+  /* on its back: stood, and laid down, the belly up and the legs along the floor */
+  if (rest === 'lie') { M.root.rotation.x = -PI / 2; M.root.position.y = 0.85 * B.scale; M.root.position.z = 1.6 * B.scale; }
+  M.height = (rest === 'lie' ? 1.9 : (sit ? 1.05 : 1.75) + 1.4 + 0.68 * 1.35 * hs) * B.scale;
+  M.clothAt = () => null;
+  for (const it of d.items) buildItem(M, it);
+  SINK = null; PART = null;
+  return M;
+}
+function poseBloat(M, A, mode, dt) {
+  const B = M.d.body, t = (A.t = (A.t ?? 0) + dt), s = 1 + Math.sin(t * 0.9) * 0.02, walk = mode !== 'stand' && (B.rest || 'stand') === 'stand';
+  M.T.scale.set(s, 1 / s, s);
+  M.H.rotation.set(0, Math.sin(t * 0.23) * 0.2, B.tilt * 0.3 + Math.sin(t * 0.4) * 0.08);
+  A.p = walk ? ((A.p ?? 0) + dt * paceOf(M.d, mode).f) % 1 : A.p ?? 0;
+  const p = A.p;
+  for (let k = 0; k < 2; k++) {
+    M.A[k].rotation.x = Math.sin(t * 0.9 + k) * 0.06 + (walk ? Math.sin(TAU * p + k * PI) * 0.15 : 0);
+    if ((B.rest || 'stand') === 'stand') M.Lg[k].rotation.x = walk ? Math.sin(TAU * p + k * PI) * 0.3 : 0;
+  }
+  /* it waddles: rocking side to side over each stub, rising a little on each */
+  M.P.rotation.z = walk ? Math.sin(TAU * p) * 0.07 : 0;
+  M.P.position.y = walk ? Math.abs(Math.sin(TAU * p)) * 0.05 : 0;
+}
+
 function buildModel(d) {
   const B = d.body, D = d.dress;
   const Rh = seeded(d.seed * 7919 + 17), Rt = seeded(d.seed * 7919 + 29), Rs = seeded(d.seed * 7919 + 41);
@@ -725,11 +776,16 @@ function buildModel(d) {
   const sc = (SHIRTS[D.shirtCol] ?? SHIRTS.navy)[0], vc = (VESTS[D.vestCol] ?? VESTS.white)[0], tc = TROUSERS;
   const M = { d, root: new THREE.Group(), parts: {}, pick: [], itemMeshes: [], itemGroups: new Map(), A: [], E: [], Lg: [], K: [], An: [], cure: d.skin.cure, lidC: shade(skin, 0.88) };
   SINK = M.pick; ITEM = null;
+  if (B.plan === 'bloat') return buildBloat(M, d, skin, skinDk);
+  /* the bone mother's line: a limb, or the trunk, gone raw, or to bone. Raw is the husk's arm (castView.ts, husk): the
+     upper arm raw, the forearm drawn out and ending in a point of bone, no hand. Bone is the skeleton winning: the limb
+     bone, raw at the joints. Ribs: the trunk raw, its ribs and its spine out through it */
+  const limbOf = i => (i ? B.limbR : B.limbL) || 'skin', reachOf = i => (i ? B.reachR : B.reachL) || 1, legsAre = B.legs || 'skin', trunk = B.trunk || 'skin';
   /* swollen, the bloat god's line: the body, the limbs and the hips grown out round */
   const sw0 = B.swell || 0, skull = B.head === 'skull';
   const tw = B.torsoW * (1 + 0.8 * sw0), td = B.torsoD * (1 + 1.5 * sw0), tl = B.torsoL, th = B.thigh, sh = B.shin, ua = B.uArm, fa = B.fArm;
   const lt = B.legT * (1 + 1.1 * sw0), at = B.armT * (1 + 1.3 * sw0), hipw = B.hipW * (1 + 0.6 * sw0);
-  const hipH = th + sh + 0.06;
+  const hipH = th + sh + 0.06, trunkC = trunk === 'skin' ? skin : RAW;
   M.hipH = hipH; M.L = th + sh;
   M.root.scale.setScalar(B.scale);
   const P = (M.P = grp(M.root, 0, hipH, 0)), T = (M.T = grp(P));
@@ -749,32 +805,38 @@ function buildModel(d) {
      out of (no badge, no card: they are somewhere under it) */
   const round = sw0 > 0.05;
   if (round) {
-    mk(T, 'box', skin, tw * 0.72, tl * 0.9, td * 0.66, 0, tl * 0.47, 0);
-    mk(T, 'ico', SH === 'uniform' ? sc : SH === 'vest' ? vc : skin, tw * 1.16 + E, tl * 1.1, td * 1.24 + E, 0, tl * 0.47, 0);
-  } else mk(T, 'box', skin, tw, tl, td, 0, tl / 2, 0);
+    mk(T, 'box', trunkC, tw * 0.72, tl * 0.9, td * 0.66, 0, tl * 0.47, 0);
+    mk(T, 'ico', SH === 'uniform' ? sc : SH === 'vest' ? vc : trunkC, tw * 1.16 + E, tl * 1.1, td * 1.24 + E, 0, tl * 0.47, 0);
+  } else mk(T, 'box', trunkC, tw, tl, td, 0, tl / 2, 0);
+  if (trunk === 'ribs') {
+    /* the ribs out through it, and the spine down its back */
+    mk(T, 'box', BONE, 0.045, tl * 0.5, 0.03, 0, tl * 0.62, td / 2 + 0.008);
+    for (let k = 0; k < 4; k++) for (const s of [-1, 1]) mk(T, 'box', BONE, tw * 0.34, 0.028, 0.03, s * tw * 0.21, tl * (0.42 + 0.12 * k), td / 2 + 0.006);
+    for (let k = 0; k < 7; k++) mk(T, 'box', BONE2, 0.06, 0.045, 0.035, 0, tl * (0.1 + 0.12 * k), -td / 2 - 0.008);
+  }
   const hasGut = B.gut > 0.02, gz = td * 0.22 + B.gut * 0.08, gd = td * 0.6 + B.gut * 0.3;
   if (hasGut) mk(T, 'ico', skin, tw * 0.9, tl * 0.55, gd, 0, tl * 0.3, gz);
-  if (!round) for (const s of [-1, 1]) mk(T, 'ico', skinDk, 0.022, 0.022, 0.01, s * tw * 0.24, tl * 0.74, td / 2 + 0.002);
-  mk(T, 'ico', skinDk, 0.02, 0.026, 0.012, 0, tl * 0.3, (hasGut ? Math.max(td / 2, gz + gd * 0.42) : td / 2) + 0.002);
+  if (FINE && !round && trunk === 'skin') for (const s of [-1, 1]) mk(T, 'ico', skinDk, 0.022, 0.022, 0.01, s * tw * 0.24, tl * 0.74, td / 2 + 0.002);
+  if (FINE && trunk === 'skin') mk(T, 'ico', skinDk, 0.02, 0.026, 0.012, 0, tl * 0.3, (hasGut ? Math.max(td / 2, gz + gd * 0.42) : td / 2) + 0.002);
   const gutCloth = c => { if (hasGut) mk(T, 'ico', c, tw * 0.9 + E, tl * 0.55 + E, gd + E, 0, tl * 0.3, gz); };
   if (round) { /* the round body above */ }
   else if (SH === 'uniform') {
     cloth(T, sc, tw, tl, td, 0, tl / 2, 0);
     gutCloth(sc);
-    if (!hasGut) mk(T, 'box', shade(sc, 0.78), 0.018, tl * 0.86, 0.006, 0, tl * 0.53, td / 2 + E / 2 + 0.002);
+    if (FINE && !hasGut) mk(T, 'box', shade(sc, 0.78), 0.018, tl * 0.86, 0.006, 0, tl * 0.53, td / 2 + E / 2 + 0.002);
   } else if (SH === 'open') {
     const x0 = gap / 2, x1 = tw / 2 + E / 2;
     for (const s of [-1, 1]) {
       mk(T, 'box', sc, x1 - x0, tl, td + E, (s * (x0 + x1)) / 2, tl / 2, 0);
-      mk(T, 'box', shade(sc, 0.75), 0.014, tl, 0.006, s * (x0 + 0.007), tl / 2, td / 2 + E / 2 + 0.003);
+      if (FINE) mk(T, 'box', shade(sc, 0.75), 0.014, tl, 0.006, s * (x0 + 0.007), tl / 2, td / 2 + E / 2 + 0.003);
     }
     mk(T, 'box', sc, gap + 0.004, tl, 0.03, 0, tl / 2, -(td / 2 + E / 2) + 0.015);
   } else if (SH === 'tornL' || SH === 'tornR') {
     /* torn away down one side, the edge ragged, a few strips of it hanging */
     const s = SH === 'tornL' ? -1 : 1, edge = -s * tw * 0.08, x1 = s * (tw / 2 + E / 2);
     mk(T, 'box', sc, Math.abs(x1 - edge), tl, td + E, (x1 + edge) / 2, tl / 2, 0);
-    for (let k = 0; k < 6; k++) { const jw = Rt.rnd(0.015, 0.07); mk(T, 'box', sc, jw, (tl / 6) * Rt.rnd(0.6, 1), td + E * 0.9, edge - (s * jw) / 2, (tl * (k + 0.5)) / 6, 0); }
-    for (let k = 0; k < 3; k++) {
+    if (FINE) for (let k = 0; k < 6; k++) { const jw = Rt.rnd(0.015, 0.07); mk(T, 'box', sc, jw, (tl / 6) * Rt.rnd(0.6, 1), td + E * 0.9, edge - (s * jw) / 2, (tl * (k + 0.5)) / 6, 0); }
+    if (FINE) for (let k = 0; k < 3; k++) {
       const len = Rt.rnd(0.06, 0.14), f = grp(T, edge - s * Rt.rnd(0, 0.03), tl * Rt.rnd(0.1, 0.6), (td / 2 + E / 2) * (k % 2 ? -1 : 1));
       f.rotation.z = -s * Rt.rnd(0.1, 0.5);
       mk(f, 'box', sc, 0.035, len, 0.007, 0, -len / 2, 0);
@@ -787,7 +849,7 @@ function buildModel(d) {
   const onShirt = !round && (SH === 'uniform' || SH === 'open' || SH === 'tornL' || SH === 'tornR');
   /* the shirt's badge and epaulettes (castView, changed), where there is shirt left to wear them */
   if (D.badge && onShirt && shirtAt(-tw * 0.29, tl * 0.73, td / 2)) mk(T, 'box', 0x9a8a50, 0.06, 0.07, 0.02, -tw * 0.29, tl * 0.73, td / 2 + E / 2 + 0.004);
-  if (D.epaulettes && onShirt) for (const s of [-1, 1]) if (shirtAt(s * tw * 0.36, tl, 0)) mk(T, 'box', 0x1f252e, tw * 0.31, 0.025, td * 0.83, s * tw * 0.36, tl + E / 2, 0);
+  if (FINE && D.epaulettes && onShirt) for (const s of [-1, 1]) if (shirtAt(s * tw * 0.36, tl, 0)) mk(T, 'box', 0x1f252e, tw * 0.31, 0.025, td * 0.83, s * tw * 0.36, tl + E / 2, 0);
   /* the card they carry (world.md §8, cards), on a lanyard round the neck */
   if (D.lanyard && !round) {
     const z = td / 2 + E / 2 + 0.01;
@@ -805,20 +867,9 @@ function buildModel(d) {
   M.height = (hipH + yb + nl + hh * 0.68) * B.scale;
   part('head', H, [0, 0, 0], [hw, hh, hd]);
   if (skull) {
-    /* the bone mother's elders: the flesh gone from the face and the skull grown out over it, one fused, simple shape;
-       blind, the sockets closed over, the teeth showing */
+    /* the bone mother's elders: the flesh gone from the face and the skull grown out over it, one fused, simple shape */
+    /* the face gone: one smooth shape of bone, nothing on it at all */
     mk(H, 'ico', BONE2, hw * 1.1, hh, hd * 1.08, 0, hh * 0.06, -hd * 0.02);
-    if (!FINE) {
-      /* low-poly: the skull, two dark hollows, the mouth */
-      for (const s of [-1, 1]) mk(H, 'ico', BONEDK, hw * 0.2, hh * 0.12, hd * 0.12, s * hw * 0.2, hh * 0.02, hd * 0.42);
-      mk(H, 'box', 0x2a201c, hw * 0.36, hh * (0.06 + 0.08 * B.jaw), hd * 0.1, 0, -hh * 0.3, hd * 0.4);
-    } else {
-    mk(H, 'box', BONE, hw * 0.94, hh * 0.13, hd * 0.24, 0, hh * 0.1, hd * 0.36);
-    mk(H, 'box', BONE2, hw * 0.74, hh * 0.46, hd * 0.3, 0, -hh * 0.2, hd * 0.28);
-    for (const s of [-1, 1]) mk(H, 'box', BONEDK, hw * 0.2, hh * 0.08, 0.01, s * hw * 0.2, 0, hd * 0.44);
-    mk(H, 'box', 0x2a201c, hw * 0.36, hh * (0.06 + 0.08 * B.jaw), hd * 0.1, 0, -hh * 0.36, hd * 0.38);
-    mk(H, 'box', 0xe4ddc8, hw * 0.34, hh * 0.05, hd * 0.11, 0, -hh * 0.31, hd * 0.39);
-    }
   } else {
   mk(H, 'ico', skin, hw, hh, hd);
   if (FINE) {
@@ -841,29 +892,36 @@ function buildModel(d) {
 
   /* the arms, each in two at the elbow; its left at +x. A whole arm can be grown larger than the other */
   for (const [i, s] of [[0, 1], [1, -1]]) {
-    const nm = i ? 'R' : 'L', k = i ? B.armR : B.armL, sl = sleeveOn(s) ? D['sleeve' + nm] : 'none';
+    const nm = i ? 'R' : 'L', k = i ? B.armR : B.armL, lim = limbOf(i), fa = B.fArm * reachOf(i), sl = sleeveOn(s) && lim === 'skin' ? D['sleeve' + nm] : 'none';
     const A = grp(T, s * (tw / 2 + (at * k) / 2 + B.shoulder), tl - 0.04, 0);
     A.scale.setScalar(k);
     M.A.push(A);
     part('uarm' + nm, A, [0, -ua / 2, 0], [at, ua, at * 1.09]);
-    mk(A, 'ico', skin, at * 1.3, at * 1.2, at * 1.25, 0, -0.01, 0);
-    mk(A, 'box', skin, at, ua, at * 1.09, 0, -ua / 2, 0);
+    if (lim === 'skin') { mk(A, 'ico', skin, at * 1.3, at * 1.2, at * 1.25, 0, -0.01, 0); mk(A, 'box', skin, at, ua, at * 1.09, 0, -ua / 2, 0); }
+    else if (lim === 'raw') { mk(A, 'ico', RAW, at * 1.5, at * 1.4, at * 1.4, 0, -0.01, 0); mk(A, 'box', RAW, at * 1.25, ua, at * 1.3, 0, -ua / 2, 0); }
+    else { mk(A, 'ico', RAW, at * 1.1, at * 1.1, at * 1.1, 0, -0.01, 0); mk(A, 'box', BONE2, at * 0.5, ua, at * 0.5, 0, -ua / 2, 0); }
     if (sl !== 'none') {
       const f = sl === 'short' ? 0.72 : sl === 'torn' ? 0.42 : 1;
       mk(A, 'ico', sc, at * 1.3 + E, at * 1.2 + E, at * 1.25 + E, 0, -0.01, 0);
       cloth(A, sc, at, ua * f, at * 1.09, 0, (-ua * f) / 2, 0);
-      if (sl === 'torn') hem(A, sc, at, at * 1.09, -ua * f, 5, Rt);
+      if (FINE && sl === 'torn') hem(A, sc, at, at * 1.09, -ua * f, 5, Rt);
     }
     const Eg = grp(A, 0, -ua, 0);
     M.E.push(Eg);
     part('farm' + nm, Eg, [0, -fa / 2, 0], [at * 0.76, fa, at * 0.76]);
-    mk(Eg, 'ico', skin, at * 0.86, at * 0.8, at * 0.86);
-    mk(Eg, 'box', skin, at * 0.76, fa, at * 0.76, 0, -fa / 2, 0);
+    if (lim === 'skin') { mk(Eg, 'ico', skin, at * 0.86, at * 0.8, at * 0.86); mk(Eg, 'box', skin, at * 0.76, fa, at * 0.76, 0, -fa / 2, 0); }
+    else if (lim === 'raw') { mk(Eg, 'ico', RAW, at, at, at); mk(Eg, 'box', FLESHC, at * 0.9, fa, at * 0.9, 0, -fa / 2, 0); }
+    else { mk(Eg, 'ico', RAW, at * 0.8, at * 0.8, at * 0.8); mk(Eg, 'box', BONE, at * 0.42, fa, at * 0.42, 0, -fa / 2, 0); }
     if (sl === 'long' || sl === 'rolled') mk(Eg, 'ico', sc, at * 0.86 + E, at * 0.8 + E, at * 0.86 + E);
     if (sl === 'long') cloth(Eg, sc, at * 0.8, fa * 0.94, at * 0.8, 0, -fa * 0.47, 0);
-    if (sl === 'rolled') mk(Eg, 'box', shade(sc, 1.15), at * 0.8 + E * 3, Math.min(0.08, fa * 0.25), at * 0.8 + E * 3, 0, -0.03, 0);
+    if (FINE && sl === 'rolled') mk(Eg, 'box', shade(sc, 1.15), at * 0.8 + E * 3, Math.min(0.08, fa * 0.25), at * 0.8 + E * 3, 0, -0.03, 0);
     const hl = 0.1 * Math.sqrt(at / 0.11), Hg = grp(Eg, 0, -fa, 0);
     part('hand' + nm, Hg, [0, -hl / 2, 0], [at * 0.8, hl, at * 0.48]);
+    if (lim !== 'skin') {
+      /* no hand: the arm ends in a point of bone (castView.ts, husk) */
+      mk(Hg, 'box', BONE, at * 0.45, 0.16 * Math.sqrt(reachOf(i)), at * 0.45, 0, -0.08 * Math.sqrt(reachOf(i)), 0.02);
+      continue;
+    }
     mk(Hg, 'box', skin, at * 0.8, hl, at * 0.48, 0, -hl / 2, 0);
     if (FINE) mk(Hg, 'box', skin, at * 0.24, hl * 0.6, at * 0.26, -s * at * 0.3, -hl * 0.35, at * 0.22); // the thumb
     if (D.torch && i === 1) {
@@ -881,19 +939,20 @@ function buildModel(d) {
     Lg.rotation.z = s * B.splay;
     M.Lg.push(Lg);
     part('thigh' + nm, Lg, [0, -th / 2, 0], [lt, th, lt * 1.06]);
-    mk(Lg, 'box', skin, lt, th, lt * 1.06, 0, -th / 2, 0);
+    if (legsAre === 'bone') mk(Lg, 'box', BONE2, lt * 0.5, th, lt * 0.5, 0, -th / 2, 0);
+    else mk(Lg, 'box', legsAre === 'raw' ? RAW : skin, lt, th, lt * 1.06, 0, -th / 2, 0);
     if (leg !== 'bare') cloth(Lg, tc, lt, th + 0.02, lt * 1.06, 0, -th / 2 + 0.01, 0);
-    if (leg === 'torn') hem(Lg, tc, lt, lt * 1.06, -th, 6, Rt);
+    if (FINE && leg === 'torn') hem(Lg, tc, lt, lt * 1.06, -th, 6, Rt);
     const Kg = grp(Lg, 0, -th, 0);
     M.K.push(Kg);
     part('shin' + nm, Kg, [0, -sh / 2, 0], [lt * 0.88, sh, lt * 0.92]);
-    mk(Kg, 'ico', skin, lt * 0.9, lt * 0.78, lt * 0.95);
-    mk(Kg, 'box', skin, lt * 0.88, sh, lt * 0.92, 0, -sh / 2, 0);
+    if (legsAre === 'bone') { mk(Kg, 'ico', RAW, lt * 0.7, lt * 0.6, lt * 0.7); mk(Kg, 'box', BONE, lt * 0.42, sh, lt * 0.42, 0, -sh / 2, 0); }
+    else { mk(Kg, 'ico', legsAre === 'raw' ? RAW : skin, lt * 0.9, lt * 0.78, lt * 0.95); mk(Kg, 'box', legsAre === 'raw' ? FLESHC : skin, lt * 0.88, sh, lt * 0.92, 0, -sh / 2, 0); }
     if (leg === 'full' || leg === 'rolled') {
       const f = leg === 'full' ? 0.98 : 0.45;
       mk(Kg, 'ico', tc, lt * 0.9 + E, lt * 0.78 + E, lt * 0.95 + E);
       cloth(Kg, tc, lt * 0.92, sh * f, lt * 0.96, 0, (-sh * f) / 2, 0);
-      if (leg === 'rolled') mk(Kg, 'box', shade(tc, 1.3), lt * 0.92 + E * 3, 0.07, lt * 0.96 + E * 3, 0, -sh * f, 0);
+      if (FINE && leg === 'rolled') mk(Kg, 'box', shade(tc, 1.3), lt * 0.92 + E * 3, 0.07, lt * 0.96 + E * 3, 0, -sh * f, 0);
     }
     const An = grp(Kg, 0, -sh, 0);
     M.An.push(An);
@@ -904,8 +963,8 @@ function buildModel(d) {
       if (leg !== 'full') { PART = 'shin' + nm; mk(Kg, 'box', 0x1a1416, lt * 0.88 + E * 2, 0.17, lt * 0.92 + E * 2, 0, -sh + 0.06, 0); }
     } else {
       part('foot' + nm, An, [0, -0.03, 0.05], [lt * 0.72, 0.06, 0.24]);
-      mk(An, 'ico', skinDk, lt * 0.5, 0.07, lt * 0.5);
-      mk(An, 'box', skin, lt * 0.72, 0.06, 0.24, 0, -0.03, 0.05);
+      if (FINE) mk(An, 'ico', skinDk, lt * 0.5, 0.07, lt * 0.5);
+      mk(An, 'box', legsAre === 'bone' ? BONE2 : skin, lt * 0.72, 0.06, 0.24, 0, -0.03, 0.05);
       if (FINE) for (let t = 0; t < 4; t++) mk(An, 'box', skinDk, lt * 0.14, 0.035, 0.04, (t - 1.5) * lt * 0.17, -0.042, 0.18);
     }
   }
@@ -913,10 +972,10 @@ function buildModel(d) {
   /* the hips: trousers, or what is under them; the belt, done up or hanging; a shirt tied round them by its sleeves */
   const sw = Math.max(tw * 0.96, hipw + lt + 0.02), sd = Math.max(td * 0.96, lt * 1.1);
   part('pelvis', P, [0, 0, 0], [sw, 0.2, sd]);
-  mk(P, 'box', skin, sw - 0.004, 0.18, sd - 0.004);
+  mk(P, 'box', trunkC, sw - 0.004, 0.18, sd - 0.004);
   if (trousers) cloth(P, tc, sw, 0.22, sd, 0, 0, 0);
-  else mk(P, 'box', BRIEFS, sw + E, 0.16, sd + E, 0, -0.01, 0);
-  if (trousers && D.belt !== 'off') {
+  else if (D.briefs !== false) mk(P, 'box', BRIEFS, sw + E, 0.16, sd + E, 0, -0.01, 0);
+  if (FINE && trousers && D.belt !== 'off') {
     const bg = grp(P, 0, 0.085, 0);
     if (D.belt === 'loose') { bg.rotation.z = 0.12; bg.position.y -= 0.035; }
     mk(bg, 'box', BELT, sw + E * 2, 0.065, sd + E * 2);
@@ -928,14 +987,14 @@ function buildModel(d) {
     const zf = sd / 2 + E * 2;
     mk(P, 'box', sc, sw + E * 3, 0.07, sd + E * 3, 0, 0.1, 0);
     for (const s of [-1, 1]) { const f = grp(P, s * 0.05, 0.1, zf + 0.02); f.rotation.z = s * 0.4; mk(f, 'box', sc, 0.085, 0.34, 0.04, 0, -0.16, 0); }
-    mk(P, 'ico', sc, 0.1, 0.08, 0.07, 0, 0.1, zf + 0.03);
+    if (FINE) mk(P, 'ico', sc, 0.1, 0.08, 0.07, 0, 0.1, zf + 0.03);
     const f = grp(P, 0, 0.1, -zf);
     f.rotation.x = -0.12;
     mk(f, 'box', sc, sw * 0.95, 0.42, 0.02, 0, -0.2, -0.012);
   }
 
   /* what has run down them and dried: on the shirt, and the trousers' thighs */
-  const nS = Math.round(D.stain * 8), SC = [0x8a7432, 0xc6bd9c, 0x5a4a28];
+  const nS = FINE ? Math.round(D.stain * 8) : 0, SC = [0x8a7432, 0xc6bd9c, 0x5a4a28];
   for (let k = 0; k < nS; k++) {
     const c = Rs.pick(SC), w = Rs.rnd(0.04, 0.11), h = Rs.rnd(0.05, 0.17), x = Rs.rnd(-0.38, 0.38), y = Rs.rnd(0.15, 0.85);
     if (k % 3 !== 2) {
@@ -952,7 +1011,7 @@ function buildModel(d) {
     const sl = side && sleeveOn(s) ? D['sleeve' + side] : 'none';
     switch (name.replace(/[LR]$/, '')) {
       case 'torso': return shirtAt(q.x, q.y, q.z) ? (SH === 'vest' ? vc : sc) : null;
-      case 'pelvis': return trousers ? tc : BRIEFS;
+      case 'pelvis': return trousers ? tc : D.briefs !== false ? BRIEFS : null;
       case 'uarm': return sl !== 'none' && q.y > -ua * (sl === 'short' ? 0.72 : sl === 'torn' ? 0.42 : 1) ? sc : null;
       case 'farm': return sl === 'long' || (sl === 'rolled' && q.y > -0.07) ? sc : null;
       case 'thigh': return D['leg' + side] !== 'bare' ? tc : null;
@@ -1044,10 +1103,12 @@ function buildItem(M, it) {
 /** a gait's stride and steps a second, as it moves in `mode` */
 function paceOf(d, mode) {
   let S = d.gait.stride, f = d.gait.spm / 120;
+  if (d.body.plan === 'bloat' && (d.body.rest || 'stand') !== 'stand') return { S, f, v: 0 };
   if (mode === 'hunt') { S *= 1.25; f *= 1.6; }
   return { S, f, v: mode === 'stand' ? 0 : S * f };
 }
 function pose(M, A, mode, dt) {
+  if (M.bloat) { poseBloat(M, A, mode, dt); return; }
   const d = M.d, B = d.body, G = d.gait, L = M.L;
   A.t = (A.t ?? 0) + dt; A.p = A.p ?? 0;
   const t = A.t, walk = mode !== 'stand', hunt = mode === 'hunt';
@@ -1104,10 +1165,11 @@ function base() {
     format: FORMAT, name: 'Untitled', notes: '', seed: 1,
     body: { scale: 1, torsoW: 0.42, torsoD: 0.24, torsoL: 0.6, shoulder: 0, hipW: 0.22, gut: 0, hunch: 0.06,
       headSize: 1, headW: 1, headH: 1, neckL: 0.14, tilt: 0.25, droop: 0, jaw: 0.25,
-      uArm: 0.36, fArm: 0.34, armT: 0.11, armL: 1, armR: 1, thigh: 0.45, shin: 0.45, legT: 0.16, splay: 0.02, swell: 0, head: 'face' },
+      uArm: 0.36, fArm: 0.34, armT: 0.11, armL: 1, armR: 1, thigh: 0.45, shin: 0.45, legT: 0.16, splay: 0.02, swell: 0, head: 'face',
+      plan: 'person', rest: 'stand', limbL: 'skin', limbR: 'skin', legs: 'skin', trunk: 'skin', reachL: 1, reachR: 1 },
     gait: { stride: 1.1, spm: 96, knee: 0.45, armSwing: 0.3, elbow: 0.2, hang: 0.05, sway: 0.04, shamble: 0.2, limp: 0, loll: 0.1 },
     dress: { shirt: 'uniform', shirtCol: 'navy', vestCol: 'white', sleeveL: 'short', sleeveR: 'short', legL: 'full', legR: 'full', bootL: 'boot', bootR: 'boot',
-      belt: 'on', cap: 'none', hair: 'short', badge: true, epaulettes: true, radio: true, lanyard: false, torch: false, stain: 0.1, tear: true },
+      belt: 'on', cap: 'none', hair: 'short', badge: false, epaulettes: false, radio: false, lanyard: false, torch: false, stain: 0, tear: true, briefs: true },
     skin: { tone: 2, sallow: 0.6, cure: 0, green: 0, over: 0 },
     items: [],
   };
@@ -1127,7 +1189,7 @@ const PRESETS = [
     Object.assign(d, { name: 'Shirt torn away', seed: 4, notes: 'Example. The leaf took the shirt off its left side; one boot, one leg torn at the knee, roots out of the bare foot.' });
     Object.assign(d.body, { torsoW: 0.46, gut: 0.15, hunch: 0.22, tilt: 0.38, droop: 0.12, jaw: 0.45 });
     Object.assign(d.gait, { stride: 0.95, spm: 84, shamble: 0.45, armSwing: 0.18, hang: 0.1, loll: 0.16, limp: 0.25 });
-    Object.assign(d.dress, { shirt: 'tornL', sleeveR: 'rolled', legL: 'torn', bootL: 'bare', belt: 'loose', lanyard: true, radio: false, stain: 0.5, hair: 'thin' });
+    Object.assign(d.dress, { shirt: 'tornL', sleeveR: 'rolled', legL: 'torn', bootL: 'bare', belt: 'loose', hair: 'thin' });
     Object.assign(d.skin, { tone: 4, sallow: 0.55 });
     d.items = withIds([...EYES(),
       it('leaf', 'torso', [0.46, 0.42, -0.05], [1, 0, -0.1], 0.36, { tiers: 3 }),
@@ -1140,7 +1202,8 @@ const PRESETS = [
   }],
   ['day', 'Day shift, as built', () => {
     const d = base();
-    Object.assign(d, { name: 'Day shift, as built', seed: 2, notes: 'Example. The changed as the game draws them now (castView.ts, changed), one of the moderately grown.' });
+    Object.assign(d, { name: 'Day shift, as built', seed: 2, notes: 'Example. The changed as the game draws them now (castView.ts, changed), one of the moderately grown: the badge the one thing on it.' });
+    Object.assign(d.dress, { badge: true });
     d.items = withIds([...EYES(), ...SHELVES(2)]);
     return d;
   }],
@@ -1148,7 +1211,7 @@ const PRESETS = [
     const d = base();
     Object.assign(d, { name: 'The night round', seed: 3, notes: 'Example. Always in uniform, the leaf thickest on it, its flashlight in the hand that is still a hand.' });
     Object.assign(d.gait, { stride: 1.05, spm: 74, hang: 0.25, elbow: 0.5 });
-    Object.assign(d.dress, { cap: 'on', torch: true, lanyard: true });
+    Object.assign(d.dress, { cap: 'on', torch: true });
     d.items = withIds([...EYES(), ...SHELVES(3)]);
     return d;
   }],
@@ -1157,27 +1220,12 @@ const PRESETS = [
     Object.assign(d, { name: 'Long reach', seed: 5, notes: 'Example. Long in the arm and the leg, narrow, a long slow stride; the shirt open, both feet bare.' });
     Object.assign(d.body, { torsoW: 0.34, torsoD: 0.2, torsoL: 0.66, uArm: 0.52, fArm: 0.5, armT: 0.09, thigh: 0.56, shin: 0.6, legT: 0.13, neckL: 0.24, headH: 1.15, headW: 0.9, hunch: 0.32, tilt: -0.2, droop: 0.3 });
     Object.assign(d.gait, { stride: 1.65, spm: 70, knee: 0.7, armSwing: 0.45, elbow: 0.35, hang: 0.25, sway: 0.07, shamble: 0.1, loll: 0.2 });
-    Object.assign(d.dress, { shirt: 'open', shirtCol: 'slate', sleeveL: 'torn', sleeveR: 'long', legL: 'rolled', legR: 'rolled', bootL: 'bare', bootR: 'bare', belt: 'off', hair: 'none', epaulettes: false, radio: false, stain: 0.3 });
+    Object.assign(d.dress, { shirt: 'open', shirtCol: 'slate', sleeveL: 'torn', sleeveR: 'long', legL: 'rolled', legR: 'rolled', bootL: 'bare', bootR: 'bare', belt: 'off', hair: 'none' });
     Object.assign(d.skin, { tone: 1, sallow: 0.7, cure: 0.4 });
     d.items = withIds([...EYES(),
       it('leaf', 'torso', [0, 0.3, -0.5], [0, 0, -1], 0.3, { tiers: 3 }),
       it('stalk', 'head', [0.1, 0.48, 0], [0.2, 1, 0], 0.35, { bend: 0.3 }),
       it('flesh', 'farmR', [-0.5, 0, 0.2], [-1, 0, 0.3], 0.12)]);
-    return d;
-  }],
-  ['wide', 'Wide', () => {
-    const d = base();
-    Object.assign(d, { name: 'Wide', seed: 6, notes: 'Example. Broad and short in the leg, a short quick step; the shirt tied round its waist, one arm grown larger.' });
-    Object.assign(d.body, { scale: 1.08, torsoW: 0.72, torsoD: 0.36, torsoL: 0.62, gut: 0.55, hipW: 0.32, uArm: 0.34, fArm: 0.32, armT: 0.15, armR: 1.3, thigh: 0.36, shin: 0.36, legT: 0.23, neckL: 0.06, headSize: 1.05, headW: 1.2, hunch: 0.12, tilt: 0.1, droop: 0.2, jaw: 0.6, splay: 0.06 });
-    Object.assign(d.gait, { stride: 0.75, spm: 104, knee: 0.3, armSwing: 0.25, elbow: 0.3, hang: 0.15, sway: 0.1, shamble: 0.35, loll: 0.06 });
-    Object.assign(d.dress, { shirt: 'tied', cap: 'back', badge: false, lanyard: true, stain: 0.35 });
-    Object.assign(d.skin, { tone: 5, sallow: 0.5 });
-    d.items = withIds([...EYES(),
-      it('leaf', 'torso', [0.45, 0.42, -0.25], [0.8, 0.1, -0.6], 0.38, { tiers: 3 }),
-      it('leaf', 'torso', [-0.45, 0.38, -0.25], [-0.8, 0.1, -0.6], 0.32, { tiers: 3 }),
-      it('leaf', 'torso', [0, 0.3, -0.5], [0, 0, -1], 0.34, { tiers: 3 }),
-      it('pustule', 'torso', [0.25, 0.3, 0.5], [0, 0, 1], 0.06, { tint: 'yellow' }),
-      it('roots', 'handL', [0, -0.5, 0], [0, -1, 0], 0.5, { count: 4 })]);
     return d;
   }],
 ];
@@ -1193,7 +1241,7 @@ const CAST = [
     Object.assign(d, { name: 'Hall, west', seed: 11, notes: 'On its rounds of the muster hall, the west end (upper.ts: 31, 28). The newest: changed a week at most, still nearly a person, and still buttons its shirt. One small shelf at the back of the neck. Its wrongness is a long neck and a long, narrow head, enough to read wrong across the hall before you can say why. The quickest of them, and still slow: 1 m/s (the sim gives them all 1.3).' });
     Object.assign(d.body, { torsoW: 0.4, neckL: 0.26, headW: 0.9, headH: 1.18, hunch: 0.04, tilt: 0.15, droop: 0.05, jaw: 0.15 });
     Object.assign(d.gait, { stride: 1.2, spm: 100, knee: 0.45, armSwing: 0.26, elbow: 0.15, hang: 0.02, sway: 0.03, shamble: 0.25, loll: 0.06 });
-    Object.assign(d.dress, { cap: 'askew', lanyard: true, stain: 0.05 });
+    Object.assign(d.dress, { cap: 'askew' });
     Object.assign(d.skin, { tone: 0, sallow: 0.35 });
     d.items = withIds([...EYES().map(e => ({ ...e, size: 0.036 })),
       it('leaf', 'torso', [-0.071, 0.467, -0.417], [-0.476, 0, -0.879], 0.22, { tiers: 2, rise: 0.06 })]);
@@ -1204,7 +1252,7 @@ const CAST = [
     Object.assign(d, { name: 'Hall, east', seed: 12, notes: 'On its rounds of the muster hall, the east end (upper.ts: 67, 44). Its left arm grew, a third again, and split the shirt down that side; the leaf comes down the outside of it in shelves and a stalk flowers off the shoulder. It favours its right leg. A boot lost on the left. 0.9 m/s.' });
     Object.assign(d.body, { armL: 1.38, shoulder: 0.02, hunch: 0.12, tilt: -0.28, droop: 0.08, jaw: 0.3 });
     Object.assign(d.gait, { stride: 1.1, spm: 98, knee: 0.35, armSwing: 0.2, elbow: 0.25, hang: 0.08, sway: 0.06, shamble: 0.4, limp: 0.4, loll: 0.1 });
-    Object.assign(d.dress, { shirt: 'tornL', sleeveR: 'short', bootL: 'bare', stain: 0.25, hair: 'short' });
+    Object.assign(d.dress, { shirt: 'tornL', sleeveR: 'short', bootL: 'bare', hair: 'short' });
     Object.assign(d.skin, { tone: 3, sallow: 0.5 });
     d.items = withIds([...EYES(),
       it('leaf', 'uarmL', [0.5, -0.05, -0.15], [1, 0, -0.3], 0.28, { tiers: 3 }),
@@ -1217,7 +1265,7 @@ const CAST = [
     Object.assign(d, { name: 'Ops, offices', seed: 13, notes: 'The Operations corridor, by the offices (upper.ts: 72, 7). Long in the arm: the hands hang at its knees and come up a little ahead of it. Narrow with it. Down to its vest, stained; Pia\'s pustules up both arms, a shelf between the shoulder blades. 0.85 m/s, a long loping stride, the arms swinging.' });
     Object.assign(d.body, { torsoW: 0.36, torsoD: 0.22, torsoL: 0.62, shoulder: 0.05, uArm: 0.5, fArm: 0.48, armT: 0.095, hunch: 0.22, tilt: 0.2, droop: 0.18, jaw: 0.4 });
     Object.assign(d.gait, { stride: 1.2, spm: 84, knee: 0.4, armSwing: 0.42, elbow: 0.35, hang: 0.2, sway: 0.05, shamble: 0.35, loll: 0.12 });
-    Object.assign(d.dress, { shirt: 'vest', vestCol: 'stained', belt: 'loose', radio: false, stain: 0.45, hair: 'thin' });
+    Object.assign(d.dress, { shirt: 'vest', vestCol: 'stained', hair: 'thin' });
     Object.assign(d.skin, { tone: 2, sallow: 0.6 });
     d.items = withIds([...EYES(),
       it('leaf', 'torso', [0.05, 0.62, -0.5], [0, 0, -1], 0.3, { tiers: 3 }),
@@ -1228,10 +1276,10 @@ const CAST = [
   }],
   ['opsspk', 'Ops, speaker', () => {
     const d = base();
-    Object.assign(d, { name: 'Ops, speaker', seed: 14, notes: 'The Operations corridor, under the zone\'s speaker (upper.ts: 77, 18). Operations watched the cameras, and the body grows what you do (world.md §10, rule 1): its head swelled, too heavy for the neck, and grew eyes: black dots, two on the brow, one at the temple, one at the back of the skull. Shirt hanging open, sleeves rolled; it still carries its card and its radio. 0.7 m/s, careful with the weight of its head.' });
+    Object.assign(d, { name: 'Ops, speaker', seed: 14, notes: 'The Operations corridor, under the zone\'s speaker (upper.ts: 77, 18). Operations watched the cameras, and the body grows what you do (world.md §10, rule 1): its head swelled, too heavy for the neck, and grew eyes: black dots, two on the brow, one at the temple, one at the back of the skull. Shirt hanging open, sleeves rolled; it still carries its card, the one thing on it. 0.7 m/s, careful with the weight of its head.' });
     Object.assign(d.body, { headSize: 1.3, headW: 1.1, headH: 1.12, neckL: 0.07, hunch: 0.16, tilt: 0.32, droop: 0.28, jaw: 0.35, torsoW: 0.44 });
     Object.assign(d.gait, { stride: 0.95, spm: 88, knee: 0.3, armSwing: 0.16, elbow: 0.3, hang: 0.1, sway: 0.08, shamble: 0.5, loll: 0.14 });
-    Object.assign(d.dress, { shirt: 'open', shirtCol: 'slate', sleeveL: 'rolled', sleeveR: 'rolled', lanyard: true, epaulettes: false, stain: 0.2, hair: 'none' });
+    Object.assign(d.dress, { shirt: 'open', shirtCol: 'slate', sleeveL: 'rolled', sleeveR: 'rolled', lanyard: true, hair: 'none' });
     Object.assign(d.skin, { tone: 5, sallow: 0.55 });
     d.items = withIds([...EYES(),
       it('eye', 'head', [0.13, 0.3, 0.41], [0.25, 0.45, 0.86], 0.036),
@@ -1243,10 +1291,10 @@ const CAST = [
   }],
   ['stair', 'Ops stair', () => {
     const d = base();
-    Object.assign(d, { name: 'Ops stair', seed: 15, notes: 'On post on the Operations stair, at the door grown shut with bodies, among the eggs (upper.ts: 67.2, 63.2, the landing). Wide and heavy, short in the leg, its right arm grown thick; it keeps the door it helped close. The shirt tied round its waist by the sleeves, bare-chested, Pia\'s pustules over the chest; leaf out of both shoulders and down the spine, bark coming through on the left forearm. One eye gone small and milky. Barefoot in the gore. 0.4 m/s when it moves at all.' });
-    Object.assign(d.body, { scale: 1.06, torsoW: 0.66, torsoD: 0.34, torsoL: 0.6, gut: 0.45, hipW: 0.3, uArm: 0.34, fArm: 0.32, armT: 0.15, armR: 1.3, thigh: 0.38, shin: 0.38, legT: 0.22, neckL: 0.07, headW: 1.12, hunch: 0.14, tilt: 0.12, droop: 0.22, jaw: 0.55, splay: 0.06 });
+    Object.assign(d, { name: 'Ops stair', seed: 15, notes: 'On post on the Operations stair, at the door grown shut with bodies, among the eggs (upper.ts: 67.2, 63.2, the landing). Heavy, short in the leg, its right arm grown thick; it keeps the door it helped close. The shirt tied round its waist by the sleeves, bare-chested, Pia\'s pustules over the chest; leaf out of both shoulders and down the spine, bark coming through on the left forearm. One eye gone small and milky. Barefoot in the gore. 0.4 m/s when it moves at all.' });
+    Object.assign(d.body, { scale: 1.04, torsoW: 0.48, torsoD: 0.3, torsoL: 0.6, gut: 0.35, hipW: 0.26, uArm: 0.34, fArm: 0.32, armT: 0.13, armR: 1.25, thigh: 0.42, shin: 0.42, legT: 0.19, neckL: 0.07, headW: 1.05, hunch: 0.14, tilt: 0.12, droop: 0.22, jaw: 0.55, splay: 0.04 });
     Object.assign(d.gait, { stride: 0.75, spm: 66, knee: 0.22, armSwing: 0.15, elbow: 0.3, hang: 0.12, sway: 0.1, shamble: 0.6, loll: 0.06 });
-    Object.assign(d.dress, { shirt: 'tied', legL: 'rolled', legR: 'rolled', bootL: 'bare', bootR: 'bare', cap: 'back', badge: false, radio: false, stain: 0.4 });
+    Object.assign(d.dress, { shirt: 'tied', legL: 'rolled', legR: 'rolled', bootL: 'bare', bootR: 'bare' });
     Object.assign(d.skin, { tone: 6, sallow: 0.45, cure: 0.15 });
     d.items = withIds([EYES()[0], { ...EYES()[1], look: 'milky', size: 0.034 },
       it('leaf', 'torso', [0.45, 0.42, -0.25], [0.8, 0.1, -0.6], 0.36, { tiers: 3, rise: 0.08 }),
@@ -1259,10 +1307,10 @@ const CAST = [
   }],
   ['night', 'Night round', () => {
     const d = base();
-    Object.assign(d, { name: 'Night round', seed: 16, notes: 'The night round (upper.ts: 51, -9.4, and its round). Always in uniform, the cap on, from habit: the habit is what keeps it walking. Tall, long in the leg and the body, so it looms in its own beam; the leaf thickest on it of those that walk, the game\'s four shelves and one more down its back. The flashlight in the hand that is still a hand, its card on the lanyard: the card you take. 1 m/s, the round\'s pace.' });
+    Object.assign(d, { name: 'Night round', seed: 16, notes: 'The night round (upper.ts: 51, -9.4, and its round). Always in uniform, the cap on, from habit: the habit is what keeps it walking. Tall, long in the leg and the body, so it looms in its own beam; the leaf thickest on it of those that walk, the game\'s four shelves and one more down its back. The flashlight in the hand that is still a hand, and the cap: nothing else on it. Its card, the one you take, is in a pocket. 1 m/s, the round\'s pace.' });
     Object.assign(d.body, { scale: 1.05, torsoL: 0.68, thigh: 0.52, shin: 0.54, legT: 0.15, torsoW: 0.41, uArm: 0.39, fArm: 0.37, hunch: 0.1, tilt: 0.22, droop: 0.12, jaw: 0.3 });
     Object.assign(d.gait, { stride: 1.45, spm: 83, knee: 0.45, armSwing: 0.15, elbow: 0.45, hang: 0.28, sway: 0.03, shamble: 0.15, loll: 0.08 });
-    Object.assign(d.dress, { cap: 'on', torch: true, lanyard: true, stain: 0.2 });
+    Object.assign(d.dress, { cap: 'on', torch: true });
     Object.assign(d.skin, { tone: 1, sallow: 0.7, cure: 0.1 });
     d.items = withIds([...EYES(), ...SHELVES(3)]);
     return d;
@@ -1272,7 +1320,7 @@ const CAST = [
     Object.assign(d, { name: 'Goods inward', seed: 17, notes: 'On post at the freight door in Goods inward (upper.ts: 18, 6.8). The oldest of them, and the most plant: it stopped here early and has been taking root since, out of both feet and a hand. Long in the body, short in the leg, bent over; the shirt gone, the trousers torn at both knees, the leaf curing yellow, bark through a shin, a stalk flowering from the crown, leaf out of the side of its face. Its eyes are going milky. If it walks at all it is a quarter of a metre a second, and it drags its feet.' });
     Object.assign(d.body, { torsoL: 0.84, torsoW: 0.44, torsoD: 0.26, thigh: 0.4, shin: 0.4, legT: 0.17, uArm: 0.4, fArm: 0.38, hunch: 0.5, tilt: -0.35, droop: 0.4, jaw: 0.7, neckL: 0.18 });
     Object.assign(d.gait, { stride: 0.55, spm: 50, knee: 0.08, armSwing: 0.06, elbow: 0.15, hang: 0.05, sway: 0.12, shamble: 0.9, loll: 0.2 });
-    Object.assign(d.dress, { shirt: 'none', legL: 'torn', legR: 'torn', bootL: 'bare', bootR: 'bare', belt: 'loose', radio: false, badge: false, epaulettes: false, hair: 'thin', stain: 0.6 });
+    Object.assign(d.dress, { shirt: 'none', legL: 'torn', legR: 'torn', bootL: 'bare', bootR: 'bare', belt: 'loose', hair: 'thin' });
     Object.assign(d.skin, { tone: 4, sallow: 0.9, cure: 0.7 });
     d.items = withIds([...EYES().map(e => ({ ...e, look: 'milky' })),
       it('leaf', 'torso', [-0.071, 0.467, -0.417], [-0.476, 0, -0.879], 0.34, { tiers: 4, rise: 0.07, fan: 0.45 }),
@@ -1291,110 +1339,93 @@ const CAST = [
 /* Pia's lines (world.md §10, Pia's young gods): the three that founded the Commons, each from young to old, and its young
    god last; as Claude proposes them, for the owner to argue with. The plant line's youngest are Security's seven */
 const both = (kind, part, p, n, size, extra = {}) => [it(kind, part + 'L', p, n, size, extra), it(kind, part + 'R', [-p[0], p[1], p[2]], [-n[0], n[1], n[2]], size, extra)];
+/* the game's bloat's eyes (castView.ts, bloat), on its head */
+const BLOATEYES = () => [it('eye', 'head', [0.112, -0.163, 0.433], [0.25, -0.3, 0.92], 0.07), it('eye', 'head', [-0.112, -0.163, 0.433], [-0.25, -0.3, 0.92], 0.07)];
 const LINES = [
   ['husk', 'Bone, young', () => {
     const d = base();
-    Object.assign(d, { name: 'Bone, young', seed: 31, notes: 'The bone mother\'s, young in it: the husk as it should become. The fear for good, and slow, but quick to answer: intelligent, aggressive, reactive. The bone comes out comfortably, numb as they all are: out of the elbows, a ridge down the spine, a claw of bone past the fingers; the shoulder gone raw where it began. Black eyes, set and still. A Commons resident\'s clothes, torn where the bone came through.' });
-    Object.assign(d.body, { hunch: 0.28, tilt: 0.1, droop: -0.05, jaw: 0.35, uArm: 0.4, fArm: 0.4, shoulder: 0.03 });
-    Object.assign(d.gait, { stride: 1.15, spm: 90, knee: 0.5, armSwing: 0.2, elbow: 0.55, hang: 0.45, sway: 0.03, shamble: 0.15, loll: 0.04 });
-    Object.assign(d.dress, { shirt: 'tornR', shirtCol: 'grey', legR: 'torn', bootR: 'bare', belt: 'off', badge: false, epaulettes: false, radio: false, stain: 0.4 });
-    Object.assign(d.skin, { tone: 2, sallow: 0.35 });
-    d.items = withIds([...EYES(),
-      ...both('spike', 'farm', [0, 0.45, -0.5], [0, 0.3, -1], 0.2),
-      it('spike', 'torso', [0, 0.2, -0.5], [0, 0, -1], 0.17, { row: true }),
-      it('spike', 'handR', [0, -0.5, 0.2], [0, -1, 0.3], 0.26, { bend: 0.1 }),
-      it('flesh', 'torso', [-0.42, 0.5, 0], [-0.7, 0.7, 0], 0.18)]);
+    Object.assign(d, { name: 'Bone, young', seed: 31, notes: 'The bone mother\'s, young in it: the husk. The fear for good, and slow, but quick to answer: intelligent, aggressive, reactive. One arm gone raw and drawn out long, a point of bone where the hand was; raw at the shoulder it grows from, and a patch on the face. One black eye. A Commons resident\'s shirt, torn off that side.' });
+    Object.assign(d.body, { hunch: 0.25, tilt: 0.25, droop: 0, jaw: 0.3, limbR: 'raw', reachR: 1.55, armR: 1.1 });
+    Object.assign(d.gait, { stride: 1.15, spm: 90, knee: 0.5, armSwing: 0.2, elbow: 0.15, hang: 0.3, sway: 0.03, shamble: 0.15, loll: 0.04 });
+    Object.assign(d.dress, { shirt: 'tornR', shirtCol: 'grey' });
+    Object.assign(d.skin, { tone: 1, sallow: 0.45 });
+    d.items = withIds([EYES()[0], it('flesh', 'head', [-0.22, 0.12, 0.4], [-0.4, 0.2, 0.9], 0.09), it('flesh', 'torso', [-0.45, 0.48, -0.05], [-0.7, 0.7, -0.1], 0.2)]);
     return d;
   }],
   ['bonemid', 'Bone, middle years', () => {
     const d = base();
-    Object.assign(d, { name: 'Bone, middle years', seed: 32, notes: 'The bone mother\'s, some years in: where the thresher is. Taller, drawn long in the forearm and the shin, the chest gone to plate over the ribs, ridges of bone along the forearms and down the back. The face thinning, the eyes smaller. Still afraid, still quick: it charges. The clothes mostly gone.' });
-    Object.assign(d.body, { scale: 1.1, torsoW: 0.4, torsoD: 0.26, torsoL: 0.66, uArm: 0.44, fArm: 0.5, armT: 0.105, thigh: 0.5, shin: 0.52, legT: 0.15, headSize: 0.95, headW: 0.85, headH: 1.12, neckL: 0.18, hunch: 0.38, tilt: 0.05, droop: 0.1, jaw: 0.55 });
-    Object.assign(d.gait, { stride: 1.5, spm: 92, knee: 0.6, armSwing: 0.35, elbow: 0.3, hang: 0.35, sway: 0.05, shamble: 0.15, loll: 0.05 });
-    Object.assign(d.dress, { shirt: 'none', legL: 'torn', legR: 'torn', bootL: 'bare', bootR: 'bare', belt: 'loose', badge: false, epaulettes: false, radio: false, hair: 'thin', stain: 0.3 });
+    Object.assign(d, { name: 'Bone, middle years', seed: 32, notes: 'The bone mother\'s, halfway: the skeleton winning, the person still there. A face still, black-eyed; one arm gone to bone and drawn out, the other raw; the ribs and the spine out through raw flesh. Where the thresher is. Still afraid, still quick: it charges.' });
+    Object.assign(d.body, { scale: 1.08, torsoW: 0.4, torsoD: 0.25, torsoL: 0.64, thigh: 0.5, shin: 0.52, legT: 0.15, headW: 0.9, headH: 1.1, neckL: 0.18, hunch: 0.38, tilt: 0.08, droop: 0.1, jaw: 0.55, limbR: 'bone', reachR: 1.7, limbL: 'raw', reachL: 1.3, trunk: 'ribs' });
+    Object.assign(d.gait, { stride: 1.5, spm: 92, knee: 0.6, armSwing: 0.35, elbow: 0.2, hang: 0.35, sway: 0.05, shamble: 0.15, loll: 0.05 });
+    Object.assign(d.dress, { shirt: 'none', legL: 'torn', legR: 'torn', bootL: 'bare', bootR: 'bare', hair: 'thin' });
     Object.assign(d.skin, { tone: 3, sallow: 0.45 });
-    d.items = withIds([...EYES().map(e => ({ ...e, size: 0.034 })),
-      it('plate', 'torso', [0, 0.32, 0.5], [0, 0, 1], 0.3, { rows: 3 }),
-      ...both('spike', 'farm', [0.5, -0.1, -0.1], [1, 0, -0.3], 0.12, { row: true }),
-      it('spike', 'torso', [0, 0.25, -0.5], [0, 0, -1], 0.17, { row: true })]);
+    d.items = withIds(EYES().map(e => ({ ...e, size: 0.036 })));
     return d;
   }],
   ['boneold', 'Bone elder', () => {
     const d = base();
-    Object.assign(d, { name: 'Bone elder', seed: 33, notes: 'The bone mother\'s, old: slower, the flesh gone from the face and the skull grown out over it into one fused shape. Blind, armoured in plate, numb, less afraid, but still afraid. Tall and wide; it walks a long patrol, slowly, the head level, listening.' });
-    Object.assign(d.body, { scale: 1.45, torsoW: 0.6, torsoD: 0.34, torsoL: 0.66, shoulder: 0.04, hipW: 0.3, uArm: 0.42, fArm: 0.44, armT: 0.15, thigh: 0.56, shin: 0.6, legT: 0.21, head: 'skull', headSize: 1.3, headW: 1.1, headH: 1.05, neckL: 0.1, hunch: 0.12, tilt: 0, droop: 0.05, jaw: 0.3, splay: 0.05 });
-    Object.assign(d.gait, { stride: 1.7, spm: 58, knee: 0.35, armSwing: 0.15, elbow: 0.25, hang: 0.1, sway: 0.04, shamble: 0.3, loll: 0.03 });
-    Object.assign(d.dress, { shirt: 'none', legL: 'bare', legR: 'bare', bootL: 'bare', bootR: 'bare', belt: 'off', badge: false, epaulettes: false, radio: false, hair: 'none', stain: 0 });
+    Object.assign(d, { name: 'Bone elder', seed: 33, notes: 'The bone mother\'s, old: the skeleton has won. The limbs gone to bone, long, raw at the joints; the ribs and the spine out through what is left of the flesh; no face at all, the skull one smooth shape. Blind, numb, less afraid but still afraid. Tall; it walks a long patrol, slowly, the head level, listening.' });
+    Object.assign(d.body, { scale: 1.4, torsoW: 0.42, torsoD: 0.26, torsoL: 0.66, hipW: 0.24, uArm: 0.44, fArm: 0.46, armT: 0.12, thigh: 0.58, shin: 0.62, legT: 0.16, head: 'skull', headSize: 1.15, headH: 1.1, neckL: 0.16, hunch: 0.12, tilt: 0, droop: 0.05, jaw: 0, limbL: 'bone', limbR: 'bone', reachL: 1.5, reachR: 1.5, legs: 'bone', trunk: 'ribs' });
+    Object.assign(d.gait, { stride: 1.7, spm: 58, knee: 0.35, armSwing: 0.15, elbow: 0.2, hang: 0.1, sway: 0.04, shamble: 0.3, loll: 0.03 });
+    Object.assign(d.dress, { shirt: 'none', legL: 'bare', legR: 'bare', bootL: 'bare', bootR: 'bare', hair: 'none', briefs: false });
     Object.assign(d.skin, { tone: 4, sallow: 0.5 });
-    d.items = withIds([
-      it('plate', 'torso', [0.42, 0.45, -0.1], [0.6, 0.7, -0.3], 0.34, { rows: 2 }), it('plate', 'torso', [-0.42, 0.45, -0.1], [-0.6, 0.7, -0.3], 0.34, { rows: 2 }),
-      it('plate', 'torso', [0, 0.3, -0.5], [0, 0, -1], 0.38, { rows: 3 }), it('plate', 'torso', [0, 0.3, 0.5], [0, 0, 1], 0.34, { rows: 3 }),
-      ...both('plate', 'farm', [0.5, 0.2, 0], [1, 0, 0.1], 0.22, { rows: 2 }), ...both('plate', 'shin', [0, 0.3, 0.5], [0, 0, 1], 0.2, { rows: 3 }),
-      it('spike', 'head', [0, 0.45, -0.15], [0, 1, -0.4], 0.16, { row: true })]);
+    d.items = [];
     return d;
   }],
   ['bonemother', 'The bone mother', () => {
     const d = base();
-    Object.assign(d, { name: 'The bone mother', seed: 34, notes: 'A young god (world.md §10): the woman who poked the bony post where Pia\'s index finger had been. The eldest of her line, so the first to lose her face. Drawn out on long bones, legs nearly twice a person\'s, plated down the shins, a ridge down her spine, a crest on the skull, bone out of the elbows and claws past the fingers. About 4.8 m. Like Pia, she has older children and younger ones.' });
-    Object.assign(d.body, { scale: 1.55, torsoW: 0.4, torsoD: 0.26, torsoL: 0.78, shoulder: 0.02, uArm: 0.56, fArm: 0.62, armT: 0.1, thigh: 0.82, shin: 0.9, legT: 0.14, head: 'skull', headSize: 1.2, headW: 0.95, headH: 1.25, neckL: 0.3, hunch: 0.25, tilt: 0.15, droop: 0.15, jaw: 0.4 });
-    Object.assign(d.gait, { stride: 2.2, spm: 46, knee: 0.5, armSwing: 0.1, elbow: 0.4, hang: 0.3, sway: 0.03, shamble: 0.1, loll: 0.05 });
-    Object.assign(d.dress, { shirt: 'none', legL: 'bare', legR: 'bare', bootL: 'bare', bootR: 'bare', belt: 'off', badge: false, epaulettes: false, radio: false, hair: 'none', stain: 0 });
+    Object.assign(d, { name: 'The bone mother', seed: 34, notes: 'A young god (world.md §10): the woman who poked the bony post where Pia\'s index finger had been. The eldest of her line and the most taken: nearly all bone, drawn out on long legs and longer arms, raw at the joints, the ribs open, a crest of bone on a skull with no face. About 4.8 m. Like Pia, she has older children and younger ones.' });
+    Object.assign(d.body, { scale: 1.55, torsoW: 0.38, torsoD: 0.24, torsoL: 0.78, uArm: 0.56, fArm: 0.6, armT: 0.1, thigh: 0.82, shin: 0.9, legT: 0.14, head: 'skull', headSize: 1.15, headW: 0.95, headH: 1.25, neckL: 0.3, hunch: 0.25, tilt: 0.15, droop: 0.15, jaw: 0, limbL: 'bone', limbR: 'bone', reachL: 1.8, reachR: 1.8, legs: 'bone', trunk: 'ribs' });
+    Object.assign(d.gait, { stride: 2.2, spm: 46, knee: 0.5, armSwing: 0.1, elbow: 0.3, hang: 0.3, sway: 0.03, shamble: 0.1, loll: 0.05 });
+    Object.assign(d.dress, { shirt: 'none', legL: 'bare', legR: 'bare', bootL: 'bare', bootR: 'bare', hair: 'none', briefs: false });
     Object.assign(d.skin, { tone: 3, sallow: 0.55 });
-    d.items = withIds([
-      it('plate', 'torso', [0, 0.3, 0.5], [0, 0, 1], 0.3, { rows: 3 }),
-      it('spike', 'torso', [0, 0.25, -0.5], [0, 0, -1], 0.24, { row: true }),
-      it('spike', 'head', [0, 0.45, -0.15], [0, 1, -0.4], 0.2, { row: true }),
-      ...both('spike', 'farm', [0, 0.45, -0.5], [0, 0.3, -1], 0.32), ...both('plate', 'shin', [0, 0.15, 0.5], [0, 0, 1], 0.18, { rows: 3 }),
-      ...both('spike', 'hand', [0, -0.5, 0.2], [0, -1, 0.2], 0.36, { bend: 0.1 })]);
+    d.items = withIds([it('spike', 'head', [0, 0.45, -0.15], [0, 1, -0.4], 0.2, { row: true })]);
     return d;
   }],
   ['bloatyoung', 'Bloat, young', () => {
     const d = base();
-    Object.assign(d, { name: 'Bloat, young', seed: 35, notes: 'The bloat god\'s, young in it: swelling, the head grown big and soft the way a baby\'s is, the face small in it, the limbs short. Afraid of other things than the bone line is (proposed: of going without, food and warmth and company), and still walking, a waddle. The vest stretched over it.' });
-    Object.assign(d.body, { torsoW: 0.42, torsoD: 0.26, torsoL: 0.58, swell: 0.45, gut: 0.5, hipW: 0.24, headSize: 1.32, headW: 1.15, neckL: 0.06, uArm: 0.3, fArm: 0.28, thigh: 0.38, shin: 0.38, legT: 0.17, hunch: 0.05, tilt: 0.15, droop: 0.12, jaw: 0.35, splay: 0.05 });
-    Object.assign(d.gait, { stride: 0.75, spm: 92, knee: 0.3, armSwing: 0.2, elbow: 0.35, hang: 0.2, sway: 0.14, shamble: 0.35, loll: 0.15 });
-    Object.assign(d.dress, { shirt: 'vest', vestCol: 'stained', legL: 'rolled', legR: 'rolled', bootL: 'bare', bootR: 'bare', belt: 'off', badge: false, epaulettes: false, radio: false, hair: 'thin', stain: 0.35 });
-    Object.assign(d.skin, { tone: 1, sallow: 0.3 });
-    d.items = withIds([...EYES().map(e => ({ ...e, size: 0.03 })), it('pustule', 'neck', [0.4, 0, 0.3], [1, 0, 0.6], 0.045)]);
+    Object.assign(d, { name: 'Bloat, young', seed: 35, notes: 'The bloat god\'s, young in it: drawn as the game\'s bloats are, smaller, and still on its feet: one soft body, the head on it like a baby\'s, two black dots. It waddles. Afraid of other things than the bone line is (proposed: of going without, food and warmth and company).' });
+    Object.assign(d.body, { plan: 'bloat', rest: 'stand', scale: 0.55, headSize: 1.05, jaw: 0.2, tilt: 0.2 });
+    Object.assign(d.gait, { stride: 0.6, spm: 80 });
+    Object.assign(d.dress, { shirt: 'none' });
+    Object.assign(d.skin, { tone: 0, sallow: 0.3 });
+    d.items = withIds(BLOATEYES());
     return d;
   }],
   ['bloatold', 'Bloat, older', () => {
     const d = base();
-    Object.assign(d, { name: 'Bloat, older', seed: 36, notes: 'The bloat god\'s, older: bigger, slower and dopier, like its patron; the eyes half shut, the jaw hanging. On its way to the bloats that sit, and no longer much afraid of anything but being left.' });
-    Object.assign(d.body, { scale: 1.5, torsoW: 0.44, torsoD: 0.28, torsoL: 0.6, swell: 0.9, gut: 0.9, hipW: 0.26, headSize: 1.45, headW: 1.2, neckL: 0.05, uArm: 0.3, fArm: 0.27, armT: 0.12, thigh: 0.34, shin: 0.32, legT: 0.18, hunch: 0.04, tilt: 0.3, droop: 0.3, jaw: 0.7, splay: 0.08 });
-    Object.assign(d.gait, { stride: 0.5, spm: 52, knee: 0.15, armSwing: 0.1, elbow: 0.2, hang: 0.1, sway: 0.18, shamble: 0.7, loll: 0.3 });
-    Object.assign(d.dress, { shirt: 'none', legL: 'bare', legR: 'bare', bootL: 'bare', bootR: 'bare', belt: 'off', badge: false, epaulettes: false, radio: false, hair: 'none', stain: 0.2 });
-    Object.assign(d.skin, { tone: 4, sallow: 0.35 });
-    d.items = withIds([...EYES().map(e => ({ ...e, size: 0.03 })),
-      it('pustule', 'torso', [0.2, 0, 0.52], [0.2, 0, 1], 0.06), it('flesh', 'torso', [-0.18, 0.18, 0.5], [-0.2, 0.2, 1], 0.14)]);
+    Object.assign(d, { name: 'Bloat, older', seed: 36, notes: 'The bloat god\'s, older: bigger, and sat down for good, as the game\'s bloats are; dopier, like its patron. A raw place on its side.' });
+    Object.assign(d.body, { plan: 'bloat', rest: 'sit', scale: 0.85, jaw: 0.4, tilt: 0.4 });
+    Object.assign(d.dress, { shirt: 'none' });
+    Object.assign(d.skin, { tone: 0, sallow: 0.35 });
+    d.items = withIds([...BLOATEYES(), it('flesh', 'torso', [0.38, 0.05, 0.25], [0.8, 0, 0.5], 0.3)]);
     return d;
   }],
   ['bloatgod', 'The bloat god', () => {
     const d = base();
-    Object.assign(d, { name: 'The bloat god', seed: 37, notes: 'A young god (world.md §10): the nurse, a man, whose arm Pia grabbed. Larger than any of his line, the bloats come from him. About 4 m: not Pia\'s size, but big. Still in what is left of his scrubs, stretched round him; raw where her hand closed on his arm. Barely moves; dopey, as his children become.' });
-    Object.assign(d.body, { scale: 2.5, torsoW: 0.46, torsoD: 0.3, torsoL: 0.62, swell: 1, gut: 1, hipW: 0.28, headSize: 1.5, headW: 1.25, headH: 0.95, neckL: 0.04, uArm: 0.3, fArm: 0.28, armT: 0.12, armL: 1.1, thigh: 0.34, shin: 0.3, legT: 0.2, hunch: 0.02, tilt: 0.2, droop: 0.25, jaw: 0.6, splay: 0.1 });
-    Object.assign(d.gait, { stride: 0.4, spm: 36, knee: 0.1, armSwing: 0.05, elbow: 0.25, hang: 0.15, sway: 0.2, shamble: 0.85, loll: 0.35 });
-    Object.assign(d.dress, { shirt: 'uniform', shirtCol: 'scrubs', sleeveL: 'short', sleeveR: 'torn', legL: 'full', legR: 'full', bootL: 'bare', bootR: 'bare', belt: 'off', badge: false, epaulettes: false, radio: false, hair: 'thin', stain: 0.5 });
+    Object.assign(d, { name: 'The bloat god', seed: 37, notes: 'A young god (world.md §10): the nurse, a man, whose arm Pia grabbed. The bloats come from him. Lying on his back on the floor, a room\'s width long; a band of his scrubs still round him, raw where her hand closed on his arm. He does not get up.' });
+    Object.assign(d.body, { plan: 'bloat', rest: 'lie', scale: 1.5, headSize: 0.95, jaw: 0.5, tilt: 0.5 });
+    Object.assign(d.dress, { shirt: 'uniform', shirtCol: 'scrubs' });
     Object.assign(d.skin, { tone: 3, sallow: 0.3 });
-    d.items = withIds([...EYES().map(e => ({ ...e, size: 0.028 })), it('flesh', 'farmL', [0.5, 0.15, 0.2], [1, 0, 0.3], 0.16)]);
+    d.items = withIds([...BLOATEYES(), it('flesh', 'uarmL', [0.5, -0.1, 0.2], [1, 0, 0.3], 0.28)]);
     return d;
   }],
   ['plantold', 'Plant, old', () => {
     const d = base();
-    Object.assign(d, { name: 'Plant, old', seed: 38, notes: 'The bush\'s line, old in it: between Security\'s seven and the bush. The skin gone green, the shelves in rows over the back, the shoulders and the limbs, starting on the head; one eye still showing. What is left of a uniform. Barely walks.' });
+    Object.assign(d, { name: 'Plant, old', seed: 38, notes: 'The bush\'s line, old in it: between Security\'s seven and the bush. The skin gone green, the shelves in rows over the back, the shoulders and the limbs, starting on the head; one black eye still showing. What is left of a shirt. Barely walks.' });
     Object.assign(d.body, { scale: 1.15, torsoW: 0.46, torsoD: 0.28, swell: 0.12, uArm: 0.4, fArm: 0.4, thigh: 0.47, shin: 0.48, hunch: 0.3, tilt: 0.3, droop: 0.35, jaw: 0.3 });
     Object.assign(d.gait, { stride: 0.7, spm: 56, knee: 0.15, armSwing: 0.08, elbow: 0.2, hang: 0.1, sway: 0.1, shamble: 0.75, loll: 0.15 });
-    Object.assign(d.dress, { shirt: 'tornR', legL: 'torn', bootL: 'bare', belt: 'loose', badge: false, radio: false, hair: 'thin', stain: 0.5 });
+    Object.assign(d.dress, { shirt: 'tornR', legL: 'torn', bootL: 'bare', hair: 'thin' });
     Object.assign(d.skin, { tone: 2, sallow: 0.8, cure: 0.3, green: 0.45, over: 0.55 });
     d.items = withIds([EYES()[0], it('pustule', 'neck', [0.3, 0.2, 0.45], [0.6, 0, 0.8], 0.04)]);
     return d;
   }],
   ['bush', 'The bush', () => {
     const d = base();
-    Object.assign(d, { name: 'The bush', seed: 39, notes: 'A young god (world.md §10): the doctor who leaned in too close and breathed a spore off Pia\'s shoulder. A person\'s shape, swollen about half as far as a bloat or a bone child would go, every bit of it under rows on rows of tobacco shelves, green through. No features, the face tucked away somewhere behind the leaf; a sleeve of the white coat still shows. Stands like a bush until it does not. Its children have the plant growing through them, not over them: Security\'s changed.' });
-    Object.assign(d.body, { scale: 1.35, torsoW: 0.56, torsoD: 0.36, torsoL: 0.7, swell: 0.4, gut: 0.3, hipW: 0.28, shoulder: 0.03, uArm: 0.46, fArm: 0.46, armT: 0.12, thigh: 0.5, shin: 0.52, legT: 0.19, headSize: 1.15, neckL: 0.12, hunch: 0.2, tilt: 0.1, droop: 0.2, jaw: 0.12 });
-    Object.assign(d.gait, { stride: 0.9, spm: 44, knee: 0.15, armSwing: 0.05, elbow: 0.3, hang: 0.15, sway: 0.08, shamble: 0.7, loll: 0.06 });
-    Object.assign(d.dress, { shirt: 'open', shirtCol: 'white', sleeveL: 'long', sleeveR: 'torn', legL: 'torn', legR: 'torn', bootL: 'bare', bootR: 'bare', belt: 'off', badge: false, epaulettes: false, radio: false, hair: 'none', stain: 0.4 });
+    Object.assign(d, { name: 'The bush', seed: 39, notes: 'A young god (world.md §10): the doctor who leaned in too close and breathed a spore off Pia\'s shoulder. Gigantic now, a person\'s shape swollen about half as far as a bloat or a bone child would go, every bit of it under rows on rows of tobacco shelves, green through; nothing left on it that was ever clothes. No features, the face tucked away somewhere behind the leaf. Stands like a bush until it does not. Its children have the plant growing through them, not over them: Security\'s changed.' });
+    Object.assign(d.body, { scale: 2, torsoW: 0.56, torsoD: 0.36, torsoL: 0.7, swell: 0.4, gut: 0.3, hipW: 0.28, shoulder: 0.03, uArm: 0.46, fArm: 0.46, armT: 0.12, thigh: 0.5, shin: 0.52, legT: 0.19, headSize: 1.15, neckL: 0.12, hunch: 0.2, tilt: 0.1, droop: 0.2, jaw: 0.12 });
+    Object.assign(d.gait, { stride: 1.1, spm: 40, knee: 0.15, armSwing: 0.05, elbow: 0.3, hang: 0.15, sway: 0.08, shamble: 0.7, loll: 0.06 });
+    Object.assign(d.dress, { shirt: 'none', legL: 'bare', legR: 'bare', bootL: 'bare', bootR: 'bare', hair: 'none', briefs: false });
     Object.assign(d.skin, { tone: 1, sallow: 0.7, cure: 0.15, green: 1, over: 1 });
     d.items = [];
     return d;
@@ -1571,12 +1602,21 @@ function check(path, label) {
   return w;
 }
 const note = t => el('p', 'note', t);
+/** a control the low-poly kit draws nothing for: shown with Fine detail only */
+const fineOnly = w => { w.classList.add('fineonly'); return w; };
 
 /* Body */
 {
   const P = $('p-body'), sl = (k, ...a) => slider('body.' + k, ...a);
-  P.append(note('Measures are the model’s own, before <i>Overall size</i> scales the whole of it. Left and right are its own: its left is on your right as it faces you.'),
-    group('Size'), sl('scale', 'Overall size', 0.8, 3, 0.01, 'x'),
+  const plan = seg('body.plan', 'Built as', [['person', 'A person'], ['bloat', 'A bloat, as the game\'s']], () => { doRebuild(); frame(); });
+  const rest = seg('body.rest', 'A bloat', [['stand', 'Stood'], ['sit', 'Sat'], ['lie', 'Lying on its back']], () => { doRebuild(); frame(); });
+  const F = (k, label, list) => seg('body.' + k, label, list);
+  const FB = [['skin', 'Skin'], ['raw', 'Raw'], ['bone', 'Bone']];
+  P.append(note('Measures are the model’s own, before <i>Overall size</i> scales the whole of it. Left and right are its own: its left is on your right as it faces you. A bloat takes its size, its head and its skin from here, and nothing else.'),
+    group('Plan'), plan, rest,
+    group('Size'), sl('scale', 'Overall size', 0.4, 3, 0.01, 'x'),
+    group('Flesh and bone'), F('limbL', 'Its left arm', FB), sl('reachL', 'Its left forearm, drawn out', 1, 2.5, 0.01, 'x'), F('limbR', 'Its right arm', FB), sl('reachR', 'Its right forearm, drawn out', 1, 2.5, 0.01, 'x'),
+    F('legs', 'Its legs', FB), F('trunk', 'Its trunk', [['skin', 'Skin'], ['raw', 'Raw'], ['ribs', 'Ribs out through it']]),
     group('Torso'), sl('torsoW', 'Width', 0.28, 0.9, 0.005, 'm'), sl('torsoD', 'Depth', 0.16, 0.5, 0.005, 'm'), sl('torsoL', 'Length', 0.4, 0.95, 0.005, 'm'),
     sl('shoulder', 'Shoulders set out', -0.05, 0.25, 0.005, 'm'), sl('hipW', 'Hips, joint to joint', 0.14, 0.6, 0.005, 'm'), sl('gut', 'Belly', 0, 1, 0.01, ''), sl('swell', 'Swollen all over (the bloat line)', 0, 1, 0.01, ''), sl('hunch', 'Hunch', 0, 0.9, 0.01, 'deg'),
     group('Head'), seg('body.head', 'Face', [['face', 'A face'], ['skull', 'Skull, fused and blind']]), sl('headSize', 'Size', 0.7, 1.6, 0.01, 'x'), sl('headW', 'Width', 0.7, 1.5, 0.01, 'x'), sl('headH', 'Length', 0.7, 1.6, 0.01, 'x'),
@@ -1602,7 +1642,7 @@ const LEGS = [['full', 'Full'], ['rolled', 'Rolled'], ['torn', 'Torn at knee'], 
 {
   const P = $('p-dress'), sg = (k, ...a) => seg('dress.' + k, ...a);
   const kit = el('div', 'checks');
-  kit.append(...[['badge', 'Badge'], ['epaulettes', 'Epaulettes'], ['radio', 'Radio'], ['lanyard', 'Lanyard and card'], ['torch', 'Flashlight']].map(([k, t]) => check('dress.' + k, t)));
+  kit.append(...[['badge', 'Badge'], ['epaulettes', 'Epaulettes', 1], ['radio', 'Radio', 1], ['lanyard', 'Lanyard and card'], ['torch', 'Flashlight']].map(([k, t, f]) => (f ? fineOnly : x => x)(check('dress.' + k, t))));
   P.append(note('Half the night shift came back changed, and none of them dress for work. Where a leaf, a stalk or roots come out under cloth, the cloth is torn round it.'),
     group('Shirt'),
     sg('shirt', 'Shirt', [['uniform', 'Buttoned'], ['open', 'Open'], ['tornL', 'Torn off its left'], ['tornR', 'Torn off its right'], ['vest', 'Vest'], ['tied', 'Tied at waist'], ['none', 'None']]),
@@ -1612,12 +1652,13 @@ const LEGS = [['full', 'Full'], ['rolled', 'Rolled'], ['torn', 'Torn at knee'], 
     group('Trousers and boots'),
     sg('legL', 'Its left leg', LEGS), sg('legR', 'Its right leg', LEGS),
     sg('bootL', 'Its left foot', [['boot', 'Boot'], ['bare', 'Bare']]), sg('bootR', 'Its right foot', [['boot', 'Boot'], ['bare', 'Bare']]),
-    sg('belt', 'Belt', [['on', 'Buckled'], ['loose', 'Hanging open'], ['off', 'Off']]),
+    fineOnly(sg('belt', 'Belt', [['on', 'Buckled'], ['loose', 'Hanging open'], ['off', 'Off']])),
     group('Head'),
     sg('cap', 'Cap', [['none', 'None'], ['on', 'On'], ['askew', 'Askew'], ['back', 'Pushed back']]),
     sg('hair', 'Hair', [['short', 'Short'], ['thin', 'Thinning'], ['none', 'Shaved']]),
-    group('Kit'), kit,
-    slider('dress.stain', 'Sap stains', 0, 1, 0.01, ''),
+    group('Kit'), note('Plain: one thing on it at most. The low-poly kit draws a badge, the card, the cap and the flashlight; the rest of the kit, the belt and the stains only with <i>Fine detail</i>.'), kit,
+    fineOnly(slider('dress.stain', 'Sap stains', 0, 1, 0.01, '')),
+    check('dress.briefs', 'Underwear, under no trousers'),
     check('dress.tear', 'Cloth torn where the plant comes through'));
 }
 /* Growth */
@@ -1667,6 +1708,7 @@ function syncUI() {
     document.querySelectorAll(`button[id^="c-dress-sleeve${side}-"]`).forEach(b => { b.disabled = !on; });
   }
   document.querySelectorAll('button[id^="c-dress-vestCol-"]').forEach(b => { b.disabled = sh !== 'vest'; });
+  document.querySelectorAll('button[id^="c-body-rest-"]').forEach(b => { b.disabled = S.d.body.plan !== 'bloat'; });
   document.querySelectorAll('button[id^="c-dress-shirtCol-"]').forEach(b => { b.disabled = sh === 'vest' || sh === 'none'; });
   const anyLeg = D.legL !== 'bare' || D.legR !== 'bare';
   document.querySelectorAll('button[id^="c-dress-belt-"]').forEach(b => { b.disabled = !anyLeg; });
@@ -1755,6 +1797,7 @@ document.querySelectorAll('[data-light]').forEach(b => b.addEventListener('click
 $('person').addEventListener('click', () => { S.person = !S.person; syncButtons(); });
 $('fine').addEventListener('click', () => {
   S.fine = FINE = !S.fine;
+  document.body.classList.toggle('fine', FINE);
   try { localStorage.setItem('rs-mutant-fine', FINE ? '1' : ''); } catch {}
   rebuild();
   if (S.lineup) { toggleLineup(); toggleLineup(); }
@@ -2295,6 +2338,7 @@ function loop(now) {
   rebuild(); syncUI(); commit(); renderSel(); renderHint(); syncButtons();
   let tab = 'body';
   try { S.fine = FINE = !!localStorage.getItem('rs-mutant-fine'); } catch {}
+  document.body.classList.toggle('fine', FINE);
   try { tab = localStorage.getItem('rs-mutant-tab') || 'body'; S.lgroup = localStorage.getItem('rs-mutant-lgroup') || 'all'; } catch {}
   showTab(TABS.includes(tab) ? tab : 'body');
   resize();
