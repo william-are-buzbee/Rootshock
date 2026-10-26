@@ -27,6 +27,7 @@ export const DEATH: Record<Ai, string> = {
   grabber: 'The doorway closed its hands.',
   bloat: 'It sat on you. It did not seem to notice.',
   patient: '',
+  dead: '',
 };
 
 /* ---- hurting you */
@@ -305,10 +306,11 @@ export function shoved(sim: Sim, m: Mutant): void {
   else if (m.ai === 'skitter' && m.state === 'idle') { m.state = 'hunt'; m.lost = 0; m.bt = 0; step_(sim, m, 'skit'); }
 }
 
-/** dev (the arena): every one of the cast dead at once; with none left alive, the dead taken away */
+/** dev (the arena): every one of the cast dead at once; with none left alive, the dead taken away, but for the station's
+ *  own (they are the level's, and some have something on them) */
 export function killAll(sim: Sim): void {
   if (sim.cast.some(m => !m.dead)) { for (const m of sim.cast) if (!m.dead) kill(sim, m); return; }
-  for (const m of sim.cast) { m.rag = null; m.away = true; }
+  for (const m of sim.cast) if (m.ai !== 'dead') { m.rag = null; m.away = true; }
 }
 
 function kill(sim: Sim, m: Mutant, blow: Killing | null = null, yours = true): void {

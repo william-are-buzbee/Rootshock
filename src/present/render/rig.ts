@@ -68,6 +68,8 @@ export const RIG: Record<string, { parts: Part[]; rest?: number }> = {
 };
 /* the other patient is built as the husk is (render/castView.ts), and goes loose as it does */
 RIG.patient = RIG.husk;
+/* so are the station's dead (castView.ts, deadModel) */
+RIG.dead = RIG.husk;
 
 interface Bound {
   obj: THREE.Object3D;

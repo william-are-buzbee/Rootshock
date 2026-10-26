@@ -1,6 +1,6 @@
 import { PI, TAU } from '../../core/math';
 import { DUG } from '../materials';
-import { P, bx, colT, door, holds, item, owns, pick, rnd, room, stain, stairs, use, type Floor, type PRoom, type RoomOpts } from './plan';
+import { P, bx, colT, door, holds, item, mut, owns, pick, rnd, room, stain, stairs, use, type Floor, type PRoom, type RoomOpts } from './plan';
 
 /* The station's furniture, clutter and fittings (the first engine's, ported as they were, so the station looks as it
    did), in plan metres; their randomness comes from the level's own seed. */
@@ -91,11 +91,13 @@ export function gore(F: Floor, x: number, z: number, n: number): void {
 export function eggs(F: Floor, x: number, z: number, n: number): void {
   for (let k = 0; k < n; k++) P(F, 'ico', x + rnd(-0.6, 0.6), z + rnd(-0.6, 0.6), rnd(0.3, 0.45), rnd(0.45, 0.65), rnd(0.3, 0.45), pick([0xb9a98a, 0xa89a80, 0xc4b08e]), { c: 0 });
 }
+/** one of the station's dead where it fell, its middle at (x, z) and dressed in `c`: lying north to south (ns), its head
+ *  to the north, or west to east, its head to the west; on its back in the blood it lost. A body like any other, which a
+ *  walk or a blow moves (sim/cast.ts, MT.dead): laid by its feet, a metre from its middle, and knowing where that was, so
+ *  a search there is of it (sim/interact.ts) */
 export function body(F: Floor, x: number, z: number, c: number, ns: boolean): void {
-  const a = (ox: number, oz: number, sx: number, sy: number, sz: number, cc: number) => bx(F, x + (ns ? ox : oz), z + (ns ? oz : ox), ns ? sx : sz, sy, ns ? sz : sx, cc, { c: 0 });
   blood(F, x, z, 1.2);
-  a(0, 0, 0.48, 0.2, 0.62, c); a(-0.13, 0.62, 0.17, 0.15, 0.75, 0x30333a); a(0.14, 0.58, 0.17, 0.15, 0.7, 0x30333a); a(0.36, -0.05, 0.12, 0.11, 0.6, c);
-  P(F, 'ico', x + (ns ? 0 : -0.45), z + (ns ? -0.45 : 0), 0.24, 0.22, 0.26, 0xa58a78, { c: 0 });
+  mut(F, 'dead', ns ? x : x + 1, ns ? z + 1 : z, { yaw: ns ? 0 : PI / 2, c, lies: [x, z] });
 }
 export function corpse(F: Floor, x: number, z: number, c: number, ns: boolean, o: Record<string, unknown>): void {
   body(F, x, z, c, ns);

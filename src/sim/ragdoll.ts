@@ -141,6 +141,9 @@ SKEL.patient = { ...SKEL.husk, pts: weigh(55, {
     shL: [-0.25, 1.46, 0, 0.11, 8], shR: [0.25, 1.46, 0, 0.11, 8], head: [0, 1.66, 0, 0.13, 6],
     handL: [-0.25, 0.78, 0, 0.05, 3], handR: [0.25, 0.78, 0, 0.05, 3],
   }) };
+/* the station's dead, the guards and the residents (sim/cast.ts, MT.dead): a person, as the other patient is, at a
+   grown person's weight */
+SKEL.dead = { ...SKEL.patient, pts: weigh(75, SKEL.patient.pts) };
 
 /** a skeleton made ready: points by number, and its sticks with their lengths */
 export interface Bones {
@@ -322,6 +325,19 @@ export function layRag(m: Mutant): Rag | null {
   if (!m.body || !SKEL[m.model] || !Number.isFinite(m.body.mass)) return null;
   const B = bones(m.model), p: number[] = [];
   for (let i = 0; i < B.names.length; i++) p.push(...place(B.rest[i * 3], B.rest[i * 3 + 1], B.rest[i * 3 + 2], m.yaw, m.x, m.y, m.z, true));
+  return { kind: m.model, p, q: p.slice(), o: p.slice(), awake: false, still: 0, t: 0, woke: 0, heard: 99, age: 99 };
+}
+
+/** one of the station's dead, laid out where it was found: flat on its back, its feet where it stands and its head the
+ *  way its back is to, each point on the floor under it, asleep */
+export function layDead(m: Mutant, w: World): Rag | null {
+  if (!m.body || !SKEL[m.model]) return null;
+  const B = bones(m.model), p: number[] = [], c = Math.cos(m.yaw), s = Math.sin(m.yaw);
+  for (let i = 0; i < B.names.length; i++) {
+    /* turned over backward a quarter turn about its feet: how tall a point stood is how far behind them it lies */
+    const x = B.rest[i * 3], z = -B.rest[i * 3 + 1], px = m.x + x * c + z * s, pz = m.z - x * s + z * c, r = B.r[i];
+    p.push(px, w.groundBelow(rect(px, pz, r * 0.6, r * 0.6), m.y + 0.5, passes) + r, pz);
+  }
   return { kind: m.model, p, q: p.slice(), o: p.slice(), awake: false, still: 0, t: 0, woke: 0, heard: 99, age: 99 };
 }
 

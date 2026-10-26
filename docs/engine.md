@@ -1032,14 +1032,47 @@ walked through).
   body lying in someone still woke and slept again every half second, drawn as its parts and laid as one mesh by
   turns.
 - **Not built**: stepping over or onto a body (the walker still goes through it); the walker slowed by it (a corpse is
-  still in nobody's way). The station's own dead, laid out where they were found (`corpse` and `body` in
-  `content/build/furnish.ts`: the guards, the residents), are boxes on the floor, not bodies, and are not moved by
-  anything.
+  still in nobody's way). The station's own dead were boxes on the floor, moved by nothing (since, bodies: *The
+  station's dead, as built*).
 - **Tests**: `test/ragdoll.test.ts`, *corpses stay in the world*: a husk's body walked and run into goes between 3 and
   30 cm; brushed past, its limbs are swept more than a quarter of a metre and its trunk less than a fifth; a thresher's
   goes less than a husk's, a worm's more, none a metre; one stood in is left as it lies, asleep; a husk walking
   through one kicks it too, as little. The test of a body drawn as one mesh and woken counts its frames awake, since it
   is asleep again within the second and a half it was held awake for before.
+
+### The station's dead, as built
+
+Asked for by the owner, once the cast's corpses could be kicked: the guards and residents the levels lay out where
+they fell (the officer, Reyes, the deputy director, the drowned sergeant, the engineer, the residents in their flats,
+the dead in the gore rooms and the chapel) were boxes on the floor beside a pool of blood, which nothing moved and you
+walked through as through a rug. Now each is a body like any other.
+
+- **One of the cast, dead before you came** (`MT.dead` in `sim/cast.ts`; `body` in `content/build/furnish.ts`). A level
+  lays one where the boxes were, by its feet, a metre from its middle (north to south, its head to the north, or west
+  to east, its head to the west), and says where its middle was (`opts.lies`) and what it wore (`opts.c`). Made, it is
+  dead at once: out of the world, as the dead are, and laid flat on its back with each of its points on the floor under
+  it, asleep (`layDead` in `sim/ragdoll.ts`). So a walk kicks it, a blow knocks it, a door or a platform puts it aside,
+  and a body falling on it lies on it, as with any corpse.
+- **A person** (`SKEL.dead`): the other patient's skeleton at a grown person's 75 kg, drawn as it is, part for part
+  (`deadModel` in `render/castView.ts`; `RIG.dead`): slacks and shoes, a shirt in what the level says they wore (a
+  guard in Security's uniform, badge and epaulettes), grey in the face, the eyes near shut and the jaw dropped, the shirt
+  stiff with dried blood front or back. It does not bleed again: its blood is the level's pool under it, laid as
+  before.
+- **Searched where it lies.** A body to search is still a use of the level's (`UseDef`, so the progression checker
+  and the validator read it as they did), and is the one of the dead laid out from its spot: the prompt and its reach
+  go where the body is, kicked or knocked (`interact.ts`).
+- **The living unchanged.** The dead come after the living in a level's cast (`compile` in `content/build/plan.ts`),
+  so the living keep their numbers, and draw nothing from the run's chance as they are made, so the living do as they
+  did: every test of the cast's doings, the opening's among them, ran unchanged. The dev key 0 takes away the cast's
+  dead but not the station's (they are the level's, and some have something on them).
+- **Saved** as any corpse is (`Save.cast[].rag`). A level's cast is more by its dead, so saves are version 12, and a
+  run saved before this does not load.
+- **Looked at** in a browser (the upper station: the officer in his uniform on his blood, the deputy director in
+  hers, each with its label on it).
+- **Tests**: `test/dead.test.ts`: on every level, each lies where it was laid, on the floor, asleep and out of the
+  world, and each body to search is one of them, searched where it lies; the living come first; the officer walked
+  into is kicked a few centimetres, searched where it went, and saved there; drawn, laid as one mesh, and no pool of
+  its own however it settles.
 
 ---
 

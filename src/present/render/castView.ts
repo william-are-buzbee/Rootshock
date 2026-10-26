@@ -125,8 +125,44 @@ function patientModel(mat: THREE.Material): Model {
   return { g, b, hd, legs, shins, arms, gore, graft };
 }
 
+/* the station's dead, the guards and the residents (sim/cast.ts, MT.dead): dressed as they were (a guard in Security's
+   uniform, the rest in what the level says they wore), days dead, grey in the face, the shirt stiff with what came out
+   of them. Built as the other patient is, part for part, so it lies as its points do (rig.ts); never stood up */
+const DEAD = 0xa58a78, SLACKS = 0x30333a, DRIED = 0x2e0909;
+function deadModel(mat: THREE.Material, m: Mutant): Model {
+  const R = seeded(m.id + 1), g = new THREE.Group(), cl = m.wear || 0x4a5560, guard = cl === UNIFORM, legs: O3[] = [], shins: O3[] = [];
+  for (const s of [-1, 1]) {
+    const l = grp(g, s * 0.1, 0.9, 0), k = grp(l, 0, -0.45, 0);
+    mk(l, mat, 'box', SLACKS, 0.15, 0.45, 0.16, 0, -0.225, 0); mk(k, mat, 'box', SLACKS, 0.14, 0.45, 0.15, 0, -0.225, 0); mk(k, mat, 'box', DARK, 0.14, 0.08, 0.26, 0, -0.42, 0.04);
+    legs.push(l); shins.push(k);
+  }
+  const b = grp(g, 0, 0.9, 0);
+  mk(b, mat, 'box', cl, 0.4, 0.6, 0.23, 0, 0.3, 0); mk(b, mat, 'box', BELT, 0.41, 0.08, 0.24, 0, 0.05, 0);
+  if (guard) { mk(b, mat, 'box', 0x9a8a50, 0.06, 0.07, 0.02, -0.12, 0.44, 0.12); for (const s of [-1, 1]) mk(b, mat, 'box', 0x1f252e, 0.13, 0.025, 0.2, s * 0.15, 0.6, 0); }
+  /* where it was opened, front or back, and what ran from it down the shirt */
+  merged(b, mat, G => {
+    const z = R.rnd(0, 1) < 0.5 ? 0.118 : -0.118;
+    mk(G, mat, 'box', DRIED, 0.2, 0.22, 0.012, R.rnd(-0.08, 0.08), R.rnd(0.22, 0.4), z);
+    mk(G, mat, 'box', DRIED, 0.08, 0.26, 0.012, R.rnd(-0.1, 0.1), 0.12, z);
+    mk(G, mat, 'box', DRIED, 0.12, 0.1, 0.012, R.rnd(-0.12, 0.12), R.rnd(0.1, 0.5), -z);
+  });
+  mk(b, mat, 'cyl', DEAD, 0.1, 0.12, 0.1, 0, 0.64, 0);
+  const hd = grp(b, 0, 0.76, 0), hair = R.pick([0x2a2420, 0x4a3a2c, 0x6a6058, 0x1c1a18]);
+  mk(hd, mat, 'ico', DEAD, 0.21, 0.26, 0.23, 0, 0, 0); mk(hd, mat, 'ico', hair, 0.23, 0.12, 0.25, 0, 0.09, -0.02);
+  /* the eyes shut, near enough; the jaw dropped */
+  for (const s of [-1, 1]) mk(hd, mat, 'box', 0x6a5448, 0.05, 0.012, 0.02, s * 0.05, 0.02, 0.108);
+  mk(hd, mat, 'box', 0x3a2622, 0.06, 0.035, 0.02, 0, -0.075, 0.106);
+  const arms: O3[] = [];
+  for (const s of [-1, 1]) {
+    const a = grp(b, s * 0.25, 0.56, 0); mk(a, mat, 'box', cl, 0.11, 0.34, 0.12, 0, -0.17, 0); mk(a, mat, 'box', DEAD, 0.07, 0.34, 0.07, 0, -0.5, 0);
+    arms.push(a);
+  }
+  return { g, b, hd, legs, shins, arms };
+}
+
 export const BUILD: Record<string, (mat: THREE.Material, m: Mutant) => Model> = {
   patient: mat => patientModel(mat),
+  dead: (mat, m) => deadModel(mat, m),
   /* staff, early in the Regimen: still a person's outline, one arm already something else. Security's own are the
      changed, and look it (changed(), below) */
   husk(mat, m) {
@@ -515,7 +551,8 @@ export class CastView {
       const m = this.sim.cast[i], mat = dynamicMaterial(), M = BUILD[m.model](mat, m);
       const rig = rigOf(m, M, { sim: this.sim, dt: 0, L: this.L, frame: 0 });
       this.scene.add(M.g);
-      this.shown.push({ m, M, mat, blood: false, fall: 0, rig, loose: false, placed: false, lift: LIFT(m), fade: new Fade(M), was: SWITCHES(m), tilt: 0, baked: null, drawn: 'seen' });
+      /* the station's dead bled long ago: their blood is the level's (content/build/furnish.ts, body) */
+      this.shown.push({ m, M, mat, blood: m.ai === 'dead', fall: 0, rig, loose: false, placed: false, lift: LIFT(m), fade: new Fade(M), was: SWITCHES(m), tilt: 0, baked: null, drawn: 'seen' });
     }
   }
 

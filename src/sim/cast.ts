@@ -5,7 +5,7 @@ import { fall, makeBody, push, settle, type Body } from './body';
 import { makeFields, refreshFields, type Walker } from './fields';
 import { DOWN, FALL, MOVES, POISE, regain } from './moves';
 import type { Sim } from './sim';
-import type { Rag } from './ragdoll';
+import { layDead, type Rag } from './ragdoll';
 import { away, chargeMove, chase, drive, go, rnd, roomWp, step_, turnTo } from './cast/move';
 import { hears, inBeam, seeP, sight } from './cast/senses';
 import { battered, beginBlow, blowKind, blowStep, frontOf, inStart, strikes, type Blow } from './cast/blows';
@@ -26,7 +26,7 @@ export { blowAt, blowKind, DEATH, hitMutant, inBlow, killAll, shoved, type Blow,
 export { answer, drill, free, type Drill } from './cast/husk';
 export { BANG, BEAT, BLOOD, GRAFT, leftGrafted, noiseAt, PEER, READER, ROUND, stutters, TORCH, torchRay } from './cast/round';
 
-export type Ai = 'husk' | 'skitter' | 'bloat' | 'thresher' | 'worm' | 'swimmer' | 'grabber' | 'patient';
+export type Ai = 'husk' | 'skitter' | 'bloat' | 'thresher' | 'worm' | 'swimmer' | 'grabber' | 'patient' | 'dead';
 
 interface Stats {
   ai?: Ai; model?: string; green?: boolean;
@@ -57,6 +57,9 @@ export const MT: Record<string, Stats> = {
   /* the other patient in the isolation suite (world.md §8, the opening): awake for days, weak, and no danger to anyone */
   patient: { hp: 20, r: 0.3, cr: 0.28, mass: 1, kg: 55, acc: 6, h: 1.75 },
   vine: { ai: 'grabber', model: 'grabber', green: true, hp: 30, r: 0.4, cr: 0, mass: 1, kg: Infinity, acc: 0, h: 0, fixed: true },
+  /* the station's dead, the guards and residents found where they fell (content/build/furnish.ts, body): dead before you
+     came, laid out on the floor as bodies like any other, which a walk or a blow moves */
+  dead: { hp: 1, r: 0.3, cr: 0.28, mass: 1, kg: 75, acc: 0, h: 1.75 },
 };
 
 /** a ride on a platform: which, which way, and the spot to step off to */
@@ -155,6 +158,8 @@ export interface Mutant {
   away: boolean;
   /** steps it has stood still: a body at rest is not asked about its footing */
   still: number;
+  /** what one of the station's dead was wearing: its shirt's colour (MT.dead), from the level */
+  wear: number;
 }
 
 const dt = STEP;
@@ -165,9 +170,10 @@ export function makeCast(sim: Sim, defs: MutantDef[]): Mutant[] {
 
 /** one of the cast, as a level places it, numbered `id` */
 function makeMutant(sim: Sim, def: MutantDef, id: number): Mutant {
-  const rnd = (a: number, b?: number) => sim.rng.range(a, b);
+  /* the station's dead draw nothing from the run's chance, so what lies about does not change what the living do */
+  const S = MT[def.type], dead = def.type === 'dead', rnd = (a: number, b?: number) => (dead ? a : sim.rng.range(a, b));
   {
-    const S = MT[def.type], o = def.opts as Record<string, number | undefined>;
+    const o = def.opts as Record<string, number | undefined>;
     /* every body stops every other, yours too (engine.md §6, F1b); they stop short of you, and shove you when they do not */
     const body = S.fixed ? null : makeBody(sim.world, def.x, def.y, def.z, S.cr, S.h, S.kg);
     const room = sim.world.roomAt(def.x, def.y + 0.5, def.z)?.id ?? -1;
@@ -183,8 +189,14 @@ function makeMutant(sim: Sim, def: MutantDef, id: number): Mutant {
       hide: (def.opts.hide as { x: number; z: number } | undefined) ?? null, drag: -1, trail: 0, graft: 0, grafted: false,
       wt: rnd(1, 5), wm: 0, wx: 0, wz: 0, tk: 0, lost: 0, bt: 0, burst: false, flee: 0, ct: rnd(6, 14), cdir: 0, tgt: false,
       grab: 0, tense: 0, blow: null, dest: -1, F: null, stk: 0, near: 1e9, fled: false, side: 0, ride: null, spot: -1,
-      mv: 0, d: 99, dp: 99, dy: 0, los: false, losAt: -99, hit: 0, stop: 0, poise: poiseOf(def.type, S.ai, !!o.big), pmax: poiseOf(def.type, S.ai, !!o.big), calm: 99, reel: 0, pat: 0, down: 0, rise: 0, acc: S.acc, drove: false, ph: rnd(9), dead: false, gone: 0, rag: null, away: false, still: 0,
+      mv: 0, d: 99, dp: 99, dy: 0, los: false, losAt: -99, hit: 0, stop: 0, poise: poiseOf(def.type, S.ai, !!o.big), pmax: poiseOf(def.type, S.ai, !!o.big), calm: 99, reel: 0, pat: 0, down: 0, rise: 0, acc: S.acc, drove: false, ph: rnd(9), dead: false, gone: 0, rag: null, away: false, still: 0, wear: o.c ?? 0,
     };
+    /* laid out where it was found: out of the world, as the dead are, and lying as its points do */
+    if (dead) {
+      m.dead = true;
+      sim.world.dyn.splice(sim.world.dyn.indexOf(body!.dyn), 1);
+      m.rag = layDead(m, sim.world);
+    }
     return m;
   }
 }
@@ -359,6 +371,8 @@ const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
     } else m.tense = Math.max(0, m.tense - dt * 2);
   },
   patient,
+  /* the station's dead: dead, and never asked */
+  dead() {},
 };
 
 /** a step of everything alive */
