@@ -1213,7 +1213,8 @@ of their health, and are otherwise their young's.
   wall, it hurts itself and stands dazed. Never in its first seconds after you. Anything that makes it flinch puts it off
   a charge. It uses the husks' way: no spot it can walk on any level has under 2 m of headroom (measured).
 - **The bush's line, old in it** (`plantold`): the changed's behaviour and the husk's rig at 1.15 times the size, 110 kg,
-  2.05 m, 110 health, poise 30; its own model (`plantOld`, `render/castView.ts`) and skeleton (`SKEL.plantold`). Its
+  2.05 m, 110 health, poise 30; the changed's model grown over (`changed(mat, m, K, over)`, `render/castView.ts`: at
+  `K` 1 and not over it is the changed's to the vertex, checked) and a grown husk skeleton (`SKEL.plantold`). Its
   gait is the husk's scaled to the bench's stride and steps (`gaitOf('husk', …, 0.33, 56)`: 0.33 m/s walking, 0.89
   after you), so its legs, footfalls and prints go at its own slow stride. Its temper (`TEMPER.plantold`): never runs,
   rests 8 to 20 s, stands still at a post. Its blow is the husk's. On main, on post by the street's planter

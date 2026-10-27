@@ -1470,10 +1470,11 @@ and drift. (The rules are §10's; this is how they add up.) Which line it is com
   once. Most in the Commons (four on the street, one in the Square), three on the plant's generator floor, and one in
   Cargo beside the young one at receiving: slide Cargo's door open by hand and it is heard down the bay, and the two of
   them come to it to look (a loud door: `DoorDef.loud`). (Three in Cargo, first; played, one was enough.)
-- **Built: the bush's line, old in it** (the bench's *Plant, old*): between Security's seven and the bush. Big, swollen
-  and stooped, the skin gone green, leaf in rows down the back, out of both shoulders, down the arms and starting on the
-  head, over the right of the face so one black eye still shows; what is left of a shirt; a pustule on the neck. The
-  changed's wits and their temper further into the stupor: it stands rooted, rests long, barely walks (0.33 m/s, the
+- **Built: the bush's line, old in it** (the bench's *Plant, old*): between Security's seven and the bush, and one of
+  them years on: drawn as the changed are, a head larger and grown over, the same leaf out of both sides of the neck and
+  both shoulders, in rows down the back and over the chest, out of the hips, the arms and the legs, on the crown and
+  over the right of the face, so one black eye still shows. (First drawn as the bench has it, the skin gone green and
+  stooped; the owner: an older version of the young, more covered and larger.) The changed's wits and their temper further into the stupor: it stands rooted, rests long, barely walks (0.33 m/s, the
   bench's stride), comes after you slowly, and does not run, however hurt. One, for now, in the Commons, rooted by the
   street's planter facing the way you come in. *To do (agreed):* a place of its own in the Commons, grown over, when
   the Commons is overhauled.
