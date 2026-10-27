@@ -1465,11 +1465,11 @@ and drift. (The rules are §10's; this is how they add up.) Which line it is com
   A husk grown a head taller, halfway gone to bone: the ribs out across a raw chest and the spine down the back, the
   right arm bone from the elbow and drawn out long to a point, the left raw, a face still and black-eyed, the jaw
   hanging, trousers torn off at the knee. Not a little thresher but a bigger husk: a husk's wits (doors, the breaker
-  drill), a harder blow from further, and more to lose, so it runs at half its health. Now and then, after you, with you
+  drill), a harder blow from further, and more to lose, so it runs once it is down to three fifths of its health. Now and then, after you, with you
   in sight a few metres off, it braces (heard: a growl) and charges, shorter and slower than the thresher, and never at
-  once. Most in the Commons (four on the street, one in the Square), three on the plant's generator floor, and three in
-  Cargo about the young one at receiving: slide Cargo's door open by hand and it is heard down the bay, and the four of
-  them come to it to look (a loud door: `DoorDef.loud`).
+  once. Most in the Commons (four on the street, one in the Square), three on the plant's generator floor, and one in
+  Cargo beside the young one at receiving: slide Cargo's door open by hand and it is heard down the bay, and the two of
+  them come to it to look (a loud door: `DoorDef.loud`). (Three in Cargo, first; played, one was enough.)
 
 ### Grafting as treatment
 

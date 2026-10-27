@@ -656,9 +656,9 @@ function buildCargo(D: Floor, T1: Floor, T2: Floor, T3: Floor): void {
   container(D, 134, 10, false, 2); container(D, 150, 10, false, 3); container(D, 180, 10.4, false, 2); container(D, 198, 8.8, true, 1); container(D, 158, -10, false, 1); container(D, 186, -10.8, false, 1);
   container(D, 166, 4.8, true, 2); container(D, 210, 5.2, true, 3); forklift(D, 142, 3, true); forklift(D, 192, 3.6, false);
   mut(D, 'husk', 150, -0.8); mut(D, 'husk', 182, 0.8);
-  /* three of the bone line's middle years about the young one at receiving, who make for the light with it when the door is
-     opened */
-  for (const [x, z] of [[146, -4.5], [154, -3.5], [156, 2.5]]) mut(D, 'bonemid', x, z);
+  /* one of the bone line's middle years beside the young one at receiving: the two come to the door when it is slid open
+     (its `loud`, above) */
+  mut(D, 'bonemid', 146, -4.5);
   for (const [x, z, n] of [[218, -6, 4], [224, 6, 5], [228, -10, 3], [232, 0, 5], [236, 10, 4], [222, -0.8, 3]]) eggs(D, x, z, n); gore(D, 226, 1, 4); blood(D, 230, -4, 2);
   mut(D, 'worm', 224, 2); mut(D, 'worm', 226, 4); mut(D, 'worm', 223, 4.8); mut(D, 'skitter', 232, -6); mut(D, 'husk', 214, 8, { post: 1, yaw: -PI / 2 });
   /* the tiers: thicker with every one */

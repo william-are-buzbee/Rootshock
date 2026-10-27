@@ -80,8 +80,8 @@ describe('two lines, one body', () => {
 });
 
 describe('the bone line, middle years', () => {
-  it('stand where they are put: most in the Commons, a few on the plant, three in Cargo by the young one', () => {
-    for (const [id, n] of [['main', 5], ['plant', 3], ['upper', 3]] as const) {
+  it('stand where they are put: most in the Commons, a few on the plant, one in Cargo by the young one', () => {
+    for (const [id, n] of [['main', 5], ['plant', 3], ['upper', 1]] as const) {
       const s = makeSim(levelDef(STATION, id), { seed: 7, station: STATION }), nav = s.fields!.nav;
       const mid = s.cast.filter(m => m.type === 'bonemid');
       expect(mid.length, id).toBe(n);
@@ -138,12 +138,12 @@ describe('the bone line, middle years', () => {
     expect(RUSH.bonemid.throws).toBeLessThan(9); // the thresher throws you 9 m/s
   });
 
-  it('Cargo\'s door slid open by hand is heard down the bay: the young one and the three come to it, not those deeper in', () => {
+  it('Cargo\'s door slid open by hand is heard down the bay: the young one and the one beside it come to it, not those deeper in', () => {
     const s = fresh(), d = s.doors.find(q => q.def.x0 > 107 && q.def.x1 < 111 && q.def.z1 < 1)!;
     s.player.fly = true; s.player.body.y += 200;
     const near = s.cast.filter(m => (m.type === 'bonemid' || (m.type === 'husk' && Math.abs(m.x - 150) < 1)));
     const deep = s.cast.find(m => m.type === 'husk' && Math.abs(m.x - 182) < 1)!;
-    expect(near.length).toBe(4);
+    expect(near.length).toBe(2);
     hold(s, 1); // as it is when you could get there: each of them where it stands
     doorAct(s, d); d.hold = 1e9;
     hold(s, 55);

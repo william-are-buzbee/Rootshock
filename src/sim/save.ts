@@ -31,8 +31,9 @@ import { makeSim, type Sim, type SimOpts } from './sim';
  *  11: the graft: the other patient grafted and left out cold, and the smear of their dragging
  *  12: the station's dead, bodies now: a level's cast is more by the guards and residents lying in it
  *  13: the skitter on four legs: a skitter's body is fewer points
- *  14: the bone line's middle years: Cargo's cast, main's and the plant's are more by them */
-export const SAVE_VERSION = 14;
+ *  14: the bone line's middle years: Cargo's cast, main's and the plant's are more by them
+ *  15: two of Cargo's taken out again */
+export const SAVE_VERSION = 15;
 
 /** copy the named fields of an object */
 const pick = <T extends object, K extends keyof T>(o: T, keys: readonly K[]): Pick<T, K> => {

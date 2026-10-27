@@ -1214,7 +1214,8 @@ of their health, and are otherwise their young's.
   a charge. It uses the husks' way: no spot it can walk on any level has under 2 m of headroom (measured).
 - **Loud doors** (`DoorDef.loud`): a big door slid open by hand is heard this far through the air, and those at rest in
   earshot come to it (`noiseAt`, which, for such a door, makes their search as long as the walk there). Cargo's, onto its
-  dark bay, at 60 m: the young one at receiving and the three about it walk the forty metres to it, those deeper in stay.
+  dark bay, at 60 m: the young one at receiving and the middle-years beside it walk the forty metres to it, those deeper
+  in stay.
   A test of Cargo's platform holds the cast still now, as the door it opens brings them.
 - **Tests**: `test/lines.test.ts`.
 
