@@ -802,7 +802,7 @@ function buildHub(B: Floor, D: Floor, T1: Floor, T2: Floor): void {
   bx(D, 33.7, -17.875, 0.06, 2.2, 1.75, TILE);
   bx(D, 32.85, -18.6, 0.3, 0.06, 0.3, 0x8a8e8c, { y: 2.3, c: 0 }); bx(D, 32.85, -18.72, 0.06, 0.06, 0.06, 0x8a8e8c, { y: 2.3, c: 0 }); // the head, off the wall
   P(D, 'cyl', 32.85, -17.9, 0.3, 0.01, 0.3, 0x3a3d40, { c: 0 }); // the drain
-  bx(D, 32.85, -17.02, 1.66, 0.04, 0.04, 0x8a8e8c, { y: 2.2, c: 0 }); bx(D, 32.35, -17.03, 0.6, 2.05, 0.02, 0xc8d4d0, { y: 0.15, c: 0 }); // its rail, the curtain half across
+  bx(D, 32.85, -17.02, 1.66, 0.04, 0.04, 0x8a8e8c, { y: 2.2, c: 0 }); bx(D, 32.35, -17.03, 0.6, 2.05, 0.02, 0x8fb0a4, { y: 0.15, c: 0 }); // its rail, the curtain half across
   bx(D, 33.64, -17.4, 0.06, 0.04, 0.04, 0xc9a227, { y: 1.6, c: 0 }); // the pull handle, yellow
   use(D, 'look', 32.85, -17.6, 1.4, { label: 'Decontamination shower', text: 'Pull the handle and stand under it a full minute. Hung beside it, stencilled: EVERYONE. EVERY TIME.' });
   /* where blood was drawn: the chair, its arm out for the needle, and the trolley beside it, tubes in their rack */
@@ -826,7 +826,7 @@ function buildHub(B: Floor, D: Floor, T1: Floor, T2: Floor): void {
     bx(D, mx, -10.7, x1 - x0 - 0.2, 0.42, 0.4, 0x8a7a6a); // the bench
     bx(D, mx + 0.3, -10.54, 0.08, 0.04, 0.08, BR, { y: 1.7, c: 0 }); bx(D, mx + 0.3, -10.6, 0.3, 0.9, 0.06, GOWN, { y: 0.82, c: 0 }); // the hook, the gown
     if (k < 2) bx(D, mx - 0.15, -10.7, 0.4, 0.1, 0.32, [0x2c3440, 0x5a4a3a][k], { y: 0.42, c: 0 }); // folded clothes
-    bx(D, x0 + 0.2 + k * 0.1, -11.8, 0.3 + (k % 2) * 0.3, 1.95, 0.02, 0xc8d4d0, { y: 0.1, c: 0 }); // the curtain, drawn back
+    bx(D, x0 + 0.2 + k * 0.1, -11.8, 0.3 + (k % 2) * 0.3, 1.95, 0.02, 0x8fb0a4, { y: 0.1, c: 0 }); // the curtain, drawn back
   }
 
   /* the lobby's washrooms, off its east wall where a hotel puts them: stone and bronze like the lobby, a walnut pair to
