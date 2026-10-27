@@ -70,6 +70,10 @@ export const RIG: Record<string, { parts: Part[]; rest?: number }> = {
 RIG.patient = RIG.husk;
 /* so are the station's dead (castView.ts, deadModel) */
 RIG.dead = RIG.husk;
+/* and the bone line's middle years, a husk grown (castView.ts, boneMid) */
+RIG.bonemid = RIG.husk;
+/* and the bush's line, old in it (castView.ts, plantOld) */
+RIG.plantold = RIG.husk;
 
 interface Bound {
   obj: THREE.Object3D;

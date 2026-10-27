@@ -578,6 +578,61 @@ corpse worth throwing.
   pipe; the baton takes one each side for a fifth of your health, and dies to two in front of it.
 - **Tests**: `test/momentum.test.ts`, *the cast on their own feet*.
 
+### How the cast move, as built
+
+The cast moved by their own feet already (above), but what each did with them was the husk's, or written into each
+behaviour as it came: every pace a number in the middle of the code (1.3 for a husk's round, 3.5 after you, 4.3 for a
+big skitter), every kind turning the same way, footfalls timed in each behaviour, the nav graph's three kinds of body
+in a type, an eye no higher than a person's. A new kind meant a change to each of them. Now how a kind moves is rows,
+and what it does with them is the behaviour's:
+
+- **A gait** (`GAIT`, `sim/cast/gait.ts`): its paces by name (`walk`, and any others its behaviour asks for: `hunt`,
+  `flee`, `search`, `charge`), how fast it changes pace (`acc`, out of `MT`), how it turns, and its feet (the sound, the
+  time between footfalls walking and going fast). A behaviour asks `pace(m, 'hunt')`; a pace a kind has none for is its
+  walk. A kind with no row takes its behaviour's (the rootworm the worm's), a big one its own if there is one
+  (`bigSkitter`), a fixed one none. The night round is the husk's row, slower to get going and slower after you.
+- **Its own pace, from the level**: `walk` (m/s) in `mut()`'s options scales every pace of its kind's to it, the hunt
+  with the walk, so a slow one is slow at everything; and `steps` (a minute, walking) its cadence, from which its
+  stride follows. Without `steps`, a slower one takes fewer steps and shorter, each by the square root of how much
+  slower. Its footfalls come as often as its steps; the husk's walk is drawn (`ANIM.husk`) and its prints laid
+  (`render/prints.ts`) by its stride and cadence against its kind's (`Gait.stride`, `cadence`), so a slow one shuffles
+  rather than skating; it rides on and off a platform as much slower (`RIDE`). Security's seven have the bench's
+  (`mockups/mutants.html`): 0.25 to 1 m/s and 50 to 100 steps a minute, against the 1.3 the rest walk (`upper.ts`).
+- **Held up, by distance** (`ROAM.held`, `heldM`): a roam gave its route up after 1.5 s coming no nearer, and nearer is a
+  spot nearer, a metre: a husk at 0.7 m/s often takes longer than that, and gave up its route every couple of metres, and
+  one at 0.25 would never have got anywhere. It is held up now after as long as 1.95 m takes it (what a husk walks in
+  1.5 s), and 1.5 s at least, so nothing at the old paces changed.
+- **Walking where it faces** (`heading`, rad/s): for a big body. It turns toward its way no faster than that, goes only
+  as much of its pace as it faces the way, and turns where it stands to a way behind it. A husk, without it, steps any
+  way at once and turns as it goes, as every kind did; no kind has it yet.
+- **A way** (`WAYS`, `sim/fields.ts`; §7): what it needs and can do to get about. `MT.way` names it; by default it is
+  worked out from the flags, as before (`noDoors` big, `opens` hands, else crawl). Each behaviour follows its own way's
+  field (`own`, `cast/move.ts`), not a field named in its code.
+- **Wandering** (`wander`, `cast/move.ts`): five behaviours ambled about where they lived, each with its own copy of
+  the same few lines. One now, with how each does it in a table (`IDLE`, `sim/cast.ts`): how often, how far from where
+  it started or anywhere in its room, and for how long.
+- **Its eye** (`MT.eye`, `Mutant.eye`): by default as it was, a little below the top of its body and no higher than
+  1.6 m. A tall one can be given its own.
+- **What did not change**: how anything moves. `test/probes/trace.probe.ts` ran every level, as it begins and with
+  everything on, the opening, and each kind in the arena, a step at a time, before and after: the same, to the bit, but
+  for one thing. A night round put down in the arena with no round went after you at a husk's pace, because its
+  slowness was keyed on having a round; it is its kind's now. In the game it always has a round.
+- **A new kind** is then: a row in `MT` (its body, `ai` for the behaviour it shares, `model`); a row in `GAIT` if it
+  moves unlike that behaviour's kind; a row in `WAYS` if it gets about unlike any there (by its headroom, width, step,
+  drop and doors: one it fits, which a test holds it to); and, if it fights, its blow
+  (`MOVES`, `blowKind`), poise (`POISE`) and death line (`DEATH`). A behaviour of its own is a function in `AI`
+  (`sim/cast.ts`), and what it does when hit or walked into is in `hitMutant` and `shoved` (`cast/blows.ts`). Drawn, it
+  is a model in `BUILD` and `ANIM` (`render/castView.ts`); gone loose, a skeleton in `SKEL` (`sim/ragdoll.ts`);
+  walking, prints in `GAIT` (`render/prints.ts`).
+- **Not yet**: the fight's part of a kind (its blow, its poise, what it does when hit) is still in switches on its
+  behaviour. (How wide a body is, and the step it climbs and the drop it takes, are its way's now: §7, *Size, as built*.)
+- **Tests**: `test/gait.test.ts`. A kind made in the test from rows alone (tall, slow, walking where it faces, with the
+  husk's behaviour and a way of its own): it gets a field for its way where none walked it, keeps out of a passage too
+  low for it that a husk takes, goes after you at its own pace, turns no faster than its gait, and stands to turn when
+  you are behind it. A husk given its own pace is slow at everything, and one at 0.3 m/s keeps to its route the length
+  of a hall. Four tests that had a husk's 1.3 m/s in them (`cast.test.ts`, `eyes.test.ts`) ask it of each one's own pace.
+  With the seven slowed, the trace probe is the same as before on every level but the upper station.
+
 ### Bodies with physics, as built
 
 The cast's bodies are physical while they live (velocity, mass, shoves, slams, falls); their deaths were drawn: a model
@@ -1101,10 +1156,14 @@ As built in step 5 (`world/nav.ts`, `sim/fields.ts`):
   - **hands** (husks): any door a hand can work: not welded, panelled, jammed, heavy, locked or the lift's. A husk
     slides a dead light door open by hand and comes through;
   - **big** (bloat, thresher): no doors at all.
-  Headroom filters too: 1 m to crawl, 1.8 m for a husk, 2.2 m for the big ones.
-- **Flow fields to the player**, one for each kind of body and one for sound, by Dijkstra over the graph. One is
+  Headroom filters too: 1 m to crawl, 1.8 m for a husk, 2.2 m for the big ones. These three are rows of `WAYS`
+  (`sim/fields.ts`: headroom, doors none, under or by hand, whether it calls a platform); a kind that gets about unlike
+  any of them is a new row (§6, *How the cast move, as built*).
+- **Flow fields to the player**, one for each way walked and one for sound, by Dijkstra over the graph. One is
   refreshed each step in turn (about 2.5 ms each on the upper station's 7,600 spots), so each is at most four steps
-  old and no step pays for all of them. A roam (a husk keeping its rounds) gets a field of its own to a room lit as
+  old and no step pays for all of them. Every level keeps the three the first engine had; a way of any other row only
+  where some of the level's cast walk it (or one is put down there, in the arena), so a new way costs nothing where it
+  is not walked, and on a level where it is, each field is a step older. A roam (a husk keeping its rounds) gets a field of its own to a room lit as
   the power stands, one new route a step across the whole cast (`rounds`, `pickDest` in `sim/cast/move.ts`): of the lit
   rooms it can get to as the doors stand now (a locked door bars it) within `ROAM.reach`, one the fewest of the staff
   are in or making for, at random among those, so they keep apart. A room is its boxes of one name that join
@@ -1120,6 +1179,90 @@ As built in step 5 (`world/nav.ts`, `sim/fields.ts`):
 - **Fields are cheap** (step 6): each is made from arrays of who may enter which spot (no call per edge), only when you
   have moved or a door or platform has changed, and only as far out as anything could use it (90 m for a hunt, 40 for
   sound).
+
+### Two lines, one body, as built
+
+Security's changed and the Commons' husks were one kind, `husk`, told apart by whether it carried a card. They are two
+now (`husk`, `changed`; the night round is one of the changed), each knowing its line (`MT.line`: whose child it is,
+world.md §10), and one behaviour takes them by their temper (`TEMPER`, `cast/husk.ts`):
+
+| | the changed (bush) | the husks (bone) |
+|---|---|---|
+| `flee`: may run below this share of health | 0.4, as before | never |
+| `rest`: stands between rounds (s) | 3 to 10, as before | 0.5 to 2 |
+| `fidget`: at a post, shifts about it (m) | stands | 1.5 either way, at its `shift` pace (0.6 m/s) |
+| `rouse`: turning on you sets off its line in earshot (m of air) | none | 14 |
+
+A kind can have a temper of its own over its line's (`TEMPER[type]`): the bone line's middle years (`bonemid`) run at 0.6
+of their health, and are otherwise their young's.
+
+- **Drawn** by line, not by card: the bush's line as the changed (`changed()`), the bone line's as the husk.
+- **Rousing** (`rouse`): a sound field from the one that turned (noticed you, or was struck or walked into), out to
+  14 m; every other of its line in it not already after you, running, or stunned, turns too, and rouses in turn. On
+  main, walking the street a minute: three or four after you at once, four or five in all, where it was two.
+- **What did not change**: with the bone line given the changed's temper, the trace probe is the same to the bit on
+  every level and the opening, so the split alone changes nothing; the four rows are the whole of the difference.
+- **Dev**: key 6 in the arena puts down one of the changed; key 7 one of the bone line's middle years.
+- **The bone line's middle years** (`bonemid`): the husk's behaviour and the husk's rig, at 1.08 times the size, 105
+  kg, 1.95 m, 120 health, poise 35 (`POISE.bonemid`); its own model (`boneMid`, `render/castView.ts`) and skeleton
+  (`SKEL.bonemid`, the husk's `grown`, `sim/ragdoll.ts`). Its blow is the husk's from the bone arm (`MOVES.bonemid`:
+  28 harm against 20, reach 1.3 m against 1.0, a touch slower, harder to put off). Its gait walks the bench's stride
+  (1.15 m/s) and hunts at 3.8. Its charge (`RUSH`, `cast/husk.ts`; states `brace` and `rush`): after you, with you seen
+  3.5 to 9 m off and about level, every 4 to 9 s it may (a toss) brace 0.6 s, growling, and rush 1.1 s at most at 5.5
+  m/s, turning after you at 1.2 rad/s; into you, 22 harm, poise 30, thrown 5 m/s (the thresher: 7.4 m/s, 45, 9); into a
+  wall, it hurts itself and stands dazed. Never in its first seconds after you. Anything that makes it flinch puts it off
+  a charge. It uses the husks' way: no spot it can walk on any level has under 2 m of headroom (measured).
+- **The bush's line, old in it** (`plantold`): the changed's behaviour and the husk's rig at 1.15 times the size, 110 kg,
+  2.05 m, 110 health, poise 30; the changed's model grown over (`changed(mat, m, K, over)`, `render/castView.ts`: at
+  `K` 1 and not over it is the changed's to the vertex, checked) and a grown husk skeleton (`SKEL.plantold`). Its
+  gait is the husk's scaled to the bench's stride and steps (`gaitOf('husk', …, 0.33, 56)`: 0.33 m/s walking, 0.89
+  after you), so its legs, footfalls and prints go at its own slow stride. Its temper (`TEMPER.plantold`): never runs,
+  rests 8 to 20 s, stands still at a post. Its blow is the husk's. On main, on post by the street's planter
+  (85.5, 2.5). It fits the husks' way: no spot on it on main has under 2.15 m of headroom (measured). Dev key 8.
+- **Loud doors** (`DoorDef.loud`): a big door slid open by hand is heard this far through the air, and those at rest in
+  earshot come to it (`noiseAt`, which, for such a door, makes their search as long as the walk there). Cargo's, onto its
+  dark bay, at 60 m: the young one at receiving and the middle-years beside it walk the forty metres to it, those deeper
+  in stay.
+  A test of Cargo's platform holds the cast still now, as the door it opens brings them.
+- **Tests**: `test/lines.test.ts`.
+
+### Size, as built
+
+The graph is made for a husk: every spot, and the way between two, clear for a body 0.3 m in radius (`NAV_R`), that
+steps up 0.5 m and drops 2.5. A body bigger, or one that climbs or drops more or less, now has its own say:
+
+- **A way's size** (`WAYS`, `sim/fields.ts`): with its headroom, its radius (`r`), the step it climbs and the drop it
+  takes. Each way gets a mask over the graph once (`sized`): spots too low or too narrow for it, and the links it may not
+  take (too narrow, too high a step, too deep a drop). A way the graph is made for needs no mask; the three there are
+  need none, so they walk exactly as before.
+- **Where a wide body fits** (`fitting`, `world/nav.ts`): worked out once per level and radius, the first time something
+  that wide is on the level. A body fits at a spot if it can stand somewhere in the spot's square (on the highest floor
+  under it within a step: a stair's next tread, a slope's rise) with room over that to 2 m; and walks a link if it fits
+  at both ends and somewhere across the way between. Somewhere, not at the middle: the lattice puts every spot in a 2 m
+  corridor half a metre from a wall, and at the middle of its square a body 1.5 m across fits at none of them. So the
+  graph also keeps where in its square each fits (`Fit.at`), and a wide body follows its field to there, not to the
+  spot (`follow`, `cast/move.ts`). Tried and set aside: a circle at the spot's own floor height (every body wider than
+  a husk was cut off from most of every level by its stairs and slopes), and a body at the middle of the square only
+  (shut out of every 2 m corridor by the lattice).
+- **Its cost**: half a second for a husk's width on the upper station or main, two for a body 1.8 m across; once, on
+  the level it walks. Nothing on any level now pays it.
+- **Steps and drops**: the graph has links for the highest step and deepest drop any way takes (`Nav.most`; each link
+  knows the step it climbs, `Nav.climb`), and a way that takes less is masked off the rest. Sound goes over the steps
+  and drops a husk does, whatever else is walked. A body climbs what its way does (`Body.climb`, from `WAYS`, for the
+  step it walks up and the floor it follows down; yours and a husk's are 0.5).
+- **The ones there are**: the three ways keep the graph's 0.3 m. At their kinds' true widths (a husk 0.34, a skitter 0.4,
+  the thresher 0.5) husks lose nothing anywhere; skitters lose 27 spots on the upper station and 102 cut off on the
+  plant; the thresher 6 spots on main, where it lives, and 668 cut off in the cave, where it does not. Not worth
+  changing how they go, nor half a second on every level they are on. A test holds every kind to a way it fits, within
+  0.1 m, but for the thresher and the bloat (which keeps to its room and never asks the way).
+- **What did not change**: the trace probe is the same to the bit on every level, and again with a way added that climbs
+  1.2 m and drops 4 (so every level's graph has links for it): the three ways are masked off them, and go as before.
+- **Not yet**: no way of the game's is wider than the graph or climbs more; the first will be the big ones' (the bone
+  mother's, the bloats that walk). The headroom between two spots is not looked at, only at each. A wide body follows
+  the spots; it does not cut corners the way a smoother path would, and turns them as a husk does.
+- **Tests** (`test/gait.test.ts`, *size*): a kind 1.6 m across, made from rows, keeps out of a 1 m slot a husk goes down
+  and goes down a 2 m lane, its body too; climbs a 0.75 m ledge after you that a husk cannot, its body too; a way that
+  drops 0.4 m will not come down off it.
 
 ---
 

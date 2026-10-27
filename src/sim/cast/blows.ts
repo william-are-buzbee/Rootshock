@@ -1,4 +1,3 @@
-import { angLerp } from '../../core/math';
 import { STEP } from '../../core/loop';
 import type { Dyn } from '../../world/world';
 import { impulse } from '../body';
@@ -9,8 +8,10 @@ import type { Sim } from '../sim';
 import { knockRag, makeRag, RAG, REFLEX, type Killing } from '../ragdoll';
 import type { V3 } from '../sweep';
 import type { Ai, Mutant } from '../cast';
-import { drive, go, step_, turnTo } from './move';
+import { drive, go, step_, turnTo, turnToward } from './move';
+import { pace } from './gait';
 import { beaten } from './round';
+import { rouse, temperOf } from './husk';
 
 /* The cast's side of the fight (engine.md §6): what lands on you, taking turns at you, a blow wound up, thrown and
    recovered from, and what a blow, a fall or a wall does to one of them. */
@@ -75,7 +76,7 @@ export function waits(sim: Sim, m: Mutant): boolean {
 export function hover(sim: Sim, m: Mutant, ring: number): void {
   const p = sim.player.body, d = m.dp || 1, ux = (m.x - p.x) / d, uz = (m.z - p.z) / d;
   const a = m.id % 2 ? 0.35 : -0.35, c = Math.cos(a), sn = Math.sin(a);
-  go(sim, m, p.x + (ux * c - uz * sn) * ring, p.z + (ux * sn + uz * c) * ring, 1.3);
+  go(sim, m, p.x + (ux * c - uz * sn) * ring, p.z + (ux * sn + uz * c) * ring, pace(m, 'hover'));
   turnTo(sim, m, 8);
 }
 
@@ -97,7 +98,7 @@ export type BlowKind = Move;
 /** the blow this one throws, if it throws one */
 export function blowKind(m: Mutant): BlowKind | null {
   switch (m.ai) {
-    case 'husk': return MOVES.husk;
+    case 'husk': return (MOVES as Record<string, Move>)[m.type] ?? MOVES.husk; // its kind's own, if it has one
     case 'skitter': return m.big ? MOVES.bigSkitter : MOVES.skitter;
     case 'thresher': return MOVES.thresher;
     case 'worm': return MOVES.worm;
@@ -159,7 +160,7 @@ export function blowStep(sim: Sim, m: Mutant): boolean {
   /* at another of the cast: turned to them, and it lands where they are, for sure */
   const q = B.at === undefined ? null : sim.cast[B.at];
   if (q) {
-    if (B.ph !== 'after') m.yaw = angLerp(m.yaw, Math.atan2(q.x - m.x, q.z - m.z), Math.min(1, dt * K.turn));
+    if (B.ph !== 'after') turnToward(m, Math.atan2(q.x - m.x, q.z - m.z), K.turn);
     if (B.ph === 'wind' && B.t >= K.wind) { B.ph = 'strike'; B.t = 0; step_(sim, m, 'swing', K.big); }
     else if (B.ph === 'strike' && B.t >= K.strike) { B.hit = true; beaten(sim, q); B.ph = 'after'; B.t = 0; }
     else if (B.ph === 'after' && B.t >= K.rec) m.blow = null;
@@ -254,8 +255,10 @@ export function hitMutant(sim: Sim, m: Mutant, w: Hit, k = 1): void {
   said(`${m.down > 0 ? (v >= LAUNCH.dv ? 'thrown' : 'down') : R.r}  (poise ${hitPoise.toFixed(0)}, ${R.left.toFixed(0)}/${m.pmax} left)`);
   switch (m.ai) {
     case 'husk':
-      if (m.state === 'idle' || m.state === 'lurk') { m.state = 'hunt'; m.lost = 0; m.post = false; }
-      else if (m.hp < m.max * 0.4 && !m.fled && sim.rng.chance(0.5)) { m.state = 'flee'; m.st = 7; m.fled = true; m.blow = null; step_(sim, m, 'moan'); }
+      if (m.state === 'idle' || m.state === 'lurk') { m.state = 'hunt'; m.lost = 0; m.post = false; rouse(sim, m); }
+      /* braced to charge, or charging: put off it by anything that makes it flinch */
+      else if ((m.state === 'brace' || m.state === 'rush') && R.r !== 'none') m.state = 'hunt';
+      else if (m.hp < m.max * temperOf(m).flee && !m.fled && sim.rng.chance(0.5)) { m.state = 'flee'; m.st = 7; m.fled = true; m.blow = null; step_(sim, m, 'moan'); }
       if (R.r === 'stagger') step_(sim, m, 'moan');
       break;
     case 'worm': m.flee = 5; m.blow = null; break;
@@ -302,7 +305,7 @@ export function battered(sim: Sim, m: Mutant, over: number, r: { dmg: number; po
 /** you walked into it: what was not already after you is now */
 export function shoved(sim: Sim, m: Mutant): void {
   if (m.dead) return;
-  if (m.ai === 'husk' && m.state !== 'hunt' && m.state !== 'flee') { m.state = 'hunt'; m.lost = 0; m.post = false; m.dest = -1; step_(sim, m, 'moan'); }
+  if (m.ai === 'husk' && m.state !== 'hunt' && m.state !== 'flee') { m.state = 'hunt'; m.lost = 0; m.post = false; m.dest = -1; step_(sim, m, 'moan'); rouse(sim, m); }
   else if (m.ai === 'skitter' && m.state === 'idle') { m.state = 'hunt'; m.lost = 0; m.bt = 0; step_(sim, m, 'skit'); }
 }
 

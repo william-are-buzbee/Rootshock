@@ -1,9 +1,9 @@
-import { angLerp } from '../../core/math';
+import { angDiff, angLerp, clamp } from '../../core/math';
 import { roomHas } from '../../content/types';
 import { STEP } from '../../core/loop';
 import { Edge, edgeCost, field as fieldFrom } from '../../world/nav';
 import { shove, slide, steer, walk, type Slid } from '../body';
-import { carded, doorShut, opensItself, routeRules, rulesFor, type Fields } from '../fields';
+import { carded, doorShut, opensItself, routeRules, rulesFor, WAYS, type Fields } from '../fields';
 import { power, sfx } from '../game';
 import { sendPlatform, type Door } from '../movers';
 import { SLAM } from '../moves';
@@ -12,16 +12,22 @@ import type { Mutant } from '../cast';
 import { lit, litRoom, sight } from './senses';
 import { battered } from './blows';
 
-/* How the cast get about (engine.md §6, the cast by velocity; §7): on their own feet, down the nav graph's fields,
-   through doors and onto platforms on the way, and where a roam or a round goes next. */
+/* How the cast get about (engine.md §6, the cast by velocity, how the cast move; §7): on their own feet, down the nav
+   graph's fields, through doors and onto platforms on the way, and where a wander, a roam or a round goes next. Every
+   kind goes by these, each as its gait says (cast/gait.ts): how fast it changes pace, how it turns. */
 
 const dt = STEP;
 
 /* ---- the small things every behaviour does: turn to you, draw a chance, make a sound where it is */
 
+/** turn toward `yaw`, a share `k` of the way a second; one that walks where it faces no faster than its gait turns */
+export function turnToward(m: Mutant, yaw: number, k: number): void {
+  const to = angLerp(m.yaw, yaw, Math.min(1, dt * k)), H = m.gait.heading;
+  m.yaw = H ? m.yaw + clamp(angDiff(m.yaw, to), -H * dt, H * dt) : to;
+}
 export const turnTo = (sim: Sim, m: Mutant, k: number) => {
   const p = sim.player.body;
-  m.yaw = angLerp(m.yaw, Math.atan2(p.x - m.x, p.z - m.z), Math.min(1, dt * k));
+  turnToward(m, Math.atan2(p.x - m.x, p.z - m.z), k);
 };
 export const rnd = (sim: Sim, a: number, b?: number) => sim.rng.range(a, b);
 export const step_ = (sim: Sim, m: Mutant, name: string, big = false) => sfx(sim.game, name, m, big);
@@ -33,7 +39,7 @@ export const step_ = (sim: Sim, m: Mutant, name: string, big = false) => sfx(sim
    and shoves what it walks into by what it weighs. Faster than it wants to go (knocked, thrown, carried along), friction
    slows it as it slows you, and a wall it is thrown into hurts it. One step of it, once a step: what the behaviours
    ask for, or, if none of them moved it, coming to a stop. */
-export function drive(sim: Sim, m: Mutant, wx: number, wz: number, rate = m.acc): Slid & { moved: number; pre: number } {
+export function drive(sim: Sim, m: Mutant, wx: number, wz: number, rate = m.gait.acc): Slid & { moved: number; pre: number } {
   const b = m.body!, p = sim.player.body, want = Math.hypot(wx, wz), thrown = Math.hypot(b.vx, b.vz) > want + 0.5;
   if (!b.carried) steer(b, wx, wz, thrown ? FRICTION : rate, dt);
   const vx = b.vx, vz = b.vz, ox = b.x, oz = b.z, r = slide(sim.world, b, dt);
@@ -56,13 +62,22 @@ export function go(sim: Sim, m: Mutant, tx: number, tz: number, spd: number): bo
   const d = Math.hypot(dx, dz);
   if (d < 0.05) { drive(sim, m, 0, 0); return true; }
   dx /= d; dz /= d;
-  m.yaw = angLerp(m.yaw, Math.atan2(dx, dz), Math.min(1, dt * 8));
+  const G = m.gait;
+  let k = 1;
+  if (G.heading) {
+    /* one that walks where it faces turns toward the way no faster than it can, and goes as much of its pace as it faces
+       it: none while it is a right angle or more from it, when it turns where it stands */
+    const want = Math.atan2(dx, dz);
+    m.yaw += clamp(angDiff(m.yaw, want), -G.heading * dt, G.heading * dt);
+    k = Math.max(0, Math.cos(angDiff(m.yaw, want)));
+    dx = Math.sin(m.yaw); dz = Math.cos(m.yaw);
+  } else m.yaw = angLerp(m.yaw, Math.atan2(dx, dz), Math.min(1, dt * G.turn));
   /* it stops short of you, close enough to reach, never on top of you: braking in time, by the way it has on */
-  const p = sim.player.body, v = Math.hypot(b.vx, b.vz), brake = (v * v) / (2 * Math.max(1, m.acc));
+  const p = sim.player.body, v = Math.hypot(b.vx, b.vz), brake = (v * v) / (2 * Math.max(1, G.acc));
   const ahead = spd * dt + brake, nx = b.x + dx * ahead, nz = b.z + dz * ahead, nd = Math.hypot(nx - p.x, nz - p.z);
   if (Math.abs(m.dy) < 1.5 && nd < m.r + 0.3 && nd < m.dp) { drive(sim, m, 0, 0); return true; }
   /* and slows to arrive where it is going */
-  const pace = Math.min(spd, Math.sqrt(2 * Math.max(1, m.acc) * d));
+  const pace = Math.min(spd, Math.sqrt(2 * Math.max(1, G.acc) * d)) * k;
   const r = drive(sim, m, dx * pace, dz * pace);
   /* wedged on a corner or against another of them: sidestep, and keep to the same side until it clears. Not round you. */
   if (r.hit && r.hit !== p.dyn && r.moved < r.pre * 0.3 && r.pre > 1e-3) {
@@ -82,7 +97,7 @@ export function go(sim: Sim, m: Mutant, tx: number, tz: number, spd: number): bo
 /** the door a spot stands in, if it is shut to this one now: open it by hand if it can, or wait for it */
 function doorAhead(sim: Sim, m: Mutant, d: Door): 'go' | 'wait' | 'no' {
   if (d.t > 0.9) return 'go';
-  if (m.walker === 'crawl' && d.def.stuck) return 'go';
+  if (WAYS[m.walker].doors === 'under' && d.def.stuck) return 'go';
   const pw = power(sim.game, d.def.circuit);
   if (opensItself(d, pw)) return 'wait'; // it is opening for us
   /* a card door: it shows the reader its card, which beeps, and the door lets it through and shuts after */
@@ -139,7 +154,9 @@ export function follow(sim: Sim, m: Mutant, F: Float32Array, spd: number, away: 
     const p = sim.platforms[L];
     if (p.moving || p.y > p.def.y0 + 0.01) { callLift(sim, m, L, 0); m.mv = 0; return true; }
   }
-  return go(sim, m, nav.x[best], nav.z[best], spd);
+  /* to the spot; a body wider than the graph is made for, to where in its square it fits */
+  const at = Fs.at[m.walker];
+  return go(sim, m, nav.x[best] + (at ? at[best * 2] : 0), nav.z[best] + (at ? at[best * 2 + 1] : 0), spd);
 }
 
 /** a hand on the call button: send a platform to one end, if it has power and is not already on its way */
@@ -151,9 +168,12 @@ function callLift(sim: Sim, m: Mutant, li: number, end: 0 | 1): void {
   sfx(sim.game, 'door', { x: (p.def.x0 + p.def.x1) / 2, y: p.y, z: (p.def.z0 + p.def.z1) / 2 });
 }
 
+/** the pace on and off a platform (m/s); one given its own pace by the level, as much slower or faster */
+const RIDE = 1.8;
+
 /** riding a platform: get on at the near end (calling it if it can), ride, and step off to the spot past it */
 function ride(sim: Sim, m: Mutant, Fs: Fields): boolean {
-  const R = m.ride!, p = sim.platforms[R.lift], D = p.def, b = m.body!, nav = Fs.nav;
+  const R = m.ride!, p = sim.platforms[R.lift], D = p.def, b = m.body!, nav = Fs.nav, spd = RIDE * (m.gait.scale ?? 1);
   const near: 0 | 1 = R.up ? 0 : 1, far: 0 | 1 = R.up ? 1 : 0, farY = far ? D.y1 : D.y0;
   const at = (end: 0 | 1) => !p.moving && Math.abs(p.y - (end ? D.y1 : D.y0)) < 0.01;
   R.t += dt;
@@ -161,19 +181,22 @@ function ride(sim: Sim, m: Mutant, Fs: Fields): boolean {
   const s = nav.locate(b.x, b.y, b.z);
   if (s === R.to || (s >= 0 && Math.abs(nav.y[s] - farY) < 0.4 && Fs.onLift[s] !== R.lift && b.on !== p.dyn)) { m.ride = null; return true; }
   if (b.on === p.dyn) {
-    if (at(far)) return go(sim, m, nav.x[R.to], nav.z[R.to], 1.8);
+    if (at(far)) return go(sim, m, nav.x[R.to], nav.z[R.to], spd);
     /* to the middle first: at the edge it would catch on the floor above, and the platform would turn back */
     const cx = (D.x0 + D.x1) / 2, cz = (D.z0 + D.z1) / 2;
-    if (Math.hypot(b.x - cx, b.z - cz) > 0.25) return go(sim, m, cx, cz, 1.8);
+    if (Math.hypot(b.x - cx, b.z - cz) > 0.25) return go(sim, m, cx, cz, spd);
     if (!p.moving) callLift(sim, m, R.lift, far); // a platform that goes by itself goes once stood on
     m.mv = 0;
     return true;
   }
-  if (at(near)) return go(sim, m, (D.x0 + D.x1) / 2, (D.z0 + D.z1) / 2, 1.8);
+  if (at(near)) return go(sim, m, (D.x0 + D.x1) / 2, (D.z0 + D.z1) / 2, spd);
   callLift(sim, m, R.lift, near);
   m.mv = 0;
   return true;
 }
+
+/** the field to you for the way it gets about (sim/fields.ts, WAYS) */
+export const own = (sim: Sim, m: Mutant): Float32Array | undefined => sim.fields?.ways[m.walker];
 
 export function chase(sim: Sim, m: Mutant, spd: number, F: Float32Array): boolean {
   const p = sim.player.body;
@@ -184,7 +207,7 @@ export function chase(sim: Sim, m: Mutant, spd: number, F: Float32Array): boolea
 
 export function away(sim: Sim, m: Mutant, spd: number, F?: Float32Array): boolean {
   const p = sim.player.body;
-  if (sim.fields && follow(sim, m, F ?? sim.fields.crawl, spd, true)) return true;
+  if (sim.fields && follow(sim, m, F ?? sim.fields.ways[m.walker], spd, true)) return true;
   const dx = m.x - p.x, dz = m.z - p.z, d = Math.hypot(dx, dz) || 1;
   return go(sim, m, m.x + (dx / d) * 2, m.z + (dz / d) * 2, spd);
 }
@@ -203,6 +226,27 @@ export function chargeMove(sim: Sim, m: Mutant, spd: number): boolean {
 
 /** how fast a charge gets going (m/s²): quicker than its walk, never all at once */
 const CHARGE = 16;
+
+/** ambling about where it lives: every so often (`every`, s) a new spot, near where it started (`near`: as far either way
+ *  of it in x and in z, m) or anywhere in its own room, walked to for a while (`for`, s; without it, for as long as it
+ *  is the spot). The timers are its own (wt, wm), so a behaviour that leaves off wandering takes them up where it was */
+export interface Wander { every: readonly [number, number]; near?: readonly [number, number]; for?: readonly [number, number] }
+/** a step of wandering at `spd`: true if it walked */
+export function wander(sim: Sim, m: Mutant, W: Wander, spd: number): boolean {
+  m.wt -= dt;
+  if (m.wt < 0) {
+    m.wt = rnd(sim, W.every[0], W.every[1]);
+    if (W.near) { m.wx = m.hx + rnd(sim, -W.near[0], W.near[0]); m.wz = m.hz + rnd(sim, -W.near[1], W.near[1]); }
+    else roomWp(sim, m);
+    if (W.for) m.wm = rnd(sim, W.for[0], W.for[1]);
+  }
+  if (W.for) {
+    if (m.wm <= 0) return false;
+    m.wm -= dt;
+  }
+  go(sim, m, m.wx, m.wz, spd);
+  return true;
+}
 
 /** a point somewhere in its own room */
 export function roomWp(sim: Sim, m: Mutant): void {
@@ -230,8 +274,11 @@ export function mayRoute(sim: Sim): boolean {
 /** how far a round goes (m, walked as the doors stand): as far as a hunt follows you (sim/fields.ts, LIMIT), so each
  *  keeps to its own end of a level; and how near the light must be for one in the dark to make for it. Nearer, it knows
  *  the light is there; farther, it does not, and keeps still (the dark Commons keeps its own, rather than sending them
- *  all the length of the street to Horticulture's backup set) */
-export const ROAM = { reach: 90, light: 40 };
+ *  all the length of the street to Horticulture's backup set). How long it can come no nearer its goal before it is held
+ *  up (s): `held`, or as long as walking `heldM` metres takes it, if that is longer. Nearer is a spot nearer, and a spot
+ *  is a metre, so one slower than a husk (which walks 1.95 m in 1.5 s) takes longer to come nearer and is not held up
+ *  for that */
+export const ROAM = { reach: 90, light: 40, held: 1.5, heldM: 1.95 };
 
 /** staff still keep rounds, and keep to the light: they hunt by sight (world.md §8). A round goes to a lit room it can
  *  get to as the doors stand (a locked door bars it), within ROAM.reach: one the fewest of the staff are in or making
@@ -332,17 +379,18 @@ function roamRooms(sim: Sim): number[] {
   return r;
 }
 
-export function roam(sim: Sim, m: Mutant, spd: number): void {
+/** a step of a roam at `spd`, standing `rest` seconds (at random between the two) when it gets there */
+export function roam(sim: Sim, m: Mutant, spd: number, rest: readonly [number, number] = [3, 10]): void {
   if (m.wt > 0) { m.wt -= dt; return; }
   if (m.dest < 0) { pickDest(sim, m); m.near = 1e9; m.stk = 0; return; }
   const left = m.F && m.spot >= 0 ? m.F[m.spot] : Infinity;
-  if (m.spot === m.dest || left < 1.2) { m.dest = -1; m.wt = sim.rng.range(3, 10); return; }
+  if (m.spot === m.dest || left < 1.2) { m.dest = -1; m.wt = sim.rng.range(rest[0], rest[1]); return; }
   const on = follow(sim, m, m.F!, spd, false);
   /* getting on is coming to a spot nearer than any yet. Held up is the rest, but for waiting at a door or for a
      platform: stopped on a locked door, wedged on a corner, or two of them meeting where there is no room to pass, each
      stepping aside into the other's way and back. A while of it, and it gives the round up for another */
   if (left < m.near || m.ride) { m.near = Math.min(m.near, left); m.stk = 0; }
-  else if (!(on && !m.mv) && (m.stk += dt) > 1.5) { m.stk = 0; m.dest = -1; m.ride = null; m.wt = sim.rng.range(1, 3); }
+  else if (!(on && !m.mv) && (m.stk += dt) > Math.max(ROAM.held, ROAM.heldM / spd)) { m.stk = 0; m.dest = -1; m.ride = null; m.wt = sim.rng.range(1, 3); }
 }
 
 /** what slows one of the cast that something shoved (m/s²): sent back at 4 m/s, it goes about 0.3 m */

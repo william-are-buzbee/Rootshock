@@ -40,43 +40,120 @@ function torch(mat: THREE.Material, m: Mutant, h: O3): THREE.Mesh | null {
    way a bracket fungus stacks out of a stump, and black eyes, empty, as all of Pia's lines have. Sedated, all of them.
    The night round always in uniform, and the leaf thickest on it. Plain: what they wear has one thing on it at most, the
    badge. Built as the husk is, part for part, so it moves and goes loose as the husk does (rig.ts); the leaf is one
-   mesh to a cluster */
+   mesh to a cluster. `K` times the size and grown `over`, it is one of them years on: the bush's line, old in it */
 const UNIFORM = 0x2c3440, TROUSERS = 0x23262b, SALLOW = 0xbfae8e;
-function changed(mat: THREE.Material, m: Mutant): Model {
+function changed(mat: THREE.Material, m: Mutant, K = 1, over = false): Model {
   const R = seeded(m.id), g = new THREE.Group(), uni = m.torch || R.rnd(0, 1) < 0.65;
   const cl = uni ? UNIFORM : R.pick([0xbfc3c0, 0x4a5560, 0x6b6f5a, 0x7a5a50]), tr = uni ? TROUSERS : 0x2b2e34;
   const legs: O3[] = [], shins: O3[] = [];
   for (const s of [-1, 1]) {
-    const l = grp(g, s * 0.11, 0.9, 0), k = grp(l, 0, -0.45, 0);
-    mk(l, mat, 'box', tr, 0.16, 0.45, 0.17, 0, -0.225, 0); mk(k, mat, 'box', tr, 0.16, 0.45, 0.17, 0, -0.225, 0); mk(k, mat, 'box', DARK, 0.17, 0.09, 0.28, 0, -0.42, 0.04);
+    const l = grp(g, s * 0.11 * K, 0.9 * K, 0), k = grp(l, 0, -0.45 * K, 0);
+    mk(l, mat, 'box', tr, 0.16 * K, 0.45 * K, 0.17 * K, 0, -0.225 * K, 0); mk(k, mat, 'box', tr, 0.16 * K, 0.45 * K, 0.17 * K, 0, -0.225 * K, 0); mk(k, mat, 'box', DARK, 0.17 * K, 0.09 * K, 0.28 * K, 0, -0.42 * K, 0.04 * K);
+    /* grown over: leaf out of the outside of each thigh and down the shin */
+    if (over) {
+      merged(l, mat, G => shelf(G, mat, s * 0.08 * K, -0.15 * K, 0, s * PI / 2, 3, 0.2 * K, R.rnd, { rise: 0.07 * K }));
+      merged(k, mat, G => shelf(G, mat, s * 0.07 * K, -0.12 * K, 0.04 * K, s * (PI / 2 - 0.5), 2, 0.16 * K, R.rnd, { rise: 0.06 * K }));
+    }
     legs.push(l); shins.push(k);
   }
-  const b = grp(g, 0, 0.9, 0);
-  mk(b, mat, 'box', cl, 0.42, 0.6, 0.24, 0, 0.3, 0);
-  if (uni) mk(b, mat, 'box', 0x9a8a50, 0.06, 0.07, 0.02, -0.12, 0.44, 0.125); // the shirt's badge
-  mk(b, mat, 'cyl', SALLOW, 0.13, 0.14, 0.13, -0.02, 0.64, 0); // the neck, where the leaf comes out
-  const hd = grp(b, -0.02, 0.76, 0);
-  mk(hd, mat, 'ico', SALLOW, 0.24, 0.28, 0.25, 0, 0, 0);
-  for (const s of [-1, 1]) mk(hd, mat, 'ico', DARK, 0.042, 0.038, 0.025, s * 0.055, 0.025, 0.112); // the eyes: black, nothing in them
-  mk(hd, mat, 'box', 0x3a2622, 0.08, 0.022, 0.03, 0, -0.075, 0.112); // the mouth, slack
+  const b = grp(g, 0, 0.9 * K, 0);
+  mk(b, mat, 'box', cl, 0.42 * K, 0.6 * K, 0.24 * K, 0, 0.3 * K, 0);
+  if (uni) mk(b, mat, 'box', 0x9a8a50, 0.06 * K, 0.07 * K, 0.02 * K, -0.12 * K, 0.44 * K, 0.125 * K); // the shirt's badge
+  mk(b, mat, 'cyl', SALLOW, 0.13 * K, 0.14 * K, 0.13 * K, -0.02 * K, 0.64 * K, 0); // the neck, where the leaf comes out
+  const hd = grp(b, -0.02 * K, 0.76 * K, 0);
+  mk(hd, mat, 'ico', SALLOW, 0.24 * K, 0.28 * K, 0.25 * K, 0, 0, 0);
+  /* the eyes: black, nothing in them; grown over, the right is under the leaf */
+  for (const s of over ? [-1] : [-1, 1]) mk(hd, mat, 'ico', DARK, 0.042 * K, 0.038 * K, 0.025 * K, s * 0.055 * K, 0.025 * K, 0.112 * K);
+  mk(hd, mat, 'box', 0x3a2622, 0.08 * K, 0.022 * K, 0.03 * K, 0, -0.075 * K, 0.112 * K); // the mouth, slack
   hd.rotation.z = 0.25;
   const arms: O3[] = [];
   for (const [x, y] of [[-0.27, 0.56], [0.27, 0.56]] as const) {
-    const a = grp(b, x, y, 0); mk(a, mat, 'box', cl, 0.11, 0.36, 0.12, 0, -0.18, 0); mk(a, mat, 'box', SALLOW, 0.08, 0.34, 0.08, 0, -0.52, 0);
+    const a = grp(b, x * K, y * K, 0); mk(a, mat, 'box', cl, 0.11 * K, 0.36 * K, 0.12 * K, 0, -0.18 * K, 0); mk(a, mat, 'box', SALLOW, 0.08 * K, 0.34 * K, 0.08 * K, 0, -0.52 * K, 0);
+    /* grown over: leaf out of the outside of the arm, above the elbow and below */
+    const side = Math.sign(x);
+    if (over) merged(a, mat, G => {
+      shelf(G, mat, side * 0.06 * K, -0.14 * K, 0, side * (PI / 2), 3, 0.2 * K, R.rnd, { rise: 0.07 * K });
+      shelf(G, mat, side * 0.05 * K, -0.46 * K, 0.02 * K, side * (PI / 2 + 0.3), 2, 0.17 * K, R.rnd, { rise: 0.06 * K });
+    });
     arms.push(a);
   }
   /* the leaf: out of the back of the neck, its right side, and the right shoulder through the shirt; how much, by the one */
-  const grown = m.torch ? 3 : 1 + Math.floor(R.rnd(0, 3));
+  const grown = m.torch || over ? 3 : 1 + Math.floor(R.rnd(0, 3));
   merged(b, mat, G => {
     /* up the back of the neck toward the skull, its right side under the jaw, out of the right shoulder, and on the most
        grown down the right of the back */
-    shelf(G, mat, -0.03, 0.58, -0.1, PI + 0.3, 4, 0.3, R.rnd, { rise: 0.07, lean: 0.015 });
-    if (grown > 1) shelf(G, mat, 0.08, 0.6, 0.0, PI / 2 + 0.5, 3, 0.25, R.rnd, { rise: 0.065 });
-    shelf(G, mat, 0.2, 0.48, -0.02, PI / 2 + 0.15, grown > 2 ? 4 : 2, 0.3, R.rnd, { rise: 0.075 });
-    if (grown > 2) shelf(G, mat, 0.15, 0.24, -0.11, PI * 0.8, 3, 0.24, R.rnd, { rise: 0.065 });
+    shelf(G, mat, -0.03 * K, 0.58 * K, -0.1 * K, PI + 0.3, 4, 0.3 * K, R.rnd, { rise: 0.07 * K, lean: 0.015 * K });
+    if (grown > 1) shelf(G, mat, 0.08 * K, 0.6 * K, 0.0, PI / 2 + 0.5, 3, 0.25 * K, R.rnd, { rise: 0.065 * K });
+    shelf(G, mat, 0.2 * K, 0.48 * K, -0.02 * K, PI / 2 + 0.15, grown > 2 ? 4 : 2, 0.3 * K, R.rnd, { rise: 0.075 * K });
+    if (grown > 2) shelf(G, mat, 0.15 * K, 0.24 * K, -0.11 * K, PI * 0.8, 3, 0.24 * K, R.rnd, { rise: 0.065 * K });
+    if (!over) return;
+    /* grown over, as the oldest of them are: the same leaf, everywhere. Both sides of the neck and both shoulders, rows down
+       the back, over the chest and out of the hips */
+    shelf(G, mat, -0.08 * K, 0.6 * K, 0, -(PI / 2 + 0.5), 3, 0.25 * K, R.rnd, { rise: 0.065 * K });
+    shelf(G, mat, -0.2 * K, 0.48 * K, -0.02 * K, -(PI / 2 + 0.15), 4, 0.3 * K, R.rnd, { rise: 0.075 * K });
+    for (let r = 0; r < 3; r++) for (const s of [-1, 1]) shelf(G, mat, s * 0.1 * K, (0.12 + r * 0.16) * K, -0.12 * K, PI + s * 0.35, 3, 0.26 * K, R.rnd, { rise: 0.06 * K });
+    for (let r = 0; r < 2; r++) for (const s of [-1, 1]) shelf(G, mat, s * 0.11 * K, (0.18 + r * 0.2) * K, 0.12 * K, s * 0.4, 3, 0.22 * K, R.rnd, { rise: 0.055 * K });
+    for (const s of [-1, 1]) shelf(G, mat, s * 0.21 * K, 0.1 * K, 0, s * PI / 2, 2, 0.22 * K, R.rnd, { rise: 0.06 * K });
+  });
+  /* and the head going under: the crown, the back of the skull, its left side, and over the right of the face */
+  if (over) merged(hd, mat, G => {
+    shelf(G, mat, 0, 0.12 * K, -0.03 * K, PI + 0.2, 3, 0.2 * K, R.rnd, { rise: 0.05 * K });
+    shelf(G, mat, 0, 0, -0.11 * K, PI, 3, 0.2 * K, R.rnd, { rise: 0.05 * K });
+    shelf(G, mat, -0.11 * K, -0.02 * K, -0.02 * K, -(PI / 2 + 0.3), 2, 0.15 * K, R.rnd, { rise: 0.05 * K });
+    shelf(G, mat, 0.09 * K, 0.0, 0.07 * K, PI / 2 - 0.4, 3, 0.16 * K, R.rnd, { rise: 0.05 * K });
   });
   return { g, b, hd, legs, shins, arms, lens: torch(mat, m, arms[0]) };
 }
+
+/* the bone mother's, middle years (world.md §10; mockups/mutants.html, Bone, middle years): a husk grown a head taller,
+   halfway gone to bone. Bare to the waist, the ribs out through raw flesh across the front and the spine down the back;
+   the right arm raw to the elbow and bone from there, drawn out long to a point, no hand; the left raw and a little long;
+   a face still, black-eyed, the jaw hanging; thin hair; the trousers torn off at the knee, barefoot. Built as the husk is,
+   part for part, MIDK times the size, so it moves and goes loose as the husk does (sim/ragdoll.ts, SKEL.bonemid) */
+const MIDK = 1.08;
+function boneMid(mat: THREE.Material, m: Mutant): Model {
+  const K = MIDK, R = seeded(m.id), g = new THREE.Group(), tr = R.pick([0x2b2e34, 0x3a3328, 0x2f3a44]);
+  const legs: O3[] = [], shins: O3[] = [];
+  for (const s of [-1, 1]) {
+    const l = grp(g, s * 0.11 * K, 0.9 * K, 0), k = grp(l, 0, -0.45 * K, 0);
+    mk(l, mat, 'box', tr, 0.17 * K, 0.45 * K, 0.18 * K, 0, -0.225 * K, 0);
+    /* torn off below the knee: a ragged hem, then the bare shin and foot */
+    mk(k, mat, 'box', tr, 0.17 * K, 0.14 * K, 0.18 * K, 0, -0.07 * K, 0);
+    mk(k, mat, 'box', FLESH, 0.13 * K, 0.32 * K, 0.13 * K, 0, -0.27 * K, 0); mk(k, mat, 'box', FLESH, 0.13 * K, 0.06 * K, 0.25 * K, 0, -0.42 * K, 0.04 * K);
+    legs.push(l); shins.push(k);
+  }
+  const b = grp(g, 0, 0.9 * K, 0);
+  mk(b, mat, 'box', FLESH, 0.44 * K, 0.62 * K, 0.26 * K, 0, 0.31 * K, 0); // bare to the waist
+  mk(b, mat, 'box', tr, 0.42 * K, 0.12 * K, 0.25 * K, 0, 0.03 * K, 0); // the waistband
+  mk(b, mat, 'box', RAW, 0.3 * K, 0.32 * K, 0.04 * K, 0, 0.44 * K, 0.12 * K); // raw where the ribs came through
+  for (const y of [0.32, 0.4, 0.48, 0.56]) mk(b, mat, 'box', BONE, 0.34 * K, 0.035 * K, 0.04 * K, 0, y * K, 0.15 * K); // the ribs, out
+  mk(b, mat, 'box', RAW, 0.12 * K, 0.58 * K, 0.04 * K, 0, 0.32 * K, -0.13 * K);
+  for (let i = 0; i < 6; i++) mk(b, mat, 'box', BONE, 0.06 * K, 0.05 * K, 0.05 * K, 0, (0.1 + i * 0.09) * K, -0.15 * K); // the spine, out
+  mk(b, mat, 'ico', RAW, 0.28 * K, 0.28 * K, 0.24 * K, 0.19 * K, 0.54 * K, -0.02 * K); // the raw shoulder the bone grows from
+  const hd = grp(b, -0.02 * K, 0.76 * K, 0.05); // carried forward
+  mk(hd, mat, 'ico', PALE, 0.25 * K, 0.29 * K, 0.26 * K, 0, 0, 0);
+  for (const s of [-1, 1]) mk(hd, mat, 'ico', DARK, 0.045 * K, 0.04 * K, 0.025 * K, s * 0.058 * K, 0.03 * K, 0.115 * K); // the eyes: black
+  mk(hd, mat, 'box', DARK, 0.1 * K, 0.07 * K, 0.04 * K, 0, -0.085 * K, 0.1 * K); // the mouth, open
+  mk(hd, mat, 'box', PALE, 0.12 * K, 0.04 * K, 0.1 * K, 0, -0.14 * K, 0.06 * K); // the jaw, hanging
+  for (const [x, z] of [[-0.06, -0.04], [0.05, 0.02], [0, -0.1]]) mk(hd, mat, 'ico', DARK, 0.06 * K, 0.025 * K, 0.06 * K, x * K, 0.14 * K, z * K); // thin hair
+  hd.rotation.z = 0.2;
+  const arms: O3[] = [];
+  /* its left: raw, and a little long */
+  let a = grp(b, -0.27 * K, 0.56 * K, 0);
+  mk(a, mat, 'box', RAW, 0.12 * K, 0.38 * K, 0.13 * K, 0, -0.19 * K, 0); mk(a, mat, 'box', FLESH, 0.09 * K, 0.42 * K, 0.09 * K, 0, -0.6 * K, 0);
+  arms.push(a);
+  /* its right: raw to the elbow, then bone, drawn out long to a point */
+  a = grp(b, 0.3 * K, 0.58 * K, 0);
+  mk(a, mat, 'box', RAW, 0.15 * K, 0.4 * K, 0.15 * K, 0, -0.2 * K, 0); mk(a, mat, 'box', BONE, 0.07 * K, 0.72 * K, 0.07 * K, 0, -0.76 * K, 0);
+  mk(a, mat, 'box', BONE, 0.04 * K, 0.14 * K, 0.04 * K, 0, -1.16 * K, 0.01);
+  arms.push(a);
+  return { g, b, hd, legs, shins, arms };
+}
+
+/* the bush's line, old in it (world.md §10; mockups/mutants.html, Plant, old): one of the changed years on, larger and grown
+   over (changed(), above, PLANTK times the size, the leaf everywhere and over the right of the face). Built as the husk is,
+   part for part, so it moves and goes loose as the husk does (sim/ragdoll.ts, SKEL.plantold) */
+const PLANTK = 1.15;
 
 /* the other patient in the isolation suite (world.md §8, the opening): a gown, bare legs and feet, thin from days with
    nothing to eat, the hair gone wild; built as the husk is, so it goes loose as the husk does. Struck down and dragged,
@@ -161,10 +238,12 @@ function deadModel(mat: THREE.Material, m: Mutant): Model {
 export const BUILD: Record<string, (mat: THREE.Material, m: Mutant) => Model> = {
   patient: mat => patientModel(mat),
   dead: (mat, m) => deadModel(mat, m),
-  /* staff, early in the Regimen: still a person's outline, one arm already something else. Security's own are the
-     changed, and look it (changed(), below) */
+  bonemid: (mat, m) => boneMid(mat, m),
+  plantold: (mat, m) => changed(mat, m, PLANTK, true),
+  /* the bone mother's young: still a person's outline, one arm already something else. The bush's children walk as they
+     do, and are the changed, and look it (changed(), above) */
   husk(mat, m) {
-    if (m.cards) return changed(mat, m);
+    if (m.line === 'bush') return changed(mat, m);
     const R = seeded(m.id), g = new THREE.Group(), cl = R.pick([0xbfc3c0, 0x4a5560, 0x39485a, 0x6b6f5a, 0x7a5a50]), tr = 0x2b2e34;
     /* each leg in two at the knee, which only a body gone loose bends (rig.ts) */
     const legs: O3[] = [], shins: O3[] = [];
@@ -331,11 +410,14 @@ export const ANIM: Record<string, (m: Mutant, M: Model, c: Ctx) => void> = {
     }
   },
   husk(m, M) {
-    const mv = m.mv > 0, hunt = m.state === 'hunt', f = hunt ? 11 : 5;
-    for (let k = 0; k < 2; k++) { M.legs[k].rotation.x = mv ? Math.sin(m.ph * f + k * PI) * (hunt ? 0.7 : 0.35) : 0; if (M.shins) M.shins[k].rotation.x = 0; }
-    M.arms[0].rotation.x = hunt ? -1.1 + Math.sin(m.ph * f) * 0.2 : mv ? Math.sin(m.ph * f + PI) * 0.25 : 0;
-    M.arms[1].rotation.x = hunt ? -1.3 + Math.sin(m.ph * f + 2) * 0.25 : mv ? Math.sin(m.ph * f) * 0.2 : Math.sin(m.ph * 0.9) * 0.06;
-    M.b.rotation.x = m.state === 'flee' ? 0.4 : hunt ? 0.18 : 0.06;
+    /* its steps as often, and as long, as its own gait has them against its kind's (sim/cast/gait.ts): a slow one shuffles */
+    const rush = m.state === 'rush', brace = m.state === 'brace', hunt = m.state === 'hunt' || rush || brace;
+    const mv = m.mv > 0, f = (hunt ? 11 : 5) * (m.gait.cadence ?? 1), sw = m.gait.stride ?? 1;
+    for (let k = 0; k < 2; k++) { M.legs[k].rotation.x = mv ? Math.sin(m.ph * f + k * PI) * (hunt ? 0.7 : 0.35) * sw : 0; if (M.shins) M.shins[k].rotation.x = 0; }
+    M.arms[0].rotation.x = hunt ? -1.1 + Math.sin(m.ph * f) * 0.2 * sw : mv ? Math.sin(m.ph * f + PI) * 0.25 * sw : 0;
+    M.arms[1].rotation.x = hunt ? -1.3 + Math.sin(m.ph * f + 2) * 0.25 * sw : mv ? Math.sin(m.ph * f) * 0.2 * sw : Math.sin(m.ph * 0.9) * 0.06;
+    /* braced to charge it rears back; charging, it goes head down */
+    M.b.rotation.x = m.state === 'flee' ? 0.4 : rush ? 0.45 : brace ? -0.12 : hunt ? 0.18 : 0.06;
     /* its blow, as the sim has it: the arm drawn up and back, the body leaning away (shaking at the top, the last of
        the wind-up, when it has stopped turning); brought down through you and past, the body following it over; then
        left hanging, bent over, before it comes back up */
@@ -472,6 +554,10 @@ export const ANIM: Record<string, (m: Mutant, M: Model, c: Ctx) => void> = {
   },
 };
 ANIM.swimmer = ANIM.worm;
+/* the bone line's middle years move as the husk does */
+ANIM.bonemid = ANIM.husk;
+/* and so does the bush's line, old in it, at its own slow stride (sim/cast/gait.ts) */
+ANIM.plantold = ANIM.husk;
 
 /** what the animations switch on (ANIM): where any of it changes, the pose they give jumps, and the model is taken over
  *  to the new one (fade.ts). What it is doing; walking or not (each at its own pace, so at its own place in the step); a

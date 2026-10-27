@@ -51,6 +51,11 @@ export function buildMain(ladders: Record<string, LadderDef>): LevelDef {
   eggs(G, 16, -12, 3); eggs(G, 16, 11, 2);
   mut(G, 'bloat', 50, 0); mut(G, 'husk', 30, -4); mut(G, 'husk', 62, 1.2); mut(G, 'husk', 94, -3.6); mut(G, 'husk', 114, 2);
   mut(S2, 'husk', 40, -4.8); mut(S2, 'husk', 106, 3.2); mut(S3, 'husk', 70, -4.8);
+  /* the bone line's middle years, most of them here: along the street, and one in the Square */
+  for (const [x, z] of [[46, 2], [58, -3], [78, -2], [100, 3], [142, 9]]) mut(G, 'bonemid', x, z);
+  /* one of the bush's line, old in it, rooted by the street's planter, facing the way you come (until it has a place of its
+     own, grown over) */
+  mut(G, 'plantold', 85.5, 2.5, { post: 1, yaw: -PI / 2 });
   /* the blocks. Each is 14 by 6 m behind a facade with its doors: north z -14 to -8 (its facade -8 to -6), south 8 to 14 (6 to 8).
      Ground floors are the street's rooms; storeys 2 and 3 are flats, but for the director's at the top of the trauma centre. */
   const HB: RoomOpts = { ...HAB, c: 'RES', lc: [0.85, 0.78, 0.62] }, fl: string[] = [];

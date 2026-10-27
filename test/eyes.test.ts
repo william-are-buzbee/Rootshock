@@ -7,7 +7,7 @@ import { give, power } from '../src/sim/game';
 import { EYES, LOCKDOWN, doorZones, onScreen, soundZone } from '../src/sim/eyes';
 import { doorAct, doorLabel, findUsable } from '../src/sim/interact';
 import { load, save } from '../src/sim/save';
-import { free } from '../src/sim/cast';
+import { free, pace as paceOf } from '../src/sim/cast';
 import { fresh, hold, upper } from './kit';
 
 /* Security's eyes and voice (sim/eyes.ts), on the upper station: cameras guard the armed rooms they hang in, and hold
@@ -244,8 +244,9 @@ describe('the zone alarm', () => {
     expect(m.state).toBe('answer');
     const sp = level.speakers!.find(q => q.zone === 'atrium')!;
     const v = fastest(s, m, 40);
-    expect(v).toBeGreaterThan(2.2); // a hurry, faster than its rounds
-    expect(v).toBeLessThan(2.9);
+    expect(v).toBeGreaterThan(paceOf(m, 'answer') * 0.85); // a hurry, faster than its rounds (each its own: sim/cast/gait.ts)
+    expect(v).toBeGreaterThan(paceOf(m, 'walk') * 1.5);
+    expect(v).toBeLessThan(paceOf(m, 'rally') * 0.9); // and alone, no faster than that
     expect(Math.hypot(m.x - sp.x, m.z - sp.z)).toBeLessThan(3.5);
     expect(m.state).toBe('idle'); // it never came for you
     const x = m.x, z = m.z;
@@ -259,12 +260,12 @@ describe('the zone alarm', () => {
     hold(s, 0.1);
     const going = s.cast.filter(m => m.state === 'answer');
     expect(going.length).toBeGreaterThan(1);
-    let v = 0;
-    for (let t = 0; t < 20 && going.some(m => m.state === 'answer'); t += STEP) {
+    let k = 0; // the most any went, as a share of its own hurry
+    for (let t = 0; t < 30 && going.some(m => m.state === 'answer'); t += STEP) {
       step(s, noInput());
-      for (const m of going) if (m.state === 'answer') v = Math.max(v, Math.hypot(m.body!.vx, m.body!.vz));
+      for (const m of going) if (m.state === 'answer') k = Math.max(k, Math.hypot(m.body!.vx, m.body!.vz) / paceOf(m, 'answer'));
     }
-    expect(v).toBeGreaterThan(3);
+    expect(k).toBeGreaterThan(1.15);
   });
 
   it('dies away after a while, and sounding it again starts it over', () => {

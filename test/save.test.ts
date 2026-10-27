@@ -66,7 +66,7 @@ describe('save and load', () => {
         'thrown', 'pace', 'feet', 'planted', 'down', // worked out again each step, before they are asked
       ],
       body: [
-        'mass', 'r', // what it is (your mass with what you hold, each step)
+        'mass', 'r', 'climb', // what it is (your mass with what you hold, each step)
         'carried', // worked out again each step
         'on', // saved apart, by id (Save.on)
         'dyn', 'skip', 'sync', 'clear', // made with it
@@ -80,7 +80,7 @@ describe('save and load', () => {
       ],
       mutant: [
         /* what it is, from the level and its kind */
-        'id', 'type', 'ai', 'model', 'green', 'max', 'mass', 'r', 'pmax', 'acc', 'walker', 'opens', 'low', 'noDoors', 'fixed',
+        'id', 'type', 'ai', 'model', 'green', 'max', 'mass', 'r', 'pmax', 'gait', 'eye', 'line', 'walker', 'opens', 'low', 'noDoors', 'fixed',
         'swim', 'solid', 'sit', 'holt', 'big', 'hx', 'hz', 'room', 'cards', 'round', 'hide', 'wear',
         'F', // its route, made again on load (restoreRoute)
         'd', 'dp', 'dy', 'drove', // worked out again each step

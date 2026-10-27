@@ -9,6 +9,7 @@ import { settle, type Game } from './game';
 import { makeHands } from './combat';
 import { buildUsables, type WorldItem } from './interact';
 import { doorBox, placePlatform } from './movers';
+import type { Walker } from './fields';
 import { makeSim, type Sim, type SimOpts } from './sim';
 
 /* Save and load (engine.md §10). A save is plain data: everything in the sim that can change, by name or by the order
@@ -29,8 +30,11 @@ import { makeSim, type Sim, type SimOpts } from './sim';
  *  10: the opening in the dark: the suite on its own backup set, the light switches gone, and blood on the floor
  *  11: the graft: the other patient grafted and left out cold, and the smear of their dragging
  *  12: the station's dead, bodies now: a level's cast is more by the guards and residents lying in it
- *  13: the skitter on four legs: a skitter's body is fewer points */
-export const SAVE_VERSION = 13;
+ *  13: the skitter on four legs: a skitter's body is fewer points
+ *  14: the bone line's middle years: Cargo's cast, main's and the plant's are more by them
+ *  15: two of Cargo's taken out again
+ *  16: one of the bush's line, old in it, in the Commons: main's cast is one more */
+export const SAVE_VERSION = 16;
 
 /** copy the named fields of an object */
 const pick = <T extends object, K extends keyof T>(o: T, keys: readonly K[]): Pick<T, K> => {
@@ -86,7 +90,7 @@ export interface Save {
   /** blood from the living, where they were struck */
   pools?: Sim['pools'];
   /** the fields over the nav graph as they stood (they are made in turn, so cannot be made again exactly) */
-  fields: { from: number; turn: number; made: Record<string, string>; crawl: string; hands: string; big: string; sound: string } | null;
+  fields: ({ from: number; turn: number; made: Record<string, string>; sound: string } & Partial<Record<Walker, string>>) | null;
 }
 
 /* a float array as text, exactly */
@@ -128,7 +132,7 @@ export function save(sim: Sim): Save {
     mute: [...sim.mute],
     fields: sim.fields && {
       from: sim.fields.from, turn: sim.fields.turn, made: { ...sim.fields.made },
-      crawl: pack(sim.fields.crawl), hands: pack(sim.fields.hands), big: pack(sim.fields.big), sound: pack(sim.fields.sound),
+      ...Object.fromEntries(Object.entries(sim.fields.ways).map(([w, a]) => [w, pack(a)])), sound: pack(sim.fields.sound),
     },
   };
 }
@@ -182,7 +186,8 @@ export function load(level: LevelDef, data: Save, o: SimOpts = {}): Sim {
   const F = sim.fields, d = data.fields;
   if (F && d) {
     F.from = d.from; F.turn = d.turn; F.made = { ...d.made };
-    unpack(d.crawl, F.crawl); unpack(d.hands, F.hands); unpack(d.big, F.big); unpack(d.sound, F.sound);
+    for (const [w, a] of Object.entries(F.ways)) { const s = d[w as Walker]; if (s) unpack(s, a); }
+    unpack(d.sound, F.sound);
   }
   for (const m of sim.cast) restoreRoute(sim, m);
   sim.cams.forEach((c, i) => { const s = data.cams?.[i]; if (s) { c.broken = s.broken; c.hold = s.hold; c.tripped = s.tripped; } });

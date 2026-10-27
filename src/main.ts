@@ -180,7 +180,7 @@ document.addEventListener('fullscreenchange', () => { if (TOUCH && !document.ful
    few blows, in numbers. */
 const devFlags = { bright: false, track: false, slow: 1, frozen: false };
 const hitLog: string[] = [];
-const SPAWN: [string, Record<string, unknown>][] = [['husk', {}], ['skitter', {}], ['thresher', {}], ['worm', {}], ['skitter', { big: 1 }]];
+const SPAWN: [string, Record<string, unknown>][] = [['husk', {}], ['skitter', {}], ['thresher', {}], ['worm', {}], ['skitter', { big: 1 }], ['changed', {}], ['bonemid', {}], ['plantold', {}]];
 const ARMS: (string | null)[] = [null, 'baton', 'pipe', 'wrench', 'axe', 'knife'];
 if (DEV) {
   SPAWN.forEach(([type, opts], i) => controls.onKey.set('Digit' + (i + 1), () => {

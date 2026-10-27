@@ -7,7 +7,7 @@ import { eyeHeight } from './player';
 import type { Sim } from './sim';
 import { riders } from './sim';
 import { heard, sitAt, soundZone, speakerY } from './eyes';
-import { drill } from './cast';
+import { drill, noiseAt } from './cast';
 import { silencePump } from './opening';
 import { ragAt } from './ragdoll';
 
@@ -341,6 +341,8 @@ export function doorAct(sim: Sim, d: Door): void {
   d.hold = 3;
   sfx(g, 'door', at);
   makeNoise(g, heavy ? 10 : 7);
+  /* a big one opened is heard much further, and those at rest come to it */
+  if (d.open && D.loud) noiseAt(sim, at.x, D.y0, at.z, D.loud, true);
 }
 
 /** a key on the keypad in front of you */

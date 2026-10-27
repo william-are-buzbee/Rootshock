@@ -78,6 +78,8 @@ export interface DoorOpts {
   kind?: 'light' | 'heavy'; open?: boolean; card?: string; code?: number; stuck?: boolean; seal?: boolean; vent?: boolean; lift?: boolean; glass?: boolean;
   /** fail-safe: its lock lets go when its power dies (DoorDef.failsafe) */
   failsafe?: boolean;
+  /** heard this far when it is opened by hand, drawing those at rest to it (DoorDef.loud) */
+  loud?: number;
   /** a window's height in a partition (GLAZE): to the floor, at a desk's height, or a strip high up */
   glaze?: Glaze;
   c?: string; msg?: string;
@@ -921,7 +923,7 @@ function compileDoor(b: LevelBuilder, F: Floor, h: Hung, P: Paint, floorAt: (F: 
   const [sx0, sz0] = at(c - w / 2, mid - th / 2), [sx1, sz1] = at(c + w / 2, mid + th / 2);
   b.door(sx0, sz0, sx1, sz1, 2.4, {
     kind: o.kind ?? 'light', alongX: ns, open: !!o.open, stuck: !!o.stuck, seal: !!o.seal, vent: !!o.vent, lift: !!o.lift,
-    card: o.card, code: o.code, ...(o.failsafe ? { failsafe: true } : {}), circuit, msg: o.msg, ...(o.glass ? { glass: true } : {}), ...(look ? { look, side } : {}), ...(slides ? { slides } : {}),
+    card: o.card, code: o.code, ...(o.failsafe ? { failsafe: true } : {}), ...(o.loud ? { loud: o.loud } : {}), circuit, msg: o.msg, ...(o.glass ? { glass: true } : {}), ...(look ? { look, side } : {}), ...(slides ? { slides } : {}),
     ...(Math.abs(depth - 2) > 1e-6 ? { depth } : {}),
   });
   if (look) frame(F, P, h, look);

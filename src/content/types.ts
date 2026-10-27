@@ -224,6 +224,9 @@ export interface DoorDef {
   code?: number;
   /** fail-safe (world.md §4): its lock lets go when its power dies, and stays let go (a cell's, the isolation suite's) */
   failsafe?: boolean;
+  /** a big door, heard this far (m, through the air) when it is opened by hand: those at rest in earshot come to it to
+   *  look (sim/cast/round.ts, noiseAt). Cargo's, onto its dark bay */
+  loud?: number;
   circuit: string;
   /** what it says when it will not open */
   msg?: string;

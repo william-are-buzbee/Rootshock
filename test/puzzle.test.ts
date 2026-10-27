@@ -131,6 +131,7 @@ describe('the upper station, played', () => {
 
   it('with Cargo dead its doors slide by hand and its platform will not move; its backup set changes both', () => {
     const s = fresh();
+    for (const m of s.cast) m.stun = 1e9; // the door opened by hand brings receiving's cast to it: held still, as this is not theirs
     const [dx, dz] = tile(59, 14), d = doorAt(s, dx, dz);
     expect(d.def.circuit).toBe('CARGO');
     use(s, find(s, /^Door$/, [dx, dz]), [-1, 0]);

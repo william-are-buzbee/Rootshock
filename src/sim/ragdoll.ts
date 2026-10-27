@@ -126,6 +126,11 @@ export const SKEL: Record<string, Skel> = {
     writhe: true,
   },
 };
+/* the bone line's middle years (castView.ts, boneMid): a husk, 1.08 times the size and 105 kg, its right arm (bone) drawn
+   down to 0.3 m off the floor, its left (raw) a little long, its head carried forward */
+SKEL.bonemid = grown(SKEL.husk, 1.08, 105, { handR: [0.33, 0.3, 0.04], handL: [-0.29, 0.73, 0], head: [-0.02, 1.79, 0.05] });
+/* the bush's line, old in it (castView.ts, changed() grown over): a husk, 1.15 times the size and 110 kg */
+SKEL.plantold = grown(SKEL.husk, 1.15, 110);
 /** points weighted, all of them in proportion, to come to `kg` */
 function weigh(kg: number, pts: Skel['pts']): Skel['pts'] {
   const all = Object.values(pts).reduce((t, p) => t + p[4], 0);
@@ -175,6 +180,14 @@ export interface Bones {
   legs: { hip: number; knee: number; foot: number; len: number }[];
   /** how tall it stands: for the slump, which turns its top one way and its feet the other */
   ht: number;
+}
+
+/** a skeleton as another's, `k` times the size and weighing `kg` in all, with some of its points put elsewhere (as it
+ *  stands, already that size) */
+function grown(S: Skel, k: number, kg: number, moved: Record<string, [number, number, number]> = {}): Skel {
+  const total = Object.values(S.pts).reduce((a, p) => a + p[4], 0), pts: Record<string, Pt> = {};
+  for (const [n, [x, y, z, r, w]] of Object.entries(S.pts)) pts[n] = [...(moved[n] ?? [x * k, y * k, z * k]), r * k, (w * kg) / total];
+  return { ...S, pts };
 }
 
 const ready = new Map<string, Bones>();

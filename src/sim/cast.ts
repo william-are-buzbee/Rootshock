@@ -2,11 +2,12 @@ import type { MutantDef, RoundStop } from '../content/types';
 import { clamp, PI, TAU } from '../core/math';
 import { STEP } from '../core/loop';
 import { fall, makeBody, push, settle, type Body } from './body';
-import { makeFields, refreshFields, type Walker } from './fields';
+import { makeFields, refreshFields, walkedHere, WAYS, type Walker } from './fields';
 import { DOWN, FALL, MOVES, POISE, regain } from './moves';
 import type { Sim } from './sim';
 import { layDead, type Rag } from './ragdoll';
-import { away, chargeMove, chase, drive, go, rnd, roomWp, step_, turnTo } from './cast/move';
+import { away, chargeMove, chase, drive, own, rnd, step_, turnTo, wander, type Wander } from './cast/move';
+import { footfall, gaitOf, pace, type Gait } from './cast/gait';
 import { hears, inBeam, seeP, sight } from './cast/senses';
 import { battered, beginBlow, blowKind, blowStep, frontOf, inStart, strikes, type Blow } from './cast/blows';
 import { husk, updateDrills } from './cast/husk';
@@ -19,47 +20,70 @@ import { patient, ROUND, swingTorch } from './cast/round';
 
    Here: their kinds, their making, and a step of them all. Their parts are in cast/: getting about (move.ts), seeing
    and hearing you (senses.ts), the fight (blows.ts), Security's staff (husk.ts), and the night round and the other
-   patient (round.ts). What the rest of the game uses of those parts it takes from here. The parts take only types from
-   this file, so the AI table below finds every behaviour made. */
+   patient (round.ts); how each kind moves, its gait (gait.ts). What the rest of the game uses of those parts it takes
+   from here. The parts take only types from this file, so the AI table below finds every behaviour made.
+
+   A new kind is a row in MT (its body, and the behaviour that steps it), one in GAIT if it moves unlike the kind whose
+   behaviour it shares, and one in WAYS (sim/fields.ts) if it gets about unlike any there; engine.md §6, how the cast
+   move, has the rest (its blow, its model). */
 export { restoreRoute, rounds } from './cast/move';
+export { GAIT, gaitOf, pace, type Gait } from './cast/gait';
 export { blowAt, blowKind, DEATH, hitMutant, inBlow, killAll, shoved, type Blow, type BlowKind, type BlowPhase, type Hit } from './cast/blows';
 export { answer, drill, free, type Drill } from './cast/husk';
 export { BANG, BEAT, BLOOD, GRAFT, leftGrafted, noiseAt, PEER, READER, ROUND, stutters, TORCH, torchRay } from './cast/round';
 
 export type Ai = 'husk' | 'skitter' | 'bloat' | 'thresher' | 'worm' | 'swimmer' | 'grabber' | 'patient' | 'dead';
 
-interface Stats {
-  ai?: Ai; model?: string; green?: boolean;
+/** whose child it is (world.md §10, Pia's young gods): the bone mother's, the bloat god's, the bush's. Its temper goes by
+ *  it (cast/husk.ts, TEMPER), and its look (render/castView.ts) */
+export type Line = 'bone' | 'bloat' | 'bush';
+
+export interface Stats {
+  ai?: Ai; model?: string; green?: boolean; line?: Line;
   hp: number; r: number; cr: number; mass: number;
   /** what its body weighs (kg), for shoving and being shoved; Infinity for one rooted where it sits */
   kg: number;
-  /** how fast it changes its own pace (m/s²): a skitter at once, a thresher slowly (engine.md §6, the cast by velocity) */
-  acc: number;
   /** its body's height */
   h: number;
+  /** the way it gets about (sim/fields.ts, WAYS): by default, none through doors if it does not fit them (`noDoors`),
+   *  any a hand works if it `opens` them, and under the jammed ones if neither */
+  way?: Walker;
+  /** how high it sees from (m): by default a little below the top of a body, and no higher than a person's eye */
+  eye?: number;
   opens?: boolean; low?: boolean; noDoors?: boolean; solid?: boolean; fixed?: boolean; swim?: boolean;
   /** it carries a flashlight, on: a beam it sees by, and that lights you for everyone else (world.md §8, the night round) */
   torch?: boolean;
 }
 
 export const MT: Record<string, Stats> = {
-  husk: { hp: 75, r: 0.38, cr: 0.34, mass: 1.2, kg: 80, acc: 18, h: 1.8, opens: true },
+  /* the bone mother's young: the Commons' husks, Cargo's, the plant's (world.md §10, the bone line, young) */
+  husk: { line: 'bone', hp: 75, r: 0.38, cr: 0.34, mass: 1.2, kg: 80, h: 1.8, opens: true },
+  /* the bone mother's, middle years, alongside the thresher (world.md §10; mockups/mutants.html, Bone, middle years): a
+     husk grown, half again the weight and a head taller, one arm gone to bone and drawn out long, the ribs out. A husk in
+     its wits (doors, breakers), harder at you, quicker to run, and now and then it charges (cast/husk.ts, RUSH) */
+  bonemid: { ai: 'husk', model: 'bonemid', line: 'bone', hp: 120, r: 0.42, cr: 0.37, mass: 1.6, kg: 105, h: 1.95, opens: true },
+  /* Security's staff, the bush's children: the changed (world.md §8). The husk's body and behaviour, their own temper */
+  changed: { ai: 'husk', model: 'husk', line: 'bush', hp: 75, r: 0.38, cr: 0.34, mass: 1.2, kg: 80, h: 1.8, opens: true },
+  /* the bush's line, old in it (world.md §10; mockups/mutants.html, Plant, old): further gone than Security's seven, the
+     skin green, leaf in rows over it, swollen and stooped. The changed's behaviour; it barely walks, and does not run */
+  plantold: { ai: 'husk', model: 'plantold', line: 'bush', hp: 110, r: 0.45, cr: 0.4, mass: 1.8, kg: 110, h: 2.05, opens: true },
   /* one of the changed still walking the night shift's round, its flashlight on (world.md §8, the night round) */
-  nightround: { ai: 'husk', model: 'husk', hp: 75, r: 0.38, cr: 0.34, mass: 1.2, kg: 80, acc: 14, h: 1.8, opens: true, torch: true },
-  skitter: { hp: 60, r: 0.5, cr: 0.4, mass: 1, kg: 45, acc: 40, h: 0.9, low: true },
-  bloat: { hp: 600, r: 1, cr: 0.9, mass: 8, kg: Infinity, acc: 3, h: 2.4, noDoors: true, solid: true },
-  thresher: { hp: 150, r: 0.6, cr: 0.5, mass: 2.5, kg: 220, acc: 10, h: 2.1, solid: true, noDoors: true },
+  nightround: { ai: 'husk', model: 'husk', line: 'bush', hp: 75, r: 0.38, cr: 0.34, mass: 1.2, kg: 80, h: 1.8, opens: true, torch: true },
+  skitter: { hp: 60, r: 0.5, cr: 0.4, mass: 1, kg: 45, h: 0.9, low: true },
+  bloat: { line: 'bloat', hp: 600, r: 1, cr: 0.9, mass: 8, kg: Infinity, h: 2.4, noDoors: true, solid: true },
+  /* the bone mother's, halfway (world.md §10, the bone line, middle years) */
+  thresher: { line: 'bone', hp: 150, r: 0.6, cr: 0.5, mass: 2.5, kg: 220, h: 2.1, solid: true, noDoors: true },
   /* 0.6 high: higher than a step, so you go round one rather than up onto it */
-  worm: { hp: 40, r: 0.35, cr: 0.3, mass: 1, kg: 25, acc: 8, h: 0.6, low: true },
-  rootworm: { ai: 'worm', model: 'worm', green: true, hp: 40, r: 0.35, cr: 0.3, mass: 1, kg: 25, acc: 8, h: 0.6, low: true },
-  swimmer: { ai: 'swimmer', model: 'worm', hp: 40, r: 0.35, cr: 0.3, mass: 1, kg: 25, acc: 10, h: 0.6, swim: true },
-  grabber: { hp: 30, r: 0.4, cr: 0, mass: 1, kg: Infinity, acc: 0, h: 0, fixed: true },
+  worm: { hp: 40, r: 0.35, cr: 0.3, mass: 1, kg: 25, h: 0.6, low: true },
+  rootworm: { ai: 'worm', model: 'worm', green: true, hp: 40, r: 0.35, cr: 0.3, mass: 1, kg: 25, h: 0.6, low: true },
+  swimmer: { ai: 'swimmer', model: 'worm', hp: 40, r: 0.35, cr: 0.3, mass: 1, kg: 25, h: 0.6, swim: true },
+  grabber: { hp: 30, r: 0.4, cr: 0, mass: 1, kg: Infinity, h: 0, fixed: true },
   /* the other patient in the isolation suite (world.md §8, the opening): awake for days, weak, and no danger to anyone */
-  patient: { hp: 20, r: 0.3, cr: 0.28, mass: 1, kg: 55, acc: 6, h: 1.75 },
-  vine: { ai: 'grabber', model: 'grabber', green: true, hp: 30, r: 0.4, cr: 0, mass: 1, kg: Infinity, acc: 0, h: 0, fixed: true },
+  patient: { hp: 20, r: 0.3, cr: 0.28, mass: 1, kg: 55, h: 1.75 },
+  vine: { ai: 'grabber', model: 'grabber', green: true, hp: 30, r: 0.4, cr: 0, mass: 1, kg: Infinity, h: 0, fixed: true },
   /* the station's dead, the guards and residents found where they fell (content/build/furnish.ts, body): dead before you
      came, laid out on the floor as bodies like any other, which a walk or a blow moves */
-  dead: { hp: 1, r: 0.3, cr: 0.28, mass: 1, kg: 75, acc: 0, h: 1.75 },
+  dead: { hp: 1, r: 0.3, cr: 0.28, mass: 1, kg: 75, h: 1.75 },
 };
 
 /** a ride on a platform: which, which way, and the spot to step off to */
@@ -145,8 +169,14 @@ export interface Mutant {
   pat: number;
   /** knocked down (sim/moves.ts, DOWN): seconds left on the floor, then seconds left getting up */
   down: number; rise: number;
-  /** how fast it changes its own pace (m/s²); and whether it moved itself this step (if not, it comes to a stop) */
-  acc: number; drove: boolean;
+  /** how it moves (cast/gait.ts): its kind's, or its own if the level gave it its own pace */
+  gait: Gait;
+  /** whether it moved itself this step (if not, it comes to a stop) */
+  drove: boolean;
+  /** how high it sees from (m) */
+  eye: number;
+  /** whose child it is (Line), if the game says */
+  line: Line | null;
   /** time, for its animation */
   ph: number;
   dead: boolean;
@@ -168,20 +198,26 @@ export function makeCast(sim: Sim, defs: MutantDef[]): Mutant[] {
   return defs.filter(d => MT[d.type]).map((def, id) => makeMutant(sim, def, id));
 }
 
+/** the way a kind gets about: its own, or by default none through doors if it does not fit them, any a hand works if it
+ *  opens them, and under the jammed ones if neither */
+export const wayOf = (S: Stats): Walker => S.way ?? (S.noDoors ? 'big' : S.opens ? 'hands' : 'crawl');
+
 /** one of the cast, as a level places it, numbered `id` */
 function makeMutant(sim: Sim, def: MutantDef, id: number): Mutant {
   /* the station's dead draw nothing from the run's chance, so what lies about does not change what the living do */
   const S = MT[def.type], dead = def.type === 'dead', rnd = (a: number, b?: number) => (dead ? a : sim.rng.range(a, b));
   {
     const o = def.opts as Record<string, number | undefined>;
-    /* every body stops every other, yours too (engine.md §6, F1b); they stop short of you, and shove you when they do not */
-    const body = S.fixed ? null : makeBody(sim.world, def.x, def.y, def.z, S.cr, S.h, S.kg);
+    /* every body stops every other, yours too (engine.md §6, F1b); they stop short of you, and shove you when they do not.
+       It climbs what its way does */
+    const walker = wayOf(S);
+    const body = S.fixed ? null : makeBody(sim.world, def.x, def.y, def.z, S.cr, S.h, S.kg, WAYS[walker].climb);
     const room = sim.world.roomAt(def.x, def.y + 0.5, def.z)?.id ?? -1;
     const m: Mutant = {
       id, type: def.type, ai: S.ai ?? (def.type as Ai), model: S.model ?? def.type, green: !!S.green, body,
       x: def.x, y: def.y, z: def.z, px: def.x, py: def.y, pz: def.z, yaw: o.yaw ?? rnd(TAU), state: (def.opts.state as string | undefined) ?? 'idle', st: 0, cd: 0, stun: 0,
       hp: S.hp, max: S.hp, mass: S.mass, r: S.r,
-      walker: S.noDoors ? 'big' : S.opens ? 'hands' : 'crawl',
+      walker,
       opens: !!S.opens, low: !!S.low, noDoors: !!S.noDoors, fixed: !!S.fixed, swim: !!S.swim, solid: !!S.solid,
       post: !!o.post, sit: !!o.sit, holt: !!o.holt, big: !!o.big, hx: def.x, hz: def.z, room,
       cards: !!sim.world.def.cards && !!S.opens && !!sim.world.rooms[room]?.zone, door: -1,
@@ -189,7 +225,8 @@ function makeMutant(sim: Sim, def: MutantDef, id: number): Mutant {
       hide: (def.opts.hide as { x: number; z: number } | undefined) ?? null, drag: -1, trail: 0, graft: 0, grafted: false,
       wt: rnd(1, 5), wm: 0, wx: 0, wz: 0, tk: 0, lost: 0, bt: 0, burst: false, flee: 0, ct: rnd(6, 14), cdir: 0, tgt: false,
       grab: 0, tense: 0, blow: null, dest: -1, F: null, stk: 0, near: 1e9, fled: false, side: 0, ride: null, spot: -1,
-      mv: 0, d: 99, dp: 99, dy: 0, los: false, losAt: -99, hit: 0, stop: 0, poise: poiseOf(def.type, S.ai, !!o.big), pmax: poiseOf(def.type, S.ai, !!o.big), calm: 99, reel: 0, pat: 0, down: 0, rise: 0, acc: S.acc, drove: false, ph: rnd(9), dead: false, gone: 0, rag: null, away: false, still: 0, wear: o.c ?? 0,
+      mv: 0, d: 99, dp: 99, dy: 0, los: false, losAt: -99, hit: 0, stop: 0, poise: poiseOf(def.type, S.ai, !!o.big), pmax: poiseOf(def.type, S.ai, !!o.big), calm: 99, reel: 0, pat: 0, down: 0, rise: 0, gait: gaitOf(def.type, S.ai ?? def.type, !!o.big, o.walk, o.steps), drove: false,
+      eye: S.eye ?? (S.fixed ? 2.0 : Math.min(1.6, S.h * 0.85)), line: S.line ?? null, ph: rnd(9), dead: false, gone: 0, rag: null, away: false, still: 0, wear: o.c ?? 0,
     };
     /* laid out where it was found: out of the world, as the dead are, and lying as its points do */
     if (dead) {
@@ -209,6 +246,7 @@ export function spawn(sim: Sim, type: string, x: number, y: number, z: number, o
   m.yaw = Math.atan2(sim.player.body.x - x, sim.player.body.z - z);
   sim.cast.push(m);
   if (!sim.fields) { sim.fields = makeFields(sim); refreshFields(sim, sim.fields); }
+  else walkedHere(sim, sim.fields, m.walker);
   if (m.ai === 'husk' || m.ai === 'skitter') { m.state = 'hunt'; m.lost = 0; }
   else if (m.ai === 'thresher') { m.state = 'pursue'; m.st = 1e9; }
   return m;
@@ -229,20 +267,24 @@ export const castMovers = (sim: Sim): Body[] => sim.cast.filter(m => !m.dead && 
 
 /* ---- the behaviours, as the first engine had them */
 
+/** how each wanders when nothing has its attention (cast/move.ts, wander): a skitter in short scuttles about where it
+ *  started, a bloat and a thresher about their rooms, a worm and a swimmer a while at a time */
+const IDLE: Record<string, Wander> = {
+  skitter: { every: [2, 7], near: [3, 3], for: [0.3, 0.8] },
+  bloat: { every: [9, 18], for: [5, 10] },
+  thresher: { every: [4, 9] },
+  worm: { every: [3, 9], near: [2, 2], for: [1, 3] },
+  swimmer: { every: [3, 8], near: [5, 2], for: [2, 5] },
+};
+
 const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
   husk,
 
   skitter(sim, m) {
-    const big = m.big, F = sim.fields?.crawl;
+    const big = m.big, F = own(sim, m);
     if (m.state === 'idle') {
       if (seeP(sim, m, big ? 18 : 14) || hears(sim, m)) { m.state = 'hunt'; m.lost = 0; m.bt = 0; step_(sim, m, 'skit'); return; }
-      m.wt -= dt;
-      if (m.wt < 0) { m.wt = rnd(sim, 2, 7); m.wx = m.hx + rnd(sim, -3, 3); m.wz = m.hz + rnd(sim, -3, 3); m.wm = rnd(sim, 0.3, 0.8); }
-      if (m.wm > 0) {
-        m.wm -= dt;
-        go(sim, m, m.wx, m.wz, big ? 2 : 3);
-        if (m.mv && (m.tk -= dt) < 0) { m.tk = big ? 0.2 : 0.11; step_(sim, m, 'tap', big); }
-      }
+      if (wander(sim, m, IDLE.skitter, pace(m, 'walk')) && m.mv) footfall(sim, m, false);
       return;
     }
     if (blowStep(sim, m)) return;
@@ -253,20 +295,14 @@ const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
     const K = blowKind(m)!;
     if (inStart(m, K)) { turnTo(sim, m, 6); if (m.cd <= 0) beginBlow(sim, m, K); }
     else if (m.burst && F) {
-      chase(sim, m, big ? 4.3 : 5, F);
-      if (m.mv && (m.tk -= dt) < 0) { m.tk = big ? 0.16 : 0.09; step_(sim, m, 'tap', big); }
+      chase(sim, m, pace(m, 'hunt'), F);
+      if (m.mv) footfall(sim, m, true);
     }
   },
 
   bloat(sim, m) {
     if (m.sit) return;
-    m.wt -= dt;
-    if (m.wt < 0) { m.wt = rnd(sim, 9, 18); roomWp(sim, m); m.wm = rnd(sim, 5, 10); }
-    if (m.wm > 0) {
-      m.wm -= dt;
-      go(sim, m, m.wx, m.wz, 0.55);
-      if (m.mv && (m.tk -= dt) < 0) { m.tk = 1.1; step_(sim, m, 'hstep', true); }
-    }
+    if (wander(sim, m, IDLE.bloat, pace(m, 'walk')) && m.mv) footfall(sim, m, false);
   },
 
   thresher(sim, m) {
@@ -277,10 +313,8 @@ const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
         /* it charges about its room now and then */
         m.ct -= dt;
         if (m.ct < 0) { m.ct = rnd(sim, 7, 15); m.cdir = rnd(sim, TAU); m.tgt = false; m.state = 'charge'; m.st = rnd(sim, 1, 2.2); step_(sim, m, 'roar', true); break; }
-        m.wt -= dt;
-        if (m.wt < 0) { m.wt = rnd(sim, 4, 9); roomWp(sim, m); }
-        go(sim, m, m.wx, m.wz, 1.2);
-        if (m.mv && (m.tk -= dt) < 0) { m.tk = 0.62; step_(sim, m, 'hstep', true); }
+        wander(sim, m, IDLE.thresher, pace(m, 'walk'));
+        if (m.mv) footfall(sim, m, false);
         break;
       case 'wind':
         turnTo(sim, m, 6);
@@ -290,7 +324,7 @@ const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
       case 'charge': {
         if (m.tgt) { const want = Math.atan2(b.x - m.x, b.z - m.z), da = ((want - m.cdir + PI) % TAU + TAU) % TAU - PI; m.cdir += clamp(da, -1.3 * dt, 1.3 * dt); }
         m.st -= dt;
-        if ((m.tk -= dt) < 0) { m.tk = 0.16; step_(sim, m, 'hstep', true); }
+        footfall(sim, m, true);
         if (m.dp < m.r + 0.55 && Math.abs(m.dy) < 1.4) {
           strikes(sim, m, 45, 60, 0, 9);
           /* it throws you: 9 m/s along its charge, whatever you were doing */
@@ -298,7 +332,7 @@ const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
           m.state = 'recover'; m.st = 1.6;
           break;
         }
-        const ok = chargeMove(sim, m, 7.4);
+        const ok = chargeMove(sim, m, pace(m, 'charge'));
         if (!ok) { step_(sim, m, 'thud'); if (d < 10) sim.game.events.push({ type: 'shake', k: 0.3 }); m.state = 'recover'; m.st = 1.4; }
         else if (m.st < 0) { m.state = 'recover'; m.st = 0.8; }
         break;
@@ -316,45 +350,41 @@ const AI: Record<Ai, (sim: Sim, m: Mutant) => void> = {
         if (m.st < 0) { m.state = 'patrol'; break; }
         if (seeP(sim, m, 18) && d > 3.5) { m.state = 'wind'; m.st = 0.5; step_(sim, m, 'roar'); break; }
         if (inStart(m, MOVES.thresher)) { turnTo(sim, m, 4); if (m.cd <= 0) beginBlow(sim, m, MOVES.thresher); }
-        else if (sim.fields) chase(sim, m, 2.6, sim.fields.big);
+        else if (sim.fields) chase(sim, m, pace(m, 'hunt'), own(sim, m)!);
         break;
     }
   },
 
   worm(sim, m) {
-    const g = sim.game, F = sim.fields?.crawl, d = m.d;
-    if (m.flee > 0) { m.flee -= dt; away(sim, m, 2.6); return; }
+    const g = sim.game, F = own(sim, m), d = m.d;
+    if (m.flee > 0) { m.flee -= dt; away(sim, m, pace(m, 'flee')); return; }
     const flash = g.lightOn && g.light === 'flash', lamp = g.lightOn && g.light === 'lantern';
     /* the light puts it off, its reach too */
-    if ((d < 10 && flash && inBeam(sim, m)) || (d < 4.5 && lamp)) { m.blow = null; away(sim, m, 1.5); return; }
+    if ((d < 10 && flash && inBeam(sim, m)) || (d < 4.5 && lamp)) { m.blow = null; away(sim, m, pace(m, 'shy')); return; }
     if (blowStep(sim, m)) return;
     if (d < 5 || (d < 13 && sight(sim, m))) {
       if (inStart(m, MOVES.worm)) {
         if (sim.wormN >= 2) { turnTo(sim, m, 8); if (m.cd <= 0) beginBlow(sim, m, MOVES.worm); }
-      } else if (F) chase(sim, m, 1.25, F);
+      } else if (F) chase(sim, m, pace(m, 'hunt'), F);
       return;
     }
-    m.wt -= dt;
-    if (m.wt < 0) { m.wt = rnd(sim, 3, 9); m.wx = m.hx + rnd(sim, -2, 2); m.wz = m.hz + rnd(sim, -2, 2); m.wm = rnd(sim, 1, 3); }
-    if (m.wm > 0) { m.wm -= dt; go(sim, m, m.wx, m.wz, 0.5); }
+    wander(sim, m, IDLE.worm, pace(m, 'walk'));
   },
 
   /* the ones that went into the water. light draws them. */
   swimmer(sim, m) {
-    const g = sim.game, lamp = g.lightOn && g.light === 'lantern', F = sim.fields?.crawl;
-    if (m.flee > 0) { m.flee -= dt; away(sim, m, 3); return; }
+    const g = sim.game, lamp = g.lightOn && g.light === 'lantern', F = own(sim, m);
+    if (m.flee > 0) { m.flee -= dt; away(sim, m, pace(m, 'flee')); return; }
     if (blowStep(sim, m)) return;
     if (m.d < (lamp ? 22 : 9)) {
       if (inStart(m, MOVES.swimmer)) { turnTo(sim, m, 8); if (m.cd <= 0) beginBlow(sim, m, MOVES.swimmer); }
       else if (F) {
-        chase(sim, m, 2.5, F);
-        if (m.mv && (m.tk -= dt) < 0) { m.tk = 0.5; step_(sim, m, 'slosh'); }
+        chase(sim, m, pace(m, 'hunt'), F);
+        if (m.mv) footfall(sim, m);
       }
       return;
     }
-    m.wt -= dt;
-    if (m.wt < 0) { m.wt = rnd(sim, 3, 8); m.wx = m.hx + rnd(sim, -5, 5); m.wz = m.hz + rnd(sim, -2, 2); m.wm = rnd(sim, 2, 5); }
-    if (m.wm > 0) { m.wm -= dt; go(sim, m, m.wx, m.wz, 0.9); }
+    wander(sim, m, IDLE.swimmer, pace(m, 'walk'));
   },
 
   /* the arms are bait. the thing is the head on the wall above them. */

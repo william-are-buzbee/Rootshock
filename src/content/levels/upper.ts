@@ -40,7 +40,9 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
      space, the stone meeting the shotcrete in one plane beside the lobby's door */
   room(D, 'Goods inward', 14, -0.75, 16, 10.75, { ...UTIL, c: 'SEC', ht: 4, em: 1 }); door(D, 31, 1, { sg: [['Security', 'w'], ['Goods inward', 'e']] });
   bx(D, 22, 8.8, 3.6, 0.9, 0.7, 0x4a4f55);
-  mut(D, 'husk', 18, 6.8, { post: 1, yaw: PI / 2 });
+  /* the oldest of the changed, rooting at its post: each of Security's seven walks at its own pace and steps, the bench's
+     (mockups/mutants.html, Security's seven; sim/cast/gait.ts) */
+  mut(D, 'changed', 18, 6.8, { post: 1, yaw: PI / 2, walk: 0.25, steps: 50 });
 
   /* People came up the shaft to the second floor: off the surface cage, a landing, and the checkpoint (world.md §8,
      The lobby). Everyone off the surface came through here: the bag scanner and its belt, the arch, the turnstiles, and
@@ -296,7 +298,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   /* the second leg: south from the atrium between the offices, and out into the muster hall */
   room(D, 'Operations corridor', 74, 12, 6, 12, { ...OPS, ht: 4.5, em: 1, mat: SKIM(OPS) });
   /* the Operations zone sounds here: the corridor, and the hall's east bays */
-  speaker(D, 'ops', 77, 20, 'CRIT'); mut(D, 'husk', 77, 18); mut(D, 'husk', 72, 7); blood(D, 76, 15.4, 1.2);
+  speaker(D, 'ops', 77, 20, 'CRIT'); mut(D, 'changed', 77, 18, { walk: 0.7, steps: 88 }); mut(D, 'changed', 72, 7, { walk: 0.85, steps: 84 }); blood(D, 76, 15.4, 1.2);
   /* the chief's office is armed, its camera in the far corner on the door */
   for (const [nm, x, z, dopt, east] of [['Office: operations', 64, 14, { open: true }, false], ['Office: chief of security', 82, 14, { card: 'o' }, true]] as const) {
     room(D, nm, x, z, 8, 8, { ...OFF, c: 'OPS', lc: [0.85, 0.78, 0.62], armed: east }); door(D, east ? x - 1 : x + 9, z + 3, { ...east ? { ...dopt, sg: [['Chief of security', 'w']] } : dopt, span: 2 });
@@ -399,7 +401,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   door(T1, 63, 63.4, { seal: true, msg: 'Bodies. Grown into the frame and into each other, floor to lintel, faces turned in. Something behind them is breathing.' });
   for (const z of [41.2, 43.6, 46]) blood(D, 66.8 + (z - 42) * 0.15, z, 1.1); eggs(D, 64.6, 46.6, 3); eggs(D, 69.2, 45.2, 2);
   for (const z of [52, 56, 59.2]) { eggs(D, 64.9, z, 2); eggs(D, 69.2, z + 1, 2); }
-  eggs(T1, 64.8, 63, 4); eggs(T1, 69, 64.6, 3); gore(T1, 65.2, 64.4, 3); mut(T1, 'husk', 67.2, 63.2, { post: 1, yaw: PI / 2 });
+  eggs(T1, 64.8, 63, 4); eggs(T1, 69, 64.6, 3); gore(T1, 65.2, 64.4, 3); mut(T1, 'changed', 67.2, 63.2, { post: 1, yaw: PI / 2, walk: 0.4, steps: 66 });
   /* the operations room, over the hall's south side: a wall of glass on the court, and along the back wall its screens,
      what was left of its staff at each (below). Its door is grown shut, so it is no round's to walk to (the way toward it
      is up the armed stair, which the rounds keep out of) */
@@ -411,7 +413,8 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   mut(D, 'skitter', 45.2, 54); eggs(D, 42.8, 56.6, 2); // the range
   /* east of the atrium, behind Operations' card: the link to Cargo, and over it on the second floor, Cargo control */
   door(D, 89, -1, { card: 'o', c: 'OPS', sg: [['Cargo', 'w']] }); room(D, 'Cargo link', 90, -2, 18, 4, { ...UTIL, c: 'CARGO', em: 1 });
-  door(D, 109, -1, { sg: [['Cargo cavern', 'w']] });
+  /* the way into Cargo: slid open by hand onto its dark bay, it is heard the length of receiving, and what waits there comes */
+  door(D, 109, -1, { sg: [['Cargo cavern', 'w']], loud: 60 });
   door(T1, 89, 3.4, { sg: [['Cargo control', 'w']] }); room(T1, 'Cargo control', 90, -6, 18, 14, { ...OFF, c: 'CARGO', ht: 4 });
   tbl(T1, 106.6, 0, 0.8, 4, 0x3a3d40); bx(T1, 104.8, 0, 0.45, 0.45, 0.45, 0x2c2f33); for (const z of [-1.6, 1.6]) bx(T1, 106.8, z, 0.5, 0.3, 0.06, 0x22262a, { y: 0.76, c: 0, pw: [[0.04, 0.05, 0.05], [2.2, 2.5, 2.75]], pc: 'CARGO' });
   /* the window onto the bay: three bays of glass in the east wall, high over the floor (world.md §8) */
@@ -441,7 +444,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
     T1.lamps.push({ x, z, r: 4.5, c: [0.5, 0.17, 0.1], h: 0.4 });
   }
   /* and two of the staff on their rounds of the hall */
-  mut(D, 'husk', 31, 28); mut(D, 'husk', 67, 44);
+  mut(D, 'changed', 31, 28, { walk: 1, steps: 100 }); mut(D, 'changed', 67, 44, { walk: 0.9, steps: 98 });
   /* break-glass call points, one a zone, by its way out: the wing's by the checkpoint, the atrium's by the way south,
      the hall's at its west end by the electrical room and the range, Operations' in its corridor by the speaker */
   callPoint(D, 35, 2.75, 'n', 'wing'); callPoint(D, 71, 12, 'n', 'atrium'); callPoint(D, 22, 42, 'e', 'muster'); callPoint(D, 74, 21, 'e', 'ops');
@@ -653,6 +656,9 @@ function buildCargo(D: Floor, T1: Floor, T2: Floor, T3: Floor): void {
   container(D, 134, 10, false, 2); container(D, 150, 10, false, 3); container(D, 180, 10.4, false, 2); container(D, 198, 8.8, true, 1); container(D, 158, -10, false, 1); container(D, 186, -10.8, false, 1);
   container(D, 166, 4.8, true, 2); container(D, 210, 5.2, true, 3); forklift(D, 142, 3, true); forklift(D, 192, 3.6, false);
   mut(D, 'husk', 150, -0.8); mut(D, 'husk', 182, 0.8);
+  /* one of the bone line's middle years beside the young one at receiving: the two come to the door when it is slid open
+     (its `loud`, above) */
+  mut(D, 'bonemid', 146, -4.5);
   for (const [x, z, n] of [[218, -6, 4], [224, 6, 5], [228, -10, 3], [232, 0, 5], [236, 10, 4], [222, -0.8, 3]]) eggs(D, x, z, n); gore(D, 226, 1, 4); blood(D, 230, -4, 2);
   mut(D, 'worm', 224, 2); mut(D, 'worm', 226, 4); mut(D, 'worm', 223, 4.8); mut(D, 'skitter', 232, -6); mut(D, 'husk', 214, 8, { post: 1, yaw: -PI / 2 });
   /* the tiers: thicker with every one */

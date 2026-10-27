@@ -95,7 +95,7 @@ describe('the cast, as the first engine had them', () => {
     hold(s, 0.2); // the fields catch up with where you are
     let from = -1;
     for (let i = 0; i < nav.n; i++) {
-      const R = s.world.rooms[nav.room[i]], d = s.fields!.hands[i];
+      const R = s.world.rooms[nav.room[i]], d = s.fields!.ways.hands[i];
       if (!R.safe && d > 8 && d < 14 && nav.head[i] >= 1.8) { from = i; break; }
     }
     expect(from).toBeGreaterThanOrEqual(0);
