@@ -39,10 +39,92 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
      wall between them, the lobby's limestone on one face and the dock's sprayed rock on the other: they were one open
      space, the stone meeting the shotcrete in one plane beside the lobby's door */
   room(D, 'Goods inward', 14, -0.75, 16, 10.75, { ...UTIL, c: 'SEC', ht: 4, em: 1 }); door(D, 31, 1, { sg: [['Security', 'w'], ['Goods inward', 'e']] });
-  bx(D, 22, 8.8, 3.6, 0.9, 0.7, 0x4a4f55);
+  /* the dock (world.md §8, Security at the station's size): what came down the hoist was staged here before it went on,
+     to the kitchen and the walk-ins by the service passage, to the hazard store, or east into the wing. A walkway kept
+     clear along the north wall from the hoist's door to the wing's; three bays marked out on the floor; racking along
+     the south wall; the platform scale by the hoist's door; the bonded cage, where the bar's spirits and the family's
+     wine came in, its gate prised open; and in the far corner the clerk's cabin, its hatch on the floor */
+  const PAINT = 0xc9a227, WOOD = 0x8a6a44, CARTON = 0x9a7a52, TAPE = 0x6a5a3c;
+  const paint = (x0: number, z0: number, x1: number, z1: number) => bx(D, (x0 + x1) / 2, (z0 + z1) / 2, Math.max(x1 - x0, 0.1), 0.01, Math.max(z1 - z0, 0.1), PAINT, { y: 0.012, c: 0 });
+  /* a pallet at (x, z) on whatever is y under it, and on it cartons `h` high, or nothing */
+  const pallet = (x: number, z: number, y = 0, h = 0, ry = 0) => {
+    bx(D, x, z, 1.2, 0.14, 1, WOOD, { y, ry });
+    if (h) { bx(D, x, z, 1.1, h, 0.9, CARTON, { y: y + 0.14, ry }); bx(D, x, z, 0.08, 0.01, 0.9, TAPE, { y: y + 0.14 + h, ry, c: 0 }); } // taped across the top
+  };
+  paint(14.4, 2.25, 29.6, 2.25); // the walkway's edge
+  for (const x of [18.6, 21.3, 24, 26.6]) paint(x, 3, x, 6.2);
+  paint(18.6, 6.2, 26.6, 6.2);
+  pallet(19.95, 4.6, 0, 0.9); pallet(22.65, 4.4, 0, 0, 0.12); // bay 1 full, bay 2 an empty pallet
+  pallet(25.3, 4.6); // bay 3, flour, one sack split
+  for (const [k, [dx, dz]] of [[-0.28, -0.22], [0.28, -0.22], [-0.28, 0.22], [0.28, 0.22]].entries()) P(D, 'ico', 25.3 + dx, 4.6 + dz, 0.55, 0.32, 0.42, k === 3 ? 0xb8a880 : 0xc8b890, { y: 0.14 });
+  P(D, 'cyl', 25.95, 5.35, 0.9, 0.02, 0.7, 0xe2ddd0, { c: 0 }); // what came out of it
+  /* the racking, two bays against the south wall, a pallet's depth: blue frames, orange beams */
+  for (const x of [19, 22, 25]) for (const z of [8.75, 9.85]) bx(D, x, z, 0.08, 3.4, 0.08, 0x3a5a8a);
+  for (const x0 of [19, 22]) for (const y of [1.5, 3]) for (const z of [8.8, 9.8]) bx(D, x0 + 1.5, z, 2.92, 0.1, 0.08, 0xc8641e, { y, c: 0 });
+  pallet(19.8, 9.3, 0, 1); pallet(21.2, 9.3, 0, 0.8); pallet(20.5, 9.3, 1.6, 0.9); pallet(23.4, 9.3, 1.6, 0.7); pallet(24.2, 9.3, 3.1, 0.6);
+  for (const x of [22.7, 23.3]) P(D, 'cyl', x, 9.3, 0.56, 0.88, 0.56, 0x3d5a44); // drums, on the floor of the second bay
+  /* the scale, a plate let into the floor by the hoist's door, and its readout on a post */
+  bx(D, 15.6, 4.2, 1.5, 0.04, 1.5, 0x6b6e70, { mat: 'steel', c: 0 });
+  bx(D, 14.4, 5.2, 0.06, 1.2, 0.06, 0x3a3d40); bx(D, 14.4, 5.2, 0.14, 0.24, 0.32, 0x2c2f33, { y: 1.2, c: 0 });
+  bx(D, 14.48, 5.2, 0.02, 0.08, 0.2, [0.05, 0.06, 0.05], { y: 1.3, c: 0, pw: [[0.05, 0.06, 0.05], [0.6, 2.4, 1]], pc: 'SEC' });
+  /* the bonded cage in the north-east corner, off the walkway: mesh on three sides, its gate prised and swung out, two
+     cases of the bar's left, one opened, and a bottle on the floor */
+  const MESH = 0x5a5d60, CAGE = [26.8, 2.6, 29.98, 5.4] as const;
+  for (let z = CAGE[1]; z <= CAGE[3] + 1e-6; z += 0.2) if (z < 3.9 || z > 5.1) bx(D, CAGE[0], z, 0.03, 2.2, 0.03, MESH, { c: 0 });
+  for (const z of [CAGE[1], CAGE[3]]) for (let x = CAGE[0] + 0.2; x < CAGE[2] - 0.05; x += 0.2) bx(D, x, z, 0.03, 2.2, 0.03, MESH, { c: 0 });
+  for (const [x0, z0, x1, z1] of [[CAGE[0], CAGE[1], CAGE[0], CAGE[3]], [CAGE[0], CAGE[1], CAGE[2], CAGE[1]], [CAGE[0], CAGE[3], CAGE[2], CAGE[3]]] as const)
+    for (const y of [0, 2.2]) bx(D, (x0 + x1) / 2, (z0 + z1) / 2, Math.max(x1 - x0, 0.05), 0.05, Math.max(z1 - z0, 0.05), MESH, { y, c: 0 });
+  for (const [z0, z1] of [[CAGE[1], 3.9], [5.1, CAGE[3]]]) colT(D, CAGE[0], (z0 + z1) / 2, 0.08, z1 - z0, 2.2);
+  for (const z of [CAGE[1], CAGE[3]]) colT(D, (CAGE[0] + CAGE[2]) / 2, z, CAGE[2] - CAGE[0], 0.08, 2.2);
+  /* the gate, on its hinge at the gap's north end, swung out */
+  for (const t of [0.1, 0.3, 0.5, 0.7, 0.9]) bx(D, 26.8 - t * 0.932, 3.9 - t * 0.362, 0.03, 2.1, 0.03, MESH, { c: 0 });
+  for (const y of [0.1, 2]) bx(D, 26.334, 3.719, 0.04, 0.05, 1, MESH, { ry: 1.2, y, c: 0 });
+  bx(D, 26.84, 3.8, 0.06, 0.12, 0.06, 0x2a2c2e, { y: 1.1, c: 0 }); // and its hasp on the post, bent
+  pallet(28.7, 4.4); bx(D, 28.4, 4.4, 0.6, 0.36, 0.4, 0x7a5a38, { y: 0.14 }); bx(D, 29.1, 4.4, 0.6, 0.36, 0.4, 0x7a5a38, { y: 0.14 });
+  bx(D, 29.3, 3.5, 0.62, 0.03, 0.42, 0x7a5a38, { y: 0, ry: 0.5, c: 0 }); // its lid, off
+  for (const dz of [-0.1, 0.1]) P(D, 'cyl', 29.1, 4.4 + dz, 0.08, 0.3, 0.08, 0x355530, { y: 0.5, c: 0 }); // what is left in it
+  P(D, 'cyl', 27.6, 4.9, 0.08, 0.3, 0.08, 0x6a4a2a, { y: -0.11, rz: 1.5, ry: 0.7, c: 0 });
+  /* the clerk's cabin in the south-east corner: a box of painted panels with its own roof, its hatch and its door on the
+     floor's side. Inside, the desk, the dockets on their spike, a cabinet */
+  const CAB = 0xb8b2a0, CW = 2.5;
+  bx(D, 28.29, 6.2, 3.38, CW, 0.08, CAB); // the north side, whole
+  for (const [z0, z1, y0, y1] of [[6.24, 6.6, 0, CW], [6.6, 7.8, 0, 0.95], [6.6, 7.8, 2, CW], [7.8, 8.9, 0, CW], [8.9, 9.98, 2.1, CW]] as const)
+    bx(D, 26.6, (z0 + z1) / 2, 0.08, y1 - y0, z1 - z0, CAB, { y: y0 }); // the west side round the hatch and the door
+  bx(D, 26.6, 7.2, 0.02, 1.05, 1.2, [0.55, 0.66, 0.7], { mat: 'glass', y: 0.95, c: 0 }); // the hatch's pane
+  bx(D, 26.42, 7.2, 0.36, 0.04, 1.3, 0x4a3a2c, { y: 0.95, c: 0 }); // its sill, a ledge to sign on
+  bx(D, 28.29, 8.07, 3.38, 0.06, 3.82, CAB, { y: CW, c: 0 }); // its roof
+  desk(D, 29.5, 7.6, 0.7, 1.8, { c: 0x5a5048, bare: 1 }); bx(D, 28.7, 7.6, 0.45, 0.45, 0.45, 0x2c2f33); bx(D, 29.6, 9.5, 0.5, 1.3, 0.5, 0x5f6266);
+  P(D, 'cyl', 29.6, 7.1, 0.02, 0.18, 0.02, 0x2a2c2e, { y: 0.76, c: 0 }); bx(D, 29.6, 7.1, 0.15, 0.04, 0.21, 0xe2ddd0, { y: 0.78, c: 0 }); // the spike, and the dockets on it
+  use(D, 'look', 29.6, 7.1, 0.9, { label: 'Dockets', text: 'Delivery dockets on a spike, newest on top: dry goods, linen, the post. The last is dated 5/11.' });
+  /* a pallet truck, parked between the bays and the racking: its forks east, its handle back */
+  for (const z of [7.16, 7.64]) bx(D, 24.3, z, 1.15, 0.08, 0.16, 0x8c2f24, { c: 0 });
+  bx(D, 23.5, 7.4, 0.32, 0.36, 0.56, 0x8c2f24); bx(D, 23.16, 7.4, 0.05, 1.2, 0.05, 0x2a2c2e, { y: 0.3, rz: 0.35, c: 0 });
   /* the oldest of the changed, rooting at its post: each of Security's seven walks at its own pace and steps, the bench's
-     (mockups/mutants.html, Security's seven; sim/cast/gait.ts) */
+     (mockups/mutants.html, Security's seven; sim/cast/gait.ts). It has stood long enough for its roots to go out over the
+     floor: along the bays' painted line, into the full pallet and up the racking, under the door to the passage */
   mut(D, 'changed', 18, 6.8, { post: 1, yaw: PI / 2, walk: 0.25, steps: 50 });
+  const ROOT = [0x4a3a2a, 0x54422e, 0x3e3024];
+  /* a root along the points given, thick at its first and tapering to its last, half sunk in whatever is y under it,
+     a knuckle at each bend so it reads as one thing grown, not sticks laid end to end */
+  const root = (pts: readonly (readonly [number, number])[], d0: number, d1: number, y = 0) => {
+    for (let k = 0; k + 1 < pts.length; k++) {
+      const [ax, az] = pts[k], [bx2, bz2] = pts[k + 1], dx = bx2 - ax, dz = bz2 - az, len = Math.hypot(dx, dz);
+      const d = d0 + (d1 - d0) * (k / Math.max(1, pts.length - 2)), c = ROOT[k % 3];
+      P(D, 'cyl', (ax + bx2) / 2, (az + bz2) / 2, d, len + d * 0.5, d, c, { c: 0, y: y + d * 0.25 - (len + d * 0.5) / 2, rz: PI / 2, ry: -Math.atan2(dz, dx) });
+      if (k) P(D, 'ico', ax, az, d * 1.5, d * 0.8, d * 1.5, c, { c: 0, y });
+    }
+  };
+  /* matted under its feet: lumps of root grown into each other */
+  for (const [dx, dz, r] of [[0, 0, 0.9], [0.3, -0.2, 0.55], [-0.3, 0.25, 0.6], [0.25, 0.35, 0.45], [-0.25, -0.3, 0.5]] as const)
+    P(D, 'ico', 18 + dx, 6.8 + dz, r, 0.12, r * 0.9, ROOT[(Math.round(r * 10)) % 3], { c: 0 });
+  root([[18.3, 6.65], [19.2, 6.42], [20.3, 6.3], [21.4, 6.22], [22.6, 6.18], [23.6, 6.28], [24.5, 6.2]], 0.13, 0.04); // along the line
+  root([[18.35, 6.45], [18.8, 5.9], [19.15, 5.42], [19.33, 5.06]], 0.11, 0.06); // to the full pallet
+  root([[17.7, 6.95], [16.9, 7.3], [16.1, 7.42], [15.2, 7.25], [14.4, 7.35]], 0.11, 0.04); // toward the passage, under its door
+  root([[18.15, 7.2], [18.3, 7.8], [18.6, 8.3], [18.88, 8.62]], 0.1, 0.06); // to the racking
+  root([[17.85, 6.5], [17.6, 5.8], [17.2, 4.9], [16.9, 4.1], [16.5, 3.4]], 0.09, 0.03); // toward the scale
+  root([[17.75, 7.1], [17.3, 7.7], [17.1, 8.4]], 0.08, 0.03);
+  P(D, 'cyl', 19.36, 4.95, 0.06, 1.0, 0.06, ROOT[1], { c: 0, rz: 0.08 }); root([[19.42, 4.95], [19.9, 4.7], [20.35, 4.35]], 0.05, 0.03, 1.04); // up the cartons, and over them
+  P(D, 'cyl', 18.93, 8.68, 0.06, 1.5, 0.06, ROOT[0], { c: 0 }); // up the upright
 
   /* People came up the shaft to the second floor: off the surface cage into the arrival hall, down it to the checkpoint
      (world.md §8, The lobby; Security at the station's size). The first room a visitor saw, and the last you cross. A
@@ -685,7 +767,27 @@ function buildHub(B: Floor, D: Floor, T1: Floor, T2: Floor): void {
   rack(D, -2.5, 2, 0.5, 3, [0x8a8e8c, 0x6b5a3c, 0x4d5a66, 0x7a4a34]); bx(D, -3.4, 8.8, 0.8, 0.6, 0.8, 0x6b5a3c);
   item(D, 'ration', -7.6, 7.2, 0.9, 2); item(D, 'peaches', -7.6, 6, 0.9);
   room(D, 'Service passage', -2, 6, 14, 4, { ...UTIL, ...wing }); door(D, 13, 7, { sg: [['Goods inward', 'w']] });
-  bx(D, 2, 8.8, 0.8, 1.6, 0.7, 0x6b6e70, { mat: 'steel' }); // a roll cage, empty
+  bx(D, 4.6, 8.9, 0.8, 1.6, 0.7, 0x6b6e70, { mat: 'steel' }); // a roll cage, empty
+  /* the walk-ins off its south side (world.md §8, Security at the station's size): what the dock sent on for the bar's
+     kitchen, the mess and the retreat. The dry store behind a shutter; the chiller and the freezer behind plain steel,
+     each with its readout by the door, lit with the wing. No emergency lights in them: in the dark, they are black */
+  const DRY: RoomOpts = { ...wing, em: 0, fl: 0x6a665e, wl: 0x9a958a, st: 0x7a5a30, mat: { floor: 'epoxy', wall: 'block', ceiling: 'concrete' } };
+  const COLD: RoomOpts = { ...wing, em: 0, ht: 3, fl: 0x8a8e8c, wl: 0xc8ccc8, st: 0x5a7a8a, lc: [0.82, 0.88, 0.92], mat: { floor: 'epoxy', wall: 'glazed', ceiling: 'concrete' } };
+  room(D, 'Dry store', -1, 11, 6, 8, DRY); door(D, 2, 10.5, { sg: [['Dry store', 'n']] });
+  room(D, 'Chiller', 5.5, 11, 3.5, 5.5, COLD); door(D, 7.4, 10.5, { plain: true, sg: [['Chiller', 'n']] });
+  room(D, 'Freezer', 9.5, 11, 3.5, 5.5, COLD); door(D, 10.4, 10.5, { plain: true, sg: [['Freezer', 'n']] });
+  for (const x of [8.4, 11.4]) bx(D, x, 9.98, 0.24, 0.14, 0.04, [0.04, 0.05, 0.05], { y: 1.5, c: 0, pw: [[0.04, 0.05, 0.05], [0.6, 2.4, 1]], pc: 'SEC' });
+  /* the dry store: shelving down both walls and an island between, tins, packets and sacks; a pallet of flour at the
+     back, one sack split */
+  rack(D, -0.7, 15, 0.5, 7, [0x8a8e8c, 0x6b5a3c, 0xc8b890, 0x7a4a34]); rack(D, 4.7, 14.6, 0.5, 6.2, [0x6b5a3c, 0x8a8e8c, 0x4d5a66, 0xc8b890]);
+  rack(D, 2, 14.4, 0.6, 3.6, [0x8a8e8c, 0x7a4a34, 0xc8b890, 0x5c6b4a]);
+  bx(D, 2, 18.2, 1.2, 0.14, 1, 0x8a6a44);
+  for (const [k, [dx, dz]] of [[-0.28, -0.22], [0.28, -0.22], [-0.28, 0.22], [0.28, 0.22]].entries()) P(D, 'ico', 2 + dx, 18.2 + dz, 0.55, 0.32, 0.42, k === 1 ? 0xb8a880 : 0xc8b890, { y: 0.14 });
+  P(D, 'cyl', 2.9, 17.5, 0.8, 0.02, 0.6, 0xe2ddd0, { c: 0 });
+  /* the chiller: crates down both walls, what was in them gone over; the freezer: boxes that were furred with frost,
+     thawing since the cut */
+  for (const x of [5.8, 8.7]) rack(D, x, 13.9, 0.5, 4.6, [0x5a4a2a, 0x3a4a28, 0xb8bcc0, 0x6a3a2a]);
+  for (const x of [9.8, 12.7]) rack(D, x, 13.9, 0.5, 4.6, [0xd8dcdc, 0xb8c4c8, 0x9aa4a8, 0x8a7a6a]);
 }
 
 /* the Cargo cavern: a 20 m vault, x 110 to 240, with three tiers stepped up its north side at +5, +10 and +15 and a platform

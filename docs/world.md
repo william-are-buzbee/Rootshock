@@ -989,7 +989,18 @@ builder takes them.
 2. **Goods inward, a dock.** One crate, and the oldest of the changed. Lanes painted on the floor, racking, the clerk's
    hatch, a platform scale, a bonded cage. Off the service passage, south-west of it (x 2 to 14, z 10 to 20), the
    walk-ins: a chiller, a freezer and a dry store, for the bar's kitchen, the mess and the retreat. The oldest one,
-   rooting at its post, is the room's set piece: its roots out through the pallets and along the lanes.
+   rooting at its post, is the room's set piece: its roots out through the pallets and along the lanes. **Built:** a
+   walkway painted clear along the north wall from the hoist's door to the wing's; three bays marked out, one with a
+   full pallet, one an empty one, one of flour with a sack split; blue and orange racking, two bays, along the south
+   wall; the scale let into the floor by the hoist's door, its readout lit with the wing; a pallet truck parked. The
+   bonded cage in the north-east corner, where the bar's spirits and the family's wine came in, its gate prised and
+   swung out, a case opened and a bottle down. The clerk's cabin in the south-east corner, painted panels with a roof,
+   its hatch and door on the floor's side; inside, the dockets on their spike, the last dated 5/11. The oldest one's
+   roots, matted under its feet, go out tapering along the bays' line, into the full pallet and over it, up the
+   racking, toward the scale, and under the door to the service passage. Off the passage, the dry store behind a
+   shutter (shelving and an island, flour at the back), the chiller and the freezer behind plain steel (glazed tile,
+   crates gone over, boxes thawing since the cut), each readout by its door; no emergency lights, so black in the dark.
+   Their doors are new, so saves are made new (version 17).
 3. **Operations' offices, a suite.** Two of the same 8 by 8 m room, a desk, a chair and a shelf in each. A deputy
    director and a chief of security, in a house that minds how it looks, had an outer office and a secretary, the
    chief's own office with a window on the atrium, a conference room, and a records room (the personnel files; the
@@ -1057,8 +1068,8 @@ builder takes them.
     west end without the atrium, arriving in an armed room from behind. A gate first (a shutter on HALL, or on Gen-1),
     then the checker.
 
-**The order (agreed):** one at a time, in the list's order (the owner), each its own change: the arrival hall (1) is
-built; the dock (2) is next.
+**The order (agreed):** one at a time, in the list's order (the owner), each its own change: the arrival hall (1) and
+the dock (2) are built; Operations' offices (3) are next.
 
 **Being found (as built; the changed's wit is *The second pass*, to come)**
 
