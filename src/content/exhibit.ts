@@ -30,6 +30,13 @@ export const WELCOME = {
   text: `Welcome to Lowfield Station: home of ${HOUSE.family} leaf since 1986, and of the ${HOUSE.family} family's business since ${HOUSE.since}.\n\nThe story of the company runs the length of this corridor, from the low field four hundred metres over your head to the galleries beneath it. Please take your time.`,
 };
 
+/** the house's board in the arrival hall, across from the cage's gates: the same mark and name, and what a visitor
+ *  stepping off was told */
+export const ARRIVAL = {
+  key: 'ex-arrive', title: 'Lowfield Station',
+  text: `The ${HOUSE.family} family welcomes you to Lowfield Station, four hundred metres under the low field.\n\nPlease have your pass ready for the checkpoint. Coats may be left at the cloakroom, and will be kept for you until you go up.`,
+};
+
 /** the timeline, along the upper corridor's south wall from the lobby east: walking on is walking forward in time */
 export const HISTORY: Board[] = [
   {
@@ -110,4 +117,4 @@ export const STAGES: Board[] = [
 /** every board's note: its title, and what is read off it */
 export const EXHIBIT_NOTES = Object.fromEntries([...HISTORY, ...STAGES].map(b => [b.key, {
   t: STAGES.includes(b) ? `${PROCESS.title}: ${b.title}` : `${b.title}, ${b.era}`, b: b.text,
-}]).concat([[WELCOME.key, { t: WELCOME.title, b: WELCOME.text }]]));
+}]).concat([[WELCOME.key, { t: WELCOME.title, b: WELCOME.text }], [ARRIVAL.key, { t: ARRIVAL.title, b: ARRIVAL.text }]]));

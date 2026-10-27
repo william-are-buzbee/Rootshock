@@ -3,7 +3,7 @@ import type { LevelDef, LadderDef } from '../types';
 import {
   arch, beginLevel, bx, cave, colT, door, elev, exhibit, finishLevel, flight, item, ladder, floor, mut, note, P, roughen, room, stack, stairs, use, type Floor, type LevelInfo, type RoomOpts,
 } from '../build/plan';
-import { HISTORY, STAGES, WELCOME, stageAt } from '../exhibit';
+import { ARRIVAL, HISTORY, STAGES, WELCOME, stageAt } from '../exhibit';
 import {
   BAY, FAM, MED, OFF, OPS, SEC, UTIL, WALK, blood, callPoint, camera, container, corpse, desk, eggs, exitSign, forklift, genset, gore, grandStair, liftRoom, medbed, monitors, panel, POLE, shelf, speaker, tbl,
 } from '../build/furnish';
@@ -30,7 +30,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
      the atrium (below) */
   liftRoom(D, 0, -2, 5, -1);
   room(D, 'Shaft station', 6, -2, 6, 6, { ...UTIL, c: 'SEC', em: 1, safe: 1 }); door(D, 13, 1, { sg: [['Goods inward', 'w'], ['Shaft station', 'e']] });
-  room(T1, 'Surface cage', 0, -2, 4, 4, { ...OPS, c: 'LIFT', nolamp: 1, noroam: 1, safe: 1 }); door(T1, 5, -1, { kind: 'heavy', c: 'LIFT', lift: true, sg: [['Surface', 'e']] });
+  room(T1, 'Surface cage', 0, -2, 4, 4, { ...OPS, c: 'LIFT', nolamp: 1, noroam: 1, safe: 1 }); door(T1, 5, 0, { kind: 'heavy', c: 'LIFT', lift: true, sg: [['Surface', 'e']] });
 
   /* The Security wing: the lobby off the shaft, the first leg of the highway, and the rooms off it. Its feed hangs off
      Ops, and the survivors cut it to blind the cameras on their side (world.md §8): dark at the start, and a kit mends
@@ -44,10 +44,58 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
      (mockups/mutants.html, Security's seven; sim/cast/gait.ts) */
   mut(D, 'changed', 18, 6.8, { post: 1, yaw: PI / 2, walk: 0.25, steps: 50 });
 
-  /* People came up the shaft to the second floor: off the surface cage, a landing, and the checkpoint (world.md §8,
-     The lobby). Everyone off the surface came through here: the bag scanner and its belt, the arch, the turnstiles, and
-     the booth behind glass that watched them do it. Through it, the head of the grand stair, and the lobby below */
-  room(T1, 'Surface landing', 6, -2, 6, 6, { ...FAM, c: 'SEC', ht: 3.6, em: 1 }); door(T1, 13, 1, { sg: [['Checkpoint', 'w'], ['Surface', 'e']] });
+  /* People came up the shaft to the second floor: off the surface cage into the arrival hall, down it to the checkpoint
+     (world.md §8, The lobby; Security at the station's size). The first room a visitor saw, and the last you cross. A
+     cage-load stood in it at a time, thirty or so with their bags: limestone to the gallery's height, and bronze. The
+     cage's gates framed in it, under the dial that showed it coming; the house's board facing them as they open; down
+     the east side the rail the line kept to, to the checkpoint's door, which looks straight down the line at the arch;
+     past that, the cloakroom, and the bench where whoever was going up waited for the cage. Over the shaft station and
+     the service passage, which are low enough to leave it its height */
+  const AH: RoomOpts = { ...FAM, c: 'SEC', ht: 4.5, em: 1, lc: [0.92, 0.86, 0.74], mat: { ...FAM.mat, datum: 3.2 } };
+  room(T1, 'Surface landing', 6, -2, 6, 14, AH); room(T1, 'Surface landing', 2, 5, 4, 6, { ...AH, ht: 3.2 }); // the hall, and the cloakroom off it under a lower ceiling
+  door(T1, 13, 7.1, { sg: [['Checkpoint', 'w'], ['Surface', 'e']] });
+  const BRZ = 0x5e4424, LIME = 0x9a9384, brz = { c: 0, mat: 'steel' } as const;
+  /* the gates in bronze, and over them the dial, its needle up: the cage is here */
+  for (const z of [-1.2, 1.2]) bx(T1, 6.04, z, 0.08, 2.72, 0.22, BRZ, brz);
+  bx(T1, 6.04, 0, 0.08, 0.22, 2.62, BRZ, { ...brz, y: 2.5 });
+  P(T1, 'cyl', 6.03, 0, 0.8, 0.05, 0.8, BRZ, { ...brz, y: 3.125, rz: PI / 2 }); P(T1, 'cyl', 6.06, 0, 0.66, 0.02, 0.66, 0xd8d0b8, { c: 0, y: 3.14, rz: PI / 2 });
+  for (const a of [-1, -0.5, 0, 0.5, 1]) bx(T1, 6.08, Math.sin(a) * 0.26, 0.02, 0.035, 0.035, 0x2a2420, { c: 0, y: 3.13 + Math.cos(a) * 0.26 });
+  bx(T1, 6.085, 0, 0.015, 0.22, 0.025, 0x2a2420, { c: 0, y: 3.15 });
+  exhibit(T1, ARRIVAL.key, 12, 0, 2, 'w', 2.4, 1.9); // across from the gates
+  /* bronze sconces, lit with the wing: either side of the board and of the checkpoint's door, and over the bench */
+  for (const [x, z, s] of [[12, -1.7, -1], [12, 1.7, -1], [12, 5.6, -1], [12, 8.6, -1], [6, 3.4, 1]] as const) {
+    bx(T1, x + s * 0.03, z, 0.06, 0.4, 0.14, BRZ, { ...brz, y: 2.3 });
+    bx(T1, x + s * 0.12, z, 0.12, 0.24, 0.2, [0.2, 0.18, 0.15], { c: 0, y: 2.38, pw: [[0.2, 0.18, 0.15], [2.5, 2.42, 2.25]], pc: 'SEC' });
+  }
+  /* the line's rail: bronze posts, the belt between them gone slack, the last unhooked and down */
+  for (const [k, z] of [1.6, 3.1, 4.6, 6.1].entries()) {
+    P(T1, 'cyl', 10.3, z, 0.07, 0.95, 0.07, BRZ, { mat: 'steel' }); P(T1, 'cyl', 10.3, z, 0.11, 0.05, 0.11, BRZ, { ...brz, y: 0.95 });
+    if (k < 2) bx(T1, 10.3, z + 0.75, 0.03, 0.05, 1.43, 0x5a1e1e, { c: 0, y: 0.84 });
+  }
+  bx(T1, 10.3, 4.66, 0.03, 0.84, 0.05, 0x5a1e1e, { c: 0 });
+  /* the bench by the gates, and the bags left at them: whoever was going up when Security sealed itself */
+  bx(T1, 6.35, 3.4, 0.6, 0.45, 2.4, LIME, { mat: 'stone' });
+  bx(T1, 7.3, 1.6, 0.26, 0.66, 0.46, 0x3a2c22); bx(T1, 7.75, 1.95, 0.24, 0.58, 0.42, 0x2c3440, { ry: 0.3 }); bx(T1, 8.4, 1.35, 0.7, 0.24, 0.46, 0x4a3a2c, { ry: -0.2 });
+  /* the cloakroom: a counter across its mouth, the way behind it at the north end; coats on the rails behind, a ticket
+     on each sleeve, and empty hangers between */
+  bx(T1, 5.7, 8.45, 0.6, 1.0, 4.7, LIME, { mat: 'stone' }); bx(T1, 5.7, 8.45, 0.7, 0.05, 4.8, 0x3a2c22, { c: 0, y: 1 });
+  bx(T1, 5.7, 9.6, 0.45, 0.1, 0.36, 0x2e2f33, { c: 0, y: 1.05, ry: 0.2 }); // one folded on the counter
+  const COATS = [0x2e2f33, 0x4a3a2c, 0x2c3440, 0x5c4c3a, 0x3a3226, 0x6a5a48, 0x343a2e];
+  for (const [r, x] of [2.7, 4].entries()) {
+    bx(T1, x, 8, 0.04, 0.04, 5, 0x8a8e8c, { c: 0, y: 1.76 }); for (const z of [5.5, 10.5]) bx(T1, x, z, 0.05, 1.8, 0.05, 0x8a8e8c, { c: 0 });
+    colT(T1, x, 8, 0.5, 5, 1.8);
+    for (let k = 0; k < 12; k++) {
+      const z = 5.85 + k * 0.39;
+      if ((k * (r ? 5 : 3) + r) % 4 === 0 || (r && k % 2)) { bx(T1, x, z, 0.02, 0.02, 0.38, 0x8a8e8c, { c: 0, y: 1.745 }); continue; } // a hanger, empty
+      bx(T1, x, z, 0.2, 1.05, 0.44, COATS[(k * 3 + r) % COATS.length], { c: 0, y: 0.72, ry: ((k * 5 + r) % 3 - 1) * 0.12 });
+    }
+  }
+  use(T1, 'look', 4.2, 8, 1.3, { label: 'Coats', text: 'Winter coats, a numbered ticket pinned to each sleeve. It was November up top. Nobody came back for them.' });
+  /* the far end: a bench along the wall, facing the gates, between two planters gone to stalks */
+  bx(T1, 9, 11.4, 3.4, 0.45, 0.6, LIME, { mat: 'stone' });
+  for (const x of [6.6, 11.4]) { bx(T1, x, 11.4, 1, 0.8, 1, 0x6e6a62); for (let k = 0; k < 4; k++) P(T1, 'ico', x + Math.cos(k * 1.7) * 0.25, 11.4 + Math.sin(k * 1.7) * 0.25, 0.2, 0.9 + k * 0.2, 0.2, 0x5a4a2e, { y: 0.8, c: 0 }); }
+  /* the checkpoint: everyone off the surface came through it, the bag scanner and its belt, the arch, the turnstiles,
+     and the booth behind glass that watched them do it. Through it, the head of the grand stair, and the lobby below */
   room(T1, 'Checkpoint', 14, 0, 16, 12, { ...OPS, c: 'SEC', ht: 4, em: 1 }); door(T1, 25.4, -1, { sg: [['Surface lift', 'n'], ['Lobby', 's']] });
   bx(T1, 20, 3.2, 0.9, 0.95, 4, 0x5f6266); bx(T1, 20, 4, 1.1, 1, 1.6, 0x3a3d40, { y: 0.95 }); bx(T1, 20, 2.4, 0.7, 0.04, 0.5, 0x4a3a2c, { y: 0.95, c: 0 });
   bx(T1, 20, 0.6, 0.1, 1, 1.2, 0x8a8e8c); // the rail that closes the line at the wall
@@ -64,12 +112,12 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
     bx(T1, x, 10.81, 0.52, 0.36, 0.02, [0.04, 0.05, 0.05], { y: 0.84, c: 0, pw: [[0.04, 0.05, 0.05], [2.3, 2.42, 2.38]], pc: 'SEC' });
   }
   monitors(T1, 27.6, 9.8, 1.1, 'SEC', ['Lobby', 'Checkpoint', 'Surface landing', 'Shaft station']);
-  /* and what they watch, recording: the line from the north-west corner, the landing from by the checkpoint's door, the
-     shaft station from over goods inward's */
+  /* and what they watch, recording: the line from the north-west corner, the arrival hall from its far end up to the
+     gates, the shaft station from over goods inward's */
   camera(T1, 14.8, 0.8, 3.5, 0.79, 'SEC', 'wing', { name: 'Checkpoint' });
-  camera(T1, 11.2, 3.2, 3.1, -2.17, 'SEC', 'wing', { name: 'Surface landing' });
+  camera(T1, 11.6, 11.6, 4, -2.66, 'SEC', 'wing', { name: 'Surface landing' });
   camera(D, 11.2, -1.2, 2.8, -1.17, 'SEC', 'wing', { name: 'Shaft station' });
-  bx(T1, 14.8, 5, 0.45, 0.42, 2.6, 0x5f6266); bx(T1, 14.3, 10.4, 0.5, 1.8, 1.4, 0x56636e);
+  bx(T1, 14.8, 4, 0.45, 0.42, 2.6, 0x5f6266); bx(T1, 14.3, 10.4, 0.5, 1.8, 1.4, 0x56636e); // a bench clear of the door from the hall, a cabinet
   corpse(T1, 22.8, 4.4, 0x2c3440, true, { label: 'Officer', say: 'A security officer. Whatever opened him did it from behind.', keys: ['s'] });
 
   /* The lobby: where the money shows (world.md §8, The lobby). A hall 38 by 24 m and 13 m to a luminous ceiling,

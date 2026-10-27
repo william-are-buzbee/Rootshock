@@ -978,7 +978,14 @@ builder takes them.
 1. **The surface landing, an arrival hall.** A cage-load of 30 steps off into 36 m², the first room a visitor saw and
    the game's last. An arrival hall over the shaft station (x 6 to 13, z -2 to 12, at +5; the rooms under it are 3.2 m
    tall): limestone and bronze, the cage's gates, benches, a cloakroom, the queue's rail beginning here. It is the
-   hallway *The lobby* asks for between the landing and the checkpoint.
+   hallway *The lobby* asks for between the landing and the checkpoint. **Built:** the hall 6 by 14 m and 4.5 m tall
+   (still called the surface landing), limestone to 3.2 m as the gallery is. Off the cage, its gates framed in bronze
+   under a dial, its needle up; across from them the house's board (its own words: the welcome, the pass, the coats
+   kept until you go up); bronze sconces, lit with the wing. Down the east side the line's rail, its belt slack and the
+   last unhooked, to the checkpoint's door, moved there from the hall's top so it looks straight down the line at the
+   arch. Bags left at the gates and a bench beside them. Past the door, the cloakroom, a recess under a lower ceiling
+   behind a stone counter: coats on its rails, a ticket on each sleeve, nobody back for them. At the far end a bench
+   facing the gates, between two planters gone to stalks; the booth's camera on the hall looks up it from there.
 2. **Goods inward, a dock.** One crate, and the oldest of the changed. Lanes painted on the floor, racking, the clerk's
    hatch, a platform scale, a bonded cage. Off the service passage, south-west of it (x 2 to 14, z 10 to 20), the
    walk-ins: a chiller, a freezer and a dry store, for the bar's kitchen, the mess and the retreat. The oldest one,
@@ -1050,8 +1057,8 @@ builder takes them.
     west end without the atrium, arriving in an armed room from behind. A gate first (a shutter on HALL, or on Gen-1),
     then the checker.
 
-**The order (proposed):** the court (7) first, being nearly free; then the arrival hall, the dock and the washrooms (1,
-2, 6).
+**The order (agreed):** one at a time, in the list's order (the owner), each its own change: the arrival hall (1) is
+built; the dock (2) is next.
 
 **Being found (as built; the changed's wit is *The second pass*, to come)**
 

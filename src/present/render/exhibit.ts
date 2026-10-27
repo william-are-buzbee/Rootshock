@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { Colour } from '../../core/math';
 import type { World } from '../../world/world';
 import type { Lighting } from '../../world/light';
-import { HISTORY, HOUSE, PROCESS, STAGES, WELCOME, type Art, type Board } from '../../content/exhibit';
+import { ARRIVAL, HISTORY, HOUSE, PROCESS, STAGES, WELCOME, type Art, type Board } from '../../content/exhibit';
 import { faceMaterial, faceTexture } from './signs';
 
 /* The family's exhibit (world.md §8, *The exhibit*; content/exhibit.ts): printed boards in bronze frames, the company's
@@ -268,7 +268,7 @@ function drawProcess(c: Ctx, W: number, H: number): void {
   c.strokeStyle = css(GOLD); c.lineWidth = 0.8 * u; c.strokeRect(0.4 * u, 0.4 * u, W - 0.8 * u, H - 0.8 * u);
 }
 
-/** the house's board, W by H pixels: its mark, its name, and the station */
+/** the house's board, W by H pixels: its mark, its name, and the station (the upper corridor's, and the arrival hall's) */
 function drawHouse(c: Ctx, W: number, H: number): void {
   const u = H / 100;
   c.fillStyle = css(GREEN); c.fillRect(0, 0, W, H);
@@ -299,7 +299,7 @@ export class ExhibitView {
         const c = document.createElement('canvas'), x = c.getContext('2d')!;
         const px = Math.min(PX, MAXPX / E.w);
         c.width = Math.round(E.w * px); c.height = Math.round(E.h * px);
-        if (board) drawBoard(x, c.width, c.height, board); else if (E.key === WELCOME.key) drawHouse(x, c.width, c.height); else drawProcess(x, c.width, c.height);
+        if (board) drawBoard(x, c.width, c.height, board); else if (E.key === WELCOME.key || E.key === ARRIVAL.key) drawHouse(x, c.width, c.height); else drawProcess(x, c.width, c.height);
         (mat.uniforms.uMap.value as THREE.Texture | null)?.dispose();
         mat.uniforms.uMap.value = faceTexture(c);
       };
