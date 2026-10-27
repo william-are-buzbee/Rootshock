@@ -499,8 +499,69 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   bx(D, 105.98, 7.25, 0.04, 1.1, 2.4, 0xe2e2da, { y: 1.1, c: 0 }); // the whiteboard, and what was last drawn on it
   for (let k = 0; k < 4; k++) bx(D, 105.955, 7.1 + (k % 2) * 0.2, 0.01, 0.03, 0.9 + (k % 3) * 0.3, [0x2a3a6a, 0x8c2f24][k % 2], { y: 1.9 - k * 0.2, c: 0 });
   bx(D, 101.75, 3.25, 2.4, 0.85, 0.5, WALNUT); P(D, 'cyl', 101.2, 3.25, 0.14, 0.26, 0.14, 0xb8c4c8, { y: 0.85, c: 0 }); // the sideboard, a water jug
-  room(D, 'Maintenance', 82, 24, 8, 10, { ...UTIL, c: 'OPS' }); door(D, 81, 27, { sg: [['Maintenance', 'w']] });
-  genset(D, 'OPS', 88.6, 29, 87.4, 29); shelf(D, 85.2, 33.4, 1.8, 0.5, { cols: [0xc9a227, 0x3d4042] }); item(D, 'kit', 85.2, 33.4, 1.06);
+  /* Maintenance, the Ops side's (world.md §8, Security at the station's size): a workshop, and through the rock east of
+     it the room Ops' backup set stands in, on its own as a set should be, and its fuel beside it behind another wall.
+     All dug and left as dug, and dark on the set's own power, as Maintenance always was */
+  const MW: RoomOpts = { ...UTIL, c: 'OPS', ht: 4 };
+  room(D, 'Maintenance', 82, 24, 14, 12, MW); door(D, 81, 27, { sg: [['Maintenance', 'w']] });
+  room(D, 'Generator room', 97, 24, 7, 7, MW); door(D, 96.5, 28, { sg: [['Generator', 'w']] });
+  room(D, 'Fuel store', 97, 32, 7, 5, { ...UTIL, c: 'OPS' }); door(D, 100.5, 31.5, { sg: [['Fuel store', 'n']] });
+  /* the set, on a plinth: its radiator, the engine, the alternator; its exhaust up from the engine and along under the
+     roof into the return air; its day tank and the panel you start it at; the transfer switch on the wall. A line
+     painted round it, kept clear */
+  const PLINTH = 0x6b6e70, ENGINE = 0x3d5a44, LAG = 0xb8b2a0;
+  bx(D, 100.5, 26.6, 4.6, 0.15, 1.9, PLINTH);
+  bx(D, 98.5, 26.6, 0.5, 1.7, 1.7, 0x2c2f33, { y: 0.15 }); bx(D, 100.1, 26.6, 2.4, 1.3, 1.3, ENGINE, { y: 0.15 }); bx(D, 102, 26.6, 1.2, 1.2, 1.2, 0x44525a, { y: 0.15 });
+  for (const x of [99.4, 100.8]) P(D, 'cyl', x, 26.95, 0.32, 0.3, 0.32, 0x2c2f33, { y: 1.45, c: 0 }); // its air filters
+  P(D, 'cyl', 100.4, 26.3, 0.22, 2.15, 0.22, LAG, { y: 1.45, c: 0 }); P(D, 'cyl', 100.4, 25.4, 0.22, 1.9, 0.22, LAG, { y: 3.6 - 0.95, rz: PI / 2, ry: PI / 2, c: 0 });
+  bx(D, 100.4, 24.3, 0.9, 0.6, 0.6, 0x7a7d80, { y: 3.4, c: 0 }); // the return air's duct, through the wall
+  for (const [x0, z0, x1, z1] of [[97.9, 25.3, 103.1, 25.3], [97.9, 27.9, 103.1, 27.9], [97.9, 25.3, 97.9, 27.9], [103.1, 25.3, 103.1, 27.9]] as const) paint(x0, z0, x1, z1);
+  bx(D, 98.2, 30.2, 1.2, 0.3, 0.7, 0x3a3d40); bx(D, 98.2, 30.2, 1.2, 0.9, 0.7, 0x8a7a3a, { y: 0.3 }); bx(D, 98.82, 30.2, 0.02, 0.6, 0.06, 0xd8d0b8, { y: 0.45, c: 0 }); // the day tank, its sight glass
+  P(D, 'cyl', 98.95, 28.75, 0.06, 2.2, 0.06, 0x2a2c2e, { y: 0.03 - 1.1, rz: PI / 2, ry: PI / 2, c: 0 }); // its feed to the engine
+  genset(D, 'OPS', 102.5, 30.4, 102.5, 29.4);
+  bx(D, 103.7, 30.2, 0.6, 2, 1.2, 0x5f6266); bx(D, 103.39, 30.2, 0.02, 0.1, 0.1, [0.2, 0.2, 0.2], { y: 1.6, c: 0, pw: [[0.2, 0.2, 0.2], [0.4, 2.6, 0.6]], pc: 'OPS' });
+  use(D, 'look', 103.35, 30.2, 1.3, { label: 'Transfer switch', text: 'Ops\' supply: from Gen-1, or from this set when Gen-1 drops. Its handle at AUTO.' });
+  bx(D, 103.6, 24.45, 0.8, 0.35, 0.4, 0x2c2f33); // its starting batteries
+  /* the fuel store: a tank walled round low to hold it if it leaks, a hand pump on top; drums on a spill pallet; an
+     extinguisher by the door */
+  for (const [x, z, w, d] of [[101, 33.2, 5, 0.15], [101, 36.5, 5, 0.15], [98.5, 34.85, 0.15, 3.15], [103.5, 34.85, 0.15, 3.15]] as const) bx(D, x, z, w, 0.4, d, 0x8a8e8c);
+  for (const x of [99.8, 102.2]) bx(D, x, 34.85, 0.2, 0.3, 1, 0x3a3d40);
+  P(D, 'cyl', 101, 34.85, 1.4, 3.6, 1.4, 0x8a8e8c, { y: 0.95 - 1.8, rz: PI / 2, c: 0 }); colT(D, 101, 34.85, 3.6, 1.4, 1.65);
+  bx(D, 101.6, 34.85, 0.2, 0.25, 0.2, 0x8c2f24, { y: 1.62, c: 0 }); P(D, 'cyl', 101.6, 34.85, 0.04, 0.5, 0.04, 0x2a2c2e, { y: 1.87, c: 0 }); // the hand pump
+  use(D, 'look', 101, 33.6, 1.3, { label: 'Tank', text: 'Diesel, for the set next door. Walled round to hold it if it leaks.' });
+  bx(D, 97.75, 35.8, 1.2, 0.15, 2.38, 0xc9a227); for (const z of [35.05, 35.65, 36.25]) P(D, 'cyl', 97.75, z, 0.58, 0.88, 0.58, 0x8c2f24, { y: 0.15 });
+  P(D, 'cyl', 98.8, 32.25, 0.18, 0.6, 0.18, 0xb3261e, { c: 0 });
+  /* the workshop: the bench along the north wall and its pegboard; the supervisor's desk under the board of work
+     orders; a pillar drill; the welding set and its bottles; cable drums; a chain hoist on a beam; the parts shelf, the
+     kit on it; and in the south-east corner the tool cage, its gate open, the shadow board in it with one outline
+     empty, long and narrow: the bolt cutters at the wing's cut were taken from here */
+  bx(D, 88, 24.45, 6, 0.9, 0.8, 0x5a5048); bx(D, 88, 24.45, 6.1, 0.06, 0.85, 0x6b5a3c, { y: 0.9, c: 0 });
+  bx(D, 85.3, 24.55, 0.22, 0.18, 0.26, 0x2a2c2e, { y: 0.96, c: 0 }); // the vice
+  bx(D, 88, 24.015, 4, 1.2, 0.03, 0x8a7a5a, { y: 1.3, c: 0 }); // the pegboard, and what hangs on it
+  for (let k = 0; k < 9; k++) bx(D, 86.3 + k * 0.42, 24.04, k % 3 ? 0.05 : 0.14, k % 3 ? 0.34 + (k % 2) * 0.12 : 0.05, 0.02, k % 4 === 1 ? 0xc8641e : 0x3a3d40, { y: 1.55 + (k % 2) * 0.25, c: 0 });
+  desk(D, 93.5, 24.6, 1.4, 0.7, { bare: 1, c: 0x5a5048 }); chair(93.5, 25.45, 'n');
+  bx(D, 93.5, 24.015, 1.6, 1, 0.03, 0x8a6a44, { y: 1.3, c: 0 }); // the board
+  for (let k = 0; k < 6; k++) bx(D, 92.95 + (k % 3) * 0.5, 24.035, 0.3, 0.38, 0.01, 0xe2ddd0, { y: 1.85 - Math.floor(k / 3) * 0.45, c: 0 });
+  note(D, 'orders', 93.5, 24.06, 1.8, true);
+  bx(D, 83.2, 31.5, 0.6, 0.05, 0.5, 0x3a3d40); P(D, 'cyl', 83.2, 31.6, 0.09, 1.6, 0.09, 0x4a5a4a); bx(D, 83.2, 31.45, 0.36, 0.34, 0.5, 0x4a5a4a, { y: 1.3, c: 0 }); // the pillar drill
+  bx(D, 82.6, 33.6, 0.6, 0.7, 0.5, 0x8c2f24); for (const [z, c] of [[33.95, 0x2a2c2e], [34.25, 0x8c2f24]] as const) P(D, 'cyl', 82.6, z, 0.24, 1.3, 0.24, c, { c: 0 }); // the welding set, its bottles
+  for (const x of [89, 90.2]) { P(D, 'cyl', x, 34.9, 1, 0.6, 1, 0x7a5a38, { y: 0.2, rz: PI / 2, c: 0 }); colT(D, x, 34.9, 0.6, 1, 1); } // cable drums, on their sides
+  bx(D, 88, 29.5, 5, 0.2, 0.15, 0xc9a227, { y: 3.8, c: 0 }); bx(D, 88.6, 29.5, 0.3, 0.25, 0.2, 0x2a2c2e, { y: 3.55, c: 0 }); // the hoist's beam, its block
+  bx(D, 88.6, 29.5, 0.03, 1.95, 0.03, 0x5a5d60, { y: 1.6, c: 0 }); bx(D, 88.6, 29.5, 0.12, 0.14, 0.06, 0x2a2c2e, { y: 1.46, c: 0 }); // its chain, its hook
+  shelf(D, 85.2, 35.7, 1.8, 0.5, { cols: [0xc9a227, 0x3d4042] }); item(D, 'kit', 85.2, 35.7, 1.06);
+  const TC = [92, 32, 96, 36] as const;
+  for (let z = TC[1] + 0.2; z < TC[3] - 0.05; z += 0.2) bx(D, TC[0], z, 0.03, 2.2, 0.03, MESH, { c: 0 });
+  for (let x = TC[0]; x < TC[2] - 0.05; x += 0.2) if (x < 93.9 || x > 95.1) bx(D, x, TC[1], 0.03, 2.2, 0.03, MESH, { c: 0 });
+  for (const y of [0, 2.2]) { bx(D, TC[0], 34, 0.05, 0.05, 4, MESH, { y, c: 0 }); bx(D, 94, TC[1], 4, 0.05, 0.05, MESH, { y, c: 0 }); }
+  colT(D, TC[0], 34, 0.08, 4, 2.2); for (const [x0, x1] of [[TC[0], 93.9], [95.1, TC[2]]]) colT(D, (x0 + x1) / 2, TC[1], x1 - x0, 0.08, 2.2);
+  for (const t of [0.1, 0.3, 0.5, 0.7, 0.9, 1.1]) bx(D, 95.1, 32 - t, 0.03, 2.1, 0.03, MESH, { c: 0 }); // its gate, open
+  for (const y of [0.1, 2]) bx(D, 95.1, 31.4, 0.04, 0.05, 1.2, MESH, { y, c: 0 });
+  bx(D, 95.985, 34, 0.03, 1.2, 1.6, 0x3a4048, { y: 1, c: 0 }); // the shadow board, its tools on their outlines
+  for (const [z, y, h, w] of [[33.45, 1.25, 0.5, 0.12], [33.85, 1.3, 0.4, 0.1], [34.6, 1.35, 0.35, 0.16], [34.6, 1.85, 0.15, 0.3]] as const) {
+    bx(D, 95.965, z, 0.01, h + 0.06, w + 0.06, 0xe2ddd0, { y: y - 0.03, c: 0 }); bx(D, 95.955, z, 0.02, h, w, 0x9aa0a4, { y, c: 0, mat: 'steel' });
+  }
+  bx(D, 95.965, 34.3, 0.01, 0.96, 0.18, 0xe2ddd0, { y: 1.08, c: 0 }); bx(D, 95.96, 34.3, 0.01, 0.9, 0.12, 0x3a4048, { y: 1.11, c: 0 }); // the empty one
+  bx(D, 95.6, 35.4, 0.7, 1, 0.8, 0x8c2f24); // the tool chest
 
   /* The muster hall: where the response team drilled (world.md §8). Long, flat and lit, on Ops' backup set: a promenade
      round a sunken court, the court's ceiling lifted into a coffer, and rooms off every side, each with a door. Over its
@@ -649,7 +710,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
     Atrium: 'atrium', 'Security elevator': 'atrium', Gallery: 'atrium',
     'Muster hall': 'muster', 'Muster court': 'muster', 'Electrical room': 'muster', Armory: 'muster', 'Firing range': 'muster', 'Duty office': 'muster',
     'Operations corridor': 'ops', 'Office: operations': 'ops', 'Outer office': 'ops', 'Office: chief of security': 'ops', Records: 'ops', 'Conference room': 'ops',
-    Maintenance: 'ops', 'Operations stair': 'ops',
+    Maintenance: 'ops', 'Generator room': 'ops', 'Fuel store': 'ops', 'Operations stair': 'ops',
   };
   for (const R of [...D.rooms, ...T1.rooms]) if (ZONES[R.name]) R.zone = R.name === 'Muster hall' && R.c === 'EAST' ? 'ops' : ZONES[R.name];
   /* the night round (world.md §8): one of the changed still walking the night shift's round, flashlight on. It begins on

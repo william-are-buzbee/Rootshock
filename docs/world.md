@@ -1020,7 +1020,17 @@ builder takes them.
    Its own room: the set on a plinth, its day tank, the transfer switch, its exhaust into the return air; beside it a
    fuel store, walled against fire (§9, *Fuel*). And Maintenance a workshop: benches, a tool cage, and the board of work
    orders that shows the station going (the lobby's dehumidifier failing; a noise in the duct over the mess). East, in
-   rock (x 90 to 110, z 24 to 46).
+   rock (x 90 to 110, z 24 to 46). **Built:** Maintenance a workshop 14 by 12 m and 4 m tall: the bench and its
+   pegboard along the north wall, the supervisor's desk under the board of work orders (`orders` in `content/notes.ts`:
+   the dehumidifier, the noise in the duct, the elevator's call cut on the chief's order, the drains), a pillar drill,
+   the welding set, cable drums, a chain hoist on its beam, the parts shelf with the splice kit on it. The tool cage
+   in its south-east corner, its gate open, and in it the shadow board with one outline empty, long and narrow: the bolt
+   cutters in the dead guard's hand at the wing's cut came from here. Through a shutter east, the generator room
+   (7 m square): the set on its plinth, radiator, engine and alternator, a line painted round it; its exhaust up and
+   along under the roof into the return air; its day tank and feed; the panel you start and stop it at; the transfer
+   switch on the wall; its starting batteries. Through another south, the fuel store: a tank walled round low, a hand
+   pump on it, drums on a spill pallet, an extinguisher by the door. Dark on the set's own power, as Maintenance was. Two
+   new doors, so saves are made new (version 19).
 5. **Administration, grown.** Four desks for a station of 500. Either it is Security's own, and right as it is, or it
    grows east over the briefing room (x 66 to 74, at +5). The ID office belongs with it: the card printer and its
    encoder. Ordinary equipment, and a strong lever later (a card made, with power and a login); a way past the cards too,
@@ -1079,7 +1089,7 @@ builder takes them.
     then the checker.
 
 **The order (agreed):** one at a time, in the list's order (the owner), each its own change: the arrival hall (1), the
-dock (2) and Operations' offices (3) are built; Maintenance and Ops' set (4) are next.
+dock (2), Operations' offices (3) and Maintenance with Ops' set (4) are built; administration (5) is next.
 
 **Being found (as built; the changed's wit is *The second pass*, to come)**
 
