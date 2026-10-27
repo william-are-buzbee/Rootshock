@@ -1,8 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { LevelBuilder } from '../src/content/build/builder';
-import { hitMutant, MT, type Mutant } from '../src/sim/cast';
-import { TEMPER } from '../src/sim/cast/husk';
-import { makeSim, type Sim } from '../src/sim/sim';
+import { STATION } from '../src/content/station';
+import { STEP } from '../src/core/loop';
+import { blowKind, hitMutant, MT, type Mutant } from '../src/sim/cast';
+import { RUSH, TEMPER } from '../src/sim/cast/husk';
+import { noInput } from '../src/sim/input';
+import { doorAct } from '../src/sim/interact';
+import { levelDef } from '../src/sim/run';
+import { makeSim, step, type Sim } from '../src/sim/sim';
+import { circle } from '../src/world/shapes';
 import { fresh, hold } from './kit';
 
 /* Pia's lines that walk as husks (world.md §10, Temper): Security's changed, the bush's children, fear held down by the
@@ -70,5 +76,78 @@ describe('two lines, one body', () => {
     expect(far.state).toBe('idle');
     expect(c.state).toBe('idle');
     expect(s.game.events.filter(e => e.type === 'sfx' && e.name === 'moan').length).toBeGreaterThanOrEqual(1); // heard
+  });
+});
+
+describe('the bone line, middle years', () => {
+  it('stand where they are put: most in the Commons, a few on the plant, three in Cargo by the young one', () => {
+    for (const [id, n] of [['main', 5], ['plant', 3], ['upper', 3]] as const) {
+      const s = makeSim(levelDef(STATION, id), { seed: 7, station: STATION }), nav = s.fields!.nav;
+      const mid = s.cast.filter(m => m.type === 'bonemid');
+      expect(mid.length, id).toBe(n);
+      for (const m of mid) {
+        expect(nav.locate(m.x, m.y, m.z), `${id} ${m.x},${m.z}`).toBeGreaterThanOrEqual(0);
+        expect(s.world.overlap(circle(m.x, m.z, m.body!.r), m.y + 0.02, m.y + m.body!.h, m.body!.skip), `${id} ${m.x},${m.z}`).toBe(null);
+      }
+      if (id === 'upper') expect(mid.every(m => s.world.roomAt(m.x, m.y + 0.5, m.z)?.name === 'Cargo cavern')).toBe(true);
+    }
+  });
+
+  it('are husks grown: a husk\'s wits and doors, a harder blow from further, and they run sooner', () => {
+    const s = hall(b => { b.mutant('bonemid', 12, 0, 3); b.mutant('husk', 12, 0, 6); b.mutant('changed', 12, 0, 9); }, true), [m, h, c] = s.cast;
+    expect(m.ai).toBe('husk');
+    expect(m.opens && m.walker === 'hands').toBe(true);
+    expect(blowKind(m)!.dmg).toBeGreaterThan(blowKind(h)!.dmg);
+    expect(blowKind(m)!.reach).toBeGreaterThan(blowKind(h)!.reach);
+    for (const q of [m, h, c]) { q.state = 'hunt'; q.lost = 0; q.hp = q.max * 0.5; }
+    hold(s, 0.2);
+    expect(m.state).toBe('flee'); // half its health gone: away
+    expect(h.state).toBe('hunt'); // its young never
+    expect(c.state).toBe('hunt'); // the changed not yet
+  });
+
+  it('now and then it charges: never at once, not every time it could, and it braces first, heard', () => {
+    const s = hall(b => b.mutant('bonemid', 4, 0, 6, { yaw: -Math.PI / 2 }), true), m = s.cast[0], b = s.player.body, R = RUSH.bonemid;
+    m.state = 'hunt'; m.lost = 0; m.ct = R.every[0]; m.hp = m.max = 1e9;
+    let first = -1, braces = 0, was = '';
+    for (let t = 0; t < 60; t += STEP) {
+      /* you, always six metres ahead of it along the hall, turning back at its ends: in its sight, out of its reach */
+      const dir = m.x < 10 ? 1 : -1;
+      b.x = m.x + dir * 6; b.z = m.z; b.vx = b.vz = 0; b.sync();
+      s.game.events.length = 0;
+      step(s, noInput());
+      if (m.state === 'brace' && was !== 'brace') {
+        braces++;
+        if (first < 0) first = t;
+        expect(s.game.events.some(e => e.type === 'sfx' && e.name === 'growl')).toBe(true);
+      }
+      was = m.state;
+    }
+    expect(first).toBeGreaterThanOrEqual(R.every[0] - 0.1);
+    expect(braces).toBeGreaterThanOrEqual(2);
+    expect(braces).toBeLessThan(60 / R.every[0]);
+  });
+
+  it('its charge, landed, hurts and throws you along it; smaller than the thresher\'s', () => {
+    const s = hall(b => b.mutant('bonemid', 11, 0, 6, { yaw: -Math.PI / 2 }), true), m = s.cast[0], hp = s.game.hp;
+    m.state = 'brace'; m.st = RUSH.bonemid.wind;
+    let fastest = 0;
+    for (let t = 0; t < 2.5; t += STEP) { step(s, noInput()); fastest = Math.max(fastest, -s.player.body.vx); }
+    expect(s.game.hp).toBeLessThan(hp);
+    expect(fastest).toBeGreaterThan(3); // thrown back, west, along its charge
+    expect(RUSH.bonemid.throws).toBeLessThan(9); // the thresher throws you 9 m/s
+  });
+
+  it('Cargo\'s door slid open by hand is heard down the bay: the young one and the three come to it, not those deeper in', () => {
+    const s = fresh(), d = s.doors.find(q => q.def.x0 > 107 && q.def.x1 < 111 && q.def.z1 < 1)!;
+    s.player.fly = true; s.player.body.y += 200;
+    const near = s.cast.filter(m => (m.type === 'bonemid' || (m.type === 'husk' && Math.abs(m.x - 150) < 1)));
+    const deep = s.cast.find(m => m.type === 'husk' && Math.abs(m.x - 182) < 1)!;
+    expect(near.length).toBe(4);
+    hold(s, 1); // as it is when you could get there: each of them where it stands
+    doorAct(s, d); d.hold = 1e9;
+    hold(s, 55);
+    for (const m of near) expect(Math.hypot(m.x - 109, m.z + 1), `${m.type} at ${m.x.toFixed(1)}`).toBeLessThan(8);
+    expect(Math.hypot(deep.x - 182, deep.z - 0.8)).toBeLessThan(0.5);
   });
 });

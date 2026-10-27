@@ -52,6 +52,9 @@ const STILL: Gait = { pace: { walk: 0 }, acc: 0, turn: 8 };
 
 export const GAIT: Record<string, Gait> = {
   husk: HUSK,
+  /* the bone line's middle years: a longer stride (the bench's 1.5 m at 92 a minute), harder after you, quicker away,
+     and a charge, shorter and slower than the thresher's */
+  bonemid: { ...HUSK, acc: 20, pace: { ...HUSK.pace, walk: 1.15, hunt: 3.8, flee: 4.6, charge: 5.5 }, feet: { sound: 'hstep', walk: 0.65, fast: 0.3, over: 2, big: true } },
   /* one of the changed on the night round: as the rest, but slower to get going, and after you slower than they are */
   nightround: { ...HUSK, acc: 14, pace: { ...HUSK.pace, hunt: 3.0 } },
   /* about where it lives, then a scuttle in bursts */

@@ -279,11 +279,12 @@ export function patient(sim: Sim, m: Mutant): void {
   }
 }
 
-/** a sound made somewhere, not by you (the other patient banging): heard by each of the cast it carries to as the air goes
- *  (shut doors muffle it), within `loud` metres. One on its round at a stop turns to it, its beam on it, a while, and then
- *  goes on with its round; one at rest, on the same floor, goes over to look (world.md §8: noise draws them). True if any
- *  on its round heard it */
-export function noiseAt(sim: Sim, x: number, y: number, z: number, loud: number): boolean {
+/** a sound made somewhere, not by you (the other patient banging, a big door opened): heard by each of the cast it
+ *  carries to as the air goes (shut doors muffle it), within `loud` metres. One on its round at a stop turns to it, its
+ *  beam on it, a while, and then goes on with its round; one at rest, on the same floor, goes over to look (world.md §8:
+ *  noise draws them): about there a while, or, if it is to `come` however far it is, as long as the walk takes it and
+ *  then a while there. True if any on its round heard it */
+export function noiseAt(sim: Sim, x: number, y: number, z: number, loud: number, come = false): boolean {
   const Fs = sim.fields;
   if (!Fs) return false;
   const spot = Fs.nav.locate(x, y, z);
@@ -297,7 +298,8 @@ export function noiseAt(sim: Sim, x: number, y: number, z: number, loud: number)
       roused = true;
     } else if (m.state === 'idle' && !m.round && Math.abs(y - m.y) < 1.5) {
       step_(sim, m, 'mutter');
-      m.state = 'search'; m.st = rnd(sim, SEARCH.time[0], SEARCH.time[1]); m.dest = -1; m.wx = x; m.wz = z; m.wt = 0; m.post = false;
+      m.state = 'search'; m.st = rnd(sim, SEARCH.time[0], SEARCH.time[1]) + (come ? heard[m.spot] / pace(m, 'search') : 0);
+      m.dest = -1; m.wx = x; m.wz = z; m.wt = 0; m.post = false;
     }
   }
   return roused;

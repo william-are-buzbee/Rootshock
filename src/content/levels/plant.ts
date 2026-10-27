@@ -67,6 +67,7 @@ export function buildPlant(ladders: Record<string, LadderDef>): LevelDef {
   for (const z of [-11.8, 11.8]) bx(D, 200, z, 96, 0.5, 0.4, 0x5a5d60, { y: 13.4, c: 0 }); bx(D, 229, 0, 1.2, 1, 23.4, 0xc9a227, { y: 13.6, c: 0 }); bx(D, 229, -3, 1.6, 0.8, 1.6, 0x2a2c2e, { y: 13, c: 0 });
   bx(D, 229, -3, 0.06, 6.4, 0.06, 0x2a2c2e, { y: 6.6, c: 0 }); bx(D, 229, -3, 0.5, 0.4, 0.5, 0x8a7a2a, { y: 6.3, c: 0 });
   bx(D, 190, -11.82, 0.8, 1.9, 0.18, 0xa82a20); item(D, 'axe', 190, -10.8, 0.02); item(D, 'batt', 170, 9, 0.02); mut(D, 'husk', 174, -4.8); mut(D, 'husk', 198, 6.8);
+  for (const [x, z] of [[160, 6], [186, -6], [212, 2]]) mut(D, 'bonemid', x, z); // a few of the bone line's middle years
   /* the east end, where the green comes down the exhaust shaft */
   overgrow(D, { x0: 240, z0: -12, x1: 250, z1: 12, ht: 16 }, 1.1, true); for (const [x, z] of [[242, -8], [246, 4], [244, -0.8], [238, 8]]) mut(D, 'rootworm', x, z); mut(D, 'vine', 249.76, -4, { yaw: -PI / 2 });
   door(D, 251, -1, { sg: [['Exhaust shaft', 'w']] }); const xl = room(D, 'Exhaust link', 252, -2, 4, 4, { ...E, em: 1 }); door(D, 257, -1);

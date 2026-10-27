@@ -58,6 +58,10 @@ export interface Stats {
 export const MT: Record<string, Stats> = {
   /* the bone mother's young: the Commons' husks, Cargo's, the plant's (world.md §10, the bone line, young) */
   husk: { line: 'bone', hp: 75, r: 0.38, cr: 0.34, mass: 1.2, kg: 80, h: 1.8, opens: true },
+  /* the bone mother's, middle years, alongside the thresher (world.md §10; mockups/mutants.html, Bone, middle years): a
+     husk grown, half again the weight and a head taller, one arm gone to bone and drawn out long, the ribs out. A husk in
+     its wits (doors, breakers), harder at you, quicker to run, and now and then it charges (cast/husk.ts, RUSH) */
+  bonemid: { ai: 'husk', model: 'bonemid', line: 'bone', hp: 120, r: 0.42, cr: 0.37, mass: 1.6, kg: 105, h: 1.95, opens: true },
   /* Security's staff, the bush's children: the changed (world.md §8). The husk's body and behaviour, their own temper */
   changed: { ai: 'husk', model: 'husk', line: 'bush', hp: 75, r: 0.38, cr: 0.34, mass: 1.2, kg: 80, h: 1.8, opens: true },
   /* one of the changed still walking the night shift's round, its flashlight on (world.md §8, the night round) */

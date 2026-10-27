@@ -1,15 +1,16 @@
+import { angDiff, clamp } from '../../core/math';
 import { STEP } from '../../core/loop';
 import { field as fieldFrom } from '../../world/nav';
+import { push } from '../body';
 import { soundRules, staffField } from '../fields';
 import { power, sfx } from '../game';
 import { occupied, type Door } from '../movers';
-import { MOVES } from '../moves';
 import { riders, type Sim } from '../sim';
 import type { Mutant } from '../cast';
-import { away, chase, fieldTo, follow, go, own, rnd, roam, step_, turnTo, turnToward, wander, type Wander } from './move';
+import { away, chargeMove, chase, fieldTo, follow, go, own, rnd, roam, step_, turnTo, turnToward, wander, type Wander } from './move';
 import { footfall, pace } from './gait';
 import { hears, lit, seeP, seeThrough } from './senses';
-import { beginBlow, blowStep, hover, inStart, WAIT, waits } from './blows';
+import { beginBlow, blowKind, blowStep, hover, inStart, strikes, WAIT, waits } from './blows';
 import { glassSpot, PEER, reaches, takesYou, triesYours, walkRound } from './round';
 
 /* Security's staff (world.md §8, the changed) and the bone mother's young (the Commons' husks), who walk alike: what
@@ -31,9 +32,34 @@ export const TEMPER: Record<string, Temper> = {
   /* the bone mother's young: the Commons' husks, many grafts from Pia's frightened days, changed in a crowd. Fear with
      nothing holding it: never still, they ignore their own pain, and one that has you sets off the crowd */
   bone: { flee: 0, rest: [0.5, 2], fidget: 1.5, rouse: 14 },
+  /* the bone line's middle years: as their young, but older in it and with more to lose, they run sooner than the changed */
+  bonemid: { flee: 0.6, rest: [0.5, 2], fidget: 1.5, rouse: 14 },
 };
-/** its line's temper; one with no line, the changed's */
-export const temperOf = (m: Mutant): Temper => TEMPER[m.line ?? ''] ?? TEMPER.bush;
+/** its kind's temper, or its line's; one with neither, the changed's */
+export const temperOf = (m: Mutant): Temper => TEMPER[m.type] ?? TEMPER[m.line ?? ''] ?? TEMPER.bush;
+
+/** a charge, for a kind that walks as a husk and has one (RUSH): not always, and never at once. After you, with you
+ *  seen `near` to `far` metres off and about level, every `every` seconds or so (the first, after as long as it has been
+ *  after you), it charges or not on a `chance`: braces `wind` seconds, heard, turned to you; then rushes you at its
+ *  `charge` pace for `time` at most, turning after you no faster than `turn` rad/s. Into you, it lands `dmg` and `poise`
+ *  and throws you `throws` m/s along it; into a wall it hurts itself (cast/move.ts, chargeMove) and stands dazed `daze`
+ *  seconds; met nothing, it stands `rec`. Then it is after you again. Anything that makes it flinch puts it off */
+interface Rush { near: number; far: number; every: readonly [number, number]; chance: number; wind: number; time: number; turn: number; dmg: number; poise: number; throws: number; rec: number; daze: number }
+export const RUSH: Record<string, Rush> = {
+  /* the bone line's middle years: a smaller thing than the thresher's (7.4 m/s, 45 harm, thrown 9 m/s), and shorter */
+  bonemid: { near: 3.5, far: 9, every: [4, 9], chance: 0.5, wind: 0.6, time: 1.1, turn: 1.2, dmg: 22, poise: 30, throws: 5, rec: 0.7, daze: 1.2 },
+};
+
+/** it might charge now: its clock run down, you in its sight at the right distance; whether it does is a toss */
+function charges(sim: Sim, m: Mutant): boolean {
+  const R = RUSH[m.type];
+  if (!R || (m.ct -= dt) > 0) return false;
+  m.ct = rnd(sim, R.every[0], R.every[1]);
+  if (m.dp < R.near || m.dp > R.far || Math.abs(m.dy) > 1 || !seeP(sim, m, R.far) || !sim.rng.chance(R.chance)) return false;
+  m.state = 'brace'; m.st = R.wind;
+  step_(sim, m, 'growl');
+  return true;
+}
 
 /** shifting about its post: a step or two to one side, a while, and to another (cast/move.ts, wander) */
 const FIDGET: Omit<Wander, 'near'> = { every: [1.5, 4], for: [0.6, 1.6] };
@@ -56,6 +82,8 @@ function hunt(sim: Sim, m: Mutant): boolean {
     return true;
   }
   m.state = 'hunt'; m.lost = 0; m.post = false; m.dest = -1; step_(sim, m, 'moan');
+  const R = RUSH[m.type];
+  if (R) m.ct = Math.max(m.ct, R.every[0]); // never at once
   rouse(sim, m);
   return true;
 }
@@ -174,7 +202,7 @@ function fedBy(sim: Sim, rc: string, c: string): boolean {
   for (let k = rc, n = 0; k && n < 8; k = C?.[k]?.feed ?? '', n++) if (k === c) return true;
   return false;
 }
-const caught = (m: Mutant) => m.ai === 'husk' && !m.dead && !m.post && m.state !== 'hunt' && m.state !== 'fix';
+const caught = (m: Mutant) => m.ai === 'husk' && !m.dead && !m.post && m.state !== 'hunt' && m.state !== 'fix' && m.state !== 'brace' && m.state !== 'rush';
 
 /** a breaker opened by hand at (x, y, z): who it leaves in the dark, and when each would go to throw it back */
 export function drill(sim: Sim, c: string, x: number, y: number, z: number): void {
@@ -325,12 +353,38 @@ export function husk(sim: Sim, m: Mutant): void {
       if (m.hp < m.max * temperOf(m).flee && !m.fled && d > 2.8) { m.state = 'flee'; m.st = 7; m.fled = true; step_(sim, m, 'moan'); break; }
       if (seeP(sim, m, 22)) m.lost = 0; else m.lost += dt;
       if (m.lost > 8) { m.state = 'idle'; m.dest = -1; m.wt = rnd(sim, 2, 5); break; }
-      if (inStart(m, MOVES.husk) && takesYou(sim, m)) break;
-      if (inStart(m, MOVES.husk)) { turnTo(sim, m, 10); if (m.cd <= 0) { beginBlow(sim, m, MOVES.husk); m.pat = 0; } }
+      if (charges(sim, m)) break;
+      if (inStart(m, blowKind(m)!) && takesYou(sim, m)) break;
+      if (inStart(m, blowKind(m)!)) { turnTo(sim, m, 10); if (m.cd <= 0) { beginBlow(sim, m, blowKind(m)!); m.pat = 0; } }
       else if (waits(sim, m)) { m.pat += dt; hover(sim, m, WAIT.ring); }
       /* one that carries its card comes through the card doors between, if that is the way to you */
       else if (F) chase(sim, m, pace(m, 'hunt'), m.cards && !Number.isFinite(F[m.spot]) && sim.fields ? staffField(sim, sim.fields) : F);
       break;
+    case 'brace': {
+      /* braced to charge, heard, turned to you; then away at you */
+      turnTo(sim, m, 8);
+      if ((m.st -= dt) > 0) break;
+      const b = sim.player.body;
+      m.state = 'rush'; m.st = RUSH[m.type]?.time ?? 0; m.cdir = Math.atan2(b.x - m.x, b.z - m.z);
+      break;
+    }
+    case 'rush': {
+      const R = RUSH[m.type], b = sim.player.body;
+      if (!R) { m.state = 'hunt'; break; }
+      m.cdir += clamp(angDiff(m.cdir, Math.atan2(b.x - m.x, b.z - m.z)), -R.turn * dt, R.turn * dt);
+      m.st -= dt;
+      footfall(sim, m, true);
+      if (m.dp < m.r + 0.55 && Math.abs(m.dy) < 1.4) {
+        /* into you: it lands, and throws you along its charge */
+        strikes(sim, m, R.dmg, R.poise, 0, R.throws);
+        b.vx = 0; b.vz = 0; push(b, Math.sin(m.cdir) * R.throws, Math.cos(m.cdir) * R.throws);
+        m.state = 'hunt'; m.lost = 0; m.stun = Math.max(m.stun, R.rec);
+        break;
+      }
+      if (!chargeMove(sim, m, pace(m, 'charge'))) { m.state = 'hunt'; m.stun = Math.max(m.stun, R.daze); break; }
+      if (m.st < 0) { m.state = 'hunt'; m.stun = Math.max(m.stun, R.rec); }
+      break;
+    }
     case 'flee':
       m.st -= dt;
       away(sim, m, pace(m, 'flee'), F);

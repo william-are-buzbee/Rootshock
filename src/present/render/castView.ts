@@ -78,6 +78,51 @@ function changed(mat: THREE.Material, m: Mutant): Model {
   return { g, b, hd, legs, shins, arms, lens: torch(mat, m, arms[0]) };
 }
 
+/* the bone mother's, middle years (world.md §10; mockups/mutants.html, Bone, middle years): a husk grown a head taller,
+   halfway gone to bone. Bare to the waist, the ribs out through raw flesh across the front and the spine down the back;
+   the right arm raw to the elbow and bone from there, drawn out long to a point, no hand; the left raw and a little long;
+   a face still, black-eyed, the jaw hanging; thin hair; the trousers torn off at the knee, barefoot. Built as the husk is,
+   part for part, MIDK times the size, so it moves and goes loose as the husk does (sim/ragdoll.ts, SKEL.bonemid) */
+const MIDK = 1.08;
+function boneMid(mat: THREE.Material, m: Mutant): Model {
+  const K = MIDK, R = seeded(m.id), g = new THREE.Group(), tr = R.pick([0x2b2e34, 0x3a3328, 0x2f3a44]);
+  const legs: O3[] = [], shins: O3[] = [];
+  for (const s of [-1, 1]) {
+    const l = grp(g, s * 0.11 * K, 0.9 * K, 0), k = grp(l, 0, -0.45 * K, 0);
+    mk(l, mat, 'box', tr, 0.17 * K, 0.45 * K, 0.18 * K, 0, -0.225 * K, 0);
+    /* torn off below the knee: a ragged hem, then the bare shin and foot */
+    mk(k, mat, 'box', tr, 0.17 * K, 0.14 * K, 0.18 * K, 0, -0.07 * K, 0);
+    mk(k, mat, 'box', FLESH, 0.13 * K, 0.32 * K, 0.13 * K, 0, -0.27 * K, 0); mk(k, mat, 'box', FLESH, 0.13 * K, 0.06 * K, 0.25 * K, 0, -0.42 * K, 0.04 * K);
+    legs.push(l); shins.push(k);
+  }
+  const b = grp(g, 0, 0.9 * K, 0);
+  mk(b, mat, 'box', FLESH, 0.44 * K, 0.62 * K, 0.26 * K, 0, 0.31 * K, 0); // bare to the waist
+  mk(b, mat, 'box', tr, 0.42 * K, 0.12 * K, 0.25 * K, 0, 0.03 * K, 0); // the waistband
+  mk(b, mat, 'box', RAW, 0.3 * K, 0.32 * K, 0.04 * K, 0, 0.44 * K, 0.12 * K); // raw where the ribs came through
+  for (const y of [0.32, 0.4, 0.48, 0.56]) mk(b, mat, 'box', BONE, 0.34 * K, 0.035 * K, 0.04 * K, 0, y * K, 0.15 * K); // the ribs, out
+  mk(b, mat, 'box', RAW, 0.12 * K, 0.58 * K, 0.04 * K, 0, 0.32 * K, -0.13 * K);
+  for (let i = 0; i < 6; i++) mk(b, mat, 'box', BONE, 0.06 * K, 0.05 * K, 0.05 * K, 0, (0.1 + i * 0.09) * K, -0.15 * K); // the spine, out
+  mk(b, mat, 'ico', RAW, 0.28 * K, 0.28 * K, 0.24 * K, 0.19 * K, 0.54 * K, -0.02 * K); // the raw shoulder the bone grows from
+  const hd = grp(b, -0.02 * K, 0.76 * K, 0.05); // carried forward
+  mk(hd, mat, 'ico', PALE, 0.25 * K, 0.29 * K, 0.26 * K, 0, 0, 0);
+  for (const s of [-1, 1]) mk(hd, mat, 'ico', DARK, 0.045 * K, 0.04 * K, 0.025 * K, s * 0.058 * K, 0.03 * K, 0.115 * K); // the eyes: black
+  mk(hd, mat, 'box', DARK, 0.1 * K, 0.07 * K, 0.04 * K, 0, -0.085 * K, 0.1 * K); // the mouth, open
+  mk(hd, mat, 'box', PALE, 0.12 * K, 0.04 * K, 0.1 * K, 0, -0.14 * K, 0.06 * K); // the jaw, hanging
+  for (const [x, z] of [[-0.06, -0.04], [0.05, 0.02], [0, -0.1]]) mk(hd, mat, 'ico', DARK, 0.06 * K, 0.025 * K, 0.06 * K, x * K, 0.14 * K, z * K); // thin hair
+  hd.rotation.z = 0.2;
+  const arms: O3[] = [];
+  /* its left: raw, and a little long */
+  let a = grp(b, -0.27 * K, 0.56 * K, 0);
+  mk(a, mat, 'box', RAW, 0.12 * K, 0.38 * K, 0.13 * K, 0, -0.19 * K, 0); mk(a, mat, 'box', FLESH, 0.09 * K, 0.42 * K, 0.09 * K, 0, -0.6 * K, 0);
+  arms.push(a);
+  /* its right: raw to the elbow, then bone, drawn out long to a point */
+  a = grp(b, 0.3 * K, 0.58 * K, 0);
+  mk(a, mat, 'box', RAW, 0.15 * K, 0.4 * K, 0.15 * K, 0, -0.2 * K, 0); mk(a, mat, 'box', BONE, 0.07 * K, 0.72 * K, 0.07 * K, 0, -0.76 * K, 0);
+  mk(a, mat, 'box', BONE, 0.04 * K, 0.14 * K, 0.04 * K, 0, -1.16 * K, 0.01);
+  arms.push(a);
+  return { g, b, hd, legs, shins, arms };
+}
+
 /* the other patient in the isolation suite (world.md §8, the opening): a gown, bare legs and feet, thin from days with
    nothing to eat, the hair gone wild; built as the husk is, so it goes loose as the husk does. Struck down and dragged,
    the gown is streaked with blood (`gore`); grafted, a small shelf of leaf comes out of the left forearm, a raw knot
@@ -161,6 +206,7 @@ function deadModel(mat: THREE.Material, m: Mutant): Model {
 export const BUILD: Record<string, (mat: THREE.Material, m: Mutant) => Model> = {
   patient: mat => patientModel(mat),
   dead: (mat, m) => deadModel(mat, m),
+  bonemid: (mat, m) => boneMid(mat, m),
   /* the bone mother's young: still a person's outline, one arm already something else. The bush's children walk as they
      do, and are the changed, and look it (changed(), above) */
   husk(mat, m) {
@@ -332,11 +378,13 @@ export const ANIM: Record<string, (m: Mutant, M: Model, c: Ctx) => void> = {
   },
   husk(m, M) {
     /* its steps as often, and as long, as its own gait has them against its kind's (sim/cast/gait.ts): a slow one shuffles */
-    const mv = m.mv > 0, hunt = m.state === 'hunt', f = (hunt ? 11 : 5) * (m.gait.cadence ?? 1), sw = m.gait.stride ?? 1;
+    const rush = m.state === 'rush', brace = m.state === 'brace', hunt = m.state === 'hunt' || rush || brace;
+    const mv = m.mv > 0, f = (hunt ? 11 : 5) * (m.gait.cadence ?? 1), sw = m.gait.stride ?? 1;
     for (let k = 0; k < 2; k++) { M.legs[k].rotation.x = mv ? Math.sin(m.ph * f + k * PI) * (hunt ? 0.7 : 0.35) * sw : 0; if (M.shins) M.shins[k].rotation.x = 0; }
     M.arms[0].rotation.x = hunt ? -1.1 + Math.sin(m.ph * f) * 0.2 * sw : mv ? Math.sin(m.ph * f + PI) * 0.25 * sw : 0;
     M.arms[1].rotation.x = hunt ? -1.3 + Math.sin(m.ph * f + 2) * 0.25 * sw : mv ? Math.sin(m.ph * f) * 0.2 * sw : Math.sin(m.ph * 0.9) * 0.06;
-    M.b.rotation.x = m.state === 'flee' ? 0.4 : hunt ? 0.18 : 0.06;
+    /* braced to charge it rears back; charging, it goes head down */
+    M.b.rotation.x = m.state === 'flee' ? 0.4 : rush ? 0.45 : brace ? -0.12 : hunt ? 0.18 : 0.06;
     /* its blow, as the sim has it: the arm drawn up and back, the body leaning away (shaking at the top, the last of
        the wind-up, when it has stopped turning); brought down through you and past, the body following it over; then
        left hanging, bent over, before it comes back up */
@@ -473,6 +521,8 @@ export const ANIM: Record<string, (m: Mutant, M: Model, c: Ctx) => void> = {
   },
 };
 ANIM.swimmer = ANIM.worm;
+/* the bone line's middle years move as the husk does */
+ANIM.bonemid = ANIM.husk;
 
 /** what the animations switch on (ANIM): where any of it changes, the pose they give jumps, and the model is taken over
  *  to the new one (fade.ts). What it is doing; walking or not (each at its own pace, so at its own place in the step); a

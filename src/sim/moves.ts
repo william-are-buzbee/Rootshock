@@ -40,6 +40,9 @@ const deg = (a: number) => Math.cos((a * Math.PI) / 180);
 export const MOVES = {
   /* overhead, with one arm: wide, as an arm comes down, and slow to come back from */
   husk: { wind: 0.55, strike: 0.12, rec: 0.5, miss: 0.85, cd: 0.3, turn: 10, lock: 0.7, creep: 1.8, start: 0.85, reach: 1.0, arc: deg(55), lunge: 0.3, dmg: 20, poise: 20, shove: 110, armour: { wind: 0, strike: 12 }, tell: 'heave' },
+  /* the bone line's middle years: the husk's blow with the bone arm, longer, heavier, a touch slower to throw and harder
+     to put off */
+  bonemid: { wind: 0.6, strike: 0.13, rec: 0.5, miss: 0.9, cd: 0.35, turn: 9, lock: 0.7, creep: 2.0, start: 1.05, reach: 1.3, arc: deg(50), lunge: 0.35, dmg: 28, poise: 26, shove: 150, armour: { wind: 6, strike: 16 }, tell: 'heave' },
   /* it rears and drops on you: narrow, and further forward than it looks. Fists do not put it off its drop */
   skitter: { wind: 0.5, strike: 0.1, rec: 0.4, miss: 0.7, cd: 0.45, turn: 6, lock: 0.6, creep: 0, start: 0.75, reach: 0.75, arc: deg(35), lunge: 0.5, dmg: 22, poise: 18, shove: 120, armour: { wind: 10, strike: 14 }, tell: 'skit' },
   bigSkitter: { wind: 0.7, strike: 0.15, rec: 0.7, miss: 1.1, cd: 0.6, turn: 5, lock: 0.6, creep: 0, start: 1.1, reach: 1.1, arc: deg(45), lunge: 0.6, dmg: 45, poise: 34, shove: 220, armour: { wind: 18, strike: 28 }, tell: 'skit', big: true },
@@ -55,7 +58,7 @@ export const MOVES = {
 
 /** how much a body can take before it reels; what it gets back once left alone, and after how long */
 export const POISE = {
-  you: 30, husk: 25, skitter: 20, bigSkitter: 40, worm: 12, swimmer: 12, thresher: 70, bloat: 1e9, other: 30,
+  you: 30, husk: 25, bonemid: 35, skitter: 20, bigSkitter: 40, worm: 12, swimmer: 12, thresher: 70, bloat: 1e9, other: 30,
   /** seconds without a hit before it comes back, and how much of the whole a second */
   calm: 1.0, regain: 0.5,
 };

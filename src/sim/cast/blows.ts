@@ -98,7 +98,7 @@ export type BlowKind = Move;
 /** the blow this one throws, if it throws one */
 export function blowKind(m: Mutant): BlowKind | null {
   switch (m.ai) {
-    case 'husk': return MOVES.husk;
+    case 'husk': return (MOVES as Record<string, Move>)[m.type] ?? MOVES.husk; // its kind's own, if it has one
     case 'skitter': return m.big ? MOVES.bigSkitter : MOVES.skitter;
     case 'thresher': return MOVES.thresher;
     case 'worm': return MOVES.worm;
@@ -256,6 +256,8 @@ export function hitMutant(sim: Sim, m: Mutant, w: Hit, k = 1): void {
   switch (m.ai) {
     case 'husk':
       if (m.state === 'idle' || m.state === 'lurk') { m.state = 'hunt'; m.lost = 0; m.post = false; rouse(sim, m); }
+      /* braced to charge, or charging: put off it by anything that makes it flinch */
+      else if ((m.state === 'brace' || m.state === 'rush') && R.r !== 'none') m.state = 'hunt';
       else if (m.hp < m.max * temperOf(m).flee && !m.fled && sim.rng.chance(0.5)) { m.state = 'flee'; m.st = 7; m.fled = true; m.blow = null; step_(sim, m, 'moan'); }
       if (R.r === 'stagger') step_(sim, m, 'moan');
       break;

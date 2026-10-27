@@ -413,7 +413,8 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   mut(D, 'skitter', 45.2, 54); eggs(D, 42.8, 56.6, 2); // the range
   /* east of the atrium, behind Operations' card: the link to Cargo, and over it on the second floor, Cargo control */
   door(D, 89, -1, { card: 'o', c: 'OPS', sg: [['Cargo', 'w']] }); room(D, 'Cargo link', 90, -2, 18, 4, { ...UTIL, c: 'CARGO', em: 1 });
-  door(D, 109, -1, { sg: [['Cargo cavern', 'w']] });
+  /* the way into Cargo: slid open by hand onto its dark bay, it is heard the length of receiving, and what waits there comes */
+  door(D, 109, -1, { sg: [['Cargo cavern', 'w']], loud: 60 });
   door(T1, 89, 3.4, { sg: [['Cargo control', 'w']] }); room(T1, 'Cargo control', 90, -6, 18, 14, { ...OFF, c: 'CARGO', ht: 4 });
   tbl(T1, 106.6, 0, 0.8, 4, 0x3a3d40); bx(T1, 104.8, 0, 0.45, 0.45, 0.45, 0x2c2f33); for (const z of [-1.6, 1.6]) bx(T1, 106.8, z, 0.5, 0.3, 0.06, 0x22262a, { y: 0.76, c: 0, pw: [[0.04, 0.05, 0.05], [2.2, 2.5, 2.75]], pc: 'CARGO' });
   /* the window onto the bay: three bays of glass in the east wall, high over the floor (world.md §8) */
@@ -655,6 +656,9 @@ function buildCargo(D: Floor, T1: Floor, T2: Floor, T3: Floor): void {
   container(D, 134, 10, false, 2); container(D, 150, 10, false, 3); container(D, 180, 10.4, false, 2); container(D, 198, 8.8, true, 1); container(D, 158, -10, false, 1); container(D, 186, -10.8, false, 1);
   container(D, 166, 4.8, true, 2); container(D, 210, 5.2, true, 3); forklift(D, 142, 3, true); forklift(D, 192, 3.6, false);
   mut(D, 'husk', 150, -0.8); mut(D, 'husk', 182, 0.8);
+  /* three of the bone line's middle years about the young one at receiving, who make for the light with it when the door is
+     opened */
+  for (const [x, z] of [[146, -4.5], [154, -3.5], [156, 2.5]]) mut(D, 'bonemid', x, z);
   for (const [x, z, n] of [[218, -6, 4], [224, 6, 5], [228, -10, 3], [232, 0, 5], [236, 10, 4], [222, -0.8, 3]]) eggs(D, x, z, n); gore(D, 226, 1, 4); blood(D, 230, -4, 2);
   mut(D, 'worm', 224, 2); mut(D, 'worm', 226, 4); mut(D, 'worm', 223, 4.8); mut(D, 'skitter', 232, -6); mut(D, 'husk', 214, 8, { post: 1, yaw: -PI / 2 });
   /* the tiers: thicker with every one */

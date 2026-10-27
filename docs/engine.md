@@ -1193,13 +1193,29 @@ world.md §10), and one behaviour takes them by their temper (`TEMPER`, `cast/hu
 | `fidget`: at a post, shifts about it (m) | stands | 1.5 either way, at its `shift` pace (0.6 m/s) |
 | `rouse`: turning on you sets off its line in earshot (m of air) | none | 14 |
 
+A kind can have a temper of its own over its line's (`TEMPER[type]`): the bone line's middle years (`bonemid`) run at 0.6
+of their health, and are otherwise their young's.
+
 - **Drawn** by line, not by card: the bush's line as the changed (`changed()`), the bone line's as the husk.
 - **Rousing** (`rouse`): a sound field from the one that turned (noticed you, or was struck or walked into), out to
   14 m; every other of its line in it not already after you, running, or stunned, turns too, and rouses in turn. On
   main, walking the street a minute: three or four after you at once, four or five in all, where it was two.
 - **What did not change**: with the bone line given the changed's temper, the trace probe is the same to the bit on
   every level and the opening, so the split alone changes nothing; the four rows are the whole of the difference.
-- **Dev**: key 6 in the arena puts down one of the changed.
+- **Dev**: key 6 in the arena puts down one of the changed; key 7 one of the bone line's middle years.
+- **The bone line's middle years** (`bonemid`): the husk's behaviour and the husk's rig, at 1.08 times the size, 105
+  kg, 1.95 m, 120 health, poise 35 (`POISE.bonemid`); its own model (`boneMid`, `render/castView.ts`) and skeleton
+  (`SKEL.bonemid`, the husk's `grown`, `sim/ragdoll.ts`). Its blow is the husk's from the bone arm (`MOVES.bonemid`:
+  28 harm against 20, reach 1.3 m against 1.0, a touch slower, harder to put off). Its gait walks the bench's stride
+  (1.15 m/s) and hunts at 3.8. Its charge (`RUSH`, `cast/husk.ts`; states `brace` and `rush`): after you, with you seen
+  3.5 to 9 m off and about level, every 4 to 9 s it may (a toss) brace 0.6 s, growling, and rush 1.1 s at most at 5.5
+  m/s, turning after you at 1.2 rad/s; into you, 22 harm, poise 30, thrown 5 m/s (the thresher: 7.4 m/s, 45, 9); into a
+  wall, it hurts itself and stands dazed. Never in its first seconds after you. Anything that makes it flinch puts it off
+  a charge. It uses the husks' way: no spot it can walk on any level has under 2 m of headroom (measured).
+- **Loud doors** (`DoorDef.loud`): a big door slid open by hand is heard this far through the air, and those at rest in
+  earshot come to it (`noiseAt`, which, for such a door, makes their search as long as the walk there). Cargo's, onto its
+  dark bay, at 60 m: the young one at receiving and the three about it walk the forty metres to it, those deeper in stay.
+  A test of Cargo's platform holds the cast still now, as the door it opens brings them.
 - **Tests**: `test/lines.test.ts`.
 
 ### Size, as built

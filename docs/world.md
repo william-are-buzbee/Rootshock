@@ -1395,7 +1395,7 @@ of each gap (*Pia's lines*, in its Saved tab).
 
 | Line | Young | Middle years | Old | Young god |
 |---|---|---|---|---|
-| Bone (the bone mother's) | the husks (built; their temper too) | the thresher (built) | the bone elders (none) | the bone mother (none) |
+| Bone (the bone mother's) | the husks (built; their temper too) | the thresher (built); a person's size (built) | the bone elders (none) | the bone mother (none) |
 | Bloat (the bloat god's) | still walking, swelling, baby-headed (none) | bigger, slower, dopier (none) | the bloats, sat (built) | the bloat god (none) |
 | Plant (the bush's) | Security's changed (built; their temper too) | heavier, greener, the face going under (none) | | the bush (none) |
 
@@ -1461,6 +1461,15 @@ and drift. (The rules are §10's; this is how they add up.) Which line it is com
   and muffled by shut doors, out to 14 m, turns on you too and moans in turn. Walking the Commons' street for a minute,
   that is three or four after you at once where it was two. *Open:* whether Cargo's are the bone line's (as they are
   drawn) or the bush's (their territory is Security's, §2).
+- **Built: the bone line's middle years, at a person's size** (alongside the thresher; the bench's *Bone, middle years*).
+  A husk grown a head taller, halfway gone to bone: the ribs out across a raw chest and the spine down the back, the
+  right arm bone from the elbow and drawn out long to a point, the left raw, a face still and black-eyed, the jaw
+  hanging, trousers torn off at the knee. Not a little thresher but a bigger husk: a husk's wits (doors, the breaker
+  drill), a harder blow from further, and more to lose, so it runs at half its health. Now and then, after you, with you
+  in sight a few metres off, it braces (heard: a growl) and charges, shorter and slower than the thresher, and never at
+  once. Most in the Commons (four on the street, one in the Square), three on the plant's generator floor, and three in
+  Cargo about the young one at receiving: slide Cargo's door open by hand and it is heard down the bay, and the four of
+  them come to it to look (a loud door: `DoorDef.loud`).
 
 ### Grafting as treatment
 

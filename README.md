@@ -28,7 +28,8 @@ G god, B bright, O draws every collider (and each body's poise, velocity and sta
 tracker (what the progression checker says you can reach from where you stand).
 
 For working on the fight, `?dev&level=testbed` and go north through the gate to the arena (weapons on the table). Keys
-1 to 6 put one of the cast down in front of you, awake (husk, skitter, thresher, worm, big skitter, one of the changed), 0 kills
+1 to 7 put one of the cast down in front of you, awake (husk, skitter, thresher, worm, big skitter, one of the changed, one of the
+bone line's middle years), 0 kills
 them where they stand (and, with none left alive, clears the dead away); T slows time (×0.25, ×0.1, back); Y changes the weapon in your hand (A, D or W held as you click sends its swing from the left, the right or overhead); H puts you right; U holds the cast still or
 lets them go. The readout shows how you stand and the last few blows in numbers: damage, the closing multiplier, the
 shove, and what came of it. `?level=<id>` starts on another level (`upper`, `main`, `plant`, `sump`, `sumpdeep`, `cave`, or `testbed`);
