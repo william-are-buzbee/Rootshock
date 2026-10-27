@@ -787,10 +787,65 @@ function buildHub(B: Floor, D: Floor, T1: Floor, T2: Floor): void {
   bx(D, 41.1, -24.2, 0.5, 0.9, 5.6, 0x5a5048); bx(D, 41.49, -24.2, 0.02, 0.9, 2.4, 0xd8d4c4, { y: 1.3, c: 0 }); // cabinets, and the rotation board over them
   item(D, 'batt', 41.1, -25.8, 0.9);
   door(D, 37, -19, { sg: [['Screening', 'n']] });
-  room(D, 'Screening', 32, -18.75, 9.5, 4.75, { ...MED, ...wing }); // it and the hall short of the isolation hall's top, a wall between door(D, 39, -13, { sg: [['Isolation', 'n'], ['Screening', 's']] });
-  for (const x of [33.6, 40.4]) { bx(D, x, -17, 2, 0.7, 0.8, 0xb8c4bd); bx(D, x - 0.7, -17, 0.5, 0.08, 0.6, 0xe2e2da, { y: 0.7, c: 0 }); } // couches, a pillow on each
-  desk(D, 36.2, -14.9, 1.2, 0.6, { bare: 1 }); screen(D, 36.2, -14.64, 0.76, false); seat(D, 36.2, -16, 0x2c2f33);
+  /* screening (world.md §8, Security at the station's size): where a cage-load was looked over for exposure. In from
+     check-in; the changing cubicles in the wing south of it, a curtain to each; the decontamination shower in the
+     corner; the chair where blood was drawn, its arm out; the clerk's desk; the lab bench, where the samples were spun;
+     a bench to wait on; and out to the nurses' station and the suite below. It and the hall stop short of the isolation
+     hall's top, a wall between */
+  const SCR: RoomOpts = { ...MED, ...wing };
+  room(D, 'Screening', 32, -18.75, 9.5, 4.75, SCR); room(D, 'Screening', 32, -14, 3.5, 3.5, SCR);
+  door(D, 39, -13, { sg: [['Isolation', 'n'], ['Screening', 's']] });
+  desk(D, 36.2, -14.9, 1.2, 0.6, { bare: 1 }); screen(D, 36.2, -15.14, 0.76, false, 1); seat(D, 36.2, -14.25, 0x2c2f33); // the clerk faces the room
   item(D, 'bandage', 35.76, -14.9, 0.76);
+  const TILE = 0xd8dcd8, GOWN = 0x9ab4c4, BR = 0x5e4424;
+  /* the decontamination shower, open to the room but for its curtain: a wall of tile on its east side, the head over it */
+  bx(D, 33.7, -17.875, 0.06, 2.2, 1.75, TILE);
+  bx(D, 32.85, -18.6, 0.3, 0.06, 0.3, 0x8a8e8c, { y: 2.3, c: 0 }); bx(D, 32.85, -18.72, 0.06, 0.06, 0.06, 0x8a8e8c, { y: 2.3, c: 0 }); // the head, off the wall
+  P(D, 'cyl', 32.85, -17.9, 0.3, 0.01, 0.3, 0x3a3d40, { c: 0 }); // the drain
+  bx(D, 32.85, -17.02, 1.66, 0.04, 0.04, 0x8a8e8c, { y: 2.2, c: 0 }); bx(D, 32.35, -17.03, 0.6, 2.05, 0.02, 0xc8d4d0, { y: 0.15, c: 0 }); // its rail, the curtain half across
+  bx(D, 33.64, -17.4, 0.06, 0.04, 0.04, 0xc9a227, { y: 1.6, c: 0 }); // the pull handle, yellow
+  use(D, 'look', 32.85, -17.6, 1.4, { label: 'Decontamination shower', text: 'Pull the handle and stand under it a full minute. Hung beside it, stencilled: EVERYONE. EVERY TIME.' });
+  /* where blood was drawn: the chair, its arm out for the needle, and the trolley beside it, tubes in their rack */
+  bx(D, 34.9, -18, 0.6, 0.45, 0.6, 0x5a7a8a); bx(D, 34.9, -18.33, 0.6, 0.8, 0.06, 0x5a7a8a, { y: 0.45, c: 0 }); bx(D, 35.3, -17.94, 0.22, 0.08, 0.72, 0x5a7a8a, { y: 0.62, c: 0 });
+  bx(D, 35.75, -17.4, 0.4, 0.85, 0.5, 0xb8bcc0);
+  for (let k = 0; k < 5; k++) P(D, 'cyl', 35.62 + k * 0.065, -17.48, 0.03, 0.1, 0.03, [0x8c2f24, 0x6a8aaa, 0xc9a227, 0x8a8e8c, 0x3a6a3a][k], { y: 0.85, c: 0 });
+  bx(D, 35.8, -17.25, 0.14, 0.18, 0.12, 0xc9a227, { y: 0.85, c: 0 }); // the sharps bin
+  /* the lab bench on the east wall, and its fridge: a centrifuge, a microscope, a rack of samples nobody read */
+  bx(D, 41.15, -17.7, 0.7, 0.9, 1.9, 0xb9c4bd); bx(D, 41.15, -17.7, 0.72, 0.04, 1.92, 0x8a8e8c, { y: 0.9, c: 0 });
+  P(D, 'cyl', 41.15, -18.25, 0.36, 0.24, 0.36, 0xd8dcd8, { y: 0.94, c: 0 });
+  bx(D, 41.2, -17.55, 0.2, 0.04, 0.2, 0x2a2c2e, { y: 0.94, c: 0 }); bx(D, 41.28, -17.55, 0.05, 0.36, 0.05, 0x2a2c2e, { y: 0.98, c: 0 }); bx(D, 41.22, -17.55, 0.14, 0.1, 0.08, 0x2a2c2e, { y: 1.3, c: 0 }); // the microscope
+  bx(D, 41.1, -17.05, 0.18, 0.06, 0.4, 0xb8bcc0, { y: 0.94, c: 0 }); for (let k = 0; k < 6; k++) P(D, 'cyl', 41.1, -17.2 + k * 0.06, 0.025, 0.1, 0.025, 0x8c2f24, { y: 1, c: 0 });
+  bx(D, 41.1, -14.35, 0.6, 0.85, 0.6, 0xd8dcd8); // the fridge
+  bx(D, 39.3, -18.45, 2, 0.45, 0.4, 0xb8c4bd); // a bench to wait on
+  /* the cubicles, three down the wing's south wall: a curtain across each, a bench, a gown on its hook; in two, the
+     clothes someone took off and never came back for */
+  bx(D, 33.75, -11.8, 3.5, 0.04, 0.04, 0x8a8e8c, { y: 2.05, c: 0 });
+  for (const x of [33.15, 34.3]) bx(D, x, -11.15, 0.04, 1.9, 1.3, TILE, { y: 0.1 });
+  for (const [k, x0, x1] of [[0, 32, 33.15], [1, 33.15, 34.3], [2, 34.3, 35.5]] as const) {
+    const mx = (x0 + x1) / 2;
+    bx(D, mx, -10.7, x1 - x0 - 0.2, 0.42, 0.4, 0x8a7a6a); // the bench
+    bx(D, mx + 0.3, -10.54, 0.08, 0.04, 0.08, BR, { y: 1.7, c: 0 }); bx(D, mx + 0.3, -10.6, 0.3, 0.9, 0.06, GOWN, { y: 0.82, c: 0 }); // the hook, the gown
+    if (k < 2) bx(D, mx - 0.15, -10.7, 0.4, 0.1, 0.32, [0x2c3440, 0x5a4a3a][k], { y: 0.42, c: 0 }); // folded clothes
+    bx(D, x0 + 0.2 + k * 0.1, -11.8, 0.3 + (k % 2) * 0.3, 1.95, 0.02, 0xc8d4d0, { y: 0.1, c: 0 }); // the curtain, drawn back
+  }
+
+  /* the lobby's washrooms, off its east wall where a hotel puts them: stone and bronze like the lobby, a walnut pair to
+     each. A vanity of basins under a mirror; the stalls at the far end, their doors open; urinals in the gentlemen's */
+  const WCR: RoomOpts = { ...FAM, ...wing, ht: 3.2, lc: [0.92, 0.86, 0.74] }, WHITE = 0xe8e8e2, PANEL = 0x5a4030;
+  room(D, 'Ladies', 30.5, -10, 5, 2.5, WCR); door(D, 30.25, -8.75, { sg: [['Ladies', 'w']] });
+  room(D, 'Gentlemen', 30.5, -7, 5, 2.5, WCR); door(D, 30.25, -5.75, { sg: [['Gentlemen', 'w']] });
+  for (const [z0, s] of [[-10, 1], [-7, 1]] as const) {
+    bx(D, 32.05, z0 + s * 0.275, 1.7, 0.85, 0.55, 0x9a9384, { mat: 'stone' }); // the vanity
+    for (const x of [31.6, 32.5]) { P(D, 'cyl', x, z0 + 0.3, 0.38, 0.03, 0.3, WHITE, { y: 0.85, c: 0 }); P(D, 'cyl', x, z0 + 0.08, 0.03, 0.15, 0.03, BR, { y: 0.85, c: 0 }); }
+    bx(D, 32.05, z0 + 0.015, 1.6, 0.9, 0.03, 0xaab4b8, { y: 1.15, c: 0, mat: 'steel' }); bx(D, 32.05, z0 + 0.015, 1.7, 0.04, 0.03, BR, { y: 2.05, c: 0 }); // the mirror
+  }
+  /* the stalls: a partition between the ladies' two, one in the gentlemen's; a rail over the fronts; each door swung
+     back against a wall; the pan and its cistern */
+  bx(D, 34.7, -8.75, 1.6, 1.8, 0.04, PANEL, { y: 0.12 }); bx(D, 34.7, -5.6, 1.6, 1.8, 0.04, PANEL, { y: 0.12 });
+  bx(D, 33.9, -8.75, 0.04, 0.04, 2.5, BR, { y: 1.95, c: 0 }); bx(D, 33.9, -6.3, 0.04, 0.04, 1.4, BR, { y: 1.95, c: 0 });
+  for (const z of [-9.98, -8.71, -6.98]) bx(D, 34.3, z, 0.75, 1.75, 0.04, PANEL, { y: 0.12, c: 0 });
+  for (const z of [-9.4, -8.1, -6.35]) { bx(D, 35.15, z, 0.65, 0.4, 0.4, WHITE); bx(D, 35.42, z, 0.16, 0.8, 0.45, WHITE); }
+  for (const x of [32.2, 33]) bx(D, x, -4.675, 0.4, 0.6, 0.35, WHITE, { y: 0.45 }); bx(D, 32.6, -4.75, 0.04, 0.9, 0.5, PANEL, { y: 0.5, c: 0 }); // the urinals, a screen between
 
   /* The retreat, a storey under the lobby: the family's, and their buyers'. A stair down from the lobby's north-west
      corner, behind glass and planting, to a lounge panelled in wood (the family's indulgence: nothing else down here

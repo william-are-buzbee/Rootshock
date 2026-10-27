@@ -1046,7 +1046,17 @@ builder takes them.
 6. **The lobby's washrooms; screening, a suite.** A lobby with nowhere to wash. A pair off its east wall in the rock south
    of check-in (x 30.5 to 36, z -13.5 to -4.5), where a hotel puts them. Screening (10 by 5 m, two couches) looks a
    cage-load over for exposure: changing cubicles, a decontamination shower, a bay for drawing blood, a lab bench. It takes
-   the rest of that gap. Cubicles, in the dark.
+   the rest of that gap. Cubicles, in the dark. **Built:** the ladies' and the gentlemen's, side by side off the lobby's
+   east wall (x 30.5 to 35.5, z -10 to -4.5), each through a walnut pair, in the lobby's stone and bronze: a vanity of
+   two basins under a mirror, the stalls at the far end with their doors swung back, and urinals in the gentlemen's.
+   Screening grows a wing south into the rest of the gap (x 32 to 35.5, z -14 to -10.5) for three changing cubicles, a
+   curtain across each, a bench, a gown on its hook, and in two the clothes someone took off and never came back for.
+   The main room: the decontamination shower in its corner (EVERYONE. EVERY TIME.), the chair where blood was drawn and
+   its trolley, the clerk's desk turned to face the room, the lab bench on the east wall (centrifuge, microscope, a
+   rack of samples), its fridge, a bench to wait on. And its door to the nurses' station is back: the port to the
+   metric kit left it at the end of a comment, so screening and check-in were dead ends and the first loop out of the
+   opening (*The lobby as a hub*) was not there; the upper station has its five loops again (the loops probe). Three new
+   doors, so saves are made new (version 21).
 7. **Showers, a training room, and the court.** The locker room is the right size for its lockers (four crews, both
    rotations) and has no showers or toilets: those in the gap west of it (x 26 to 32, z 10 to 22). The response team's
    training room in the gap at the muster hall's north-west (x 14 to 22, z 22 to 32). And the muster court: 1,000 m²
@@ -1097,8 +1107,8 @@ builder takes them.
     then the checker.
 
 **The order (agreed):** one at a time, in the list's order (the owner), each its own change: the arrival hall (1), the
-dock (2), Operations' offices (3), Maintenance with Ops' set (4) and administration (5) are built; the lobby's washrooms
-and screening (6) are next.
+dock (2), Operations' offices (3), Maintenance with Ops' set (4), administration (5) and the lobby's washrooms with
+screening (6) are built; showers, a training room and the court (7) are next.
 
 **Being found (as built; the changed's wit is *The second pass*, to come)**
 
