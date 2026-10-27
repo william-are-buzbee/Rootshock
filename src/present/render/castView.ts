@@ -123,6 +123,58 @@ function boneMid(mat: THREE.Material, m: Mutant): Model {
   return { g, b, hd, legs, shins, arms };
 }
 
+/* the bush's line, old in it (world.md §10; mockups/mutants.html, Plant, old): between Security's seven and the bush. Big
+   and swollen, stooped, the skin gone green; the leaf in rows over the back, out of both shoulders, down the arms, and
+   starting on the head, over the right side of the face, so one black eye still shows. What is left of a shirt, torn
+   away on the right; the left trouser leg torn off, that foot bare; a pustule on the neck. Built as the husk is, part for
+   part, PLANTK times the size, so it moves and goes loose as the husk does (sim/ragdoll.ts, SKEL.plantold) */
+const PLANTK = 1.15, GREENED = 0x8a9566;
+function plantOld(mat: THREE.Material, m: Mutant): Model {
+  const K = PLANTK, R = seeded(m.id), g = new THREE.Group();
+  const legs: O3[] = [], shins: O3[] = [];
+  for (const s of [-1, 1]) {
+    const l = grp(g, s * 0.11 * K, 0.9 * K, 0), k = grp(l, 0, -0.45 * K, 0);
+    mk(l, mat, 'box', TROUSERS, 0.18 * K, 0.45 * K, 0.19 * K, 0, -0.225 * K, 0);
+    if (s < 0) {
+      /* the left leg torn off at the knee, bare and green below, the foot bare */
+      mk(k, mat, 'box', TROUSERS, 0.18 * K, 0.1 * K, 0.19 * K, 0, -0.05 * K, 0);
+      mk(k, mat, 'box', GREENED, 0.14 * K, 0.36 * K, 0.14 * K, 0, -0.26 * K, 0); mk(k, mat, 'box', GREENED, 0.14 * K, 0.06 * K, 0.25 * K, 0, -0.42 * K, 0.04 * K);
+    } else {
+      mk(k, mat, 'box', TROUSERS, 0.18 * K, 0.45 * K, 0.19 * K, 0, -0.225 * K, 0); mk(k, mat, 'box', DARK, 0.18 * K, 0.09 * K, 0.29 * K, 0, -0.42 * K, 0.04 * K);
+    }
+    legs.push(l); shins.push(k);
+  }
+  const b = grp(g, 0, 0.9 * K, 0);
+  mk(b, mat, 'box', GREENED, 0.48 * K, 0.62 * K, 0.3 * K, 0, 0.31 * K, 0); // swollen
+  mk(b, mat, 'box', UNIFORM, 0.25 * K, 0.6 * K, 0.31 * K, -0.12 * K, 0.31 * K, 0); // what is left of a shirt, its left side
+  mk(b, mat, 'cyl', GREENED, 0.14 * K, 0.14 * K, 0.14 * K, -0.02 * K, 0.64 * K, 0.02 * K);
+  mk(b, mat, 'ico', 0xc9b35a, 0.05 * K, 0.05 * K, 0.04 * K, 0.06 * K, 0.66 * K, 0.07 * K); // a pustule on the neck
+  const hd = grp(b, -0.02 * K, 0.76 * K - 0.04, 0.07); // low, and forward: stooped
+  mk(hd, mat, 'ico', GREENED, 0.25 * K, 0.28 * K, 0.26 * K, 0, 0, 0);
+  mk(hd, mat, 'ico', DARK, 0.042 * K, 0.038 * K, 0.025 * K, -0.055 * K, 0.025 * K, 0.112 * K); // the one eye still showing: black
+  mk(hd, mat, 'box', 0x3a2622, 0.08 * K, 0.025 * K, 0.03 * K, 0, -0.08 * K, 0.112 * K); // the mouth, slack
+  for (const [x, z] of [[-0.05, -0.06], [0.02, -0.1]]) mk(hd, mat, 'ico', DARK, 0.05 * K, 0.02 * K, 0.05 * K, x * K, 0.135 * K, z * K); // thin hair
+  hd.rotation.z = 0.25;
+  const arms: O3[] = [];
+  for (const [x, y, sleeve] of [[-0.27, 0.56, true], [0.27, 0.56, false]] as const) {
+    const a = grp(b, x * K, y * K, 0);
+    mk(a, mat, 'box', sleeve ? UNIFORM : GREENED, 0.12 * K, 0.36 * K, 0.13 * K, 0, -0.18 * K, 0); mk(a, mat, 'box', GREENED, 0.09 * K, 0.34 * K, 0.09 * K, 0, -0.52 * K, 0);
+    /* leaf down the arm, a shelf on each */
+    merged(a, mat, G => shelf(G, mat, (x < 0 ? -0.06 : 0.06) * K, -0.22 * K, -0.02 * K, x < 0 ? -PI / 2 - 0.3 : PI / 2 + 0.3, 2, 0.2 * K, R.rnd, { rise: 0.08 * K }));
+    arms.push(a);
+  }
+  /* the leaf: rows down the back, out of both shoulders, the crown of the head and the right of the face */
+  merged(b, mat, G => {
+    for (let r = 0; r < 3; r++) for (const s of [-1, 1]) shelf(G, mat, s * 0.1 * K, (0.15 + r * 0.17) * K, -0.15 * K, PI + s * 0.35, 3, 0.26 * K, R.rnd, { rise: 0.06 * K });
+    for (const s of [-1, 1]) shelf(G, mat, s * 0.2 * K, 0.52 * K, -0.02 * K, s * (PI / 2 + 0.2), 4, 0.3 * K, R.rnd, { rise: 0.07 * K });
+  });
+  merged(hd, mat, G => {
+    shelf(G, mat, 0, 0.1 * K, -0.04 * K, PI + 0.2, 3, 0.18 * K, R.rnd, { rise: 0.05 * K }); // starting on the head
+    shelf(G, mat, 0.09 * K, -0.01 * K, 0.06 * K, PI / 2 - 0.3, 3, 0.15 * K, R.rnd, { rise: 0.05 * K }); // over the right of the face
+  });
+  return { g, b, hd, legs, shins, arms };
+}
+
 /* the other patient in the isolation suite (world.md §8, the opening): a gown, bare legs and feet, thin from days with
    nothing to eat, the hair gone wild; built as the husk is, so it goes loose as the husk does. Struck down and dragged,
    the gown is streaked with blood (`gore`); grafted, a small shelf of leaf comes out of the left forearm, a raw knot
@@ -207,6 +259,7 @@ export const BUILD: Record<string, (mat: THREE.Material, m: Mutant) => Model> = 
   patient: mat => patientModel(mat),
   dead: (mat, m) => deadModel(mat, m),
   bonemid: (mat, m) => boneMid(mat, m),
+  plantold: (mat, m) => plantOld(mat, m),
   /* the bone mother's young: still a person's outline, one arm already something else. The bush's children walk as they
      do, and are the changed, and look it (changed(), above) */
   husk(mat, m) {
@@ -523,6 +576,8 @@ export const ANIM: Record<string, (m: Mutant, M: Model, c: Ctx) => void> = {
 ANIM.swimmer = ANIM.worm;
 /* the bone line's middle years move as the husk does */
 ANIM.bonemid = ANIM.husk;
+/* and so does the bush's line, old in it, at its own slow stride (sim/cast/gait.ts) */
+ANIM.plantold = ANIM.husk;
 
 /** what the animations switch on (ANIM): where any of it changes, the pose they give jumps, and the model is taken over
  *  to the new one (fade.ts). What it is doing; walking or not (each at its own pace, so at its own place in the step); a

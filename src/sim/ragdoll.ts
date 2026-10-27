@@ -129,6 +129,8 @@ export const SKEL: Record<string, Skel> = {
 /* the bone line's middle years (castView.ts, boneMid): a husk, 1.08 times the size and 105 kg, its right arm (bone) drawn
    down to 0.3 m off the floor, its left (raw) a little long, its head carried forward */
 SKEL.bonemid = grown(SKEL.husk, 1.08, 105, { handR: [0.33, 0.3, 0.04], handL: [-0.29, 0.73, 0], head: [-0.02, 1.79, 0.05] });
+/* the bush's line, old in it (castView.ts, plantOld): a husk, 1.15 times the size and 110 kg, its head low and forward */
+SKEL.plantold = grown(SKEL.husk, 1.15, 110, { head: [-0.023, 1.85, 0.07] });
 /** points weighted, all of them in proportion, to come to `kg` */
 function weigh(kg: number, pts: Skel['pts']): Skel['pts'] {
   const all = Object.values(pts).reduce((t, p) => t + p[4], 0);

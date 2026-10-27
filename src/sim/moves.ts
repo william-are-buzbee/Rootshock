@@ -58,7 +58,7 @@ export const MOVES = {
 
 /** how much a body can take before it reels; what it gets back once left alone, and after how long */
 export const POISE = {
-  you: 30, husk: 25, bonemid: 35, skitter: 20, bigSkitter: 40, worm: 12, swimmer: 12, thresher: 70, bloat: 1e9, other: 30,
+  you: 30, husk: 25, bonemid: 35, plantold: 30, skitter: 20, bigSkitter: 40, worm: 12, swimmer: 12, thresher: 70, bloat: 1e9, other: 30,
   /** seconds without a hit before it comes back, and how much of the whole a second */
   calm: 1.0, regain: 0.5,
 };

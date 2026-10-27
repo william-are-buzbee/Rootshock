@@ -64,6 +64,9 @@ export const MT: Record<string, Stats> = {
   bonemid: { ai: 'husk', model: 'bonemid', line: 'bone', hp: 120, r: 0.42, cr: 0.37, mass: 1.6, kg: 105, h: 1.95, opens: true },
   /* Security's staff, the bush's children: the changed (world.md §8). The husk's body and behaviour, their own temper */
   changed: { ai: 'husk', model: 'husk', line: 'bush', hp: 75, r: 0.38, cr: 0.34, mass: 1.2, kg: 80, h: 1.8, opens: true },
+  /* the bush's line, old in it (world.md §10; mockups/mutants.html, Plant, old): further gone than Security's seven, the
+     skin green, leaf in rows over it, swollen and stooped. The changed's behaviour; it barely walks, and does not run */
+  plantold: { ai: 'husk', model: 'plantold', line: 'bush', hp: 110, r: 0.45, cr: 0.4, mass: 1.8, kg: 110, h: 2.05, opens: true },
   /* one of the changed still walking the night shift's round, its flashlight on (world.md §8, the night round) */
   nightround: { ai: 'husk', model: 'husk', line: 'bush', hp: 75, r: 0.38, cr: 0.34, mass: 1.2, kg: 80, h: 1.8, opens: true, torch: true },
   skitter: { hp: 60, r: 0.5, cr: 0.4, mass: 1, kg: 45, h: 0.9, low: true },

@@ -34,6 +34,9 @@ export const TEMPER: Record<string, Temper> = {
   bone: { flee: 0, rest: [0.5, 2], fidget: 1.5, rouse: 14 },
   /* the bone line's middle years: as their young, but older in it and with more to lose, they run sooner than the changed */
   bonemid: { flee: 0.6, rest: [0.5, 2], fidget: 1.5, rouse: 14 },
+  /* the bush's line, old in it: further into the stupor than the changed. It stands a long while, and it does not run:
+     it can barely walk */
+  plantold: { flee: 0, rest: [8, 20], fidget: 0, rouse: 0 },
 };
 /** its kind's temper, or its line's; one with neither, the changed's */
 export const temperOf = (m: Mutant): Temper => TEMPER[m.type] ?? TEMPER[m.line ?? ''] ?? TEMPER.bush;

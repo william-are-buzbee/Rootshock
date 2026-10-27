@@ -1397,7 +1397,7 @@ of each gap (*Pia's lines*, in its Saved tab).
 |---|---|---|---|---|
 | Bone (the bone mother's) | the husks (built; their temper too) | the thresher (built); a person's size (built) | the bone elders (none) | the bone mother (none) |
 | Bloat (the bloat god's) | still walking, swelling, baby-headed (none) | bigger, slower, dopier (none) | the bloats, sat (built) | the bloat god (none) |
-| Plant (the bush's) | Security's changed (built; their temper too) | heavier, greener, the face going under (none) | | the bush (none) |
+| Plant (the bush's) | Security's changed (built; their temper too) | heavier, greener, the face going under (none) | the bench's *Plant, old* (built: one, in the Commons) | the bush (none) |
 
 - **What each fears, and how the body answers it.** Every organ makes a problem and the body grows a way round it (rule
   3); in Pia's lines the problem is the fear. The bone line fears being hurt and hunted: it armours, reaches, patrols. The
@@ -1470,6 +1470,13 @@ and drift. (The rules are §10's; this is how they add up.) Which line it is com
   once. Most in the Commons (four on the street, one in the Square), three on the plant's generator floor, and one in
   Cargo beside the young one at receiving: slide Cargo's door open by hand and it is heard down the bay, and the two of
   them come to it to look (a loud door: `DoorDef.loud`). (Three in Cargo, first; played, one was enough.)
+- **Built: the bush's line, old in it** (the bench's *Plant, old*): between Security's seven and the bush. Big, swollen
+  and stooped, the skin gone green, leaf in rows down the back, out of both shoulders, down the arms and starting on the
+  head, over the right of the face so one black eye still shows; what is left of a shirt; a pustule on the neck. The
+  changed's wits and their temper further into the stupor: it stands rooted, rests long, barely walks (0.33 m/s, the
+  bench's stride), comes after you slowly, and does not run, however hurt. One, for now, in the Commons, rooted by the
+  street's planter facing the way you come in. *To do (agreed):* a place of its own in the Commons, grown over, when
+  the Commons is overhauled.
 
 ### Grafting as treatment
 

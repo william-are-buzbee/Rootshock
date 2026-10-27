@@ -151,3 +151,31 @@ describe('the bone line, middle years', () => {
     expect(Math.hypot(deep.x - 182, deep.z - 0.8)).toBeLessThan(0.5);
   });
 });
+
+describe('the bush\'s line, old in it', () => {
+  it('stands rooted by the Commons\' planter, the bush\'s, drawn as itself', () => {
+    const s = makeSim(levelDef(STATION, 'main'), { seed: 7, station: STATION }), p = s.cast.filter(m => m.type === 'plantold');
+    expect(p.length).toBe(1);
+    const [m] = p;
+    expect(m.line).toBe('bush');
+    expect(m.post).toBe(true);
+    expect(s.world.roomAt(m.x, m.y + 0.5, m.z)?.name).toBe('The Commons');
+    expect(s.world.overlap(circle(m.x, m.z, m.body!.r), m.y + 0.02, m.y + m.body!.h, m.body!.skip)).toBe(null);
+    const x = m.x, z = m.z;
+    s.player.fly = true; s.player.body.y += 200;
+    hold(s, 20);
+    expect(Math.hypot(m.x - x, m.z - z)).toBeLessThan(0.05); // taking root: it does not shift about its post
+  });
+
+  it('barely walks, and after you, slowly; it does not run however hurt', () => {
+    const s = hall(b => { b.mutant('plantold', 14, 0, 6); b.mutant('changed', 14, 0, 9); }, true), [m, c] = s.cast;
+    expect(m.gait.pace.walk).toBeCloseTo(0.33, 2);
+    expect(m.gait.pace.hunt).toBeLessThan(c.gait.pace.hunt / 3);
+    m.state = 'hunt'; m.lost = 0;
+    hold(s, 3);
+    expect(Math.hypot(m.body!.vx, m.body!.vz)).toBeCloseTo(m.gait.pace.hunt, 1);
+    m.hp = m.max * 0.1;
+    hold(s, 0.5);
+    expect(m.state).toBe('hunt');
+  });
+});

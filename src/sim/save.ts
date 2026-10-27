@@ -32,8 +32,9 @@ import { makeSim, type Sim, type SimOpts } from './sim';
  *  12: the station's dead, bodies now: a level's cast is more by the guards and residents lying in it
  *  13: the skitter on four legs: a skitter's body is fewer points
  *  14: the bone line's middle years: Cargo's cast, main's and the plant's are more by them
- *  15: two of Cargo's taken out again */
-export const SAVE_VERSION = 15;
+ *  15: two of Cargo's taken out again
+ *  16: one of the bush's line, old in it, in the Commons: main's cast is one more */
+export const SAVE_VERSION = 16;
 
 /** copy the named fields of an object */
 const pick = <T extends object, K extends keyof T>(o: T, keys: readonly K[]): Pick<T, K> => {

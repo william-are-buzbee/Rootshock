@@ -84,6 +84,11 @@ export function gaitOf(type: string, ai: string, big: boolean, walk?: number, st
   return { ...G, pace, ...(feet ? { feet } : {}), scale: k, stride: k / c, cadence: c };
 }
 
+/* the bush's line, old in it: the bench's stride and steps (0.7 m at 56 a minute, 0.33 m/s; its feet barely lift),
+   everything it does as much slower than the changed, and slow to get going. Its stride and cadence against the husk's
+   are its walk drawn (render/castView.ts) */
+GAIT.plantold = { ...gaitOf('husk', 'husk', false, 0.33, 56), acc: 4 };
+
 /** its pace (m/s) for what it is doing, by name */
 export const pace = (m: Mutant, name: string): number => m.gait.pace[name] ?? m.gait.pace.walk;
 
