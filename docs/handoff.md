@@ -137,7 +137,8 @@ respects god mode. Save version 11.
 
 **On the back burner** (the owner set Security aside here; pick these up with them, not unasked):
 - Step 7 above (the vaccinator, the big dark section, load on the backup set, Cargo as an L).
-- How you get into the operations room, which the camera wall waits on.
+- How you get into the operations room, which the camera wall waits on. (world.md §8, *Security at the station's
+  size*, 13, proposes one: the UPS room over the range, reached along the cable from the electrical room.)
 - Call points as fire alarms instead (doors released, the changed sent to the muster hall), not lockdown: the owner's call.
   Releasing card doors would let you past the card progression, so it would want ordinary doors only.
 - The `lockers` note (`content/notes.ts`) still describes the overseer ("it can see you… Screens off, it is blind"): lore

@@ -77,6 +77,51 @@ What the walls are, and why, before what colour they are. Plausibility first; th
   mould, veneer swells, carpet goes sour; the shotcrete looks as it did. Ties the look to the power and the time since
   the fall.
 
+### Who lives here (proposed)
+
+The station as built is drawn small: every level but Security is a sketch of itself, and the Commons houses 34 people,
+one bed a flat. Sized as it would really be (each level two to four times what is built, in rooms and passages more
+than in the size of rooms), it is about 100,000 m² of floor, and this is who it holds.
+
+- **About 500 on the station at any time.** Design to 500; anything from 400 to 650 reads right. About 1,000 on the
+  books, since most work a rotation, two crews on and off in turn (three weeks, say); a core of 60 to 100 that does not
+  rotate: the family, the director, senior staff. Two ways to the figure, within a tenth of each other:
+  - *By floor.* About 37,000 m² is built, and 5,000 more of cave; Security, the lobby and the retreat are 8,900 of it.
+    Everything else at three times, with Production added (§8), comes to about 100,000. Half of that is caverns, halls
+    and plant; the other 50,000, rooms, at a rich house's 100 m² or so a head, holds about 500. (Amundsen–Scott station
+    at the Pole: about 150 in some 6,000 m², and spartan.)
+  - *By who works here.* On the station at once: Horticulture 100, Production 80, engineering and utilities 80;
+    kitchens, laundry and housekeeping 70; Security and Operations 55; Cargo 35; administration 25; the family, their
+    household and their guests 25; medical 12; contractors 20.
+- **Crew change.** The cage brings people down about 30 at a time, a load every few minutes. The front of house is sized
+  for a cage-load, not for the station: the surface landing, the checkpoint, check-in, screening. The outgoing crew sleeps
+  a night by the cage, waiting its turn.
+- **Where they are.** A rough count by day and by night, and what that many need on each level past what is built:
+
+  | Level | Day / night | What it wants |
+  |---|---|---|
+  | Upper: front of house, Security, Ops, Cargo | 150 / 40 | washrooms and showers, walk-in cold rooms, a transit lodge, guest suites, a refuge chamber, a court, the UPS room |
+  | Main: the Commons, Horticulture | 300 / 400 | about 100 flats shared by rotation crews; a 200-seat canteen and its kitchen; a laundry for 500; a cinema or hall; food for 30 to 60 days; Horticulture's own mess and gowning rooms |
+  | Production (§8) | 70 / 25 | curing, extraction, packing, a QA lab; its mess and lockers |
+  | Plant | 45 / 20 | sewage treatment, fire pumps and tanks, a fuel store; a mess and bunks for the night crew |
+
+  Every level has its own mess, washrooms, first aid and refuge chamber; the Commons has what there is one of (the
+  canteen, the clinic, the shops, the school room, the chapel). One gym for 500 is mean: Security's court is the second
+  (§8, *Security at the station's size*).
+- **What being underground asks.** Air comes down the main shaft and goes out by the exhaust shaft, so the station
+  breathes west to east: the lobby has it first, Cargo last. Heat is the problem, not air: grow lights, generators, 500
+  bodies, and rock in the low twenties at this depth; hence the chillers and the exhaust shaft. Food, like everything,
+  comes down the shaft, so the station keeps weeks of it. With no way out but the shafts, each level has a refuge
+  chamber, as mines and tunnels do: sealed, its own air and water, sized for that level's day shift.
+- **Scale the count, not the size.** A bigger station is more rooms of the sizes already built (14 by 6 m is a fair
+  flat) and the plant that serves them, not bigger boxes. Security's showpieces are at their size; its working rooms
+  are not, and some things are missing altogether: the only toilets on the station are the isolation suite's two.
+- **More station, not more monsters.** Five hundred lived here, and you meet a dozen. The size is felt in what they left
+  (rooms, beds, bags, notes), and the horror is in who is missing. Security keeps its threats as they are (§8, *One
+  tool per room*); new rooms get evidence, and one or two a pocket for something of its own.
+- **Open:** whether anyone raised a family down here. The Commons' school room says so. Rotation crews only, and it is a
+  training room; a small resident core with children adds 50 to 100 people, a crèche, and a question of tone.
+
 ### The plant
 
 A crop akin to tobacco, coca leaf or kratom: legal, ordinary, chewed or smoked for a mild lift. The facility exists to breed new
@@ -919,6 +964,94 @@ should be added. Below it, production (below).
   The bay is black until its backup set runs, so the nest must give off its own sick glow, and it should sit nearer the window
   than the cavern's far end (about 120 m today). The glass works both ways: the bay can see you. A view only, not a door; at
   Tier 1's height a door would skip the platforms. A shortcut, if any, is a door barred from the bay side.
+
+**Security at the station's size (proposed)**
+
+Security, the lobby and the retreat for a station of 500 (§1, *Who lives here*). The showpieces are at their size; these
+are the rooms laid down as boxes in a first pass, and what a station that size would have here that this one does not.
+All of it fits in the level's grid as it is, and nothing moves a shaft or a ladderway off its line. A new door that goes
+round a card or the power wants a gate where it skips one, and the progression checker. Places are plan metres, as the
+builder takes them.
+
+*The rooms that have not had their pass:*
+
+1. **The surface landing, an arrival hall.** A cage-load of 30 steps off into 36 m², the first room a visitor saw and
+   the game's last. An arrival hall over the shaft station (x 6 to 13, z -2 to 12, at +5; the rooms under it are 3.2 m
+   tall): limestone and bronze, the cage's gates, benches, a cloakroom, the queue's rail beginning here. It is the
+   hallway *The lobby* asks for between the landing and the checkpoint.
+2. **Goods inward, a dock.** One crate, and the oldest of the changed. Lanes painted on the floor, racking, the clerk's
+   hatch, a platform scale, a bonded cage. Off the service passage, south-west of it (x 2 to 14, z 10 to 20), the
+   walk-ins: a chiller, a freezer and a dry store, for the bar's kitchen, the mess and the retreat. The oldest one,
+   rooting at its post, is the room's set piece: its roots out through the pallets and along the lanes.
+3. **Operations' offices, a suite.** Two of the same 8 by 8 m room, a desk, a chair and a shelf in each. A deputy
+   director and a chief of security, in a house that minds how it looks, had an outer office and a secretary, the
+   chief's own office with a window on the atrium, a conference room, and a records room (the personnel files; the
+   reports in which Security watched the Commons turn and sealed itself). East of the chief's office is rock (x 90 to
+   110, z 12 to 24).
+4. **Maintenance, a workshop; Ops' set, a room of its own.** The set that keeps Ops alive stands in a room with a shelf.
+   Its own room: the set on a plinth, its day tank, the transfer switch, its exhaust into the return air; beside it a
+   fuel store, walled against fire (§9, *Fuel*). And Maintenance a workshop: benches, a tool cage, and the board of work
+   orders that shows the station going (the lobby's dehumidifier failing; a noise in the duct over the mess). East, in
+   rock (x 90 to 110, z 24 to 46).
+5. **Administration, grown.** Four desks for a station of 500. Either it is Security's own, and right as it is, or it
+   grows east over the briefing room (x 66 to 74, at +5). The ID office belongs with it: the card printer and its
+   encoder. Ordinary equipment, and a strong lever later (a card made, with power and a login); a way past the cards too,
+   so decided before it is built.
+6. **The lobby's washrooms; screening, a suite.** A lobby with nowhere to wash. A pair off its east wall in the rock south
+   of check-in (x 30.5 to 36, z -13.5 to -4.5), where a hotel puts them. Screening (10 by 5 m, two couches) looks a
+   cage-load over for exposure: changing cubicles, a decontamination shower, a bay for drawing blood, a lab bench. It takes
+   the rest of that gap. Cubicles, in the dark.
+7. **Showers, a training room, and the court.** The locker room is the right size for its lockers (four crews, both
+   rotations) and has no showers or toilets: those in the gap west of it (x 26 to 32, z 10 to 22). The response team's
+   training room in the gap at the muster hall's north-west (x 14 to 22, z 22 to 32). And the muster court: 1,000 m²
+   is too much hall to muster the upper station's 150, and right for a sports hall, which in real buildings is where you
+   muster. Lines painted on the court (it takes volleyball, or half a court of basketball), hoops hung from the coffer,
+   the drill clock its scoreboard, the steps its benches: the station's second court, already built.
+8. **The bar's kitchen.** A hob and a rack, for the bar, the lounges and the retreat below. The walk-ins (2), and a
+   service stair down to a pantry at the retreat's level (x -8 to -2, z -6 to -2): the family's dinners went down the
+   back way. A second way into the retreat, not the grand one.
+9. **The air plant, at two or three times.** 40 m² to air a lobby of 12,400 m³ and, the job that matters underground, to
+   dry it (soft finishes last only while the dehumidifiers run: §1). Grown east (x 42 to 52, at +10), with ducts that
+   can be crawled. When its dehumidifier stops, the walnut swells (§1, *Decay*).
+
+   And the comms cupboards: every camera is fed from one, a cupboard an area on that area's branch (*One control
+   room*), and none is built. A closet in each zone. **Open:** whether smashing one blinds its cameras, which would be a
+   new answer to them.
+
+*Places to be larger, a pocket for something of its own, or a way through to somewhere else:*
+
+10. **The sky void, and a painter.** One of Ines's line (§10: her children ape her walls, and wet paint means one is
+    near) has been painting the tops of the light boxes. Dark, it is paint on a grating in your beam. Mend the cut and the
+    false sky comes on with the painting on it, a figure across the lobby's daylight, seen from the floor: anything lying
+    on a lit diffuser shows. A cat ladder down the riser in the lobby's west wall to the kitchen (the riser carries the
+    kitchen's extract up anyway) makes the void a way round, not a dead end.
+11. **A refuge chamber, off the atrium's north side** (x 80 to 96, z -28 to -14, beside Phase 2's door). On the threshold
+    between the wing and Ops, where a planner would put it; about 120 m², for the level's day shift; sealed, its own air
+    and water, a viewport. The survivors made their last stand in the briefing room next door because those already
+    inside would not open it; the CO2 on its panel says how that went. Or it is where the vaccinator is first seen
+    through glass.
+12. **The transit lodge, over the wing at +5** (x 31 to 66, z -1 to 22: 800 m² of rock nobody uses). Where the outgoing
+    crew slept the night before its cage: rooms off a corridor, a lounge, a luggage room with a lift down to goods
+    inward. In from the checkpoint's east side (crews went to their rooms without crossing the lobby), out at the upper
+    corridor's east end past the exhibit's last board. When Security sealed itself, the outgoing crew was in here
+    waiting for a cage that did not come; their bags are packed by the doors. Where most of Security's 55 went, with not
+    one monster more.
+13. **The UPS room and the head end, over the range** (x 22 to 38, z 46 to 62, at +5), beside the operations room, where
+    *One control room* puts them. Follow the cable: its trays run from the electrical room south, up through the range's
+    ceiling into the UPS room's floor void, and on under the operations room's tiles: the crawl *Critical operations
+    power* floats. The candidate for the way into the operations room, which the camera wall waits on.
+14. **The family's own rooms,** a storey down, south of the retreat's passage (x 8 to 40, z -5 to 10, under goods
+    inward). The family's half of the house is the least built: a lounge, a pool, a humidor. A family that hung a sky
+    down here kept rooms down here: a dining room, a study, their apartment, three or four suites for buyers, the pantry
+    the kitchen's stair comes down to (8). **Open:** the humidor's trial lots have taken root, and the testers were the
+    first to change (§1, *What went wrong*): whether one of the family sampled them most, and what that made.
+15. **A back-of-house corridor,** from the walk-ins past the hazard store's west side to the electrical room's back (x 2
+    to 14, z 20 to 36). Real buildings keep stock off their halls this way. It would join the dark wing to the hall's
+    west end without the atrium, arriving in an armed room from behind. A gate first (a shutter on HALL, or on Gen-1),
+    then the checker.
+
+**The order (proposed):** the court (7) first, being nearly free; then the arrival hall, the dock and the washrooms (1,
+2, 6).
 
 **Being found (as built; the changed's wit is *The second pass*, to come)**
 
