@@ -377,6 +377,25 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   for (const x of [34.8, 43.2]) for (const z of [6.4, 12, 17.6]) bx(D, x, z, 4.4, 0.45, 0.4, 0x6b5a48);
   for (const [x, z, ry] of [[37, 9.696, 0.9], [41.2, 15.722, -1.1], [33.6, 15.741, 1.3]] as const) bx(D, x, z, 0.5, 1.8, 0.03, 0x56636e, { y: 0.15, ry, c: 0 }); // doors left open, swung out from the banks' faces
   note(D, 'lockers', 42.4, 12, 0.47); item(D, 'bandage', 44.8, 17.6, 0.47); bx(D, 36.2, 20.8, 1.6, 0.45, 0.4, 0x6b5a48, { ry: 0.35 }); blood(D, 39, 20.4, 1.1);
+  /* off the locker room's west side, the wet half it never had (world.md §8, Security at the station's size): the
+     showers, open stalls down the west wall, a bench, towels on their hooks; and the toilets, stalls with their doors
+     back, urinals, basins under a mirror. On the wing's feed with the lockers, so dead */
+  const WET: RoomOpts = { ...SEC, c: 'SEC', fl: 0x8a8e8c, wl: 0xc8ccc8, st: 0x39485a, mat: { floor: 'epoxy', wall: 'glazed', ceiling: 'concrete' } };
+  const PAN = 0xe8e8e2, CUBE = 0x5a6670, STEELW = 0x8a8e8c;
+  room(D, 'Showers', 27, 11, 4.5, 5.5, WET); door(D, 31.75, 13.6, { plain: true, sg: [['Showers', 'e']] });
+  room(D, 'Toilets', 27, 17, 4.5, 5, WET); door(D, 31.75, 20.4, { plain: true, sg: [['Toilets', 'e']] });
+  for (const z of [12.4, 13.7, 15]) bx(D, 27.6, z, 1.2, 2, 0.04, CUBE, { y: 0.1 }); // the stalls' screens
+  for (const z of [11.7, 13.05, 14.35, 15.75]) { bx(D, 27.1, z, 0.2, 0.05, 0.12, STEELW, { y: 2.1, c: 0 }); P(D, 'cyl', 27.6, z, 0.15, 0.01, 0.15, 0x3a3d40, { c: 0 }); } // a head each, a drain
+  bx(D, 29.6, 13.75, 0.4, 0.45, 2.4, 0x6b5a48); // the bench
+  for (const [k, x] of [29.4, 30.1, 30.8].entries()) { bx(D, x, 11.02, 0.06, 0.06, 0.04, STEELW, { y: 1.75, c: 0 }); if (k !== 1) bx(D, x, 11.02, 0.4, 0.8, 0.04, [0xd8d4c4, 0x6a8aaa][k % 2], { y: 0.95, c: 0 }); } // hooks, towels
+  bx(D, 30.4, 15.6, 0.6, 0.03, 0.5, 0xd8d4c4, { ry: 0.5, c: 0 }); // one on the floor
+  for (const z of [18.75, 20.25]) bx(D, 27.8, z, 1.6, 1.8, 0.04, CUBE, { y: 0.12 }); // the toilets' stalls
+  for (const z of [17.02, 18.79, 20.29]) bx(D, 28.25, z, 0.7, 1.75, 0.04, CUBE, { y: 0.12, c: 0 }); // their doors, back
+  bx(D, 28.6, 19.5, 0.04, 0.04, 5, STEELW, { y: 1.95, c: 0 });
+  for (const z of [17.9, 19.5, 21.1]) { bx(D, 27.4, z, 0.65, 0.4, 0.4, PAN); bx(D, 27.08, z, 0.16, 0.8, 0.45, PAN); }
+  for (const x of [30.2, 31]) bx(D, x, 21.825, 0.4, 0.6, 0.35, PAN, { y: 0.45 }); // urinals
+  bx(D, 31.225, 18.3, 0.55, 0.85, 1.8, 0xb8bcc0); for (const z of [17.85, 18.75]) { P(D, 'cyl', 31.2, z, 0.3, 0.03, 0.38, PAN, { y: 0.85, c: 0 }); P(D, 'cyl', 31.42, z, 0.03, 0.15, 0.03, STEELW, { y: 0.85, c: 0 }); }
+  bx(D, 31.485, 18.3, 0.03, 0.9, 1.6, 0xaab4b8, { y: 1.15, c: 0, mat: 'steel' }); // the mirror
   /* the infirmary: a ward of four beds behind curtains down the south wall, and at the east end a treatment bay behind
      glass, with its table and crash cart. They kept the hurt here, in the dark, and someone sat with the last of them */
   room(D, 'Infirmary', 50, 3.25, 16, 8.75, { ...MED, c: 'SEC', safe: 1, ht: 3.6 }); door(D, 57, 3, { sg: [['Infirmary', 'n']] });
@@ -601,6 +620,59 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
      own, inside, on the hall's breaker: the electrical room, the Armory, the range; and the operations stair, on EAST,
      sounding the Operations zone. The speaker hangs low enough to reach; like every speaker on the level it is on the
      PA, which is on critical power: smashing it is the only answer */
+  /* the court, read as what it was most nights: the station's second court, and the place they mustered because it was
+     the gym (world.md §8, Security at the station's size). Lines on its floor, a basket hung from the coffer at each end,
+     the drill clock its scoreboard, the steps its benches, and a ball left on it */
+  const LINE = 0xd8d4c4, RIM = 0xc8641e;
+  const mark = (x0: number, z0: number, x1: number, z1: number) => bx(D, (x0 + x1) / 2, (z0 + z1) / 2, Math.max(x1 - x0, 0.08), 0.01, Math.max(z1 - z0, 0.08), LINE, { y: 0.012, c: 0 });
+  const arc = (cx: number, cz: number, r: number, a0: number, a1: number, n: number) => {
+    for (let k = 0; k < n; k++) {
+      const a = a0 + ((a1 - a0) * (k + 0.5)) / n;
+      bx(D, cx + Math.cos(a) * r, cz + Math.sin(a) * r, 2 * r * Math.sin((a1 - a0) / (2 * n)) + 0.03, 0.01, 0.08, LINE, { y: 0.012, ry: -Math.atan2(Math.cos(a), -Math.sin(a)), c: 0 });
+    }
+  };
+  mark(38.5, 32.4, 61.5, 32.4); mark(38.5, 39.6, 61.5, 39.6); mark(38.5, 32.4, 38.5, 39.6); mark(61.5, 32.4, 61.5, 39.6); mark(50, 32.4, 50, 39.6);
+  arc(50, 36, 1.5, 0, 2 * PI, 20);
+  for (const [x0, x1, s] of [[38.5, 43.3, 1], [56.7, 61.5, -1]] as const) {
+    mark(x0, 34.3, x1, 34.3); mark(x0, 37.7, x1, 37.7); const fx = s > 0 ? x1 : x0; mark(fx, 34.3, fx, 37.7);
+    arc(fx, 36, 1.5, s > 0 ? -PI / 2 : PI / 2, s > 0 ? PI / 2 : (3 * PI) / 2, 10);
+  }
+  for (const [bx0, s] of [[38.9, 1], [61.1, -1]] as const) {
+    bx(D, bx0, 36, 0.05, 1.05, 1.8, 0xe2e2da, { y: 2.9, c: 0 }); // the board
+    const fx = bx0 + s * 0.03; // its square
+    bx(D, fx, 36, 0.01, 0.03, 0.59, 0x8c2f24, { y: 3.47, c: 0 }); bx(D, fx, 36, 0.01, 0.03, 0.59, 0x8c2f24, { y: 3.05, c: 0 });
+    for (const dz of [-0.28, 0.28]) bx(D, fx, 36 + dz, 0.01, 0.45, 0.03, 0x8c2f24, { y: 3.05, c: 0 });
+    for (const z of [35.4, 36.6]) bx(D, bx0, z, 0.06, 5.8, 0.06, 0x2a2c2e, { y: 3.95, c: 0 }); // hung from the coffer
+    bx(D, bx0 + s * 0.06, 36, 0.08, 0.03, 0.08, RIM, { y: 3.04, c: 0 }); // the rim, on its bracket
+    for (let k = 0; k < 12; k++) {
+      const a = (k / 12) * 2 * PI;
+      bx(D, bx0 + s * 0.255 + Math.cos(a) * 0.23, 36 + Math.sin(a) * 0.23, 0.13, 0.02, 0.02, RIM, { y: 3.04, ry: -Math.atan2(Math.cos(a), -Math.sin(a)), c: 0 });
+    }
+  }
+  bx(D, 50, 36, 2.6, 0.45, 0.5, 0x22262a, { y: 5.75, c: 0 }); // the scores, under the clock
+  for (const z of [35.74, 36.26]) for (const x of [49.2, 50.8]) bx(D, x, z, 0.7, 0.3, 0.02, [0.05, 0.04, 0.04], { y: 5.83, c: 0, pw: [[0.05, 0.04, 0.04], [2.6, 1.6, 0.4]], pc: 'HALL' });
+  P(D, 'ico', 47.2, 38.8, 0.24, 0.24, 0.24, RIM, { c: 0 }); // the ball
+  /* off the hall's west end, the response team's training room: weights under a mirror, a squat rack, the bench, a
+     punch bag, two treadmills and a rower; mats by the door; the board with the week's PT on it. On the hall's breaker,
+     dark until Gen-1, as the range is */
+  room(D, 'Training room', 8, 23, 13, 8, { ...SEC, c: 'HALL', ht: 4, fl: 0x3a4a5a, mat: { floor: 'vinyl', wall: 'block', ceiling: 'concrete' } });
+  door(D, 21.5, 25.6, { sg: [['Training', 'e']] });
+  const IRON = 0x2a2c2e, BLK = 0x3a3d40;
+  bx(D, 12.5, 23.015, 7, 1.8, 0.03, 0xaab4b8, { y: 0.4, c: 0, mat: 'steel' }); // the mirror
+  bx(D, 11.5, 23.45, 3, 0.55, 0.5, IRON); for (let k = 0; k < 8; k++) P(D, 'cyl', 10.3 + k * 0.34, 23.45, 0.14, 0.3, 0.14, BLK, { y: 0.47, rz: PI / 2, c: 0 }); // the dumbbells on their rack
+  for (const x of [15.4, 16.6]) for (const z of [23.8, 25]) bx(D, x, z, 0.08, 2.3, 0.08, IRON); // the squat rack
+  for (const z of [23.8, 25]) bx(D, 16, z, 1.28, 0.08, 0.08, IRON, { y: 2.3, c: 0 }); for (const x of [15.4, 16.6]) bx(D, x, 24.4, 0.08, 0.08, 1.28, IRON, { y: 2.3, c: 0 });
+  P(D, 'cyl', 16, 23.85, 0.05, 2.2, 0.05, STEELW, { y: 1.4 - 1.1, rz: PI / 2, c: 0 }); for (const x of [15.1, 16.9]) P(D, 'cyl', x, 23.85, 0.45, 0.06, 0.45, IRON, { y: 1.37, rz: PI / 2, c: 0 });
+  bx(D, 11, 27.6, 0.35, 0.45, 1.3, IRON); for (const x of [10.75, 11.25]) bx(D, x, 26.9, 0.06, 1.1, 0.06, IRON); P(D, 'cyl', 11, 26.9, 0.05, 2, 0.05, STEELW, { y: 1.05 - 1, rz: PI / 2, c: 0 }); // the bench and its bar
+  bx(D, 19.3, 28.8, 0.03, 1.4, 0.03, STEELW, { y: 2.6, c: 0 }); P(D, 'cyl', 19.3, 28.8, 0.4, 1.2, 0.4, 0x8c2f24, { y: 1.4 }); // the punch bag
+  for (const x of [12.2, 14]) {
+    bx(D, x, 30, 0.8, 0.22, 1.8, IRON); for (const dx of [-0.35, 0.35]) bx(D, x + dx, 29.2, 0.05, 1.1, 0.05, BLK, { y: 0.22, c: 0 });
+    bx(D, x, 29.2, 0.8, 0.2, 0.25, BLK, { y: 1.32, c: 0 }); // a treadmill, its console
+  }
+  bx(D, 17.5, 30.4, 2.2, 0.22, 0.3, BLK); bx(D, 16.5, 30.4, 0.45, 0.5, 0.5, IRON); bx(D, 18, 30.4, 0.3, 0.08, 0.3, IRON, { y: 0.22, c: 0 }); // the rower
+  bx(D, 19.4, 25.6, 1.6, 0.04, 2.2, 0x2a4a7a, { c: 0 }); // mats
+  bx(D, 8.015, 27, 0.03, 1, 1.6, 0xe2e2da, { y: 1.2, c: 0 }); for (let k = 0; k < 4; k++) bx(D, 8.035, 26.9 + (k % 2) * 0.2, 0.01, 0.03, 0.9 + (k % 3) * 0.2, [0x2a3a6a, 0x8c2f24][k % 2], { y: 1.95 - k * 0.2, c: 0 });
+  use(D, 'look', 8.1, 27, 1.6, { label: 'Whiteboard', text: 'RESPONSE TEAM PT, 06:00. FITNESS TESTS THIS MONTH. Under it, in another hand: COURT BOOKED FRIDAY. A v B.' });
   speaker(D, 'muster', 29, 36, 'CRIT');
   camera(D, 38.2, 36, 7.6, PI / 2, 'HALL', 'muster', { name: 'Muster court' }); camera(D, 79.4, 24.6, 4, -PI / 4, 'EAST', 'ops', { name: 'East bays' });
 
@@ -706,9 +778,9 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
      are Operations', with their own breaker; the suite below, the shaft and Cargo are in none */
   const ZONES: Record<string, string> = {
     Checkpoint: 'wing', Lobby: 'wing', 'Lobby gallery': 'wing', 'Goods inward': 'wing', 'Surface landing': 'wing', 'Hazardous storage': 'wing', 'Security corridor': 'wing', "Nurses' station": 'wing', 'Briefing room': 'wing',
-    'Locker room': 'wing', Infirmary: 'wing',
+    'Locker room': 'wing', Showers: 'wing', Toilets: 'wing', Infirmary: 'wing',
     Atrium: 'atrium', 'Security elevator': 'atrium', Gallery: 'atrium',
-    'Muster hall': 'muster', 'Muster court': 'muster', 'Electrical room': 'muster', Armory: 'muster', 'Firing range': 'muster', 'Duty office': 'muster',
+    'Muster hall': 'muster', 'Muster court': 'muster', 'Training room': 'muster', 'Electrical room': 'muster', Armory: 'muster', 'Firing range': 'muster', 'Duty office': 'muster',
     'Operations corridor': 'ops', 'Office: operations': 'ops', 'Outer office': 'ops', 'Office: chief of security': 'ops', Records: 'ops', 'Conference room': 'ops',
     Maintenance: 'ops', 'Generator room': 'ops', 'Fuel store': 'ops', 'Operations stair': 'ops',
   };

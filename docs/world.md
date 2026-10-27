@@ -1062,7 +1062,17 @@ builder takes them.
    training room in the gap at the muster hall's north-west (x 14 to 22, z 22 to 32). And the muster court: 1,000 m²
    is too much hall to muster the upper station's 150, and right for a sports hall, which in real buildings is where you
    muster. Lines painted on the court (it takes volleyball, or half a court of basketball), hoops hung from the coffer,
-   the drill clock its scoreboard, the steps its benches: the station's second court, already built.
+   the drill clock its scoreboard, the steps its benches: the station's second court, already built. **Built:** off the
+   locker room's west side, through two plain steel doors, the showers (four open stalls down the west wall, a bench,
+   towels on their hooks, one on the floor) and the toilets (three stalls, their doors back; urinals; basins under a
+   mirror); on the wing's feed with the lockers. The training room off the hall's west end (x 8 to 21, z 23 to 31; 13
+   by 8 m): a mirror over the dumbbells, a squat rack, the bench and its bar, a punch bag, two treadmills, a rower, mats
+   by the door, and the board with the week's PT on it (and under it, in another hand, COURT BOOKED FRIDAY. A v B); on
+   the hall's breaker with no emergency lights, so dark until Gen-1, as the range is, and bolted with the hall in a
+   lockdown. The court's flat floor is 24 by 8 m between its steps, too narrow for volleyball or half a court of
+   basketball as proposed: it is lined as a narrow court (a boundary, a centre line and circle, a key and its circle
+   at each end), with a basket hung from the coffer at each end; a band of scores under the drill clock; a ball left on
+   it. Three new doors, so saves are made new (version 22).
 8. **The bar's kitchen.** A hob and a rack, for the bar, the lounges and the retreat below. The walk-ins (2), and a
    service stair down to a pantry at the retreat's level (x -8 to -2, z -6 to -2): the family's dinners went down the
    back way. A second way into the retreat, not the grand one.
@@ -1107,8 +1117,8 @@ builder takes them.
     then the checker.
 
 **The order (agreed):** one at a time, in the list's order (the owner), each its own change: the arrival hall (1), the
-dock (2), Operations' offices (3), Maintenance with Ops' set (4), administration (5) and the lobby's washrooms with
-screening (6) are built; showers, a training room and the court (7) are next.
+dock (2), Operations' offices (3), Maintenance with Ops' set (4), administration (5), the lobby's washrooms with
+screening (6), and the showers, training room and court (7) are built; the bar's kitchen (8) is next.
 
 **Being found (as built; the changed's wit is *The second pass*, to come)**
 
