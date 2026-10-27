@@ -1005,7 +1005,17 @@ builder takes them.
    director and a chief of security, in a house that minds how it looks, had an outer office and a secretary, the
    chief's own office with a window on the atrium, a conference room, and a records room (the personnel files; the
    reports in which Security watched the Commons turn and sealed itself). East of the chief's office is rock (x 90 to
-   110, z 12 to 24).
+   110, z 12 to 24). **Built:** across the corridor, the deputy director's office fitted out as hers: her desk facing
+   the door, a table to meet at, her coat still on its stand, a print of the low field. Behind her card, the chief's
+   suite. The outer office, where the old box was: the secretary's desk facing the door, waiting chairs, filing; armed,
+   its camera in the far corner on the door, so the line is still the room the card opens. Off it, through the rock to
+   the north, the chief's own office (8.5 m square, x 88.5 to 97, z 3 to 11.5), its window two panes in the atrium's
+   east wall: the desk facing the window and the door, a rug, a safe in the corner, drinks on the sideboard, books,
+   the chief's unsent note on the desk. Through a door past the desk, the conference room: a long table, eight chairs, a
+   whiteboard. Off the outer office's east side, behind a partition, the records room: two rows of cabinets, a drawer
+   left out, and on top the incident report (`sealed` in `content/notes.ts`: the Commons on Security's night cameras,
+   the elevator held, not copied to Operations; lore for the owner to rewrite). Five new doors, so saves are made new
+   (version 18).
 4. **Maintenance, a workshop; Ops' set, a room of its own.** The set that keeps Ops alive stands in a room with a shelf.
    Its own room: the set on a plinth, its day tank, the transfer switch, its exhaust into the return air; beside it a
    fuel store, walled against fire (§9, *Fuel*). And Maintenance a workshop: benches, a tool cage, and the board of work
@@ -1068,15 +1078,15 @@ builder takes them.
     west end without the atrium, arriving in an armed room from behind. A gate first (a shutter on HALL, or on Gen-1),
     then the checker.
 
-**The order (agreed):** one at a time, in the list's order (the owner), each its own change: the arrival hall (1) and
-the dock (2) are built; Operations' offices (3) are next.
+**The order (agreed):** one at a time, in the list's order (the owner), each its own change: the arrival hall (1), the
+dock (2) and Operations' offices (3) are built; Maintenance and Ops' set (4) are next.
 
 **Being found (as built; the changed's wit is *The second pass*, to come)**
 
 - **Cameras → the zone alarm → any patrol in earshot.** The klaxon starting is the tell, and you have a few seconds to answer
   it: leave the zone, break its speaker or the camera (loud: a cost, per §4), or cut the power. **Built** (`sim/eyes.ts`),
   with nobody behind the screens. Lockdown arms six rooms: the wing's corridor, the electrical room, the Armory, the
-  range, the operations stair and the chief of security's office. Each has a camera inside that guards it; the other
+  range, the operations stair and the chief of security's outer office. Each has a camera inside that guards it; the other
   three (the atrium's threshold, high in the court's ceiling, the east bays' north-east corner) only record, and have
   no light. A guard sees along its cone as far as the light you are in lets it, as the cast do, so in a dark armed room
   it sees you only near it, unless your flashlight is on. It takes you moving in its room at any pace: its light turns
@@ -1096,7 +1106,7 @@ the dock (2) are built; Operations' offices (3) are next.
   out from the east gallery's rail. Four zones: the wing, the atrium, the muster hall's west end ('muster'), and Operations
   ('ops': the Operations corridor and the hall's east bays, its speaker in the corridor). The guards: the wing corridor's
   looks down it from the checkpoint end, dead until the cut is mended; the electrical room's, the Armory's and the
-  range's are on the hall's breaker (HALL) and sound the muster hall; the operations stair's (on EAST) and the chief's
+  range's are on the hall's breaker (HALL) and sound the muster hall; the operations stair's (on EAST) and the chief's outer
   office's (on Ops' bus) sound Operations. Mending the wing sounds it (its circuit comes live on the board).
 - **Lockdown.** Every room in Security belongs to one of the four zones (the hall's east bays are Operations'), and a door
   to the zones of the rooms either side of it. Each time a zone's klaxon goes round, every door in the zone with power to

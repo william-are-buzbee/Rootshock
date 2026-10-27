@@ -34,8 +34,9 @@ import { makeSim, type Sim, type SimOpts } from './sim';
  *  14: the bone line's middle years: Cargo's cast, main's and the plant's are more by them
  *  15: two of Cargo's taken out again
  *  16: one of the bush's line, old in it, in the Commons: main's cast is one more
- *  17: the walk-ins off the upper station's service passage: its doors made in a new order */
-export const SAVE_VERSION = 17;
+ *  17: the walk-ins off the upper station's service passage: its doors made in a new order
+ *  18: the chief of security's suite: again */
+export const SAVE_VERSION = 18;
 
 /** copy the named fields of an object */
 const pick = <T extends object, K extends keyof T>(o: T, keys: readonly K[]): Pick<T, K> => {

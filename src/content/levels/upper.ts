@@ -429,13 +429,76 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   room(D, 'Operations corridor', 74, 12, 6, 12, { ...OPS, ht: 4.5, em: 1, mat: SKIM(OPS) });
   /* the Operations zone sounds here: the corridor, and the hall's east bays */
   speaker(D, 'ops', 77, 20, 'CRIT'); mut(D, 'changed', 77, 18, { walk: 0.7, steps: 88 }); mut(D, 'changed', 72, 7, { walk: 0.85, steps: 84 }); blood(D, 76, 15.4, 1.2);
-  /* the chief's office is armed, its camera in the far corner on the door */
-  for (const [nm, x, z, dopt, east] of [['Office: operations', 64, 14, { open: true }, false], ['Office: chief of security', 82, 14, { card: 'o' }, true]] as const) {
-    room(D, nm, x, z, 8, 8, { ...OFF, c: 'OPS', lc: [0.85, 0.78, 0.62], armed: east }); door(D, east ? x - 1 : x + 9, z + 3, { ...east ? { ...dopt, sg: [['Chief of security', 'w']] } : dopt, span: 2 });
-    desk(D, x + 4, z + 6.8, 1.8, 0.7, { c: 0x4a3a2c }); bx(D, x + 4, z + 5.4, 0.45, 0.45, 0.45, 0x2c2f33); shelf(D, east ? x + 7.4 : x + 0.6, z + 3.2, 0.5, 1.8, { cols: [0x7a4a34, 0x4d5a66, 0x8a7a4a] });
-  }
+  /* Operations' offices, either side of the corridor (world.md §8, Security at the station's size): a house that minds
+     how it looks gave its two officers rooms to match. West, the deputy director's, its door open as she left it: her
+     desk facing the door, a table to meet at, her coat still on its stand. East, behind her card, the chief of
+     security's suite: the outer office, where a secretary kept the door and a camera watches it, so armed, its camera in
+     the far corner on the door; off it the chief's own office, its window on the atrium, and the records room; past the
+     chief's desk, the conference room */
+  const OF: RoomOpts = { ...OFF, c: 'OPS', lc: [0.85, 0.78, 0.62] }, WALNUT = 0x4a3226, STEELC = 0x5f6266, SEAT = 0x2c2f33;
+  /* a chair whose sitter faces `face`, its back behind them */
+  const chair = (x: number, z: number, face: 'n' | 's' | 'e' | 'w', back = 0.5) => {
+    bx(D, x, z, 0.45, 0.45, 0.45, SEAT);
+    const [bx2, bz] = { n: [0, 0.2], s: [0, -0.2], e: [-0.2, 0], w: [0.2, 0] }[face], ew = face === 'e' || face === 'w';
+    bx(D, x + bx2, z + bz, ew ? 0.05 : 0.45, back, ew ? 0.45 : 0.05, SEAT, { y: 0.45, c: 0 });
+  };
+  /* a screen on a desk, its face toward whoever sits on side `s` of it (1 east, -1 west) */
+  const screenEW = (x: number, z: number, s: 1 | -1) => {
+    bx(D, x, z, 0.06, 0.34, 0.5, 0x22262a, { y: 0.76, c: 0 });
+    bx(D, x + s * 0.04, z, 0.02, 0.28, 0.44, [0.04, 0.05, 0.05], { y: 0.79, c: 0, pw: [[0.04, 0.05, 0.05], [2.2, 2.75, 2.5]], pc: 'OPS' });
+  };
+  const cabinet = (x: number, z: number) => bx(D, x, z, 0.5, 1.3, 0.6, STEELC);
+  const coatStand = (x: number, z: number, coat?: number) => {
+    P(D, 'cyl', x, z, 0.4, 0.03, 0.4, 0x2a2c2e, { c: 0 }); P(D, 'cyl', x, z, 0.05, 1.8, 0.05, 0x2a2c2e, { c: 0 });
+    if (coat) bx(D, x + 0.05, z, 0.16, 1.0, 0.44, coat, { y: 0.78, c: 0 });
+  };
+  /* the deputy director's */
+  room(D, 'Office: operations', 64, 14, 8, 8, OF); door(D, 73, 17, { open: true, span: 2 });
+  desk(D, 66.6, 17.5, 0.8, 1.9, { c: WALNUT, bare: 1 }); screenEW(66.85, 17.9, -1); chair(65.7, 17.5, 'e'); for (const z of [17, 18]) chair(67.6, z, 'w');
+  shelf(D, 64.6, 17.2, 0.5, 1.8, { cols: [0x7a4a34, 0x4d5a66, 0x8a7a4a] });
+  tbl(D, 69.8, 20.4, 1, 1, WALNUT); chair(69.8, 19.6, 's'); chair(69.8, 21.2, 'n'); chair(69, 20.4, 'e'); chair(70.6, 20.4, 'w');
+  coatStand(71.4, 15, 0x6a5a48); cabinet(64.4, 21.4); cabinet(65, 21.4);
+  bx(D, 68, 14.015, 1.2, 0.9, 0.03, 0x3a3026, { y: 1.3, c: 0 }); bx(D, 68, 14.035, 1.05, 0.75, 0.01, 0x5a6a4a, { y: 1.375, c: 0 }); // a print of the low field
+  /* the chief's outer office, behind her card */
+  room(D, 'Outer office', 82, 14, 8, 8, { ...OF, armed: 1 }); door(D, 81, 17, { card: 'o', span: 2, sg: [['Chief of security', 'w']] });
+  desk(D, 85.2, 17, 0.8, 2, { c: WALNUT, bare: 1 }); screenEW(84.95, 16.6, 1); chair(86.1, 17, 'w');
+  bx(D, 85.1, 17.6, 0.22, 0.08, 0.2, 0x2a2c2e, { y: 0.76, c: 0 }); // the telephone
+  for (const x of [83.2, 84, 84.8]) chair(x, 14.45, 's'); bx(D, 84, 15.3, 1.6, 0.4, 0.6, WALNUT); // the waiting chairs, and their table
+  shelf(D, 89.4, 17.2, 0.5, 1.8, { cols: [0x7a4a34, 0x4d5a66, 0x8a7a4a] });
+  coatStand(82.5, 15); cabinet(84, 21.7); cabinet(84.6, 21.7);
+  bx(D, 83, 21.4, 0.5, 0.5, 0.5, 0x6e6a62); for (let k = 0; k < 3; k++) P(D, 'ico', 83 + Math.cos(k * 2.1) * 0.1, 21.4 + Math.sin(k * 2.1) * 0.1, 0.12, 0.6 + k * 0.15, 0.12, 0x5a4a2e, { y: 0.5, c: 0 });
   camera(D, 89.2, 21.2, 2.8, -1.99, 'OPS', 'ops');
-  note(D, 'mgr', 67.4, 20.7, 0.78); item(D, 'batt', 68.8, 20.8, 0.78); note(D, 'chief', 85.4, 20.7, 0.78); item(D, 'ammo9', 86.8, 20.8, 0.78); item(D, 'medkit', 89, 14.8, 0.02);
+  /* the chief's own office: panelled, its window on the atrium, the desk facing it and the door; a safe in the corner,
+     drinks on the sideboard, books */
+  room(D, 'Office: chief of security', 88.5, 3, 8.5, 8.5, { ...OF, fl: 0x4a3e34, lc: [0.9, 0.82, 0.66] }); door(D, 89.4, 12.75, { sg: [['Chief of security', 's']] });
+  for (const z of [6.25, 8.75]) door(D, 88.25, z, { span: 2, seal: true, glass: true, glaze: 'view' });
+  desk(D, 94.6, 7.25, 1, 2.4, { c: WALNUT, bare: 1 }); screenEW(94.3, 6.6, 1); chair(95.7, 7.25, 'w', 0.75); for (const z of [6.7, 7.8]) chair(93.5, z, 'e');
+  bx(D, 93.8, 7.25, 3.6, 0.012, 3.2, 0x5a2e2a, { c: 0 }); // the rug
+  bx(D, 96.5, 3.5, 0.8, 1, 0.7, 0x3a4038); P(D, 'cyl', 96.085, 3.5, 0.16, 0.03, 0.16, 0x8a8e8c, { y: 0.635, rz: PI / 2, c: 0 }); // the safe, its dial
+  bx(D, 92.5, 3.25, 1.8, 0.85, 0.5, WALNUT); for (const [x, h] of [[91.9, 0.3], [92.3, 0.24], [92.8, 0.3]] as const) P(D, 'cyl', x, 3.25, 0.1, h, 0.1, 0x6a4a2a, { y: 0.85, c: 0 });
+  bx(D, 92.5, 11.3, 3, 2, 0.4, WALNUT); // the bookcase, and its books
+  for (const [r, y] of [0.35, 0.95, 1.55].entries()) for (let k = 0; k < 8; k++) bx(D, 91.25 + k * 0.33 + (r % 2) * 0.08, 11.09, 0.26, 0.4 - ((k + r) % 3) * 0.05, 0.02, [0x5a2e2a, 0x2c3440, 0x3a4a30, 0x6a5a3c][(k + r) % 4], { y, c: 0 });
+  bx(D, 96.985, 4.8, 0.03, 0.8, 1.1, 0x3a3026, { y: 1.3, c: 0 }); bx(D, 96.965, 4.8, 0.01, 0.65, 0.95, 0x6a6458, { y: 1.375, c: 0 }); // a photograph
+  note(D, 'mgr', 66.4, 17, 0.78); item(D, 'batt', 66.4, 18.1, 0.78); note(D, 'chief', 94.9, 6.4, 0.78); item(D, 'ammo9', 94.9, 8.1, 0.78); item(D, 'medkit', 87.6, 15.2, 0.02);
+  /* the records room, off the outer office: two rows of cabinets, a drawer left out, the report on top */
+  room(D, 'Records', 90.5, 14, 6.5, 8, { ...OF, fl: 0x5a5d5a, mat: { floor: 'vinyl', wall: 'board', ceiling: 'tiles' } }); door(D, 90.25, 20.4, {});
+  for (const x of [92.5, 95]) {
+    bx(D, x, 18, 1.2, 1.35, 5.6, 0x6a6e70);
+    for (const s of [-1, 1]) {
+      for (const y of [0.33, 0.67, 1.01]) bx(D, x + s * 0.605, 18, 0.01, 0.02, 5.6, 0x4a4e50, { y, c: 0 });
+      for (let k = 1; k < 12; k++) bx(D, x + s * 0.605, 15.2 + k * (5.6 / 12), 0.01, 1.35, 0.02, 0x4a4e50, { c: 0 });
+    }
+    for (const z of [15.6, 16.2, 17.8]) bx(D, x, z, 0.4, 0.28, 0.32, 0xb8a888, { y: 1.35 }); // archive boxes on top
+  }
+  bx(D, 91.65, 19.9, 0.5, 0.3, 0.45, 0x6a6e70, { y: 0.69 }); // a drawer, out
+  note(D, 'sealed', 92.5, 20.3, 1.36);
+  /* the conference room, past the chief's desk */
+  room(D, 'Conference room', 97.5, 3, 8.5, 8.5, OF); door(D, 97.25, 10.4, {});
+  tbl(D, 101.75, 7.25, 5, 1.4, WALNUT); // room to walk round either end of it
+  for (const x of [100, 101.25, 102.5, 103.75]) { chair(x, 5.95, 's'); chair(x, 8.55, 'n'); }
+  bx(D, 105.98, 7.25, 0.04, 1.1, 2.4, 0xe2e2da, { y: 1.1, c: 0 }); // the whiteboard, and what was last drawn on it
+  for (let k = 0; k < 4; k++) bx(D, 105.955, 7.1 + (k % 2) * 0.2, 0.01, 0.03, 0.9 + (k % 3) * 0.3, [0x2a3a6a, 0x8c2f24][k % 2], { y: 1.9 - k * 0.2, c: 0 });
+  bx(D, 101.75, 3.25, 2.4, 0.85, 0.5, WALNUT); P(D, 'cyl', 101.2, 3.25, 0.14, 0.26, 0.14, 0xb8c4c8, { y: 0.85, c: 0 }); // the sideboard, a water jug
   room(D, 'Maintenance', 82, 24, 8, 10, { ...UTIL, c: 'OPS' }); door(D, 81, 27, { sg: [['Maintenance', 'w']] });
   genset(D, 'OPS', 88.6, 29, 87.4, 29); shelf(D, 85.2, 33.4, 1.8, 0.5, { cols: [0xc9a227, 0x3d4042] }); item(D, 'kit', 85.2, 33.4, 1.06);
 
@@ -585,7 +648,8 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
     'Locker room': 'wing', Infirmary: 'wing',
     Atrium: 'atrium', 'Security elevator': 'atrium', Gallery: 'atrium',
     'Muster hall': 'muster', 'Muster court': 'muster', 'Electrical room': 'muster', Armory: 'muster', 'Firing range': 'muster', 'Duty office': 'muster',
-    'Operations corridor': 'ops', 'Office: operations': 'ops', 'Office: chief of security': 'ops', Maintenance: 'ops', 'Operations stair': 'ops',
+    'Operations corridor': 'ops', 'Office: operations': 'ops', 'Outer office': 'ops', 'Office: chief of security': 'ops', Records: 'ops', 'Conference room': 'ops',
+    Maintenance: 'ops', 'Operations stair': 'ops',
   };
   for (const R of [...D.rooms, ...T1.rooms]) if (ZONES[R.name]) R.zone = R.name === 'Muster hall' && R.c === 'EAST' ? 'ops' : ZONES[R.name];
   /* the night round (world.md §8): one of the changed still walking the night shift's round, flashlight on. It begins on
