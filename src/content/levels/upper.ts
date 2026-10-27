@@ -869,9 +869,42 @@ function buildHub(B: Floor, D: Floor, T1: Floor, T2: Floor): void {
   for (const x of [46.4, 50.8]) for (const z of [-21.6, -17.6]) { tbl(T1, x, z, 1.6, 0.8, 0x8a8e8c); for (const s of [-1, 1]) seat(T1, x, z + s * 0.9, 0x3a3d40); }
   bx(T1, 47, -25.6, 4, 0.9, 0.6, 0x8a8e8c); bx(T1, 53, -25.5, 0.8, 1.9, 0.7, 0xb8bcc0); P(T1, 'cyl', 45.4, -25.6, 0.16, 0.24, 0.16, 0x2a2c2e, { y: 0.9, c: 0 }); // the counter, the fridge, a kettle
   item(T1, 'ration', 46.4, -25.6, 0.9);
+  /* the station's administration (world.md §8, Security at the station's size): the office where its crews were
+     planned, paid and kept on file, under the board of who was down and who was up; through its east wall, over the
+     briefing room, the ID office, where passes were made, and the administrator's own */
   room(T1, 'Administration', 56, -26, 10, 12, { ...OFF, ...wing }); door(T1, 61.4, -13, { sg: [['Administration', 's']] });
-  for (const x of [59, 63]) for (const z of [-23, -18.4]) { desk(T1, x, z, 1.4, 0.7, { bare: 1 }); screen(T1, x, z + 0.2, 0.76, false); seat(T1, x, z - 0.9, 0x2c2f33); }
-  for (const z of [-24, -22, -20]) bx(T1, 65.5, z, 0.5, 1.3, 0.5, 0x5f6266); // filing
+  for (const x of [58.5, 62.5]) for (const z of [-22.6, -19.4, -16.2]) { desk(T1, x, z, 1.4, 0.7, { bare: 1 }); screen(T1, x, z + 0.2, 0.76, false); seat(T1, x, z - 0.9, 0x2c2f33); }
+  for (const z of [-25.4, -24.8, -24.2]) bx(T1, 56.3, z, 0.6, 1.3, 0.5, 0x5f6266); // filing
+  bx(T1, 65.2, -25.2, 1, 1, 0.7, 0xb8bcc0); // the copier
+  bx(T1, 56.4, -14.6, 0.35, 1, 0.35, 0xd8dcd8); P(T1, 'cyl', 56.4, -14.6, 0.26, 0.4, 0.26, 0x6a8aaa, { y: 1, c: 0 }); // the water cooler
+  /* the rotation board: two crews, three weeks on and three off, a magnet a name; crew B's in November, never moved back */
+  bx(T1, 61, -25.985, 6, 1.3, 0.03, 0xe2e2da, { y: 1.2, c: 0 });
+  for (let k = 0; k < 8; k++) for (let r = 0; r < 5; r++) if ((k * 3 + r * 5) % 7 !== 3)
+    bx(T1, 58.4 + k * 0.72, -25.965, 0.36, 0.1, 0.01, k >= 6 || Math.floor(k / 3) % 2 ? 0xc8641e : 0x2a4a7a, { y: 1.35 + r * 0.22, c: 0 });
+  use(T1, 'look', 61, -25.9, 1.85, { label: 'Rotation board', text: 'Two crews, three weeks on and three off, a magnet for every name. Crew B came down at the end of October. Their magnets were never moved back.' });
+  /* the ID office: the desk with the card printer on it, a box of blanks; the backdrop and the stool, the camera on its
+     stand; the lanyards by access, a colour each, and the chart of what each colour opens; the safe for the stock */
+  room(T1, 'ID office', 66.5, -26, 7.5, 6, { ...OFF, ...wing }); door(T1, 66.25, -21.6, { sg: [['ID office', 'w']] });
+  desk(T1, 70.5, -23.5, 1.8, 0.8, { bare: 1 }); screen(T1, 70.1, -23.3, 0.76, false); seat(T1, 70.5, -24.4, 0x2c2f33);
+  bx(T1, 71, -23.5, 0.45, 0.3, 0.4, 0xb8bcc0, { y: 0.76, c: 0 }); bx(T1, 71, -23.5, 0.2, 0.08, 0.14, 0x6a6e70, { y: 1.06, c: 0 }); // the printer, its hopper of blanks
+  bx(T1, 71, -23.28, 0.09, 0.01, 0.06, 0xe2ddd0, { y: 0.84, c: 0 }); // a card half out of it
+  bx(T1, 70.6, -23.75, 0.12, 0.06, 0.09, 0xe2ddd0, { y: 0.76, c: 0 }); // a box of blanks
+  use(T1, 'look', 71, -23.5, 1, { label: 'Card printer', text: 'It prints a face and a name on a blank, and writes into its strip the doors it opens. The screen beside it wants a login.' });
+  bx(T1, 72.5, -25.985, 1.4, 1.8, 0.03, 0x8aa0b0, { y: 0.6, c: 0 }); P(T1, 'cyl', 72.5, -25.2, 0.4, 0.6, 0.4, 0x2c2f33); // the backdrop, the stool
+  bx(T1, 72.5, -22.6, 0.3, 0.04, 0.3, 0x2a2c2e, { c: 0 }); P(T1, 'cyl', 72.5, -22.6, 0.04, 1.4, 0.04, 0x2a2c2e, { y: 0.04, c: 0 }); bx(T1, 72.5, -22.62, 0.22, 0.16, 0.14, 0x22262a, { y: 1.44, c: 0 }); // the camera on its stand
+  bx(T1, 73.98, -21, 0.04, 0.04, 1.2, 0x8a8e8c, { y: 1.6, c: 0 });
+  for (let k = 0; k < 6; k++) bx(T1, 73.95, -21.5 + k * 0.2, 0.02, 0.5, 0.02, [0x8c2f24, 0x2a4a7a, 0x3a6a3a, 0xc9a227][k % 4], { y: 1.1, c: 0 }); // the lanyards
+  bx(T1, 69, -20.015, 1.6, 1, 0.03, 0xe2e2da, { y: 1.3, c: 0 });
+  for (let r = 0; r < 4; r++) for (let k = 0; k < 6; k++) if ((k + r) % 3 !== 1) bx(T1, 68.45 + k * 0.22, -20.035, 0.16, 0.14, 0.01, [0x8c2f24, 0x2a4a7a, 0x3a6a3a, 0xc9a227][r], { y: 1.45 + r * 0.2, c: 0 });
+  bx(T1, 67, -25.6, 0.6, 0.7, 0.6, 0x3a4038); // the safe for the card stock
+  /* the administrator's: the desk facing the door, chairs across it, binders on the shelf */
+  room(T1, 'Office: administration', 66.5, -19.5, 7.5, 5.5, { ...OFF, ...wing, lc: [0.88, 0.82, 0.7] }); door(T1, 66.25, -16.6, { sg: [['Administrator', 'w']] });
+  desk(T1, 72, -16.75, 0.8, 1.9, { bare: 1, c: 0x4a3226 }); seat(T1, 72.9, -16.75, 0x2c2f33); bx(T1, 73.1, -16.75, 0.05, 0.5, 0.45, 0x2c2f33, { y: 0.45, c: 0 });
+  bx(T1, 71.75, -16.4, 0.06, 0.34, 0.5, 0x22262a, { y: 0.76, c: 0 }); bx(T1, 71.79, -16.4, 0.02, 0.28, 0.44, [0.04, 0.05, 0.05], { y: 0.79, c: 0, pw: [[0.04, 0.05, 0.05], [2.2, 2.75, 2.5]], pc: 'SEC' });
+  for (const z of [-17.3, -16.2]) { seat(T1, 70.9, z, 0x2c2f33); bx(T1, 70.7, z, 0.05, 0.5, 0.45, 0x2c2f33, { y: 0.45, c: 0 }); }
+  bx(T1, 70, -19.3, 2.4, 1.9, 0.4, 0x4a3226);
+  for (let r = 0; r < 3; r++) for (let k = 0; k < 9; k++) bx(T1, 69 + k * 0.24, -19.09, 0.08, 0.38, 0.02, [0x2a4a7a, 0x8c2f24, 0x3a3d40][(k + r) % 3], { y: 0.3 + r * 0.55, c: 0 });
+  bx(T1, 73.6, -19.1, 0.5, 1.3, 0.6, 0x5f6266); bx(T1, 67, -14.5, 0.5, 0.5, 0.5, 0x6e6a62); // a cabinet; a pot, its plant long gone
   /* the air plant, at +10, and the space over the false sky: half a metre over the lobby's roof, a dark plenum of
      grating between the backs of the ceiling's light boxes. Steps up into it from the plant, the whole length of the
      room (any steeper and nothing that walks could follow you up) */

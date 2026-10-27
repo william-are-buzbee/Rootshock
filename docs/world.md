@@ -1034,7 +1034,15 @@ builder takes them.
 5. **Administration, grown.** Four desks for a station of 500. Either it is Security's own, and right as it is, or it
    grows east over the briefing room (x 66 to 74, at +5). The ID office belongs with it: the card printer and its
    encoder. Ordinary equipment, and a strong lever later (a card made, with power and a login); a way past the cards too,
-   so decided before it is built.
+   so decided before it is built. **Built** (the encoder as dressing for now: the owner's call): the general office
+   refitted with six desks, filing, the copier and a water cooler, under the rotation board on its north wall (two
+   crews, three weeks on and three off, a magnet a name; crew B's came down at the end of October and were never moved
+   back). Through its east wall, over the briefing room, two rooms new: the ID office (the desk and the card printer on
+   it, a card half out of it, a box of blanks; the backdrop, the stool and the camera on its stand; lanyards by colour
+   on the wall and the chart of what each colour opens; a safe for the card stock; looked at, the printer says its
+   screen wants a login, which is all it does), and the administrator's office (the desk facing the door, chairs across
+   it, binders). On the wing's feed and in its zone, dark until the mend. Two new doors, so saves are made new (version
+   20).
 6. **The lobby's washrooms; screening, a suite.** A lobby with nowhere to wash. A pair off its east wall in the rock south
    of check-in (x 30.5 to 36, z -13.5 to -4.5), where a hotel puts them. Screening (10 by 5 m, two couches) looks a
    cage-load over for exposure: changing cubicles, a decontamination shower, a bay for drawing blood, a lab bench. It takes
@@ -1089,7 +1097,8 @@ builder takes them.
     then the checker.
 
 **The order (agreed):** one at a time, in the list's order (the owner), each its own change: the arrival hall (1), the
-dock (2), Operations' offices (3) and Maintenance with Ops' set (4) are built; administration (5) is next.
+dock (2), Operations' offices (3), Maintenance with Ops' set (4) and administration (5) are built; the lobby's washrooms
+and screening (6) are next.
 
 **Being found (as built; the changed's wit is *The second pass*, to come)**
 

@@ -36,8 +36,9 @@ import { makeSim, type Sim, type SimOpts } from './sim';
  *  16: one of the bush's line, old in it, in the Commons: main's cast is one more
  *  17: the walk-ins off the upper station's service passage: its doors made in a new order
  *  18: the chief of security's suite: again
- *  19: Maintenance, its generator room and fuel store: again */
-export const SAVE_VERSION = 19;
+ *  19: Maintenance, its generator room and fuel store: again
+ *  20: administration, its ID office and the administrator's: again */
+export const SAVE_VERSION = 20;
 
 /** copy the named fields of an object */
 const pick = <T extends object, K extends keyof T>(o: T, keys: readonly K[]): Pick<T, K> => {
