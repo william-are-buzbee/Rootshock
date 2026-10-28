@@ -46,7 +46,9 @@ export const GROW = {
   /** each leaf up a stalk turned this far round from the last (the golden angle), so none sits over the one under it */
   turn: 2.4,
   /** how a colony thins from its heart (1) to its front (0, at its reach): its strength to this power */
-  fall: 1.6,
+  fall: 1.8,
+  /** how far apart its patches are (m) where it is thinning: away from the heart it has taken in islands, not evenly */
+  patch: 1.6,
   /** leaves to a square metre of floor where a colony is at its strongest */
   mat: 16,
   /** how far a stem, a runner or a leaf pressed to a wall or a ceiling stands off it: clear of it, and held by it */
@@ -214,7 +216,8 @@ export function runner(F: Floor, pts: readonly (readonly [number, number])[], d0
 }
 
 /** growth up a wall from its foot at (x, z) on the wall's face, which looks out `face`: a woody stem wandering up it to
- *  h, a branch or two off it, leaf pressed flat along them, shelves out of their knots; `w` about how wide it spreads,
+ *  h, branches off it, leaf pressed flat along them and standing out from them, shelves out of their knots, and leaf
+ *  fanned at its foot and fallen in front of it; `w` about how wide it spreads,
  *  `age` how far on, `bloom` flowering at its top; `span`, how far the wall runs from its foot to its right and left as
  *  you face it (its stems keep to it) */
 export function climb(F: Floor, x: number, z: number, face: Dir, h: number,
@@ -231,40 +234,56 @@ export function climb(F: Floor, x: number, z: number, face: Dir, h: number,
     for (let k = 0; k < n; k++) {
       const [ua, ya, da] = nodes[k], [ub, yb] = nodes[k + 1];
       rod(F, at(ua, ya, da / 2), at(ub, yb, da / 2), da, WOOD[k % 3], da * 0.3);
-      /* leaf pressed along it, from either side by turns */
-      for (const f of [0.35, 0.85]) {
-        const len = g.rnd(0.16, 0.34) * (1.1 - 0.4 * (yb / h));
-        pressed(F, ...at(ua + (ub - ua) * f, ya + (yb - ya) * f, 0), yaw, len, len * GROW.wide, (side = -side) * g.rnd(0.5, 1.2), tone(age + 0.3 * (1 - ya / h) + g.rnd(-0.2, 0.2), g));
+      /* leaf pressed along it, from either side by turns, and one standing out from it into the room */
+      for (const f of [0.15, 0.5, 0.85]) {
+        const len = g.rnd(0.2, 0.42) * (1.15 - 0.4 * (yb / h));
+        pressed(F, ...at(ua + (ub - ua) * f, ya + (yb - ya) * f, 0), yaw, len, len * GROW.wide, (side = -side) * g.rnd(0.4, 1.3), tone(age + 0.3 * (1 - ya / h) + g.rnd(-0.2, 0.2), g));
       }
+      const len = g.rnd(0.2, 0.36);
+      leaf(F, ...at(ub, yb, da), yaw + g.rnd(-0.9, 0.9), len, len * GROW.wide, g.rnd(0.1, 0.7), tone(age + 0.2 * (1 - yb / h) + g.rnd(-0.2, 0.2), g));
     }
     return nodes;
   };
   knot(F, ...at(0, 0.05, 0.05), 0.14 + 0.06 * h, g);
-  const main = stem(0, 0, h, g.rnd(-0.15, 0.15), 0.05 + 0.025 * h, 0.018);
-  for (let b = 0, nb = clamp(Math.round(w * 2 * g.rnd(0.5, 1)), 1, 4); b < nb; b++) {
+  /* leaf fanned up the wall at its foot, and fallen on the floor in front of it */
+  const along = (u: number) => clamp(u, 0.25 - left, right - 0.25);
+  for (let k = 0; k < 3 + w * 3; k++) {
+    const len = g.rnd(0.25, 0.42);
+    pressed(F, ...at(along(g.rnd(-0.45, 0.45) * w), 0, 0), yaw, len, len * GROW.wide, g.rnd(-1.3, 1.3), tone(age + 0.25 + g.rnd(-0.2, 0.3), g));
+  }
+  for (let k = 0; k < 3 + w * 4; k++) {
+    const [fx, , fz] = at(along(g.rnd(-0.55, 0.55) * w), 0, g.rnd(0.12, 0.5));
+    flat(F, fx, fz, 0, g.rnd(0.24, 0.45), tone(age + 0.3 + g.rnd(-0.3, 0.4), g), g);
+  }
+  const main = stem(0, 0, h, g.rnd(-0.15, 0.15), 0.035 + 0.015 * h, 0.016);
+  for (let b = 0, nb = clamp(Math.round(w * 3 * g.rnd(0.6, 1)), 2, 5); b < nb; b++) {
     const [u, y, d] = main[1 + Math.floor(g.rnd(main.length - 2))], top = Math.min(h, y + g.rnd(0.3, 0.6) * h);
     if (top - y > 0.3) stem(u, y, top, (b % 2 ? 1 : -1) * g.rnd(0.4, 0.9), d * 0.7, 0.015);
   }
   /* shelves out of its knots, more and larger toward its foot */
   for (let k = 1; k < main.length - 1; k++)
-    if (g.rnd(1) < 0.55 - (0.3 * k) / main.length) {
+    if (g.rnd(1) < 0.65 - (0.3 * k) / main.length) {
       const [u, y] = main[k], len = g.rnd(0.22, 0.42) * (1.2 - (0.5 * y) / h);
       bracket(F, ...at(u, y, 0.04), yaw + g.rnd(-0.35, 0.35), 2 + Math.floor(g.rnd(3)), len, g, { age });
     }
   if (o.bloom) {
     const [u, y] = main[main.length - 1];
-    bloom(F, ...at(u, y, 0.03), Math.round(g.rnd(5, 9)), 1.2, g, { yaw, spread: 1.2, pods: age > 0.6 ? 0.3 : 0 });
+    bloom(F, ...at(u, y, 0.03), Math.round(g.rnd(7, 11)), 1.7, g, { yaw, spread: 1.2, pods: age > 0.6 ? 0.3 : 0 });
   }
 }
 
 /** growth hung from a ceiling `top` over the floor at (x, z), as leaf is hung in a barn to cure: a knot against the
- *  ceiling, runners away over it, and n strands down from it hung with leaf, mostly yellow and brown; none lower than a
- *  head (GROW.head) */
-export function hang(F: Floor, x: number, z: number, top: number, o: { n?: number; age?: number; g?: Grow } = {}): void {
+ *  ceiling, runners away over it (as far as `inside` lets them, if it is given), and n strands down from it hung with
+ *  leaf, mostly yellow and brown; none lower than a head (GROW.head) */
+export function hang(F: Floor, x: number, z: number, top: number, o: { n?: number; age?: number; inside?: (x: number, z: number) => boolean; g?: Grow } = {}): void {
   const g = o.g ?? grower('hang', x, z), n = o.n ?? 5, age = o.age ?? 0.7, s = g.rnd(0.28, 0.42), ks = s * 0.6;
   P(F, 'ico', x, z, s, ks, s * g.rnd(0.8, 1), KNOT, { y: top - ks * ICO, ry: g.rnd(PI), c: 0 });
   for (let k = 0, m = 2 + Math.floor(g.rnd(3)); k < m; k++) {
-    const a = g.rnd(TAU), len = g.rnd(0.6, 1.6), d = g.rnd(0.035, 0.05), y = top - d / 2 - GROW.off, ex = x + Math.sin(a) * len, ez = z + Math.cos(a) * len;
+    const a = g.rnd(TAU), d = g.rnd(0.035, 0.05), y = top - d / 2 - GROW.off;
+    let len = g.rnd(0.6, 1.6);
+    while (len > 0.3 && o.inside && !o.inside(x + Math.sin(a) * len, z + Math.cos(a) * len)) len -= 0.1;
+    if (len <= 0.3) continue;
+    const ex = x + Math.sin(a) * len, ez = z + Math.cos(a) * len;
     rod(F, [x, y, z], [ex, y, ez], d, g.pick(WOOD));
     for (const f of [0.45, 0.8]) if (g.rnd(1) < 0.7) leaf(F, x + (ex - x) * f, y - d / 2, z + (ez - z) * f, g.rnd(TAU), g.rnd(0.18, 0.3), g.rnd(0.11, 0.18), g.rnd(1.2, 1.45), tone(age + g.rnd(-0.3, 0.2), g));
   }
@@ -363,11 +382,21 @@ export function colonise(F: Floor, R: PRoom, hx: number, hz: number, reach: numb
   /* the heart is in this room; and its ceiling, as the world carves it (on its grid), over its floor */
   const home = inside(hx, hz, 0), top = lid(F.y0 + R.dy + R.ht) - (F.y0 + R.dy);
 
-  /* the floor: a jittered lattice, each cell's share of the leaf by its strength */
+  /* where it has taken: a lattice of chances GROW.patch apart, blended between; at the heart it has taken everywhere,
+     and further out only in islands */
+  const NL = GROW.patch, ni = Math.ceil((x1 - x0) / NL) + 2, lat = Array.from({ length: ni * (Math.ceil((z1 - z0) / NL) + 2) }, () => g.rnd(1));
+  const took = (x: number, z: number) => {
+    const i = (x - x0) / NL, j = (z - z0) / NL, i0 = Math.floor(i), j0 = Math.floor(j), sm = (t: number) => t * t * (3 - 2 * t), fi = sm(i - i0), fj = sm(j - j0);
+    const v = (a: number, b: number) => lat[clamp(j0 + b, 0, lat.length / ni - 1) * ni + clamp(i0 + a, 0, ni - 1)];
+    const p = (v(0, 0) * (1 - fi) + v(1, 0) * fi) * (1 - fj) + (v(0, 1) * (1 - fi) + v(1, 1) * fi) * fj, s = strength(x, z), k = s * s;
+    return s * (k + (1 - k) * clamp(1.9 * p - 0.35, 0, 1.6));
+  };
+
+  /* the floor: a jittered lattice, each cell's share of the leaf by where it has taken */
   const C = 0.45;
   for (let z = z0 + C / 2; z < z1; z += C)
     for (let x = x0 + C / 2; x < x1; x += C) {
-      const px = x + g.rnd(-0.4, 0.4) * C, pz = z + g.rnd(-0.4, 0.4) * C, s = strength(px, pz), m = s * dens * GROW.mat * C * C;
+      const px = x + g.rnd(-0.4, 0.4) * C, pz = z + g.rnd(-0.4, 0.4) * C, s = strength(px, pz), m = took(px, pz) * dens * GROW.mat * C * C;
       if (s <= 0 || !inside(px, pz, 0.12) || near(px, pz, GROW.keep, lying)) continue;
       for (let k = 0, n = Math.floor(m) + (g.rnd(1) < m % 1 ? 1 : 0); k < n; k++)
         flat(F, px + g.rnd(-0.5, 0.5) * C, pz + g.rnd(-0.5, 0.5) * C, 0, g.rnd(0.28, 0.55) * (0.8 + 0.6 * s), tone(g.rnd(1) * (0.25 + dry * 1.6 * s) + (g.rnd(1) < dry * s ? 0.5 : 0), g), g);
@@ -377,7 +406,7 @@ export function colonise(F: Floor, R: PRoom, hx: number, hz: number, reach: numb
   for (let z = z0 + P2 / 2; z < z1; z += P2)
     for (let x = x0 + P2 / 2; x < x1; x += P2) {
       const px = x + g.rnd(-0.4, 0.4) * P2, pz = z + g.rnd(-0.4, 0.4) * P2, s = strength(px, pz);
-      if (g.rnd(1) >= s ** 1.3 * dens * 0.75 || Math.hypot(px - hx, pz - hz) < 0.9 || !inside(px, pz, 0.5) || near(px, pz, GROW.door, door) || near(px, pz, GROW.keep, lying)) continue;
+      if (g.rnd(1) >= s ** 0.3 * took(px, pz) * dens * 0.75 || Math.hypot(px - hx, pz - hz) < 0.9 || !inside(px, pz, 0.5) || near(px, pz, GROW.door, door) || near(px, pz, GROW.keep, lying)) continue;
       if (taken(F, px - 0.4, pz - 0.4, px + 0.4, pz + 0.4, 0, 2, before)) continue;
       tobacco(F, px, pz, Math.min(top - 0.4, (0.35 + 1.5 * s) * g.rnd(0.7, 1.1)), { age: dry * (0.4 + s), bloom: s > 0.4 && g.rnd(1) < bloomy, g: grower('tobacco', px, pz) });
     }
@@ -433,7 +462,7 @@ export function colonise(F: Floor, R: PRoom, hx: number, hz: number, reach: numb
       const a = g.rnd(TAU), q = g.rnd(0.4, 0.3 * reach), px = hx + Math.sin(a) * q, pz = hz + Math.cos(a) * q;
       if (!inside(px, pz, 0.6) || lights.some(([lx, lz]) => Math.abs(lx - px) < 1.2 && Math.abs(lz - pz) < 0.8)) continue;
       if (taken(F, px - 0.6, pz - 0.6, px + 0.6, pz + 0.6, GROW.head, top, before)) continue;
-      hang(F, px, pz, top, { n: 3 + Math.round(3 * strength(px, pz)), age: dry + 0.35, g: grower('hang', px, pz) });
+      hang(F, px, pz, top, { n: 3 + Math.round(3 * strength(px, pz)), age: dry + 0.35, inside: (x, z) => inside(x, z, 0.15), g: grower('hang', px, pz) });
     }
   }
 }
