@@ -12,7 +12,7 @@ import { makeSim } from './sim';
 
 export interface Problem { level: string; what: string; later?: boolean }
 
-const KINDS = new Set(['body', 'backup', 'panel', 'fuse', 'breaker', 'lift', 'elev', 'ladder', 'stair', 'look', 'dive', 'call', 'watch', 'pump']);
+const KINDS = new Set(['body', 'backup', 'panel', 'fuse', 'breaker', 'lift', 'elev', 'ladder', 'stair', 'look', 'dive', 'call', 'watch', 'pump', 'comms']);
 
 export function validateStation(station: StationDef, levels: LevelDef[] = station.levels.map(l => l.build())): Problem[] {
   const out: Problem[] = [], notes = NOTES('\u0001', '\u0002'), built = new Set(station.levels.map(l => l.id));
@@ -68,6 +68,7 @@ export function validateStation(station: StationDef, levels: LevelDef[] = statio
       const c = u.opts.c as string | undefined;
       if ((u.kind === 'backup' || u.kind === 'panel' || u.kind === 'elev') && (!c || !circuits.has(c))) bad(`${u.kind} for a circuit that does not exist: ${c}`);
       if (u.kind === 'call' && !L.speakers?.some(S => S.zone === u.opts.zone)) bad(`a call point for a zone with no speaker: ${u.opts.zone}`);
+      if (u.kind === 'comms' && !L.cameras?.some(C => C.circuit === u.opts.c)) bad(`a comms cupboard for a branch with no cameras: ${u.opts.c}`);
       if (u.kind === 'watch') for (const n of u.opts.feeds as string[]) if (!L.cameras?.some(C => C.name === n)) bad(`a monitor for a camera that is not there: ${n}`);
       if (u.kind === 'ladder') {
         const S = station.ladders[u.opts.id as string];

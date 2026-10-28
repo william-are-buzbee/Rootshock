@@ -273,6 +273,21 @@ export class Things {
         m.position.set(u.x + (ew ? o * 0.12 : 0), u.y - 0.03, u.z + (ew ? 0 : o * 0.12)); m.visible = !use?.off; // over the button, against the box
       });
     });
+    /* a comms cupboard's switch, on its rack under the patch panel: its link lights lit while its branch has power and it
+       is whole; smashed, it hangs off the rack by its cables, dark, and the branch's cameras with it */
+    w.def.uses.forEach(u => {
+      if (u.kind !== 'comms') return;
+      const c = u.opts.c as string, [nx, nz] = { n: [0, -1], s: [0, 1], e: [1, 0], w: [-1, 0] }[u.opts.face as 'n' | 's' | 'e' | 'w'];
+      const yaw = Math.atan2(nx, nz), smashed = () => sim.blind.includes(c);
+      const place = (m: THREE.Object3D) => {
+        const b = smashed();
+        m.position.set(u.x + (b ? nx * 0.06 : 0), u.y - (b ? 0.14 : 0), u.z + (b ? nz * 0.06 : 0));
+        m.rotation.set(b ? 0.5 : 0, yaw, b ? 0.35 : 0);
+      };
+      this.add(parts([['box', 0x3a3d40, 0.48, 0.09, 0.02, 0, 0, -0.01]]), place);
+      const lights = Array.from({ length: 8 }, (_, k): Part => ['box', [0.4, 2.6, 0.6], 0.03, 0.015, 0.01, -0.2 + k * 0.057, 0.003, 0.005]);
+      this.add(parts(lights), m => { place(m); m.visible = !smashed() && this.L.power(c) >= 1; });
+    });
     for (const S of w.def.speakers ?? []) {
       /* it hangs from the ceiling: lit by the room under it, not by what is above */
       const y = speakerY(w, S), dead = () => !voiced(sim, S.zone), at: [number, number, number] = [S.x, y - 1, S.z];
