@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { beginLevel, door, finishLevel, floor, item, room, type LevelInfo } from '../src/content/build/plan';
-import { SEC, shelf } from '../src/content/build/furnish';
-import { GROW, LEAF, YOUNG, CURED, colonise } from '../src/content/build/overgrowth';
+import { beginLevel, door, finishLevel, floor, item, room, type Floor, type LevelInfo } from '../src/content/build/plan';
+import { SEC, UTIL, shelf } from '../src/content/build/furnish';
+import { BLOOM, CREAM, GOLD, GROW, LEAF, YOUNG, CURED, bed, bells, candelabra, colonise, cup, spire, tobacco } from '../src/content/build/overgrowth';
+import { fringe, span, taproot, wallroot } from '../src/content/build/roots';
 import { bench } from '../src/content/levels/bench';
 import type { LevelDef } from '../src/content/types';
+import { placement } from './placement';
 
 /* The bush's growth (content/build/overgrowth.ts): what a room grown over by colonise() keeps to. */
 
@@ -19,6 +21,15 @@ function level(grow: boolean): LevelDef {
   shelf(F, 14, 2, 1.8, 0.5);
   return finishLevel([8, 6, 0]);
 }
+/** a room 10 by 8 with whatever is grown in it */
+function one(grow: (F: Floor) => void, o = { ...SEC, ht: 3.5 }): LevelDef {
+  beginLevel(LV, {});
+  const F = floor(LV);
+  room(F, 'Room', 0, 0, 10, 8, o);
+  grow(F);
+  return finishLevel([5, 4, 0]);
+}
+const hex = (c: number) => [c >> 16, (c >> 8) & 255, c & 255].map(v => v / 255).join();
 const leafy = new Set([...LEAF, ...YOUNG, ...CURED].map(c => [c >> 16, (c >> 8) & 255, c & 255].map(v => v / 255).join()));
 const isLeaf = (p: LevelDef['props'][number]) => p.shape === 'ico' && leafy.has(p.colour.join());
 
@@ -60,6 +71,58 @@ describe('a place grown over', () => {
   it('the bench has every piece on it', () => {
     const L = bench(), looks = L.uses.filter(u => u.kind === 'look').map(u => u.opts.label);
     expect(looks).toEqual(expect.arrayContaining(['Shelves', 'Climbing, old', 'In flower', 'Leaf, cured', 'Hung', 'Runner', 'Where it took', 'Grown over', 'The front']));
+    expect(looks).toEqual(expect.arrayContaining(['Spire', 'Bells', 'Candelabra', 'Cup', 'Bed', 'Taproot', 'Out of the wall', 'Across the room', 'Hair roots']));
     expect(L.props.some(p => p.colour[0] > 0.8 && p.colour[1] > 0.75 && p.colour[2] < 0.5)).toBe(true); // its flowers, pale yellow
+  });
+});
+
+describe('the ways it flowers', () => {
+  const yellow = new Set([...BLOOM, ...CREAM, ...GOLD].map(hex));
+  const ways: [string, (F: Floor) => void][] = [
+    ['rustica', F => tobacco(F, 5, 4, 1.6, { bloom: true })], ['spire', F => spire(F, 5, 4, 2.3, { heave: true })],
+    ['bells', F => bells(F, 5, 4, 1.9, { heave: true })], ['candelabra', F => candelabra(F, 5, 4, 2.2, { heave: true })],
+    ['cup', F => cup(F, 5, 4, 1.7, { heave: true })], ['bed', F => bed(F, 5, 4, 0.9)],
+  ];
+  for (const [name, grow] of ways)
+    it(`${name}: up out of the floor and in flower, held where it stands, clear of the walls, never solid`, () => {
+      const L = one(grow), F = placement(L), bare = one(() => {});
+      expect(L.props.filter(p => yellow.has(p.colour.join())).length).toBeGreaterThan(name === 'rustica' ? 4 : 8);
+      expect(F.map(f => `${f.kind}: ${f.what}`)).toEqual([]);
+      expect(L.props.filter(p => p.solid).length).toBe(bare.props.filter(p => p.solid).length);
+    });
+});
+
+describe('roots through concrete', () => {
+  const L = one(F => {
+    taproot(F, 3, 3, 4, { d: 0.45 });
+    wallroot(F, 10, 2.5, 5, 'w', 7, 6);
+    span(F, [0, 3.2, 6.5], 'e', [10, 3, 7], 'w');
+    fringe(F, 6.5, 2.5, 4, 0.7);
+  }, { ...UTIL, ht: 4 });
+
+  it('go into the walls only as lumps, as growth may into rock; and hang from nothing', () => {
+    const F = placement(L), site = { x0: 0, x1: 10 };
+    expect(F.filter(f => f.kind === 'runs into a wall' || f.kind === 'lost in a wall').every(f => L.props[f.prop!].shape === 'ico')).toBe(true);
+    expect(F.filter(f => f.kind !== 'runs into a wall').map(f => `${f.kind}: ${f.what}`)).toEqual([]);
+    /* and they do go in: lumps through each wall they come out of */
+    expect(L.props.some(p => p.shape === 'ico' && p.x - p.sx / 2 < site.x0 && p.y > 2)).toBe(true);
+    expect(L.props.some(p => p.shape === 'ico' && p.x + p.sx / 2 > site.x1 && p.y > 1.5)).toBe(true);
+  });
+
+  it('reach from the ceiling to the floor, and leave the concrete broken where they go through', () => {
+    const near = L.props.filter(p => Math.hypot(p.x - 3, p.z - 3) < 1.5);
+    expect(Math.max(...near.map(p => p.y + p.sy))).toBeGreaterThan(3.9);
+    expect(Math.min(...near.map(p => p.y))).toBeLessThan(0.05);
+    expect(L.props.filter(p => p.colour.join() === hex(0x6a3a24)).length).toBeGreaterThan(2); // the reinforcing, bared
+  });
+
+  it('keep over a head, across a room', () => {
+    const across = L.props.filter(p => p.x > 1 && p.x < 9 && Math.abs(p.z - 6.75) < 0.6 && p.y > 1);
+    expect(across.length).toBeGreaterThan(10);
+    expect(Math.min(...across.map(p => p.y))).toBeGreaterThan(GROW.head - 0.4);
+  });
+
+  it('are never solid', () => {
+    expect(L.props.filter(p => p.solid).length).toBe(0);
   });
 });

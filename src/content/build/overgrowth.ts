@@ -35,8 +35,8 @@ export const BLOOM = [0xd8cc62, 0xe2d46c, 0xcabc54];
 /** the other yellows its flowers come in, plant by plant: cream, and a deeper gold; and its buds, not yet open */
 export const CREAM = [0xe8deaa, 0xefe6b8], GOLD = [0xd6ae3e, 0xe0bc4c];
 const TUBE = 0xb4b056, POD = [0x7a6230, 0x5e4a26], BUD = 0x9aa048;
-/** the station's concrete where it is broken: its raw inside, the dark of a hole through it */
-export const CONCRETE = [0x7a766e, 0x6c6860, 0x84807a], HOLE = 0x1c1814;
+/** the station's concrete where it is broken: its raw inside, the dark of a hole through it, and a crack run across it */
+export const CONCRETE = [0x7a766e, 0x6c6860, 0x84807a], HOLE = 0x1c1814, CRACK = 0x3a3530;
 
 /** the bush's numbers: metres where they are sizes */
 export const GROW = {
@@ -231,10 +231,10 @@ export function spire(F: Floor, x: number, z: number, h: number, o: { age?: numb
   const { on } = stalk(F, x, z, y0, h, d, d * 0.45, 4, g.rnd(0.02, 0.06) * h, g.rnd(TAU), g, STEM[1]);
   leaves(F, on, d, y0 + 0.06, y0 + 0.16, 6, 0.3 + 0.12 * h, y0, age + 0.15, g);
   leaves(F, on, d, y0 + 0.25 * h, y0 + 0.5 * h, 3, 0.12 + 0.06 * h, y0, age, g);
-  const from = y0 + 0.52 * h, to = y0 + 0.97 * h, n = Math.round((to - from) / 0.045);
+  const from = y0 + 0.5 * h, to = y0 + 0.97 * h, n = Math.round((to - from) / 0.03);
   let a = g.rnd(TAU);
   for (let k = 0; k < n; k++) {
-    const t = k / n, y = from + (to - from) * t, [sx, , sz] = on(y), r = d * 0.4 * (1 - 0.5 * t), s = 1 - 0.35 * t;
+    const t = k / n, y = from + (to - from) * t, [sx, , sz] = on(y), r = d * 0.4 * (1 - 0.5 * t), s = 1.25 - 0.5 * t;
     a += GROW.turn;
     const at: V3 = [sx + Math.sin(a) * r, y, sz + Math.cos(a) * r];
     if (t > 0.86) spindle(F, [at[0] + Math.sin(a) * 0.012, y + 0.03, at[2] + Math.cos(a) * 0.012], way(a, 1.2), 0.07, 0.03, BUD);
@@ -290,7 +290,7 @@ export function candelabra(F: Floor, x: number, z: number, h: number, o: { age?:
  *  its mouth opened into a double ring of lobes round a deep gold throat, buds about it not yet open; `size`, its
  *  lobes' length */
 export function cup(F: Floor, x: number, z: number, h: number, o: { age?: number; heave?: boolean; size?: number; y?: number; g?: Grow } = {}): void {
-  const g = o.g ?? grower('cup', x, z), age = o.age ?? 0.3, y0 = o.y ?? 0, d = 0.045 + 0.02 * h, s = o.size ?? 0.15 + 0.07 * h;
+  const g = o.g ?? grower('cup', x, z), age = o.age ?? 0.3, y0 = o.y ?? 0, d = 0.045 + 0.02 * h, s = o.size ?? 0.2 + 0.1 * h;
   const cols = g.rnd(1) < 0.5 ? BLOOM : CREAM;
   if (o.heave) heave(F, x, z, 0.2 + 0.06 * h, { y: y0, g });
   const { pts, on } = stalk(F, x, z, y0, h, d, d * 0.75, 4, g.rnd(0.06, 0.14) * h, g.rnd(TAU), g, STEM[1]);
@@ -334,24 +334,32 @@ export function bed(F: Floor, x: number, z: number, r: number, o: { n?: number; 
 }
 
 /* ---- where it has broken the station's concrete */
-/** a crack run across a surface from (x, y, z), `len` long: on a floor or under a ceiling along yaw a; on a wall that
- *  looks out `on` (a yaw) at angle a from straight up, toward its right as you face it. Dark, and a hair proud of it */
-export function crack(F: Floor, x: number, y: number, z: number, a: number, len: number, on: 'floor' | 'ceiling' | number): void {
-  const w = 0.014, t = 0.006;
-  if (on === 'floor' || on === 'ceiling') {
-    P(F, 'box', x + (Math.sin(a) * len) / 2, z + (Math.cos(a) * len) / 2, len, t, w, HOLE, { y: on === 'floor' ? y : y - t, ry: a - PI / 2, c: 0 });
-    return;
+/** a crack run across a surface from (x, y, z), about `len` long, jagged: on a floor or under a ceiling along yaw a; on
+ *  a wall that looks out `on` (a yaw) at angle a from straight up, toward its right as you face it. A hairline, drawn at
+ *  its size (flush): a crack drawn a hair larger, as props are, stands up off the surface as a dark stick */
+export function crack(F: Floor, x: number, y: number, z: number, a: number, len: number, on: 'floor' | 'ceiling' | number, g = grower('crack', x, y, z)): void {
+  const w = 0.01, t = 0.003, n = len > 0.45 ? 3 : 2;
+  let px = x, py = y, pz = z, b = a;
+  for (let k = 0; k < n; k++, b += g.rnd(-0.6, 0.6)) {
+    const L = (len / n) * g.rnd(0.8, 1.2), h = L / 2;
+    if (on === 'floor' || on === 'ceiling') {
+      P(F, 'box', px + Math.sin(b) * h, pz + Math.cos(b) * h, L + w, t, w, CRACK, { y: on === 'floor' ? py : py - t, ry: b - PI / 2, c: 0, flush: true });
+      px += Math.sin(b) * L; pz += Math.cos(b) * L;
+    } else {
+      const nx = Math.sin(on), nz = Math.cos(on), ux = Math.cos(on), uz = -Math.sin(on), s = Math.sin(b), c = Math.cos(b);
+      P(F, 'box', px + nx * t / 2 + ux * s * h, pz + nz * t / 2 + uz * s * h, w, L + w, t, CRACK, { y: py + c * h - (L + w) / 2, rz: -b, ry: on, c: 0, flush: true });
+      px += ux * s * L; py += c * L; pz += uz * s * L;
+    }
   }
-  const nx = Math.sin(on), nz = Math.cos(on), ux = Math.cos(on), uz = -Math.sin(on), h = len / 2;
-  P(F, 'box', x + nx * t + ux * Math.sin(a) * h, z + nz * t + uz * Math.sin(a) * h, w, len, t, HOLE, { y: y + Math.cos(a) * h - h, rz: -a, ry: on, c: 0 });
 }
 /** rubble fallen on the floor (or whatever is y under it) about (x, z) out to r: n bits of broken concrete, some of
  *  them in the finish they broke from (`c`) */
 export function rubble(F: Floor, x: number, z: number, r: number, n: number, c: number, g: Grow, y = 0): void {
   for (let k = 0; k < n; k++) {
-    const a = g.rnd(TAU), q = r * Math.sqrt(g.rnd(1)), px = x + Math.sin(a) * q, pz = z + Math.cos(a) * q, s = g.rnd(0.05, 0.16), col = g.rnd(1) < 0.4 ? c : g.pick(CONCRETE);
-    if (g.rnd(1) < 0.6) P(F, 'ico', px, pz, s, s * g.rnd(0.5, 0.9), s * g.rnd(0.7, 1), col, { y, ry: g.rnd(PI), c: 0 });
-    else P(F, 'box', px, pz, s * 1.2, s * 0.45, s * 0.9, col, { y, ry: g.rnd(PI), c: 0 });
+    const a = g.rnd(TAU), q = r * Math.sqrt(g.rnd(1)), px = x + Math.sin(a) * q, pz = z + Math.cos(a) * q, s = g.rnd(0.04, 0.12);
+    /* lumps of its raw inside; flakes of the finish it broke from */
+    if (g.rnd(1) < 0.6) P(F, 'ico', px, pz, s, s * g.rnd(0.5, 0.9), s * g.rnd(0.7, 1), g.pick(CONCRETE), { y, ry: g.rnd(PI), c: 0 });
+    else P(F, 'box', px, pz, s * 1.2, s * 0.45, s * 0.9, g.rnd(1) < 0.6 ? c : g.pick(CONCRETE), { y, ry: g.rnd(PI), c: 0 });
   }
 }
 /** the floor broken up about (x, z) out to r, where something has come up through it: a dark hole, slabs of the floor

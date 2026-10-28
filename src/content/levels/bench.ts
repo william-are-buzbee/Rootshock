@@ -96,7 +96,7 @@ export function bench(): LevelDef {
   say(32.8, 4.6, 'Bells', 'Stems arching out of a clump and down, hung with long trumpets that nod, their mouths opened into lobes. bells()');
   candelabra(F, 36.6, 3, 2.2, { heave: true });
   say(36.6, 4.4, 'Candelabra', 'A stout stalk forking into a crown of arms that fork again, a head of flowers at every tip. candelabra()');
-  cup(F, 40, 3.2, 1.7, { heave: true });
+  cup(F, 40, 3.2, 1.35, { heave: true });
   say(40, 4.4, 'Cup', 'One great flower facing up, its mouth opened into a double ring of lobes round a gold throat, buds about it; the stalk bowed a little under it. cup()');
   tobacco(F, 29.6, 7.2, 1.7, { age: 0.45, bloom: true }); heave(F, 29.6, 7.2, 0.24);
   say(29.6, 8.2, 'Rustica', 'The stalk as it comes up through the floor: the floor heaved up round it, rubble, cracks run out. tobacco(), heave()');

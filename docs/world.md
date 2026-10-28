@@ -740,6 +740,15 @@ wins; the older text stays only because it describes what is built, until the le
   which may be in the next room) and a bench for it (`?level=bench`). Dressing only, never solid. *Open:* which parts
   of the wing, and where each heart is (a changed rooted at its post, as in Goods inward; a vent, the spores having come
   on the air; a grafted body); whether a grown-over place carries spores in its air; whether it does anything in play.
+  - *Flowers on top, roots below (asked; a loose theme).* On the upper floors it flowers, in ways of its own: a spire
+    clothed in flowers opening from the bottom up, bells arching over and hung with nodding trumpets, a candelabra
+    forking into a crown of flower heads, a cup (one great doubled flower facing up), a bed of short stems low over the
+    floor; pale yellow, cream or gold, plant by plant; each come up through the floor and heaved it. On the floors under
+    them, their roots, as thick as an arm or a waist, come down through the ceilings and go on into the floors, and out
+    of the rock through the walls: the concrete spalled round them, cracks run out, the reinforcing bared and bent,
+    rubble fallen. *Built:* both (`overgrowth.ts`; `content/build/roots.ts`), on the bench as a garden over a root
+    cellar. *Open:* whether roots ever block a way (a root across a corridor at knee height as something to step
+    over, or to cut); which floors are the lower ones (Security's basement, the main level, the plant).
 - **One tool per room (agreed).** Each space teaches one thing before a later one asks for all of them: the flashlight; a
   sound before a sight; the night round's beam far off; one armed place under one camera, its speaker with two of the changed
   in earshot, a safe failure (step over the line, hide, watch them come and go); a small board, and one of them walking over to throw it back on; a card;

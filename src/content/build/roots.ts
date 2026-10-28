@@ -1,6 +1,7 @@
 import { PI, TAU, clamp } from '../../core/math';
 import { P, roomAt, type Dir, type Floor } from './plan';
 import { CONCRETE, FACE, GROW, HOLE, WOOD, crack, curve, grower, lump, rod, rubble, spindle, type Grow, type V3 } from './overgrowth';
+import { ICO } from '../types';
 
 /* The bush's roots (world.md §8, Security overgrown in parts): what its flowers on the upper floors put down through
    the station's concrete into the floors under them. Woody, as thick as an arm or a waist, braided where they are
@@ -49,13 +50,14 @@ export function root(F: Floor, pts: readonly V3[], d0: number, d1: number,
     const a = pts[k], b = pts[k + 1], L = Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]);
     for (let m = 0, c = Math.floor(L * (o.lets ?? 0) + g.rnd(1)); m < c; m++) {
       const f = g.rnd(0.15, 0.85), p: V3 = [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f];
-      const az = g.rnd(TAU), e = -g.rnd(0.5, 1.3), dir: V3 = [Math.sin(az) * Math.cos(e), Math.sin(e), Math.cos(az) * Math.cos(e)];
-      let len = g.rnd(0.3, 1);
-      if (p[1] + dir[1] * len < low) len = (p[1] - low) / -dir[1];
-      if (len < 0.15) continue;
-      const q = add(p, dir, len), mid = add(add(p, dir, len * 0.5), [g.rnd(-0.05, 0.05), 0, g.rnd(-0.05, 0.05)]), dd = g.rnd(0.018, 0.04);
-      if (o.inside && !(o.inside(q[0], q[2]) && o.inside(mid[0], mid[2]))) continue;
-      rod(F, p, mid, dd, g.pick(PALE)); rod(F, mid, q, dd * 0.6, g.pick(PALE));
+      /* out from it a little way, then hanging under its own weight: three lengths, each nearer straight down */
+      const az = g.rnd(TAU), out = g.rnd(0.08, 0.25), drop = Math.min(g.rnd(0.3, 1), p[1] - low);
+      if (drop < 0.15) continue;
+      const pts: V3[] = [p];
+      for (const [f, s] of [[0.2, 0.6], [0.55, 0.9], [1, 1]] as const) pts.push([p[0] + Math.sin(az) * out * s + g.rnd(-0.03, 0.03), p[1] - drop * f, p[2] + Math.cos(az) * out * s + g.rnd(-0.03, 0.03)]);
+      if (o.inside && !pts.every(q => o.inside!(q[0], q[2]))) continue;
+      const dd = g.rnd(0.018, 0.04), c = g.pick(PALE);
+      for (let j = 0; j < 3; j++) rod(F, pts[j], pts[j + 1], dd * (1 - 0.25 * j), c, dd * 0.2);
     }
   }
 }
@@ -77,10 +79,17 @@ export function bore(F: Floor, x: number, y: number, z: number, n: V3, d: number
     else crack(F, x + Math.cos(yaw) * Math.sin(a) * r0, y + Math.cos(a) * r0, z - Math.sin(yaw) * Math.sin(a) * r0, a, len, yaw);
   }
   if (o.small) return;
-  /* spalled: lumps of it round the hole, half in the face */
-  for (let k = 0, m = 5 + Math.floor(g.rnd(4)); k < m; k++) {
-    const a = (k / m) * TAU + g.rnd(-0.3, 0.3), q = d * g.rnd(0.6, 0.85), s = g.rnd(0.07, 0.14) + d * 0.25, at = add(add(p, u, Math.cos(a) * q), v, Math.sin(a) * q);
-    lump(F, at[0] + n[0] * s * 0.15, at[1] + n[1] * s * 0.15, at[2] + n[2] * s * 0.15, s, s * g.rnd(0.5, 0.8), s * g.rnd(0.7, 1), g.rnd(1) < 0.6 ? c : g.pick(CONCRETE), g.rnd(PI));
+  /* spalled: plates of it pushed out round the hole, their inner edges lifted off the face as a floor heaves, and a lump
+     or two of its raw inside between them */
+  for (let k = 0, m = 5 + Math.floor(g.rnd(3)); k < m; k++) {
+    const a = (k / m) * TAU + g.rnd(-0.3, 0.3), rr = add(add([0, 0, 0], u, Math.cos(a)), v, Math.sin(a)), w = g.rnd(0.14, 0.24) + d * 0.5, tip = g.rnd(0.25, 0.6);
+    /* out from the hole along rr, its face turned out away from it (nn) */
+    const at = add(add(p, rr, d * 0.55 + w * 0.42), n, w * 0.42 * Math.sin(tip)), nn = unit(add(add([0, 0, 0], n, Math.cos(tip)), rr, Math.sin(tip))), t = g.rnd(0.035, 0.06);
+    P(F, 'ico', at[0], at[2], w / ICO, t / ICO, w * g.rnd(0.6, 0.9) / ICO, g.rnd(1) < 0.7 ? c : g.pick(CONCRETE), { y: at[1] - t / 2, rz: Math.acos(clamp(nn[1], -1, 1)), ry: Math.atan2(nn[2], -nn[0]), c: 0 });
+  }
+  for (let k = 0, m = 2 + Math.floor(g.rnd(3)); k < m; k++) {
+    const a = g.rnd(TAU), q = d * g.rnd(0.55, 0.75), s = g.rnd(0.05, 0.1) + d * 0.15, at = add(add(p, u, Math.cos(a) * q), v, Math.sin(a) * q);
+    lump(F, at[0] + n[0] * s * 0.2, at[1] + n[1] * s * 0.2, at[2] + n[2] * s * 0.2, s, s * g.rnd(0.5, 0.8), s * g.rnd(0.7, 1), g.pick(CONCRETE), g.rnd(PI));
   }
   /* the reinforcing, bared and bent out of it */
   for (let k = 0, m = 1 + Math.floor(g.rnd(3)); k < m; k++) {
