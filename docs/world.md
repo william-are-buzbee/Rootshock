@@ -41,8 +41,9 @@ What the walls are, and why, before what colour they are. Plausibility first; th
   walked: terrazzo underfoot (the halls, the atrium, the muster hall), block filled and painted smooth in Security (no
   brick to be seen anywhere: the owner's call), glazed tile where
   things are washed down, plaster in homes, limestone and a bronze band where visitors came (the surface landing, the
-  lobby and its gallery). The refit laid its own over it: coated floors in Security and Horticulture, sheet vinyl in
-  medical rooms and kitchens, plasterboard and carpet in the offices. A room dug and left as dug (utility rooms,
+  lobby and its gallery). The refit laid its own over it: coated floors in Security (flaked; its corridor's slab ground
+  and polished instead, its locker room studded rubber) and Horticulture, sheet vinyl in medical rooms and kitchens,
+  plasterboard and carpet in the offices. A room dug and left as dug (utility rooms,
   the plant, the bays, the sump, the tunnels) is shotcrete on a poured floor, services on hangers under its crown.
 - **By money, from the bottom (for reference).** Exposed shotcrete and a sealed slab cost nothing past the support;
   painted block and a coated floor are an institution; board, carpet and a suspended ceiling an office; glazed tile and

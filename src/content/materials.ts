@@ -7,7 +7,7 @@
 export type Mat =
   | 'concrete' | 'block' | 'plaster' | 'tiles' | 'glazed' | 'paving'
   | 'grating' | 'steel' | 'rock' | 'wood' | 'glass'
-  | 'shot' | 'board' | 'epoxy' | 'vinyl' | 'carpet' | 'terrazzo' | 'stone';
+  | 'shot' | 'board' | 'epoxy' | 'vinyl' | 'carpet' | 'terrazzo' | 'stone' | 'flake' | 'rubber' | 'polished';
 
 /** how a thing of it is built, which is half of how it sounds: solid through (its ring dies at once and drops in
  *  pitch), hollow (a crate, a box: the air inside booms), a sheet over a frame (plate: rings on), or an open grate
@@ -22,9 +22,10 @@ export interface Ring { base: number; modes: [number, number, number][]; click: 
 /** what is drawn on it, from where it is in the world (render/shader.ts): poured concrete's blotches and formwork, a
  *  wall of painted block, smooth paint, a suspended ceiling's tiles, glazed tile, paving flags, steel plate with its
  *  seams, an open steel mesh, raw rock, boards; shotcrete over the rock with its bolts, a coated slab, sheet vinyl,
- *  carpet, terrazzo, stone cladding; or nothing */
+ *  carpet, terrazzo, stone cladding; a coat with flakes broadcast in it, studded rubber, a slab ground to its stone; or
+ *  nothing */
 export type Pattern = 'none' | 'cast' | 'block' | 'plaster' | 'tiles' | 'glazed' | 'flags' | 'plate' | 'mesh' | 'rock' | 'boards'
-  | 'shot' | 'epoxy' | 'vinyl' | 'carpet' | 'terrazzo' | 'stone';
+  | 'shot' | 'epoxy' | 'vinyl' | 'carpet' | 'terrazzo' | 'stone' | 'flake' | 'studs' | 'polished';
 
 /** how it takes the light. The flashlight's highlight on it: how bright (gloss, 0..1) and how tight (a broad sheen at
  *  8, a pin of light at 80), and how much it takes the material's own colour (metal 1: steel shines as steel; paint
@@ -81,6 +82,13 @@ export const MATS: Record<Mat, MatDef> = {
   terrazzo: { n: 'Terrazzo', ring: ring(140, [[1, 1, 0.06], [2.5, 0.35, 0.035]], 1400, 0.03, 'solid'), look: look('terrazzo', 0.55, 45, 0, 0.12) },
   /** honed limestone, hung in panels on the walls the family's visitors saw */
   stone: { n: 'Limestone', ring: ring(160, [[1, 1, 0.06], [2.6, 0.35, 0.03]], 1300, 0.03, 'solid'), look: look('stone', 0.22, 24, 0, 0.3) },
+  /** a slab coated, with flakes of vinyl broadcast into the coat while it was wet and a clear coat over them: it sounds
+   *  as a coated slab does, and shines more */
+  flake: { n: 'Flaked coating', ring: ring(115, [[1, 1, 0.06], [2.2, 0.3, 0.035]], 1100, 0.035, 'solid'), look: look('flake', 0.5, 40, 0, 0.12) },
+  /** rubber sheet with round studs standing off it: dull underfoot, and the studs catch a beam raking across them */
+  rubber: { n: 'Studded rubber', ring: ring(85, [[1, 0.45, 0.035]], 340, 0.06, 'solid'), look: look('studs', 0.15, 12, 0, 0.8) },
+  /** the slab itself ground down to the stone in it and polished: no coat to wear through */
+  polished: { n: 'Polished concrete', ring: ring(125, [[1, 1, 0.065], [2.3, 0.35, 0.035]], 1500, 0.03, 'solid'), look: look('polished', 0.45, 36, 0, 0.1) },
 };
 
 /** every material in a fixed order: the renderer numbers them from 1 by it (0 is a thing that says nothing of itself) */

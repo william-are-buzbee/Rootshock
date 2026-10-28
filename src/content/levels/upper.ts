@@ -254,7 +254,9 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   for (let k = 0; k < 3; k++) bx(D, 19.2 + k * 1.2, 12.06, 0.5, 1.5, 0.12, 0xc9a227, { y: 0.4, c: 0 }); // hazmat suits on their pegs, against the wall
   shelf(D, 25.4, 17.2, 0.5, 2.2, { cols: [0xc9a227, 0x3d4042] }); bx(D, 20.8, 20.8, 0.8, 0.6, 0.6, 0x3a4030);
   item(D, 'rebreather', 20.8, 20.8, 0.6); item(D, 'kit', 25.3, 16.6, 1.06);
-  const SC: RoomOpts = { ...SEC, c: 'SEC', ht: 4.5, em: 1, safe: 1, armed: 1, mat: SKIM(SEC) };
+  /* its floor the slab itself, ground down to its stone and polished, with no coat for the wing's boots to wear
+     through; the rooms off it are coated (SEC) */
+  const SC: RoomOpts = { ...SEC, c: 'SEC', ht: 4.5, em: 1, safe: 1, armed: 1, mat: { ...SKIM(SEC), floor: 'polished' } };
   room(D, 'Security corridor', 32, -4, 36, 6, SC);
   /* the cut, near the wing's end: the cabinet left open, the cable through, and the one who did it */
   panel(D, 'SEC', 64.8, -4.68, 's', { cut: 1, zone: 'wing' }); // mended, it comes live on Security's board, and the wing sounds
@@ -377,7 +379,8 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   /* South off the wing: the locker room, the survivors' back way into the muster hall (a door at each end, down the
      aisle between the banks), and the infirmary. The back door is the wing's, on its feed like the room: cut, it slides
      by hand; and it makes the level's first loop, the wing to the hall by the atrium or by the lockers */
-  room(D, 'Locker room', 32, 3.25, 16, 18.75, { ...SEC, c: 'SEC', safe: 1 }); door(D, 39.4, 3, { sg: [['Lockers', 'n']] });
+  /* its floor studded rubber, for the wet feet from the showers */
+  room(D, 'Locker room', 32, 3.25, 16, 18.75, { ...SEC, c: 'SEC', safe: 1, mat: { ...SEC.mat, floor: 'rubber' } }); door(D, 39.4, 3, { sg: [['Lockers', 'n']] });
   door(D, 39.4, 23, { c: 'SEC', sg: [['Lockers', 's']] });
   /* its wall on the corridor a partition, a strip of glass along its top sharing the corridor's light */
   room(D, 'Security corridor', 32, 2, 16, 0.75, { ...SC, part: 1 }); for (const x of [33, 35, 43, 45, 47]) door(D, x, 3, { span: 2, seal: true, glass: true, glaze: 'high' });
