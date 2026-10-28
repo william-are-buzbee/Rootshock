@@ -1961,10 +1961,11 @@ tint as well as shade (`surface`'s `tint`: rust, a chip, a strip). The wear's wa
 (`Look.salt`): on bare cement (poured or sprayed) white salts, on paint and tile the brown tide mark as before.
 
 The palettes (`content/build/furnish.ts`) say what rooms are made of: `UTIL` is dug (`DUG`: shotcrete walls and crown on
-a poured floor), and so are the bays, Cargo's tiers and the sump; Security's floors are coated; offices, the briefing
-room, the operations room and Cargo's control room and office are `OFF` (board, carpet, a suspended ceiling); `OPS`
-halls are terrazzo; medical floors vinyl; homes carpeted; the lobby, its gallery and the surface landing `FAM`
-(limestone, terrazzo, a plastered ceiling, a bronze band for the stripe). The Commons' utility rooms stand in its blocks,
+a poured floor), and so are the bays, Cargo's tiers and the sump; Security's floors are coated (since, flaked, and its
+corridor polished concrete: below); offices, the briefing room, the operations room and Cargo's control room and office
+are `OFF` (board, carpet, a suspended ceiling); `OPS` halls are terrazzo; medical floors vinyl; homes carpeted; the
+lobby, its gallery and the surface landing `FAM` (limestone, terrazzo, a plastered ceiling, a bronze band for the
+stripe). The Commons' utility rooms stand in its blocks,
 so are poured, not dug; its kitchen, canteen, laundry and gym are vinyl. Services hang under a sprayed crown as under a
 poured one. The 2 m checker the first engine drew on floors, walls and the painted sky is gone (it read as a
 checkerboard), and so is the shade a cave's floor and roof took by each square of their lattice (Cargo's floor is
@@ -2096,6 +2097,20 @@ looked at across them their sides close the gaps (each bar drawn as wide as its 
 the angle you look at it) and it reads as a grey floor, and looked along them you see down the slots; cross rods every
 100 mm, which close the slots at a slant; panels a metre wide with a banding bar at each edge, each a shade apart. The
 gaps are the dim of what is under the walkway, not black. Duller than it was (gloss 0.25).
+
+And the coated floor looked like a texture stretched across it: its scuffs were noise drawn six times finer across z
+than along x, so down every corridor that ran along x (the Security corridor, between the lobby and the atrium, the
+worst) they smeared into long blurred streaks. A scuff is a mark now (`scuffs()` in `shader.ts`): in four cells in ten
+of a lattice 2.5 a metre, a short stroke 6 to 20 cm long and a few millimetres wide, each its own way, bowed a little and
+thinning to its ends, filtered over the pixel as a joint is; thicker where the coat is dulled. And Security has floors of
+its own, three new materials beside it: a flaked coating (`flake`: the coat with vinyl flakes broadcast into it under a
+clear coat, charcoal, pale grey and a few buff, 5 to 20 mm across in two sizes, as `chip()` draws terrazzo's, with a
+grain that carries on a few metres past them so they do not stop at a line), the wing's rooms (`SEC`); polished
+concrete (`polished`: the slab ground to its gravel, rounded and near its own colour, in a salt and pepper of sand, its
+tone clouded from the trowel and the densifier, which is what still reads at the far end of a corridor, and a hairline
+crack here and there), the corridor itself; and studded rubber (`rubber`: round studs 27 mm across on staggered rows
+45 mm apart, a couple of millimetres proud, so a beam raking across catches them; matte, and dull underfoot), the
+locker room. Seen against the old floor in the built game at 960 by 540.
 
 Not done: decay (world.md, proposed); a bronze or brushed metal of its own (steel's pattern is riveted plate); glossy
 floors catching the tubes, which terrazzo and the coated floors now most want.

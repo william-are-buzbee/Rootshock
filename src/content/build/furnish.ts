@@ -16,9 +16,9 @@ export const CELL: RoomOpts = { fl: 0x4e5052, wl: 0x666a6e, st: 0xa8521e };
 export const UTIL: RoomOpts = { fl: 0x505254, wl: 0x6a6d6c, st: 0xb89b2e, mat: DUG };
 export const HAB: RoomOpts = { fl: 0x7b7568, wl: 0x9a9588, st: 0x3f7f6b, mat: { floor: 'carpet', wall: 'plaster', ceiling: 'plaster' } };
 export const MED: RoomOpts = { fl: 0x9aa39d, wl: 0xb9c4bd, st: 0x8c2f24, mat: { floor: 'vinyl', wall: 'glazed', ceiling: 'tiles' } };
-/** Security: a notch under Operations, not another house. The refit's coated floor and the painted block in warm greys,
- *  under tubes of a neutral white rather than a cold one, and navy only in its stripe and its signs' bar */
-export const SEC: RoomOpts = { fl: 0x645d55, wl: 0x8a8378, st: 0x39485a, lc: [0.86, 0.84, 0.78], mat: { floor: 'epoxy', wall: 'block' } };
+/** Security: a notch under Operations, not another house. The refit's coated floor, flaked, and the painted block in
+ *  warm greys, under tubes of a neutral white rather than a cold one, and navy only in its stripe and its signs' bar */
+export const SEC: RoomOpts = { fl: 0x645d55, wl: 0x8a8378, st: 0x39485a, lc: [0.86, 0.84, 0.78], mat: { floor: 'flake', wall: 'block' } };
 export const OPS: RoomOpts = { fl: 0x847c70, wl: 0x8c887e, st: 0x8a7a4a, mat: { floor: 'terrazzo', wall: 'block', ceiling: 'tiles' } };
 /** an office, refitted: plasterboard, carpet, a suspended ceiling; a taupe carpet, a shade under the check-in hall's,
  *  and a warm white */

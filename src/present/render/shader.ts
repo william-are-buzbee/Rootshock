@@ -47,7 +47,7 @@ import { dbgDefines } from '../debug';
    and the beam's facing is reckoned from the eye, as it was before materials were drawn. */
 
 const PATTERNS: Pattern[] = ['none', 'cast', 'block', 'plaster', 'tiles', 'glazed', 'flags', 'plate', 'mesh', 'rock', 'boards',
-  'shot', 'epoxy', 'vinyl', 'carpet', 'terrazzo', 'stone'];
+  'shot', 'epoxy', 'vinyl', 'carpet', 'terrazzo', 'stone', 'flake', 'studs', 'polished'];
 /** how many materials there are, with "none" at 0 */
 const NM = MAT_ORDER.length + 1;
 const MAT_IDS = new Map<Mat, number>(MAT_ORDER.map((m, k) => [m, k + 1]));
@@ -259,6 +259,24 @@ vec2 chip(vec2 q, float k, float seed, float px){
   float e = px * k / r0;
   return vec2(smoothstep(-0.5 * e, 0.5 * e, best), kind);
 }
+/* scuffs, as soles and wheels leave them on a coat: in four cells in ten of a lattice k a metre, a short stroke of its
+   own length (6 to 20 cm), width and way, bowed a little and thinning to its ends; how much of a pixel px wide the
+   nearest covers, filtered as a joint is, and how dark it is */
+float scuffs(vec2 q, float k, float px){
+  vec2 c = floor(q * k);
+  float best = 0.0;
+  for (int j = -1; j <= 1; j++) for (int i = -1; i <= 1; i++) {
+    vec2 id = c + vec2(float(i), float(j));
+    float h1 = hash(id + 3.7), h2 = hash(id + 29.1), h3 = hash(id + 57.3), h4 = hash(id + 91.9);
+    if (h4 > 0.4) continue;
+    vec2 t = vec2(cos(h3 * 6.2832), sin(h3 * 6.2832)), v = q - (id + vec2(h1, h2)) / k;
+    float len = 0.03 + 0.07 * fract(h1 * 9.7 + h2), a = dot(v, t);
+    float b = dot(v, vec2(-t.y, t.x)) - 1.5 * (a * a - len * len) * (h4 - 0.2);
+    float d = length(vec2(max(abs(a) - len, 0.0), b)), w = (0.002 + 0.002 * fract(h2 * 5.3 + h3)) * (1.0 - 0.6 * smoothstep(0.0, len, abs(a)));
+    best = max(best, clamp((min(d + 0.5 * px, w) - max(d - 0.5 * px, -w)) / px, 0.0, 1.0) * (0.5 + h4));
+  }
+  return best;
+}
 void surface(int pat, vec3 p, vec3 n, float up, vec2 at, float det, out float alb, out float h, out float gm, out vec3 tint){
   alb = 1.0; h = 0.0; gm = 1.0; tint = vec3(1.0);
   vec3 an = abs(n);
@@ -385,13 +403,14 @@ void surface(int pat, vec3 p, vec3 n, float up, vec2 at, float det, out float al
       tint = mix(mix(vec3(1.0), vec3(1.0, 0.9, 0.8), nut), vec3(1.2, 0.9, 0.7), 0.45 * tear);
     }
   } else if (pat == ${P('epoxy')}) {
-    /* a coated slab: the coat smooth and a little uneven in tone, scuffs where wheels and feet went, which take the
-       shine off it. No saw cuts: a lattice of them across every corridor read as tiles, the squares they made meeting
-       in crosses under your feet */
-    float m = n3f(p, 0.45, px);
-    float scuff = mix(0.05, smoothstep(0.6, 0.8, n3(vec3(uv.x * 1.5, uv.y * 9.0, 7.7))) * smoothstep(0.45, 0.7, n3(p * 0.3 + 3.0)), keep(0.5 / 9.0, px));
-    alb = 1.0 + 0.08 * (m - 0.5) - 0.14 * scuff * det;
-    gm = 1.0 - 0.6 * scuff;
+    /* a coated slab: the coat smooth and a little uneven in tone, dulled in patches where wheels and feet went, and
+       scuffed there, each scuff its own way. (Drawn as noise stretched along x, the scuffs read as a texture smeared
+       down every corridor that ran that way.) No saw cuts: a lattice of them across every corridor read as tiles, the
+       squares they made meeting in crosses under your feet */
+    float m = n3f(p, 0.45, px), worn = smoothstep(0.45, 0.75, n3f(p + 3.0, 0.5, px));
+    float sc = det > 0.0 ? scuffs(horiz ? p.xz : vec2(along(p.xz, n), p.y), 2.5, px) * (0.3 + 0.7 * worn) * det : 0.0;
+    alb = (1.0 + 0.08 * (m - 0.5)) * (1.0 - 0.04 * worn) * (1.0 - 0.3 * sc);
+    gm = (1.0 - 0.5 * worn) * (1.0 - 0.7 * sc);
   } else if (pat == ${P('vinyl')}) {
     /* sheet vinyl: flecked dark and light, the seams welded every 2 m along the roll, with a rod of the same colour: a
        hairline, all but gone but where the light catches it */
@@ -437,6 +456,62 @@ void surface(int pat, vec3 p, vec3 n, float up, vec2 at, float det, out float al
     alb = (1.0 + 0.06 * (tone - 0.5) + 0.08 * (bed - 0.5) * det - 0.12 * pit) * (1.0 - 0.1 * j);
     h = -0.001 * j - 0.0004 * pit;
     gm = 1.0 - 0.9 * j;
+  } else if (pat == ${P('flake')}) {
+    /* a coat with flakes of vinyl broadcast into it wet, under a clear coat: charcoal, pale grey and a few buff, a
+       centimetre or so and smaller between, thicker where the broadcast fell thicker; the clear coat dulled, in
+       patches, where feet went */
+    vec2 q = horiz ? p.xz : vec2(along(p.xz, n), p.y);
+    float ka = keep(0.5 / 45.0, px), kb = keep(0.5 / 80.0, px);
+    vec2 a = ka > 0.0 ? chip(q, 45.0, 23.0, px) : vec2(0.0), b = kb > 0.0 ? chip(q, 80.0, 517.0, px) : vec2(0.0);
+    vec4 A = mix(${TERRAZZO},
+      a.x * vec4(1.0, step(a.y, 0.35), step(0.35, a.y) * step(a.y, 0.8), step(0.8, a.y) * step(a.y, 0.9)), ka);
+    vec4 B = mix(${TERRAZZO},
+      b.x * vec4(1.0, step(b.y, 0.35), step(0.35, b.y) * step(b.y, 0.8), step(0.8, b.y) * step(b.y, 0.9)), kb);
+    float thick = 0.65 + 0.7 * n3f(p, 1.3, px), m = n3f(p, 0.5, px), grain = n3f(p, 18.0, px);
+    vec3 cs = (A.yzw + (1.0 - A.x) * B.yzw) * thick;
+    float worn = smoothstep(0.5, 0.75, n3f(p + 5.0, 0.7, px));
+    /* (the grain: where the flakes are too fine to draw, the floor still reads as flecked a few metres on, rather
+       than going plain at a line) */
+    alb = (1.0 + 0.05 * (m - 0.5) + 0.07 * (grain - 0.5) * (1.0 - kb) * det) * (1.0 - 0.55 * cs.x) * (1.0 + 0.75 * cs.y);
+    tint = mix(vec3(1.0), vec3(1.2, 1.05, 0.82), cs.z);
+    h = 0.0002 * (cs.x + cs.y + cs.z);
+    gm = 1.0 - 0.55 * worn;
+  } else if (pat == ${P('studs')}) {
+    /* rubber in sheets, studded: round studs 27 mm across and two millimetres proud, in rows 45 mm apart, each
+       row half a stud along from the last; the rubber between them matte and finely flecked, the studs' tops worn to a
+       sheen. Each stud fades to its share of the floor where the rows are too close for the pixel */
+    vec2 q = horiz ? pa.xz : vec2(along(pa.xz, n), up);
+    float row = floor(q.y / 0.045);
+    vec2 c = vec2(fract(q.x / 0.05 + 0.5 * mod(row, 2.0)) - 0.5, fract(q.y / 0.045) - 0.5) * vec2(0.05, 0.045);
+    float r = 0.0135, d = length(c), ks = keep(0.03, px), e = max(px, 0.0015);
+    float stud = mix(0.254, 1.0 - smoothstep(r - e, r + 0.5 * px, d), ks);
+    float fleck = n3f(p, 60.0, px), m = n3f(p, 0.6, px), worn = n3f(p + 9.0, 1.1, px);
+    alb = (1.0 + 0.06 * (fleck - 0.5) * det + 0.06 * (m - 0.5)) * (1.0 + 0.1 * stud * (0.4 + worn));
+    h = 0.002 * stud * ks;
+    gm = mix(0.5, 1.2 + 1.6 * worn, stud);
+  } else if (pat == ${P('polished')}) {
+    /* a slab ground and polished: the cut faces of its gravel, rounded, in greys and browns near its own colour
+       (marble chips bright in a cement are terrazzo; this is the slab's own stone), in a salt and pepper of sand; its
+       tone clouded where the trowel and the densifier went, and here and there a hairline crack */
+    vec2 q = horiz ? p.xz : vec2(along(p.xz, n), p.y);
+    float ka = keep(0.5 / 24.0, px), kb = keep(0.5 / 48.0, px);
+    vec2 a = ka > 0.0 ? chip(q, 24.0, 91.0, px) : vec2(0.0), b = kb > 0.0 ? chip(q, 48.0, 733.0, px) : vec2(0.0);
+    vec4 A = mix(${TERRAZZO},
+      a.x * vec4(1.0, step(a.y, 0.35), step(0.35, a.y) * step(a.y, 0.8), step(0.8, a.y) * step(a.y, 0.9)), ka);
+    vec4 B = mix(${TERRAZZO},
+      b.x * vec4(1.0, step(b.y, 0.35), step(0.35, b.y) * step(b.y, 0.8), step(0.8, b.y) * step(b.y, 0.9)), kb);
+    vec3 cs = A.yzw + (1.0 - A.x) * B.yzw;
+    float sand = n3f(p, 140.0, px), cloud = n3f(p, 0.7, px), cl2 = n3f(p + 3.0, 2.4, px);
+    /* the crack: where a noise crosses its middle, jagged by a finer one, in a few places only; its width in metres,
+       filtered over the pixel as a joint is */
+    float w = n3(p * 0.8 + 4.0) + 0.06 * (n3(p * 11.0) - 0.5), gw = max(fwidth(w), 1e-6);
+    float cd = abs(w - 0.5) * px / gw, cw = 0.0006;
+    float crack = clamp((min(cd + 0.5 * px, cw) - max(cd - 0.5 * px, -cw)) / px, 0.0, 1.0) * smoothstep(0.64, 0.7, n3(p * 0.17 + 11.0));
+    alb = (1.0 + 0.14 * (cloud - 0.5) + 0.07 * (cl2 - 0.5) + 0.1 * (sand - 0.5) * det) * (1.0 - 0.22 * cs.x) * (1.0 + 0.16 * cs.y)
+      * (1.0 - 0.5 * crack);
+    tint = mix(vec3(1.0), vec3(1.1, 0.96, 0.82), cs.z);
+    h = 0.0001 * (cs.y - cs.x) - 0.0004 * crack;
+    gm = (1.0 - 0.3 * (cl2 - 0.5)) * (1.0 - 0.8 * crack);
   }
 }
 /* the facing n tipped by a height h over the surface, from how both change across the screen (Mikkelsen's bump
