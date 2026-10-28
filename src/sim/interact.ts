@@ -242,6 +242,21 @@ export function buildUsables(sim: Sim): Usable[] {
         out.push(call);
         break;
       }
+      case 'comms': {
+        /* a comms cupboard's switch: read first, for what it feeds; then, with something in your hand, smashed (as loud as
+           a camera), and every camera on its branch is blind (sim/eyes.ts, camLive). Not to be smashed twice */
+        const c = o.c as string, at = { x: u.x, y: u.y, z: u.z }, blind = () => sim.blind.includes(c);
+        let read = false;
+        out.push({
+          ...base, r: 1.8,
+          label: () => (blind() ? null : read && g.weapon ? 'Smash the switch' : 'Comms cupboard'),
+          act: () => {
+            if (!read) { read = true; say(g, o.text as string); return; }
+            smash(at, () => { sim.blind.push(c); })();
+          },
+        });
+        break;
+      }
     }
   });
   return out;

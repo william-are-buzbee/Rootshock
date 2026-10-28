@@ -5,7 +5,7 @@ import {
 } from '../build/plan';
 import { ARRIVAL, HISTORY, STAGES, WELCOME, stageAt } from '../exhibit';
 import {
-  BAY, FAM, MED, OFF, OPS, SEC, UTIL, WALK, blood, callPoint, camera, container, corpse, desk, eggs, exitSign, forklift, genset, gore, grandStair, liftRoom, medbed, monitors, panel, POLE, shelf, speaker, tbl,
+  BAY, FAM, MED, OFF, OPS, SEC, UTIL, WALK, blood, callPoint, camera, comms, container, corpse, desk, eggs, exitSign, forklift, genset, gore, grandStair, liftRoom, medbed, monitors, panel, POLE, shelf, speaker, tbl,
 } from '../build/furnish';
 import { WOOD as ROOTS, runner } from '../build/overgrowth';
 
@@ -190,6 +190,10 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   camera(T1, 14.8, 0.8, 3.5, 0.79, 'SEC', 'wing', { name: 'Checkpoint' });
   camera(T1, 11.6, 11.6, 4, -2.66, 'SEC', 'wing', { name: 'Surface landing' });
   camera(D, 11.2, -1.2, 2.8, -1.17, 'SEC', 'wing', { name: 'Shaft station' });
+  /* behind the booth, the wing's comms cupboard (world.md §8, Security at the station's size, 9): the switch its cameras
+     run on, on the wing's own feed and none behind it, which is why the survivors' cut blinded them all */
+  room(T1, 'Comms: wing', 30.5, 8, 2.5, 3, { ...SEC, c: 'SEC', ht: 2.8, zone: 'wing' }); door(T1, 30.25, 9.5, { plain: true, sg: [['Comms', 'w']] });
+  comms(T1, 'SEC', 33, 9.75, 'w', 2.8, 'The switch the wing\'s cameras run on, a cable down to each and one away to the head end. On the wing\'s own feed, with no battery behind it.');
   bx(T1, 14.8, 4, 0.45, 0.42, 2.6, 0x5f6266); bx(T1, 14.3, 10.4, 0.5, 1.8, 1.4, 0x56636e); // a bench clear of the door from the hall, a cabinet
   corpse(T1, 22.8, 4.4, 0x2c3440, true, { label: 'Officer', say: 'A security officer. Whatever opened him did it from behind.', keys: ['s'] });
 
@@ -227,6 +231,10 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   for (let k = 0; k < 22; k++) if ((k * 7) % 5 !== 0) P(D, 'cyl', -5.6 + k * 0.44, -4.56, 0.08, 0.3, 0.08, [[0.35, 0.55, 0.3], [0.6, 0.35, 0.15], [0.7, 0.68, 0.6], [0.3, 0.2, 0.15]][k % 4] as [number, number, number], { y: 1.14 + (k % 2) * 0.6, c: 0 });
   for (let k = 0; k < 6; k++) P(D, 'cyl', -5.2 + k * 1.6, -9.2, 0.4, 0.75, 0.4, 0x2c2f33); // the stools
   bx(D, -3.8, -9.6, 0.4, 0.05, 0.25, 0x5a6a50, { y: 0.01, ry: 0.6, c: 0 }); P(D, 'cyl', 2.6, -9.8, 0.08, 0.3, 0.08, 0x355530, { y: -0.11, rz: 1.5, c: 0 }); // a bottle, dropped (on its side: its middle 4 cm up)
+  /* its walnut, gone soft in the wet since the air plant's dehumidifiers stopped (world.md §1, Decay): the veneer of its
+     front let go at the seams, a sheet standing off it at one end */
+  for (const [x, ry] of [[-4.6, 0.07], [-1.3, -0.06], [2.2, 0.08]] as const) bx(D, x, -7.77, 1.6, 0.9, 0.012, 0x6a4a32, { y: 0.05, ry, c: 0 }); // paler where the wet got in
+  use(D, 'look', -1.3, -7.9, 0.7, { label: 'Bar', text: 'Walnut, and gone soft since the air went wet: the veneer of its front has let go at the seams and stands off it.' });
   /* its eye: one high in the north-east corner, over the lounge; the lobby is a public room, not armed, so it records */
   camera(D, 29.2, -27.2, 9, -0.79, 'SEC', 'wing', { name: 'Lobby' }); // looking south-west, over the lounge to the stair
 
@@ -237,7 +245,9 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   for (let k = 0; k < 3; k++) bx(D, 19.2 + k * 1.2, 12.06, 0.5, 1.5, 0.12, 0xc9a227, { y: 0.4, c: 0 }); // hazmat suits on their pegs, against the wall
   shelf(D, 25.4, 17.2, 0.5, 2.2, { cols: [0xc9a227, 0x3d4042] }); bx(D, 20.8, 20.8, 0.8, 0.6, 0.6, 0x3a4030);
   item(D, 'rebreather', 20.8, 20.8, 0.6); item(D, 'kit', 25.3, 16.6, 1.06);
-  const SC: RoomOpts = { ...SEC, c: 'SEC', ht: 4.5, em: 1, safe: 1, armed: 1, mat: SKIM(SEC) };
+  /* its floor the slab itself, ground down to its stone and polished, with no coat for the wing's boots to wear
+     through; the rooms off it are coated (SEC) */
+  const SC: RoomOpts = { ...SEC, c: 'SEC', ht: 4.5, em: 1, safe: 1, armed: 1, mat: { ...SKIM(SEC), floor: 'polished' } };
   room(D, 'Security corridor', 32, -4, 36, 6, SC);
   /* the cut, near the wing's end: the cabinet left open, the cable through, and the one who did it */
   panel(D, 'SEC', 64.8, -4.68, 's', { cut: 1, zone: 'wing' }); // mended, it comes live on Security's board, and the wing sounds
@@ -360,7 +370,8 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   /* South off the wing: the locker room, the survivors' back way into the muster hall (a door at each end, down the
      aisle between the banks), and the infirmary. The back door is the wing's, on its feed like the room: cut, it slides
      by hand; and it makes the level's first loop, the wing to the hall by the atrium or by the lockers */
-  room(D, 'Locker room', 32, 3.25, 16, 18.75, { ...SEC, c: 'SEC', safe: 1 }); door(D, 39.4, 3, { sg: [['Lockers', 'n']] });
+  /* its floor studded rubber, for the wet feet from the showers */
+  room(D, 'Locker room', 32, 3.25, 16, 18.75, { ...SEC, c: 'SEC', safe: 1, mat: { ...SEC.mat, floor: 'rubber' } }); door(D, 39.4, 3, { sg: [['Lockers', 'n']] });
   door(D, 39.4, 23, { c: 'SEC', sg: [['Lockers', 's']] });
   /* its wall on the corridor a partition, a strip of glass along its top sharing the corridor's light */
   room(D, 'Security corridor', 32, 2, 16, 0.75, { ...SC, part: 1 }); for (const x of [33, 35, 43, 45, 47]) door(D, x, 3, { span: 2, seal: true, glass: true, glaze: 'high' });
@@ -433,6 +444,10 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   /* the atrium's eye: one on the threshold from the south-west corner, which only records (the atrium is not armed);
      its speaker high in the well by the east gallery's rail, out of reach but from there */
   speaker(D, 'atrium', 83.4, 9.2, 'CRIT'); camera(D, 68.6, 11.2, 3.8, PI, 'OPS', 'atrium');
+  /* Ops' comms cupboard (world.md §8, Security at the station's size, 9), off the atrium's north arm: the switch its
+     camera and the outer office's run on */
+  room(D, 'Comms: operations', 88.5, -11.5, 2.5, 3, { ...SEC, c: 'OPS', ht: 2.8, zone: 'atrium' }); door(D, 88.25, -9.5, { plain: true, sg: [['Comms', 'w']] });
+  comms(D, 'OPS', 91, -9.75, 'w', 2.8, 'The switch the atrium\'s camera and the outer office\'s run on, a cable down to each and one away to the head end. On Ops\' own feed, with no battery behind it.');
   /* where the light changes, it starts: eggs at the threshold, on their side */
   eggs(D, 68.8, -3.2, 2); eggs(D, 68.6, 1.2, 3); blood(D, 82.6, 8.6, 1.4);
   /* the second leg: south from the atrium between the offices, and out into the muster hall */
@@ -666,6 +681,13 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   use(D, 'look', 8.1, 27, 1.6, { label: 'Whiteboard', text: 'RESPONSE TEAM PT, 06:00. FITNESS TESTS THIS MONTH. Under it, in another hand: COURT BOOKED FRIDAY. A v B.' });
   speaker(D, 'muster', 29, 36, 'CRIT');
   camera(D, 38.2, 36, 7.6, PI / 2, 'HALL', 'muster', { name: 'Muster court' }); camera(D, 79.4, 24.6, 4, -PI / 4, 'EAST', 'ops', { name: 'East bays' });
+  /* their comms cupboards, one a breaker (world.md §8, Security at the station's size, 9): the hall's off its west
+     wall, which the court's camera and the armed rooms' off the hall run on; the east bays' off theirs, for the bays'
+     camera and the operations stair's */
+  room(D, 'Comms: muster hall', 19, 45, 2.5, 3, { ...SEC, c: 'HALL', ht: 2.8, zone: 'muster' }); door(D, 21.75, 46.5, { plain: true, sg: [['Comms', 'e']] });
+  comms(D, 'HALL', 19, 46.75, 'e', 2.8, 'The switch the hall\'s cameras run on, the court\'s and those in the rooms off it, a cable down to each and one away to the head end. On the hall\'s breaker, with no battery behind it.');
+  room(D, 'Comms: east bays', 80.5, 41.5, 2.5, 3, { ...SEC, c: 'EAST', ht: 2.8, zone: 'ops' }); door(D, 80.25, 42.5, { plain: true, sg: [['Comms', 'w']] });
+  comms(D, 'EAST', 83, 42.75, 'w', 2.8, 'The switch the east bays\' camera and the operations stair\'s run on, a cable down to each and one away to the head end. On the bays\' breaker, with no battery behind it.');
 
   /* west, off the hall's far end: the electrical room, and the one who came for it. Armed: its camera hangs over the
      door looking across at the board, so the way to the board is in its view. The board breaks Ops' feed out to the hall
@@ -1023,12 +1045,71 @@ function buildHub(B: Floor, D: Floor, T1: Floor, T2: Floor): void {
   bx(T1, 70, -19.3, 2.4, 1.9, 0.4, 0x4a3226);
   for (let r = 0; r < 3; r++) for (let k = 0; k < 9; k++) bx(T1, 69 + k * 0.24, -19.09, 0.08, 0.38, 0.02, [0x2a4a7a, 0x8c2f24, 0x3a3d40][(k + r) % 3], { y: 0.3 + r * 0.55, c: 0 });
   bx(T1, 73.6, -19.1, 0.5, 1.3, 0.6, 0x5f6266); bx(T1, 67, -14.5, 0.5, 0.5, 0.5, 0x6e6a62); // a cabinet; a pot, its plant long gone
-  /* the air plant, at +10, and the space over the false sky: half a metre over the lobby's roof, a dark plenum of
-     grating between the backs of the ceiling's light boxes. Steps up into it from the plant, the whole length of the
-     room (any steeper and nothing that walks could follow you up) */
-  room(T2, 'Air plant', 32, -30, 10, 4, { ...UTIL, ...wing, ht: 6, noroam: 1 });
+  /* the air plant, at +10 (world.md §8, Security at the station's size): what airs the lobby, 12,400 m³ under a sky of
+     its own, and, the job that matters underground, dries it: the walnut and the sofas last only while the
+     dehumidifiers run. East of the steps, its hall: the air handler along the north wall, the return down into its
+     west end and the supply up out of its east; the two dehumidifiers on the south wall, and the drum that charts the
+     lobby's air; and low in the east wall the mess's branch, its access door off. Up the steps, the space over the
+     false sky: half a metre over the lobby's roof, a dark plenum of grating between the backs of the ceiling's light
+     boxes. The steps take the whole length of the old room (any steeper and nothing that walks could follow you up) */
+  const AP: RoomOpts = { ...UTIL, ...wing, ht: 6, noroam: 1 };
+  room(T2, 'Air plant', 32, -30, 20, 4, AP); room(T2, 'Air plant', 42.5, -26, 9.5, 4, AP); // a wall's width off the plant stair's well
   flight(T2, 32, -30, 8, 4, 0, 3.5, 'w', 16);
-  bx(T2, 41, -29.2, 0.9, 2.2, 0.7, 0x6b6e70, { mat: 'steel' });
+  /* the air handler on its plinth, in its sections from the west: where the return comes in, the filters, the coil, the
+     fan, and the plenum the supply leaves by; a door on each, on the aisle */
+  const AHU = 0x6e7672, DUCT = 0x8a8e8c, LAG = 0xb8b2a0, steel = { mat: 'steel' } as const;
+  bx(T2, 47, -28.7, 8.2, 0.15, 2.5, 0x6b6e70);
+  for (const [x0, x1, c] of [[43, 44.4, AHU], [44.4, 45.4, 0x66706c], [45.4, 46.8, AHU], [46.8, 49.6, 0x66706c], [49.6, 51, AHU]] as const) {
+    bx(T2, (x0 + x1) / 2, -28.7, x1 - x0 - 0.02, 2.65, 2.4, c, { ...steel, y: 0.15 });
+    bx(T2, (x0 + x1) / 2, -27.485, Math.min(0.9, x1 - x0 - 0.3), 1.9, 0.03, 0x5a625e, { ...steel, y: 0.4, c: 0 }); // its door
+    bx(T2, (x0 + x1) / 2 + Math.min(0.9, x1 - x0 - 0.3) / 2 - 0.12, -27.46, 0.04, 0.16, 0.03, 0x2a2c2e, { y: 1.3, c: 0 }); // the handle
+  }
+  bx(T2, 44.9, -27.46, 0.16, 0.16, 0.02, 0xd8d4c4, { y: 1.75, c: 0 }); // the filters' gauge, on their door
+  bx(T2, 43.7, -28.9, 1.2, 3.2, 1.6, DUCT, { ...steel, y: 2.8, c: 0 }); bx(T2, 50.3, -28.9, 1.2, 3.2, 1.6, DUCT, { ...steel, y: 2.8, c: 0 }); // the return down from the roof, the supply up into it
+  for (const x of [45.52, 46.68]) P(T2, 'cyl', x, -27.4, 0.2, 1.3, 0.2, LAG, { c: 0 }); // the chilled water, up out of the floor into the coil, either side of its door
+  P(T2, 'cyl', 46.1, -26.9, 0.24, 0.02, 0.24, 0x2a2c2e, { c: 0 }); // the floor's drain
+  /* the dehumidifiers, A and B, on the south wall: each its panel, lit with the wing, A's lamp green and B's red; their
+     ducts up into the roof */
+  for (const [k, x] of [45.2, 48.4].entries()) {
+    bx(T2, x, -22.65, 1.8, 2, 1.1, 0x7a8288, { ...steel });
+    bx(T2, x, -22.65, 0.6, 4, 0.6, DUCT, { ...steel, y: 2, c: 0 });
+    bx(T2, x - 0.4, -23.215, 0.5, 0.4, 0.03, 0x2c2f33, { y: 1.3, c: 0 });
+    bx(T2, x - 0.52, -23.235, 0.06, 0.06, 0.01, [0.06, 0.06, 0.06], { y: 1.55, c: 0, pw: [[0.06, 0.06, 0.06], k ? [2.6, 0.3, 0.2] : [0.3, 2.4, 0.4]], pc: 'SEC' });
+    bx(T2, x - 0.32, -23.235, 0.2, 0.08, 0.01, [0.04, 0.05, 0.05], { y: 1.4, c: 0, pw: [[0.04, 0.05, 0.05], [0.6, 2.4, 1]], pc: 'SEC' });
+  }
+  bx(T2, 48.1, -23.205, 0.14, 0.09, 0.01, 0xd8d0a0, { y: 1.15, c: 0 }); // B's tag
+  use(T2, 'look', 48.4, -23.2, 1.3, { label: 'Dehumidifier B', text: 'It and A beside it dried the lobby\'s air. A tag on its panel: TRIPS ON ITS OWN. RESET 2/10. Under it in pencil: 9/10, 17/10, 30/10.' });
+  /* the drum recorder on its shelf: clockwork and a hair, so it went on without the power */
+  bx(T2, 50.6, -22.15, 0.6, 0.04, 0.3, 0x3a3d40, { y: 1.2, c: 0 }); bx(T2, 50.6, -22.15, 0.4, 0.24, 0.26, 0x4a5056, { y: 1.24, c: 0 });
+  P(T2, 'cyl', 50.6, -22.15, 0.14, 0.13, 0.14, 0xe2ddd0, { y: 1.48, c: 0 }); // its drum
+  use(T2, 'look', 50.6, -22.2, 1.4, { label: 'Chart recorder', text: 'A drum on clockwork and a pen on a hair: the lobby\'s air, a week to a chart. Forty-five per cent, round and round; then, the last few days, a climb past ninety, and it stays there.' });
+  /* the plant's controls on the east wall, its screen lit with the wing; spare filters on a pallet */
+  bx(T2, 51.7, -24.4, 0.6, 2, 1.2, 0x5f6266); bx(T2, 51.39, -24.4, 0.02, 0.28, 0.4, [0.04, 0.05, 0.05], { y: 1.4, c: 0, pw: [[0.04, 0.05, 0.05], [2.2, 2.75, 2.5]], pc: 'SEC' });
+  bx(T2, 44.2, -24.4, 1.2, 0.14, 1, 0x8a6a44); for (const y of [0.14, 0.64]) bx(T2, 44.2, -24.4, 1.1, 0.5, 0.6, 0xd8d4c4, { y });
+  /* the mess's branch, to be crawled: low in the east wall, a galvanised collar round it and its access door off on
+     the floor. East through the rock, down a riser, and back west along the mess's north wall to its grille over the
+     servery, 2 m up the wall; a joint a hand lower at each section past the riser. A body's crouch high, no light. Its
+     drop and the grille's are each a body's fall that does not hurt, and neither climbs back: one way, into the mess.
+     Nothing a person's height follows you in. The grille is off (the work orders: a noise along it at night, in
+     October), and down the middle of the duct's dust a track a body wide; what made it is the owner's to say */
+  for (const z of [-28.14, -26.86]) bx(T2, 51.96, z, 0.08, 1.58, 0.08, DUCT, { ...steel, c: 0 });
+  bx(T2, 51.96, -27.5, 0.08, 0.08, 1.36, DUCT, { ...steel, y: 1.5, c: 0 });
+  bx(T2, 50.4, -25.6, 1.25, 0.03, 1.15, DUCT, { ...steel, ry: 0.2, c: 0 });
+  const DU: RoomOpts = { ...wing, em: 0, nolamp: 1, noroam: 1, ht: 1.5, fl: 0x8a8478, wl: 0x8a8e8c, st: 0x8a8e8c, mat: { floor: 'steel', wall: 'steel', ceiling: 'steel' } };
+  room(T2, 'Duct', 52, -28.1, 4, 1.2, DU);
+  room(T1, 'Duct', 56, -28.1, 1.2, 1.2, { ...DU, dy: 2.75, ht: 3.75 }); // the riser: 2.25 m down
+  room(T1, 'Duct', 55, -28.1, 1, 1.2, { ...DU, dy: 2.5 }); room(T1, 'Duct', 54, -28.1, 1, 1.2, { ...DU, dy: 2.25 });
+  room(T1, 'Duct', 49.9, -28.1, 4.1, 1.2, { ...DU, dy: 2 }); room(T1, 'Duct', 49.9, -26.9, 1, 0.9, { ...DU, dy: 2 }); // and to the grille
+  /* the track through the dust: [floor, its middle, how long along x, along z] */
+  for (const [F, x, z, w, d] of [[T2, 54, -27.5, 4, 0.5], [T1, 56.6, -27.5, 1.2, 0.5], [T1, 55.5, -27.5, 1, 0.5], [T1, 54.5, -27.5, 1, 0.5], [T1, 51.95, -27.5, 4.1, 0.5], [T1, 50.4, -26.45, 0.5, 0.9]] as const)
+    bx(F, x, z, w, 0.004, d, 0x6a6e70, { y: 0.002, c: 0 });
+  use(T1, 'look', 52, -27.5, 0.3, { label: 'Dust', text: 'Grey dust on the floor of the duct, thick as felt, but for a track down its middle a body wide.' });
+  /* the grille's opening in the mess, framed, and the grille on the floor under it, bent outward, its screws still in
+     the wall */
+  for (const x of [49.86, 50.94]) bx(T1, x, -25.98, 0.08, 1.2, 0.04, 0xb8bcc0, { y: 2, c: 0 });
+  bx(T1, 50.4, -25.98, 1.16, 0.04, 0.04, 0xb8bcc0, { y: 1.96, c: 0 });
+  bx(T1, 50.7, -25, 1, 0.03, 1.2, 0xb8bcc0, { ry: 0.4, c: 0 });
+  use(T1, 'look', 50.7, -25, 0.2, { label: 'Grille', text: 'The grille off the duct over the servery, on the floor under its opening and bent outward. Its screws are still in the wall.' });
   const SV: RoomOpts = { ...wing, em: 0, air: 1, dy: 3.5, ht: 2.4, noroam: 1, fl: 0x4a4c4e, wl: 0x4a4640, st: 0x4a4640, mat: { floor: 'grating', wall: 'shot', ceiling: 'shot' } };
   room(T2, 'Sky void', -8, -28, 38, 24, SV); room(T2, 'Sky void', 30, -28, 2, 2, SV);
   for (const x of [-5, 1, 7, 13, 19, 25]) for (const z of [-25, -19, -13, -7]) {

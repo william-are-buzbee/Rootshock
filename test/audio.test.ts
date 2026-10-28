@@ -188,7 +188,9 @@ describe('how the station looks', () => {
     const room = (n: string) => up.rooms.find(r => r.name === n)!;
     expect(room('Goods inward').mat).toMatchObject({ wall: 'shot', ceiling: 'shot' });
     expect(room('Lobby').mat).toMatchObject({ floor: 'terrazzo', wall: 'stone' });
-    expect(room('Security corridor').mat.floor).toBe('epoxy');
+    expect(room('Security corridor').mat.floor).toBe('polished');
+    expect(room('Armory').mat.floor).toBe('flake'); // the wing's rooms are coated
+    expect(room('Locker room').mat.floor).toBe('rubber');
     expect(room('Office: operations').mat).toMatchObject({ floor: 'carpet', wall: 'board' });
     expect(room('Infirmary').mat.floor).toBe('vinyl');
     /* the Commons' utility rooms stand inside its blocks: poured, not dug */

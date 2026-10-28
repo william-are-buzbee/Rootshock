@@ -203,7 +203,7 @@ describe('hiding from it', () => {
     expect(search(s => at(s, WASHROOM))).toBe(false);
     expect(search(s => at(s, WINDOW.at, true))).toBe(true);
     expect(search(s => at(s, CORNER, true))).toBe(true);
-  });
+  }, 30_000); // four openings played out, 2.5 s each: at the default 10 s it timed out with the suite on four cores
   it('your washroom\'s door is slid by hand, and stays as you leave it', () => {
     const { s } = opening(), d = s.doors[washroom()];
     expect(d.def.circuit).toBe('SEC');

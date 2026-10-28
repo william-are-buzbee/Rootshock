@@ -1,4 +1,70 @@
-# Handoff: Security at the station's size
+# Handoff: Security at the station's size, item 9
+
+For whoever picks this up in a new session. The branch is `claude/practical-maxwell-ajw5zk`, on top of
+william-are-buzbee/Rootshock#121 (merged); no pull request is open for it yet. The handoffs before this one are kept
+below: their rules for the layout, their tools, asks and open items still stand. This adds what item 9 taught.
+
+## Where the list is
+
+world.md §8, *Security at the station's size*: 1 to 9 are built, 9 in two commits (the air plant with its duct, then the
+comms cupboards). Next are the pings, 10 to 15: design work, so talk each through with the owner before building it (the
+order below, *The order (agreed)*).
+
+## Where things are
+
+- `src/content/levels/upper.ts`, in `buildHub`: 'Air plant' (two boxes on T2, +10), the 'Duct' (one box on T2 and five on
+  T1 with `dy`), and the grille's frame in the 'Staff mess'. In `buildUpper`: the bar's veneer, in the lobby; 'Comms:
+  wing' after the booth's cameras, 'Comms: operations' after the atrium's, 'Comms: muster hall' and 'Comms: east bays'
+  after the court's. The rack is `comms()` in `content/build/furnish.ts`; its switch is a use of kind `comms`
+  (`sim/interact.ts`: read, then smashed), drawn whole or hanging by `present/render/things.ts`. A smashed switch puts
+  its branch in `Sim.blind`, which `camLive` (`sim/eyes.ts`) reads, so detection, the cameras' lights and the screens'
+  feeds all follow; saves keep it. Tests: `eyes.test.ts`.
+- Saves are version 24.
+
+## What was learned
+
+- **A drop the nav takes is 2.5 m at most** (`DROP` in `world/nav.ts`), and a landing hurts above 10 m/s, which with
+  `GRAVITY` 20 (`sim/body.ts`) is a 2.5 m fall too: keep drops to 2.25. The plant's floor is 5 m over the mess's, so the
+  duct takes two drops (2.25 and 2) and three joints a quarter metre down between them.
+- **Spots stand on the grid only** (rock, a block, a slope), never on a prop: a counter under a grille is no landing. A
+  drop wants a floor spot a metre from the edge's, with nothing standing on it; hence the grille just past the servery's
+  end.
+- **Heights land on the 0.25 m grid** (`Grid.fill` rounds each face): a 3.2 m room's ceiling is 3.25 to the sim. Put
+  floors that matter on quarter metres.
+- **A crawl** is a room 1.5 m high: crouched you are 1.0, and a link wants 1.0 clear over the higher spot, so the lower of
+  two sections a step apart needs 1.25 m over the higher one's floor.
+- **An upper floor lays its slab at its own height under each of its rooms,** so a room on it with a negative `dy` has a
+  slab through it. Build what lies below a floor's base on the floor beneath, with a positive `dy` (the duct's sections
+  are on T1, floors at +7 to +7.75). Rooms on different floors open into each other where they touch (one voxel grid):
+  that is how the duct meets the plant (T2) and the mess (T1), and the contacts test lists both.
+- **Two rooms on one floor cannot stack:** the later claims the plan cell, top to bottom. A duct over a room on the same
+  floor is not possible; go round it, or put it on the floor above.
+- **A link's clearance is the same for every walker:** only a spot's headroom keeps one of the changed (1.8 m) out. A
+  riser one could stand in must be reached only through something lower than that, or one could drop in after you and
+  be stuck at its foot.
+- **A room 2.5 m square gets its ceiling grille 0.35 m from its light**, and validate.test.ts wants 0.5: make small
+  rooms 2.5 by 3.
+- **The dev server reloads the page on every save,** which spoils a screenshot run in progress. Shoot from a build:
+  `npx vite build --outDir <scratch>/dist`, then `npx vite preview --outDir <scratch>/dist --port 4173`, and point the
+  script at port 4173.
+- **Long sim tests time out under load.** On four cores with every file at once, two tests ran past the default 10 s
+  on `main` already: the opening's "in your washroom..." (four openings, about 10 s alone, a little more with these
+  rooms' bigger nav) and eyes' "the cast keep out of them on their rounds" (8 s alone). Each has 30 s now. Run
+  `npm run check` with nothing else going (a browser rendering beside it slows everything).
+- **`pkill -f` or `pgrep -f` with a pattern that is also in your own command line** stops your own shell. Write the
+  pattern `[v]ite preview`.
+
+## Open (for the owner)
+
+- What made the track in the duct's dust, and the noise along it in October (the `orders` note). The grille was forced
+  out from inside; its look says so and no more.
+- Smashing a comms cupboard blinds its branch's cameras (decided, and built). Watch in play whether a whole branch for
+  one loud act is too cheap: the hall's switch takes the electrical room's, the Armory's and the range's guards at once.
+- Decay as a system (world.md §1): only the bar's veneer is done, by hand.
+
+---
+
+# The previous handoff: Security at the station's size
 
 For whoever picks this up in a new session. The branch is `claude/quirky-meitner-24eyvm`, opened as
 william-are-buzbee/Rootshock#121; once that is merged, start from `main`. The two handoffs before this one are kept below:

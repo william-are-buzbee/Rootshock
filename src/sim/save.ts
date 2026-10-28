@@ -40,8 +40,9 @@ import { makeSim, type Sim, type SimOpts } from './sim';
  *  20: administration, its ID office and the administrator's: again
  *  21: the lobby's washrooms, and screening's door to the nurses' station back: again
  *  22: the locker room's showers and toilets, and the training room: again
- *  23: the bar's kitchen, its service stair and pantry: again */
-export const SAVE_VERSION = 23;
+ *  23: the bar's kitchen, its service stair and pantry: again
+ *  24: the comms cupboards, one a camera branch: again */
+export const SAVE_VERSION = 24;
 
 /** copy the named fields of an object */
 const pick = <T extends object, K extends keyof T>(o: T, keys: readonly K[]): Pick<T, K> => {
@@ -90,6 +91,8 @@ export interface Save {
   alarms?: SavedAlarm[];
   /** the zones whose speaker is smashed */
   mute?: string[];
+  /** the branches whose comms cupboard's switch is smashed */
+  blind?: string[];
   /** breakers opened by hand, and who may go to throw them back */
   drills?: Sim['drills'];
   /** the opening, while it lasts (sim/opening.ts) */
@@ -137,6 +140,7 @@ export function save(sim: Sim): Save {
     ...(sim.opening ? { opening: structuredClone(sim.opening) } : {}),
     ...(sim.pools.length ? { pools: structuredClone(sim.pools) } : {}),
     mute: [...sim.mute],
+    blind: [...sim.blind],
     fields: sim.fields && {
       from: sim.fields.from, turn: sim.fields.turn, made: { ...sim.fields.made },
       ...Object.fromEntries(Object.entries(sim.fields.ways).map(([w, a]) => [w, pack(a)])), sound: pack(sim.fields.sound),
@@ -199,6 +203,7 @@ export function load(level: LevelDef, data: Save, o: SimOpts = {}): Sim {
   for (const m of sim.cast) restoreRoute(sim, m);
   sim.cams.forEach((c, i) => { const s = data.cams?.[i]; if (s) { c.broken = s.broken; c.hold = s.hold; c.tripped = s.tripped; } });
   sim.mute = [...(data.mute ?? [])];
+  sim.blind = [...(data.blind ?? [])];
   sim.drills = structuredClone(data.drills ?? []);
   sim.opening = data.opening ? structuredClone(data.opening) : null;
   sim.pools = structuredClone(data.pools ?? []);

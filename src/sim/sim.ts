@@ -50,6 +50,8 @@ export interface Sim {
   alarms: Alarm[];
   /** the zones whose speaker is smashed: their alarms sound no more */
   mute: string[];
+  /** the branches whose comms cupboard's switch is smashed: their cameras see no more */
+  blind: string[];
   /** breakers opened by hand, and the staff caught in the dark who may go to throw them back (sim/cast.ts) */
   drills: Drill[];
   /** sat at a console, watching its cameras' feeds (sim/eyes.ts); not kept by saves: a game goes on standing */
@@ -122,7 +124,7 @@ export function makeSim(level: LevelDef, o: SimOpts = {}): Sim {
     doors: level.doors.map(d => makeDoor(world, d)),
     platforms: level.platforms.map(p => makePlatform(world, p)),
     items: level.items.map(it => ({ ...it, taken: false })),
-    usables: [], focus: null, cast: [], fields: null, hands: makeHands(), wormN: 0, front: -1, lighting: null, cams: [], alarms: [], mute: [], drills: [], watch: null, opening: null, pools: [],
+    usables: [], focus: null, cast: [], fields: null, hands: makeHands(), wormN: 0, front: -1, lighting: null, cams: [], alarms: [], mute: [], blind: [], drills: [], watch: null, opening: null, pools: [],
   };
   /* a fail-safe door with no power to it has let go already */
   for (const d of sim.doors) failSafe(d, power(sim.game, d.def.circuit));
