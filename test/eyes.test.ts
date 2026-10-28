@@ -43,9 +43,9 @@ const until = (s: Sim, c: { hold: number }, how: 'walk' | 'run' | 'creep' = 'wal
 };
 
 describe('the armed rooms', () => {
-  it('are the wing\'s corridor, the electrical room, the Armory, the range, the operations stair and the chief\'s office', () => {
+  it('are the wing\'s corridor, the electrical room, the Armory, the range, the operations stair and the chief\'s outer office', () => {
     const s = fresh(), names = new Set(s.world.rooms.filter(R => R.armed).map(R => R.name));
-    expect([...names].sort()).toEqual(['Armory', 'Electrical room', 'Firing range', 'Office: chief of security', 'Operations stair', 'Security corridor']);
+    expect([...names].sort()).toEqual(['Armory', 'Electrical room', 'Firing range', 'Operations stair', 'Outer office', 'Security corridor']);
   });
 
   it('each has a camera that guards it; the rest only record', () => {
@@ -74,7 +74,7 @@ describe('the armed rooms', () => {
         expect(w.raycast(ix, y, iz, c.def.x, c.def.y, c.def.z), `${R.name} at ${cx}, ${cz}`).toBeGreaterThan(0.97);
       }
     }
-    expect(ways).toBe(12);
+    expect(ways).toBe(13); // the chief's outer office has its records door as well as the card door
   });
 
   it('the cast keep out of them on their rounds', () => {
@@ -315,7 +315,7 @@ describe('lockdown', () => {
     soundZone(s, 'muster');
     hold(s, 0.1);
     const drawn = zoneDoors(s, 'muster').filter(d => d.drawing > 0);
-    expect(drawn.map(d => d.def.circuit).sort()).toEqual(['HALL', 'HALL', 'OPS']); // the electrical room's, the range's, the duty office's
+    expect(drawn.map(d => d.def.circuit).sort()).toEqual(['HALL', 'HALL', 'HALL', 'OPS']); // the electrical room's, the range's, the training room's, the duty office's
     expect(sounded(s, 'bolt-draw')).toBe(true);
     expect(drawn.some(d => d.down)).toBe(false); // time to get through
     hold(s, LOCKDOWN.draw);
@@ -715,7 +715,7 @@ describe('a smashed speaker', () => {
     const s = fresh(), m = s.cast[1];
     for (const q of s.cast) if (q !== m) q.stun = 1e9;
     s.mute.push('ops');
-    place(s, 87.5, 0, 19.6); // in the chief's office, armed, near its camera and in its view
+    place(s, 87.5, 0, 19.6); // in the chief's outer office, armed, near its camera and in its view
     s.player.yaw = 0;
     s.game.events.length = 0;
     pace(s, EYES.hold + 0.6);

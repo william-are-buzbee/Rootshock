@@ -3,7 +3,7 @@ import type { LevelDef, LadderDef } from '../types';
 import {
   arch, beginLevel, bx, cave, colT, door, elev, exhibit, finishLevel, flight, item, ladder, floor, mut, note, P, roughen, room, stack, stairs, use, type Floor, type LevelInfo, type RoomOpts,
 } from '../build/plan';
-import { HISTORY, STAGES, WELCOME, stageAt } from '../exhibit';
+import { ARRIVAL, HISTORY, STAGES, WELCOME, stageAt } from '../exhibit';
 import {
   BAY, FAM, MED, OFF, OPS, SEC, UTIL, WALK, blood, callPoint, camera, container, corpse, desk, eggs, exitSign, forklift, genset, gore, grandStair, liftRoom, medbed, monitors, panel, POLE, shelf, speaker, tbl,
 } from '../build/furnish';
@@ -30,7 +30,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
      the atrium (below) */
   liftRoom(D, 0, -2, 5, -1);
   room(D, 'Shaft station', 6, -2, 6, 6, { ...UTIL, c: 'SEC', em: 1, safe: 1 }); door(D, 13, 1, { sg: [['Goods inward', 'w'], ['Shaft station', 'e']] });
-  room(T1, 'Surface cage', 0, -2, 4, 4, { ...OPS, c: 'LIFT', nolamp: 1, noroam: 1, safe: 1 }); door(T1, 5, -1, { kind: 'heavy', c: 'LIFT', lift: true, sg: [['Surface', 'e']] });
+  room(T1, 'Surface cage', 0, -2, 4, 4, { ...OPS, c: 'LIFT', nolamp: 1, noroam: 1, safe: 1 }); door(T1, 5, 0, { kind: 'heavy', c: 'LIFT', lift: true, sg: [['Surface', 'e']] });
 
   /* The Security wing: the lobby off the shaft, the first leg of the highway, and the rooms off it. Its feed hangs off
      Ops, and the survivors cut it to blind the cameras on their side (world.md §8): dark at the start, and a kit mends
@@ -39,15 +39,145 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
      wall between them, the lobby's limestone on one face and the dock's sprayed rock on the other: they were one open
      space, the stone meeting the shotcrete in one plane beside the lobby's door */
   room(D, 'Goods inward', 14, -0.75, 16, 10.75, { ...UTIL, c: 'SEC', ht: 4, em: 1 }); door(D, 31, 1, { sg: [['Security', 'w'], ['Goods inward', 'e']] });
-  bx(D, 22, 8.8, 3.6, 0.9, 0.7, 0x4a4f55);
+  /* the dock (world.md §8, Security at the station's size): what came down the hoist was staged here before it went on,
+     to the kitchen and the walk-ins by the service passage, to the hazard store, or east into the wing. A walkway kept
+     clear along the north wall from the hoist's door to the wing's; three bays marked out on the floor; racking along
+     the south wall; the platform scale by the hoist's door; the bonded cage, where the bar's spirits and the family's
+     wine came in, its gate prised open; and in the far corner the clerk's cabin, its hatch on the floor */
+  const PAINT = 0xc9a227, WOOD = 0x8a6a44, CARTON = 0x9a7a52, TAPE = 0x6a5a3c;
+  const paint = (x0: number, z0: number, x1: number, z1: number) => bx(D, (x0 + x1) / 2, (z0 + z1) / 2, Math.max(x1 - x0, 0.1), 0.01, Math.max(z1 - z0, 0.1), PAINT, { y: 0.012, c: 0 });
+  /* a pallet at (x, z) on whatever is y under it, and on it cartons `h` high, or nothing */
+  const pallet = (x: number, z: number, y = 0, h = 0, ry = 0) => {
+    bx(D, x, z, 1.2, 0.14, 1, WOOD, { y, ry });
+    if (h) { bx(D, x, z, 1.1, h, 0.9, CARTON, { y: y + 0.14, ry }); bx(D, x, z, 0.08, 0.01, 0.9, TAPE, { y: y + 0.14 + h, ry, c: 0 }); } // taped across the top
+  };
+  paint(14.4, 2.25, 29.6, 2.25); // the walkway's edge
+  for (const x of [18.6, 21.3, 24, 26.6]) paint(x, 3, x, 6.2);
+  paint(18.6, 6.2, 26.6, 6.2);
+  pallet(19.95, 4.6, 0, 0.9); pallet(22.65, 4.4, 0, 0, 0.12); // bay 1 full, bay 2 an empty pallet
+  pallet(25.3, 4.6); // bay 3, flour, one sack split
+  for (const [k, [dx, dz]] of [[-0.28, -0.22], [0.28, -0.22], [-0.28, 0.22], [0.28, 0.22]].entries()) P(D, 'ico', 25.3 + dx, 4.6 + dz, 0.55, 0.32, 0.42, k === 3 ? 0xb8a880 : 0xc8b890, { y: 0.14 });
+  P(D, 'cyl', 25.95, 5.35, 0.9, 0.02, 0.7, 0xe2ddd0, { c: 0 }); // what came out of it
+  /* the racking, two bays against the south wall, a pallet's depth: blue frames, orange beams */
+  for (const x of [19, 22, 25]) for (const z of [8.75, 9.85]) bx(D, x, z, 0.08, 3.4, 0.08, 0x3a5a8a);
+  for (const x0 of [19, 22]) for (const y of [1.5, 3]) for (const z of [8.8, 9.8]) bx(D, x0 + 1.5, z, 2.92, 0.1, 0.08, 0xc8641e, { y, c: 0 });
+  pallet(19.8, 9.3, 0, 1); pallet(21.2, 9.3, 0, 0.8); pallet(20.5, 9.3, 1.6, 0.9); pallet(23.4, 9.3, 1.6, 0.7); pallet(24.2, 9.3, 3.1, 0.6);
+  for (const x of [22.7, 23.3]) P(D, 'cyl', x, 9.3, 0.56, 0.88, 0.56, 0x3d5a44); // drums, on the floor of the second bay
+  /* the scale, a plate let into the floor by the hoist's door, and its readout on a post */
+  bx(D, 15.6, 4.2, 1.5, 0.04, 1.5, 0x6b6e70, { mat: 'steel', c: 0 });
+  bx(D, 14.4, 5.2, 0.06, 1.2, 0.06, 0x3a3d40); bx(D, 14.4, 5.2, 0.14, 0.24, 0.32, 0x2c2f33, { y: 1.2, c: 0 });
+  bx(D, 14.48, 5.2, 0.02, 0.08, 0.2, [0.05, 0.06, 0.05], { y: 1.3, c: 0, pw: [[0.05, 0.06, 0.05], [0.6, 2.4, 1]], pc: 'SEC' });
+  /* the bonded cage in the north-east corner, off the walkway: mesh on three sides, its gate prised and swung out, two
+     cases of the bar's left, one opened, and a bottle on the floor */
+  const MESH = 0x5a5d60, CAGE = [26.8, 2.6, 29.98, 5.4] as const;
+  for (let z = CAGE[1]; z <= CAGE[3] + 1e-6; z += 0.2) if (z < 3.9 || z > 5.1) bx(D, CAGE[0], z, 0.03, 2.2, 0.03, MESH, { c: 0 });
+  for (const z of [CAGE[1], CAGE[3]]) for (let x = CAGE[0] + 0.2; x < CAGE[2] - 0.05; x += 0.2) bx(D, x, z, 0.03, 2.2, 0.03, MESH, { c: 0 });
+  for (const [x0, z0, x1, z1] of [[CAGE[0], CAGE[1], CAGE[0], CAGE[3]], [CAGE[0], CAGE[1], CAGE[2], CAGE[1]], [CAGE[0], CAGE[3], CAGE[2], CAGE[3]]] as const)
+    for (const y of [0, 2.2]) bx(D, (x0 + x1) / 2, (z0 + z1) / 2, Math.max(x1 - x0, 0.05), 0.05, Math.max(z1 - z0, 0.05), MESH, { y, c: 0 });
+  for (const [z0, z1] of [[CAGE[1], 3.9], [5.1, CAGE[3]]]) colT(D, CAGE[0], (z0 + z1) / 2, 0.08, z1 - z0, 2.2);
+  for (const z of [CAGE[1], CAGE[3]]) colT(D, (CAGE[0] + CAGE[2]) / 2, z, CAGE[2] - CAGE[0], 0.08, 2.2);
+  /* the gate, on its hinge at the gap's north end, swung out */
+  for (const t of [0.1, 0.3, 0.5, 0.7, 0.9]) bx(D, 26.8 - t * 0.932, 3.9 - t * 0.362, 0.03, 2.1, 0.03, MESH, { c: 0 });
+  for (const y of [0.1, 2]) bx(D, 26.334, 3.719, 0.04, 0.05, 1, MESH, { ry: 1.2, y, c: 0 });
+  bx(D, 26.84, 3.8, 0.06, 0.12, 0.06, 0x2a2c2e, { y: 1.1, c: 0 }); // and its hasp on the post, bent
+  pallet(28.7, 4.4); bx(D, 28.4, 4.4, 0.6, 0.36, 0.4, 0x7a5a38, { y: 0.14 }); bx(D, 29.1, 4.4, 0.6, 0.36, 0.4, 0x7a5a38, { y: 0.14 });
+  bx(D, 29.3, 3.5, 0.62, 0.03, 0.42, 0x7a5a38, { y: 0, ry: 0.5, c: 0 }); // its lid, off
+  for (const dz of [-0.1, 0.1]) P(D, 'cyl', 29.1, 4.4 + dz, 0.08, 0.3, 0.08, 0x355530, { y: 0.5, c: 0 }); // what is left in it
+  P(D, 'cyl', 27.6, 4.9, 0.08, 0.3, 0.08, 0x6a4a2a, { y: -0.11, rz: 1.5, ry: 0.7, c: 0 });
+  /* the clerk's cabin in the south-east corner: a box of painted panels with its own roof, its hatch and its door on the
+     floor's side. Inside, the desk, the dockets on their spike, a cabinet */
+  const CAB = 0xb8b2a0, CW = 2.5;
+  bx(D, 28.29, 6.2, 3.38, CW, 0.08, CAB); // the north side, whole
+  for (const [z0, z1, y0, y1] of [[6.24, 6.6, 0, CW], [6.6, 7.8, 0, 0.95], [6.6, 7.8, 2, CW], [7.8, 8.9, 0, CW], [8.9, 9.98, 2.1, CW]] as const)
+    bx(D, 26.6, (z0 + z1) / 2, 0.08, y1 - y0, z1 - z0, CAB, { y: y0 }); // the west side round the hatch and the door
+  bx(D, 26.6, 7.2, 0.02, 1.05, 1.2, [0.55, 0.66, 0.7], { mat: 'glass', y: 0.95, c: 0 }); // the hatch's pane
+  bx(D, 26.42, 7.2, 0.36, 0.04, 1.3, 0x4a3a2c, { y: 0.95, c: 0 }); // its sill, a ledge to sign on
+  bx(D, 28.29, 8.07, 3.38, 0.06, 3.82, CAB, { y: CW, c: 0 }); // its roof
+  desk(D, 29.5, 7.6, 0.7, 1.8, { c: 0x5a5048, bare: 1 }); bx(D, 28.7, 7.6, 0.45, 0.45, 0.45, 0x2c2f33); bx(D, 29.6, 9.5, 0.5, 1.3, 0.5, 0x5f6266);
+  P(D, 'cyl', 29.6, 7.1, 0.02, 0.18, 0.02, 0x2a2c2e, { y: 0.76, c: 0 }); bx(D, 29.6, 7.1, 0.15, 0.04, 0.21, 0xe2ddd0, { y: 0.78, c: 0 }); // the spike, and the dockets on it
+  use(D, 'look', 29.6, 7.1, 0.9, { label: 'Dockets', text: 'Delivery dockets on a spike, newest on top: dry goods, linen, the post. The last is dated 5/11.' });
+  /* a pallet truck, parked between the bays and the racking: its forks east, its handle back */
+  for (const z of [7.16, 7.64]) bx(D, 24.3, z, 1.15, 0.08, 0.16, 0x8c2f24, { c: 0 });
+  bx(D, 23.5, 7.4, 0.32, 0.36, 0.56, 0x8c2f24); bx(D, 23.16, 7.4, 0.05, 1.2, 0.05, 0x2a2c2e, { y: 0.3, rz: 0.35, c: 0 });
   /* the oldest of the changed, rooting at its post: each of Security's seven walks at its own pace and steps, the bench's
-     (mockups/mutants.html, Security's seven; sim/cast/gait.ts) */
+     (mockups/mutants.html, Security's seven; sim/cast/gait.ts). It has stood long enough for its roots to go out over the
+     floor: along the bays' painted line, into the full pallet and up the racking, under the door to the passage */
   mut(D, 'changed', 18, 6.8, { post: 1, yaw: PI / 2, walk: 0.25, steps: 50 });
+  const ROOT = [0x4a3a2a, 0x54422e, 0x3e3024];
+  /* a root along the points given, thick at its first and tapering to its last, half sunk in whatever is y under it,
+     a knuckle at each bend so it reads as one thing grown, not sticks laid end to end */
+  const root = (pts: readonly (readonly [number, number])[], d0: number, d1: number, y = 0) => {
+    for (let k = 0; k + 1 < pts.length; k++) {
+      const [ax, az] = pts[k], [bx2, bz2] = pts[k + 1], dx = bx2 - ax, dz = bz2 - az, len = Math.hypot(dx, dz);
+      const d = d0 + (d1 - d0) * (k / Math.max(1, pts.length - 2)), c = ROOT[k % 3];
+      P(D, 'cyl', (ax + bx2) / 2, (az + bz2) / 2, d, len + d * 0.5, d, c, { c: 0, y: y + d * 0.25 - (len + d * 0.5) / 2, rz: PI / 2, ry: -Math.atan2(dz, dx) });
+      if (k) P(D, 'ico', ax, az, d * 1.5, d * 0.8, d * 1.5, c, { c: 0, y });
+    }
+  };
+  /* matted under its feet: lumps of root grown into each other */
+  for (const [dx, dz, r] of [[0, 0, 0.9], [0.3, -0.2, 0.55], [-0.3, 0.25, 0.6], [0.25, 0.35, 0.45], [-0.25, -0.3, 0.5]] as const)
+    P(D, 'ico', 18 + dx, 6.8 + dz, r, 0.12, r * 0.9, ROOT[(Math.round(r * 10)) % 3], { c: 0 });
+  root([[18.3, 6.65], [19.2, 6.42], [20.3, 6.3], [21.4, 6.22], [22.6, 6.18], [23.6, 6.28], [24.5, 6.2]], 0.13, 0.04); // along the line
+  root([[18.35, 6.45], [18.8, 5.9], [19.15, 5.42], [19.33, 5.06]], 0.11, 0.06); // to the full pallet
+  root([[17.7, 6.95], [16.9, 7.3], [16.1, 7.42], [15.2, 7.25], [14.4, 7.35]], 0.11, 0.04); // toward the passage, under its door
+  root([[18.15, 7.2], [18.3, 7.8], [18.6, 8.3], [18.88, 8.62]], 0.1, 0.06); // to the racking
+  root([[17.85, 6.5], [17.6, 5.8], [17.2, 4.9], [16.9, 4.1], [16.5, 3.4]], 0.09, 0.03); // toward the scale
+  root([[17.75, 7.1], [17.3, 7.7], [17.1, 8.4]], 0.08, 0.03);
+  P(D, 'cyl', 19.36, 4.95, 0.06, 1.0, 0.06, ROOT[1], { c: 0, rz: 0.08 }); root([[19.42, 4.95], [19.9, 4.7], [20.35, 4.35]], 0.05, 0.03, 1.04); // up the cartons, and over them
+  P(D, 'cyl', 18.93, 8.68, 0.06, 1.5, 0.06, ROOT[0], { c: 0 }); // up the upright
 
-  /* People came up the shaft to the second floor: off the surface cage, a landing, and the checkpoint (world.md §8,
-     The lobby). Everyone off the surface came through here: the bag scanner and its belt, the arch, the turnstiles, and
-     the booth behind glass that watched them do it. Through it, the head of the grand stair, and the lobby below */
-  room(T1, 'Surface landing', 6, -2, 6, 6, { ...FAM, c: 'SEC', ht: 3.6, em: 1 }); door(T1, 13, 1, { sg: [['Checkpoint', 'w'], ['Surface', 'e']] });
+  /* People came up the shaft to the second floor: off the surface cage into the arrival hall, down it to the checkpoint
+     (world.md §8, The lobby; Security at the station's size). The first room a visitor saw, and the last you cross. A
+     cage-load stood in it at a time, thirty or so with their bags: limestone to the gallery's height, and bronze. The
+     cage's gates framed in it, under the dial that showed it coming; the house's board facing them as they open; down
+     the east side the rail the line kept to, to the checkpoint's door, which looks straight down the line at the arch;
+     past that, the cloakroom, and the bench where whoever was going up waited for the cage. Over the shaft station and
+     the service passage, which are low enough to leave it its height */
+  const AH: RoomOpts = { ...FAM, c: 'SEC', ht: 4.5, em: 1, lc: [0.92, 0.86, 0.74], mat: { ...FAM.mat, datum: 3.2 } };
+  room(T1, 'Surface landing', 6, -2, 6, 14, AH); room(T1, 'Surface landing', 2, 5, 4, 6, { ...AH, ht: 3.2 }); // the hall, and the cloakroom off it under a lower ceiling
+  door(T1, 13, 7.1, { sg: [['Checkpoint', 'w'], ['Surface', 'e']] });
+  const BRZ = 0x5e4424, LIME = 0x9a9384, brz = { c: 0, mat: 'steel' } as const;
+  /* the gates in bronze, and over them the dial, its needle up: the cage is here */
+  for (const z of [-1.2, 1.2]) bx(T1, 6.04, z, 0.08, 2.72, 0.22, BRZ, brz);
+  bx(T1, 6.04, 0, 0.08, 0.22, 2.62, BRZ, { ...brz, y: 2.5 });
+  P(T1, 'cyl', 6.03, 0, 0.8, 0.05, 0.8, BRZ, { ...brz, y: 3.125, rz: PI / 2 }); P(T1, 'cyl', 6.06, 0, 0.66, 0.02, 0.66, 0xd8d0b8, { c: 0, y: 3.14, rz: PI / 2 });
+  for (const a of [-1, -0.5, 0, 0.5, 1]) bx(T1, 6.08, Math.sin(a) * 0.26, 0.02, 0.035, 0.035, 0x2a2420, { c: 0, y: 3.13 + Math.cos(a) * 0.26 });
+  bx(T1, 6.085, 0, 0.015, 0.22, 0.025, 0x2a2420, { c: 0, y: 3.15 });
+  exhibit(T1, ARRIVAL.key, 12, 0, 2, 'w', 2.4, 1.9); // across from the gates
+  /* bronze sconces, lit with the wing: either side of the board and of the checkpoint's door, and over the bench */
+  for (const [x, z, s] of [[12, -1.7, -1], [12, 1.7, -1], [12, 5.6, -1], [12, 8.6, -1], [6, 3.4, 1]] as const) {
+    bx(T1, x + s * 0.03, z, 0.06, 0.4, 0.14, BRZ, { ...brz, y: 2.3 });
+    bx(T1, x + s * 0.12, z, 0.12, 0.24, 0.2, [0.2, 0.18, 0.15], { c: 0, y: 2.38, pw: [[0.2, 0.18, 0.15], [2.5, 2.42, 2.25]], pc: 'SEC' });
+  }
+  /* the line's rail: bronze posts, the belt between them gone slack, the last unhooked and down */
+  for (const [k, z] of [1.6, 3.1, 4.6, 6.1].entries()) {
+    P(T1, 'cyl', 10.3, z, 0.07, 0.95, 0.07, BRZ, { mat: 'steel' }); P(T1, 'cyl', 10.3, z, 0.11, 0.05, 0.11, BRZ, { ...brz, y: 0.95 });
+    if (k < 2) bx(T1, 10.3, z + 0.75, 0.03, 0.05, 1.43, 0x5a1e1e, { c: 0, y: 0.84 });
+  }
+  bx(T1, 10.3, 4.66, 0.03, 0.84, 0.05, 0x5a1e1e, { c: 0 });
+  /* the bench by the gates, and the bags left at them: whoever was going up when Security sealed itself */
+  bx(T1, 6.35, 3.4, 0.6, 0.45, 2.4, LIME, { mat: 'stone' });
+  bx(T1, 7.3, 1.6, 0.26, 0.66, 0.46, 0x3a2c22); bx(T1, 7.75, 1.95, 0.24, 0.58, 0.42, 0x2c3440, { ry: 0.3 }); bx(T1, 8.4, 1.35, 0.7, 0.24, 0.46, 0x4a3a2c, { ry: -0.2 });
+  /* the cloakroom: a counter across its mouth, the way behind it at the north end; coats on the rails behind, a ticket
+     on each sleeve, and empty hangers between */
+  bx(T1, 5.7, 8.45, 0.6, 1.0, 4.7, LIME, { mat: 'stone' }); bx(T1, 5.7, 8.45, 0.7, 0.05, 4.8, 0x3a2c22, { c: 0, y: 1 });
+  bx(T1, 5.7, 9.6, 0.45, 0.1, 0.36, 0x2e2f33, { c: 0, y: 1.05, ry: 0.2 }); // one folded on the counter
+  const COATS = [0x2e2f33, 0x4a3a2c, 0x2c3440, 0x5c4c3a, 0x3a3226, 0x6a5a48, 0x343a2e];
+  for (const [r, x] of [2.7, 4].entries()) {
+    bx(T1, x, 8, 0.04, 0.04, 5, 0x8a8e8c, { c: 0, y: 1.76 }); for (const z of [5.5, 10.5]) bx(T1, x, z, 0.05, 1.8, 0.05, 0x8a8e8c, { c: 0 });
+    colT(T1, x, 8, 0.5, 5, 1.8);
+    for (let k = 0; k < 12; k++) {
+      const z = 5.85 + k * 0.39;
+      if ((k * (r ? 5 : 3) + r) % 4 === 0 || (r && k % 2)) { bx(T1, x, z, 0.02, 0.02, 0.38, 0x8a8e8c, { c: 0, y: 1.745 }); continue; } // a hanger, empty
+      bx(T1, x, z, 0.2, 1.05, 0.44, COATS[(k * 3 + r) % COATS.length], { c: 0, y: 0.72, ry: ((k * 5 + r) % 3 - 1) * 0.12 });
+    }
+  }
+  use(T1, 'look', 4.2, 8, 1.3, { label: 'Coats', text: 'Winter coats, a numbered ticket pinned to each sleeve. It was November up top. Nobody came back for them.' });
+  /* the far end: a bench along the wall, facing the gates, between two planters gone to stalks */
+  bx(T1, 9, 11.4, 3.4, 0.45, 0.6, LIME, { mat: 'stone' });
+  for (const x of [6.6, 11.4]) { bx(T1, x, 11.4, 1, 0.8, 1, 0x6e6a62); for (let k = 0; k < 4; k++) P(T1, 'ico', x + Math.cos(k * 1.7) * 0.25, 11.4 + Math.sin(k * 1.7) * 0.25, 0.2, 0.9 + k * 0.2, 0.2, 0x5a4a2e, { y: 0.8, c: 0 }); }
+  /* the checkpoint: everyone off the surface came through it, the bag scanner and its belt, the arch, the turnstiles,
+     and the booth behind glass that watched them do it. Through it, the head of the grand stair, and the lobby below */
   room(T1, 'Checkpoint', 14, 0, 16, 12, { ...OPS, c: 'SEC', ht: 4, em: 1 }); door(T1, 25.4, -1, { sg: [['Surface lift', 'n'], ['Lobby', 's']] });
   bx(T1, 20, 3.2, 0.9, 0.95, 4, 0x5f6266); bx(T1, 20, 4, 1.1, 1, 1.6, 0x3a3d40, { y: 0.95 }); bx(T1, 20, 2.4, 0.7, 0.04, 0.5, 0x4a3a2c, { y: 0.95, c: 0 });
   bx(T1, 20, 0.6, 0.1, 1, 1.2, 0x8a8e8c); // the rail that closes the line at the wall
@@ -64,12 +194,12 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
     bx(T1, x, 10.81, 0.52, 0.36, 0.02, [0.04, 0.05, 0.05], { y: 0.84, c: 0, pw: [[0.04, 0.05, 0.05], [2.3, 2.42, 2.38]], pc: 'SEC' });
   }
   monitors(T1, 27.6, 9.8, 1.1, 'SEC', ['Lobby', 'Checkpoint', 'Surface landing', 'Shaft station']);
-  /* and what they watch, recording: the line from the north-west corner, the landing from by the checkpoint's door, the
-     shaft station from over goods inward's */
+  /* and what they watch, recording: the line from the north-west corner, the arrival hall from its far end up to the
+     gates, the shaft station from over goods inward's */
   camera(T1, 14.8, 0.8, 3.5, 0.79, 'SEC', 'wing', { name: 'Checkpoint' });
-  camera(T1, 11.2, 3.2, 3.1, -2.17, 'SEC', 'wing', { name: 'Surface landing' });
+  camera(T1, 11.6, 11.6, 4, -2.66, 'SEC', 'wing', { name: 'Surface landing' });
   camera(D, 11.2, -1.2, 2.8, -1.17, 'SEC', 'wing', { name: 'Shaft station' });
-  bx(T1, 14.8, 5, 0.45, 0.42, 2.6, 0x5f6266); bx(T1, 14.3, 10.4, 0.5, 1.8, 1.4, 0x56636e);
+  bx(T1, 14.8, 4, 0.45, 0.42, 2.6, 0x5f6266); bx(T1, 14.3, 10.4, 0.5, 1.8, 1.4, 0x56636e); // a bench clear of the door from the hall, a cabinet
   corpse(T1, 22.8, 4.4, 0x2c3440, true, { label: 'Officer', say: 'A security officer. Whatever opened him did it from behind.', keys: ['s'] });
 
   /* The lobby: where the money shows (world.md §8, The lobby). A hall 38 by 24 m and 13 m to a luminous ceiling,
@@ -247,6 +377,25 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   for (const x of [34.8, 43.2]) for (const z of [6.4, 12, 17.6]) bx(D, x, z, 4.4, 0.45, 0.4, 0x6b5a48);
   for (const [x, z, ry] of [[37, 9.696, 0.9], [41.2, 15.722, -1.1], [33.6, 15.741, 1.3]] as const) bx(D, x, z, 0.5, 1.8, 0.03, 0x56636e, { y: 0.15, ry, c: 0 }); // doors left open, swung out from the banks' faces
   note(D, 'lockers', 42.4, 12, 0.47); item(D, 'bandage', 44.8, 17.6, 0.47); bx(D, 36.2, 20.8, 1.6, 0.45, 0.4, 0x6b5a48, { ry: 0.35 }); blood(D, 39, 20.4, 1.1);
+  /* off the locker room's west side, the wet half it never had (world.md §8, Security at the station's size): the
+     showers, open stalls down the west wall, a bench, towels on their hooks; and the toilets, stalls with their doors
+     back, urinals, basins under a mirror. On the wing's feed with the lockers, so dead */
+  const WET: RoomOpts = { ...SEC, c: 'SEC', fl: 0x8a8e8c, wl: 0xc8ccc8, st: 0x39485a, mat: { floor: 'epoxy', wall: 'glazed', ceiling: 'concrete' } };
+  const PAN = 0xe8e8e2, CUBE = 0x5a6670, STEELW = 0x8a8e8c;
+  room(D, 'Showers', 27, 11, 4.5, 5.5, WET); door(D, 31.75, 13.6, { plain: true, sg: [['Showers', 'e']] });
+  room(D, 'Toilets', 27, 17, 4.5, 5, WET); door(D, 31.75, 20.4, { plain: true, sg: [['Toilets', 'e']] });
+  for (const z of [12.4, 13.7, 15]) bx(D, 27.6, z, 1.2, 2, 0.04, CUBE, { y: 0.1 }); // the stalls' screens
+  for (const z of [11.7, 13.05, 14.35, 15.75]) { bx(D, 27.1, z, 0.2, 0.05, 0.12, STEELW, { y: 2.1, c: 0 }); P(D, 'cyl', 27.6, z, 0.15, 0.01, 0.15, 0x3a3d40, { c: 0 }); } // a head each, a drain
+  bx(D, 29.6, 13.75, 0.4, 0.45, 2.4, 0x6b5a48); // the bench
+  for (const [k, x] of [29.4, 30.1, 30.8].entries()) { bx(D, x, 11.02, 0.06, 0.06, 0.04, STEELW, { y: 1.75, c: 0 }); if (k !== 1) bx(D, x, 11.02, 0.4, 0.8, 0.04, [0xd8d4c4, 0x6a8aaa][k % 2], { y: 0.95, c: 0 }); } // hooks, towels
+  bx(D, 30.4, 15.6, 0.6, 0.03, 0.5, 0xd8d4c4, { ry: 0.5, c: 0 }); // one on the floor
+  for (const z of [18.75, 20.25]) bx(D, 27.8, z, 1.6, 1.8, 0.04, CUBE, { y: 0.12 }); // the toilets' stalls
+  for (const z of [17.02, 18.79, 20.29]) bx(D, 28.25, z, 0.7, 1.75, 0.04, CUBE, { y: 0.12, c: 0 }); // their doors, back
+  bx(D, 28.6, 19.5, 0.04, 0.04, 5, STEELW, { y: 1.95, c: 0 });
+  for (const z of [17.9, 19.5, 21.1]) { bx(D, 27.4, z, 0.65, 0.4, 0.4, PAN); bx(D, 27.08, z, 0.16, 0.8, 0.45, PAN); }
+  for (const x of [30.2, 31]) bx(D, x, 21.825, 0.4, 0.6, 0.35, PAN, { y: 0.45 }); // urinals
+  bx(D, 31.225, 18.3, 0.55, 0.85, 1.8, 0xb8bcc0); for (const z of [17.85, 18.75]) { P(D, 'cyl', 31.2, z, 0.3, 0.03, 0.38, PAN, { y: 0.85, c: 0 }); P(D, 'cyl', 31.42, z, 0.03, 0.15, 0.03, STEELW, { y: 0.85, c: 0 }); }
+  bx(D, 31.485, 18.3, 0.03, 0.9, 1.6, 0xaab4b8, { y: 1.15, c: 0, mat: 'steel' }); // the mirror
   /* the infirmary: a ward of four beds behind curtains down the south wall, and at the east end a treatment bay behind
      glass, with its table and crash cart. They kept the hurt here, in the dark, and someone sat with the last of them */
   room(D, 'Infirmary', 50, 3.25, 16, 8.75, { ...MED, c: 'SEC', safe: 1, ht: 3.6 }); door(D, 57, 3, { sg: [['Infirmary', 'n']] });
@@ -299,15 +448,139 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   room(D, 'Operations corridor', 74, 12, 6, 12, { ...OPS, ht: 4.5, em: 1, mat: SKIM(OPS) });
   /* the Operations zone sounds here: the corridor, and the hall's east bays */
   speaker(D, 'ops', 77, 20, 'CRIT'); mut(D, 'changed', 77, 18, { walk: 0.7, steps: 88 }); mut(D, 'changed', 72, 7, { walk: 0.85, steps: 84 }); blood(D, 76, 15.4, 1.2);
-  /* the chief's office is armed, its camera in the far corner on the door */
-  for (const [nm, x, z, dopt, east] of [['Office: operations', 64, 14, { open: true }, false], ['Office: chief of security', 82, 14, { card: 'o' }, true]] as const) {
-    room(D, nm, x, z, 8, 8, { ...OFF, c: 'OPS', lc: [0.85, 0.78, 0.62], armed: east }); door(D, east ? x - 1 : x + 9, z + 3, { ...east ? { ...dopt, sg: [['Chief of security', 'w']] } : dopt, span: 2 });
-    desk(D, x + 4, z + 6.8, 1.8, 0.7, { c: 0x4a3a2c }); bx(D, x + 4, z + 5.4, 0.45, 0.45, 0.45, 0x2c2f33); shelf(D, east ? x + 7.4 : x + 0.6, z + 3.2, 0.5, 1.8, { cols: [0x7a4a34, 0x4d5a66, 0x8a7a4a] });
-  }
+  /* Operations' offices, either side of the corridor (world.md §8, Security at the station's size): a house that minds
+     how it looks gave its two officers rooms to match. West, the deputy director's, its door open as she left it: her
+     desk facing the door, a table to meet at, her coat still on its stand. East, behind her card, the chief of
+     security's suite: the outer office, where a secretary kept the door and a camera watches it, so armed, its camera in
+     the far corner on the door; off it the chief's own office, its window on the atrium, and the records room; past the
+     chief's desk, the conference room */
+  const OF: RoomOpts = { ...OFF, c: 'OPS', lc: [0.85, 0.78, 0.62] }, WALNUT = 0x4a3226, STEELC = 0x5f6266, SEAT = 0x2c2f33;
+  /* a chair whose sitter faces `face`, its back behind them */
+  const chair = (x: number, z: number, face: 'n' | 's' | 'e' | 'w', back = 0.5) => {
+    bx(D, x, z, 0.45, 0.45, 0.45, SEAT);
+    const [bx2, bz] = { n: [0, 0.2], s: [0, -0.2], e: [-0.2, 0], w: [0.2, 0] }[face], ew = face === 'e' || face === 'w';
+    bx(D, x + bx2, z + bz, ew ? 0.05 : 0.45, back, ew ? 0.45 : 0.05, SEAT, { y: 0.45, c: 0 });
+  };
+  /* a screen on a desk, its face toward whoever sits on side `s` of it (1 east, -1 west) */
+  const screenEW = (x: number, z: number, s: 1 | -1) => {
+    bx(D, x, z, 0.06, 0.34, 0.5, 0x22262a, { y: 0.76, c: 0 });
+    bx(D, x + s * 0.04, z, 0.02, 0.28, 0.44, [0.04, 0.05, 0.05], { y: 0.79, c: 0, pw: [[0.04, 0.05, 0.05], [2.2, 2.75, 2.5]], pc: 'OPS' });
+  };
+  const cabinet = (x: number, z: number) => bx(D, x, z, 0.5, 1.3, 0.6, STEELC);
+  const coatStand = (x: number, z: number, coat?: number) => {
+    P(D, 'cyl', x, z, 0.4, 0.03, 0.4, 0x2a2c2e, { c: 0 }); P(D, 'cyl', x, z, 0.05, 1.8, 0.05, 0x2a2c2e, { c: 0 });
+    if (coat) bx(D, x + 0.05, z, 0.16, 1.0, 0.44, coat, { y: 0.78, c: 0 });
+  };
+  /* the deputy director's */
+  room(D, 'Office: operations', 64, 14, 8, 8, OF); door(D, 73, 17, { open: true, span: 2 });
+  desk(D, 66.6, 17.5, 0.8, 1.9, { c: WALNUT, bare: 1 }); screenEW(66.85, 17.9, -1); chair(65.7, 17.5, 'e'); for (const z of [17, 18]) chair(67.6, z, 'w');
+  shelf(D, 64.6, 17.2, 0.5, 1.8, { cols: [0x7a4a34, 0x4d5a66, 0x8a7a4a] });
+  tbl(D, 69.8, 20.4, 1, 1, WALNUT); chair(69.8, 19.6, 's'); chair(69.8, 21.2, 'n'); chair(69, 20.4, 'e'); chair(70.6, 20.4, 'w');
+  coatStand(71.4, 15, 0x6a5a48); cabinet(64.4, 21.4); cabinet(65, 21.4);
+  bx(D, 68, 14.015, 1.2, 0.9, 0.03, 0x3a3026, { y: 1.3, c: 0 }); bx(D, 68, 14.035, 1.05, 0.75, 0.01, 0x5a6a4a, { y: 1.375, c: 0 }); // a print of the low field
+  /* the chief's outer office, behind her card */
+  room(D, 'Outer office', 82, 14, 8, 8, { ...OF, armed: 1 }); door(D, 81, 17, { card: 'o', span: 2, sg: [['Chief of security', 'w']] });
+  desk(D, 85.2, 17, 0.8, 2, { c: WALNUT, bare: 1 }); screenEW(84.95, 16.6, 1); chair(86.1, 17, 'w');
+  bx(D, 85.1, 17.6, 0.22, 0.08, 0.2, 0x2a2c2e, { y: 0.76, c: 0 }); // the telephone
+  for (const x of [83.2, 84, 84.8]) chair(x, 14.45, 's'); bx(D, 84, 15.3, 1.6, 0.4, 0.6, WALNUT); // the waiting chairs, and their table
+  shelf(D, 89.4, 17.2, 0.5, 1.8, { cols: [0x7a4a34, 0x4d5a66, 0x8a7a4a] });
+  coatStand(82.5, 15); cabinet(84, 21.7); cabinet(84.6, 21.7);
+  bx(D, 83, 21.4, 0.5, 0.5, 0.5, 0x6e6a62); for (let k = 0; k < 3; k++) P(D, 'ico', 83 + Math.cos(k * 2.1) * 0.1, 21.4 + Math.sin(k * 2.1) * 0.1, 0.12, 0.6 + k * 0.15, 0.12, 0x5a4a2e, { y: 0.5, c: 0 });
   camera(D, 89.2, 21.2, 2.8, -1.99, 'OPS', 'ops');
-  note(D, 'mgr', 67.4, 20.7, 0.78); item(D, 'batt', 68.8, 20.8, 0.78); note(D, 'chief', 85.4, 20.7, 0.78); item(D, 'ammo9', 86.8, 20.8, 0.78); item(D, 'medkit', 89, 14.8, 0.02);
-  room(D, 'Maintenance', 82, 24, 8, 10, { ...UTIL, c: 'OPS' }); door(D, 81, 27, { sg: [['Maintenance', 'w']] });
-  genset(D, 'OPS', 88.6, 29, 87.4, 29); shelf(D, 85.2, 33.4, 1.8, 0.5, { cols: [0xc9a227, 0x3d4042] }); item(D, 'kit', 85.2, 33.4, 1.06);
+  /* the chief's own office: panelled, its window on the atrium, the desk facing it and the door; a safe in the corner,
+     drinks on the sideboard, books */
+  room(D, 'Office: chief of security', 88.5, 3, 8.5, 8.5, { ...OF, fl: 0x4a3e34, lc: [0.9, 0.82, 0.66] }); door(D, 89.4, 12.75, { sg: [['Chief of security', 's']] });
+  for (const z of [6.25, 8.75]) door(D, 88.25, z, { span: 2, seal: true, glass: true, glaze: 'view' });
+  desk(D, 94.6, 7.25, 1, 2.4, { c: WALNUT, bare: 1 }); screenEW(94.3, 6.6, 1); chair(95.7, 7.25, 'w', 0.75); for (const z of [6.7, 7.8]) chair(93.5, z, 'e');
+  bx(D, 93.8, 7.25, 3.6, 0.012, 3.2, 0x5a2e2a, { c: 0 }); // the rug
+  bx(D, 96.5, 3.5, 0.8, 1, 0.7, 0x3a4038); P(D, 'cyl', 96.085, 3.5, 0.16, 0.03, 0.16, 0x8a8e8c, { y: 0.635, rz: PI / 2, c: 0 }); // the safe, its dial
+  bx(D, 92.5, 3.25, 1.8, 0.85, 0.5, WALNUT); for (const [x, h] of [[91.9, 0.3], [92.3, 0.24], [92.8, 0.3]] as const) P(D, 'cyl', x, 3.25, 0.1, h, 0.1, 0x6a4a2a, { y: 0.85, c: 0 });
+  bx(D, 92.5, 11.3, 3, 2, 0.4, WALNUT); // the bookcase, and its books
+  for (const [r, y] of [0.35, 0.95, 1.55].entries()) for (let k = 0; k < 8; k++) bx(D, 91.25 + k * 0.33 + (r % 2) * 0.08, 11.09, 0.26, 0.4 - ((k + r) % 3) * 0.05, 0.02, [0x5a2e2a, 0x2c3440, 0x3a4a30, 0x6a5a3c][(k + r) % 4], { y, c: 0 });
+  bx(D, 96.985, 4.8, 0.03, 0.8, 1.1, 0x3a3026, { y: 1.3, c: 0 }); bx(D, 96.965, 4.8, 0.01, 0.65, 0.95, 0x6a6458, { y: 1.375, c: 0 }); // a photograph
+  note(D, 'mgr', 66.4, 17, 0.78); item(D, 'batt', 66.4, 18.1, 0.78); note(D, 'chief', 94.9, 6.4, 0.78); item(D, 'ammo9', 94.9, 8.1, 0.78); item(D, 'medkit', 87.6, 15.2, 0.02);
+  /* the records room, off the outer office: two rows of cabinets, a drawer left out, the report on top */
+  room(D, 'Records', 90.5, 14, 6.5, 8, { ...OF, fl: 0x5a5d5a, mat: { floor: 'vinyl', wall: 'board', ceiling: 'tiles' } }); door(D, 90.25, 20.4, {});
+  for (const x of [92.5, 95]) {
+    bx(D, x, 18, 1.2, 1.35, 5.6, 0x6a6e70);
+    for (const s of [-1, 1]) {
+      for (const y of [0.33, 0.67, 1.01]) bx(D, x + s * 0.605, 18, 0.01, 0.02, 5.6, 0x4a4e50, { y, c: 0 });
+      for (let k = 1; k < 12; k++) bx(D, x + s * 0.605, 15.2 + k * (5.6 / 12), 0.01, 1.35, 0.02, 0x4a4e50, { c: 0 });
+    }
+    for (const z of [15.6, 16.2, 17.8]) bx(D, x, z, 0.4, 0.28, 0.32, 0xb8a888, { y: 1.35 }); // archive boxes on top
+  }
+  bx(D, 91.65, 19.9, 0.5, 0.3, 0.45, 0x6a6e70, { y: 0.69 }); // a drawer, out
+  note(D, 'sealed', 92.5, 20.3, 1.36);
+  /* the conference room, past the chief's desk */
+  room(D, 'Conference room', 97.5, 3, 8.5, 8.5, OF); door(D, 97.25, 10.4, {});
+  tbl(D, 101.75, 7.25, 5, 1.4, WALNUT); // room to walk round either end of it
+  for (const x of [100, 101.25, 102.5, 103.75]) { chair(x, 5.95, 's'); chair(x, 8.55, 'n'); }
+  bx(D, 105.98, 7.25, 0.04, 1.1, 2.4, 0xe2e2da, { y: 1.1, c: 0 }); // the whiteboard, and what was last drawn on it
+  for (let k = 0; k < 4; k++) bx(D, 105.955, 7.1 + (k % 2) * 0.2, 0.01, 0.03, 0.9 + (k % 3) * 0.3, [0x2a3a6a, 0x8c2f24][k % 2], { y: 1.9 - k * 0.2, c: 0 });
+  bx(D, 101.75, 3.25, 2.4, 0.85, 0.5, WALNUT); P(D, 'cyl', 101.2, 3.25, 0.14, 0.26, 0.14, 0xb8c4c8, { y: 0.85, c: 0 }); // the sideboard, a water jug
+  /* Maintenance, the Ops side's (world.md §8, Security at the station's size): a workshop, and through the rock east of
+     it the room Ops' backup set stands in, on its own as a set should be, and its fuel beside it behind another wall.
+     All dug and left as dug, and dark on the set's own power, as Maintenance always was */
+  const MW: RoomOpts = { ...UTIL, c: 'OPS', ht: 4 };
+  room(D, 'Maintenance', 82, 24, 14, 12, MW); door(D, 81, 27, { sg: [['Maintenance', 'w']] });
+  room(D, 'Generator room', 97, 24, 7, 7, MW); door(D, 96.5, 28, { sg: [['Generator', 'w']] });
+  room(D, 'Fuel store', 97, 32, 7, 5, { ...UTIL, c: 'OPS' }); door(D, 100.5, 31.5, { sg: [['Fuel store', 'n']] });
+  /* the set, on a plinth: its radiator, the engine, the alternator; its exhaust up from the engine and along under the
+     roof into the return air; its day tank and the panel you start it at; the transfer switch on the wall. A line
+     painted round it, kept clear */
+  const PLINTH = 0x6b6e70, ENGINE = 0x3d5a44, LAG = 0xb8b2a0;
+  bx(D, 100.5, 26.6, 4.6, 0.15, 1.9, PLINTH);
+  bx(D, 98.5, 26.6, 0.5, 1.7, 1.7, 0x2c2f33, { y: 0.15 }); bx(D, 100.1, 26.6, 2.4, 1.3, 1.3, ENGINE, { y: 0.15 }); bx(D, 102, 26.6, 1.2, 1.2, 1.2, 0x44525a, { y: 0.15 });
+  for (const x of [99.4, 100.8]) P(D, 'cyl', x, 26.95, 0.32, 0.3, 0.32, 0x2c2f33, { y: 1.45, c: 0 }); // its air filters
+  P(D, 'cyl', 100.4, 26.3, 0.22, 2.15, 0.22, LAG, { y: 1.45, c: 0 }); P(D, 'cyl', 100.4, 25.4, 0.22, 1.9, 0.22, LAG, { y: 3.6 - 0.95, rz: PI / 2, ry: PI / 2, c: 0 });
+  bx(D, 100.4, 24.3, 0.9, 0.6, 0.6, 0x7a7d80, { y: 3.4, c: 0 }); // the return air's duct, through the wall
+  for (const [x0, z0, x1, z1] of [[97.9, 25.3, 103.1, 25.3], [97.9, 27.9, 103.1, 27.9], [97.9, 25.3, 97.9, 27.9], [103.1, 25.3, 103.1, 27.9]] as const) paint(x0, z0, x1, z1);
+  bx(D, 98.2, 30.2, 1.2, 0.3, 0.7, 0x3a3d40); bx(D, 98.2, 30.2, 1.2, 0.9, 0.7, 0x8a7a3a, { y: 0.3 }); bx(D, 98.82, 30.2, 0.02, 0.6, 0.06, 0xd8d0b8, { y: 0.45, c: 0 }); // the day tank, its sight glass
+  P(D, 'cyl', 98.95, 28.75, 0.06, 2.2, 0.06, 0x2a2c2e, { y: 0.03 - 1.1, rz: PI / 2, ry: PI / 2, c: 0 }); // its feed to the engine
+  genset(D, 'OPS', 102.5, 30.4, 102.5, 29.4);
+  bx(D, 103.7, 30.2, 0.6, 2, 1.2, 0x5f6266); bx(D, 103.39, 30.2, 0.02, 0.1, 0.1, [0.2, 0.2, 0.2], { y: 1.6, c: 0, pw: [[0.2, 0.2, 0.2], [0.4, 2.6, 0.6]], pc: 'OPS' });
+  use(D, 'look', 103.35, 30.2, 1.3, { label: 'Transfer switch', text: 'Ops\' supply: from Gen-1, or from this set when Gen-1 drops. Its handle at AUTO.' });
+  bx(D, 103.6, 24.45, 0.8, 0.35, 0.4, 0x2c2f33); // its starting batteries
+  /* the fuel store: a tank walled round low to hold it if it leaks, a hand pump on top; drums on a spill pallet; an
+     extinguisher by the door */
+  for (const [x, z, w, d] of [[101, 33.2, 5, 0.15], [101, 36.5, 5, 0.15], [98.5, 34.85, 0.15, 3.15], [103.5, 34.85, 0.15, 3.15]] as const) bx(D, x, z, w, 0.4, d, 0x8a8e8c);
+  for (const x of [99.8, 102.2]) bx(D, x, 34.85, 0.2, 0.3, 1, 0x3a3d40);
+  P(D, 'cyl', 101, 34.85, 1.4, 3.6, 1.4, 0x8a8e8c, { y: 0.95 - 1.8, rz: PI / 2, c: 0 }); colT(D, 101, 34.85, 3.6, 1.4, 1.65);
+  bx(D, 101.6, 34.85, 0.2, 0.25, 0.2, 0x8c2f24, { y: 1.62, c: 0 }); P(D, 'cyl', 101.6, 34.85, 0.04, 0.5, 0.04, 0x2a2c2e, { y: 1.87, c: 0 }); // the hand pump
+  use(D, 'look', 101, 33.6, 1.3, { label: 'Tank', text: 'Diesel, for the set next door. Walled round to hold it if it leaks.' });
+  bx(D, 97.75, 35.8, 1.2, 0.15, 2.38, 0xc9a227); for (const z of [35.05, 35.65, 36.25]) P(D, 'cyl', 97.75, z, 0.58, 0.88, 0.58, 0x8c2f24, { y: 0.15 });
+  P(D, 'cyl', 98.8, 32.25, 0.18, 0.6, 0.18, 0xb3261e, { c: 0 });
+  /* the workshop: the bench along the north wall and its pegboard; the supervisor's desk under the board of work
+     orders; a pillar drill; the welding set and its bottles; cable drums; a chain hoist on a beam; the parts shelf, the
+     kit on it; and in the south-east corner the tool cage, its gate open, the shadow board in it with one outline
+     empty, long and narrow: the bolt cutters at the wing's cut were taken from here */
+  bx(D, 88, 24.45, 6, 0.9, 0.8, 0x5a5048); bx(D, 88, 24.45, 6.1, 0.06, 0.85, 0x6b5a3c, { y: 0.9, c: 0 });
+  bx(D, 85.3, 24.55, 0.22, 0.18, 0.26, 0x2a2c2e, { y: 0.96, c: 0 }); // the vice
+  bx(D, 88, 24.015, 4, 1.2, 0.03, 0x8a7a5a, { y: 1.3, c: 0 }); // the pegboard, and what hangs on it
+  for (let k = 0; k < 9; k++) bx(D, 86.3 + k * 0.42, 24.04, k % 3 ? 0.05 : 0.14, k % 3 ? 0.34 + (k % 2) * 0.12 : 0.05, 0.02, k % 4 === 1 ? 0xc8641e : 0x3a3d40, { y: 1.55 + (k % 2) * 0.25, c: 0 });
+  desk(D, 93.5, 24.6, 1.4, 0.7, { bare: 1, c: 0x5a5048 }); chair(93.5, 25.45, 'n');
+  bx(D, 93.5, 24.015, 1.6, 1, 0.03, 0x8a6a44, { y: 1.3, c: 0 }); // the board
+  for (let k = 0; k < 6; k++) bx(D, 92.95 + (k % 3) * 0.5, 24.035, 0.3, 0.38, 0.01, 0xe2ddd0, { y: 1.85 - Math.floor(k / 3) * 0.45, c: 0 });
+  note(D, 'orders', 93.5, 24.06, 1.8, true);
+  bx(D, 83.2, 31.5, 0.6, 0.05, 0.5, 0x3a3d40); P(D, 'cyl', 83.2, 31.6, 0.09, 1.6, 0.09, 0x4a5a4a); bx(D, 83.2, 31.45, 0.36, 0.34, 0.5, 0x4a5a4a, { y: 1.3, c: 0 }); // the pillar drill
+  bx(D, 82.6, 33.6, 0.6, 0.7, 0.5, 0x8c2f24); for (const [z, c] of [[33.95, 0x2a2c2e], [34.25, 0x8c2f24]] as const) P(D, 'cyl', 82.6, z, 0.24, 1.3, 0.24, c, { c: 0 }); // the welding set, its bottles
+  for (const x of [89, 90.2]) { P(D, 'cyl', x, 34.9, 1, 0.6, 1, 0x7a5a38, { y: 0.2, rz: PI / 2, c: 0 }); colT(D, x, 34.9, 0.6, 1, 1); } // cable drums, on their sides
+  bx(D, 88, 29.5, 5, 0.2, 0.15, 0xc9a227, { y: 3.8, c: 0 }); bx(D, 88.6, 29.5, 0.3, 0.25, 0.2, 0x2a2c2e, { y: 3.55, c: 0 }); // the hoist's beam, its block
+  bx(D, 88.6, 29.5, 0.03, 1.95, 0.03, 0x5a5d60, { y: 1.6, c: 0 }); bx(D, 88.6, 29.5, 0.12, 0.14, 0.06, 0x2a2c2e, { y: 1.46, c: 0 }); // its chain, its hook
+  shelf(D, 85.2, 35.7, 1.8, 0.5, { cols: [0xc9a227, 0x3d4042] }); item(D, 'kit', 85.2, 35.7, 1.06);
+  const TC = [92, 32, 96, 36] as const;
+  for (let z = TC[1] + 0.2; z < TC[3] - 0.05; z += 0.2) bx(D, TC[0], z, 0.03, 2.2, 0.03, MESH, { c: 0 });
+  for (let x = TC[0]; x < TC[2] - 0.05; x += 0.2) if (x < 93.9 || x > 95.1) bx(D, x, TC[1], 0.03, 2.2, 0.03, MESH, { c: 0 });
+  for (const y of [0, 2.2]) { bx(D, TC[0], 34, 0.05, 0.05, 4, MESH, { y, c: 0 }); bx(D, 94, TC[1], 4, 0.05, 0.05, MESH, { y, c: 0 }); }
+  colT(D, TC[0], 34, 0.08, 4, 2.2); for (const [x0, x1] of [[TC[0], 93.9], [95.1, TC[2]]]) colT(D, (x0 + x1) / 2, TC[1], x1 - x0, 0.08, 2.2);
+  for (const t of [0.1, 0.3, 0.5, 0.7, 0.9, 1.1]) bx(D, 95.1, 32 - t, 0.03, 2.1, 0.03, MESH, { c: 0 }); // its gate, open
+  for (const y of [0.1, 2]) bx(D, 95.1, 31.4, 0.04, 0.05, 1.2, MESH, { y, c: 0 });
+  bx(D, 95.985, 34, 0.03, 1.2, 1.6, 0x3a4048, { y: 1, c: 0 }); // the shadow board, its tools on their outlines
+  for (const [z, y, h, w] of [[33.45, 1.25, 0.5, 0.12], [33.85, 1.3, 0.4, 0.1], [34.6, 1.35, 0.35, 0.16], [34.6, 1.85, 0.15, 0.3]] as const) {
+    bx(D, 95.965, z, 0.01, h + 0.06, w + 0.06, 0xe2ddd0, { y: y - 0.03, c: 0 }); bx(D, 95.955, z, 0.02, h, w, 0x9aa0a4, { y, c: 0, mat: 'steel' });
+  }
+  bx(D, 95.965, 34.3, 0.01, 0.96, 0.18, 0xe2ddd0, { y: 1.08, c: 0 }); bx(D, 95.96, 34.3, 0.01, 0.9, 0.12, 0x3a4048, { y: 1.11, c: 0 }); // the empty one
+  bx(D, 95.6, 35.4, 0.7, 1, 0.8, 0x8c2f24); // the tool chest
 
   /* The muster hall: where the response team drilled (world.md §8). Long, flat and lit, on Ops' backup set: a promenade
      round a sunken court, the court's ceiling lifted into a coffer, and rooms off every side, each with a door. Over its
@@ -347,6 +620,59 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
      own, inside, on the hall's breaker: the electrical room, the Armory, the range; and the operations stair, on EAST,
      sounding the Operations zone. The speaker hangs low enough to reach; like every speaker on the level it is on the
      PA, which is on critical power: smashing it is the only answer */
+  /* the court, read as what it was most nights: the station's second court, and the place they mustered because it was
+     the gym (world.md §8, Security at the station's size). Lines on its floor, a basket hung from the coffer at each end,
+     the drill clock its scoreboard, the steps its benches, and a ball left on it */
+  const LINE = 0xd8d4c4, RIM = 0xc8641e;
+  const mark = (x0: number, z0: number, x1: number, z1: number) => bx(D, (x0 + x1) / 2, (z0 + z1) / 2, Math.max(x1 - x0, 0.08), 0.01, Math.max(z1 - z0, 0.08), LINE, { y: 0.012, c: 0 });
+  const arc = (cx: number, cz: number, r: number, a0: number, a1: number, n: number) => {
+    for (let k = 0; k < n; k++) {
+      const a = a0 + ((a1 - a0) * (k + 0.5)) / n;
+      bx(D, cx + Math.cos(a) * r, cz + Math.sin(a) * r, 2 * r * Math.sin((a1 - a0) / (2 * n)) + 0.03, 0.01, 0.08, LINE, { y: 0.012, ry: -Math.atan2(Math.cos(a), -Math.sin(a)), c: 0 });
+    }
+  };
+  mark(38.5, 32.4, 61.5, 32.4); mark(38.5, 39.6, 61.5, 39.6); mark(38.5, 32.4, 38.5, 39.6); mark(61.5, 32.4, 61.5, 39.6); mark(50, 32.4, 50, 39.6);
+  arc(50, 36, 1.5, 0, 2 * PI, 20);
+  for (const [x0, x1, s] of [[38.5, 43.3, 1], [56.7, 61.5, -1]] as const) {
+    mark(x0, 34.3, x1, 34.3); mark(x0, 37.7, x1, 37.7); const fx = s > 0 ? x1 : x0; mark(fx, 34.3, fx, 37.7);
+    arc(fx, 36, 1.5, s > 0 ? -PI / 2 : PI / 2, s > 0 ? PI / 2 : (3 * PI) / 2, 10);
+  }
+  for (const [bx0, s] of [[38.9, 1], [61.1, -1]] as const) {
+    bx(D, bx0, 36, 0.05, 1.05, 1.8, 0xe2e2da, { y: 2.9, c: 0 }); // the board
+    const fx = bx0 + s * 0.03; // its square
+    bx(D, fx, 36, 0.01, 0.03, 0.59, 0x8c2f24, { y: 3.47, c: 0 }); bx(D, fx, 36, 0.01, 0.03, 0.59, 0x8c2f24, { y: 3.05, c: 0 });
+    for (const dz of [-0.28, 0.28]) bx(D, fx, 36 + dz, 0.01, 0.45, 0.03, 0x8c2f24, { y: 3.05, c: 0 });
+    for (const z of [35.4, 36.6]) bx(D, bx0, z, 0.06, 5.8, 0.06, 0x2a2c2e, { y: 3.95, c: 0 }); // hung from the coffer
+    bx(D, bx0 + s * 0.06, 36, 0.08, 0.03, 0.08, RIM, { y: 3.04, c: 0 }); // the rim, on its bracket
+    for (let k = 0; k < 12; k++) {
+      const a = (k / 12) * 2 * PI;
+      bx(D, bx0 + s * 0.255 + Math.cos(a) * 0.23, 36 + Math.sin(a) * 0.23, 0.13, 0.02, 0.02, RIM, { y: 3.04, ry: -Math.atan2(Math.cos(a), -Math.sin(a)), c: 0 });
+    }
+  }
+  bx(D, 50, 36, 2.6, 0.45, 0.5, 0x22262a, { y: 5.75, c: 0 }); // the scores, under the clock
+  for (const z of [35.74, 36.26]) for (const x of [49.2, 50.8]) bx(D, x, z, 0.7, 0.3, 0.02, [0.05, 0.04, 0.04], { y: 5.83, c: 0, pw: [[0.05, 0.04, 0.04], [2.6, 1.6, 0.4]], pc: 'HALL' });
+  P(D, 'ico', 47.2, 38.8, 0.24, 0.24, 0.24, RIM, { c: 0 }); // the ball
+  /* off the hall's west end, the response team's training room: weights under a mirror, a squat rack, the bench, a
+     punch bag, two treadmills and a rower; mats by the door; the board with the week's PT on it. On the hall's breaker,
+     dark until Gen-1, as the range is */
+  room(D, 'Training room', 8, 23, 13, 8, { ...SEC, c: 'HALL', ht: 4, fl: 0x3a4a5a, mat: { floor: 'vinyl', wall: 'block', ceiling: 'concrete' } });
+  door(D, 21.5, 25.6, { sg: [['Training', 'e']] });
+  const IRON = 0x2a2c2e, BLK = 0x3a3d40;
+  bx(D, 12.5, 23.015, 7, 1.8, 0.03, 0xaab4b8, { y: 0.4, c: 0, mat: 'steel' }); // the mirror
+  bx(D, 11.5, 23.45, 3, 0.55, 0.5, IRON); for (let k = 0; k < 8; k++) P(D, 'cyl', 10.3 + k * 0.34, 23.45, 0.14, 0.3, 0.14, BLK, { y: 0.47, rz: PI / 2, c: 0 }); // the dumbbells on their rack
+  for (const x of [15.4, 16.6]) for (const z of [23.8, 25]) bx(D, x, z, 0.08, 2.3, 0.08, IRON); // the squat rack
+  for (const z of [23.8, 25]) bx(D, 16, z, 1.28, 0.08, 0.08, IRON, { y: 2.3, c: 0 }); for (const x of [15.4, 16.6]) bx(D, x, 24.4, 0.08, 0.08, 1.28, IRON, { y: 2.3, c: 0 });
+  P(D, 'cyl', 16, 23.85, 0.05, 2.2, 0.05, STEELW, { y: 1.4 - 1.1, rz: PI / 2, c: 0 }); for (const x of [15.1, 16.9]) P(D, 'cyl', x, 23.85, 0.45, 0.06, 0.45, IRON, { y: 1.37, rz: PI / 2, c: 0 });
+  bx(D, 11, 27.6, 0.35, 0.45, 1.3, IRON); for (const x of [10.75, 11.25]) bx(D, x, 26.9, 0.06, 1.1, 0.06, IRON); P(D, 'cyl', 11, 26.9, 0.05, 2, 0.05, STEELW, { y: 1.05 - 1, rz: PI / 2, c: 0 }); // the bench and its bar
+  bx(D, 19.3, 28.8, 0.03, 1.4, 0.03, STEELW, { y: 2.6, c: 0 }); P(D, 'cyl', 19.3, 28.8, 0.4, 1.2, 0.4, 0x8c2f24, { y: 1.4 }); // the punch bag
+  for (const x of [12.2, 14]) {
+    bx(D, x, 30, 0.8, 0.22, 1.8, IRON); for (const dx of [-0.35, 0.35]) bx(D, x + dx, 29.2, 0.05, 1.1, 0.05, BLK, { y: 0.22, c: 0 });
+    bx(D, x, 29.2, 0.8, 0.2, 0.25, BLK, { y: 1.32, c: 0 }); // a treadmill, its console
+  }
+  bx(D, 17.5, 30.4, 2.2, 0.22, 0.3, BLK); bx(D, 16.5, 30.4, 0.45, 0.5, 0.5, IRON); bx(D, 18, 30.4, 0.3, 0.08, 0.3, IRON, { y: 0.22, c: 0 }); // the rower
+  bx(D, 19.4, 25.6, 1.6, 0.04, 2.2, 0x2a4a7a, { c: 0 }); // mats
+  bx(D, 8.015, 27, 0.03, 1, 1.6, 0xe2e2da, { y: 1.2, c: 0 }); for (let k = 0; k < 4; k++) bx(D, 8.035, 26.9 + (k % 2) * 0.2, 0.01, 0.03, 0.9 + (k % 3) * 0.2, [0x2a3a6a, 0x8c2f24][k % 2], { y: 1.95 - k * 0.2, c: 0 });
+  use(D, 'look', 8.1, 27, 1.6, { label: 'Whiteboard', text: 'RESPONSE TEAM PT, 06:00. FITNESS TESTS THIS MONTH. Under it, in another hand: COURT BOOKED FRIDAY. A v B.' });
   speaker(D, 'muster', 29, 36, 'CRIT');
   camera(D, 38.2, 36, 7.6, PI / 2, 'HALL', 'muster', { name: 'Muster court' }); camera(D, 79.4, 24.6, 4, -PI / 4, 'EAST', 'ops', { name: 'East bays' });
 
@@ -452,10 +778,11 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
      are Operations', with their own breaker; the suite below, the shaft and Cargo are in none */
   const ZONES: Record<string, string> = {
     Checkpoint: 'wing', Lobby: 'wing', 'Lobby gallery': 'wing', 'Goods inward': 'wing', 'Surface landing': 'wing', 'Hazardous storage': 'wing', 'Security corridor': 'wing', "Nurses' station": 'wing', 'Briefing room': 'wing',
-    'Locker room': 'wing', Infirmary: 'wing',
+    'Locker room': 'wing', Showers: 'wing', Toilets: 'wing', Infirmary: 'wing',
     Atrium: 'atrium', 'Security elevator': 'atrium', Gallery: 'atrium',
-    'Muster hall': 'muster', 'Muster court': 'muster', 'Electrical room': 'muster', Armory: 'muster', 'Firing range': 'muster', 'Duty office': 'muster',
-    'Operations corridor': 'ops', 'Office: operations': 'ops', 'Office: chief of security': 'ops', Maintenance: 'ops', 'Operations stair': 'ops',
+    'Muster hall': 'muster', 'Muster court': 'muster', 'Training room': 'muster', 'Electrical room': 'muster', Armory: 'muster', 'Firing range': 'muster', 'Duty office': 'muster',
+    'Operations corridor': 'ops', 'Office: operations': 'ops', 'Outer office': 'ops', 'Office: chief of security': 'ops', Records: 'ops', 'Conference room': 'ops',
+    Maintenance: 'ops', 'Generator room': 'ops', 'Fuel store': 'ops', 'Operations stair': 'ops',
   };
   for (const R of [...D.rooms, ...T1.rooms]) if (ZONES[R.name]) R.zone = R.name === 'Muster hall' && R.c === 'EAST' ? 'ops' : ZONES[R.name];
   /* the night round (world.md §8): one of the changed still walking the night shift's round, flashlight on. It begins on
@@ -532,10 +859,65 @@ function buildHub(B: Floor, D: Floor, T1: Floor, T2: Floor): void {
   bx(D, 41.1, -24.2, 0.5, 0.9, 5.6, 0x5a5048); bx(D, 41.49, -24.2, 0.02, 0.9, 2.4, 0xd8d4c4, { y: 1.3, c: 0 }); // cabinets, and the rotation board over them
   item(D, 'batt', 41.1, -25.8, 0.9);
   door(D, 37, -19, { sg: [['Screening', 'n']] });
-  room(D, 'Screening', 32, -18.75, 9.5, 4.75, { ...MED, ...wing }); // it and the hall short of the isolation hall's top, a wall between door(D, 39, -13, { sg: [['Isolation', 'n'], ['Screening', 's']] });
-  for (const x of [33.6, 40.4]) { bx(D, x, -17, 2, 0.7, 0.8, 0xb8c4bd); bx(D, x - 0.7, -17, 0.5, 0.08, 0.6, 0xe2e2da, { y: 0.7, c: 0 }); } // couches, a pillow on each
-  desk(D, 36.2, -14.9, 1.2, 0.6, { bare: 1 }); screen(D, 36.2, -14.64, 0.76, false); seat(D, 36.2, -16, 0x2c2f33);
+  /* screening (world.md §8, Security at the station's size): where a cage-load was looked over for exposure. In from
+     check-in; the changing cubicles in the wing south of it, a curtain to each; the decontamination shower in the
+     corner; the chair where blood was drawn, its arm out; the clerk's desk; the lab bench, where the samples were spun;
+     a bench to wait on; and out to the nurses' station and the suite below. It and the hall stop short of the isolation
+     hall's top, a wall between */
+  const SCR: RoomOpts = { ...MED, ...wing };
+  room(D, 'Screening', 32, -18.75, 9.5, 4.75, SCR); room(D, 'Screening', 32, -14, 3.5, 3.5, SCR);
+  door(D, 39, -13, { sg: [['Isolation', 'n'], ['Screening', 's']] });
+  desk(D, 36.2, -14.9, 1.2, 0.6, { bare: 1 }); screen(D, 36.2, -15.14, 0.76, false, 1); seat(D, 36.2, -14.25, 0x2c2f33); // the clerk faces the room
   item(D, 'bandage', 35.76, -14.9, 0.76);
+  const TILE = 0xd8dcd8, GOWN = 0x9ab4c4, BR = 0x5e4424;
+  /* the decontamination shower, open to the room but for its curtain: a wall of tile on its east side, the head over it */
+  bx(D, 33.7, -17.875, 0.06, 2.2, 1.75, TILE);
+  bx(D, 32.85, -18.6, 0.3, 0.06, 0.3, 0x8a8e8c, { y: 2.3, c: 0 }); bx(D, 32.85, -18.72, 0.06, 0.06, 0.06, 0x8a8e8c, { y: 2.3, c: 0 }); // the head, off the wall
+  P(D, 'cyl', 32.85, -17.9, 0.3, 0.01, 0.3, 0x3a3d40, { c: 0 }); // the drain
+  bx(D, 32.85, -17.02, 1.66, 0.04, 0.04, 0x8a8e8c, { y: 2.2, c: 0 }); bx(D, 32.35, -17.03, 0.6, 2.05, 0.02, 0x8fb0a4, { y: 0.15, c: 0 }); // its rail, the curtain half across
+  bx(D, 33.64, -17.4, 0.06, 0.04, 0.04, 0xc9a227, { y: 1.6, c: 0 }); // the pull handle, yellow
+  use(D, 'look', 32.85, -17.6, 1.4, { label: 'Decontamination shower', text: 'Pull the handle and stand under it a full minute. Hung beside it, stencilled: EVERYONE. EVERY TIME.' });
+  /* where blood was drawn: the chair, its arm out for the needle, and the trolley beside it, tubes in their rack */
+  bx(D, 34.9, -18, 0.6, 0.45, 0.6, 0x5a7a8a); bx(D, 34.9, -18.33, 0.6, 0.8, 0.06, 0x5a7a8a, { y: 0.45, c: 0 }); bx(D, 35.3, -17.94, 0.22, 0.08, 0.72, 0x5a7a8a, { y: 0.62, c: 0 });
+  bx(D, 35.75, -17.4, 0.4, 0.85, 0.5, 0xb8bcc0);
+  for (let k = 0; k < 5; k++) P(D, 'cyl', 35.62 + k * 0.065, -17.48, 0.03, 0.1, 0.03, [0x8c2f24, 0x6a8aaa, 0xc9a227, 0x8a8e8c, 0x3a6a3a][k], { y: 0.85, c: 0 });
+  bx(D, 35.8, -17.25, 0.14, 0.18, 0.12, 0xc9a227, { y: 0.85, c: 0 }); // the sharps bin
+  /* the lab bench on the east wall, and its fridge: a centrifuge, a microscope, a rack of samples nobody read */
+  bx(D, 41.15, -17.7, 0.7, 0.9, 1.9, 0xb9c4bd); bx(D, 41.15, -17.7, 0.72, 0.04, 1.92, 0x8a8e8c, { y: 0.9, c: 0 });
+  P(D, 'cyl', 41.15, -18.25, 0.36, 0.24, 0.36, 0xd8dcd8, { y: 0.94, c: 0 });
+  bx(D, 41.2, -17.55, 0.2, 0.04, 0.2, 0x2a2c2e, { y: 0.94, c: 0 }); bx(D, 41.28, -17.55, 0.05, 0.36, 0.05, 0x2a2c2e, { y: 0.98, c: 0 }); bx(D, 41.22, -17.55, 0.14, 0.1, 0.08, 0x2a2c2e, { y: 1.3, c: 0 }); // the microscope
+  bx(D, 41.1, -17.05, 0.18, 0.06, 0.4, 0xb8bcc0, { y: 0.94, c: 0 }); for (let k = 0; k < 6; k++) P(D, 'cyl', 41.1, -17.2 + k * 0.06, 0.025, 0.1, 0.025, 0x8c2f24, { y: 1, c: 0 });
+  bx(D, 41.1, -14.35, 0.6, 0.85, 0.6, 0xd8dcd8); // the fridge
+  bx(D, 39.3, -18.45, 2, 0.45, 0.4, 0xb8c4bd); // a bench to wait on
+  /* the cubicles, three down the wing's south wall: a curtain across each, a bench, a gown on its hook; in two, the
+     clothes someone took off and never came back for */
+  bx(D, 33.75, -11.8, 3.5, 0.04, 0.04, 0x8a8e8c, { y: 2.05, c: 0 });
+  for (const x of [33.15, 34.3]) bx(D, x, -11.15, 0.04, 1.9, 1.3, TILE, { y: 0.1 });
+  for (const [k, x0, x1] of [[0, 32, 33.15], [1, 33.15, 34.3], [2, 34.3, 35.5]] as const) {
+    const mx = (x0 + x1) / 2;
+    bx(D, mx, -10.7, x1 - x0 - 0.2, 0.42, 0.4, 0x8a7a6a); // the bench
+    bx(D, mx + 0.3, -10.54, 0.08, 0.04, 0.08, BR, { y: 1.7, c: 0 }); bx(D, mx + 0.3, -10.6, 0.3, 0.9, 0.06, GOWN, { y: 0.82, c: 0 }); // the hook, the gown
+    if (k < 2) bx(D, mx - 0.15, -10.7, 0.4, 0.1, 0.32, [0x2c3440, 0x5a4a3a][k], { y: 0.42, c: 0 }); // folded clothes
+    bx(D, x0 + 0.2 + k * 0.1, -11.8, 0.3 + (k % 2) * 0.3, 1.95, 0.02, 0x8fb0a4, { y: 0.1, c: 0 }); // the curtain, drawn back
+  }
+
+  /* the lobby's washrooms, off its east wall where a hotel puts them: stone and bronze like the lobby, a walnut pair to
+     each. A vanity of basins under a mirror; the stalls at the far end, their doors open; urinals in the gentlemen's */
+  const WCR: RoomOpts = { ...FAM, ...wing, ht: 3.2, lc: [0.92, 0.86, 0.74] }, WHITE = 0xe8e8e2, PANEL = 0x5a4030;
+  room(D, 'Ladies', 30.5, -10, 5, 2.5, WCR); door(D, 30.25, -8.75, { sg: [['Ladies', 'w']] });
+  room(D, 'Gentlemen', 30.5, -7, 5, 2.5, WCR); door(D, 30.25, -5.75, { sg: [['Gentlemen', 'w']] });
+  for (const [z0, s] of [[-10, 1], [-7, 1]] as const) {
+    bx(D, 32.05, z0 + s * 0.275, 1.7, 0.85, 0.55, 0x9a9384, { mat: 'stone' }); // the vanity
+    for (const x of [31.6, 32.5]) { P(D, 'cyl', x, z0 + 0.3, 0.38, 0.03, 0.3, WHITE, { y: 0.85, c: 0 }); P(D, 'cyl', x, z0 + 0.08, 0.03, 0.15, 0.03, BR, { y: 0.85, c: 0 }); }
+    bx(D, 32.05, z0 + 0.015, 1.6, 0.9, 0.03, 0xaab4b8, { y: 1.15, c: 0, mat: 'steel' }); bx(D, 32.05, z0 + 0.015, 1.7, 0.04, 0.03, BR, { y: 2.05, c: 0 }); // the mirror
+  }
+  /* the stalls: a partition between the ladies' two, one in the gentlemen's; a rail over the fronts; each door swung
+     back against a wall; the pan and its cistern */
+  bx(D, 34.7, -8.75, 1.6, 1.8, 0.04, PANEL, { y: 0.12 }); bx(D, 34.7, -5.6, 1.6, 1.8, 0.04, PANEL, { y: 0.12 });
+  bx(D, 33.9, -8.75, 0.04, 0.04, 2.5, BR, { y: 1.95, c: 0 }); bx(D, 33.9, -6.3, 0.04, 0.04, 1.4, BR, { y: 1.95, c: 0 });
+  for (const z of [-9.98, -8.71, -6.98]) bx(D, 34.3, z, 0.75, 1.75, 0.04, PANEL, { y: 0.12, c: 0 });
+  for (const z of [-9.4, -8.1, -6.35]) { bx(D, 35.15, z, 0.65, 0.4, 0.4, WHITE); bx(D, 35.42, z, 0.16, 0.8, 0.45, WHITE); }
+  for (const x of [32.2, 33]) bx(D, x, -4.675, 0.4, 0.6, 0.35, WHITE, { y: 0.45 }); bx(D, 32.6, -4.75, 0.04, 0.9, 0.5, PANEL, { y: 0.5, c: 0 }); // the urinals, a screen between
 
   /* The retreat, a storey under the lobby: the family's, and their buyers'. A stair down from the lobby's north-west
      corner, behind glass and planting, to a lounge panelled in wood (the family's indulgence: nothing else down here
@@ -614,9 +996,42 @@ function buildHub(B: Floor, D: Floor, T1: Floor, T2: Floor): void {
   for (const x of [46.4, 50.8]) for (const z of [-21.6, -17.6]) { tbl(T1, x, z, 1.6, 0.8, 0x8a8e8c); for (const s of [-1, 1]) seat(T1, x, z + s * 0.9, 0x3a3d40); }
   bx(T1, 47, -25.6, 4, 0.9, 0.6, 0x8a8e8c); bx(T1, 53, -25.5, 0.8, 1.9, 0.7, 0xb8bcc0); P(T1, 'cyl', 45.4, -25.6, 0.16, 0.24, 0.16, 0x2a2c2e, { y: 0.9, c: 0 }); // the counter, the fridge, a kettle
   item(T1, 'ration', 46.4, -25.6, 0.9);
+  /* the station's administration (world.md §8, Security at the station's size): the office where its crews were
+     planned, paid and kept on file, under the board of who was down and who was up; through its east wall, over the
+     briefing room, the ID office, where passes were made, and the administrator's own */
   room(T1, 'Administration', 56, -26, 10, 12, { ...OFF, ...wing }); door(T1, 61.4, -13, { sg: [['Administration', 's']] });
-  for (const x of [59, 63]) for (const z of [-23, -18.4]) { desk(T1, x, z, 1.4, 0.7, { bare: 1 }); screen(T1, x, z + 0.2, 0.76, false); seat(T1, x, z - 0.9, 0x2c2f33); }
-  for (const z of [-24, -22, -20]) bx(T1, 65.5, z, 0.5, 1.3, 0.5, 0x5f6266); // filing
+  for (const x of [58.5, 62.5]) for (const z of [-22.6, -19.4, -16.2]) { desk(T1, x, z, 1.4, 0.7, { bare: 1 }); screen(T1, x, z + 0.2, 0.76, false); seat(T1, x, z - 0.9, 0x2c2f33); }
+  for (const z of [-25.4, -24.8, -24.2]) bx(T1, 56.3, z, 0.6, 1.3, 0.5, 0x5f6266); // filing
+  bx(T1, 65.2, -25.2, 1, 1, 0.7, 0xb8bcc0); // the copier
+  bx(T1, 56.4, -14.6, 0.35, 1, 0.35, 0xd8dcd8); P(T1, 'cyl', 56.4, -14.6, 0.26, 0.4, 0.26, 0x6a8aaa, { y: 1, c: 0 }); // the water cooler
+  /* the rotation board: two crews, three weeks on and three off, a magnet a name; crew B's in November, never moved back */
+  bx(T1, 61, -25.985, 6, 1.3, 0.03, 0xe2e2da, { y: 1.2, c: 0 });
+  for (let k = 0; k < 8; k++) for (let r = 0; r < 5; r++) if ((k * 3 + r * 5) % 7 !== 3)
+    bx(T1, 58.4 + k * 0.72, -25.965, 0.36, 0.1, 0.01, k >= 6 || Math.floor(k / 3) % 2 ? 0xc8641e : 0x2a4a7a, { y: 1.35 + r * 0.22, c: 0 });
+  use(T1, 'look', 61, -25.9, 1.85, { label: 'Rotation board', text: 'Two crews, three weeks on and three off, a magnet for every name. Crew B came down at the end of October. Their magnets were never moved back.' });
+  /* the ID office: the desk with the card printer on it, a box of blanks; the backdrop and the stool, the camera on its
+     stand; the lanyards by access, a colour each, and the chart of what each colour opens; the safe for the stock */
+  room(T1, 'ID office', 66.5, -26, 7.5, 6, { ...OFF, ...wing }); door(T1, 66.25, -21.6, { sg: [['ID office', 'w']] });
+  desk(T1, 70.5, -23.5, 1.8, 0.8, { bare: 1 }); screen(T1, 70.1, -23.3, 0.76, false); seat(T1, 70.5, -24.4, 0x2c2f33);
+  bx(T1, 71, -23.5, 0.45, 0.3, 0.4, 0xb8bcc0, { y: 0.76, c: 0 }); bx(T1, 71, -23.5, 0.2, 0.08, 0.14, 0x6a6e70, { y: 1.06, c: 0 }); // the printer, its hopper of blanks
+  bx(T1, 71, -23.28, 0.09, 0.01, 0.06, 0xe2ddd0, { y: 0.84, c: 0 }); // a card half out of it
+  bx(T1, 70.6, -23.75, 0.12, 0.06, 0.09, 0xe2ddd0, { y: 0.76, c: 0 }); // a box of blanks
+  use(T1, 'look', 71, -23.5, 1, { label: 'Card printer', text: 'It prints a face and a name on a blank, and writes into its strip the doors it opens. The screen beside it wants a login.' });
+  bx(T1, 72.5, -25.985, 1.4, 1.8, 0.03, 0x8aa0b0, { y: 0.6, c: 0 }); P(T1, 'cyl', 72.5, -25.2, 0.4, 0.6, 0.4, 0x2c2f33); // the backdrop, the stool
+  bx(T1, 72.5, -22.6, 0.3, 0.04, 0.3, 0x2a2c2e, { c: 0 }); P(T1, 'cyl', 72.5, -22.6, 0.04, 1.4, 0.04, 0x2a2c2e, { y: 0.04, c: 0 }); bx(T1, 72.5, -22.62, 0.22, 0.16, 0.14, 0x22262a, { y: 1.44, c: 0 }); // the camera on its stand
+  bx(T1, 73.98, -21, 0.04, 0.04, 1.2, 0x8a8e8c, { y: 1.6, c: 0 });
+  for (let k = 0; k < 6; k++) bx(T1, 73.95, -21.5 + k * 0.2, 0.02, 0.5, 0.02, [0x8c2f24, 0x2a4a7a, 0x3a6a3a, 0xc9a227][k % 4], { y: 1.1, c: 0 }); // the lanyards
+  bx(T1, 69, -20.015, 1.6, 1, 0.03, 0xe2e2da, { y: 1.3, c: 0 });
+  for (let r = 0; r < 4; r++) for (let k = 0; k < 6; k++) if ((k + r) % 3 !== 1) bx(T1, 68.45 + k * 0.22, -20.035, 0.16, 0.14, 0.01, [0x8c2f24, 0x2a4a7a, 0x3a6a3a, 0xc9a227][r], { y: 1.45 + r * 0.2, c: 0 });
+  bx(T1, 67, -25.6, 0.6, 0.7, 0.6, 0x3a4038); // the safe for the card stock
+  /* the administrator's: the desk facing the door, chairs across it, binders on the shelf */
+  room(T1, 'Office: administration', 66.5, -19.5, 7.5, 5.5, { ...OFF, ...wing, lc: [0.88, 0.82, 0.7] }); door(T1, 66.25, -16.6, { sg: [['Administrator', 'w']] });
+  desk(T1, 72, -16.75, 0.8, 1.9, { bare: 1, c: 0x4a3226 }); seat(T1, 72.9, -16.75, 0x2c2f33); bx(T1, 73.1, -16.75, 0.05, 0.5, 0.45, 0x2c2f33, { y: 0.45, c: 0 });
+  bx(T1, 71.75, -16.4, 0.06, 0.34, 0.5, 0x22262a, { y: 0.76, c: 0 }); bx(T1, 71.79, -16.4, 0.02, 0.28, 0.44, [0.04, 0.05, 0.05], { y: 0.79, c: 0, pw: [[0.04, 0.05, 0.05], [2.2, 2.75, 2.5]], pc: 'SEC' });
+  for (const z of [-17.3, -16.2]) { seat(T1, 70.9, z, 0x2c2f33); bx(T1, 70.7, z, 0.05, 0.5, 0.45, 0x2c2f33, { y: 0.45, c: 0 }); }
+  bx(T1, 70, -19.3, 2.4, 1.9, 0.4, 0x4a3226);
+  for (let r = 0; r < 3; r++) for (let k = 0; k < 9; k++) bx(T1, 69 + k * 0.24, -19.09, 0.08, 0.38, 0.02, [0x2a4a7a, 0x8c2f24, 0x3a3d40][(k + r) % 3], { y: 0.3 + r * 0.55, c: 0 });
+  bx(T1, 73.6, -19.1, 0.5, 1.3, 0.6, 0x5f6266); bx(T1, 67, -14.5, 0.5, 0.5, 0.5, 0x6e6a62); // a cabinet; a pot, its plant long gone
   /* the air plant, at +10, and the space over the false sky: half a metre over the lobby's roof, a dark plenum of
      grating between the backs of the ceiling's light boxes. Steps up into it from the plant, the whole length of the
      room (any steeper and nothing that walks could follow you up) */
@@ -630,14 +1045,72 @@ function buildHub(B: Floor, D: Floor, T1: Floor, T2: Floor): void {
   }
 
   /* Behind the bar: the kitchen that served it and the lounges, and a passage round the back of the shaft to goods
-     inward, so that stock never crossed the lobby */
-  room(D, 'Kitchen', -8, -2, 6, 12, { ...wing, fl: 0x6a6e6a, wl: 0xb8bcb4, st: 0x8c2f24, mat: { floor: 'epoxy', wall: 'glazed', ceiling: 'tiles' } });
+     inward, so that stock never crossed the lobby. Down its west side the service stair (world.md §8, Security at the
+     station's size), an open well with a wall round it at the kitchen's floor, to the pantry a storey down under the
+     bar, and on along a back passage to the retreat's: the family's dinners went down the back way. On the wing's feed */
+  const KT: RoomOpts = { ...wing, fl: 0x6a6e6a, wl: 0xb8bcb4, st: 0x8c2f24, mat: { floor: 'epoxy', wall: 'glazed', ceiling: 'tiles' } };
+  const STL = 0x8a8e8c, TILEK = 0xb8bcb4, stl = { mat: 'steel' } as const;
+  room(D, 'Kitchen', -8, -2, 6, 14, KT);
   door(D, -7, -3, { sg: [['Staff only', 'n']] });
-  bx(D, -7.6, 4, 0.6, 0.9, 10, 0x8a8e8c, { mat: 'steel' }); bx(D, -7.6, 0.4, 0.56, 0.02, 0.9, 0x1d1f21, { y: 0.9, c: 0 }); // the counter, and its hob
-  rack(D, -2.5, 2, 0.5, 3, [0x8a8e8c, 0x6b5a3c, 0x4d5a66, 0x7a4a34]); bx(D, -3.4, 8.8, 0.8, 0.6, 0.8, 0x6b5a3c);
-  item(D, 'ration', -7.6, 7.2, 0.9, 2); item(D, 'peaches', -7.6, 6, 0.9);
+  /* the well: the stair climbs south from the pantry, and comes up at the kitchen's south end; a tiled wall round its
+     open sides, a steel rail along the top */
+  stairs(B, D, -8, 0, 2, 10, 's');
+  bx(D, -5.95, 5, 0.1, 1.05, 10, TILEK); bx(D, -6.95, -0.05, 2.1, 1.05, 0.1, TILEK);
+  bx(D, -5.95, 5, 0.14, 0.05, 10, STL, { ...stl, y: 1.05, c: 0 }); bx(D, -6.95, -0.05, 2.1, 0.05, 0.14, STL, { ...stl, y: 1.05, c: 0 });
+  /* the line along the east wall: a steel counter, the range and the hood over it, the sink */
+  bx(D, -2.32, 1.9, 0.6, 0.9, 7, STL, stl); bx(D, -2.32, 1.2, 0.56, 0.02, 1.2, 0x1d1f21, { y: 0.9, c: 0 }); // the counter, the range's top
+  bx(D, -2.45, 1.2, 0.9, 0.5, 1.6, STL, { ...stl, y: 2.1, c: 0 }); bx(D, -2.3, 1.2, 0.6, 0.6, 0.5, STL, { ...stl, y: 2.6, c: 0 }); // the hood, its duct
+  bx(D, -2.32, 4.4, 0.5, 0.02, 0.8, 0x5a5d60, { y: 0.9, c: 0 }); P(D, 'cyl', -2.1, 4.4, 0.03, 0.3, 0.03, STL, { y: 0.9, c: 0 }); // the sink, its tap
+  /* the island, a steel table; the pots on a rail hung over it */
+  bx(D, -4.4, 5, 0.9, 0.9, 4, STL, stl);
+  bx(D, -4.4, 5, 0.06, 0.06, 3, 0x2a2c2e, { y: 2.3, c: 0 }); for (const z of [3.7, 6.3]) bx(D, -4.4, z, 0.04, 0.84, 0.04, 0x2a2c2e, { y: 2.36, c: 0 });
+  for (const [k, z] of [3.9, 4.6, 5.3, 6].entries()) P(D, 'cyl', -4.4, z, 0.26 + (k % 2) * 0.08, 0.26, 0.26 + (k % 2) * 0.08, STL, { y: 2.05, c: 0 });
+  for (let k = 0; k < 3; k++) P(D, 'cyl', -4.4, 3.5 + k * 0.3, 0.26, 0.02 + k * 0.02, 0.26, 0xe8e8e2, { y: 0.9, c: 0 }); // plates, stacked
+  /* the south end, where the stair comes up: dry goods on a rack, the fridge, its door open and nothing in it */
+  rack(D, -4.6, 11.7, 2, 0.5, [0x8a8e8c, 0x6b5a3c, 0x4d5a66, 0x7a4a34]); bx(D, -3.4, 8.8, 0.8, 0.6, 0.8, 0x6b5a3c);
+  bx(D, -2.4, 11.6, 0.7, 1.9, 0.7, 0xb8bcc0); bx(D, -2.98, 11.1, 0.04, 1.8, 0.6, 0xb8bcc0, { ry: 0.6, c: 0 });
+  item(D, 'ration', -2.32, 3, 0.9, 2); item(D, 'peaches', -2.32, 5.2, 0.9);
+  /* the pantry, under the bar: the family's china behind glass, linen, the silver's table, a plate warmer and a trolley,
+     and their wine laid down in its rack; and the back passage east, under the lobby, to the retreat's */
+  const PN: RoomOpts = { ...wing, fl: 0x6a6258, wl: 0xc8bea8, st: 0x7a5a30, lc: [0.92, 0.86, 0.74], mat: { floor: 'vinyl', wall: 'plaster', ceiling: 'plaster' } };
+  room(B, 'Service stair', -8, 0, 2, 10, { ...UTIL, ...wing, ht: 4.5, nolamp: 1, mat: { floor: 'epoxy', wall: 'block', ceiling: 'concrete' } });
+  room(B, 'Pantry', -8, -5.5, 6, 5.5, PN);
+  room(B, 'Back passage', -1.5, -5.5, 12.5, 2, { ...wing, fl: 0x5a5d5a, wl: 0x8a8e88, st: 0x3f7f6b, mat: { floor: 'vinyl', wall: 'block' } });
+  door(B, -1.75, -4.5, { sg: [['Pantry', 'e']] }); door(B, 9.5, -5.75, { sg: [['Staff only', 'n'], ['Retreat', 's']] });
+  const OAK = 0x6a4a2e;
+  bx(B, -2.3, -1.5, 0.6, 2.2, 2.4, OAK); for (const y of [0.5, 1, 1.5]) bx(B, -2.62, -1.5, 0.02, 0.02, 2.3, OAK, { y, c: 0 }); // the china cupboard, glazed, clear of the door
+  bx(B, -2.61, -1.5, 0.01, 1.6, 2.2, [0.55, 0.66, 0.7], { y: 0.45, c: 0, mat: 'glass' });
+  for (const y of [0.55, 1.05, 1.55]) for (let k = 0; k < 5; k++) P(B, 'cyl', -2.4, -2.4 + k * 0.45, 0.3, 0.02, 0.3, 0xe8e8e2, { y, c: 0, rz: PI / 2 - 0.15 });
+  bx(B, -5, -5.25, 3, 2, 0.5, OAK); // the wine, laid down
+  for (let r = 0; r < 5; r++) for (let k = 0; k < 9; k++) if ((k * 7 + r * 3) % 5 !== 0) bx(B, -6.35 + k * 0.34, -5.0, 0.07, 0.07, 0.02, [0x2a3a22, 0x3a1e1a][(k + r) % 2], { y: 0.3 + r * 0.36, c: 0 });
+  tbl(B, -5, -2.6, 1.6, 0.8, OAK); for (const [x, c] of [[-5.5, 0x9aa0a4], [-5.1, 0x9aa0a4], [-4.6, 0xc9a227]] as const) P(B, 'cyl', x, -2.6, 0.08, 0.12, 0.08, c, { y: 0.76, c: 0, mat: 'steel' }); // the silver, half polished
+  bx(B, -7.7, -2.5, 0.6, 1.1, 1, STL, stl); // the plate warmer
+  bx(B, -4.8, -0.7, 0.9, 0.85, 0.5, STL, stl); P(B, 'ico', -4.8, -0.7, 0.4, 0.22, 0.32, 0xb8bcc0, { y: 0.85, c: 0, mat: 'steel' }); // the trolley, a cloche on it
+  bx(B, -7.7, -4.6, 0.6, 1.8, 1.2, 0xd8d4c4); // linen, folded
+  use(B, 'look', -5, -2.6, 0.9, { label: 'Menus', text: 'Menus for dinner in the lounge, typed on the house\'s card. The last is for eight.' });
+  bx(B, 4, -3.8, 0.6, 1, 0.5, STL, stl); // an empty trolley, parked
   room(D, 'Service passage', -2, 6, 14, 4, { ...UTIL, ...wing }); door(D, 13, 7, { sg: [['Goods inward', 'w']] });
-  bx(D, 2, 8.8, 0.8, 1.6, 0.7, 0x6b6e70, { mat: 'steel' }); // a roll cage, empty
+  bx(D, 4.6, 8.9, 0.8, 1.6, 0.7, 0x6b6e70, { mat: 'steel' }); // a roll cage, empty
+  /* the walk-ins off its south side (world.md §8, Security at the station's size): what the dock sent on for the bar's
+     kitchen, the mess and the retreat. The dry store behind a shutter; the chiller and the freezer behind plain steel,
+     each with its readout by the door, lit with the wing. No emergency lights in them: in the dark, they are black */
+  const DRY: RoomOpts = { ...wing, em: 0, fl: 0x6a665e, wl: 0x9a958a, st: 0x7a5a30, mat: { floor: 'epoxy', wall: 'block', ceiling: 'concrete' } };
+  const COLD: RoomOpts = { ...wing, em: 0, ht: 3, fl: 0x8a8e8c, wl: 0xc8ccc8, st: 0x5a7a8a, lc: [0.82, 0.88, 0.92], mat: { floor: 'epoxy', wall: 'glazed', ceiling: 'concrete' } };
+  room(D, 'Dry store', -1, 11, 6, 8, DRY); door(D, 2, 10.5, { sg: [['Dry store', 'n']] });
+  room(D, 'Chiller', 5.5, 11, 3.5, 5.5, COLD); door(D, 7.4, 10.5, { plain: true, sg: [['Chiller', 'n']] });
+  room(D, 'Freezer', 9.5, 11, 3.5, 5.5, COLD); door(D, 10.4, 10.5, { plain: true, sg: [['Freezer', 'n']] });
+  for (const x of [8.4, 11.4]) bx(D, x, 9.98, 0.24, 0.14, 0.04, [0.04, 0.05, 0.05], { y: 1.5, c: 0, pw: [[0.04, 0.05, 0.05], [0.6, 2.4, 1]], pc: 'SEC' });
+  /* the dry store: shelving down both walls and an island between, tins, packets and sacks; a pallet of flour at the
+     back, one sack split */
+  rack(D, -0.7, 15, 0.5, 7, [0x8a8e8c, 0x6b5a3c, 0xc8b890, 0x7a4a34]); rack(D, 4.7, 14.6, 0.5, 6.2, [0x6b5a3c, 0x8a8e8c, 0x4d5a66, 0xc8b890]);
+  rack(D, 2, 14.4, 0.6, 3.6, [0x8a8e8c, 0x7a4a34, 0xc8b890, 0x5c6b4a]);
+  bx(D, 2, 18.2, 1.2, 0.14, 1, 0x8a6a44);
+  for (const [k, [dx, dz]] of [[-0.28, -0.22], [0.28, -0.22], [-0.28, 0.22], [0.28, 0.22]].entries()) P(D, 'ico', 2 + dx, 18.2 + dz, 0.55, 0.32, 0.42, k === 1 ? 0xb8a880 : 0xc8b890, { y: 0.14 });
+  P(D, 'cyl', 2.9, 17.5, 0.8, 0.02, 0.6, 0xe2ddd0, { c: 0 });
+  /* the chiller: crates down both walls, what was in them gone over; the freezer: boxes that were furred with frost,
+     thawing since the cut */
+  for (const x of [5.8, 8.7]) rack(D, x, 13.9, 0.5, 4.6, [0x5a4a2a, 0x3a4a28, 0xb8bcc0, 0x6a3a2a]);
+  for (const x of [9.8, 12.7]) rack(D, x, 13.9, 0.5, 4.6, [0xd8dcdc, 0xb8c4c8, 0x9aa4a8, 0x8a7a6a]);
 }
 
 /* the Cargo cavern: a 20 m vault, x 110 to 240, with three tiers stepped up its north side at +5, +10 and +15 and a platform
