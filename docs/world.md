@@ -75,7 +75,8 @@ What the walls are, and why, before what colour they are. Plausibility first; th
   of their wall. Armed rooms are not marked on the floor or the sign: the camera is the tell.
 - **Decay (proposed, not built).** The money rots first when the power dies: ceiling tiles sag, board mottles with
   mould, veneer swells, carpet goes sour; the shotcrete looks as it did. Ties the look to the power and the time since
-  the fall.
+  the fall. (One touch of it built, by hand: the lobby bar's veneer, lifting since the air plant's dehumidifiers
+  stopped: §8, *Security at the station's size*, 9.)
 
 ### Who lives here (proposed)
 
@@ -1087,7 +1088,23 @@ builder takes them.
    23).
 9. **The air plant, at two or three times.** 40 m² to air a lobby of 12,400 m³ and, the job that matters underground, to
    dry it (soft finishes last only while the dehumidifiers run: §1). Grown east (x 42 to 52, at +10), with ducts that
-   can be crawled. When its dehumidifier stops, the walnut swells (§1, *Decay*).
+   can be crawled. When its dehumidifier stops, the walnut swells (§1, *Decay*). **Built:** the plant 118 m², three
+   times the old: along the north wall to x 52, and back over the mess (x 42.5 to 52, z -26 to -22), a wall's width off
+   the plant stair's well. Along the north wall the air handler on its plinth, in its sections (where the return comes
+   in, the filters, the coil, the fan, the plenum the supply leaves by), a door on each; the return down into it from
+   the roof and the supply up; the chilled water up out of the floor into the coil. On the south wall dehumidifiers A
+   and B, their panels lit with the wing (A's lamp green, B's red) and B's tag of resets (2/10, and in pencil 9, 17 and
+   30/10); beside them a drum recorder on clockwork, so it went on without the power: the lobby's air at forty-five per
+   cent, and the last few days past ninety. The plant's controls; spare filters on a pallet. And low in the east wall the
+   mess's branch, its access door off on the floor: a duct to crawl, 1.5 m high, galvanised and unlit, 4 m east through
+   the rock, down a riser 2.25 m, and 6 m back west along the mess's north wall, a joint a hand lower at each section, to
+   its grille over the servery, 2 m up the wall. Each drop is a fall that does not hurt and neither climbs back, so it
+   goes one way, from the plant into the mess, and nothing a person's height follows you in. The plant was a dead end
+   up its stair; now it is a way round (the upper station's seventh loop, with a drop: the loops probe). The grille lies
+   on the floor under its opening, bent outward, its screws still in the wall, and down the middle of the duct's dust is
+   a track a body wide: the work orders' noise along it at night, in October (what it was is for the owner to say). The
+   walnut: the bar's veneer has let go at its seams and stands off its front, which a look says; the rest of *Decay*
+   waits for its own pass. No new doors.
 
    And the comms cupboards: every camera is fed from one, a cupboard an area on that area's branch (*One control
    room*), and none is built. A closet in each zone. **Open:** whether smashing one blinds its cameras, which would be a
@@ -1127,8 +1144,8 @@ builder takes them.
 
 **The order (agreed):** one at a time, in the list's order (the owner), each its own change: the arrival hall (1), the
 dock (2), Operations' offices (3), Maintenance with Ops' set (4), administration (5), the lobby's washrooms with
-screening (6), the showers, training room and court (7), and the bar's kitchen (8) are built; the air plant (9) is
-next.
+screening (6), the showers, training room and court (7), the bar's kitchen (8), and the air plant (9) are built; the
+comms cupboards, the rest of 9, are next.
 
 **Being found (as built; the changed's wit is *The second pass*, to come)**
 
