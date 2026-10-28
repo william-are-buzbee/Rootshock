@@ -335,19 +335,21 @@ export function bed(F: Floor, x: number, z: number, r: number, o: { n?: number; 
 
 /* ---- where it has broken the station's concrete */
 /** a crack run across a surface from (x, y, z), about `len` long, jagged: on a floor or under a ceiling along yaw a; on
- *  a wall that looks out `on` (a yaw) at angle a from straight up, toward its right as you face it. A hairline, drawn at
- *  its size (flush): a crack drawn a hair larger, as props are, stands up off the surface as a dark stick */
+ *  a wall that looks out `on` (a yaw) at angle a from straight up, toward its right as you face it. A hairline, each
+ *  length of it a sliver tapering to its ends (a lump drawn thin and long, which may run on into rock past a corner as a
+ *  crack would), drawn at its size (flush): drawn a hair larger, as props are, a crack stands up off its surface as a
+ *  dark stick */
 export function crack(F: Floor, x: number, y: number, z: number, a: number, len: number, on: 'floor' | 'ceiling' | number, g = grower('crack', x, y, z)): void {
-  const w = 0.01, t = 0.003, n = len > 0.45 ? 3 : 2;
+  const w = 0.014, t = 0.003, n = len > 0.45 ? 3 : 2, o = 0.04;
   let px = x, py = y, pz = z, b = a;
   for (let k = 0; k < n; k++, b += g.rnd(-0.6, 0.6)) {
     const L = (len / n) * g.rnd(0.8, 1.2), h = L / 2;
     if (on === 'floor' || on === 'ceiling') {
-      P(F, 'box', px + Math.sin(b) * h, pz + Math.cos(b) * h, L + w, t, w, CRACK, { y: on === 'floor' ? py : py - t, ry: b - PI / 2, c: 0, flush: true });
+      P(F, 'ico', px + Math.sin(b) * h, pz + Math.cos(b) * h, (L + o) / ICO, t / ICO, w / ICO, CRACK, { y: on === 'floor' ? py : py - t, ry: b - PI / 2, c: 0, flush: true });
       px += Math.sin(b) * L; pz += Math.cos(b) * L;
     } else {
       const nx = Math.sin(on), nz = Math.cos(on), ux = Math.cos(on), uz = -Math.sin(on), s = Math.sin(b), c = Math.cos(b);
-      P(F, 'box', px + nx * t / 2 + ux * s * h, pz + nz * t / 2 + uz * s * h, w, L + w, t, CRACK, { y: py + c * h - (L + w) / 2, rz: -b, ry: on, c: 0, flush: true });
+      P(F, 'ico', px + (nx * t) / 2 + ux * s * h, pz + (nz * t) / 2 + uz * s * h, w / ICO, (L + o) / ICO, t / ICO, CRACK, { y: py + c * h - (L + o) / 2, rz: -b, ry: on, c: 0, flush: true });
       px += ux * s * L; py += c * L; pz += uz * s * L;
     }
   }

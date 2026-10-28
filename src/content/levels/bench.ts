@@ -3,7 +3,7 @@ import type { LevelDef } from '../types';
 import { beginLevel, bx, door, finishLevel, floor, room, stack, stairs, use, type Floor, type LevelInfo } from '../build/plan';
 import { OFF, SEC, UTIL, desk, tbl } from '../build/furnish';
 import { bed, bells, bracket, candelabra, climb, colonise, crown, cup, engulf, grower, hang, heave, knot, litter, runner, spire, tobacco } from '../build/overgrowth';
-import { fringe, span, taproot, wallroot } from '../build/roots';
+import { fringe, pillar, span, sprawl, taproot, vault, wallroot } from '../build/roots';
 
 /* A bench for the bush's growth (content/build/overgrowth.ts), not part of the station: ?level=bench. In Security's
    finish, all of it lit. North of the corridor, the kit laid out piece by piece, each with a look to say what it is:
@@ -12,7 +12,8 @@ import { fringe, span, taproot, wallroot } from '../build/roots';
    colonised from its far corner; out of its door, the front coming along the corridor; and at the corridor's end a
    runner under the locker room's door, the first leaf in, the room past it still clean. Past that, flowers on top and
    roots under them: a garden of the ways it flowers, each come up through the floor, and down the stair from it a
-   cellar under the garden, its concrete broken through by their roots (content/build/roots.ts). */
+   cellar under the garden, its concrete broken through by their roots (content/build/roots.ts); and through the
+   cellar's east wall a hall of the great roots, two to five times as thick, solid: things to go round. */
 
 export const BENCH: LevelInfo = { id: 'bench', name: 'The bench', c: 'BENCH' };
 
@@ -126,6 +127,20 @@ export function bench(): LevelDef {
   sayB(34.5, 9.2, 'Across the room', 'Through one wall and into the other, over a head, sagging between, hung with rootlets. span()');
   fringe(B, 32.6, 7, 4, 0.8, { inside: cellar });
   sayB(32.6, 6.2, 'Hair roots', 'Hung from cracks across the ceiling under the bed of flowers over it: fine, pale, kinked, none low enough to touch. fringe()');
+
+  /* the great roots: a hall off the cellar, rock over it, so they come down through its ceiling as far as they like;
+     one of each, two to five times as thick as the cellar's, and one of those beside the greatest for scale */
+  room(B, 'Root hall', 43.5, -1, 18, 15, { ...UTIL, ht: 4.5 });
+  door(B, 43.25, 1.5, { open: true, sg: [['Root hall', 'w']] });
+  const hall = (x: number, z: number) => x > 43.8 && x < 61.2 && z > -0.7 && z < 13.7;
+  pillar(B, 50, 5.2, 4.5, { d: 1.75, inside: hall });
+  sayB(50, 7.6, 'Great root', 'Five times as thick as the cellar\'s: down out of the ceiling, the floor heaved round its foot, great buttresses spread out over it and down into it. Solid: go round it. pillar()');
+  taproot(B, 46.6, 9.6, 4.5, { d: 0.35, inside: hall });
+  sayB(46.6, 10.6, 'For scale', 'A root as the cellar has them, beside the great one.');
+  sprawl(B, 55.5, 0.75, -1, 's', [[55.9, 1.4], [56.8, 3.4], [57.9, 5.4], [58.6, 7.4], [59.3, 9.4]], { d: 1.4 });
+  sayB(56.2, 6.2, 'Sprawl', 'Four times as thick: out of the wall low and along the floor half sunk in it, the floor broken up along its flanks, and down. Too high to step over. sprawl()');
+  vault(B, 61.5, 3.3, 11.6, 'w', 52.6, 12.4, { d: 0.8 });
+  sayB(56.5, 10.2, 'Vault', 'Twice as thick: out of the wall over a head and arching down into the floor; walked under near the wall, gone round further out. vault()');
 
   return finishLevel([25.2, 11.75, PI / 2], F); // at the corridor's east end, looking west along it
 }

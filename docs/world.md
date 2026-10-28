@@ -747,8 +747,15 @@ wins; the older text stays only because it describes what is built, until the le
     them, their roots, as thick as an arm or a waist, come down through the ceilings and go on into the floors, and out
     of the rock through the walls: the concrete spalled round them, cracks run out, the reinforcing bared and bent,
     rubble fallen. *Built:* both (`overgrowth.ts`; `content/build/roots.ts`), on the bench as a garden over a root
-    cellar. *Open:* whether roots ever block a way (a root across a corridor at knee height as something to step
-    over, or to cut); which floors are the lower ones (Security's basement, the main level, the plant).
+    cellar. Those roots are scenery, walked through. *Open:* which floors are the lower ones (Security's basement, the
+    main level, the plant).
+  - *The great roots (asked; built).* Where it has had a place for years, roots two to five times as thick, and these
+    are in the way: down out of a ceiling as a pillar buttressed over the floor, out of a wall low and lying along the
+    floor half sunk (too high to step over), or out of a wall high and arching down (walked under near the wall, gone
+    round further out). Each lays boxes along itself that stop a body, as furniture does (`greatroot`, `pillar`,
+    `sprawl`, `vault` in `roots.ts`; on the bench, a hall off the root cellar). *Open:* where they stand in the
+    station, and what they shut or force (none is placed in a level yet; one across a way wants the progression
+    checker).
 - **One tool per room (agreed).** Each space teaches one thing before a later one asks for all of them: the flashlight; a
   sound before a sight; the night round's beam far off; one armed place under one camera, its speaker with two of the changed
   in earshot, a safe failure (step over the line, hide, watch them come and go); a small board, and one of them walking over to throw it back on; a card;

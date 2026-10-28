@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { beginLevel, door, finishLevel, floor, item, room, type Floor, type LevelInfo } from '../src/content/build/plan';
 import { SEC, UTIL, shelf } from '../src/content/build/furnish';
 import { BLOOM, CREAM, GOLD, GROW, LEAF, YOUNG, CURED, bed, bells, candelabra, colonise, cup, spire, tobacco } from '../src/content/build/overgrowth';
-import { fringe, span, taproot, wallroot } from '../src/content/build/roots';
+import { fringe, greatroot, pillar, span, sprawl, taproot, vault, wallroot } from '../src/content/build/roots';
+import { makeSim } from '../src/sim/sim';
+import { hold } from './kit';
 import { bench } from '../src/content/levels/bench';
 import type { LevelDef } from '../src/content/types';
 import { placement } from './placement';
@@ -124,5 +126,47 @@ describe('roots through concrete', () => {
 
   it('are never solid', () => {
     expect(L.props.filter(p => p.solid).length).toBe(0);
+  });
+});
+
+describe('the great roots', () => {
+  /** a room 12 by 8 with a great root laid in it (or none), and you walked north across it from its south side for a
+   *  few seconds: how far north you got */
+  const walk = (lay: (F: Floor) => void) => {
+    beginLevel(LV, {});
+    const F = floor(LV);
+    room(F, 'Hall', 0, 0, 12, 8, { ...UTIL, ht: 4.5 });
+    lay(F);
+    const s = makeSim(finishLevel([6, 7, 0]), { seed: 1 }), b = s.player.body;
+    b.x = 6; b.z = 7.2; b.vx = b.vz = 0; s.player.yaw = 0;
+    hold(s, 4, { forward: 1 });
+    return b.z;
+  };
+
+  it('stop you where they lie across a room too high to step over, and let you under where they arch over a head', () => {
+    expect(walk(() => {})).toBeLessThan(2); // nothing in the way: across the room
+    expect(walk(F => greatroot(F, [[0.8, 0.3, 4], [11.2, 0.3, 4]], 1.4, 1.4))).toBeGreaterThan(4.4); // stopped at it
+    expect(walk(F => greatroot(F, [[0.8, 3.4, 4], [11.2, 3.4, 4]], 0.9, 0.9))).toBeLessThan(2); // under it
+    expect(walk(F => greatroot(F, [[0.8, 0.3, 4], [11.2, 0.3, 4]], 1.4, 1.4, { block: false }))).toBeLessThan(2); // drawn only
+  });
+
+  const L = one(F => {
+    pillar(F, 3, 4, 4.5, { d: 1.6, inside: (x, z) => x > 0.3 && x < 9.7 && z > 0.3 && z < 7.7 });
+    sprawl(F, 10, 0.7, 1.5, 'w', [[8.6, 1.8], [7.2, 3], [6.6, 5]], { d: 1.2 });
+    vault(F, 6, 3.4, 8, 'n', 6.5, 4.5, { d: 0.8 });
+  }, { ...UTIL, ht: 4.5 });
+
+  it('go into the walls and the floor only as lumps (or as cracks), and hang from nothing', () => {
+    const F = placement(L), rough = (p: LevelDef['props'][number]) => p.shape === 'ico' || p.sy <= 0.03;
+    const wall = (f: { kind: string }) => f.kind === 'runs into a wall' || f.kind === 'lost in a wall';
+    expect(F.filter(f => wall(f) && !rough(L.props[f.prop!])).map(f => f.what)).toEqual([]);
+    expect(F.filter(f => !wall(f)).map(f => `${f.kind}: ${f.what}`)).toEqual([]);
+  });
+
+  it('are two to five times as thick as the cellar\'s, and solid along them, not their drawing', () => {
+    expect(L.props.filter(p => p.solid).length).toBe(0); // what stops you is the boxes laid along them
+    expect(L.colliders.length).toBeGreaterThan(30);
+    const thick = Math.max(...L.props.filter(p => p.shape === 'cyl').map(p => p.sx));
+    expect(thick).toBeGreaterThan(0.35 * 2 * 0.78); // a core at least twice a cellar root's
   });
 });
