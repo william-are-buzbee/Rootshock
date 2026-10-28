@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { STATION } from '../src/content/station';
 import { testbed } from '../src/content/levels/testbed';
+import { bench } from '../src/content/levels/bench';
 import { LevelBuilder } from '../src/content/build/builder';
 import type { LevelDef } from '../src/content/types';
 import { levelDef } from '../src/sim/run';
@@ -13,7 +14,7 @@ import { placement, Site, type Fault } from './placement';
    edge, and anything in a cave may meet its rough walls: that is where they are, not a mistake. The probe
    (test/probes/placement.probe.ts) lists everything, those included. */
 
-const levels: LevelDef[] = [...STATION.levels.map(l => levelDef(STATION, l.id)), testbed()];
+const levels: LevelDef[] = [...STATION.levels.map(l => levelDef(STATION, l.id)), testbed(), bench()];
 const THINGS = new Set(['floats', 'overhangs', 'in a wall', 'inside']);
 const say = (F: Fault[]) => F.map(f => `${f.kind}: ${f.what} at ${f.at.join(', ')}`);
 

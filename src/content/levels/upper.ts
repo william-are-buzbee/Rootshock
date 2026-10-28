@@ -7,6 +7,7 @@ import { ARRIVAL, HISTORY, STAGES, WELCOME, stageAt } from '../exhibit';
 import {
   BAY, FAM, MED, OFF, OPS, SEC, UTIL, WALK, blood, callPoint, camera, container, corpse, desk, eggs, exitSign, forklift, genset, gore, grandStair, liftRoom, medbed, monitors, panel, POLE, shelf, speaker, tbl,
 } from '../build/furnish';
+import { WOOD as ROOTS, runner } from '../build/overgrowth';
 
 /** the block skim-coated smooth: the corridors the wing's people walked every day */
 const SKIM = (o: RoomOpts): RoomOpts['mat'] => ({ ...o.mat, wall: 'plaster' });
@@ -103,17 +104,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
      (mockups/mutants.html, Security's seven; sim/cast/gait.ts). It has stood long enough for its roots to go out over the
      floor: along the bays' painted line, into the full pallet and up the racking, under the door to the passage */
   mut(D, 'changed', 18, 6.8, { post: 1, yaw: PI / 2, walk: 0.25, steps: 50 });
-  const ROOT = [0x4a3a2a, 0x54422e, 0x3e3024];
-  /* a root along the points given, thick at its first and tapering to its last, half sunk in whatever is y under it,
-     a knuckle at each bend so it reads as one thing grown, not sticks laid end to end */
-  const root = (pts: readonly (readonly [number, number])[], d0: number, d1: number, y = 0) => {
-    for (let k = 0; k + 1 < pts.length; k++) {
-      const [ax, az] = pts[k], [bx2, bz2] = pts[k + 1], dx = bx2 - ax, dz = bz2 - az, len = Math.hypot(dx, dz);
-      const d = d0 + (d1 - d0) * (k / Math.max(1, pts.length - 2)), c = ROOT[k % 3];
-      P(D, 'cyl', (ax + bx2) / 2, (az + bz2) / 2, d, len + d * 0.5, d, c, { c: 0, y: y + d * 0.25 - (len + d * 0.5) / 2, rz: PI / 2, ry: -Math.atan2(dz, dx) });
-      if (k) P(D, 'ico', ax, az, d * 1.5, d * 0.8, d * 1.5, c, { c: 0, y });
-    }
-  };
+  const ROOT = ROOTS, root = (pts: readonly (readonly [number, number])[], d0: number, d1: number, y = 0) => runner(D, pts, d0, d1, { y });
   /* matted under its feet: lumps of root grown into each other */
   for (const [dx, dz, r] of [[0, 0, 0.9], [0.3, -0.2, 0.55], [-0.3, 0.25, 0.6], [0.25, 0.35, 0.45], [-0.25, -0.3, 0.5]] as const)
     P(D, 'ico', 18 + dx, 6.8 + dz, r, 0.12, r * 0.9, ROOT[(Math.round(r * 10)) % 3], { c: 0 });
