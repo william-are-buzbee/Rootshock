@@ -1,22 +1,27 @@
 import { PI } from '../../core/math';
 import type { LevelDef } from '../types';
-import { beginLevel, bx, door, finishLevel, floor, room, use, type LevelInfo } from '../build/plan';
-import { OFF, SEC, desk, tbl } from '../build/furnish';
-import { bracket, climb, colonise, crown, engulf, grower, hang, knot, litter, runner, tobacco } from '../build/overgrowth';
+import { beginLevel, bx, door, finishLevel, floor, room, stack, stairs, use, type Floor, type LevelInfo } from '../build/plan';
+import { OFF, SEC, UTIL, desk, tbl } from '../build/furnish';
+import { bed, bells, bracket, candelabra, climb, colonise, crown, cup, engulf, grower, hang, heave, knot, litter, runner, spire, tobacco } from '../build/overgrowth';
+import { fringe, span, taproot, wallroot } from '../build/roots';
 
 /* A bench for the bush's growth (content/build/overgrowth.ts), not part of the station: ?level=bench. In Security's
    finish, all of it lit. North of the corridor, the kit laid out piece by piece, each with a look to say what it is:
    shelves out of the wall, two walls climbed, stalks young to old, a ceiling hung, leaf over the floor young to cured,
    a runner and its seedling, the mound where it takes, a desk and a chair grown over. South, an office it has
    colonised from its far corner; out of its door, the front coming along the corridor; and at the corridor's end a
-   runner under the locker room's door, the first leaf in, the room past it still clean. */
+   runner under the locker room's door, the first leaf in, the room past it still clean. Past that, flowers on top and
+   roots under them: a garden of the ways it flowers, each come up through the floor, and down the stair from it a
+   cellar under the garden, its concrete broken through by their roots (content/build/roots.ts). */
 
 export const BENCH: LevelInfo = { id: 'bench', name: 'The bench', c: 'BENCH' };
 
 export function bench(): LevelDef {
   beginLevel(BENCH, {});
-  const F = floor(BENCH), H = { ht: 3 };
-  const say = (x: number, z: number, label: string, text: string) => use(F, 'look', x, z, 1, { label, text });
+  /* the bench's floor, and a cellar a storey under part of it */
+  const F = floor(BENCH, { ground: true }), B = floor(BENCH, { y0: -4.5 }), H = { ht: 3 };
+  stack(B, F);
+  const sayOn = (L: Floor) => (x: number, z: number, label: string, text: string) => use(L, 'look', x, z, 1, { label, text }), say = sayOn(F);
 
   /* the kit */
   room(F, 'Kit', 0, 0, 20, 10, { ...SEC, ...H });
@@ -80,5 +85,47 @@ export function bench(): LevelDef {
   litter(F, 20.9, 15.1, 0.5, { n: 6, dry: 0 });
   say(20.4, 14.4, 'The front', 'A runner come along the corridor and under the door, and the first leaf in. The room past it is still clean.');
 
-  return finishLevel([25.2, 11.75, PI / 2]); // at the corridor's east end, looking west along it
+  /* flowers on top: a garden of the ways it flowers, off a landing at the corridor's end, each come up through the
+     floor and broken it */
+  room(F, 'Landing', 26, 10.5, 4, 2.5, { ...SEC, ...H });
+  room(F, 'Garden', 27, 0, 15, 10, { ...SEC, ht: 3.5, motes: 'spores' });
+  door(F, 28.5, 10.25, { sg: [['Garden', 's']] });
+  spire(F, 29.2, 3, 2.3, { heave: true });
+  say(29.2, 4.2, 'Spire', 'One stem, a rosette of broad leaf at its foot, its top clothed all round in flowers opening from the bottom up: gone to seed below, in bud at the tip. spire()');
+  bells(F, 32.8, 3.2, 1.9, { heave: true });
+  say(32.8, 4.6, 'Bells', 'Stems arching out of a clump and down, hung with long trumpets that nod, their mouths opened into lobes. bells()');
+  candelabra(F, 36.6, 3, 2.2, { heave: true });
+  say(36.6, 4.4, 'Candelabra', 'A stout stalk forking into a crown of arms that fork again, a head of flowers at every tip. candelabra()');
+  cup(F, 40, 3.2, 1.7, { heave: true });
+  say(40, 4.4, 'Cup', 'One great flower facing up, its mouth opened into a double ring of lobes round a gold throat, buds about it; the stalk bowed a little under it. cup()');
+  tobacco(F, 29.6, 7.2, 1.7, { age: 0.45, bloom: true }); heave(F, 29.6, 7.2, 0.24);
+  say(29.6, 8.2, 'Rustica', 'The stalk as it comes up through the floor: the floor heaved up round it, rubble, cracks run out. tobacco(), heave()');
+  bed(F, 32.6, 7, 0.9);
+  say(32.6, 8.2, 'Bed', 'Low over the floor: broad leaf lying in a rosette, short stems all through it, each with a flower or two looking up. bed()');
+  /* and together, as a place grown over would have them */
+  spire(F, 37, 6.6, 1.6, { age: 0.5 }); cup(F, 38.3, 7.6, 1.25, { size: 0.2 }); bells(F, 39.6, 6.7, 1.5); bed(F, 37.6, 8.2, 0.6); candelabra(F, 36.3, 8.4, 1.4, { age: 0.2 });
+  say(38.2, 8.9, 'Together', 'The ways it flowers, grown up together, as a place it has taken would have them.');
+  stairs(B, F, 30, 10.5, 2.5, 10, 'w');
+
+  /* roots under them: a cellar of raw concrete under the garden, down the stair; what the flowers above put down through
+     its ceiling, and through its walls from the rock round it */
+  const DIG = { ...UTIL, ht: 4 };
+  room(B, 'Root cellar', 26, -1, 17, 11, DIG);
+  room(B, 'Root cellar', 26, 10, 17, 3.5, { ...DIG, nolamp: 1 });
+  const cellar = (x: number, z: number) => x > 26.3 && x < 42.7 && z > -0.7 && z < 9.7, sayB = sayOn(B);
+  taproot(B, 29.2, 3, 4, { d: 0.3, inside: cellar });
+  taproot(B, 32.8, 3.2, 4, { d: 0.25, inside: cellar });
+  taproot(B, 36.6, 3, 4, { d: 0.48, inside: cellar });
+  taproot(B, 40, 3.2, 4, { d: 0.34, inside: cellar });
+  sayB(36.6, 4.6, 'Taproot', 'Down out of the ceiling from the flowers over it and into the floor, bending as it comes, buttressed where it goes in; the concrete broken through at both. taproot()');
+  wallroot(B, 43, 2.5, 6.6, 'w', 39.4, 7.4, { d: 0.36, inside: cellar });
+  sayB(41, 6.4, 'Out of the wall', 'Out of the rock through the wall, arching over and down into the floor. wallroot()');
+  wallroot(B, 31, 2.8, -1, 's', 31.6, 1.2, { d: 0.28, inside: cellar });
+  sayB(31.2, 0.3, 'Broken through', 'Where it goes through concrete: spalled off in lumps round the hole, cracks run out, the reinforcing bared and bent, rubble fallen under it. bore()');
+  span(B, [26, 3.4, 9.1], 'e', [43, 3.3, 8.8], 'w', { d: 0.3, sag: 0.5, inside: cellar });
+  sayB(34.5, 9.2, 'Across the room', 'Through one wall and into the other, over a head, sagging between, hung with rootlets. span()');
+  fringe(B, 32.6, 7, 4, 0.8, { inside: cellar });
+  sayB(32.6, 6.2, 'Hair roots', 'Hung from cracks across the ceiling under the bed of flowers over it: fine, pale, kinked, none low enough to touch. fringe()');
+
+  return finishLevel([25.2, 11.75, PI / 2], F); // at the corridor's east end, looking west along it
 }

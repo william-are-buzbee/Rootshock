@@ -32,7 +32,11 @@ export const KNOT = 0x4e4028;
 export const STEM = [0x5a6434, 0x56582e];
 /** its flowers' mouths, and their tubes; and the seed capsules after them, ripening brown */
 export const BLOOM = [0xd8cc62, 0xe2d46c, 0xcabc54];
-const TUBE = 0xb4b056, POD = [0x7a6230, 0x5e4a26];
+/** the other yellows its flowers come in, plant by plant: cream, and a deeper gold; and its buds, not yet open */
+export const CREAM = [0xe8deaa, 0xefe6b8], GOLD = [0xd6ae3e, 0xe0bc4c];
+const TUBE = 0xb4b056, POD = [0x7a6230, 0x5e4a26], BUD = 0x9aa048;
+/** the station's concrete where it is broken: its raw inside, the dark of a hole through it */
+export const CONCRETE = [0x7a766e, 0x6c6860, 0x84807a], HOLE = 0x1c1814;
 
 /** the bush's numbers: metres where they are sizes */
 export const GROW = {
@@ -60,9 +64,9 @@ export const GROW = {
   head: 2.05,
 };
 
-type V3 = readonly [number, number, number];
+export type V3 = readonly [number, number, number];
 /** which way each face of a wall looks out into the room, as a yaw (the cast's: 0 south, a quarter turn east) */
-const FACE: Record<Dir, number> = { s: 0, e: PI / 2, n: PI, w: -PI / 2 };
+export const FACE: Record<Dir, number> = { s: 0, e: PI / 2, n: PI, w: -PI / 2 };
 
 /** what a piece of growth draws its small differences from */
 export interface Grow { rnd(a: number, b?: number): number; pick<X>(a: readonly X[]): X }
@@ -86,8 +90,20 @@ export function rod(F: Floor, a: V3, b: V3, d: number, c: number, over = 0): voi
   P(F, 'cyl', (a[0] + b[0]) / 2, (a[2] + b[2]) / 2, d, len, d, c, { y: (a[1] + b[1]) / 2 - len / 2, rz, ry, c: 0 });
 }
 /** a lump, its middle at (x, y, z): an icosahedron is drawn standing on its lowest corner, so it is put down by that */
-function lump(F: Floor, x: number, y: number, z: number, sx: number, sy: number, sz: number, c: number, ry = 0): void {
+export function lump(F: Floor, x: number, y: number, z: number, sx: number, sy: number, sz: number, c: number, ry = 0): void {
   P(F, 'ico', x, z, sx, sy, sz, c, { y: y - (sy * ICO) / 2, ry, c: 0 });
+}
+/** a lump drawn out along dir (a unit vector), `len` long and w thick, its middle at c: a bud, a root's tip going in */
+export function spindle(F: Floor, c: V3, dir: V3, len: number, w: number, col: number): void {
+  P(F, 'ico', c[0], c[2], w / ICO, len / ICO, w / ICO, col, { y: c[1] - len / 2, rz: Math.acos(clamp(dir[1], -1, 1)), ry: Math.atan2(dir[2], -dir[0]), c: 0 });
+}
+/** a flower: a tube `len` long and d thick from a along dir (a unit vector), and its mouth flared across the end of it,
+ *  w across and t thick; where its mouth is */
+function trumpet(F: Floor, a: V3, dir: V3, len: number, d: number, w: number, t: number, tube: number, mouth: number): V3 {
+  const m: V3 = [a[0] + dir[0] * len, a[1] + dir[1] * len, a[2] + dir[2] * len];
+  rod(F, a, m, d, tube);
+  P(F, 'ico', m[0], m[2], w / ICO, t / ICO, w / ICO, mouth, { y: m[1] - t / 2, rz: Math.acos(clamp(dir[1], -1, 1)), ry: Math.atan2(dir[2], -dir[0]), c: 0 });
+  return m;
 }
 /** a leaf out from where it grows (x, y, z): `len` long toward yaw, `wide` across, its tip let down `droop` (radians;
  *  less than none lifts it). A lump flattened to a slab, its midrib a ridge along the top */
@@ -121,21 +137,33 @@ export function bracket(F: Floor, x: number, y: number, z: number, yaw: number, 
   }
 }
 /** a head of flowers at (x, y, z): n of them on short stalks thrown out round yaw (within `spread` either way of it)
- *  and up, each a pale yellow tube with a flared mouth; some gone over to seed capsules (`pods`, a share) on an old one */
+ *  and up, each a pale yellow tube with a flared mouth (or in `cols`); some gone over to seed capsules (`pods`, a share)
+ *  on an old one */
 export function bloom(F: Floor, x: number, y: number, z: number, n: number, s: number, g: Grow,
-  o: { yaw?: number; spread?: number; pods?: number } = {}): void {
-  const yaw = o.yaw ?? 0, spread = o.spread ?? PI;
+  o: { yaw?: number; spread?: number; pods?: number; cols?: readonly number[] } = {}): void {
+  const yaw = o.yaw ?? 0, spread = o.spread ?? PI, cols = o.cols ?? BLOOM;
   for (let k = 0; k < n; k++) {
     const a = yaw + g.rnd(-spread, spread), e = g.rnd(0.45, 1.25), L = g.rnd(0.06, 0.15) * s;
     const end: V3 = [x + Math.sin(a) * Math.cos(e) * L, y + Math.sin(e) * L, z + Math.cos(a) * Math.cos(e) * L];
     rod(F, [x, y, z], end, 0.014 * s, STEM[0]);
     if (g.rnd(1) < (o.pods ?? 0)) { lump(F, end[0], end[1], end[2], 0.04 * s, 0.05 * s, 0.04 * s, g.pick(POD)); continue; }
     /* the tube out along its stalk, nodding a little, and its mouth across the end of it */
-    const e2 = e - g.rnd(0.1, 0.5), T = 0.08 * s, dir: V3 = [Math.sin(a) * Math.cos(e2), Math.sin(e2), Math.cos(a) * Math.cos(e2)];
-    const mouth: V3 = [end[0] + dir[0] * T, end[1] + dir[1] * T, end[2] + dir[2] * T];
-    rod(F, end, mouth, 0.03 * s, TUBE);
-    const w = 0.075 * s, t = Math.max(GROW.least, 0.022 * s);
-    P(F, 'ico', mouth[0], mouth[2], w / ICO, t / ICO, w / ICO, g.pick(BLOOM), { y: mouth[1] - t / 2, rz: Math.acos(clamp(dir[1], -1, 1)), ry: Math.atan2(dir[2], -dir[0]), c: 0 });
+    const e2 = e - g.rnd(0.1, 0.5), dir: V3 = [Math.sin(a) * Math.cos(e2), Math.sin(e2), Math.cos(a) * Math.cos(e2)];
+    trumpet(F, end, dir, 0.08 * s, 0.03 * s, 0.075 * s, Math.max(GROW.least, 0.022 * s), TUBE, g.pick(cols));
+  }
+}
+/** leaves up a stalk (`on`, the point on it at a height; d thick) from y0 to y1, n of them turned each from the last,
+ *  the lowest largest (`len`) and hanging heaviest, and the first to cure (`age`); none so low its tip is on the floor
+ *  (`fy`, its height) */
+function leaves(F: Floor, on: (y: number) => V3, d: number, y0: number, y1: number, n: number, len: number, fy: number, age: number, g: Grow): void {
+  let a = g.rnd(TAU);
+  for (let j = 0; j < n; j++) {
+    const t = (j + 0.5) / n, y = y0 + (y1 - y0) * t, L = len * (1.1 - 0.6 * t) * g.rnd(0.85, 1.1);
+    /* heaviest at the foot; never so far its tip is on the floor */
+    const droop = Math.min((0.15 + 0.6 * (1 - t)) * g.rnd(0.7, 1.2), Math.asin(clamp((y - fy - 0.03) / L, 0, 1)));
+    a += GROW.turn + g.rnd(-0.2, 0.2);
+    const [sx, , sz] = on(y), r = d * 0.3;
+    leaf(F, sx + Math.sin(a) * r, y, sz + Math.cos(a) * r, a, L, L * GROW.wide, droop, tone(age * 0.7 + (1 - t) * (0.25 + 0.6 * age) + g.rnd(-0.15, 0.15), g));
   }
 }
 
@@ -155,19 +183,193 @@ export function tobacco(F: Floor, x: number, z: number, h: number, o: { age?: nu
     const [a, b] = [pts[k], pts[k + 1]], f = clamp((y - a[1]) / (b[1] - a[1]), 0, 1);
     return [a[0] + (b[0] - a[0]) * f, y, a[2] + (b[2] - a[2]) * f];
   };
-  const n = Math.round(4 + 3 * h);
-  let a = g.rnd(TAU);
-  for (let j = 0; j < n; j++) {
-    const t = (j + 0.5) / n, y = y0 + h * (0.1 + 0.72 * t), len = (0.22 + 0.3 * h) * (1.1 - 0.6 * t) * g.rnd(0.85, 1.1);
-    /* heaviest at the foot; never so far its tip is on the floor */
-    const droop = Math.min((0.15 + 0.6 * (1 - t)) * g.rnd(0.7, 1.2), Math.asin(clamp((y - y0 - 0.03) / len, 0, 1)));
-    a += GROW.turn + g.rnd(-0.2, 0.2);
-    const [sx, , sz] = on(y), r = d * 0.3;
-    leaf(F, sx + Math.sin(a) * r, y, sz + Math.cos(a) * r, a, len, len * GROW.wide, droop, tone(age * 0.7 + (1 - t) * (0.25 + 0.6 * age) + g.rnd(-0.15, 0.15), g));
-  }
+  leaves(F, on, d, y0 + h * 0.1, y0 + h * 0.82, Math.round(4 + 3 * h), 0.22 + 0.3 * h, y0, age, g);
   if (o.bloom) {
     const [tx, ty, tz] = pts[3];
     bloom(F, tx, ty - 0.01, tz, Math.round(5 + 4 * h * g.rnd(0.6, 1)), 0.8 + 0.4 * h, g, { pods: age > 0.6 ? 0.4 : age > 0.4 ? 0.15 : 0 });
+  }
+}
+
+/* ---- flowering: rustica as the bush grows it up out of the floor, each plant its own way. Its flowers pale yellow,
+   cream or a deeper gold, plant by plant; spent ones gone to seed, buds green at the tips. Each may come up through the
+   floor and break it (`heave`) */
+/** the yellows one plant flowers in */
+function hue(g: Grow): readonly number[] {
+  const k = g.rnd(1);
+  return k < 0.45 ? BLOOM : k < 0.75 ? CREAM : GOLD;
+}
+/** a stalk up out of the floor at (x, z), from y0 to h over it, in n lengths d0 thick tapering to d1, its top leaning
+ *  `lean` toward yaw a (more toward its top): its points, and the point on it at a height */
+function stalk(F: Floor, x: number, z: number, y0: number, h: number, d0: number, d1: number, n: number, lean: number, a: number, g: Grow, c: number) {
+  const pts: V3[] = [[x, y0 - 0.02, z]];
+  for (let k = 1; k <= n; k++) {
+    const f = k / n;
+    pts.push([x + Math.sin(a) * lean * f * f + g.rnd(-0.012, 0.012), y0 + h * f, z + Math.cos(a) * lean * f * f + g.rnd(-0.012, 0.012)]);
+  }
+  for (let k = 0; k < n; k++) { const d = d0 + ((d1 - d0) * k) / n; rod(F, pts[k], pts[k + 1], d, c, d * 0.3); }
+  const on = (y: number): V3 => {
+    let k = 0;
+    while (k < n - 1 && pts[k + 1][1] < y) k++;
+    const a = pts[k], b = pts[k + 1], f = clamp((y - a[1]) / (b[1] - a[1]), 0, 1);
+    return [a[0] + (b[0] - a[0]) * f, y, a[2] + (b[2] - a[2]) * f];
+  };
+  return { pts, on };
+}
+/** a unit vector out toward yaw a and up e */
+const way = (a: number, e: number): V3 => [Math.sin(a) * Math.cos(e), Math.sin(e), Math.cos(a) * Math.cos(e)];
+/** t of the way along the curve from p0 to p2 that p1 pulls toward it (a quadratic one: it does not pass through p1) */
+export function curve(p0: V3, p1: V3, p2: V3, t: number): V3 {
+  const f = (i: number) => (1 - t) ** 2 * p0[i] + 2 * (1 - t) * t * p1[i] + t * t * p2[i];
+  return [f(0), f(1), f(2)];
+}
+
+/** a spire: one stem h tall up out of the floor at (x, z), broad leaf in a rosette at its foot and smaller up it, and
+ *  its top clothed all round in flowers, opening from the bottom: gone to seed there on an old one, in bud at the tip */
+export function spire(F: Floor, x: number, z: number, h: number, o: { age?: number; heave?: boolean; y?: number; g?: Grow } = {}): void {
+  const g = o.g ?? grower('spire', x, z), age = o.age ?? 0.35, y0 = o.y ?? 0, d = 0.03 + 0.014 * h, cols = hue(g);
+  if (o.heave) heave(F, x, z, 0.16 + 0.06 * h, { y: y0, g });
+  const { on } = stalk(F, x, z, y0, h, d, d * 0.45, 4, g.rnd(0.02, 0.06) * h, g.rnd(TAU), g, STEM[1]);
+  leaves(F, on, d, y0 + 0.06, y0 + 0.16, 6, 0.3 + 0.12 * h, y0, age + 0.15, g);
+  leaves(F, on, d, y0 + 0.25 * h, y0 + 0.5 * h, 3, 0.12 + 0.06 * h, y0, age, g);
+  const from = y0 + 0.52 * h, to = y0 + 0.97 * h, n = Math.round((to - from) / 0.045);
+  let a = g.rnd(TAU);
+  for (let k = 0; k < n; k++) {
+    const t = k / n, y = from + (to - from) * t, [sx, , sz] = on(y), r = d * 0.4 * (1 - 0.5 * t), s = 1 - 0.35 * t;
+    a += GROW.turn;
+    const at: V3 = [sx + Math.sin(a) * r, y, sz + Math.cos(a) * r];
+    if (t > 0.86) spindle(F, [at[0] + Math.sin(a) * 0.012, y + 0.03, at[2] + Math.cos(a) * 0.012], way(a, 1.2), 0.07, 0.03, BUD);
+    else if (t < age * 0.45) lump(F, at[0], y, at[2], 0.045, 0.06, 0.045, g.pick(POD));
+    else trumpet(F, at, way(a, g.rnd(0.15, 0.55)), 0.075 * s, 0.026, 0.085 * s, GROW.least, TUBE, g.pick(cols));
+  }
+}
+
+/** bells: a clump up out of the floor at (x, z), a short stalk in leaf, and stems arching out of it all round and down,
+ *  each hung with long trumpets, nodding, their mouths opened into lobes; h about how high its arches reach */
+export function bells(F: Floor, x: number, z: number, h: number, o: { age?: number; heave?: boolean; y?: number; g?: Grow } = {}): void {
+  const g = o.g ?? grower('bells', x, z), age = o.age ?? 0.3, y0 = o.y ?? 0, d = 0.035 + 0.02 * h, cols = g.rnd(1) < 0.6 ? CREAM : hue(g);
+  if (o.heave) heave(F, x, z, 0.2 + 0.06 * h, { y: y0, g });
+  const top = 0.42 * h, { pts, on } = stalk(F, x, z, y0, top, d, d * 0.75, 2, 0.02, g.rnd(TAU), g, STEM[1]);
+  leaves(F, on, d, y0 + 0.08, y0 + top * 0.9, 5, 0.28 + 0.12 * h, y0, age, g);
+  const T = pts[pts.length - 1];
+  /** a bell hung from p, nodding out toward a: a long tube down, its mouth opened into five lobes */
+  const bell = (p: V3, a: number, L: number) => {
+    const dir: V3 = [Math.sin(a) * 0.3, -1, Math.cos(a) * 0.3], k = 1 / Math.hypot(...dir), u: V3 = [dir[0] * k, dir[1] * k, dir[2] * k];
+    const m = trumpet(F, p, u, L, 0.045, 0.06, GROW.least, g.pick(CREAM), g.pick(cols)), turn = g.rnd(TAU);
+    for (let j = 0; j < 5; j++) { const b = turn + (j * TAU) / 5; leaf(F, m[0] + Math.sin(b) * 0.01, m[1], m[2] + Math.cos(b) * 0.01, b, L * 0.34, L * 0.26, g.rnd(0.35, 0.6), g.pick(cols)); }
+  };
+  for (let k = 0, n = 4 + Math.floor(g.rnd(3)); k < n; k++) {
+    const a = (k / n) * TAU + g.rnd(-0.3, 0.3), out = g.rnd(0.35, 0.5) * h, rise = g.rnd(0.45, 0.6) * h, B = g.rnd(0.25, 0.4) * h;
+    /* the arch: up out of the top, over, and down, a curve through three points */
+    const c1: V3 = [T[0] + Math.sin(a) * out * 0.35, T[1] + rise * 1.5, T[2] + Math.cos(a) * out * 0.35], c2: V3 = [T[0] + Math.sin(a) * out, T[1] + B, T[2] + Math.cos(a) * out];
+    const at = (t: number) => curve(T, c1, c2, t);
+    for (let j = 0; j < 4; j++) rod(F, at(j / 4), at((j + 1) / 4), d * 0.55 * (1 - 0.15 * j), STEM[0], 0.006);
+    bell(at(1), a, g.rnd(0.22, 0.34) * (0.8 + 0.2 * h));
+    if (g.rnd(1) < 0.6) bell(at(0.72), a + g.rnd(-0.6, 0.6), g.rnd(0.18, 0.28));
+  }
+}
+
+/** a candelabra: a stout stalk up out of the floor at (x, z), in leaf, forking into a crown of arms that fork again,
+ *  each tip a head of flowers; h about how high */
+export function candelabra(F: Floor, x: number, z: number, h: number, o: { age?: number; heave?: boolean; y?: number; g?: Grow } = {}): void {
+  const g = o.g ?? grower('candelabra', x, z), age = o.age ?? 0.4, y0 = o.y ?? 0, d = 0.045 + 0.02 * h, cols = hue(g);
+  if (o.heave) heave(F, x, z, 0.2 + 0.07 * h, { y: y0, g });
+  const fork = h * g.rnd(0.42, 0.52), { pts, on } = stalk(F, x, z, y0, fork, d, d * 0.85, 2, 0.02, g.rnd(TAU), g, age > 0.5 ? WOOD[1] : STEM[1]);
+  leaves(F, on, d, y0 + 0.1, y0 + fork * 0.92, 5, 0.3 + 0.15 * h, y0, age, g);
+  const arm = (from: V3, a: number, e: number, L: number, w: number, more: number) => {
+    const to: V3 = [from[0] + Math.sin(a) * Math.cos(e) * L, from[1] + Math.sin(e) * L, from[2] + Math.cos(a) * Math.cos(e) * L];
+    rod(F, from, to, w, STEM[0], w * 0.3);
+    if (more) {
+      leaf(F, to[0], to[1], to[2], a + g.rnd(-0.8, 0.8), 0.14 + 0.05 * h, (0.14 + 0.05 * h) * GROW.wide, g.rnd(0.2, 0.6), tone(age + g.rnd(-0.2, 0.2), g));
+      for (const s of [-1, 1]) arm(to, a + s * g.rnd(0.35, 0.7), Math.min(1.35, e + g.rnd(0.1, 0.4)), L * g.rnd(0.5, 0.7), w * 0.7, more - 1);
+    } else bloom(F, to[0], to[1], to[2], Math.round(g.rnd(4, 7)), 0.85, g, { pods: age > 0.6 ? 0.3 : 0, cols });
+  };
+  for (let k = 0, n = 3 + Math.floor(g.rnd(2)); k < n; k++) arm(pts[pts.length - 1], (k / n) * TAU + g.rnd(-0.3, 0.3), g.rnd(0.6, 0.9), (h - fork) * g.rnd(0.55, 0.7), d * 0.7, 1);
+}
+
+/** a cup: one great flower facing up on a stout stalk h tall up out of the floor at (x, z), bowed a little under it:
+ *  its mouth opened into a double ring of lobes round a deep gold throat, buds about it not yet open; `size`, its
+ *  lobes' length */
+export function cup(F: Floor, x: number, z: number, h: number, o: { age?: number; heave?: boolean; size?: number; y?: number; g?: Grow } = {}): void {
+  const g = o.g ?? grower('cup', x, z), age = o.age ?? 0.3, y0 = o.y ?? 0, d = 0.045 + 0.02 * h, s = o.size ?? 0.15 + 0.07 * h;
+  const cols = g.rnd(1) < 0.5 ? BLOOM : CREAM;
+  if (o.heave) heave(F, x, z, 0.2 + 0.06 * h, { y: y0, g });
+  const { pts, on } = stalk(F, x, z, y0, h, d, d * 0.75, 4, g.rnd(0.06, 0.14) * h, g.rnd(TAU), g, STEM[1]);
+  leaves(F, on, d, y0 + 0.08, y0 + 0.7 * h, 4 + Math.round(2 * h), 0.25 + 0.2 * h, y0, age, g);
+  const [tx, ty, tz] = pts[pts.length - 1], my = ty + s * 0.45, turn = g.rnd(TAU);
+  /* the throat up out of the top of the stalk, the lobes round its mouth, a ring of smaller gold ones inside them */
+  rod(F, [tx, ty - 0.02, tz], [tx, my, tz], s * 0.42, TUBE);
+  for (let k = 0; k < 5; k++) {
+    const a = turn + (k * TAU) / 5;
+    leaf(F, tx + Math.sin(a) * s * 0.15, my, tz + Math.cos(a) * s * 0.15, a, s, s * 0.85, -g.rnd(0.3, 0.55), age > 0.7 && g.rnd(1) < 0.4 ? CURED[2] : g.pick(cols));
+  }
+  for (let k = 0; k < 5; k++) {
+    const a = turn + ((k + 0.5) * TAU) / 5;
+    leaf(F, tx + Math.sin(a) * s * 0.08, my + 0.01, tz + Math.cos(a) * s * 0.08, a, s * 0.6, s * 0.5, -g.rnd(0.7, 1), g.pick(GOLD));
+  }
+  lump(F, tx, my + 0.02, tz, s * 0.3, s * 0.25, s * 0.3, GOLD[0]);
+  /* buds about it, on short stalks of their own */
+  for (let k = 0, n = 2 + Math.floor(g.rnd(3)); k < n; k++) {
+    const a = g.rnd(TAU), y = ty - g.rnd(0.05, 0.25) * h, p = on(y), u = way(a, g.rnd(0.6, 1.1)), L = g.rnd(0.12, 0.22);
+    const q: V3 = [p[0] + u[0] * L, p[1] + u[1] * L, p[2] + u[2] * L];
+    rod(F, p, q, 0.016, STEM[0]);
+    spindle(F, [q[0] + u[0] * 0.04, q[1] + u[1] * 0.04, q[2] + u[2] * 0.04], u, 0.1, 0.045, BUD);
+  }
+}
+
+/** a bed of it low over the floor about (x, z) out to r: broad leaf lying in a rosette, and short stems all through it,
+ *  each with a flower or two looking up; `inside`, where it may grow */
+export function bed(F: Floor, x: number, z: number, r: number, o: { n?: number; age?: number; inside?: (x: number, z: number) => boolean; g?: Grow } = {}): void {
+  const g = o.g ?? grower('bed', x, z), age = o.age ?? 0.25, cols = [...BLOOM, ...hue(g)];
+  for (let k = 0, n = Math.round(6 + 10 * r); k < n; k++) {
+    const a = g.rnd(TAU), q = r * 0.8 * Math.sqrt(g.rnd(1)), px = x + Math.sin(a) * q, pz = z + Math.cos(a) * q;
+    if (!o.inside || o.inside(px, pz)) flat(F, px, pz, 0, g.rnd(0.25, 0.45), tone(age + g.rnd(-0.2, 0.35), g), g);
+  }
+  for (let k = 0, n = o.n ?? Math.round(10 + 25 * r * r); k < n; k++) {
+    const a = g.rnd(TAU), q = r * Math.sqrt(g.rnd(1)), px = x + Math.sin(a) * q, pz = z + Math.cos(a) * q, lean = g.rnd(TAU), l = g.rnd(0, 0.06);
+    if (o.inside && !o.inside(px, pz)) continue;
+    const tip: V3 = [px + Math.sin(lean) * l, g.rnd(0.12, 0.42), pz + Math.cos(lean) * l];
+    rod(F, [px, -0.01, pz], tip, 0.012, STEM[0]);
+    for (let j = 0, m = g.rnd(1) < 0.4 ? 2 : 1; j < m; j++) trumpet(F, tip, way(g.rnd(TAU), g.rnd(0.9, 1.4)), 0.045, 0.016, 0.065, GROW.least, TUBE, g.pick(cols));
+  }
+}
+
+/* ---- where it has broken the station's concrete */
+/** a crack run across a surface from (x, y, z), `len` long: on a floor or under a ceiling along yaw a; on a wall that
+ *  looks out `on` (a yaw) at angle a from straight up, toward its right as you face it. Dark, and a hair proud of it */
+export function crack(F: Floor, x: number, y: number, z: number, a: number, len: number, on: 'floor' | 'ceiling' | number): void {
+  const w = 0.014, t = 0.006;
+  if (on === 'floor' || on === 'ceiling') {
+    P(F, 'box', x + (Math.sin(a) * len) / 2, z + (Math.cos(a) * len) / 2, len, t, w, HOLE, { y: on === 'floor' ? y : y - t, ry: a - PI / 2, c: 0 });
+    return;
+  }
+  const nx = Math.sin(on), nz = Math.cos(on), ux = Math.cos(on), uz = -Math.sin(on), h = len / 2;
+  P(F, 'box', x + nx * t + ux * Math.sin(a) * h, z + nz * t + uz * Math.sin(a) * h, w, len, t, HOLE, { y: y + Math.cos(a) * h - h, rz: -a, ry: on, c: 0 });
+}
+/** rubble fallen on the floor (or whatever is y under it) about (x, z) out to r: n bits of broken concrete, some of
+ *  them in the finish they broke from (`c`) */
+export function rubble(F: Floor, x: number, z: number, r: number, n: number, c: number, g: Grow, y = 0): void {
+  for (let k = 0; k < n; k++) {
+    const a = g.rnd(TAU), q = r * Math.sqrt(g.rnd(1)), px = x + Math.sin(a) * q, pz = z + Math.cos(a) * q, s = g.rnd(0.05, 0.16), col = g.rnd(1) < 0.4 ? c : g.pick(CONCRETE);
+    if (g.rnd(1) < 0.6) P(F, 'ico', px, pz, s, s * g.rnd(0.5, 0.9), s * g.rnd(0.7, 1), col, { y, ry: g.rnd(PI), c: 0 });
+    else P(F, 'box', px, pz, s * 1.2, s * 0.45, s * 0.9, col, { y, ry: g.rnd(PI), c: 0 });
+  }
+}
+/** the floor broken up about (x, z) out to r, where something has come up through it: a dark hole, slabs of the floor
+ *  heaved up round it with their inner edges lifted, rubble, and cracks run out across it. `c`, the floor's colour
+ *  (else its room's) */
+export function heave(F: Floor, x: number, z: number, r: number, o: { c?: number; y?: number; g?: Grow } = {}): void {
+  const g = o.g ?? grower('heave', x, z), c = o.c ?? roomAt(F, x, z)?.fl ?? 0x6a6660, y = o.y ?? 0;
+  P(F, 'cyl', x, z, r * 1.2, 0.01, r * 1.2, HOLE, { y: y + 0.001, c: 0 });
+  for (let k = 0, n = 5 + Math.floor(g.rnd(3)); k < n; k++) {
+    const a = (k / n) * TAU + g.rnd(-0.3, 0.3), L = g.rnd(0.7, 1.1) * r, W = g.rnd(0.6, 1) * r, t = g.rnd(0.05, 0.09), tip = g.rnd(0.18, 0.5), q = r * 0.55 + L * 0.4;
+    /* tipped about its middle, its outer edge a centimetre into the floor and its inner edge lifted */
+    const cy = (L / 2) * Math.sin(tip) + (t / 2) * Math.cos(tip) - 0.01;
+    P(F, 'box', x + Math.sin(a) * q, z + Math.cos(a) * q, L, t, W, g.rnd(1) < 0.7 ? c : g.pick(CONCRETE), { y: y + cy - t / 2, rz: -tip, ry: a - PI / 2, c: 0 });
+  }
+  rubble(F, x, z, r * 1.6, 4 + Math.floor(g.rnd(5)), c, g, y);
+  for (let k = 0, n = 3 + Math.floor(g.rnd(3)); k < n; k++) {
+    const a = g.rnd(TAU), r0 = r * g.rnd(1, 1.3);
+    crack(F, x + Math.sin(a) * r0, y, z + Math.cos(a) * r0, a + g.rnd(-0.4, 0.4), g.rnd(0.3, 0.8) * (0.5 + r), 'floor');
   }
 }
 
