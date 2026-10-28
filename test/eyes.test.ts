@@ -86,7 +86,7 @@ describe('the armed rooms', () => {
       hold(s, 0.5);
       for (const m of rounds) if (m.state === 'idle') expect(s.world.roomAt(m.x, m.y + 0.5, m.z)?.armed ?? false, `${m.id} at ${t}`).toBe(false);
     }
-  });
+  }, 30_000); // a minute and a half of the level, 8 s alone: past the default 10 s with the suite on four cores
 });
 
 describe('cameras', () => {
@@ -315,7 +315,7 @@ describe('lockdown', () => {
     soundZone(s, 'muster');
     hold(s, 0.1);
     const drawn = zoneDoors(s, 'muster').filter(d => d.drawing > 0);
-    expect(drawn.map(d => d.def.circuit).sort()).toEqual(['HALL', 'HALL', 'HALL', 'OPS']); // the electrical room's, the range's, the training room's, the duty office's
+    expect(drawn.map(d => d.def.circuit).sort()).toEqual(['HALL', 'HALL', 'HALL', 'HALL', 'OPS']); // the electrical room's, the range's, the training room's, the hall's comms cupboard's, the duty office's
     expect(sounded(s, 'bolt-draw')).toBe(true);
     expect(drawn.some(d => d.down)).toBe(false); // time to get through
     hold(s, LOCKDOWN.draw);

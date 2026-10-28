@@ -5,7 +5,7 @@ import {
 } from '../build/plan';
 import { ARRIVAL, HISTORY, STAGES, WELCOME, stageAt } from '../exhibit';
 import {
-  BAY, FAM, MED, OFF, OPS, SEC, UTIL, WALK, blood, callPoint, camera, container, corpse, desk, eggs, exitSign, forklift, genset, gore, grandStair, liftRoom, medbed, monitors, panel, POLE, shelf, speaker, tbl,
+  BAY, FAM, MED, OFF, OPS, SEC, UTIL, WALK, blood, callPoint, camera, comms, container, corpse, desk, eggs, exitSign, forklift, genset, gore, grandStair, liftRoom, medbed, monitors, panel, POLE, shelf, speaker, tbl,
 } from '../build/furnish';
 
 /** the block skim-coated smooth: the corridors the wing's people walked every day */
@@ -199,6 +199,10 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   camera(T1, 14.8, 0.8, 3.5, 0.79, 'SEC', 'wing', { name: 'Checkpoint' });
   camera(T1, 11.6, 11.6, 4, -2.66, 'SEC', 'wing', { name: 'Surface landing' });
   camera(D, 11.2, -1.2, 2.8, -1.17, 'SEC', 'wing', { name: 'Shaft station' });
+  /* behind the booth, the wing's comms cupboard (world.md §8, Security at the station's size, 9): the switch its cameras
+     run on, on the wing's own feed and none behind it, which is why the survivors' cut blinded them all */
+  room(T1, 'Comms: wing', 30.5, 8, 2.5, 3, { ...SEC, c: 'SEC', ht: 2.8, zone: 'wing' }); door(T1, 30.25, 9.5, { plain: true, sg: [['Comms', 'w']] });
+  comms(T1, 'SEC', 33, 9.75, 'w', 2.8, 'The switch the wing\'s cameras run on, a cable down to each and one away to the head end. On the wing\'s own feed, with no battery behind it.');
   bx(T1, 14.8, 4, 0.45, 0.42, 2.6, 0x5f6266); bx(T1, 14.3, 10.4, 0.5, 1.8, 1.4, 0x56636e); // a bench clear of the door from the hall, a cabinet
   corpse(T1, 22.8, 4.4, 0x2c3440, true, { label: 'Officer', say: 'A security officer. Whatever opened him did it from behind.', keys: ['s'] });
 
@@ -238,8 +242,8 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   bx(D, -3.8, -9.6, 0.4, 0.05, 0.25, 0x5a6a50, { y: 0.01, ry: 0.6, c: 0 }); P(D, 'cyl', 2.6, -9.8, 0.08, 0.3, 0.08, 0x355530, { y: -0.11, rz: 1.5, c: 0 }); // a bottle, dropped (on its side: its middle 4 cm up)
   /* its walnut, gone soft in the wet since the air plant's dehumidifiers stopped (world.md §1, Decay): the veneer of its
      front let go at the seams, a sheet standing off it at one end */
-  for (const [x, ry] of [[-4.6, 0.05], [-1.3, -0.04], [2.2, 0.06]] as const) bx(D, x, -7.03, 1.6, 0.9, 0.012, 0x5a3e2c, { y: 0.05, ry, c: 0 });
-  use(D, 'look', -1.3, -7, 0.7, { label: 'Bar', text: 'Walnut, and gone soft since the air went wet: the veneer of its front has let go at the seams and stands off it.' });
+  for (const [x, ry] of [[-4.6, 0.07], [-1.3, -0.06], [2.2, 0.08]] as const) bx(D, x, -7.77, 1.6, 0.9, 0.012, 0x6a4a32, { y: 0.05, ry, c: 0 }); // paler where the wet got in
+  use(D, 'look', -1.3, -7.9, 0.7, { label: 'Bar', text: 'Walnut, and gone soft since the air went wet: the veneer of its front has let go at the seams and stands off it.' });
   /* its eye: one high in the north-east corner, over the lounge; the lobby is a public room, not armed, so it records */
   camera(D, 29.2, -27.2, 9, -0.79, 'SEC', 'wing', { name: 'Lobby' }); // looking south-west, over the lounge to the stair
 
@@ -446,6 +450,10 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   /* the atrium's eye: one on the threshold from the south-west corner, which only records (the atrium is not armed);
      its speaker high in the well by the east gallery's rail, out of reach but from there */
   speaker(D, 'atrium', 83.4, 9.2, 'CRIT'); camera(D, 68.6, 11.2, 3.8, PI, 'OPS', 'atrium');
+  /* Ops' comms cupboard (world.md §8, Security at the station's size, 9), off the atrium's north arm: the switch its
+     camera and the outer office's run on */
+  room(D, 'Comms: operations', 88.5, -11.5, 2.5, 3, { ...SEC, c: 'OPS', ht: 2.8, zone: 'atrium' }); door(D, 88.25, -9.5, { plain: true, sg: [['Comms', 'w']] });
+  comms(D, 'OPS', 91, -9.75, 'w', 2.8, 'The switch the atrium\'s camera and the outer office\'s run on, a cable down to each and one away to the head end. On Ops\' own feed, with no battery behind it.');
   /* where the light changes, it starts: eggs at the threshold, on their side */
   eggs(D, 68.8, -3.2, 2); eggs(D, 68.6, 1.2, 3); blood(D, 82.6, 8.6, 1.4);
   /* the second leg: south from the atrium between the offices, and out into the muster hall */
@@ -679,6 +687,13 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   use(D, 'look', 8.1, 27, 1.6, { label: 'Whiteboard', text: 'RESPONSE TEAM PT, 06:00. FITNESS TESTS THIS MONTH. Under it, in another hand: COURT BOOKED FRIDAY. A v B.' });
   speaker(D, 'muster', 29, 36, 'CRIT');
   camera(D, 38.2, 36, 7.6, PI / 2, 'HALL', 'muster', { name: 'Muster court' }); camera(D, 79.4, 24.6, 4, -PI / 4, 'EAST', 'ops', { name: 'East bays' });
+  /* their comms cupboards, one a breaker (world.md §8, Security at the station's size, 9): the hall's off its west
+     wall, which the court's camera and the armed rooms' off the hall run on; the east bays' off theirs, for the bays'
+     camera and the operations stair's */
+  room(D, 'Comms: muster hall', 19, 45, 2.5, 3, { ...SEC, c: 'HALL', ht: 2.8, zone: 'muster' }); door(D, 21.75, 46.5, { plain: true, sg: [['Comms', 'e']] });
+  comms(D, 'HALL', 19, 46.75, 'e', 2.8, 'The switch the hall\'s cameras run on, the court\'s and those in the rooms off it, a cable down to each and one away to the head end. On the hall\'s breaker, with no battery behind it.');
+  room(D, 'Comms: east bays', 80.5, 41.5, 2.5, 3, { ...SEC, c: 'EAST', ht: 2.8, zone: 'ops' }); door(D, 80.25, 42.5, { plain: true, sg: [['Comms', 'w']] });
+  comms(D, 'EAST', 83, 42.75, 'w', 2.8, 'The switch the east bays\' camera and the operations stair\'s run on, a cable down to each and one away to the head end. On the bays\' breaker, with no battery behind it.');
 
   /* west, off the hall's far end: the electrical room, and the one who came for it. Armed: its camera hangs over the
      door looking across at the board, so the way to the board is in its view. The board breaks Ops' feed out to the hall

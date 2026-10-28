@@ -1108,7 +1108,14 @@ builder takes them.
 
    And the comms cupboards: every camera is fed from one, a cupboard an area on that area's branch (*One control
    room*), and none is built. A closet in each zone. **Open:** whether smashing one blinds its cameras, which would be a
-   new answer to them.
+   new answer to them. **Built**, one a branch rather than one a zone, since the ops zone's cameras hang off two (Ops'
+   and the east bays'): four closets of painted block behind plain doors, each with its rack (the switch, the patch
+   panel over it, the tray of cables up the wall), its link lights lit with the branch and dark with it, and a look that
+   says which cameras it feeds and that no battery stands behind it. The wing's behind the checkpoint booth, on the second
+   floor; Ops' off the atrium's north arm; the hall's off its west wall, for the court's camera and the armed rooms'
+   off the hall; the east bays' off their east wall, for theirs and the operations stair's. Dressing only: smashing one
+   does nothing yet, so the question stays open. On their branches and in their zones, so a lockdown bolts their doors
+   with the rest. Four new doors, so saves are made new (version 24).
 
 *Places to be larger, a pocket for something of its own, or a way through to somewhere else:*
 
@@ -1144,8 +1151,9 @@ builder takes them.
 
 **The order (agreed):** one at a time, in the list's order (the owner), each its own change: the arrival hall (1), the
 dock (2), Operations' offices (3), Maintenance with Ops' set (4), administration (5), the lobby's washrooms with
-screening (6), the showers, training room and court (7), the bar's kitchen (8), and the air plant (9) are built; the
-comms cupboards, the rest of 9, are next.
+screening (6), the showers, training room and court (7), the bar's kitchen (8), and the air plant with the comms
+cupboards (9) are built. The pings, 10 to 15, are next: design work, each talked through with the owner before it is
+built.
 
 **Being found (as built; the changed's wit is *The second pass*, to come)**
 

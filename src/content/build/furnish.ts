@@ -1,6 +1,6 @@
 import { PI, TAU } from '../../core/math';
 import { DUG } from '../materials';
-import { P, bx, colT, door, holds, item, mut, owns, pick, rnd, room, stain, stairs, use, type Floor, type PRoom, type RoomOpts } from './plan';
+import { P, bx, colT, door, holds, item, mut, owns, pick, rnd, room, stain, stairs, use, type Col, type Floor, type PRoom, type RoomOpts } from './plan';
 
 /* The station's furniture, clutter and fittings (the first engine's, ported as they were, so the station looks as it
    did), in plan metres; their randomness comes from the level's own seed. */
@@ -248,6 +248,27 @@ export function callPoint(F: Floor, x: number, z: number, face: 'n' | 's' | 'e' 
   bx(F, x, z, ew ? 0.1 : 0.17, 0.17, ew ? 0.17 : 0.1, 0xb3261e, { y: 1.32, c: 0 });
   bx(F, x + (ew ? o * 0.052 : 0), z + (ew ? 0 : o * 0.052), ew ? 0.01 : 0.07, 0.07, ew ? 0.07 : 0.01, 0xe8e2d4, { y: 1.37, c: 0 });
   use(F, 'call', x + (ew ? o * 0.18 : 0), z + (ew ? 0 : o * 0.18), 1.4, { zone, face });
+}
+/** a comms cupboard's rack, its back on the wall whose face is at (x, z), read from `face` (world.md §8, *One control
+ *  room*): the switch a branch's cameras run on, a cable down to each and one away to the head end, its link lights on
+ *  circuit c, the branch's own, with no battery behind it; the patch panel over it, and the cables up the wall in their
+ *  tray to the ceiling, h over the floor. What a look at it says is `text` */
+export function comms(F: Floor, c: string, x: number, z: number, face: 'n' | 's' | 'e' | 'w', h: number, text: string): void {
+  const ew = face === 'e' || face === 'w', o = face === 'e' || face === 's' ? 1 : -1;
+  /* a point d out from the wall and a along it */
+  const at = (d: number, a: number): [number, number] => (ew ? [x + o * d, z + a] : [x + a, z + o * d]);
+  const slab = (d: number, a: number, w: number, t: number, ht: number, col: Col, y: number, pw?: [Col, Col]) => {
+    const [px, pz] = at(d, a);
+    bx(F, px, pz, ew ? t : w, ht, ew ? w : t, col, { y, c: 0, ...(pw ? { pw, pc: c } : {}) });
+  };
+  const [rx, rz] = at(0.3, 0);
+  bx(F, rx, rz, 0.6, 2, 0.6, 0x2c2f33, { mat: 'steel' }); // the rack
+  slab(0.61, 0, 0.48, 0.02, 0.09, 0xb8bcc0, 1.5); // the patch panel, its cables looped down
+  slab(0.61, 0, 0.48, 0.02, 0.09, 0x3a3d40, 1.35); // the switch
+  for (let k = 0; k < 8; k++) slab(0.625, -0.2 + k * 0.057, 0.03, 0.01, 0.015, [0.04, 0.05, 0.04], 1.39, [[0.04, 0.05, 0.04], [0.4, 2.6, 0.6]]); // its link lights
+  slab(0.04, 0, 0.3, 0.08, h - 2, 0x5f6266, 2); // the tray, up the wall from the rack's top
+  const [ux, uz] = at(0.75, 0);
+  use(F, 'look', ux, uz, 1.4, { label: 'Comms cupboard', text });
 }
 /** a zone's speaker, in the ceiling over (x, z): where its alarm sounds and whatever answers it comes. It is wired from
  *  its PA system (`pa`, a circuit), not from the room it hangs in */

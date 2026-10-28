@@ -40,8 +40,9 @@ import { makeSim, type Sim, type SimOpts } from './sim';
  *  20: administration, its ID office and the administrator's: again
  *  21: the lobby's washrooms, and screening's door to the nurses' station back: again
  *  22: the locker room's showers and toilets, and the training room: again
- *  23: the bar's kitchen, its service stair and pantry: again */
-export const SAVE_VERSION = 23;
+ *  23: the bar's kitchen, its service stair and pantry: again
+ *  24: the comms cupboards, one a camera branch: again */
+export const SAVE_VERSION = 24;
 
 /** copy the named fields of an object */
 const pick = <T extends object, K extends keyof T>(o: T, keys: readonly K[]): Pick<T, K> => {
