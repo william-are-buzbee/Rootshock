@@ -1,4 +1,129 @@
-# Handoff: Security, second pass
+# Handoff: Security at the station's size
+
+For whoever picks this up in a new session. The branch is `claude/quirky-meitner-24eyvm`, opened as
+william-are-buzbee/Rootshock#121; once that is merged, start from `main`. The two handoffs before this one are kept below:
+their asks, tools and open items still stand.
+
+## The design, and where it is
+
+- `docs/world.md` §1, *Who lives here* (proposed): sized as it would really be, the station holds about 500 at any time
+  (about 1,000 on the books, on rotation). What each level wants for that many, what being underground asks, and the
+  rule: more station, not more monsters.
+- `docs/world.md` §8, *Security at the station's size*: the list. 1 to 9 are rooms that were laid down as boxes in a
+  first pass; 10 to 15 are places to grow later (a pocket for something of its own, or a way through). Each one built has
+  a **Built:** note in its entry, and the order line at the end of the list says what is next.
+
+## The order (agreed)
+
+One at a time, in the list's order, each its own commit: the owner asks for each in turn ("do X next"). 1 to 8 are
+built. Next is 9, the air plant (two or three times the size, ducts that can be crawled). Then the pings, 10 to 15: those
+are design work, so talk each through with the owner before building it. 12, 13 and 15 add ways round gates, so each
+wants a gate decided and the progression checker; 14 has lore open (which of the family sampled the trial lots).
+
+## Where things are
+
+- All of it is in `src/content/levels/upper.ts`; search by room name, since line numbers drift. In `buildUpper`: the
+  arrival hall ('Surface landing'), the dock ('Goods inward'), the Ops suite ('Office: operations', 'Outer office',
+  'Office: chief of security', 'Records', 'Conference room'), 'Maintenance' with its 'Generator room' and 'Fuel store',
+  'Showers' and 'Toilets' after the locker room, and the 'Training room' and the court's lines before the muster
+  speaker. In `buildHub`: 'Administration' with its 'ID office' and 'Office: administration', 'Screening' with
+  'Ladies' and 'Gentlemen', and at its end the 'Kitchen', 'Service stair', 'Pantry', 'Back passage', and the walk-ins
+  off the service passage.
+- New papers in `content/notes.ts`: `sealed` (the incident report in records) and `orders` (Maintenance's work orders).
+  The arrival hall's board is `ARRIVAL` in `content/exhibit.ts`, drawn as the house's board (`render/exhibit.ts`). Their
+  words, and the look texts on the new rooms, are placeholders for the owner.
+- Saves are version 23 (`sim/save.ts`). Bump it, with a line in its list, whenever the level's doors change (a new door
+  shifts the order every door after it is saved in).
+
+## What was learned: the rules the layout keeps
+
+- **The nav lattice is 1 m, its spots at x.5 and z.5.** A single door (1.2 m) must be centred within 0.3 m of a .5
+  line, or no spot stands in its opening and the cast cannot use it (the chiller's door at 7.25 failed; at 7.4 it
+  passes). Pairs and shutters are 2 m and more forgiving. The same holds for any gap: the opening in a cage, between
+  props, round a table. A spot needs 0.3 m clear all round.
+- **Stairs between floors** are a ramp under drawn steps, and the nav links spots a metre apart only if they differ by
+  less than STEP_UP (0.5 m). So a 4.5 m rise wants 10 m of run: every stair on the level is 0.45 m a metre.
+  `stairs()` makes the hole a room on the upper floor. The room under it on the lower floor wants `nolamp`, or its
+  ceiling fittings hang over the hole (the placement test says so).
+- **A door's frame runs past its opening.** The rooms either side must reach past it too, or the frame runs into rock
+  (placement: "runs into a wall").
+- **Props stand on the floor of the room they are in,** a sunken one too (`floorAt` adds the room's `dy`). A fitting must
+  touch what holds it (a wall, a rail, the ceiling) by a hair, not stand a centimetre off it ("hangs in the air").
+  Anything on a board must be within the board's edges ("off its edge").
+- **Two rooms touching side by side are one space.** The meant contacts are listed in `test/contacts.test.ts`. Leave
+  half a metre (a partition) or more between rooms that should be walled.
+- **Zones.** A new room takes its alarm zone from the `ZONES` table at the end of `buildUpper`, or from `wing` in
+  `buildHub`. A lockdown bolts the zone's doors that have power, and `test/eyes.test.ts` counts them. It also counts the
+  ways into armed rooms ("the camera is the tell"): a new door into one must be in sight of its camera.
+- **The tests can pass with a door blocked.** "Every room reachable" is satisfied if a room can be reached some other
+  way. After adding any door, run the loops probe and check that the new link is listed:
+  `LINKS=1 LEVEL=upper npx vitest run --config test/probes/vitest.config.ts loops`. It caught the pantry's cupboard
+  standing in its door. The upper station has six loops now.
+- **Listing the spots nobody can reach.** `test/cast.test.ts` ("reaches every room") gives only a count. To see where
+  they are, drop a throwaway probe into `test/probes/` and delete it after:
+
+      import { it } from 'vitest';
+      import { field, openRules } from '../../src/world/nav';
+      import { fresh } from '../kit';
+      it('unreached', () => {
+        const s = fresh(), nav = s.fields!.nav, b = s.player.body, d = field(nav, nav.locate(b.x, b.y, b.z), openRules(nav));
+        d.forEach((v, i) => { if (v === Infinity) console.log(nav.x[i], nav.y[i], nav.z[i], s.world.rooms[nav.room[i]]?.name); });
+      });
+
+- **Keep calls off comment lines.** Screening's door to the nurses' station sat at the end of a `//` comment from the
+  port to the metric kit until this branch, so screening and check-in were dead ends and nobody noticed.
+
+## Seeing it
+
+Headless Chromium, as the older handoff says: put the script below in your scratchpad, serve the game with
+`npx vite --port 5173`, and run it with `NODE_PATH=$(npm root -g) node look.cjs <out dir> <url> '<views>' [hold|torch]`.
+The url is `http://localhost:5173/?dev&level=upper&power=full` (everything lit); `hold` presses U so the cast stand
+still; `torch` turns your flashlight on. Each view is `{"n": name, "x", "y", "z", "yaw", "pitch"}`: y is the floor's
+height (0 the ground floor, -4.5 the suite's level, 5 the second floor); yaw 0 looks north (-z), π/2 west, -π/2 east,
+π south.
+
+    const { chromium } = require('playwright');
+    const OUT = process.argv[2], URL = process.argv[3], views = JSON.parse(process.argv[4]), extra = process.argv[5] || '';
+    (async () => {
+      const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+      const p = await b.newPage({ viewport: { width: 960, height: 540 } });
+      await p.goto(URL); await p.waitForFunction(() => window.rs?.sim, null, { timeout: 60000 });
+      await p.waitForSelector('[data-go="new"]', { timeout: 60000 }).then(e => e.click()).catch(() => {});
+      await p.waitForTimeout(1500);
+      if (extra === 'hold') { await p.keyboard.press('KeyU'); await p.waitForTimeout(300); }
+      for (const v of views) {
+        await p.evaluate(([v, extra]) => {
+          const s = window.rs.sim, pl = s.player, bd = pl.body;
+          bd.x = v.x; bd.z = v.z; bd.y = v.y; bd.vx = bd.vz = bd.vy = 0; bd.sync?.();
+          pl.yaw = v.yaw; pl.pitch = v.pitch ?? 0; pl.fly = false;
+          if (extra === 'torch') { s.game.light = 'flash'; s.game.lightOn = true; s.game.batt = 100; }
+        }, [v, extra]);
+        await p.waitForTimeout(2500);
+        await p.screenshot({ path: `${OUT}/${v.n}.png`, timeout: 180000 });
+      }
+      await b.close();
+    })();
+
+SwiftShader takes 30 to 60 s a frame. Run it in the background, six frames or fewer a run: the container restarted once
+in the middle of a longer one, so commit before shooting. The first frame often comes out black, or under the title
+menu, so shoot a warm-up frame first. Stop the dev server when done.
+
+A plan of a level is the quickest way to see where there is room to grow: dump `levelDef(STATION, 'upper').rooms` (name,
+x0 to x1, z0 to z1, y0, ht) from a throwaway probe and draw each floor. The annotated plan the list was worked out on
+was made that way (not kept).
+
+## Asks for this step
+
+- Per room: `npm run check`, look at it in the built game, write a **Built:** note into its world.md entry and move the
+  order line on, commit with a prose body saying why, push. One commit a room.
+- Keep new rooms in the finish of their route (world.md §1, *Finish by route*) and on the power and zone of the rooms
+  round them, unless the owner says otherwise.
+- No new threats in the reworks: new rooms get evidence of the 500, not monsters (world.md §1, *More station, not more
+  monsters*).
+
+---
+
+# The previous handoff: Security, second pass
 
 For whoever picks this up in a new session. The design was settled in conversation and written into `docs/world.md`; this
 is the map from it to the code, and the order to build it in. The previous handoff (bodies with physics) is kept at the
