@@ -21,7 +21,8 @@ import { noInput, type Input } from './input';
    on it: each of its doors with power to move is bolted, heard being drawn for a second before it goes home (time to
    get through), its light red, and it holds while the alarm sounds. A door without power cannot be bolted, and one that
    loses its power lets its bolt go: exits fail safe. The answers: keep out of the armed rooms or out of the cone,
-   freeze, cut its power, or smash it (loud); or smash the zone's speaker (as loud), and the zone has no voice. */
+   freeze, cut its power, or smash it (loud); or smash the switch in its branch's comms cupboard (as loud), and every
+   camera on the branch is blind; or smash the zone's speaker (as loud), and the zone has no voice. */
 
 export interface Cam {
   def: CameraDef;
@@ -121,8 +122,9 @@ export function heard(sim: Sim, zone: string): boolean {
   return !S?.pa || power(sim.game, S.pa) >= 1;
 }
 
-/** it can see: whole, and with power to it */
-export const camLive = (sim: Sim, c: Cam): boolean => !c.broken && power(sim.game, c.def.circuit) >= 1;
+/** it can see: whole, its branch's switch whole (it is fed through it: world.md §8, One control room), and with power
+ *  to it */
+export const camLive = (sim: Sim, c: Cam): boolean => !c.broken && !sim.blind.includes(c.def.circuit) && power(sim.game, c.def.circuit) >= 1;
 
 /** it sees you: within its cone and its range for the light you are in, and nothing in the way */
 export function camSees(sim: Sim, c: Cam): boolean {

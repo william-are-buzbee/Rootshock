@@ -4,7 +4,7 @@ import { step, type Sim } from '../src/sim/sim';
 import { noInput, type Input } from '../src/sim/input';
 import { STEP } from '../src/core/loop';
 import { give, power } from '../src/sim/game';
-import { EYES, LOCKDOWN, doorZones, onScreen, soundZone } from '../src/sim/eyes';
+import { EYES, LOCKDOWN, camLive, doorZones, onScreen, soundZone } from '../src/sim/eyes';
 import { doorAct, doorLabel, findUsable } from '../src/sim/interact';
 import { load, save } from '../src/sim/save';
 import { free, pace as paceOf } from '../src/sim/cast';
@@ -203,6 +203,35 @@ describe('cameras', () => {
     pace(t, 2);
     expect(d.hold).toBe(0);
     expect(t.alarms).toEqual([]);
+  });
+
+  it('smash the switch in a comms cupboard and its branch\'s cameras are blind: read first, not with bare hands, loud, and kept', () => {
+    const s = fresh(), c = board(s);
+    still(s);
+    const sw = s.usables.find(u => u.label() === 'Comms cupboard' && s.world.roomAt(u.x, u.y, u.z)?.name === 'Comms: muster hall')!;
+    s.game.events.length = 0;
+    sw.act(); // read: what it feeds
+    expect(s.game.events.some(e => e.type === 'say' && /hall's cameras/.test(e.text))).toBe(true);
+    sw.act();
+    expect(s.blind).toEqual([]); // bare hands
+    give(s.game, 'baton');
+    expect(sw.label()).toBe('Smash the switch');
+    s.game.noiseI = 0;
+    sw.act();
+    expect(s.blind).toEqual(['HALL']);
+    expect(s.game.noiseI).toBeGreaterThanOrEqual(14);
+    expect(sw.label()).toBeNull();
+    /* the hall's cameras all blind, the electrical room's guard among them; another branch's sees on */
+    expect(s.cams.filter(q => q.def.circuit === 'HALL').length).toBe(4);
+    for (const q of s.cams) if (q.def.circuit === 'HALL') expect(camLive(s, q)).toBe(false);
+    expect(camLive(s, threshold(s))).toBe(true);
+    inside(s);
+    pace(s, 2);
+    expect(c.hold).toBe(0);
+    expect(s.alarms).toEqual([]);
+    const a = load(level, JSON.parse(JSON.stringify(save(s))), { seed: 7, station: STATION });
+    expect(a.blind).toEqual(['HALL']);
+    expect(camLive(a, board(a))).toBe(false);
   });
 
   it('the wing\'s guards its corridor, dead until the cut is mended', () => {
@@ -509,6 +538,13 @@ describe('the booth\'s monitors', () => {
   it('a camera smashed sends nothing', () => {
     const s = mended();
     s.cams.find(c => c.def.name === 'Lobby')!.broken = true;
+    console_(s).act();
+    expect(onScreen(s)!.live).toBe(false);
+  });
+
+  it('with the wing\'s comms switch smashed, none of its feeds sends anything', () => {
+    const s = mended();
+    s.blind.push('SEC');
     console_(s).act();
     expect(onScreen(s)!.live).toBe(false);
   });

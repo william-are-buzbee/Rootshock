@@ -15,7 +15,10 @@ order below, *The order (agreed)*).
 - `src/content/levels/upper.ts`, in `buildHub`: 'Air plant' (two boxes on T2, +10), the 'Duct' (one box on T2 and five on
   T1 with `dy`), and the grille's frame in the 'Staff mess'. In `buildUpper`: the bar's veneer, in the lobby; 'Comms:
   wing' after the booth's cameras, 'Comms: operations' after the atrium's, 'Comms: muster hall' and 'Comms: east bays'
-  after the court's. The rack is `comms()` in `content/build/furnish.ts`.
+  after the court's. The rack is `comms()` in `content/build/furnish.ts`; its switch is a use of kind `comms`
+  (`sim/interact.ts`: read, then smashed), drawn whole or hanging by `present/render/things.ts`. A smashed switch puts
+  its branch in `Sim.blind`, which `camLive` (`sim/eyes.ts`) reads, so detection, the cameras' lights and the screens'
+  feeds all follow; saves keep it. Tests: `eyes.test.ts`.
 - Saves are version 24.
 
 ## What was learned
@@ -55,7 +58,8 @@ order below, *The order (agreed)*).
 
 - What made the track in the duct's dust, and the noise along it in October (the `orders` note). The grille was forced
   out from inside; its look says so and no more.
-- Whether smashing a comms cupboard blinds its cameras (world.md §8, 9). The cupboards are dressing until it is decided.
+- Smashing a comms cupboard blinds its branch's cameras (decided, and built). Watch in play whether a whole branch for
+  one loud act is too cheap: the hall's switch takes the electrical room's, the Armory's and the range's guards at once.
 - Decay as a system (world.md §1): only the bar's veneer is done, by hand.
 
 ---

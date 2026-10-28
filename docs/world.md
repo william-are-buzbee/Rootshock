@@ -588,7 +588,8 @@ wins; the older text stays only because it describes what is built, until the le
     cupboard (a network switch in a closet), and each cupboard is on its area's branch: the founders put a battery on
     the head end and none on the cupboards. So cutting a branch blinds that branch's cameras (as built), and the wall
     shows black tiles for them: it shows what has power, and nothing else. The wing's cupboard is on SEC, which is why
-    the survivors' cut blinded the wing, on the wall as well as in the corridor.
+    the survivors' cut blinded the wing, on the wall as well as in the corridor. Smash a cupboard's switch and its
+    branch's cameras are as blind, power or not (the owner's call; built: §8, *Security at the station's size*, 9).
   - *Spot monitors run on their own area's power:* the booth on SEC, so it wakes with the mend, when the changed start
     walking the lit wing and the lobby and there is something worth watching; the duty office on Ops, its tiles black
     for any branch you have cut.
@@ -1113,9 +1114,14 @@ builder takes them.
    panel over it, the tray of cables up the wall), its link lights lit with the branch and dark with it, and a look that
    says which cameras it feeds and that no battery stands behind it. The wing's behind the checkpoint booth, on the second
    floor; Ops' off the atrium's north arm; the hall's off its west wall, for the court's camera and the armed rooms'
-   off the hall; the east bays' off their east wall, for theirs and the operations stair's. Dressing only: smashing one
-   does nothing yet, so the question stays open. On their branches and in their zones, so a lockdown bolts their doors
-   with the rest. Four new doors, so saves are made new (version 24).
+   off the hall; the east bays' off their east wall, for theirs and the operations stair's. On their branches and in
+   their zones, so a lockdown bolts their doors with the rest. Four new doors, so saves are made new (version 24).
+   **Decided** (the owner): smashing one blinds its cameras. **Built:** read first (what it feeds, and that no battery
+   stands behind it); then, with something in your hand, the prompt is to smash the switch, as loud as smashing a
+   camera, and every camera on the branch is blind for good, power or not: the armed rooms' guards on it, the wall's
+   tiles and the spot monitors' feeds (`Sim.blind`, in `camLive`; kept by saves). The switch hangs off its rack by its
+   cables, its link lights out. A whole branch for one loud act: the hall's switch is the electrical room's, the
+   Armory's and the range's guards at once, which is the trade to watch in play.
 
 *Places to be larger, a pocket for something of its own, or a way through to somewhere else:*
 
@@ -1173,8 +1179,9 @@ built.
   rounds or its post and hurries to the speaker (2.6 m/s; 3.4 with another in sight hurrying too), not to you. There
   one stands and looks about a while, then goes back to its rounds; it finds you only if it sees or hears you on the
   way. Their rounds never take in an armed room. A camera can be
-  smashed with something in your hand: loud. So can a zone's speaker, and that zone has no voice: seen there, no klaxon
-  sounds and no husk hears it or comes.
+  smashed with something in your hand: loud. So can the switch in a comms cupboard, as loud, and every camera on its
+  branch is blind, the armed rooms' guards among them (*Security at the station's size*, 9). So can a zone's speaker,
+  and that zone has no voice: seen there, no klaxon sounds and no husk hears it or comes.
   Speakers are wired from the PA, not from the rooms they hang in, and the PA is critical power: no breaker quiets a zone.
   The wing's and the muster hall's hang in a ceiling you can reach; the atrium's hangs high in the well, in reach only leaning
   out from the east gallery's rail. Four zones: the wing, the atrium, the muster hall's west end ('muster'), and Operations
