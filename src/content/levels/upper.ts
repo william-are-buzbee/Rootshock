@@ -1045,12 +1045,50 @@ function buildHub(B: Floor, D: Floor, T1: Floor, T2: Floor): void {
   }
 
   /* Behind the bar: the kitchen that served it and the lounges, and a passage round the back of the shaft to goods
-     inward, so that stock never crossed the lobby */
-  room(D, 'Kitchen', -8, -2, 6, 12, { ...wing, fl: 0x6a6e6a, wl: 0xb8bcb4, st: 0x8c2f24, mat: { floor: 'epoxy', wall: 'glazed', ceiling: 'tiles' } });
+     inward, so that stock never crossed the lobby. Down its west side the service stair (world.md §8, Security at the
+     station's size), an open well with a wall round it at the kitchen's floor, to the pantry a storey down under the
+     bar, and on along a back passage to the retreat's: the family's dinners went down the back way. On the wing's feed */
+  const KT: RoomOpts = { ...wing, fl: 0x6a6e6a, wl: 0xb8bcb4, st: 0x8c2f24, mat: { floor: 'epoxy', wall: 'glazed', ceiling: 'tiles' } };
+  const STL = 0x8a8e8c, TILEK = 0xb8bcb4, stl = { mat: 'steel' } as const;
+  room(D, 'Kitchen', -8, -2, 6, 14, KT);
   door(D, -7, -3, { sg: [['Staff only', 'n']] });
-  bx(D, -7.6, 4, 0.6, 0.9, 10, 0x8a8e8c, { mat: 'steel' }); bx(D, -7.6, 0.4, 0.56, 0.02, 0.9, 0x1d1f21, { y: 0.9, c: 0 }); // the counter, and its hob
-  rack(D, -2.5, 2, 0.5, 3, [0x8a8e8c, 0x6b5a3c, 0x4d5a66, 0x7a4a34]); bx(D, -3.4, 8.8, 0.8, 0.6, 0.8, 0x6b5a3c);
-  item(D, 'ration', -7.6, 7.2, 0.9, 2); item(D, 'peaches', -7.6, 6, 0.9);
+  /* the well: the stair climbs south from the pantry, and comes up at the kitchen's south end; a tiled wall round its
+     open sides, a steel rail along the top */
+  stairs(B, D, -8, 0, 2, 10, 's');
+  bx(D, -5.95, 5, 0.1, 1.05, 10, TILEK); bx(D, -6.95, -0.05, 2.1, 1.05, 0.1, TILEK);
+  bx(D, -5.95, 5, 0.14, 0.05, 10, STL, { ...stl, y: 1.05, c: 0 }); bx(D, -6.95, -0.05, 2.1, 0.05, 0.14, STL, { ...stl, y: 1.05, c: 0 });
+  /* the line along the east wall: a steel counter, the range and the hood over it, the sink */
+  bx(D, -2.32, 1.9, 0.6, 0.9, 7, STL, stl); bx(D, -2.32, 1.2, 0.56, 0.02, 1.2, 0x1d1f21, { y: 0.9, c: 0 }); // the counter, the range's top
+  bx(D, -2.45, 1.2, 0.9, 0.5, 1.6, STL, { ...stl, y: 2.1, c: 0 }); bx(D, -2.3, 1.2, 0.6, 0.6, 0.5, STL, { ...stl, y: 2.6, c: 0 }); // the hood, its duct
+  bx(D, -2.32, 4.4, 0.5, 0.02, 0.8, 0x5a5d60, { y: 0.9, c: 0 }); P(D, 'cyl', -2.1, 4.4, 0.03, 0.3, 0.03, STL, { y: 0.9, c: 0 }); // the sink, its tap
+  /* the island, a steel table; the pots on a rail hung over it */
+  bx(D, -4.4, 5, 0.9, 0.9, 4, STL, stl);
+  bx(D, -4.4, 5, 0.06, 0.06, 3, 0x2a2c2e, { y: 2.3, c: 0 }); for (const z of [3.7, 6.3]) bx(D, -4.4, z, 0.04, 0.84, 0.04, 0x2a2c2e, { y: 2.36, c: 0 });
+  for (const [k, z] of [3.9, 4.6, 5.3, 6].entries()) P(D, 'cyl', -4.4, z, 0.26 + (k % 2) * 0.08, 0.26, 0.26 + (k % 2) * 0.08, STL, { y: 2.05, c: 0 });
+  for (let k = 0; k < 3; k++) P(D, 'cyl', -4.4, 3.5 + k * 0.3, 0.26, 0.02 + k * 0.02, 0.26, 0xe8e8e2, { y: 0.9, c: 0 }); // plates, stacked
+  /* the south end, where the stair comes up: dry goods on a rack, the fridge, its door open and nothing in it */
+  rack(D, -4.6, 11.7, 2, 0.5, [0x8a8e8c, 0x6b5a3c, 0x4d5a66, 0x7a4a34]); bx(D, -3.4, 8.8, 0.8, 0.6, 0.8, 0x6b5a3c);
+  bx(D, -2.4, 11.6, 0.7, 1.9, 0.7, 0xb8bcc0); bx(D, -2.98, 11.1, 0.04, 1.8, 0.6, 0xb8bcc0, { ry: 0.6, c: 0 });
+  item(D, 'ration', -2.32, 3, 0.9, 2); item(D, 'peaches', -2.32, 5.2, 0.9);
+  /* the pantry, under the bar: the family's china behind glass, linen, the silver's table, a plate warmer and a trolley,
+     and their wine laid down in its rack; and the back passage east, under the lobby, to the retreat's */
+  const PN: RoomOpts = { ...wing, fl: 0x6a6258, wl: 0xc8bea8, st: 0x7a5a30, lc: [0.92, 0.86, 0.74], mat: { floor: 'vinyl', wall: 'plaster', ceiling: 'plaster' } };
+  room(B, 'Service stair', -8, 0, 2, 10, { ...UTIL, ...wing, ht: 4.5, nolamp: 1, mat: { floor: 'epoxy', wall: 'block', ceiling: 'concrete' } });
+  room(B, 'Pantry', -8, -5.5, 6, 5.5, PN);
+  room(B, 'Back passage', -1.5, -5.5, 12.5, 2, { ...wing, fl: 0x5a5d5a, wl: 0x8a8e88, st: 0x3f7f6b, mat: { floor: 'vinyl', wall: 'block' } });
+  door(B, -1.75, -4.5, { sg: [['Pantry', 'e']] }); door(B, 9.5, -5.75, { sg: [['Staff only', 'n'], ['Retreat', 's']] });
+  const OAK = 0x6a4a2e;
+  bx(B, -2.3, -1.5, 0.6, 2.2, 2.4, OAK); for (const y of [0.5, 1, 1.5]) bx(B, -2.62, -1.5, 0.02, 0.02, 2.3, OAK, { y, c: 0 }); // the china cupboard, glazed, clear of the door
+  bx(B, -2.61, -1.5, 0.01, 1.6, 2.2, [0.55, 0.66, 0.7], { y: 0.45, c: 0, mat: 'glass' });
+  for (const y of [0.55, 1.05, 1.55]) for (let k = 0; k < 5; k++) P(B, 'cyl', -2.4, -2.4 + k * 0.45, 0.3, 0.02, 0.3, 0xe8e8e2, { y, c: 0, rz: PI / 2 - 0.15 });
+  bx(B, -5, -5.25, 3, 2, 0.5, OAK); // the wine, laid down
+  for (let r = 0; r < 5; r++) for (let k = 0; k < 9; k++) if ((k * 7 + r * 3) % 5 !== 0) bx(B, -6.35 + k * 0.34, -5.0, 0.07, 0.07, 0.02, [0x2a3a22, 0x3a1e1a][(k + r) % 2], { y: 0.3 + r * 0.36, c: 0 });
+  tbl(B, -5, -2.6, 1.6, 0.8, OAK); for (const [x, c] of [[-5.5, 0x9aa0a4], [-5.1, 0x9aa0a4], [-4.6, 0xc9a227]] as const) P(B, 'cyl', x, -2.6, 0.08, 0.12, 0.08, c, { y: 0.76, c: 0, mat: 'steel' }); // the silver, half polished
+  bx(B, -7.7, -2.5, 0.6, 1.1, 1, STL, stl); // the plate warmer
+  bx(B, -4.8, -0.7, 0.9, 0.85, 0.5, STL, stl); P(B, 'ico', -4.8, -0.7, 0.4, 0.22, 0.32, 0xb8bcc0, { y: 0.85, c: 0, mat: 'steel' }); // the trolley, a cloche on it
+  bx(B, -7.7, -4.6, 0.6, 1.8, 1.2, 0xd8d4c4); // linen, folded
+  use(B, 'look', -5, -2.6, 0.9, { label: 'Menus', text: 'Menus for dinner in the lounge, typed on the house\'s card. The last is for eight.' });
+  bx(B, 4, -3.8, 0.6, 1, 0.5, STL, stl); // an empty trolley, parked
   room(D, 'Service passage', -2, 6, 14, 4, { ...UTIL, ...wing }); door(D, 13, 7, { sg: [['Goods inward', 'w']] });
   bx(D, 4.6, 8.9, 0.8, 1.6, 0.7, 0x6b6e70, { mat: 'steel' }); // a roll cage, empty
   /* the walk-ins off its south side (world.md §8, Security at the station's size): what the dock sent on for the bar's

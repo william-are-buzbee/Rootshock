@@ -1075,7 +1075,16 @@ builder takes them.
    it. Three new doors, so saves are made new (version 22).
 8. **The bar's kitchen.** A hob and a rack, for the bar, the lounges and the retreat below. The walk-ins (2), and a
    service stair down to a pantry at the retreat's level (x -8 to -2, z -6 to -2): the family's dinners went down the
-   back way. A second way into the retreat, not the grand one.
+   back way. A second way into the retreat, not the grand one. **Built:** the kitchen lengthened to 6 by 14 m and fitted out:
+   a steel line along the east wall (the range under its hood, the sink), a steel island with the pots on a rail over
+   it, a rack of dry goods and the fridge, its door open and nothing in it, at the south end. Down its west side the
+   service stair, an open well with a tiled wall and a steel rail round it at the kitchen's floor, 10 m long (any
+   steeper and the cast's nav could not climb it), down to the pantry under the bar: the family's china behind glass,
+   their wine laid down in its rack, linen, the silver half polished on its table, a plate warmer, a trolley with a
+   cloche; the menus, the last for eight. From the pantry a back passage runs east under the lobby to the retreat's
+   passage, its door STAFF ONLY on the family's side. Plain doors and the wing's feed throughout, so nothing gated is
+   gone round; the upper station has six loops now (the loops probe). Two new doors, so saves are made new (version
+   23).
 9. **The air plant, at two or three times.** 40 m² to air a lobby of 12,400 m³ and, the job that matters underground, to
    dry it (soft finishes last only while the dehumidifiers run: §1). Grown east (x 42 to 52, at +10), with ducts that
    can be crawled. When its dehumidifier stops, the walnut swells (§1, *Decay*).
@@ -1118,7 +1127,8 @@ builder takes them.
 
 **The order (agreed):** one at a time, in the list's order (the owner), each its own change: the arrival hall (1), the
 dock (2), Operations' offices (3), Maintenance with Ops' set (4), administration (5), the lobby's washrooms with
-screening (6), and the showers, training room and court (7) are built; the bar's kitchen (8) is next.
+screening (6), the showers, training room and court (7), and the bar's kitchen (8) are built; the air plant (9) is
+next.
 
 **Being found (as built; the changed's wit is *The second pass*, to come)**
 

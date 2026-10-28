@@ -21,6 +21,8 @@ const MEANT: Record<string, string[]> = {
        kitchen; the plant stair's head, and the steps up from the plant over the false sky */
     'Check-in hall | Lobby', 'Lobby gallery | Upper corridor', 'Gallery | Upper corridor', 'Kitchen | Service passage',
     'Air plant | Plant stair', 'Air plant | Sky void',
+    /* the service stair's foot in the pantry under the bar */
+    'Pantry | Service stair',
   ],
   main: [
     /* the cavern over the street and the square, their galleries, bridges and ring */
