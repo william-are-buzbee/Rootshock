@@ -86,10 +86,11 @@ export function bore(F: Floor, x: number, y: number, z: number, n: V3, d: number
   if (o.small) return;
   /* spalled: plates of it pushed out round the hole, their inner edges lifted off the face as a floor heaves, and a lump
      or two of its raw inside between them */
-  for (let k = 0, m = 5 + Math.floor(g.rnd(3)) + more; k < m; k++) {
-    const a = (k / m) * TAU + g.rnd(-0.3, 0.3), rr = add(add([0, 0, 0], u, Math.cos(a)), v, Math.sin(a)), w = g.rnd(0.14, 0.24) + d * 0.5, tip = g.rnd(0.25, 0.6);
+  for (let k = 0, m0 = 5 + Math.floor(g.rnd(3)), m = m0 + more; k < m; k++) {
+    /* (a great root's are no larger than a waist-thick one's, flatter, and a second ring of them further out: a crater) */
+    const a = (k / m) * TAU + g.rnd(-0.3, 0.3), rr = add(add([0, 0, 0], u, Math.cos(a)), v, Math.sin(a)), w = g.rnd(0.14, 0.24) + Math.min(d, 0.6) * 0.5 + big * 0.15, tip = g.rnd(0.25, 0.6) * (big ? 0.5 : 1);
     /* out from the hole along rr, its face turned out away from it (nn) */
-    const at = add(add(p, rr, d * 0.55 + w * 0.42), n, w * 0.42 * Math.sin(tip)), nn = unit(add(add([0, 0, 0], n, Math.cos(tip)), rr, Math.sin(tip))), t = g.rnd(0.035, 0.06);
+    const at = add(add(p, rr, d * 0.55 + w * 0.42 + (k >= m0 ? w * 0.9 : 0)), n, w * 0.42 * Math.sin(tip)), nn = unit(add(add([0, 0, 0], n, Math.cos(tip)), rr, Math.sin(tip))), t = g.rnd(0.035, 0.06);
     P(F, 'ico', at[0], at[2], w / ICO, t / ICO, w * g.rnd(0.6, 0.9) / ICO, g.rnd(1) < 0.7 ? c : g.pick(CONCRETE), { y: at[1] - t / 2, rz: Math.acos(clamp(nn[1], -1, 1)), ry: Math.atan2(nn[2], -nn[0]), c: 0 });
   }
   for (let k = 0, m = 2 + Math.floor(g.rnd(3)) + more; k < m; k++) {
@@ -248,9 +249,9 @@ export function greatroot(F: Floor, pts: readonly V3[], d0: number, d1: number, 
     }
     if (!shown(a, b, d * 0.5)) continue;
     /* bark in plates over the strands, and now and then a burl */
-    for (let m = 0, c2 = 2 + Math.floor(g.rnd(3)); m < c2; m++) {
-      const j = g.rnd(1) < 0.5 ? k : k + 1, phi = g.rnd(TAU), rr = unit(add(at(j, phi, 1), path[j], -1)), w = d * g.rnd(0.25, 0.45), t = Math.max(GROW.least, d * 0.06);
-      const q = add(path[j], rr, d * 0.47);
+    for (let m = 0, c2 = 1 + Math.floor(g.rnd(3)); m < c2; m++) {
+      const j = g.rnd(1) < 0.5 ? k : k + 1, phi = g.rnd(TAU), rr = unit(add(at(j, phi, 1), path[j], -1)), w = d * g.rnd(0.15, 0.3), t = Math.max(GROW.least, d * 0.04);
+      const q = add(path[j], rr, d * 0.45);
       P(F, 'ico', q[0], q[2], w / ICO, t / ICO, (w * g.rnd(0.5, 0.8)) / ICO, g.pick(BARK), { y: q[1] - t / 2, rz: Math.acos(clamp(rr[1], -1, 1)), ry: Math.atan2(rr[2], -rr[0]), c: 0 });
     }
     if (g.rnd(1) < 0.25) { const q = at(k, g.rnd(TAU), d * 0.35), s = d * g.rnd(0.4, 0.6); lump(F, q[0], q[1], q[2], s, s * 0.8, s, g.pick(BARK), g.rnd(PI)); }
@@ -265,11 +266,11 @@ function flank(F: Floor, pts: readonly (readonly [number, number])[], d: number,
     const [ax, az] = pts[k], [bx, bz] = pts[k + 1], L = Math.hypot(bx - ax, bz - az), along = Math.atan2(bx - ax, bz - az);
     for (let i = 0, m = Math.max(1, Math.round(L / 1.1)); i < m; i++)
       for (const s of [-1, 1]) {
-        if (g.rnd(1) < 0.3) continue;
+        if (g.rnd(1) < 0.45) continue;
         const f = (i + g.rnd(0.2, 0.8)) / m, x = ax + (bx - ax) * f, z = az + (bz - az) * f, side = along + (s * PI) / 2;
-        const W = g.rnd(0.3, 0.6) + d * 0.2, Lb = g.rnd(0.4, 0.8), t = g.rnd(0.06, 0.1), tip = g.rnd(0.2, 0.5), q = d * 0.45 + W * 0.4;
+        const W = g.rnd(0.25, 0.5) + d * 0.1, Lb = g.rnd(0.3, 0.6), t = g.rnd(0.06, 0.1), tip = g.rnd(0.3, 0.7), q = d * 0.45 + W * 0.4;
         const cy = (W / 2) * Math.sin(tip) + (t / 2) * Math.cos(tip) - 0.01;
-        P(F, 'box', x + Math.sin(side) * q, z + Math.cos(side) * q, W, t, Lb, g.rnd(1) < 0.7 ? c : g.pick(CONCRETE), { y: cy - t / 2, rz: -tip, ry: side - PI / 2, c: 0 });
+        P(F, 'box', x + Math.sin(side) * q, z + Math.cos(side) * q, W, t, Lb, g.rnd(1) < 0.5 ? c : g.pick(CONCRETE), { y: cy - t / 2, rz: -tip, ry: side - PI / 2, c: 0 });
         if (g.rnd(1) < 0.5) crack(F, x + Math.sin(side) * (q + W * 0.5), 0, z + Math.cos(side) * (q + W * 0.5), side + g.rnd(-0.5, 0.5), g.rnd(0.4, 1), 'floor');
       }
   }
