@@ -379,8 +379,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   /* South off the wing: the locker room, the survivors' back way into the muster hall (a door at each end, down the
      aisle between the banks), and the infirmary. The back door is the wing's, on its feed like the room: cut, it slides
      by hand; and it makes the level's first loop, the wing to the hall by the atrium or by the lockers */
-  /* its floor studded rubber, for the wet feet from the showers */
-  room(D, 'Locker room', 32, 3.25, 16, 18.75, { ...SEC, c: 'SEC', safe: 1, mat: { ...SEC.mat, floor: 'rubber' } }); door(D, 39.4, 3, { sg: [['Lockers', 'n']] });
+  room(D, 'Locker room', 32, 3.25, 16, 18.75, { ...SEC, c: 'SEC', safe: 1 }); door(D, 39.4, 3, { sg: [['Lockers', 'n']] });
   door(D, 39.4, 23, { c: 'SEC', sg: [['Lockers', 's']] });
   /* its wall on the corridor a partition, a strip of glass along its top sharing the corridor's light */
   room(D, 'Security corridor', 32, 2, 16, 0.75, { ...SC, part: 1 }); for (const x of [33, 35, 43, 45, 47]) door(D, x, 3, { span: 2, seal: true, glass: true, glaze: 'high' });

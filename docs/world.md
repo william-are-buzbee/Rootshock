@@ -42,7 +42,7 @@ What the walls are, and why, before what colour they are. Plausibility first; th
   brick to be seen anywhere: the owner's call), glazed tile where
   things are washed down, plaster in homes, limestone and a bronze band where visitors came (the surface landing, the
   lobby and its gallery). The refit laid its own over it: coated floors in Security (flaked; its corridor's slab ground
-  and polished instead, its locker room studded rubber) and Horticulture, sheet vinyl in medical rooms and kitchens,
+  and polished instead) and Horticulture, sheet vinyl in medical rooms and kitchens,
   plasterboard and carpet in the offices. A room dug and left as dug (utility rooms,
   the plant, the bays, the sump, the tunnels) is shotcrete on a poured floor, services on hangers under its crown.
 - **By money, from the bottom (for reference).** Exposed shotcrete and a sealed slab cost nothing past the support;

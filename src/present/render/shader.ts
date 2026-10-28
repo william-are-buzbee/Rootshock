@@ -47,7 +47,7 @@ import { dbgDefines } from '../debug';
    and the beam's facing is reckoned from the eye, as it was before materials were drawn. */
 
 const PATTERNS: Pattern[] = ['none', 'cast', 'block', 'plaster', 'tiles', 'glazed', 'flags', 'plate', 'mesh', 'rock', 'boards',
-  'shot', 'epoxy', 'vinyl', 'carpet', 'terrazzo', 'stone', 'flake', 'studs', 'polished'];
+  'shot', 'epoxy', 'vinyl', 'carpet', 'terrazzo', 'stone', 'flake', 'polished'];
 /** how many materials there are, with "none" at 0 */
 const NM = MAT_ORDER.length + 1;
 const MAT_IDS = new Map<Mat, number>(MAT_ORDER.map((m, k) => [m, k + 1]));
@@ -476,19 +476,6 @@ void surface(int pat, vec3 p, vec3 n, float up, vec2 at, float det, out float al
     tint = mix(vec3(1.0), vec3(1.2, 1.05, 0.82), cs.z);
     h = 0.0002 * (cs.x + cs.y + cs.z);
     gm = 1.0 - 0.55 * worn;
-  } else if (pat == ${P('studs')}) {
-    /* rubber in sheets, studded: round studs 27 mm across and two millimetres proud, in rows 45 mm apart, each
-       row half a stud along from the last; the rubber between them matte and finely flecked, the studs' tops worn to a
-       sheen. Each stud fades to its share of the floor where the rows are too close for the pixel */
-    vec2 q = horiz ? pa.xz : vec2(along(pa.xz, n), up);
-    float row = floor(q.y / 0.045);
-    vec2 c = vec2(fract(q.x / 0.05 + 0.5 * mod(row, 2.0)) - 0.5, fract(q.y / 0.045) - 0.5) * vec2(0.05, 0.045);
-    float r = 0.0135, d = length(c), ks = keep(0.03, px), e = max(px, 0.0015);
-    float stud = mix(0.254, 1.0 - smoothstep(r - e, r + 0.5 * px, d), ks);
-    float fleck = n3f(p, 60.0, px), m = n3f(p, 0.6, px), worn = n3f(p + 9.0, 1.1, px);
-    alb = (1.0 + 0.06 * (fleck - 0.5) * det + 0.06 * (m - 0.5)) * (1.0 + 0.1 * stud * (0.4 + worn));
-    h = 0.002 * stud * ks;
-    gm = mix(0.5, 1.2 + 1.6 * worn, stud);
   } else if (pat == ${P('polished')}) {
     /* a slab ground and polished: the cut faces of its gravel, rounded, in greys and browns near its own colour
        (marble chips bright in a cement are terrazzo; this is the slab's own stone), in a salt and pepper of sand; its
