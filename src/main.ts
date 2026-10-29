@@ -1,4 +1,5 @@
 import { FixedLoop } from './core/loop';
+import { bench } from './content/levels/bench';
 import { testbed } from './content/levels/testbed';
 import { STATION } from './content/station';
 import { Lighting } from './world/light';
@@ -60,7 +61,8 @@ try {
   throw new Error('no WebGL');
 }
 
-/* which level: the station's start by default; ?level=<id> for another, or the test bed. ?power=full: everything on. */
+/* which level: the station's start by default; ?level=<id> for another, the bench for the bush's growth (bench), or the
+   test bed. ?power=full: everything on. */
 const want = params.get('level') ?? STATION.start;
 const inStation = STATION.levels.some(l => l.id === want);
 if (inStation && params.get('power') === 'full') { STATION.main = true; for (const c of Object.values(STATION.circuits)) { c.on = true; c.broken = false; } }
@@ -75,7 +77,7 @@ if (stored) try { resumed = loadRun(STATION, JSON.parse(stored)); } catch { writ
 const opening = !params.has('level') && params.get('power') !== 'full';
 function newRun(): Run {
   const seed = (Math.random() * 2 ** 32) >>> 0;
-  return inStation ? makeRun(STATION, { seed, start: want, opening }) : soloRun(makeSim(testbed(), { seed }));
+  return inStation ? makeRun(STATION, { seed, start: want, opening }) : soloRun(makeSim(want === 'bench' ? bench() : testbed(), { seed }));
 }
 /* The title's shot. A run kept is shown where you left it. With none, the station as you have not seen it: the lobby lit
    end to end, or the cargo bay dark, from its floor by the door in from Security, where the link's red emergency light

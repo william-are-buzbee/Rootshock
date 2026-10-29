@@ -732,6 +732,33 @@ wins; the older text stays only because it describes what is built, until the le
     rounds that sees it (within 14 m, in front of it, lit, in plain view) walks over at its rounds' pace to its near
     side, looks through a moment, and shuts it, if it can: a heavy one only with power enough to move it. Only one goes
     to a door. Leave a door open behind you, and it tells them someone came through.
+- **Security overgrown in parts (asked; the kit built, where it goes open).** The bush colonised the wing (§2), and in
+  places the wing shows it: the same plant that comes out of the changed, grown out of the building. Wild tobacco,
+  rustica: leaf in shelves out of woody knots, stalks up out of the floor, runners along the floor and up the walls,
+  leaf hung from the ceilings as in a curing barn, furniture grown over, and the mound where it took. Green in new
+  growth, curing to yellow and tobacco brown as it ages (the lowest leaves on a stalk first, the heart of a place before
+  its front), its pale yellow flowers where it is oldest. A place grown over is thickest at its heart and thins in
+  islands to a front of runners and seedlings, so it reads as spreading: out of a door and along a corridor, a runner
+  in under the next door. *Built:* the kit (`content/build/overgrowth.ts`; `colonise()` grows a room over from a heart,
+  which may be in the next room) and a bench for it (`?level=bench`). Dressing only, never solid. *Open:* which parts
+  of the wing, and where each heart is (a changed rooted at its post, as in Goods inward; a vent, the spores having come
+  on the air; a grafted body); whether a grown-over place carries spores in its air; whether it does anything in play.
+  - *Flowers on top, roots below (asked; a loose theme).* On the upper floors it flowers, in ways of its own: a spire
+    clothed in flowers opening from the bottom up, bells arching over and hung with nodding trumpets, a candelabra
+    forking into a crown of flower heads, a cup (one great doubled flower facing up), a bed of short stems low over the
+    floor; pale yellow, cream or gold, plant by plant; each come up through the floor and heaved it. On the floors under
+    them, their roots, as thick as an arm or a waist, come down through the ceilings and go on into the floors, and out
+    of the rock through the walls: the concrete spalled round them, cracks run out, the reinforcing bared and bent,
+    rubble fallen. *Built:* both (`overgrowth.ts`; `content/build/roots.ts`), on the bench as a garden over a root
+    cellar. Those roots are scenery, walked through. *Open:* which floors are the lower ones (Security's basement, the
+    main level, the plant).
+  - *The great roots (asked; built).* Where it has had a place for years, roots two to five times as thick, and these
+    are in the way: down out of a ceiling as a pillar buttressed over the floor, out of a wall low and lying along the
+    floor half sunk (too high to step over), or out of a wall high and arching down (walked under near the wall, gone
+    round further out). Each lays boxes along itself that stop a body, as furniture does (`greatroot`, `pillar`,
+    `sprawl`, `vault` in `roots.ts`; on the bench, a hall off the root cellar). *Open:* where they stand in the
+    station, and what they shut or force (none is placed in a level yet; one across a way wants the progression
+    checker).
 - **One tool per room (agreed).** Each space teaches one thing before a later one asks for all of them: the flashlight; a
   sound before a sight; the night round's beam far off; one armed place under one camera, its speaker with two of the changed
   in earshot, a safe failure (step over the line, hide, watch them come and go); a small board, and one of them walking over to throw it back on; a card;

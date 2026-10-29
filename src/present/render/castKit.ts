@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { Colour } from '../../core/math';
+import { KNOT, LEAF } from '../../content/build/overgrowth';
 import { parts } from './things';
 
 /* What the cast are made of, shared by everyone who draws them (castView.ts): their colours, and a part
@@ -69,8 +70,9 @@ export function merged(parent: O3, mat: THREE.Material, build: (g: THREE.Group) 
 }
 
 /* the plant on the changed (world.md §8): wild tobacco, Nicotiana rustica, green going yellow, the colour of the leaf in
-   the curing barn; and where it comes out, a woody knot */
-export const LEAF = [0x4b5c2a, 0x5a6630, 0x6e6a2c, 0x7e7430], KNOT = 0x4e4028;
+   the curing barn; and where it comes out, a woody knot. The bush's own, as it grows over the places it has taken
+   (content/build/overgrowth.ts) */
+export { LEAF, KNOT };
 /** a shelf of leaf out of the body along yaw, the way a bracket fungus stacks out of a stump: from a woody knot, tiers
  *  climbing `rise` metres a tier (and leaning `lean` toward yaw as they climb), each one broad, flat slab of leaf, the
  *  lowest the widest. Low-poly, as the cast are (mockups/mutants.html). `rnd` for the small differences, the same each

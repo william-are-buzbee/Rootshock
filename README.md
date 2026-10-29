@@ -33,7 +33,9 @@ bone line's middle years, the bush's line old), 0 kills
 them where they stand (and, with none left alive, clears the dead away); T slows time (×0.25, ×0.1, back); Y changes the weapon in your hand (A, D or W held as you click sends its swing from the left, the right or overhead); H puts you right; U holds the cast still or
 lets them go. The readout shows how you stand and the last few blows in numbers: damage, the closing multiplier, the
 shove, and what came of it. `?level=<id>` starts on another level (`upper`, `main`, `plant`, `sump`, `sumpdeep`, `cave`, or `testbed`);
-`?power=full` starts with everything on.
+`?power=full` starts with everything on. `?dev&level=bench` is a bench for the growth Security is overgrown with
+(`src/content/build/overgrowth.ts`): each piece laid out with a look that names it, and an office colonised from a
+corner, its front coming out along the corridor.
 
 For a fault in the picture that one card draws and another does not, `?dbg=` leaves stages of it out, comma-separated
 (`src/present/debug.ts`): `flat` (the level's light a plain grey, its light field not read), `nodir` (its light taken as
