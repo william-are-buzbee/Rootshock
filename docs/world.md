@@ -6,9 +6,42 @@ picked up by anyone (or any session) without the conversation that produced it. 
 - **Agreed**: decided; build to it.
 - **Proposed**: a direction both sides like, not yet committed.
 - **Open**: needs a decision before it is built.
+- **The owner's**: in the owner's own words, or the owner's own idea. Much of the rest, agreed or not, was filled in by
+  Claude sessions while working something out; where the two pull different ways, the owner's wins.
 
 The station itself (layout, levels, coordinates) is in the level builders in `src/content/levels`, ported from the first
 engine's `NEWSTATION` (archived in `archive/first-engine.html`, behind `?dev=newstation`).
+
+---
+
+## The theme (agreed; the owner's)
+
+The whole game is about roots. Everything below hangs on this; where anything pulls another way, this wins.
+
+- **Roots, and being rooted through.** Grafting, scions and rootstock, being a plant, being uprooted. *Root shock* is the
+  stress a plant suffers when it is moved (§1, *The mutagen*), and the player was transplanted. Ask it of everyone: the
+  station, Holt, the player, the company, the staff, the tribes, each mutant, the elders. Which of them is in root shock?
+- **The horror is the violation:** the infection, something growing through you. And sometimes that is a chosen thing,
+  and a good one.
+- **A twisted positive spin.** These disgusting mutants might actually be happy. They might be the next version of
+  humanity. The game is about coming to see that they are far more important than you thought, and unstoppable, and
+  that your decisions bear on the future of the whole world. The ending is change, not escape: more than running away
+  and sixty years of therapy.
+- **The mutants are humans.** The violence is something you do because you have to: because you are scared, because you
+  fear being killed. That is their great fear too, and it is why they graft you or kill you.
+- **The arc:** where is everyone; something bad happened; nobody is left alive; most people are alive; and who should
+  win, and how much?
+- **The station is a root system.**
+  - *Holt roots through it (proposed; the owner's, in outline):* roots at the bottom, growing up through the cave into
+    the bottom of the facility, flowers blooming near the top (§10, *The elders*; §8, *Phase 2*).
+  - *The lobby, a leaf (proposed; the owner's):* the symbolic top of it, and literally colonised by plants, which grow
+    as the game's time goes on (if that is added: §4, *Time and sleep*). The statue, or whatever stands there, slowly
+    grown over.
+  - *The company says it too (proposed; the owner's):* its own words for itself, "growing with you" or the like.
+  - *The reading (proposed):* the shafts a taproot, the galleries its laterals, and the finish thinning the deeper you
+    go: not decay, but roots are not made to be seen (*Finish by route*, §1). The exhibit says it in the company's own
+    voice, as a slogan.
+- **The plant:** tobacco gone to megaflora, in dozens of strange varieties (§10, *The plant*).
 
 ---
 
@@ -131,8 +164,8 @@ strains of it and sell what they produce, legally or not.
 
 ### The mutagen
 
-A substance that behaves like a cancer: applied to a living thing, it raises the rate of mutation enormously. The facility uses it to
-force the plant through generations of change in weeks.
+A living tissue Horticulture took from the aquifer core, which accepts any graft (§10, *The mutagen is a graft*). The
+facility uses it to force the plant through generations of change in weeks.
 
 - **Name (open).** "The shock" is good as staff slang and ties to the title, but too on the nose as the official name. Proposed: a
   clinical compound name on the paperwork, "shock" in people's mouths. Note that *transplant shock* (root shock) is a real
@@ -176,8 +209,6 @@ The testers and those they turned, centred on Horticulture.
 - **Mindset.** A group that kept a secret together, in an echo chamber of altered minds, and talked itself into a victim's
   certainty: act first or be annihilated. They are not entirely wrong. Their logic is open to interpretation, and the game should
   let the player read it either way.
-- **Leader (proposed): Dr M. Holt**, director of research, already in the game as the bloat sitting in the arboretum with the last
-  note.
 - **Territory:** Horticulture, the arboretum, the cave (the great chamber is their real arboretum), the sump.
 - **Wants:** grow light and water. The flooded sump is useful to them, perhaps a breeding ground for aquatic forms (the swimmers).
   They do not want it pumped dry.
@@ -185,17 +216,12 @@ The testers and those they turned, centred on Horticulture.
 
 ### The flesh (the second tribe)
 
-- **Origin.** A member of staff touched the animal part of a plant hybrid (a mutated arm, not the plant growth; in §10 this is Pia's touch, in her stupor, and the arm is an ordinary one). The sample carried
-  perhaps a twentieth of the plant influence, so they became a mostly flesh mutant, with the same plasticity.
-- **Mindset.** The infection carried the mindset. He inherited the plants' tribalism, victimhood and fear of eradication, as his own
-  private terror. It drove him to take others by force and make them change with him, one and then more, until the bloc was strong
-  enough to take the Commons. (This is the game's darkest thread: an analogue of assault and abuse of power. It lands harder implied,
-  through notes and through what the Commons has become, than shown. Keep it restrained, in the game's clipped register.)
-- **Founded by several (agreed; supersedes the one founder above).** In her first weeks under the opiate Pia's memory
-  lapsed, and she infected people without knowing it, by more than touch (§10, *Pia's young gods*). Three of them, a
-  line each (bone, the bloat, the plant), took the Commons between them. *Open:* whether any of them carries the thread
-  above, taking others by force, and which.
-- **Leader (proposed): the keeper**, the bloat in the director's residence who wears the director's lift key.
+- **Founded by several (agreed).** In her first weeks under the opiate Pia's memory lapsed, and she infected people
+  without knowing it, by more than touch (§10, *Pia's young gods*). Three of them, a line each (bone, the bloat, the
+  plant), took the Commons between them. *Open:* whether any of them took others by force and made them change with it,
+  one and then more, and which. If one did, it is the game's darkest thread: an analogue of assault and abuse of power.
+  It lands harder implied, through notes and through what the Commons has become, than shown. Keep it restrained, in the
+  game's clipped register.
 - **Territory:** the Commons and the Square.
 - **Wants:** energy, food and heat. They have lived on dwindling stores and backup-generator warmth. They want Engineering: the warm
   generator hall is where mats of edible flesh could be grown and harvested.
@@ -203,15 +229,14 @@ The testers and those they turned, centred on Horticulture.
 
 ### The Security flesh (an offshoot of the flesh; agreed)
 
-- **Origin.** Security watched the Commons turn, on Security's own cameras, and walled itself off. It was not enough: some small
-  amount got through anyway, and Security's own staff began to change. They are the youngest branch of the flesh.
-- **A late child of Pia (agreed; supersedes the origin above where they differ).** What got through was one of Pia's late
-  children, and it colonised the whole Security wing, fast: in about a week, not months (§3, *The timeline*). Its people
+- **Origin (agreed).** Security watched the Commons turn, on Security's own cameras, and walled itself off. It was not
+  enough: one of Pia's young gods got through (the bush: below), and it colonised the whole Security wing, fast: in
+  about a week, not months (§3, *The timeline*). They are the youngest branch of the flesh. Its people
   are partly plant, partly human, and given to not moving: most of the changed have stopped where they were and stand,
   taking root, slow and a little sedated. The night round is the exception, still walking its round from habit, which is
   what makes it the first thing to fear. Its touch is Pia's, the opiate: whoever it touches goes slack, and it takes them
   (§8, *The opening*). Where it takes them, and what they become, is the wing's to tell.
-- **Flesh and plant both (agreed; sharpens the above).** Pia was flesh first and grew into the tree, and a child of hers is
+- **Flesh and plant both (agreed).** Pia was flesh first and grew into the tree, and a child of hers is
   what she was on the day it was grafted (§10, *Pia's young gods*). What reached Security was the bush, the young god who
   breathed a spore off her shoulder, and it colonised the wing itself. So the wing's changed are flesh and plant, as it is,
   with the plant growing through them rather than over them: tobacco leaf in shelves out of the skin and the face; on the
@@ -225,14 +250,15 @@ The testers and those they turned, centred on Horticulture.
   To blind the cameras on their side, the survivors cut the service connection to their own wing and lived in the dark (§8).
   The survivors killed themselves, or made a run for an exit and were killed or stopped by something on the way. None of them
   made it.
-- **Why they hold the way out (open).** Not a scanner (the clean-body scan is dropped: §6, question 10). A working idea: the flesh
+- **Why they hold the way out (open).** A working idea: the flesh
   fear being found more than anything (see *Secrecy*, above); anyone who reaches the surface and talks brings the people with fire.
   So the way out is not a door they cannot pass but one they will not let be opened, and anyone walking out of Holding is a
   witness.
 - **Towards you:** for now, they want you dead. (Whether they would rather take you, and how, is open: §6.)
 - **Towards the Commons:** kinship and threat at once, as the plants and the flesh are to each other.
 - **Territory:** Security and the Cargo cavern.
-- **Rank and file:** the patrols (changed staff, still nearly human, some in uniform), skitters and their eggs (§8).
+- **Rank and file:** the patrols (changed staff, still nearly human, some in uniform); skitters and their eggs in Cargo's
+  nest (§8).
 
 ### Between them
 
@@ -243,24 +269,12 @@ Both are intelligent, self-aware and changing fast, and they see each other as a
 - **The long game.** The oldest of them may see mutagen reaching the surface as inevitable, and the real contest as who is strongest
   when it does. Winning big *now*, before the other side can break free, matters more than any one room.
 
-### Two tiers (proposed)
-
-Fully intelligent tribes sit awkwardly with monsters that attack on sight. Resolve it in two tiers:
-
-- **Leaders** are intelligent; you deal with them.
-- **Rank and file** are instinctive and territorial; you fight them or avoid them.
-
-A leader's favour calls off its rank and file inside its own territory. This keeps the horror of pass 3 (the thresher in the dark)
-and adds politics above it.
-
 ---
 
 ## 3. The player
 
-**Who you are.** The old answer (Accession 31, delivered sedated in a crate, signed for like seed) is dropped: nobody is
-trafficked in. You are staff, held in Security's **medical isolation suite**, a well-appointed set of rooms rarely used, for
-staff who may have been exposed to something. (The papers in the suite tell this story now; others still tell the old one of
-accessions and transfers: the chief of security's, the keeper's, Holt's memorandum.)
+**Who you are.** You are staff, held in Security's **medical isolation suite**, a well-appointed set of rooms rarely used,
+for staff who may have been exposed to something.
 
 - **A false alarm, kept under (agreed).** You were isolated for an exposure when Security began to turn, and sedated while
   they watched for signs. It was a false alarm: a week on, you would have changed by now if it were not. The doctor who could
@@ -269,9 +283,9 @@ accessions and transfers: the chief of security's, the keeper's, Holt's memorand
   real name on the bag, so nobody reads it as one of the station's products.
 - **You start clean (agreed).** The one clean body on the station. Every graft after this is your choice, and so is staying
   clean.
-- **How long (agreed):** about a week under (isolated 6/11; the opening is 14/11). The station had been falling for months
-  before; Security fell in the week you slept, fast, to a late child of Pia (§2). Days on an IV need no explaining, where
-  weeks did.
+- **How long (agreed):** about a week under (isolated 6/11; the opening is 14/11). The station had been falling for
+  months before; Security fell in the week you slept, fast, to the bush, one of Pia's young gods (§2). Days on an IV
+  need no explaining, where weeks did.
 
 **The timeline (agreed in outline).** Long enough for the lineage to grow up, none of it seen. Rough, to be pinned down:
 
@@ -280,16 +294,15 @@ accessions and transfers: the chief of security's, the keeper's, Holt's memorand
 | Months before | The trials; the testers change and hide it. Dale's sleepless weeks, and the energetics born in his blackouts |
 | Two or three months before | Pia's first weeks under the opiate: she infects several without knowing it (§10); their lines take the Commons, over weeks |
 | Weeks before | Security sees it and seals itself |
-| A week before (6/11) | A late child of Pia gets through. You are exposed, or seem to be, and put under |
+| A week before (6/11) | The bush gets through. You are exposed, or seem to be, and put under |
 | The days after | Security turns from inside, in days; the survivors fall back into the wing and keep you sedated (9/11: half the night shift comes back changed) |
 | Two days before (12/11) | The survivors can no longer reach the suite; the other patient's bag ran dry and they wake; the night round walks again |
 | The start | Yours runs dry |
 
 - **Start:** an unaligned pawn.
 - **End:** the physical, mechanical arbiter of the station, and its political actor: kingmaker, liaison, or neither.
-- **Why either side needs you (open).** The decontamination scanner that made you a "clean courier" is dropped (§6, question 10).
-  You start clean (above); whether you stay so is open: you bash a great deal of mutant apart, and it is hard to believe none
-  of it got on you.
+- **Why either side needs you (open).** You start clean (above); whether you stay so is open: you bash a great deal of
+  mutant apart, and it is hard to believe none of it got on you.
 
 ---
 
@@ -454,9 +467,9 @@ Each phase is playable on its own.
 
 ## 6. Open questions
 
-1. **Who owns the facility?** Corporation, government or individual, and is there a **third pressure**: their purge protocol as a
-   clock, or an ending of its own? Whoever they are, they cannot know an outbreak like this is possible, so a purge could only be a
-   generic incident response (lose contact for so long, seal the shaft, send a team), not a plan for mutants.
+1. **A third pressure?** The family owns the station (§1). Is their purge protocol a clock, or an ending of its own?
+   They cannot know an outbreak like this is possible, so a purge could only be a generic incident response (lose
+   contact for so long, seal the shaft, send a team), not a plan for mutants.
 2. **Full mutation:** death, ending, or a playable state? (Intended: the player mutates, or tries to resist it, by grafting (§10). Built later; the game must be fun without it.)
 3. **Can you walk among the mutants unharmed?** If yes, faction AI is a real engine job (truce, territory). If no, the politics stay
    at arm's length, through terminals and intercoms.
@@ -472,10 +485,10 @@ Each phase is playable on its own.
    the way into the Commons is somewhere that takes some access to reach, not a walk from the start. As built, both ways down
    are earned (the elevator wants the wing mended; ladderway B wants Operations' card and Cargo's power), and both land at the
    main level's shaft station, a walk from the Commons. Whether that landing should itself need access is part of the question.
-10. **Why don't they just leave?** The scanner at the surface lift is dropped: detaining someone for a positive test is a stretch
-   even here, and the mutants do not need one way out. The flesh could learn to bore through rock; Horticulture's green could
-   walk out of the cave. So why stay? What their talk points at is that the mutagen (this strain, here) will either be smothered
-   in the crib or spread, and to them spreading is inevitable. Candidates, none agreed:
+10. **Why don't they just leave?** The mutants do not need one way out. The flesh could learn to bore through rock;
+   Horticulture's green could walk out of the cave. So why stay? What their talk points at is that the mutagen (this
+   strain, here) will either be smothered in the crib or spread, and to them spreading is inevitable. Candidates, none
+   agreed:
    - **The crib.** This strain was bred under grow lights, in warm, wet, filtered air. The surface (winter, sun, drought) would
      kill it as it is. The station is where it can still change fast enough to survive up there: it stays to grow up first.
    - **The roots.** The green is tethered to something it cannot move (a mother growth in the great chamber, say), and plants
@@ -524,16 +537,12 @@ Security's own interpretation of pass 3. One loop, one climax. **Scope (proposed
 cavern is the nest, seen first through Cargo control's window and visited last, a disgusting, porous, eggy place of pustules and
 cancerous growth, rather than a second level-sized area competing for attention.
 
-#### The second pass (supersedes the overseer and its hand)
+#### The second pass
 
 Security is the entrance to the game: slower and more exploratory than what follows, its threats legible and seen before they
 land. Built from play, not from the cosmology, and married to it after. Where this and the rest of this section disagree, this
 wins; the older text stays only because it describes what is built, until the level is rebuilt.
 
-- **What goes (agreed).** The overseer, the hand, the knock and the overseer's bolts, and their names: nothing in the game is
-  called the overseer or the hand again. The critical feed's reason (an overseer that could not be blinded) goes with them;
-  the feed stays, for the head end and the PA (*One control room*, below). **Kept:** cameras, zones and speakers, the boards and their breakers, cards, the survivors'
-  cut, the power-failure drill (now a choice: below).
 - **The cameras guard places, not paces (agreed; supersedes cameras that weigh speed).** Ordinary CCTV on a lockdown
   protocol, as any facility runs it, with nobody behind the screens. Lockdown arms the restricted places: the board, the
   Armory, Operations, the wing's thresholds, wherever Security kept people out. A live camera on an armed place takes anyone
@@ -583,7 +592,7 @@ wins; the older text stays only because it describes what is built, until the le
     two rows of consoles for a room that usually seated one bored operator. Built to impress visitors more than to catch
     anyone; nobody was worried.
   - *The head end is in the UPS room behind it,* on the critical feed (CRIT) and its battery: the recorders, the core
-    switch, the PA's amplifiers. That is the critical feed's reason now (the overseer's is gone): the security system
+    switch, the PA's amplifiers. That is the critical feed's reason: the security system
     itself and the PA, which is life-safety equipment, as real buildings protect them. The feed stays.
   - *The cameras are not on critical power.* Each area's cameras draw their power down their own cables from a comms
     cupboard (a network switch in a closet), and each cupboard is on its area's branch: the founders put a battery on
@@ -672,7 +681,7 @@ wins; the older text stays only because it describes what is built, until the le
     shock ("gardeners call it root shock"; "our seedlings take in a day"). The corridor's boards are on the wing's dead
     feed, read by your beam until the mend; the process is on Ops' power and lit from the start. The family (Ashcombe),
     the man who planted the field (Thomas Ashcombe), the company and every date are placeholders, in one file
-    (`content/exhibit.ts`), to be retooled once the lore is down (§6, question 1). The house's mark is a candidate for
+    (`content/exhibit.ts`), to be retooled once the lore is down. The house's mark is a candidate for
     the statue's logo.
   - *Over the sky, +13.5.* The lobby's air plant, at +10, and steps from it up into the space over the false sky: half
     a metre over the lobby's roof, a dark plenum of grating between the backs of the ceiling's light boxes. A way over
@@ -688,8 +697,8 @@ wins; the older text stays only because it describes what is built, until the le
   enough to read: watch one and you can tell what it will do. The intelligence shows in what they do, never in surprises. No
   speech, for now. **The plant shows on them**: tobacco leaf out of the neck and shoulders in shelves, the way bracket fungus
   grows from a stump; glassy eyes. Plants growing through and out of people is the level's disgust, more than raw flesh.
-  (Supersedes *drills, not instructions* and *how much wit the staff have*, below. The power-failure drill stays as something
-  one of them chooses: someone goes to the board, slowly, and looks about for who threw it.)
+  (The power-failure drill stays as something one of them chooses: someone goes to the board, slowly, and looks about for
+  who threw it.)
   - *The look (built).* Security's staff are drawn as the changed (a kind of their own in the code now, `changed`, the
     bush's line: *Temper*, §10); the husk's old look, an arm gone to raw flesh, stays on the bone mother's young
     elsewhere. Still a person's outline, about two in three in uniform (a navy
@@ -783,8 +792,8 @@ wins; the older text stays only because it describes what is built, until the le
 - **Threats, in rising order:** the night round (light), the cameras (place), the vaccinator (light and speed, and a purpose). Skitters
   and eggs go back to Cargo's nest: four kinds of threat on the first level is one too many.
 
-**The opening (agreed).** Replaces beats 1 and 2 below, and the dark start: starting in pitch black asks for fear before the
-game has shown you anything to fear. It is SS2's window: see it first, from safety, then the calm, then the game opens.
+**The opening (agreed).** Not a dark start: starting in pitch black asks for fear before the game has shown you anything
+to fear. It is SS2's window: see it first, from safety, then the calm, then the game opens.
 
 1. **Waking.** The first sound is your IV pump's empty-bag alarm. The suite has power, on its night setting: low, warm pools.
    You are weak (open: whether the first minute is unsteady). Time has passed, and shows: the dated label on the empty bag,
@@ -859,21 +868,6 @@ air-handling plant (fans the height of a room, ducts you can crawl, a plenum; wh
 charging room, a warehouse sprinklers or a deluge system (perhaps a tool: flood a section). What else realistically belongs
 should be added. Below it, production (below).
 
-**The beats (agreed)**
-
-1. **Opening: dark, and no flashlight.** The power goes out, and the isolation suite's doors let go (see Holding, below). The
-   only light is a flashlight on the floor, still on, where a guard dropped it; you go to it, and then up, slowly, tensely, into
-   the survivors' dead wing. The first fear should be a sound: something heard and not seen.
-2. **The flashlight, on a body.** It opens choices: go back and see the start properly, or explore the eerily quiet rooms and the
-   main hallway.
-3. **The infected half.** Rooms and vents full of skitters and eggs; patrols down the hallways. The line between safe and not
-   safe is clear and physical: a threshold you choose to cross (a door, a change in the colour of the light, eggs starting at a
-   doorframe), not a gradient. The safe half is the part the survivors held, which is why it is quiet: they are dead. The
-   threshold is the power line: their half lit and watched, yours dark and blind. Stepping into the amber is stepping into view.
-4. **Climax: getting out (agreed).** The way out: the nest in Cargo and ladderway B, or the run for the Security elevator once
-   the wing is mended and its cameras wake.
-5. **Release: leaving.** Off the level, down.
-
 **Power: two halves (agreed)**
 
 - **Their half is lit.** The changed live in Ops and want to see: their side runs on the OPS backup set, with its cameras live
@@ -944,8 +938,8 @@ should be added. Below it, production (below).
   board: its power is protected, its panel and battery backup in a locked room inside its own perimeter. The operations room
   (its screens, its board, its lights) and Security's PA are on their own critical feed (CRIT) straight off Ops' set, panelled
   in the UPS room behind the operations room. The electrical room's schedule says so, in red. So no zone can be silenced
-  but by smashing its speaker. (Its first reason, an overseer that could not be blinded, is gone; it stays for the head end and
-  the PA: *One control room*, *The second pass*.) A seed for later: control rooms sit on raised floors,
+  but by smashing its speaker. (It is there for the head end and the PA: *One control room*, *The second pass*.) A seed
+  for later: control rooms sit on raised floors,
   a cable void under the tiles; a crawl from a service hatch up into the UPS room would be a believable way in that is not
   through the bodies at its door. This is the pattern for power elsewhere (proposed): a board
   per area, a few labelled breakers that each feed a handful of rooms, never a switch per room. A switch per room would be
@@ -1162,7 +1156,7 @@ screening (6), the showers, training room and court (7), the bar's kitchen (8), 
 cupboards (9) are built. The pings, 10 to 15, are next: design work, each talked through with the owner before it is
 built.
 
-**Being found (as built; the changed's wit is *The second pass*, to come)**
+**Being found (as built)**
 
 - **Cameras → the zone alarm → any patrol in earshot.** The klaxon starting is the tell, and you have a few seconds to answer
   it: leave the zone, break its speaker or the camera (loud: a cost, per §4), or cut the power. **Built** (`sim/eyes.ts`),
@@ -1204,8 +1198,6 @@ built.
   Operations' in its corridor by the speaker. Break the glass with your thumb (a little noise) and the zone sounds as if
   a camera had you: the klaxon, the changed hurrying to the speaker, the lockdown. Once each: the glass stays broken.
   Wired to the zone's PA, so the dead wing's still sounds, and a zone whose speaker is smashed has no voice here either.
-- **Why they come: drills, not instructions.** The changed were Security's staff. For years a zone alarm meant "respond there",
-  and what is left of them still does. It is conditioning, not command.
 - **Patrols → their own senses.** Sight, light and sound, as everywhere else. They come to an alarm they can hear, not to you.
 - **Patrols walk lit rooms only (agreed: every husk, everywhere).** Husks hunt by sight, so they keep their rounds where they
   can see, and go to the light if they can. That is why the dead wing is quiet, and why mending the cut brings them into it
@@ -1226,10 +1218,6 @@ built.
   climbing until, three minutes on, it surely would (between 30 s and 180 s, most of them late). One who reaches the light
   has stopped noticing; posts keep their posts. You hear it go back on. A cut cable is another thing: no one mends a cut cable by habit. That is why the
   survivors cut the wing's feed with bolt cutters instead of throwing its switch: the staff kept throwing it back.
-- **How much wit the staff have (agreed).** Habit and a hand. They keep rounds where they can see, answer an alarm by going
-  to its speaker, go to the board when the lights go, slide a door, throw a switch. They do not reason: they do not hunt
-  whoever cut the power, cannot use a card or a code, cannot cut or mend a cable, and forget what they were doing once they
-  are back in the light. Anything new they do should be a drill they once had, not a thought.
 - **Power is the trade.** Security needs power for things you want (card readers, the Cargo platforms, the fan door on ladderway
   B), but power wakes the cameras. Switching on is what makes you visible: the same bargain as Gen-1 and the rib freak, in another
   shape.
@@ -1315,10 +1303,8 @@ written down so they wait here. Neither is canon until agreed.
   mutagen is a graft*), which is why it was welded. §10 says the tissue came out of the aquifer core; this says where
   the core is. Find a way through, and past the door is a vast underground of horticulture gone wild: Holt's body
   (§10, *The elders*), the green gone further down than the station was ever paid to dig. The root got there before the
-  building did. Then the welded door, the window on the cavern and the start of the mutagen all point at one hole.
-- **The station as a root system (the theme).** The facility is rooting, as the game is about being rooted through.
-  The shafts are a taproot, the galleries its laterals, and the finish thins the deeper you go: not decay, but roots
-  are not made to be seen (*Finish by route*, §1). The exhibit says it in the company's own voice, as a slogan.
+  building did. Then the welded door, the window on the cavern and the start of the mutagen all point at one hole. (The
+  station as a root system is the game's theme now: *The theme*, at the top.)
 - **Open:** where the window is (the lobby's north wall; or the retreat's lounge, whose window is a lit panel of sky now
   and could become a real cavern); what is in the chamber, and whether it is lit; how glass breaks (a blow, a thrown
   thing, how loud, what hears it); whether Phase 2 is reached from the atrium or meets the cave route below; and the
@@ -1437,7 +1423,7 @@ levels are built. None of it has to reach the player: the game plays without it,
 ### The rules
 
 1. **Strain, rootstock, habit.** You inherit your grafter's strain as it was on the day you were grafted, grown on your own body,
-   and your body grows whatever you do (the overseer watched screens and grew one great eye).
+   and your body grows whatever you do.
 2. **Time alone makes a strain.** Change without passing it on and you drift from your parent; change beside someone and you
    drift together. The elders are whoever changed longest alone.
 3. **Every organ makes a problem, and the body grows a way round it.** A mutant flooded with its own drug evolves a tolerance
@@ -1451,9 +1437,9 @@ levels are built. None of it has to reach the player: the game plays without it,
 7. **Mutation keeps what the human had.** A mutant that came from a person still sleeps, eats and breathes; the new
    organs are added to the old ones, not swapped for them. So every mutant can be kept awake, and Dale's stimulant is a danger to
    all of them, not only to people.
-8. **Kin by smell; a mind only in one body.** Mutants know kin by smell, and elders are the strongest source of the smell their
-   line knows as home, which is why they are fed and grow huge. A shared mind needs shared tissue: fused bodies (the overseer,
-   the hand) and Holt's one root system. Everything else talks by smell, sound and touch.
+8. **Kin by smell; a mind only in one body.** Mutants know kin by smell, and elders are the strongest source of the
+   smell their line knows as home, which is why they are fed and grow huge. A shared mind needs shared tissue: fused
+   bodies, and Holt's one root system. Everything else talks by smell, sound and touch.
 
 ### The village
 
@@ -1490,7 +1476,7 @@ Nobody expected worse than a bad night.
   opiate, not the tree. Grafting her takes the edge off, and you lose something you do not miss. *Children:* by her age
   (below). Old Pias grow faster as they age, so the tree is a clock. *Tell:* milky sap.
 
-  *Pia's young gods (agreed; supersedes her first children as written before, and the one founder).* An elder's own
+  *Pia's young gods (agreed).* An elder's own
   children, a generation from it, are its **young gods** (the name proposed: §10 already calls generation 3 that, and
   each is the god of a line). Pia was flesh before she was a tree. In her first weeks under the opiate she was not
   violent but frightened and confused, and her memory lapsed: she infected people without knowing it, and by more than
@@ -1512,12 +1498,8 @@ Nobody expected worse than a bad night.
     - *old: the bone elders.* The skeleton has won: the limbs bone, raw at the joints, the ribs and spine out through
       what is left of the flesh. No face at all: the skull one smooth shape, nothing on it. Slower; blind, numb, less
       afraid but still afraid. Tall, they patrol large areas.
-  - *The bloat god: a nurse, a man, whose arm she grabbed.* Larger than any of his line, though nowhere near her size.
-    The bloats come from him, which is why they look alike when her own children do not. His line is drawn as the
-    built bloats are, one great soft body and a baby's head, the young smaller and still on their feet, the older
-    sat down for good, bigger, slower and dopier, like their patron; he sits as they do, the biggest of them, and does not get up. They fear
-    other things than the bone line does (proposed: going without; *Pia's lines, filled in*, below), but fear drives them
-    as much.
+  - *The bloat line's young god: open.* The bloats are one of the three lines (*Pia's lines, filled in*, below); who
+    began it is not decided.
   - *The bush: a doctor who leaned in too close and breathed a spore off her shoulder.* Flesh and plant about evenly. A
     huge person, the body swollen about half as far as a bloat's or a bone child's would go, every bit of it under rows
     on rows of tobacco shelves, green through; nothing left on it that was ever clothes; no features, the face tucked
@@ -1611,25 +1593,22 @@ Nobody expected worse than a bad night.
 
 ### The young gods
 
-- **The founders (generation 3; supersedes the one founder).** Pia's young gods: the bone mother, the bloat god and the
-  bush (above). Pia's fear of eradication was a thought; in them it became biology, and their lines took the Commons.
+- **The founders (generation 3).** Pia's young gods: the bone mother, the bush, and the bloat line's (open; above).
+  Pia's fear of eradication was a thought; in them it became biology, and their lines took the Commons.
 - **Pia's generations.** The opiate dulls with each generation; the fear does not, so the youngest are the most violent and the
   oldest the largest and most stupefied.
 
   | Gen | Who | Can | Opiate | Fear |
   |---|---|---|---|---|
   | 2 | Pia | nothing; cannot speak | full | an idea |
-  | 3 | her young gods: the bone mother, the bloat god, the bush | gesture | heavy | an instinct |
+  | 3 | her young gods: the bone mother, the bush, the bloat line's | gesture | heavy | an instinct |
   | 4 | the Commons bloc | walk, track you with their heads | some | strong |
   | 5 | Commons husks | act; ignore their own pain | faint | strong, and turned outward |
 
-  Husks of any generation are the bone mother's line, the bloats the bloat god's (*Pia's young gods*, above).
+  Husks of any generation are the bone mother's line, the bloats the bloat line (*Pia's young gods*, above).
 
 - **The mother.** A woman of the Commons bloc whose graft took in the womb; touch her and you lay eggs too. Her hatchlings have
   no host and lose most of the human look. She lays in Cargo, where nothing green can reach.
-- **Security's first.** Taken by a hatchling in Cargo, so it inherited no fear and no thought, only drills; it sits up out of
-  the middle of the overseer (§8). Hatchlings imprint on whoever tends the clutch, so Security raises the Commons' young, guards
-  a nest it cannot add to, and wants a mother of its own.
 
 ### Pia's lines, filled in (proposed)
 
@@ -1639,7 +1618,7 @@ of each gap (*Pia's lines*, in its Saved tab).
 | Line | Young | Middle years | Old | Young god |
 |---|---|---|---|---|
 | Bone (the bone mother's) | the husks (built; their temper too) | the thresher (built); a person's size (built) | the bone elders (none) | the bone mother (none) |
-| Bloat (the bloat god's) | still walking, swelling, baby-headed (none) | bigger, slower, dopier (none) | the bloats, sat (built) | the bloat god (none) |
+| Bloat | still walking, swelling, baby-headed (none) | bigger, slower, dopier (none) | the bloats, sat (built) | open |
 | Plant (the bush's) | Security's changed (built; their temper too) | heavier, greener, the face going under (none) | the bench's *Plant, old* (built: one, in the Commons) | the bush (none) |
 
 - **What each fears, and how the body answers it.** Every organ makes a problem and the body grows a way round it (rule
@@ -1651,8 +1630,7 @@ of each gap (*Pia's lines*, in its Saved tab).
   whose graft took in the womb: make her a cross of the bloat line and the bone, the swelling making the eggs and the
   bone the legs. Her hatchlings have no host, so what hatches is the lines' instinct with no person under it, and it grows
   as an insect does, in stages: the egg; the worm, a larva with no legs yet (the flesh worms, built); the skitter, on four
-  long legs of bone (built); the big skitter (built). The green worms stay the plants'. Security's
-  first, taken by a hatchling, is then the lines' grandchild by an egg.
+  long legs of bone (built); the big skitter (built). The green worms stay the plants'.
 
 ### Temper: when, how far, how long (proposed)
 
@@ -1666,7 +1644,7 @@ and drift. (The rules are §10's; this is how they add up.) Which line it is com
    calm, euphoric, still.
 2. **How far: grafts from the source.** The opiate is a drug an organ makes (§1, *A seed takes root*), and each graft
    carries less of it: it dulls with distance. The state of mind does not dull; it hardens, an idea in the parent an
-   instinct in the child (rule 6). A child of a late child of Pia is two grafts from her already.
+   instinct in the child (rule 6). A child of the bush is two grafts from her already.
 3. **How long, and with whom: drift.** Time does two things. To the body, more of the same: further into its stage. To
    the mind, drift (rule 2): changing alone, a strain wanders from its parent and can lose what it was given, its fear
    among it, given long enough; changing in a crowd, it drifts with the crowd and keeps what the crowd has.
@@ -1685,7 +1663,7 @@ and drift. (The rules are §10's; this is how they add up.) Which line it is com
 | Young god | When (proposed) | Temper it carries | In the game |
 |---|---|---|---|
 | The bone mother | early: flesh, frightened, confused | fear, hardening to instinct down the line | husks, the thresher: far from her and in a crowd, violent |
-| The bloat god | early | the stupor above all, the fear buried under it | the bloats: they sit, and fill corridors |
+| The bloat line's (open) | early | the stupor above all, the fear buried under it | the bloats: they sit, and fill corridors |
 | The bush | early: a spore off her shoulder, the plant already coming | the fear and the stupor both: slow, watchful | Security's changed: fear held down |
 | The flower child | later in the change | less fear, more of the euphoria | none yet |
 | The root ancestor | the tree: her roots | calm (the cure in old tissue); planting itself | none yet |
@@ -1751,7 +1729,7 @@ The player is never told any of this; they read it.
 - **The eyes (agreed).** Pia's lines have black eyes, empty, the creepiest thing about them: no white, no pupil, nothing
   looking out. The white of an eye is a person's, still human (the other patient), and is used sparingly. *Built:* the
   changed, the husks, the bloats; the other patient's whites.
-- **What grows is the line.** Bone is the bone mother's; a swollen body the bloat god's; shelves of leaf out of flesh,
+- **What grows is the line.** Bone is the bone mother's; a swollen body the bloat line's; shelves of leaf out of flesh,
   the bush's; flowers off roots, the flower child's; roots, the root ancestor's; plates of bark, the bark
   ancestor's.
 - **Motif is descent from Ines,** degrading by generation.
@@ -1762,8 +1740,8 @@ The player is never told any of this; they read it.
 
 - Holt: what marks her work, and how she can be hurt.
 - What the young gods look like: proposed in the mock-up (*Pia's lines, filled in*).
-- Pia's young gods: their names, and where each is now. What the bloat line fears. Whether the mother is the bloat and
-  bone cross (*Pia's lines, filled in*).
+- Pia's young gods: their names, and where each is now. Who began the bloat line, and what it fears. Whether the mother
+  is the bloat and bone cross (*Pia's lines, filled in*).
 - Where Ines paints. (Dale: the curing hall: §8, *Production*.)
 - **The mass (proposed, moved from Security).** A room grown shut, its glass sweating, something pressed flat against it that
   you never see whole, the changed feeding at its door: a late child of Pia's, sessile, in the Commons or wherever her people

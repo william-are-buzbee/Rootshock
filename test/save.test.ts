@@ -49,7 +49,7 @@ describe('save and load', () => {
     expect(b.usables.some(u => /^Flashlight$/.test(u.label() ?? ''))).toBe(false);
     expect(b.doors[14].unlocked).toBe(true);
     expect(b.game.station!.circuits.CARGO.back).toBe(true);
-    expect(b.game.notes.memo).toBeTruthy();
+    expect(b.game.notes.duty).toBeTruthy();
   });
 
   /* A save names what it keeps of each thing (sim/save.ts), so a field added to one of them and not to its list would

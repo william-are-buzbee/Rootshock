@@ -34,7 +34,7 @@ export { BANG, BEAT, BLOOD, GRAFT, leftGrafted, noiseAt, PEER, READER, ROUND, st
 
 export type Ai = 'husk' | 'skitter' | 'bloat' | 'thresher' | 'worm' | 'swimmer' | 'grabber' | 'patient' | 'dead';
 
-/** whose child it is (world.md §10, Pia's young gods): the bone mother's, the bloat god's, the bush's. Its temper goes by
+/** whose child it is (world.md §10, Pia's young gods): the bone mother's, the bloat line's, the bush's. Its temper goes by
  *  it (cast/husk.ts, TEMPER), and its look (render/castView.ts) */
 export type Line = 'bone' | 'bloat' | 'bush';
 

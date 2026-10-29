@@ -164,6 +164,7 @@ export function load(level: LevelDef, data: Save, o: SimOpts = {}): Sim {
     put(g, game);
     settle(g);
     g.notes = NOTES(g.code, g.code2);
+    g.read = g.read.filter(k => k in g.notes); // a paper read in a save and since taken out of the game
   }
 
   put(sim.player, data.player as never);

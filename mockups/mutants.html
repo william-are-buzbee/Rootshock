@@ -229,7 +229,7 @@ textarea { width: 100%; background: var(--raise); border: 1px solid var(--line);
       <div class="btns" id="cast"></div>
       <div class="btns"><button class="btn" id="castsave">Save all seven</button></div>
       <div class="group">Pia's lines</div>
-      <p class="note">Examples of the three lines that founded the Commons, each from its young god down: the bone mother's, the bloat god's and the bush's, young to old. The plant line's youngest are Security's seven, above. Proposed looks, to argue with.</p>
+      <p class="note">Examples of the three lines that founded the Commons, each young to old: the bone mother's and the bush's from their young gods down, and the bloat line's (its young god is open). The plant line's youngest are Security's seven, above. Proposed looks, to argue with.</p>
       <div class="btns" id="lines"></div>
       <div class="btns"><button class="btn" id="linesave">Save all of them</button></div>
       <div class="group">Start from an example</div>
@@ -719,7 +719,7 @@ function itemGroup(f, it) {
 /* ---------------------------------------------------------------------------------------------------------------- */
 /* the model: castView's husk, part for part (the legs in two at the knee, the arms here in two at the elbow), made to
    the design's measures, dressed in what it still wears, and grown on */
-/* the bloat god's line, drawn as the game draws its bloats (castView.ts, bloat): one great soft body, a head on it like
+/* the bloat line, drawn as the game draws its bloats (castView.ts, bloat): one great soft body, a head on it like
    a baby's, arms hanging, stubs of legs; stood, sat, or lying on its back on the floor. What it still wears is one band
    of it round the body, if anything */
 function buildBloat(M, d, skin, skinDk) {
@@ -781,7 +781,7 @@ function buildModel(d) {
      upper arm raw, the forearm drawn out and ending in a point of bone, no hand. Bone is the skeleton winning: the limb
      bone, raw at the joints. Ribs: the trunk raw, its ribs and its spine out through it */
   const limbOf = i => (i ? B.limbR : B.limbL) || 'skin', reachOf = i => (i ? B.reachR : B.reachL) || 1, legsAre = B.legs || 'skin', trunk = B.trunk || 'skin';
-  /* swollen, the bloat god's line: the body, the limbs and the hips grown out round */
+  /* swollen, the bloat line: the body, the limbs and the hips grown out round */
   const sw0 = B.swell || 0, skull = B.head === 'skull';
   const tw = B.torsoW * (1 + 0.8 * sw0), td = B.torsoD * (1 + 1.5 * sw0), tl = B.torsoL, th = B.thigh, sh = B.shin, ua = B.uArm, fa = B.fArm;
   const lt = B.legT * (1 + 1.1 * sw0), at = B.armT * (1 + 1.3 * sw0), hipw = B.hipW * (1 + 0.6 * sw0);
@@ -1384,7 +1384,7 @@ const LINES = [
   }],
   ['bloatyoung', 'Bloat, young', () => {
     const d = base();
-    Object.assign(d, { name: 'Bloat, young', seed: 35, notes: 'The bloat god\'s, young in it: drawn as the game\'s bloats are, smaller, and still on its feet: one soft body, the head on it like a baby\'s, two black dots. It waddles. Afraid of other things than the bone line is (proposed: of going without, food and warmth and company).' });
+    Object.assign(d, { name: 'Bloat, young', seed: 35, notes: 'The bloat line, young in it: drawn as the game\'s bloats are, smaller, and still on its feet: one soft body, the head on it like a baby\'s, two black dots. It waddles. Afraid of other things than the bone line is (proposed: of going without, food and warmth and company).' });
     Object.assign(d.body, { plan: 'bloat', rest: 'stand', scale: 0.55, headSize: 1.05, jaw: 0.2, tilt: 0.2 });
     Object.assign(d.gait, { stride: 0.6, spm: 80 });
     Object.assign(d.dress, { shirt: 'none' });
@@ -1394,20 +1394,11 @@ const LINES = [
   }],
   ['bloatold', 'Bloat, older', () => {
     const d = base();
-    Object.assign(d, { name: 'Bloat, older', seed: 36, notes: 'The bloat god\'s, older: bigger, and sat down for good, as the game\'s bloats are; dopier, like its patron. A raw place on its side.' });
+    Object.assign(d, { name: 'Bloat, older', seed: 36, notes: 'The bloat line, older: bigger, and sat down for good, as the game\'s bloats are; dopier. A raw place on its side.' });
     Object.assign(d.body, { plan: 'bloat', rest: 'sit', scale: 0.85, jaw: 0.4, tilt: 0.4 });
     Object.assign(d.dress, { shirt: 'none' });
     Object.assign(d.skin, { tone: 0, sallow: 0.35 });
     d.items = withIds([...BLOATEYES(), it('flesh', 'torso', [0.38, 0.05, 0.25], [0.8, 0, 0.5], 0.3)]);
-    return d;
-  }],
-  ['bloatgod', 'The bloat god', () => {
-    const d = base();
-    Object.assign(d, { name: 'The bloat god', seed: 37, notes: 'A young god (world.md §10): the nurse, a man, whose arm Pia grabbed. The bloats come from him. Sat on the floor as his line sit, and twice the size of the oldest of them; a band of his scrubs still round him, raw where her hand closed on his arm. He does not get up.' });
-    Object.assign(d.body, { plan: 'bloat', rest: 'sit', scale: 1.5, headSize: 0.95, jaw: 0.5, tilt: 0.5 });
-    Object.assign(d.dress, { shirt: 'uniform', shirtCol: 'scrubs' });
-    Object.assign(d.skin, { tone: 3, sallow: 0.3 });
-    d.items = withIds([...BLOATEYES(), it('flesh', 'uarmL', [0.5, -0.1, 0.2], [1, 0, 0.3], 0.28)]);
     return d;
   }],
   ['plantold', 'Plant, old', () => {

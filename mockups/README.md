@@ -3,7 +3,6 @@
 Pages for looking at designs before they are built into the game. Each is a single HTML file that runs on its own in a
 browser (three.js comes from a CDN), and each has been published as a private claude.ai artifact.
 
-- `creatures.html`: the overseer and its hand, with their states and the knock code.
 - `elders.html`: the elders of the lineage (`docs/world.md` §10), at true scale beside a 1.8 m figure, in the game's own
   kit of boxes, cylinders and icosahedra: Pia (her three stages), Ines, Dale and his line, Sam, Tom, and Holt's cave. One
   tab each; buttons switch states. `window.__rs` in the console exposes each scene and its `set…` function.
@@ -12,12 +11,16 @@ browser (three.js comes from a CDN), and each has been published as a private cl
   clicked onto them (eyes, pustules, leaf shelves, stalks, roots, knots; the wheel sizes them). Saves designs as JSON
   (`rootshock-changed/1`, described at the top of its script); the published copy keeps them where Claude can read them.
   *Security's seven* (the Saved tab) is a line-up of the upper station's changed, one for each, newest to oldest;
-  *Pia's lines* are examples of the bone, bloat and plant lines that founded the Commons, young to old and each young god.
+  *Pia's lines* are examples of the bone, bloat and plant lines that founded the Commons, young to old, and the young gods of the bone and plant lines.
   `window.__rs` in the console exposes the state.
 - `lineage.html`: the family tree and an entry for each elder. Generated: edit `lineage/template.html` (the cards) or
   `lineage/build.py` (the tree's nodes), then run `python3 mockups/lineage/build.py`.
+  **Out of date:** it predates world.md §10's young gods. Its flesh branch (the one founder, Security's first by a
+  hatchling, the overseer and the hand) is dropped; Security's changed are the bush's (§10). To be redrawn.
 
 **Testing offline.** Where the CDN cannot be reached, a headless browser can serve three.js from `node_modules`: route
 `https://cdn.jsdelivr.net/**` to `node_modules/three/build/`.
 
-**Set aside.** June, a sixth elder, was mocked up and shelved; her tab is in the history at `e0672ba`.
+**Set aside.** June, a sixth elder, was mocked up and shelved; her tab is in the history at `e0672ba`. The bloat god was
+dropped from the lineage, and its preset from `mutants.html`. `creatures.html` is the overseer and its hand, which are
+gone from the game; kept only as a record.

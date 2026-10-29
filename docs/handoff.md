@@ -4,6 +4,18 @@ For whoever picks this up in a new session. The branch is `claude/practical-maxw
 william-are-buzbee/Rootshock#121 (merged); no pull request is open for it yet. The handoffs before this one are kept
 below: their rules for the layout, their tools, asks and open items still stand. This adds what item 9 taught.
 
+## Since: the docs cleared of the old story
+
+Read world.md's new first section, *The theme* (the owner's): the game is about roots, and that is the frame for
+everything. The status markers have a fourth, **the owner's**, for what is in the owner's words or from the owner's
+idea; much else in the docs was filled in by Claude sessions, and weighs less. Taken out, at the owner's word: the
+accession story (you trafficked in; the transfers, the scanner, the clean courier), the mutagen as a chemical, the two
+tribes' leaders and *Two tiers*, the overseer and the hand (*Security's first* with them; they stay only as records, in
+engine.md's as-built notes and `mockups/creatures.html`, and `mockups/lineage.html` is out of date), the changed who
+cannot use cards (*How much wit*, *Drills, not instructions*), the old beats for Security, and the bloat god (the bloat
+line's young god is open). Security fell to the bush. The papers in `content/notes.ts` are placeholders, the owner's to
+write; the old story is out of them too.
+
 ## Where the list is
 
 world.md §8, *Security at the station's size*: 1 to 9 are built, 9 in two commits (the air plant with its duct, then the
@@ -199,13 +211,12 @@ end: its asks, tools and open items still stand.
 
 All in `docs/world.md`. Read these first, in this order:
 
-- §8, *Security*, **The second pass**: what goes (the overseer, the hand, the knock, the bolts, and their names), the
-  cameras that guard armed places (not speed), running heard, the alarm answered in a hurry (alarm fatigue dropped), the
-  lobby (a grand stair down from the checkpoint), one control room (the operations room, beside the head end on
-  critical power; cameras on their branches' comms cupboards; spot monitors in the booth and the duty office), the
-  camera wall in the operations room, the changed (intelligent but sedated; the plant growing
-  out of them), one tool per room, the night round, the vaccinator, power on or off, flickering as a trope, the big dark
-  section, call points, lockdown, load on the backup set, no alarm on the way out.
+- §8, *Security*, **The second pass**: the cameras that guard armed places (not speed), running heard, the alarm
+  answered in a hurry (alarm fatigue dropped), the lobby (a grand stair down from the checkpoint), one control room (the
+  operations room, beside the head end on critical power; cameras on their branches' comms cupboards; spot monitors in
+  the booth and the duty office), the camera wall in the operations room, the changed (intelligent but sedated; the
+  plant growing out of them), one tool per room, the night round, the vaccinator, power on or off, flickering as a
+  trope, the big dark section, call points, lockdown, load on the backup set, no alarm on the way out.
 - §8, **The opening**: the six beats, from the IV pump's alarm to the fail-safe release.
 - §3, *Who you are* and *The timeline*: sedated weeks on a false alarm; you start clean; the cut now happens at the start.
 - §8, **Cargo, made larger**, and **Production** (later steps; not this one).
@@ -303,7 +314,7 @@ night round touches them limp and drags them (`take`, `dragged`, `drop`, `Mutant
 in `sim/ragdoll.ts`); green rooms are looked into (`RoundStop.look`), and the suite is walked faster (`RoundStop.pace`);
 the cut 10 s after it reaches the stair's top, then black for `OPENING.black` before the cells (their own supply,
 `CELLS`, watching `SEC`: `Batt`). Light switches: `use` of kind `switch`, on rooms' own circuits (`ISO1`, `ISO2`).
-The timeline is a week, not weeks (world.md §3), and Security fell to a late child of Pia (§2).
+The timeline is a week, not weeks (world.md §3), and Security fell to the bush, one of Pia's young gods (§2).
 
 The third pass, in the dark (world.md §8, *The opening*, **Built**): the cut is days old (SEC broken from the start); the
 suite runs on its own failing set, `ISO` (`back` set by `makeOpening`, dropped by `fail()` in `sim/opening.ts`, with a
@@ -332,16 +343,13 @@ respects god mode. Save version 11.
   size*, 13, proposes one: the UPS room over the range, reached along the cable from the electrical room.)
 - Call points as fire alarms instead (doors released, the changed sent to the muster hall), not lockdown: the owner's call.
   Releasing card doors would let you past the card progression, so it would want ordinary doors only.
-- The `lockers` note (`content/notes.ts`) still describes the overseer ("it can see you… Screens off, it is blind"): lore
-  for the owner to rewrite.
 - The range's doorway steps 0.16 in light (`test/light.test.ts` samples around it by name).
 - Playtest questions left open: whether lockdown should let the staff through; whether dark armed rooms, guarded mostly
   by your own flashlight, have teeth enough; the feeds' brightness at the start (`present/ui/feed.ts`); the running noise;
   the call points' size; the statue (a placeholder: the logo or a gardening motif later).
 
 Step 1 is done: the overseer, the hand, the knock and the bolts are out of the code and of world.md §8 (old saves do not
-load: save version 6). §10's lineage still names the overseer in three places (rules 1 and 8, *Security's first*): left
-for the owner, since they are cosmology, not the level.
+load: save version 6).
 
 - `src/sim/eyes.ts`: cameras (`makeCams`, `camLive`, `camSees`), zones and speakers (`soundZone`, `heard`), alarms
   (`makeAlarm`, `restoreAlarms`), and `updateEyes`, which runs them. Tests: `test/eyes.test.ts`.
@@ -437,14 +445,12 @@ for the owner, since they are cosmology, not the level.
    The sideways shove (fixed here) will have made it feel worse than it is: try it again first.
    **Decided** (the owner): the chop is left as it is. Swings can be sent another way now, by the keys held as you
    press (engine.md §6, *Which way a swing goes, as built*): the axe swung across meets a tall thing at the crosshair.
-2. **The overseer's hit volume** is the grabber's old head ball, 2 m up, above a mound 1.6 m high. Probably the same
-   fault; not reported, so not touched.
-3. **Knockdowns still turn some**: 118° in all while down across eighteen floorings, most of it lying and rolling
+2. **Knockdowns still turn some**: 118° in all while down across eighteen floorings, most of it lying and rolling
    after it is down; worst 208°. If it still reads as a trip, look at `RAG.local` and `RAG.tip` for the living (each
    alone made little difference to the spin, but that was with the spin's real cause in) and the brace.
-4. **The stagger is fragile.** When a floored body goes down swings with small changes (engine.md, *Stagger steps*:
+3. **The stagger is fragile.** When a floored body goes down swings with small changes (engine.md, *Stagger steps*:
    "fragile"). The test for it allows the thresher's steps only 0.1 s over none (0.77 s against 0.62).
-5. Not built, and never asked for: a reel that stumbles (a reel is the model's animation); corpses that block.
+4. Not built, and never asked for: a reel that stumbles (a reel is the model's animation); corpses that block.
 
 ### What was learned
 

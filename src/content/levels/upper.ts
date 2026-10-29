@@ -734,7 +734,7 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   room(D, 'Duty office', 52, 49.25, 8, 8.75, { ...OFF, c: 'OPS', lc: [0.85, 0.78, 0.62] }); door(D, 53.4, 49, { sg: [['Duty office', 'n']] });
   for (const x of [57, 59]) door(D, x, 49, { span: 2, seal: true, glass: true }); room(D, 'Muster hall', 52, 48, 8, 0.75, { ...MH, part: 1 }); // its wall on the hall, the window in it
   desk(D, 57, 51.2, 1.8, 0.7, { c: 0x4a3a2c }); bx(D, 57, 52.6, 0.45, 0.45, 0.45, 0x2c2f33); shelf(D, 59.4, 55.2, 0.5, 1.8, { cols: [0x7a4a34, 0x4d5a66, 0x8a7a4a] });
-  item(D, 'peaches', 56.2, 51.2, 0.78); item(D, 'bandage', 57.8, 51.1, 0.78); note(D, 'memo', 57, 51.36, 0.78);
+  item(D, 'peaches', 56.2, 51.2, 0.78); item(D, 'bandage', 57.8, 51.1, 0.78);
   /* the desk's screen: the hall's cameras and the rooms off it, a sequencer stepping through them, on Ops' power
      (world.md §8, smaller screens first). A branch you have opened is black on it */
   monitors(D, 57, 52, 1.1, 'OPS', ['Muster court', 'East bays', 'Electrical room', 'Armory', 'Firing range', 'Operations stair'], { dwell: 5 });

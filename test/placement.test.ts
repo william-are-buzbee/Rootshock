@@ -83,7 +83,7 @@ describe('where things are', () => {
     b.box(5, 5, 1.8, 0.76, 0.7, 0x333333); // a desk
     b.box(2, 2, 2, 0.04, 0.5, 0x444444, { y: 1 }); // a shelf's board, and what is on it
     b.box(2, 2, 0.2, 0.2, 0.2, 0x555555, { y: 1.04, goods: true }); b.box(2.6, 2, 0.2, 0.2, 0.2, 0x555555, { y: 1.04, goods: true });
-    b.item('batt', 5, 0.78, 5); b.item('shotgun', 5.85, 0.78, 5); b.item('medkit', 2, 1.06, 2); b.item('batt', 8, 1.5, 8); b.note('memo', 4.6, 0.78, 5.1);
+    b.item('batt', 5, 0.78, 5); b.item('shotgun', 5.85, 0.78, 5); b.item('medkit', 2, 1.06, 2); b.item('batt', 8, 1.5, 8); b.note('duty', 4.6, 0.78, 5.1);
     const L = b.finish(), [batt, gun, kit, high] = L.items;
     expect(batt.y).toBeCloseTo(0.76); expect(kit.y).toBeCloseTo(1.04); expect(L.notes[0].y).toBeCloseTo(0.76);
     expect(Math.abs(Math.sin(gun.yaw!))).toBeLessThan(0.25); // along the desk
