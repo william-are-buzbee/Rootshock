@@ -2103,14 +2103,14 @@ than along x, so down every corridor that ran along x (the Security corridor, be
 worst) they smeared into long blurred streaks. A scuff is a mark now (`scuffs()` in `shader.ts`): in four cells in ten
 of a lattice 2.5 a metre, a short stroke 6 to 20 cm long and a few millimetres wide, each its own way, bowed a little and
 thinning to its ends, filtered over the pixel as a joint is; thicker where the coat is dulled. And Security has floors of
-its own, three new materials beside it: a flaked coating (`flake`: the coat with vinyl flakes broadcast into it under a
+its own, two new materials beside it: a flaked coating (`flake`: the coat with vinyl flakes broadcast into it under a
 clear coat, charcoal, pale grey and a few buff, 5 to 20 mm across in two sizes, as `chip()` draws terrazzo's, with a
-grain that carries on a few metres past them so they do not stop at a line), the wing's rooms (`SEC`); polished
+grain that carries on a few metres past them so they do not stop at a line), the wing's rooms (`SEC`); and polished
 concrete (`polished`: the slab ground to its gravel, rounded and near its own colour, in a salt and pepper of sand, its
 tone clouded from the trowel and the densifier, which is what still reads at the far end of a corridor, and a hairline
-crack here and there), the corridor itself; and studded rubber (`rubber`: round studs 27 mm across on staggered rows
-45 mm apart, a couple of millimetres proud, so a beam raking across catches them; matte, and dull underfoot), the
-locker room. Seen against the old floor in the built game at 960 by 540.
+crack here and there), the corridor itself. Seen against the old floor in the built game at 960 by 540. A third,
+studded rubber, was the locker room's at first; it did not match the rest of the wing (the owner's call), and went: the
+locker room is flaked as the other rooms are.
 
 Not done: decay (world.md, proposed); a bronze or brushed metal of its own (steel's pattern is riveted plate); glossy
 floors catching the tubes, which terrazzo and the coated floors now most want.
