@@ -2,7 +2,8 @@
    corridor and the atrium's gallery, in its own voice. Each board is drawn from this (present/render/exhibit.ts) and
    read off the board itself, as a note (content/notes.ts). Plain data.
 
-   Everything named here is a placeholder, to be retooled once the lore is down: the family, the company, the dates. */
+   The family and its founder are agreed (world.md §1, *The family*); the company's name and the dates are placeholders,
+   to be retooled once the lore is down. */
 
 /** the house: who built Lowfield, and what they sold */
 export const HOUSE = { family: 'Ashcombe', company: 'Ashcombe Leaf Company', since: 1891 };
@@ -42,7 +43,7 @@ export const HISTORY: Board[] = [
   {
     key: 'ex-field', era: '1891', title: 'The Low Field', art: 'field',
     line: 'Four acres by the river, too wet for wheat.',
-    text: `In 1891 Thomas ${HOUSE.family} put four acres of leaf into the low field by the river. Too wet for wheat, his neighbours told him. Just wet enough for tobacco.\n\nThe field is still there, four hundred metres over your head. Every Lowfield plant can trace its seed to it.`,
+    text: `In 1891 Josiah ${HOUSE.family} put four acres of leaf into the low field by the river. Too wet for wheat, his neighbours told him. Just wet enough for tobacco.\n\nThe field is still there, four hundred metres over your head. Every Lowfield plant can trace its seed to it.`,
   },
   {
     key: 'ex-barns', era: '1923', title: 'Cured by Hand', art: 'barns',

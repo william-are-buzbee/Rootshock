@@ -124,6 +124,38 @@ than in the size of rooms), it is about 100,000 m² of floor, and this is who it
 - **Open:** whether anyone raised a family down here. The Commons' school room says so. Rotation crews only, and it is a
   training room; a small resident core with children adds 50 to 100 people, a crèche, and a question of tone.
 
+### The family (agreed)
+
+The Ashcombes, who built the station and own the company. The surname is the exhibit's, kept: ash is what the leaf ends
+as, and a combe is a valley, which the low field is. No numerals after anyone's name: the line shows in the names, quietly.
+
+- **Two rules, kept since the founder.** The eldest son is named for his grandfather, so the line has two names and they
+  alternate (Josiah, Everett, Josiah, Everett). Every son's middle name is his mother's maiden name: the family keeps
+  track of what it married into, as it keeps its seed stock. Both are old-money habits in America and in England alike.
+- **The line.**
+  - *Josiah Ashcombe* (born about 1865): plants the low field, 1891. Marries Eliza Garland.
+  - *Everett Garland Ashcombe* (about 1893): the barns, by 1923. Marries Ruth Holt.
+  - *Josiah Holt Ashcombe* (about 1932), the patriarch, named for his grandfather: blue mould, 1979, and the shaft,
+    1981. Marries Caroline Whitaker.
+  - His sons, born in the 60s and 70s, each with his mother's name in the middle:
+    - *Everett Whitaker Ashcombe*, "Whit" (about 1961), the eldest, named for his grandfather. Goes by his middle name,
+      and signs E. Whitaker Ashcombe.
+    - *Conrad Whitaker Ashcombe* (about 1964), named for his mother's father, Conrad Whitaker.
+    - *Christopher Whitaker Ashcombe*, "Kit" (about 1970), named for nobody in particular.
+  - If Whit has a son, he is Josiah.
+- **Maren Holt is a cousin.** Ruth Holt's brother's granddaughter: the brothers' second cousin, of their generation. In
+  the family but not of the line; she was always a Holt, never an Ashcombe. It is why a family company gave her its
+  research, and how far she could go before anyone would stop her. It rhymes with her place among the elders (§10): the
+  Ashcombes only ever make more of themselves, and the cousin from the side branch makes something new. Never said: the
+  player finds it in the names, the patriarch's in full on the statue and the 1979 board, hers on the director's door.
+  (A sister was weighed and dropped: a daughter working under another name would be an open quarrel, and not one the
+  family could leave unmentioned.)
+- **Proposed:** the patriarch's full name on the 1979 board ("Josiah Holt Ashcombe, the founder's grandson") and the
+  statue's plinth. Whit runs the company, Conrad the station, and Kit is the humidor's best customer (which answers who
+  of the family sampled the trial lots).
+- **Open:** the wives' first names (placeholders); which of the family are living, and where each was when it went
+  wrong.
+
 ### The plant
 
 A crop akin to tobacco, coca leaf or kratom: legal, ordinary, chewed or smoked for a mild lift. The facility exists to breed new
@@ -670,9 +702,9 @@ wins; the older text stays only because it describes what is built, until the le
     soon), across the atrium from the door welded shut and stencilled NOT COMMISSIONED. On the atrium gallery's back
     wall, where the corridor comes out, *From Seed to Leaf*: the growing process in six stages, one of them transplant
     shock ("gardeners call it root shock"; "our seedlings take in a day"). The corridor's boards are on the wing's dead
-    feed, read by your beam until the mend; the process is on Ops' power and lit from the start. The family (Ashcombe),
-    the man who planted the field (Thomas Ashcombe), the company and every date are placeholders, in one file
-    (`content/exhibit.ts`), to be retooled once the lore is down (§6, question 1). The house's mark is a candidate for
+    feed, read by your beam until the mend; the process is on Ops' power and lit from the start. The family (Ashcombe)
+    and the man who planted the field (Josiah Ashcombe) are agreed (§1, *The family*); the company's name and every
+    date are placeholders, in one file (`content/exhibit.ts`), to be retooled once the lore is down (§6, question 1). The house's mark is a candidate for
     the statue's logo.
   - *Over the sky, +13.5.* The lobby's air plant, at +10, and steps from it up into the space over the false sky: half
     a metre over the lobby's roof, a dark plenum of grating between the backs of the ceiling's light boxes. A way over
@@ -1490,7 +1522,7 @@ Nobody expected worse than a bad night.
 
 ### The elders
 
-- **Maren Holt (director of research).** Raw tissue from the beds, through a burn on her hand. Her way round is care: she grafts
+- **Maren Holt (director of research; the family's cousin, §1).** Raw tissue from the beds, through a burn on her hand. Her way round is care: she grafts
   the plants onto herself slowly, choosing each one, and shapes herself with them, and she has never stopped. She is the green
   god, and she is a level: Horticulture (to be rebuilt much larger) is colonised by her, and the cave under it, larger again
   and open to explore, is her body entire, the leaf on the floor, the cane standing, what hangs from the roof, what is trained
