@@ -143,13 +143,16 @@ as, and a combe is a valley, which the low field is. No numerals after anyone's 
     - *Conrad Whitaker Ashcombe* (about 1964), named for his mother's father, Conrad Whitaker.
     - *Christopher Whitaker Ashcombe*, "Kit" (about 1970), named for nobody in particular.
   - If Whit has a son, he is Josiah.
-- **Maren Holt is a cousin.** Ruth Holt's brother's granddaughter: the brothers' second cousin, of their generation. In
+- **Mary Holt is a cousin.** Ruth Holt's brother's granddaughter: the brothers' second cousin, of their generation. In
   the family but not of the line; she was always a Holt, never an Ashcombe. It is why a family company gave her its
   research, and how far she could go before anyone would stop her. It rhymes with her place among the elders (§10): the
   Ashcombes only ever make more of themselves, and the cousin from the side branch makes something new. Never said: the
   player finds it in the names, the patriarch's in full on the statue and the 1979 board, hers on the director's door.
   (A sister was weighed and dropped: a daughter working under another name would be an open quarrel, and not one the
   family could leave unmentioned.)
+- **Why Mary.** She conceives alone, and makes something new out of nobody but herself. And it was the commonest name a
+  girl born around 1960 could be given, so it hides in plain sight: nobody reads anything into a Mary until they know.
+  (She was Maren; the archived first engine keeps that.)
 - **Proposed:** the patriarch's full name on the 1979 board ("Josiah Holt Ashcombe, the founder's grandson") and the
   statue's plinth. Whit runs the company, Conrad the station, and Kit is the humidor's best customer (which answers who
   of the family sampled the trial lots).
@@ -1522,7 +1525,7 @@ Nobody expected worse than a bad night.
 
 ### The elders
 
-- **Maren Holt (director of research; the family's cousin, §1).** Raw tissue from the beds, through a burn on her hand. Her way round is care: she grafts
+- **Mary Holt (director of research; the family's cousin, §1).** Raw tissue from the beds, through a burn on her hand. Her way round is care: she grafts
   the plants onto herself slowly, choosing each one, and shapes herself with them, and she has never stopped. She is the green
   god, and she is a level: Horticulture (to be rebuilt much larger) is colonised by her, and the cave under it, larger again
   and open to explore, is her body entire, the leaf on the floor, the cane standing, what hangs from the roof, what is trained
