@@ -13,6 +13,9 @@ browser (three.js comes from a CDN), and each has been published as a private cl
   (`rootshock-changed/1`, described at the top of its script); the published copy keeps them where Claude can read them.
   *Security's seven* (the Saved tab) is a line-up of the upper station's changed, one for each, newest to oldest;
   *Pia's lines* are examples of the bone, bloat and plant lines that founded the Commons, young to old and each young god.
+  *The green lines* are the lines whose plant comes first, as you would meet them (`docs/world.md` §10, *The green
+  lines*): the bush's middle years, the flower child's, the root ancestor's young and planted, the bark ancestor's, and
+  one of Tom's; three ridden by what came out of their chests, some still carrying what was in their hands.
   `window.__rs` in the console exposes the state.
 - `lineage.html`: the family tree and an entry for each elder. Generated: edit `lineage/template.html` (the cards) or
   `lineage/build.py` (the tree's nodes), then run `python3 mockups/lineage/build.py`.

@@ -1652,8 +1652,8 @@ Nobody expected worse than a bad night.
   *The spores and you (proposed):* a spore is a graft like any other and needs living tissue to take: a wound, or long, heavy
   breathing of it. One breath does nothing; a cut in his zone, or hours in it unmasked, does. The rebreather keeps them out,
   so his zone is somewhere you go equipped, and a wound taken there is the danger. On the floor, on the dead, on anything
-  organic, they grow into new producers. *Inside:* Holt is not containing him but saving him for the surface; opening his
-  zone lets him out on your schedule, not hers.
+  organic, they grow into new producers; on the living, too (*The green lines*, Tom's carrier). *Inside:* Holt is not
+  containing him but saving him for the surface; opening his zone lets him out on your schedule, not hers.
 - **Sam Okoro (a bit of everything).** Took every product at least once, and the niche strains nobody else touched (a DMT-like,
   a psilocybin-like): the trial's most watched subject. Moody like Janus, kind like the aedra; never psychotic, never violent;
   driven to fairness. A big man, about 3.3 m, long in the leg and less heavy than his height suggests; his body a patchwork of
@@ -1691,13 +1691,16 @@ Nobody expected worse than a bad night.
 ### Pia's lines, filled in (proposed)
 
 What the game has of each line, by how long it has been changing, and the gaps. `mockups/mutants.html` has an example
-of each gap (*Pia's lines*, in its Saved tab).
+of each gap (*Pia's lines*, in its Saved tab; the later lines' are *The green lines*, below).
 
 | Line | Young | Middle years | Old | Young god |
 |---|---|---|---|---|
 | Bone (the bone mother's) | the husks (built; their temper too) | the thresher (built); a person's size (built) | the bone elders (none) | the bone mother (none) |
 | Bloat (the bloat god's) | still walking, swelling, baby-headed (none) | bigger, slower, dopier (none) | the bloats, sat (built) | the bloat god (none) |
-| Plant (the bush's) | Security's changed (built; their temper too) | heavier, greener, the face going under (none) | the bench's *Plant, old* (built: one, in the Commons) | the bush (none) |
+| Plant (the bush's) | Security's changed (built; their temper too) | heavier, greener, the face going under (mocked up: *Plant, middle years*) | the bench's *Plant, old* (built: one, in the Commons) | the bush (none) |
+| Flower (the flower child's) | flowers off roots, nearly a person (mocked up: *Flower, young*) | (none) | (none) | the flower child (none) |
+| Root (the root ancestor's) | roots out of the body (mocked up: *Root, young*) | (none) | sunk in and planted (mocked up: *Root, planted*) | the root ancestor (none) |
+| Bark (the bark ancestor's) | (none) | plated, almost an insect (mocked up: *Bark, middle years*) | (none) | the bark ancestor (none) |
 
 - **What each fears, and how the body answers it.** Every organ makes a problem and the body grows a way round it (rule
   3); in Pia's lines the problem is the fear. The bone line fears being hurt and hunted: it armours, reaches, patrols. The
@@ -1710,6 +1713,57 @@ of each gap (*Pia's lines*, in its Saved tab).
   as an insect does, in stages: the egg; the worm, a larva with no legs yet (the flesh worms, built); the skitter, on four
   long legs of bone (built); the big skitter (built). The green worms stay the plants'. Security's
   first, taken by a hatchling, is then the lines' grandchild by an egg.
+
+### The green lines (asked; mocked up, not built)
+
+Mutants whose plant comes first, in the spirit of System Shock 2's hybrids: a person still, in what they wore to work,
+ridden by what came out of them, and carrying what was in their hands when it took. Six: one for each gap in the table
+above where the plant leads, and one of Tom's. Mocked up on the bench (`mockups/mutants.html`, *The green lines* in its
+Saved tab), each with notes. Looks and tempers proposed, to argue with; where each stands is open unless said. (Not
+called hybrids: here that word is kept for crosses of the lines.)
+
+- **What they share.** A person's outline and size, so at a distance they read as staff, and wrong up close. Three are
+  *ridden*: the breastbone parted where the thing came out, and the thing still holding on, up over a shoulder and
+  round the head (a stalk, a root, a producer). Some still carry what was in their hands (a baton, a knife, a pipe),
+  from habit, as the night round keeps its flashlight: a habit, not a weapon swung with intent. *Open:* whether what
+  they carry drops where they fall (all three are the game's own, `content/items.ts`).
+- **Plant, middle years (the bush's).** Between Security's seven and the old one: heavier, greener, the face going
+  under. A tobacco stalk came out through the chest, grew up over the right shoulder and round the back of the head,
+  and its leaf closes over the left of the face; it flowers over the brow. A guard still: the vest from under the
+  shirt, the uniform trousers, the baton. The line's temper further in: fear held down, deeper in the stupor than the
+  seven; it stands in the growth, passes for it until you are close, and kills what sees it (the plant line fears being
+  seen). In the Commons, near the old one.
+- **Flower, young (the flower child's).** The most nearly human thing of Pia's: grafted later, when she was more plant
+  and less afraid. Rustica's pale trumpets come off roots run under the skin, out at the crown, the neck, the shoulders
+  and down one arm. Less fear, more of the euphoria: its face up to the light, swaying; it walks to whatever is lit,
+  and to you with its hands open. It does not want you dead; it wants to give you what it has (*Temper*: left alone is
+  not left be). Its danger is being held.
+- **Root, young, and Root, planted (the root ancestor's).** Small Pias that look nothing like her. The young one: a root
+  out through the chest and over its left shoulder, its end split into fingers that grip the skull, over the crown and
+  down onto the brow; its left arm gone to roots, more out of its back and its bare feet; a cook, by the whites, the
+  knife still in its hand. Calm (old tissue carries the cure): it walks slowly to water and stands in it, and lets you
+  be unless you are in its way. The planted one: sunk into the floor, the body the top of its own root bole, the roots
+  out over the floor and up any wall, the arms gone to root and held up and out like limbs; the head the only part a
+  person's, green through, turned to the light. It does not move; it turns its face to what it feels through its
+  roots. Proposed for the sump's edge, their roots in the water (the plants want the sump kept, §2). *Open:* whether a
+  cutting from a planted one treats, as old Pia does (*Grafting as treatment*).
+- **Bark, middle years (the bark ancestor's).** Someone grown into something much worse: the skin gone to bark in
+  plates, overlapping down it like a beetle's, a split shell over the back; the face under a plate, the jaw in two that
+  part sideways, four black eyes in the slit; low, the arms long and held up in front of it, the hands gone to woody
+  hooks. Armoured another way from the bone line, which stays humanoid. Calm, whatever it looks like: it walks a slow
+  beat and lets you pass, and is the worst-looking thing that will (*Temper*: read by how it moves).
+- **Tom's carrier.** A spore is a graft and wants a wound (*Tom*, the spores and you): one of the staff who went into
+  his zone before Holt sealed it, and was cut there. A producer came up through the breastbone, rose over the right
+  shoulder and up the back of the head, and hangs over the brow, its sulphur mouth opening and shutting with the
+  draught; smaller ones out of a shoulder blade, a forearm and a thigh, the skin torn round each. Not Pia's, so not her
+  black eyes: ashen, the whites of its eyes still a person's (the one place the bench spends them). Sleepless and calm
+  as Tom was, it walks the zone with the pipe it came in with, and one day lies down where it is and is grown through,
+  as he was. The danger is its mouth, and a cut taken near it. In his zone only.
+- **The bench, for them (built).** A trunk opened down the front; arms and legs gone to bark or root, or the legs gone
+  and the body planted on a root bole; a head plated over with bark; a rider (a stalk, a root or a producer) over either
+  shoulder; something in the right hand (a baton, a pipe, a wrench, a kitchen knife, shears); trousers in other work's
+  colours; and two growths, flowers off a root and Tom's producers, whose mouths open and shut. Saved designs keep
+  `rootshock-changed/1`: the new fields have defaults, so the older ones open as they were.
 
 ### Temper: when, how far, how long (proposed)
 
