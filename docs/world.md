@@ -1122,22 +1122,17 @@ builder takes them.
    metric kit left it at the end of a comment, so screening and check-in were dead ends and the first loop out of the
    opening (*The lobby as a hub*) was not there; the upper station has its five loops again (the loops probe). Three new
    doors, so saves are made new (version 21).
-7. **Showers, a training room, and the court.** The locker room is the right size for its lockers (four crews, both
+7. **Showers and a training room.** The locker room is the right size for its lockers (four crews, both
    rotations) and has no showers or toilets: those in the gap west of it (x 26 to 32, z 10 to 22). The response team's
-   training room in the gap at the muster hall's north-west (x 14 to 22, z 22 to 32). And the muster court: 1,000 m²
-   is too much hall to muster the upper station's 150, and right for a sports hall, which in real buildings is where you
-   muster. Lines painted on the court (it takes volleyball, or half a court of basketball), hoops hung from the coffer,
-   the drill clock its scoreboard, the steps its benches: the station's second court, already built. **Built:** off the
+   training room in the gap at the muster hall's north-west (x 14 to 22, z 22 to 32). **Built:** off the
    locker room's west side, through two plain steel doors, the showers (four open stalls down the west wall, a bench,
    towels on their hooks, one on the floor) and the toilets (three stalls, their doors back; urinals; basins under a
    mirror); on the wing's feed with the lockers. The training room off the hall's west end (x 8 to 21, z 23 to 31; 13
    by 8 m): a mirror over the dumbbells, a squat rack, the bench and its bar, a punch bag, two treadmills, a rower, mats
-   by the door, and the board with the week's PT on it (and under it, in another hand, COURT BOOKED FRIDAY. A v B); on
+   by the door, and the board with the week's PT on it; on
    the hall's breaker with no emergency lights, so dark until Gen-1, as the range is, and bolted with the hall in a
-   lockdown. The court's flat floor is 24 by 8 m between its steps, too narrow for volleyball or half a court of
-   basketball as proposed: it is lined as a narrow court (a boundary, a centre line and circle, a key and its circle
-   at each end), with a basket hung from the coffer at each end; a band of scores under the drill clock; a ball left on
-   it. Three new doors, so saves are made new (version 22).
+   lockdown. Three new doors, so saves are made new (version 22). (The muster court was dressed as a sports court here
+   too, lines, hoops, scores and a ball; taken out again by the owner: it read as a basketball court, not a muster hall.)
 8. **The bar's kitchen.** A hob and a rack, for the bar, the lounges and the retreat below. The walk-ins (2), and a
    service stair down to a pantry at the retreat's level (x -8 to -2, z -6 to -2): the family's dinners went down the
    back way. A second way into the retreat, not the grand one. **Built:** the kitchen lengthened to 6 by 14 m and fitted out:

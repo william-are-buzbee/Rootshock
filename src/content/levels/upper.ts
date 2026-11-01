@@ -620,43 +620,6 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   for (const [x, z, ry] of [[68, 36, 0], [75, 32.8, 0.4], [74, 40.4, -0.3], [66, 28.4, PI / 2]] as const) {
     bx(D, x, z, 0.3, 1.05, 2.4, 0xc9a227, { ry }); bx(D, x, z, 0.32, 0.12, 2.42, 0x2a2c2e, { y: 0.6, ry, c: 0 });
   }
-  /* its eyes: the hall is a promenade, not armed, so the two out here only record (one high in the coffer, on the
-     hall's own breaker; one in the east bays' north-east corner, on EAST). The rooms off it that are armed have their
-     own, inside, on the hall's breaker: the electrical room, the Armory, the range; and the operations stair, on EAST,
-     sounding the Operations zone. The speaker hangs low enough to reach; like every speaker on the level it is on the
-     PA, which is on critical power: smashing it is the only answer */
-  /* the court, read as what it was most nights: the station's second court, and the place they mustered because it was
-     the gym (world.md §8, Security at the station's size). Lines on its floor, a basket hung from the coffer at each end,
-     the drill clock its scoreboard, the steps its benches, and a ball left on it */
-  const LINE = 0xd8d4c4, RIM = 0xc8641e;
-  const mark = (x0: number, z0: number, x1: number, z1: number) => bx(D, (x0 + x1) / 2, (z0 + z1) / 2, Math.max(x1 - x0, 0.08), 0.01, Math.max(z1 - z0, 0.08), LINE, { y: 0.012, c: 0 });
-  const arc = (cx: number, cz: number, r: number, a0: number, a1: number, n: number) => {
-    for (let k = 0; k < n; k++) {
-      const a = a0 + ((a1 - a0) * (k + 0.5)) / n;
-      bx(D, cx + Math.cos(a) * r, cz + Math.sin(a) * r, 2 * r * Math.sin((a1 - a0) / (2 * n)) + 0.03, 0.01, 0.08, LINE, { y: 0.012, ry: -Math.atan2(Math.cos(a), -Math.sin(a)), c: 0 });
-    }
-  };
-  mark(38.5, 32.4, 61.5, 32.4); mark(38.5, 39.6, 61.5, 39.6); mark(38.5, 32.4, 38.5, 39.6); mark(61.5, 32.4, 61.5, 39.6); mark(50, 32.4, 50, 39.6);
-  arc(50, 36, 1.5, 0, 2 * PI, 20);
-  for (const [x0, x1, s] of [[38.5, 43.3, 1], [56.7, 61.5, -1]] as const) {
-    mark(x0, 34.3, x1, 34.3); mark(x0, 37.7, x1, 37.7); const fx = s > 0 ? x1 : x0; mark(fx, 34.3, fx, 37.7);
-    arc(fx, 36, 1.5, s > 0 ? -PI / 2 : PI / 2, s > 0 ? PI / 2 : (3 * PI) / 2, 10);
-  }
-  for (const [bx0, s] of [[38.9, 1], [61.1, -1]] as const) {
-    bx(D, bx0, 36, 0.05, 1.05, 1.8, 0xe2e2da, { y: 2.9, c: 0 }); // the board
-    const fx = bx0 + s * 0.03; // its square
-    bx(D, fx, 36, 0.01, 0.03, 0.59, 0x8c2f24, { y: 3.47, c: 0 }); bx(D, fx, 36, 0.01, 0.03, 0.59, 0x8c2f24, { y: 3.05, c: 0 });
-    for (const dz of [-0.28, 0.28]) bx(D, fx, 36 + dz, 0.01, 0.45, 0.03, 0x8c2f24, { y: 3.05, c: 0 });
-    for (const z of [35.4, 36.6]) bx(D, bx0, z, 0.06, 5.8, 0.06, 0x2a2c2e, { y: 3.95, c: 0 }); // hung from the coffer
-    bx(D, bx0 + s * 0.06, 36, 0.08, 0.03, 0.08, RIM, { y: 3.04, c: 0 }); // the rim, on its bracket
-    for (let k = 0; k < 12; k++) {
-      const a = (k / 12) * 2 * PI;
-      bx(D, bx0 + s * 0.255 + Math.cos(a) * 0.23, 36 + Math.sin(a) * 0.23, 0.13, 0.02, 0.02, RIM, { y: 3.04, ry: -Math.atan2(Math.cos(a), -Math.sin(a)), c: 0 });
-    }
-  }
-  bx(D, 50, 36, 2.6, 0.45, 0.5, 0x22262a, { y: 5.75, c: 0 }); // the scores, under the clock
-  for (const z of [35.74, 36.26]) for (const x of [49.2, 50.8]) bx(D, x, z, 0.7, 0.3, 0.02, [0.05, 0.04, 0.04], { y: 5.83, c: 0, pw: [[0.05, 0.04, 0.04], [2.6, 1.6, 0.4]], pc: 'HALL' });
-  P(D, 'ico', 47.2, 38.8, 0.24, 0.24, 0.24, RIM, { c: 0 }); // the ball
   /* off the hall's west end, the response team's training room: weights under a mirror, a squat rack, the bench, a
      punch bag, two treadmills and a rower; mats by the door; the board with the week's PT on it. On the hall's breaker,
      dark until Gen-1, as the range is */
@@ -677,7 +640,12 @@ export function buildUpper(ladders: Record<string, LadderDef>): LevelDef {
   bx(D, 17.5, 30.4, 2.2, 0.22, 0.3, BLK); bx(D, 16.5, 30.4, 0.45, 0.5, 0.5, IRON); bx(D, 18, 30.4, 0.3, 0.08, 0.3, IRON, { y: 0.22, c: 0 }); // the rower
   bx(D, 19.4, 25.6, 1.6, 0.04, 2.2, 0x2a4a7a, { c: 0 }); // mats
   bx(D, 8.015, 27, 0.03, 1, 1.6, 0xe2e2da, { y: 1.2, c: 0 }); for (let k = 0; k < 4; k++) bx(D, 8.035, 26.9 + (k % 2) * 0.2, 0.01, 0.03, 0.9 + (k % 3) * 0.2, [0x2a3a6a, 0x8c2f24][k % 2], { y: 1.95 - k * 0.2, c: 0 });
-  use(D, 'look', 8.1, 27, 1.6, { label: 'Whiteboard', text: 'RESPONSE TEAM PT, 06:00. FITNESS TESTS THIS MONTH. Under it, in another hand: COURT BOOKED FRIDAY. A v B.' });
+  use(D, 'look', 8.1, 27, 1.6, { label: 'Whiteboard', text: 'RESPONSE TEAM PT, 06:00. FITNESS TESTS THIS MONTH.' });
+  /* its eyes: the hall is a promenade, not armed, so the two out here only record (one high in the coffer, on the
+     hall's own breaker; one in the east bays' north-east corner, on EAST). The rooms off it that are armed have their
+     own, inside, on the hall's breaker: the electrical room, the Armory, the range; and the operations stair, on EAST,
+     sounding the Operations zone. The speaker hangs low enough to reach; like every speaker on the level it is on the
+     PA, which is on critical power: smashing it is the only answer */
   speaker(D, 'muster', 29, 36, 'CRIT');
   camera(D, 38.2, 36, 7.6, PI / 2, 'HALL', 'muster', { name: 'Muster court' }); camera(D, 79.4, 24.6, 4, -PI / 4, 'EAST', 'ops', { name: 'East bays' });
   /* their comms cupboards, one a breaker (world.md §8, Security at the station's size, 9): the hall's off its west
