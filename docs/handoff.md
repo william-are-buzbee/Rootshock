@@ -91,8 +91,8 @@ wants a gate decided and the progression checker; 14 has lore open (which of the
 - All of it is in `src/content/levels/upper.ts`; search by room name, since line numbers drift. In `buildUpper`: the
   arrival hall ('Surface landing'), the dock ('Goods inward'), the Ops suite ('Office: operations', 'Outer office',
   'Office: chief of security', 'Records', 'Conference room'), 'Maintenance' with its 'Generator room' and 'Fuel store',
-  'Showers' and 'Toilets' after the locker room, and the 'Training room' and the court's lines before the muster
-  speaker. In `buildHub`: 'Administration' with its 'ID office' and 'Office: administration', 'Screening' with
+  'Showers' and 'Toilets' after the locker room, and the 'Training room' before the muster speaker. In `buildHub`:
+  'Administration' with its 'ID office' and 'Office: administration', 'Screening' with
   'Ladies' and 'Gentlemen', and at its end the 'Kitchen', 'Service stair', 'Pantry', 'Back passage', and the walk-ins
   off the service passage.
 - New papers in `content/notes.ts`: `sealed` (the incident report in records) and `orders` (Maintenance's work orders).
