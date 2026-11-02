@@ -15,12 +15,14 @@ browser (three.js comes from a CDN), and each has been published as a private cl
   *Pia's lines* are examples of the bone, bloat and plant lines that founded the Commons, young to old and each young god.
   `window.__rs` in the console exposes the state.
 - `heads.html`: a bench for the heads of Pia's lines (`docs/world.md` §10): a row for each line (the bone line's middle
-  years, Security's changed, a young bloat), each head on the same body so only the head differs, the first as
-  `render/castView.ts` draws it today; and *Ageing*, the bone line young to old at its own sizes (the husk, the middle
-  years with bone through one eye, the old one: grown bone, plated, the skull smooth, about 2.6 m) beside a 1.8 m figure.
-  The second pass: what the first picks dropped is gone (the brow plate, the split face, the hung leaf, the shut and sunk
-  bloats), and what they asked for is made (the skull without its jaw, the shelf without the knot that read as an eye,
-  the bloat face up with its dead eyes). Seen in a concrete room: as a line-up, close to, or from your eye at the game's 72° and a chosen
+  years, Security's changed, a young bloat), each head on the same body so only the head differs; and *Ageing*, the
+  bone line young to old at its own sizes beside a 1.8 m figure. The third pass, after two rounds of picks: the bone
+  line's bone grows over the outside, never through, and its face comes down to the mouth and then goes under (as
+  built, just the mouth, a bone cap growing down over it, the smooth skull with nothing under it); the plant line's
+  growth is one tissue with the flesh, a mass of florets coloured from the skin to the leaf, over half the head or all
+  of it (beside the shelf, its knot hidden); the bloat face up, and with its face's contrast taken down. The old of the
+  bone line is a person packed inside their own bone, a person's proportions grown to about 2.4 m, flesh pressed raw
+  against plates of it. Seen in a concrete room: as a line-up, close to, or from your eye at the game's 72° and a chosen
   distance; lit, under a tube, or dark with a flashlight; in the built palette or a darker one, flat or mottled, upright
   or hunched. Keep, maybe or drop each, with a note: the published copy keeps them where Claude can read them
   (collection `picks`, described at the top of its script). `window.__rs` in the console exposes the state.

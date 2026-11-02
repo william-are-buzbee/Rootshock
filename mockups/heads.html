@@ -142,7 +142,7 @@ button { cursor: pointer; }
   </div>
 
   <aside id="panel">
-    <p class="intro">The second pass, after your picks. Bone, Plant and Bloat put each head on one body, so only the head changes; Ageing is the bone line young to old, to scale. Mark the ones worth building.</p>
+    <p class="intro">The third pass, after your second picks. Bone, Plant and Bloat put each head on one body, so only the head changes; Ageing is the bone line young to old, to scale. Mark the ones worth building.</p>
     <div class="seg" role="tablist" aria-label="Line">
       <button role="tab" data-line="bone" aria-selected="true">Bone</button>
       <button role="tab" data-line="plant" aria-selected="false">Plant</button>
@@ -189,8 +189,8 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 /* A bench for the heads of Pia's lines (docs/world.md §10): the treatments for each line on the same body, so the head is
-   the only thing that differs; and the bone line young to old, each at its own size. Second pass: what was dropped in
-   the first is gone, and what was asked of the rest is made. Built in the game's own kit (src/present/render/castKit.ts, castView.ts): boxes,
+   the only thing that differs; and the bone line young to old, each at its own size. Third pass: what was dropped is
+   gone, and what the notes asked of the rest is made. Built in the game's own kit (src/present/render/castKit.ts, castView.ts): boxes,
    hexagonal cylinders and icosahedra, flat-shaded. The first of each row is the head as castView.ts draws it today.
 
    Your picks are kept in the artifact's store where it has one (collection "picks", one document a head, its id
@@ -286,6 +286,7 @@ const DARKC = 0x140c0d;
 /** what a part is made of: a palette's name for it, a shade of one ({ of, k }), or a plain colour (cloth) */
 function tone(key) {
   if (typeof key === 'number' || Array.isArray(key)) return { rgb: rgb(key), gloss: 0, m: 0.05 };
+  if (typeof key === 'object' && key.rgb) return key;
   if (typeof key === 'object') { const t = tone(key.of); return { rgb: t.rgb.map(v => v * key.k), gloss: key.gloss ?? t.gloss * 0.5, m: t.m }; }
   const p = PAL[S.pal][key] ?? FIXED[key];
   return { rgb: rgb(p[0]), gloss: p[1], m: p[2] };
@@ -366,12 +367,6 @@ function shelf(parent, x, y, z, yaw, tiers, len, rnd, o = {}) {
 }
 
 /* ---------------------------------------------------------------------------------------------------------------- */
-/* hollows for eyes, a shade of the skin under a brow that overhangs them: the "hollows" head of each line */
-function sockets(hd, K, skin, at) {
-  for (const s of [-1, 1]) mk(hd, 'ico', { of: skin, k: 0.42 }, 0.062 * K, 0.048 * K, 0.03 * K, s * at.x * K, at.y * K, at.z * K);
-  mk(hd, 'box', skin, 0.2 * K, 0.032 * K, 0.05 * K, 0, (at.y + 0.034) * K, (at.z + 0.004) * K); // the brow, over them
-  mk(hd, 'box', skin, 0.034 * K, 0.055 * K, 0.035 * K, 0, (at.y - 0.04) * K, (at.z + 0.014) * K); // the nose
-}
 
 /* The bone mother's, middle years (castView.ts boneMid): a husk a head taller, halfway gone to bone */
 const BONE_HEADS = {
@@ -382,52 +377,29 @@ const BONE_HEADS = {
     mk(hd, 'box', 'PALE', 0.12 * K, 0.04 * K, 0.1 * K, 0, -0.14 * K, 0.06 * K);
     hair(hd, K);
   },
-  hollows(hd, K) {
-    mk(hd, 'ico', 'PALE', 0.25 * K, 0.29 * K, 0.26 * K);
-    sockets(hd, K, 'PALE', { x: 0.057, y: 0.026, z: 0.106 });
-    mk(hd, 'box', 'GOREC', 0.09 * K, 0.06 * K, 0.04 * K, 0, -0.085 * K, 0.1 * K);
-    mk(hd, 'box', 'PALE', 0.12 * K, 0.04 * K, 0.1 * K, 0, -0.14 * K, 0.06 * K);
-    hair(hd, K);
-  },
-
-
-
 };
-/* the second pass, after the picks (bone-horns: something through its eyes; bone-smooth: keep it, the jaw gone) */
+/* the third pass, after the second picks: bone grows over the outside, never through (bone-through: "we don't see that on
+   the other ones"); the face comes down to the mouth (bone-built: "no eyes, no hair, just the mouth"); the skull is one
+   shape with nothing under it (bone-skull: "remove the jaw entirely") */
 Object.assign(BONE_HEADS, {
-  through(hd, K) {
+  mouth(hd, K) {
     mk(hd, 'ico', 'PALE', 0.25 * K, 0.29 * K, 0.26 * K);
-    /* its left eye: bone has burst out of it, forward and up, tapering, and a second spur is coming beside it */
-    mk(hd, 'ico', 'RAW', 0.075 * K, 0.065 * K, 0.045 * K, 0.057 * K, 0.03 * K, 0.106 * K); // the socket, torn open
-    const r = grp(hd, 0.057 * K, 0.03 * K, 0.115 * K);
-    r.rotation.set(-0.2, 0.35, 0);
-    mk(r, 'ico', 'BONE', 0.05 * K, 0.05 * K, 0.13 * K, 0, 0, 0.05 * K);
-    const r2 = grp(r, 0, 0, 0.11 * K);
-    r2.rotation.set(-0.2, 0.15, 0);
-    mk(r2, 'ico', 'BONE', 0.032 * K, 0.032 * K, 0.12 * K, 0, 0, 0.05 * K);
-    const r3 = grp(r2, 0, 0, 0.1 * K);
-    r3.rotation.set(-0.15, 0.1, 0);
-    mk(r3, 'ico', 'BONE', 0.018 * K, 0.018 * K, 0.09 * K, 0, 0, 0.04 * K);
-    const q = grp(hd, 0.078 * K, 0.01 * K, 0.11 * K);
-    q.rotation.set(0.25, 0.7, 0);
-    mk(q, 'ico', 'BONE', 0.022 * K, 0.022 * K, 0.07 * K, 0, 0, 0.03 * K);
-    /* its right: swollen shut, the tip of more just through */
-    mk(hd, 'ico', 'PALE', 0.085 * K, 0.042 * K, 0.042 * K, -0.057 * K, 0.05 * K, 0.11 * K);
-    mk(hd, 'ico', 'PALE', 0.085 * K, 0.036 * K, 0.042 * K, -0.057 * K, 0.01 * K, 0.11 * K);
-    mk(hd, 'box', { of: 'PALE', k: 0.5 }, 0.05 * K, 0.008 * K, 0.02 * K, -0.057 * K, 0.03 * K, 0.126 * K);
-    const t = grp(hd, -0.05 * K, 0.03 * K, 0.124 * K);
-    t.rotation.set(-0.3, -0.3, 0);
-    mk(t, 'ico', 'BONE', 0.022 * K, 0.022 * K, 0.05 * K, 0, 0, 0.015 * K);
-    mk(hd, 'box', 'GOREC', 0.075 * K, 0.045 * K, 0.04 * K, 0, -0.087 * K, 0.1 * K); // the mouth, slack
+    mk(hd, 'box', 'EYE', 0.1 * K, 0.07 * K, 0.04 * K, 0, -0.085 * K, 0.1 * K);
     mk(hd, 'box', 'PALE', 0.12 * K, 0.04 * K, 0.1 * K, 0, -0.14 * K, 0.06 * K);
-    hair(hd, K);
   },
-  skull(hd, K) {
+  under(hd, K) {
+    mk(hd, 'ico', 'PALE', 0.25 * K, 0.29 * K, 0.26 * K);
+    const c = grp(hd, 0, 0.045 * K, -0.005 * K);
+    c.rotation.x = 0.12;
+    mk(c, 'ico', 'BONE', 0.275 * K, 0.26 * K, 0.285 * K); // grown over the top and down over the eyes, one smooth cap
+    mk(hd, 'box', 'EYE', 0.1 * K, 0.07 * K, 0.04 * K, 0, -0.085 * K, 0.1 * K);
+    mk(hd, 'box', 'PALE', 0.12 * K, 0.04 * K, 0.1 * K, 0, -0.14 * K, 0.06 * K);
+  },
+  skull3(hd, K) {
     const sk = grp(hd, 0, 0.03 * K, -0.03 * K);
     sk.rotation.x = 0.25;
-    mk(sk, 'ico', 'BONE', 0.27 * K, 0.33 * K, 0.38 * K); // one smooth shape, nothing on it
-    mk(hd, 'ico', 'BONE', 0.2 * K, 0.17 * K, 0.24 * K, 0, -0.1 * K, 0.02 * K); // smooth underneath, where the jaw was
-    mk(hd, 'ico', 'RAW', 0.17 * K, 0.05 * K, 0.17 * K, 0, -0.17 * K, -0.01 * K); // raw where it meets the neck
+    mk(sk, 'ico', 'BONE', 0.27 * K, 0.33 * K, 0.38 * K); // one smooth shape, and nothing else
+    mk(hd, 'ico', 'RAW', 0.16 * K, 0.05 * K, 0.16 * K, 0, -0.115 * K, -0.02 * K); // raw where it meets the neck
   },
 });
 function hair(hd, K) { for (const [x, z] of [[-0.06, -0.04], [0.05, 0.02], [0, -0.1]]) mk(hd, 'ico', DARKC, 0.06 * K, 0.025 * K, 0.06 * K, x * K, 0.14 * K, z * K); }
@@ -482,75 +454,65 @@ function huskBody() {
   a = grp(b, 0.3, 0.58, 0); mk(a, 'box', 'RAW', 0.14, 0.4, 0.14, 0, -0.2, 0); mk(a, 'box', 'FLESH', 0.1, 0.52, 0.1, 0, -0.64, 0); mk(a, 'box', 'BONE', 0.05, 0.16, 0.05, 0, -0.97, 0.02); arms.push(a);
   return { g, b, hd, legs, shins, arms };
 }
-/* the old of the bone mother's line (world.md §10): the skeleton has won. The limbs bone, raw at the joints; the ribs a
-   cage round what is left of the flesh, the spine out down the back; both arms drawn out to points, the right the
-   longer; no face, the skull one smooth shape. Tall (ELDK times a person, the body grown more than the head), stooped */
-const ELDK = 1.45;
+/* the old of the bone mother's line (world.md §10), third pass: a person packed inside their own bone, not a skeleton
+   (ageing-elder: "the red is right up to the ribs"; "why would it be smaller?"). A person's proportions, ELDK times as
+   large: each limb its flesh, raw, pressed against the plates of bone grown round it, the red showing only where they
+   meet. No ball joints (they read as an action figure): the flesh runs on through the bend. The skull smooth */
+const ELDK = 1.3;
 function elderBody() {
-  const K = ELDK, g = new THREE.Group(), legs = [], shins = [];
-  /* bone grown, not bone bared: thick, plated, longer than a person's, raw where it bends */
+  const K = ELDK, R = seeded(53), g = new THREE.Group(), legs = [], shins = [];
+  const plate = (p, sx, sy, sz, x, y, z, rz = 0) => {
+    const m = mk(p, 'ico', 'BONE', sx, sy, sz, x, y, z);
+    m.rotation.set(R.rnd(-0.08, 0.08), R.rnd(-0.1, 0.1), rz + R.rnd(-0.08, 0.08));
+    return m;
+  };
   for (const s of [-1, 1]) {
     const l = grp(g, s * 0.12 * K, 0.9 * K, 0), k = grp(l, 0, -0.45 * K, 0);
-    mk(l, 'ico', 'RAW', 0.16 * K, 0.2 * K, 0.15 * K, 0, -0.05 * K, 0); // what is left of the thigh, at the hip
-    mk(l, 'box', 'BONE', 0.085 * K, 0.42 * K, 0.085 * K, 0, -0.25 * K, 0);
-    mk(l, 'ico', 'BONE', 0.13 * K, 0.22 * K, 0.1 * K, s * 0.02 * K, -0.22 * K, 0.03 * K); // a plate down the front of it
-    mk(l, 'ico', 'RAW', 0.12 * K, 0.1 * K, 0.12 * K, 0, -0.45 * K, 0.01 * K); // the knee
-    mk(k, 'box', 'BONE', 0.07 * K, 0.42 * K, 0.07 * K, 0, -0.22 * K, 0);
-    mk(k, 'ico', 'BONE', 0.1 * K, 0.24 * K, 0.08 * K, 0, -0.18 * K, 0.035 * K); // the shin, plated
-    mk(k, 'ico', 'RAW', 0.09 * K, 0.07 * K, 0.09 * K, 0, -0.42 * K, 0);
-    mk(k, 'box', 'BONE', 0.08 * K, 0.04 * K, 0.22 * K, 0, -0.44 * K, 0.05 * K);
+    mk(l, 'box', 'RAW', 0.19 * K, 0.5 * K, 0.2 * K, 0, -0.23 * K, 0); // the thigh, packed in it
+    plate(l, 0.21 * K, 0.36 * K, 0.12 * K, 0, -0.2 * K, 0.07 * K);
+    plate(l, 0.1 * K, 0.34 * K, 0.19 * K, s * 0.075 * K, -0.22 * K, 0);
+    plate(l, 0.17 * K, 0.3 * K, 0.1 * K, 0, -0.22 * K, -0.07 * K);
+    mk(k, 'box', 'RAW', 0.17 * K, 0.47 * K, 0.18 * K, 0, -0.22 * K, 0);
+    plate(k, 0.19 * K, 0.34 * K, 0.11 * K, 0, -0.2 * K, 0.065 * K);
+    plate(k, 0.1 * K, 0.3 * K, 0.16 * K, s * 0.065 * K, -0.22 * K, -0.01 * K);
+    mk(k, 'box', 'BONE', 0.18 * K, 0.08 * K, 0.3 * K, 0, -0.43 * K, 0.05 * K); // the foot, gone under
     legs.push(l); shins.push(k);
   }
   const b = grp(g, 0, 0.9 * K, 0);
-  mk(b, 'box', 0x2b2e34, 0.36 * K, 0.1 * K, 0.22 * K, 0, 0.02 * K, 0); // a rag of trouser at the hips
-  mk(b, 'ico', 'RAW', 0.32 * K, 0.56 * K, 0.22 * K, 0, 0.34 * K, -0.01 * K); // what is left of the flesh, inside the ribs
-  for (let i = 0; i < 5; i++) {
-    const y = (0.2 + i * 0.09) * K, w = (0.36 - Math.abs(i - 2.6) * 0.035) * K;
-    mk(b, 'box', 'BONE', w, 0.045 * K, 0.045 * K, 0, y, 0.115 * K);
-    for (const s of [-1, 1]) mk(b, 'box', 'BONE', 0.045 * K, 0.045 * K, 0.22 * K, s * w / 2, y, 0.01 * K);
+  mk(b, 'box', 'RAW', 0.46 * K, 0.64 * K, 0.27 * K, 0, 0.32 * K, 0); // what is left of it, pressed right up to the bone
+  mk(b, 'box', 0x2b2e34, 0.5 * K, 0.09 * K, 0.3 * K, 0, 0.0, 0); // a rag of trouser at the hips
+  plate(b, 0.5 * K, 0.13 * K, 0.22 * K, 0, 0.09 * K, 0.05 * K); // over the hips
+  for (let i = 0; i < 6; i++) {
+    const y = (0.24 + i * 0.075) * K, w = (0.47 - Math.abs(i - 2.8) * 0.02) * K;
+    mk(b, 'box', 'BONE', w, 0.05 * K, 0.05 * K, 0, y, 0.14 * K); // the ribs, round the front and the sides, flush on it
+    for (const s of [-1, 1]) mk(b, 'box', 'BONE', 0.05 * K, 0.05 * K, 0.26 * K, s * (w / 2), y, 0.01 * K);
   }
-  mk(b, 'box', 'BONE', 0.07 * K, 0.44 * K, 0.04 * K, 0, 0.4 * K, 0.135 * K); // the breastbone, grown broad
-  for (let i = 0; i < 8; i++) mk(b, 'box', 'BONE', 0.08 * K, 0.055 * K, 0.08 * K, 0, (0.06 + i * 0.08) * K, -0.115 * K); // the spine, out
-  for (let i = 0; i < 4; i++) { const sp = mk(b, 'ico', 'BONE', 0.035 * K, 0.1 * K, 0.035 * K, 0, (0.2 + i * 0.13) * K, -0.17 * K); sp.rotation.x = -0.6; } // spurs off it
-  for (const s of [-1, 1]) {
-    mk(b, 'ico', 'RAW', 0.18 * K, 0.16 * K, 0.17 * K, s * 0.23 * K, 0.6 * K, 0);
-    const pl = mk(b, 'ico', 'BONE', 0.24 * K, 0.1 * K, 0.22 * K, s * 0.25 * K, 0.67 * K, 0); // a plate over the shoulder
-    pl.rotation.z = -s * 0.25;
-  }
-  mk(b, 'cyl', 'BONE', 0.09 * K, 0.16 * K, 0.09 * K, 0, 0.72 * K, 0.03 * K);
-  const hd = grp(b, 0, 0.84 * K, 0.07 * K);
-  BONE_HEADS.skull(hd, K * 0.92);
+  mk(b, 'box', 'BONE', 0.08 * K, 0.46 * K, 0.05 * K, 0, 0.42 * K, 0.16 * K); // the breastbone
+  for (const s of [-1, 1]) plate(b, 0.22 * K, 0.36 * K, 0.12 * K, s * 0.12 * K, 0.46 * K, -0.12 * K); // the back, a plate each side of the spine
+  for (let i = 0; i < 7; i++) mk(b, 'box', 'BONE', 0.08 * K, 0.06 * K, 0.07 * K, 0, (0.12 + i * 0.08) * K, -0.17 * K); // the spine
+  plate(b, 0.3 * K, 0.2 * K, 0.3 * K, 0.26 * K, 0.62 * K, 0, -0.3); // over the right shoulder, the more grown
+  plate(b, 0.24 * K, 0.16 * K, 0.26 * K, -0.25 * K, 0.62 * K, 0, 0.3);
+  mk(b, 'box', 'RAW', 0.16 * K, 0.16 * K, 0.16 * K, 0, 0.7 * K, 0.01 * K); // the neck
+  plate(b, 0.22 * K, 0.1 * K, 0.2 * K, 0, 0.68 * K, 0.03 * K);
+  const hd = grp(b, 0, 0.84 * K, 0.03 * K);
+  BONE_HEADS.skull3(hd, K * 0.95);
   hd.rotation.z = 0.12;
   const arms = [];
   for (const s of [-1, 1]) {
-    const a = grp(b, s * 0.28 * K, 0.6 * K, 0), long = s > 0 ? 1.2 : 1;
-    mk(a, 'box', 'BONE', 0.08 * K, 0.46 * K, 0.08 * K, 0, -0.24 * K, 0);
-    mk(a, 'ico', 'RAW', 0.11 * K, 0.09 * K, 0.11 * K, 0, -0.48 * K, 0); // the elbow
-    mk(a, 'box', 'BONE', 0.07 * K, 0.6 * K * long, 0.07 * K, 0, (-0.5 - 0.3 * long) * K, 0);
-    mk(a, 'ico', 'BONE', 0.11 * K, 0.3 * K * long, 0.09 * K, s * 0.015 * K, (-0.5 - 0.22 * long) * K, 0.02 * K); // the forearm, plated
-    mk(a, 'ico', 'BONE', 0.05 * K, 0.26 * K, 0.05 * K, 0, (-0.5 - 0.6 * long - 0.12) * K, 0.01 * K); // drawn to a point
-    a.rotation.z = s * 0.08;
+    const a = grp(b, s * 0.3 * K, 0.58 * K, 0);
+    mk(a, 'box', 'RAW', 0.14 * K, 0.38 * K, 0.15 * K, 0, -0.19 * K, 0);
+    plate(a, 0.16 * K, 0.3 * K, 0.17 * K, s * 0.02 * K, -0.17 * K, 0);
+    mk(a, 'box', 'RAW', 0.12 * K, 0.36 * K, 0.13 * K, 0, -0.56 * K, 0);
+    plate(a, 0.14 * K, 0.3 * K, 0.15 * K, 0, -0.56 * K, 0.01 * K);
+    plate(a, 0.12 * K, (s > 0 ? 0.28 : 0.18) * K, 0.12 * K, 0, (s > 0 ? -0.84 : -0.8) * K, 0.01 * K); // the hand gone under, the right to a point
+    a.rotation.z = s * 0.1;
     arms.push(a);
   }
-  b.rotation.x = 0.16; // stooped
+  b.rotation.x = 0.12; // stooped
   return { g, b, hd, legs, shins, arms };
 }
 const UNIFORM = 0x2c3440, TROUSERS = 0x23262b;
-const PLANT_HEADS = {
-  built(hd) {
-    mk(hd, 'ico', 'SALLOW', 0.24, 0.28, 0.25);
-    for (const s of [-1, 1]) mk(hd, 'ico', 'EYE', 0.042, 0.038, 0.025, s * 0.055, 0.025, 0.112);
-    mk(hd, 'box', 'LIP', 0.08, 0.022, 0.03, 0, -0.075, 0.112);
-  },
-  hollows(hd) {
-    mk(hd, 'ico', 'SALLOW', 0.24, 0.28, 0.25);
-    sockets(hd, 1, 'SALLOW', { x: 0.055, y: 0.024, z: 0.104 });
-    mk(hd, 'box', 'GOREC', 0.075, 0.022, 0.03, 0, -0.078, 0.11);
-  },
-
-
-
-};
+const PLANT_HEADS = {};
 /** leaf stacked out from under the brow, its knot inside the head so nothing dark shows: broad, thick slabs, tipped a
  *  little down at the front (the second pass: plant-shelf, "get rid of the eye and just keep the mouth") */
 function brim(parent, x, y, z, yaw, tiers, len, rise, rnd) {
@@ -567,6 +529,50 @@ PLANT_HEADS.shelf2 = (hd, H) => {
   brim(hd, 0, 0.0, 0.05, 0.1, 3, 0.2, 0.035, H.rnd);
   brim(hd, 0.07, 0.07, 0.02, PI / 2 - 0.5, 2, 0.14, 0.035, H.rnd); // and back over the temple
 };
+/* third pass (plant-shelf2: "no distinction between the flesh and the plant matter ... the entire head is just a
+   broccoli kinda thing, or half of it"): the growth as lumps with buds on them, the way broccoli branches, each
+   coloured `t` of the way from the skin to the leaf, so where it starts it is the skin */
+const mixTone = (a, b, t) => { const A = tone(a), B = tone(b); return { rgb: A.rgb.map((v, i) => lerp(v, B.rgb[i], t)), gloss: lerp(A.gloss, B.gloss, t), m: Math.max(A.m, B.m) }; };
+function floret(parent, x, y, z, dx, dy, dz, size, t, rnd, skin) {
+  t = clamp(t, 0, 1);
+  mk(parent, 'ico', mixTone(skin, LEAFK(Math.floor(rnd(0, 4))), t), size, size * 0.85, size, x, y, z);
+  const buds = 2 + Math.floor(rnd(0, 2.99));
+  for (let k = 0; k < buds; k++) {
+    const tip = t > 0.7 && rnd(0, 1) < 0.35 ? 'CURED' + Math.floor(rnd(0, 2)) : LEAFK(Math.floor(rnd(0, 4)));
+    mk(parent, 'ico', mixTone(skin, tip, clamp(t + 0.25, 0, 1)), size * 0.48, size * 0.42, size * 0.48,
+      x + dx * size * 0.38 + rnd(-0.3, 0.3) * size, y + dy * size * 0.38 + rnd(-0.3, 0.3) * size, z + dz * size * 0.38 + rnd(-0.3, 0.3) * size);
+  }
+}
+/** florets over part of a sphere round (cx, cy, cz): azimuth from the front (+z) toward +x, elevation up; `skip` leaves a
+ *  place bare, `t` says how far from the skin each is */
+function overgrow(parent, rnd, skin, o) {
+  for (let i = 0; i < o.n; i++) {
+    const az = rnd(o.az[0], o.az[1]), el = rnd(o.el[0], o.el[1]);
+    if (o.skip && o.skip(az, el)) continue;
+    const dx = Math.sin(az) * Math.cos(el), dy = Math.sin(el), dz = Math.cos(az) * Math.cos(el), r = o.r * rnd(0.85, 1.1);
+    floret(parent, o.c[0] + dx * r, o.c[1] + dy * r * 1.1, o.c[2] + dz * r, dx, dy, dz, rnd(o.size[0], o.size[1]), o.t(az, el) + rnd(-0.15, 0.15), rnd, skin);
+  }
+}
+Object.assign(PLANT_HEADS, {
+  half(hd, H) {
+    mk(hd, 'ico', 'SALLOW', 0.24, 0.28, 0.25);
+    mk(hd, 'box', 'GOREC', 0.07, 0.024, 0.03, -0.02, -0.08, 0.11); // the mouth, slack
+    overgrow(hd, H.rnd, 'SALLOW', { n: 24, c: [0, 0, 0], r: 0.115, az: [0.2, 2.7], el: [-0.8, 1.35], size: [0.06, 0.11], t: az => az / 2 });
+  },
+  whole(hd, H) {
+    mk(hd, 'ico', 'SALLOW', 0.22, 0.26, 0.23);
+    mk(hd, 'box', 'GOREC', 0.07, 0.024, 0.03, 0, -0.09, 0.105);
+    overgrow(hd, H.rnd, 'SALLOW', { n: 40, c: [0, 0.015, 0], r: 0.12, az: [-PI, PI], el: [-0.5, 1.4], size: [0.07, 0.12],
+      skip: (az, el) => Math.abs(az) < 0.55 && el < -0.05, t: (az, el) => 0.2 + 0.65 * (el + 0.5) / 1.9 });
+  },
+});
+/** the same growth on the body, where the shelves were: the back of the neck, its right side, the right shoulder, down
+ *  the back */
+function floretBody(b, R) {
+  for (const [x, y, z, yaw, n, size] of [[-0.03, 0.6, -0.1, PI + 0.3, 7, 0.1], [0.08, 0.62, 0.0, PI / 2 + 0.5, 5, 0.09], [0.2, 0.5, -0.02, PI / 2 + 0.15, 8, 0.11], [0.15, 0.26, -0.11, PI * 0.8, 6, 0.09]])
+    overgrow(b, R.rnd, 'SALLOW', { n, c: [x, y, z], r: 0.05, az: [yaw - 0.9, yaw + 0.9], el: [-0.5, 0.9], size: [size * 0.6, size * 1.1], t: () => 0.65 });
+}
+const FLORET = new Set(['half', 'whole']);
 function plantBody(head, idx) {
   const R = seeded(31), H = seeded(700 + idx), g = new THREE.Group(), cl = UNIFORM, tr = TROUSERS, legs = [], shins = [];
   for (const s of [-1, 1]) {
@@ -586,7 +592,9 @@ function plantBody(head, idx) {
     const a = grp(b, x, y, 0); mk(a, 'box', cl, 0.11, 0.36, 0.12, 0, -0.18, 0); mk(a, 'box', 'SALLOW', 0.08, 0.34, 0.08, 0, -0.52, 0);
     arms.push(a);
   }
-  /* the leaf, as on the night round: up the back of the neck, its right side, out of the right shoulder, down the back */
+  /* the leaf, as on the night round: up the back of the neck, its right side, out of the right shoulder, down the back;
+     or for the heads of one tissue, that tissue */
+  if (FLORET.has(head)) { floretBody(b, R); return { g, b, hd, legs, shins, arms }; }
   shelf(b, -0.03, 0.58, -0.1, PI + 0.3, 4, 0.3, R.rnd, { rise: 0.07, lean: 0.015 });
   shelf(b, 0.08, 0.6, 0.0, PI / 2 + 0.5, 3, 0.25, R.rnd, { rise: 0.065 });
   shelf(b, 0.2, 0.48, -0.02, PI / 2 + 0.15, 4, 0.3, R.rnd, { rise: 0.075 });
@@ -603,11 +611,7 @@ function shut(hd, y, z) {
   }
 }
 const BLOAT_HEADS = {
-  built(hd) {
-    mk(hd, 'ico', 'PALE', 1.25, 1.35, 1.2);
-    for (const s of [-1, 1]) mk(hd, 'ico', 'EYE', 0.07, 0.07, 0.07, s * 0.14, -0.22, 0.52);
-    mk(hd, 'box', 'EYE', 0.16, 0.03, 0.04, 0, -0.38, 0.5);
-  },
+
   hollows(hd) {
     mk(hd, 'ico', 'PALE', 1.25, 1.35, 1.2);
     for (const s of [-1, 1]) {
@@ -617,7 +621,6 @@ const BLOAT_HEADS = {
     mk(hd, 'box', 'GOREC', 0.14, 0.04, 0.04, 0, -0.4, 0.48);
   },
 
-
   away(hd) {
     hd.rotation.x = -1.05;
     mk(hd, 'ico', 'PALE', 1.25, 1.35, 1.2);
@@ -625,13 +628,6 @@ const BLOAT_HEADS = {
     mk(hd, 'ico', 'GOREC', 0.24, 0.16, 0.1, 0, -0.38, 0.49); // the mouth, open, to the ceiling
     mk(hd, 'ico', 'PALE', 0.7, 0.36, 0.5, 0, -0.62, 0.22); // the chin and the throat, toward you
   },
-};
-BLOAT_HEADS.awaydead = hd => {
-  hd.rotation.x = -1.05;
-  mk(hd, 'ico', 'PALE', 1.25, 1.35, 1.2);
-  for (const s of [-1, 1]) mk(hd, 'ico', 'EYE', 0.07, 0.07, 0.07, s * 0.14, -0.22, 0.52);
-  mk(hd, 'box', 'EYE', 0.16, 0.03, 0.04, 0, -0.38, 0.5);
-  mk(hd, 'ico', 'PALE', 0.7, 0.36, 0.5, 0, -0.62, 0.22); // the chin and the throat, toward you
 };
 function bloatBody(head) {
   const g = new THREE.Group(), b = grp(g, 0, 1.75, 0);
@@ -647,44 +643,41 @@ function bloatBody(head) {
 
 /* ---------------------------------------------------------------------------------------------------------------- */
 /* the lines and their heads: what each is, why it is here, and what building it in castView.ts would take */
-const BUILT_BONE = { id: 'built', tag: 'As built', name: 'As built', what: 'The middle years as the game draws them: a pale head, two black eyes, the mouth open and the jaw hanging.', from: 'Your note: legible and clear. The face to beat.', game: 'boneMid() as it is.' };
 const LINES = {
   bone: {
     name: 'Bone', who: "The bone mother's, middle years: castView.ts boneMid(), 1.08 times a person.", gap: 1.5, height: 2.15, ceil: 3.1, look: 1.45,
     body: (h) => boneBody(h),
     heads: [
-      BUILT_BONE,
-      { id: 'hollows', tag: 'Hollows', name: 'Hollows', what: 'The same face with the contrast taken down. The eyes are hollows a few shades darker than the skin, under a brow that overhangs them; the mouth is dark red, not black.', from: 'Your note: like the first.', game: 'A brow, a nose and two colours in boneMid().' },
-      { id: 'through', tag: 'Eye', name: 'Through the eye', what: 'Bone has burst out of its left eye, forward and up, raw where it tore through, a second spur coming beside it. The right eye is swollen shut over the tip of more. The mouth slack, the jaw hanging.', from: 'Your note on the first try: something coming through its eyes. Here on one side only, so the face is not two eyes and a mouth, and the spur is not a pair of tusks.', game: 'About ten parts on the head.' },
-      { id: 'skull', tag: 'Skull', name: 'Smooth skull', what: 'The skull one long, smooth shape with nothing on it, smooth underneath where the jaw was, raw where it meets the neck. No face at all.', from: "Your keep, with the jaw gone. world.md §10: the bone elders' head.", game: 'Three parts in place of the head.' },
+      { id: 'built', tag: 'As built', name: 'As built', what: 'The middle years as the game draws them: a pale head, two black eyes, the mouth open and the jaw hanging.', from: 'Your note: legible and clear. The face to beat.', game: 'boneMid() as it is.' },
+      { id: 'mouth', tag: 'Mouth', name: 'Just the mouth', what: 'The face as built with the eyes and the hair gone: a smooth pale head, and the mouth open on the hanging jaw.', from: 'Your note on As built: no eyes, no hair, just the mouth.', game: 'boneMid() with four parts fewer.' },
+      { id: 'under', tag: 'Going under', name: 'Going under', what: 'Bone has grown over the top of the head and down over where the eyes were, one smooth cap with no edge to it. Below it the face is still skin, and the mouth hangs open.', from: 'Between Just the mouth and the skull. Bone grows over the outside, as your note on the old one has it, and the face goes under it from the top down.', game: 'One part over the head.' },
+      { id: 'skull3', tag: 'Skull', name: 'Smooth skull', what: 'One smooth shape of bone and nothing else: no jaw, nothing under it, raw where it meets the neck.', from: 'Your note: remove the jaw entirely. The lump under the last one read as a jaw.', game: 'Two parts in place of the head.' },
     ],
   },
   plant: {
-    name: 'Plant', who: "The bush's: Security's changed, the night round's build. castView.ts changed().", gap: 1.5, height: 2.05, ceil: 3.1, look: 1.45,
+    name: 'Plant', who: "The bush's: Security's changed, the night round's build. castView.ts changed(). Half and Whole carry the same growth on the body, in place of the shelves.", gap: 1.5, height: 2.1, ceil: 3.1, look: 1.45,
     body: (h, i) => plantBody(h, i),
     heads: [
-      { id: 'built', tag: 'As built', name: 'As built', what: "Security's changed as the game draws them: sallow, two black eyes, the mouth slack, leaf out of the back of the neck and the right shoulder.", from: 'Your note: legible. The face to beat.', game: 'changed() as it is.' },
-      { id: 'hollows', tag: 'Hollows', name: 'Hollows', what: 'The same face with the contrast taken down: hollows a few shades darker than the skin, under an overhanging brow, and a dark mouth.', from: 'Your note: same as the first.', game: 'A brow, a nose and two colours in changed().' },
-      { id: 'shelf2', tag: 'Shelf', name: 'Shelf over the eyes', what: 'Broad leaf stacked out from under the brow over the eyes, and back over the temple, the knots it grows from hidden in the head, so nothing dark shows where the eyes were. The slack mouth below it.', from: 'Your note: lose the eye, keep the mouth. On the first try the knot the shelf grew from sat mid-face and read as one dark eye.', game: 'A broader shelf on the head, its knot inside: a variant of castKit.ts shelf().' },
+      { id: 'shelf2', tag: 'Shelf', name: 'Shelf over the eyes', what: 'Broad leaf stacked out from under the brow over the eyes, and back over the temple, the knots it grows from hidden in the head. The slack mouth below it.', from: 'Your note: the closest, though shelves may not be the way to grow a plant on a person.', game: 'A broader shelf on the head, its knot inside: a variant of castKit.ts shelf().' },
+      { id: 'half', tag: 'Half', name: 'Half gone over', what: 'Half the head has become the plant: a mass of lumps and buds, the colour of the skin where it starts and green to yellow as it goes, with no line where one stops and the other starts. The other half is skin and a slack mouth.', from: 'Your note: no distinction between the flesh and the plant matter; the head a broccoli, or half of it.', game: 'A floret helper in place of shelf(): a lump and its buds, coloured along the way from skin to leaf.' },
+      { id: 'whole', tag: 'Whole', name: 'All gone over', what: 'The whole head has become the plant, larger than a head was, the colour of the skin at the bottom going green to the top. Only the chin and the slack mouth still show under it.', from: 'Your note: the entire head a broccoli.', game: 'The same floret helper, over the whole head.' },
     ],
   },
   bloat: {
     name: 'Bloat', who: "The bloat god's, young and still on its feet: castView.ts bloat.", gap: 2.7, height: 3.9, ceil: 4.8, look: 2.4,
     body: (h) => bloatBody(h),
     heads: [
-      { id: 'built', tag: 'As built', name: 'As built', what: "The bloats as the game draws them: one great soft body and a baby's head, two black dots low on it and a slit of a mouth.", from: 'Your keep: dead-looking eyes work. They are tiny, far apart and low on a head that size, so they read as wrong, not as a smiley.', game: 'The bloat model as it is.' },
-      { id: 'hollows', tag: 'Hollows', name: 'Hollows', what: 'The same face with the contrast taken down: hollows under swollen brows, and a dark mouth.', from: 'Your note: might also work.', game: 'Four parts and two colours.' },
-      { id: 'away', tag: 'Face up', name: 'Face up', what: 'The head tipped back, the face to the ceiling, the eyes shut and the mouth open. From the floor you see the chin and the throat, and the face only from above.', from: 'Your note: creepy having the face up like that.', game: 'The head turned back; nothing new.' },
-      { id: 'awaydead', tag: 'Up, dead eyes', name: 'Face up, dead eyes', what: 'The face as built, two black dots and a slit of a mouth, tipped back to the ceiling. The eyes look up at nothing.', from: 'Your two likes together: the dead eyes, and the face turned up.', game: 'The head turned back; nothing new.' },
+      { id: 'away', tag: 'Face up', name: 'Face up', what: 'The head tipped back, the face to the ceiling, the eyes shut and the mouth open. From the floor you see the chin and the throat, and the face only from above.', from: 'Your keep: a gross-looking face.', game: 'The head turned back; nothing new.' },
+      { id: 'hollows', tag: 'Hollows', name: 'Hollows', what: 'The face as built with the contrast taken down: hollows under swollen brows, and a dark mouth.', from: 'Your note: might work for a more normal-looking one.', game: 'Four parts and two colours.' },
     ],
   },
   ageing: {
-    name: 'Ageing', who: "The bone mother's line, young to old, each at its own size: the grey figure is 1.8 m.", gap: 1.8, height: 2.8, ceil: 3.6, look: 1.7, person: true,
-    body: (h) => h === 'young' ? huskBody() : h === 'middle' ? boneBody('through') : elderBody(),
+    name: 'Ageing', who: "The bone mother's line, young to old, each at its own size: the grey figure is 1.8 m.", gap: 1.8, height: 2.5, ceil: 3.4, look: 1.65, person: true,
+    body: (h) => h === 'young' ? huskBody() : h === 'middle2' ? boneBody('mouth') : elderBody(),
     heads: [
-      { id: 'young', tag: 'Young', name: 'Young: the husks', what: "The bone mother's young as the game draws them: still a person's outline and a person's face, one arm already gone to bone from the elbow.", from: "world.md §10: the fear for good, but intelligent, aggressive and quick to answer.", game: 'castView.ts husk as it is.' },
-      { id: 'middle', tag: 'Middle years', name: 'Middle years', what: 'A head taller, bare to the waist, the ribs out through raw flesh, one arm drawn out to a point. Bone has come out through its left eye; the right is swollen shut over the tip of more.', from: 'The bone row\'s Through the eye, on the body the game has for it.', game: 'boneMid() with the Through the eye head.' },
-      { id: 'elder', tag: 'Old', name: 'Old: the elders', what: 'The skeleton has won. The limbs bone, raw at the joints, the ribs a cage round what is left of the flesh, the spine out down the back, both arms drawn out to points. No face: the skull one smooth shape. About 2.6 m, stooped.', from: 'world.md §10: slower, blind, numb, still afraid; tall, they patrol large areas. The roaming threat you asked for, and a head you kept.', game: 'A new model and skeleton at its own size (world.md §8: size is the sim\'s too), and a sense for sound in place of sight.' },
+      { id: 'young', tag: 'Young', name: 'Young: the husks', what: "The bone mother's young as the game draws them: still a person's outline and a person's face, one arm already gone to bone from the elbow.", from: 'world.md §10: the fear for good, but intelligent, aggressive and quick to answer.', game: 'castView.ts husk as it is.' },
+      { id: 'middle2', tag: 'Middle years', name: 'Middle years', what: 'A head taller, bare to the waist, the ribs out through raw flesh, one arm drawn out to a point. The face is Just the mouth.', from: "The bone row's Just the mouth, on the body the game has for it.", game: 'boneMid() with that head.' },
+      { id: 'elder2', tag: 'Old', name: 'Old: the elders', what: "A person packed inside their own bone, not a skeleton. A person's proportions, grown larger: every limb as thick as it ever was, its flesh raw and pressed right up to the plates of bone grown round it, the red showing only where they meet. Ribs flush round the chest, plates over the shoulders and the back, the hands gone under to points, the skull smooth. About 2.4 m.", from: 'Your note: squished inside their own bone, normal proportions, not long and spindly. No ball joints, which made the last one an action figure.', game: "A new model and skeleton at its own size (world.md §8: size is the sim's too), and a sense for sound in place of sight." },
     ],
   },
 };
