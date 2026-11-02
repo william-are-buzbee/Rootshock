@@ -14,10 +14,13 @@ browser (three.js comes from a CDN), and each has been published as a private cl
   *Security's seven* (the Saved tab) is a line-up of the upper station's changed, one for each, newest to oldest;
   *Pia's lines* are examples of the bone, bloat and plant lines that founded the Commons, young to old and each young god.
   `window.__rs` in the console exposes the state.
-- `heads.html`: a bench for the heads of Pia's lines (`docs/world.md` §10): a row of five for each line (the bone line's
-  middle years, Security's changed, a young bloat), each on the same body so only the head differs, the first as
-  `render/castView.ts` draws it today. *Hollows* (the face with the contrast taken down) and three ways of covering or
-  replacing the face. Seen in a concrete room: as a line-up, close to, or from your eye at the game's 72° and a chosen
+- `heads.html`: a bench for the heads of Pia's lines (`docs/world.md` §10): a row for each line (the bone line's middle
+  years, Security's changed, a young bloat), each head on the same body so only the head differs, the first as
+  `render/castView.ts` draws it today; and *Ageing*, the bone line young to old at its own sizes (the husk, the middle
+  years with bone through one eye, the old one: grown bone, plated, the skull smooth, about 2.6 m) beside a 1.8 m figure.
+  The second pass: what the first picks dropped is gone (the brow plate, the split face, the hung leaf, the shut and sunk
+  bloats), and what they asked for is made (the skull without its jaw, the shelf without the knot that read as an eye,
+  the bloat face up with its dead eyes). Seen in a concrete room: as a line-up, close to, or from your eye at the game's 72° and a chosen
   distance; lit, under a tube, or dark with a flashlight; in the built palette or a darker one, flat or mottled, upright
   or hunched. Keep, maybe or drop each, with a note: the published copy keeps them where Claude can read them
   (collection `picks`, described at the top of its script). `window.__rs` in the console exposes the state.
