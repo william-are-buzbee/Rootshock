@@ -142,7 +142,7 @@ button { cursor: pointer; }
   </div>
 
   <aside id="panel">
-    <p class="intro">The fourth pass, after your third picks. Bone, Plant and Bloat put each head on one body, so only the head changes; Ageing is the bone line young to old, to scale. Mark the ones worth building.</p>
+    <p class="intro">The fifth pass: the old one's arms and legs thinner, after your note. Bone, Plant and Bloat put each head on one body, so only the head changes; Ageing is the bone line young to old, to scale. The plant line has a bench of its own now. Mark the ones worth building.</p>
     <div class="seg" role="tablist" aria-label="Line">
       <button role="tab" data-line="bone" aria-selected="true">Bone</button>
       <button role="tab" data-line="plant" aria-selected="false">Plant</button>
@@ -450,7 +450,9 @@ function huskBody() {
 /* the old of the bone mother's line (world.md §10): a person packed inside their own bone, not a skeleton (ageing-elder:
    "the red is right up to the ribs"; "why would it be smaller?"). A person's proportions, ELDK times as large. The
    torso its flesh pressed raw up to the ribs, plates over the shoulders and the back; the limbs, fourth pass, wholly
-   bone, thick because the limb is still inside (ageing-elder2: "they completed the process"). The skull smooth */
+   bone, thick because the limb is still inside (ageing-elder2: "they completed the process"); fifth pass, a sixth thinner
+   (the arms and legs too thick, the legs somewhat less), still thicker than a person's, the limb being inside. The skull
+   smooth */
 const ELDK = 1.3;
 function elderBody() {
   const K = ELDK, R = seeded(53), g = new THREE.Group(), legs = [], shins = [];
@@ -463,12 +465,12 @@ function elderBody() {
      because the leg is still in there; a cap of it over the knee, the shin narrowing to the ankle, the foot gone under */
   for (const s of [-1, 1]) {
     const l = grp(g, s * 0.12 * K, 0.9 * K, 0), k = grp(l, 0, -0.45 * K, 0);
-    mk(l, 'box', 'BONE', 0.21 * K, 0.3 * K, 0.22 * K, 0, -0.13 * K, 0);
-    mk(l, 'box', 'BONE', 0.19 * K, 0.2 * K, 0.2 * K, 0, -0.35 * K, 0.005 * K);
-    mk(l, 'box', 'BONE', 0.2 * K, 0.1 * K, 0.22 * K, 0, -0.45 * K, 0.015 * K); // the knee
-    mk(k, 'box', 'BONE', 0.17 * K, 0.26 * K, 0.18 * K, 0, -0.13 * K, 0);
-    mk(k, 'box', 'BONE', 0.14 * K, 0.18 * K, 0.15 * K, 0, -0.34 * K, -0.005 * K);
-    mk(k, 'box', 'BONE', 0.16 * K, 0.08 * K, 0.29 * K, 0, -0.44 * K, 0.05 * K); // the foot
+    mk(l, 'box', 'BONE', 0.175 * K, 0.3 * K, 0.185 * K, 0, -0.13 * K, 0);
+    mk(l, 'box', 'BONE', 0.16 * K, 0.2 * K, 0.17 * K, 0, -0.35 * K, 0.005 * K);
+    mk(l, 'box', 'BONE', 0.17 * K, 0.1 * K, 0.19 * K, 0, -0.45 * K, 0.015 * K); // the knee
+    mk(k, 'box', 'BONE', 0.145 * K, 0.26 * K, 0.155 * K, 0, -0.13 * K, 0);
+    mk(k, 'box', 'BONE', 0.12 * K, 0.18 * K, 0.13 * K, 0, -0.34 * K, -0.005 * K);
+    mk(k, 'box', 'BONE', 0.14 * K, 0.08 * K, 0.28 * K, 0, -0.44 * K, 0.05 * K); // the foot
     legs.push(l); shins.push(k);
   }
   const b = grp(g, 0, 0.9 * K, 0);
@@ -494,13 +496,13 @@ function elderBody() {
   const arms = [];
   for (const s of [-1, 1]) {
     const a = grp(b, s * 0.3 * K, 0.58 * K, 0);
-    mk(a, 'box', 'BONE', 0.16 * K, 0.4 * K, 0.17 * K, 0, -0.2 * K, 0);
-    mk(a, 'box', 'BONE', 0.15 * K, 0.08 * K, 0.16 * K, 0, -0.4 * K, -0.005 * K); // the elbow
-    mk(a, 'box', 'BONE', 0.13 * K, 0.34 * K, 0.14 * K, 0, -0.6 * K, 0);
+    mk(a, 'box', 'BONE', 0.125 * K, 0.4 * K, 0.135 * K, 0, -0.2 * K, 0);
+    mk(a, 'box', 'BONE', 0.12 * K, 0.08 * K, 0.13 * K, 0, -0.4 * K, -0.005 * K); // the elbow
+    mk(a, 'box', 'BONE', 0.105 * K, 0.34 * K, 0.115 * K, 0, -0.6 * K, 0);
     if (s > 0) {
-      mk(a, 'box', 'BONE', 0.09 * K, 0.18 * K, 0.1 * K, 0, -0.85 * K, 0.005 * K);
-      mk(a, 'box', 'BONE', 0.05 * K, 0.14 * K, 0.06 * K, 0, -1.0 * K, 0.01 * K); // to a point
-    } else mk(a, 'box', 'BONE', 0.12 * K, 0.12 * K, 0.13 * K, 0, -0.82 * K, 0.01 * K); // the hand gone under, blunt
+      mk(a, 'box', 'BONE', 0.075 * K, 0.18 * K, 0.085 * K, 0, -0.85 * K, 0.005 * K);
+      mk(a, 'box', 'BONE', 0.045 * K, 0.14 * K, 0.05 * K, 0, -1.0 * K, 0.01 * K); // to a point
+    } else mk(a, 'box', 'BONE', 0.1 * K, 0.12 * K, 0.11 * K, 0, -0.82 * K, 0.01 * K); // the hand gone under, blunt
     a.rotation.z = s * 0.1;
     arms.push(a);
   }
@@ -657,7 +659,7 @@ const LINES = {
     ],
   },
   plant: {
-    name: 'Plant', who: "On hold: the bush's line gets a design session of its own. The shelf stays here as the closest so far.", gap: 1.5, height: 2.1, ceil: 3.1, look: 1.45,
+    name: 'Plant', who: "The bush's line has a bench of its own now (plants.html). The shelf stays here as the closest so far.", gap: 1.5, height: 2.1, ceil: 3.1, look: 1.45,
     body: (h, i) => plantBody(h, i),
     heads: [
       { id: 'shelf2', tag: 'Shelf', name: 'Shelf over the eyes', what: 'Broad leaf stacked out from under the brow over the eyes, and back over the temple, the knots it grows from hidden in the head. The slack mouth below it.', from: 'Your note: the closest, though shelves may not be the way to grow a plant on a person. The florets after it looked strange; the line gets a fresh start in a session of its own.', game: 'A broader shelf on the head, its knot inside: a variant of castKit.ts shelf().' },
@@ -677,7 +679,7 @@ const LINES = {
     heads: [
       { id: 'young', tag: 'Young', name: 'Young: the husks', what: "The bone mother's young as the game draws them: still a person's outline and a person's face, one arm already gone to bone from the elbow.", from: 'world.md §10: the fear for good, but intelligent, aggressive and quick to answer.', game: 'castView.ts husk as it is.' },
       { id: 'middle2', tag: 'Middle years', name: 'Middle years', what: 'A head taller, bare to the waist, the ribs out through raw flesh, one arm drawn out to a point. The face is Just the mouth.', from: "The bone row's Just the mouth, on the body the game has for it.", game: 'boneMid() with that head.' },
-      { id: 'elder3', tag: 'Old', name: 'Old: the elders', what: "A person packed inside their own bone, at a person's proportions grown to about 2.4 m. The torso as before, its flesh raw and pressed right up to the ribs. The arms and legs have gone wholly to bone, as the middle years' right arm has: thick, because the limb is still inside; a cap over each knee, the right arm drawn out to a point, the left hand gone under. The skull smooth.", from: 'Your note: the torso looks great; the limbs fully bone, they completed the process, thick because there is meat inside, not meaty legs with bone patches on them.', game: "A new model and skeleton at its own size (world.md §8: size is the sim's too), and a sense for sound in place of sight." },
+      { id: 'elder4', tag: 'Old', name: 'Old: the elders', what: "A person packed inside their own bone, at a person's proportions grown to about 2.4 m. The torso as before, its flesh raw and pressed right up to the ribs. The arms and legs gone wholly to bone, as the middle years' right arm has, and now a sixth thinner than the last pass: still thicker than a person's, since the limb is still inside; a cap over each knee, the right arm drawn out to a point, the left hand gone under. The skull smooth.", from: 'Your note on the last pass: the arms and legs too thick, the legs somewhat less thick; the rest of him looks OK.', game: "A new model and skeleton at its own size (world.md §8: size is the sim's too), and a sense for sound in place of sight." },
     ],
   },
 };
