@@ -1,0 +1,1063 @@
+<meta charset="utf-8">
+<title>Mutant Head Bench</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400&display=swap" rel="stylesheet">
+<style>
+/* Layout: the line-up fills the left, in a concrete room, with what you look at it by along the bottom; one column on
+   the right for the line, the head picked and your picks, stacked under the room on a phone. The bench's own look
+   (mutants.html): Security's hazard yellow, the leaf's olive, blood for what you drop. */
+:root {
+  --pitch: #070809; --panel: #0c0e0f; --raise: #15181a; --bone: #d9d3c1; --ash: #8f8d82; --hazard: #c9a227;
+  --leaf: #a39c48; --blood: #c2533f; --line: rgba(217, 211, 193, .14); --line2: rgba(217, 211, 193, .3);
+  --glass: rgba(10, 12, 13, .84);
+  --sign: "Barlow Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --hand: "Newsreader", Georgia, "Times New Roman", serif;
+  color-scheme: dark;
+}
+html { height: 100%; box-sizing: border-box; }
+*, *::before, *::after { box-sizing: inherit; }
+body { height: 100%; margin: 0; background: var(--pitch); color: var(--bone); font-family: var(--sign); font-size: 15px; overflow: hidden; }
+button, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+[hidden] { display: none !important; }
+:focus-visible { outline: 2px solid var(--hazard); outline-offset: 2px; }
+
+#app { height: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 360px; }
+#stage { position: relative; min-width: 0; min-height: 0; overflow: hidden; background: var(--pitch); }
+#c { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+#c:active { cursor: grabbing; }
+#panel { min-height: 0; overflow-y: auto; background: var(--panel); border-left: 1px solid var(--line);
+  padding-block: 14px 28px; padding-left: 16px; padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 18px; }
+
+/* over the room */
+.top { position: absolute; left: 0; right: 0; top: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 18px;
+  padding: 12px 12px 0 max(16px, env(safe-area-inset-left, 0px)); pointer-events: none; }
+.brand { font-size: 14px; letter-spacing: .2em; text-transform: uppercase; color: var(--ash); }
+.brand b { color: var(--bone); font-weight: 600; }
+#hint { margin: 0 0 0 auto; font-family: var(--hand); font-style: italic; font-size: 14px; color: var(--ash); }
+.chip { background: var(--glass); border: 1px solid var(--line); padding: 4px 10px 3px; font-size: 15px; font-weight: 500; letter-spacing: .04em; }
+.chip:hover { border-color: var(--line2); }
+.chip[aria-pressed="true"] { background: var(--bone); color: var(--pitch); border-color: var(--bone); }
+.bottom { position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px;
+  padding: 0 max(12px, env(safe-area-inset-right, 0px)) 12px max(16px, env(safe-area-inset-left, 0px)); pointer-events: none; }
+.bottom > * { pointer-events: auto; }
+.bar { display: flex; gap: 0; }
+.bar .chip + .chip { border-left-width: 0; }
+.bar .chip[aria-pressed="true"] + .chip { border-left-width: 0; }
+.dist { display: flex; align-items: center; gap: 8px; background: var(--glass); border: 1px solid var(--line); padding: 3px 10px; font-size: 14px; color: var(--ash); }
+.dist input { width: 110px; accent-color: var(--hazard); }
+.dist output { color: var(--bone); font-variant-numeric: tabular-nums; min-width: 3.2em; }
+
+#labels { position: absolute; inset: 0; pointer-events: none; }
+.label { position: absolute; left: 0; top: 0; transform: translate(-50%, -100%); pointer-events: auto; white-space: nowrap;
+  background: var(--glass); border: 1px solid var(--line); padding: 2px 8px 1px; font-size: 14px; font-weight: 500; letter-spacing: .04em;
+  display: flex; align-items: center; gap: 6px; }
+.label.on { border-color: var(--hazard); color: var(--hazard); }
+.dot { width: 8px; height: 8px; border-radius: 50%; border: 1px solid var(--line2); flex: none; }
+.dot.keep { background: var(--leaf); border-color: var(--leaf); }
+.dot.maybe { background: var(--hazard); border-color: var(--hazard); }
+.dot.drop { background: var(--blood); border-color: var(--blood); }
+.label .ix { display: none; }
+
+#toast { position: absolute; left: 50%; bottom: 64px; transform: translateX(-50%); background: var(--bone); color: var(--pitch);
+  padding: 6px 12px 5px; font-size: 15px; font-weight: 500; letter-spacing: .03em; max-width: calc(100% - 32px); }
+
+/* the panel */
+.intro { margin: 0; font-family: var(--hand); font-size: 16px; line-height: 1.45; color: var(--ash); }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); }
+.seg button { background: none; border: 0; border-left: 1px solid var(--line); padding: 8px 4px 7px; font-size: 18px; font-weight: 600;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--ash); }
+.seg button:first-child { border-left: 0; }
+.seg button[aria-selected="true"] { background: var(--raise); color: var(--bone); box-shadow: inset 0 -3px 0 var(--hazard); }
+.who { margin: -10px 0 0; font-family: var(--hand); font-style: italic; font-size: 14px; color: var(--ash); }
+
+.card { background: var(--raise); border: 1px solid var(--line); border-top: 3px solid var(--leaf); padding: 12px 14px 14px;
+  display: flex; flex-direction: column; gap: 8px; }
+.kicker { font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--ash); display: flex; justify-content: space-between; gap: 8px; }
+.card h2 { margin: 0; font-size: 26px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; line-height: 1.05; text-wrap: balance; }
+.card p { margin: 0; font-family: var(--hand); font-size: 16px; line-height: 1.45; }
+.card dl { margin: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 12px; }
+.card dt { font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--ash); padding-top: 2px; }
+.card dd { margin: 0; font-family: var(--hand); font-size: 15px; line-height: 1.4; color: var(--bone); }
+.verdict { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 4px; }
+.verdict button { background: var(--panel); border: 1px solid var(--line2); padding: 6px 4px 5px; font-size: 16px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.verdict button[data-v="keep"][aria-pressed="true"] { background: var(--leaf); border-color: var(--leaf); color: var(--pitch); }
+.verdict button[data-v="maybe"][aria-pressed="true"] { background: var(--hazard); border-color: var(--hazard); color: var(--pitch); }
+.verdict button[data-v="drop"][aria-pressed="true"] { background: var(--blood); border-color: var(--blood); color: var(--pitch); }
+.card label { font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--ash); }
+.card textarea { width: 100%; resize: vertical; min-height: 64px; background: var(--panel); border: 1px solid var(--line2); padding: 6px 8px;
+  font-family: var(--hand); font-size: 15px; line-height: 1.4; }
+.state { font-family: var(--hand); font-style: italic; font-size: 13px; color: var(--ash); min-height: 1.2em; }
+
+.picks h3 { margin: 0 0 6px; font-size: 14px; letter-spacing: .2em; text-transform: uppercase; color: var(--ash); font-weight: 500; }
+.picks ul { list-style: none; margin: 0 0 10px; padding: 0; display: flex; flex-direction: column; }
+.picks li button { width: 100%; display: grid; grid-template-columns: 4.2em minmax(0, 1fr) auto; align-items: center; gap: 8px; text-align: left;
+  background: none; border: 0; border-top: 1px solid var(--line); padding: 6px 2px 5px; font-size: 16px; }
+.picks li:first-child button { border-top: 0; }
+.picks li button:hover { background: var(--raise); }
+.picks li button.on { color: var(--hazard); }
+.picks .ln { font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--ash); }
+.picks .v { font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--ash); display: flex; align-items: center; gap: 6px; }
+.picks .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+@media (max-width: 820px) {
+  body { overflow: auto; }
+  #app { height: auto; grid-template-columns: minmax(0, 1fr); grid-template-rows: min(64vh, 560px) auto; }
+  #panel { border-left: 0; border-top: 1px solid var(--line); overflow: visible; padding-left: max(16px, env(safe-area-inset-left, 0px)); }
+  #hint { display: none; }
+  .label { font-size: 12px; padding: 1px 6px 0; }
+  .label .nm { display: none; }
+  .label .ix { display: inline; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+<div id="app">
+  <div id="stage">
+    <canvas id="c" aria-label="Five mutants in a concrete room, one head treatment each. Drag to turn the view; click one to pick it."></canvas>
+    <div id="labels"></div>
+    <header class="top">
+      <div class="brand"><b>Rootshock</b> · Mutant heads</div>
+      <p id="hint">Drag to turn. Click one, or step with ← →.</p>
+    </header>
+    <div class="bottom">
+      <div class="bar" role="group" aria-label="View">
+        <button class="chip" data-view="lineup" aria-pressed="true" title="All five, from a little above">Line-up</button>
+        <button class="chip" data-view="close" aria-pressed="false" title="The head picked, close to (C)">Close</button>
+        <button class="chip" data-view="eye" aria-pressed="false" title="From your eye in the game: 1.6 m up, the game's field of view (E)">Eye level</button>
+      </div>
+      <label class="dist" id="distbox" hidden>Away <input id="dist" type="range" min="2" max="12" step="0.5" value="3.5"><output id="distout" for="dist">3.5 m</output></label>
+      <div class="bar" role="group" aria-label="Light">
+        <button class="chip" data-light="room" aria-pressed="true" title="Lit all round, as the game's B key lights it">Lit</button>
+        <button class="chip" data-light="tube" aria-pressed="false" title="One tube in the ceiling, the room dim round it">Tube</button>
+        <button class="chip" data-light="dark" aria-pressed="false" title="The station dark and a flashlight from your eye">Dark</button>
+      </div>
+      <button class="chip" id="pal" aria-pressed="false" title="Darker, sallow skin, wet raw flesh, yellowed bone">Darker palette</button>
+      <button class="chip" id="mottle" aria-pressed="false" title="Each face of each part a shade off the next, for what the surface is made of">Mottled</button>
+      <button class="chip" id="hunch" aria-pressed="false" title="Leaning, the head forward and down, one shoulder dropped">Hunched</button>
+    </div>
+    <div id="toast" hidden></div>
+  </div>
+
+  <aside id="panel">
+    <p class="intro">Five heads for each of Pia's lines. Each row uses one body, so only the head changes. Mark the ones worth building.</p>
+    <div class="seg" role="tablist" aria-label="Line">
+      <button role="tab" data-line="bone" aria-selected="true">Bone</button>
+      <button role="tab" data-line="plant" aria-selected="false">Plant</button>
+      <button role="tab" data-line="bloat" aria-selected="false">Bloat</button>
+    </div>
+    <p class="who" id="who"></p>
+
+    <section class="card" aria-live="polite">
+      <div class="kicker"><span id="c-line"></span><span id="c-ix"></span></div>
+      <h2 id="c-name"></h2>
+      <p id="c-what"></p>
+      <dl>
+        <dt>Why</dt><dd id="c-from"></dd>
+        <dt>Build</dt><dd id="c-game"></dd>
+      </dl>
+      <div class="verdict" role="group" aria-label="Your verdict on this head">
+        <button data-v="keep" aria-pressed="false">Keep</button>
+        <button data-v="maybe" aria-pressed="false">Maybe</button>
+        <button data-v="drop" aria-pressed="false">Drop</button>
+      </div>
+      <label for="c-note">Note</label>
+      <textarea id="c-note" rows="3" placeholder="What works on it, what doesn't"></textarea>
+      <div class="state" id="c-state"></div>
+    </section>
+
+    <section class="picks">
+      <h3>Your picks</h3>
+      <ul id="picks"></ul>
+      <div class="row">
+        <button class="chip" id="copy">Copy picks</button>
+        <span class="state" id="store-state"></span>
+      </div>
+    </section>
+  </aside>
+</div>
+
+<script type="importmap">{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"
+} }</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/* A bench for the heads of Pia's lines (docs/world.md §10): five treatments a line, each on the same body, so the head is
+   the only thing that differs. Built in the game's own kit (src/present/render/castKit.ts, castView.ts): boxes,
+   hexagonal cylinders and icosahedra, flat-shaded. The first of each row is the head as castView.ts draws it today.
+
+   Your picks are kept in the artifact's store where it has one (collection "picks", one document a head, its id
+   "<line>-<head>", e.g. "bone-plate"), else in this browser:
+     { line, head, name, verdict: "keep" | "maybe" | "drop" | "", note, at } */
+
+const PI = Math.PI, TAU = PI * 2;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const $ = id => document.getElementById(id);
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------------------------------------------------------------------------------------------------------------- */
+/* the kit: the game's unit shapes (templates.ts), flat triangle lists in a 1 m cube */
+const TPL = (() => {
+  const box = () => {
+    const c = [[-.5, -.5, -.5], [.5, -.5, -.5], [.5, .5, -.5], [-.5, .5, -.5], [-.5, -.5, .5], [.5, -.5, .5], [.5, .5, .5], [-.5, .5, .5]];
+    const f = [[0, 1, 2, 3], [5, 4, 7, 6], [4, 0, 3, 7], [1, 5, 6, 2], [3, 2, 6, 7], [4, 5, 1, 0]], p = [];
+    for (const q of f) for (const k of [0, 1, 2, 0, 2, 3]) p.push(...c[q[k]]);
+    return p;
+  };
+  const ico = () => {
+    const t = (1 + Math.sqrt(5)) / 2, n = 0.5 / Math.hypot(1, t);
+    const v = [[-1, t, 0], [1, t, 0], [-1, -t, 0], [1, -t, 0], [0, -1, t], [0, 1, t], [0, -1, -t], [0, 1, -t], [t, 0, -1], [t, 0, 1], [-t, 0, -1], [-t, 0, 1]].map(a => a.map(x => x * n));
+    const fi = [0, 11, 5, 0, 5, 1, 0, 1, 7, 0, 7, 10, 0, 10, 11, 1, 5, 9, 5, 11, 4, 11, 10, 2, 10, 7, 6, 7, 1, 8, 3, 9, 4, 3, 4, 2, 3, 2, 6, 3, 6, 8, 3, 8, 9, 4, 9, 5, 2, 4, 11, 6, 2, 10, 8, 6, 7, 9, 8, 1], p = [];
+    for (const i of fi) p.push(...v[i]);
+    return p;
+  };
+  const cyl = (N = 6) => {
+    const p = [];
+    for (let k = 0; k < N; k++) {
+      const a = (k / N) * TAU, b = ((k + 1) / N) * TAU, x0 = Math.cos(a) * .5, z0 = Math.sin(a) * .5, x1 = Math.cos(b) * .5, z1 = Math.sin(b) * .5;
+      p.push(x0, -.5, z0, x1, -.5, z1, x1, .5, z1, x0, -.5, z0, x1, .5, z1, x0, .5, z0, 0, .5, 0, x0, .5, z0, x1, .5, z1, 0, -.5, 0, x1, -.5, z1, x0, -.5, z0);
+    }
+    return p;
+  };
+  return { box: box(), ico: ico(), cyl: cyl() };
+})();
+/* each shape once, every face its own colour (white: the part's colour as it is) */
+const GEO = {};
+for (const k of Object.keys(TPL)) {
+  const g = new THREE.BufferGeometry(), n = TPL[k].length / 3;
+  g.setAttribute('position', new THREE.Float32BufferAttribute(TPL[k], 3));
+  g.setAttribute('aCol', new THREE.Float32BufferAttribute(new Float32Array(n * 3).fill(1), 3));
+  g.computeBoundingSphere();
+  GEO[k] = g;
+}
+/** the same shape with each triangle a shade off the next, `amp` either way (and a little warmer or cooler): what a
+ *  surface is made of, at the kit's own scale. Stable for a figure (MR, reseeded for each) */
+let MR = Math.random;
+const OWNED = [];
+function mottled(shape, amp) {
+  const src = GEO[shape], n = TPL[shape].length / 3, C = new Float32Array(n * 3);
+  for (let t = 0; t < n; t += 3) {
+    const f = 1 + (MR() * 2 - 1) * amp, h = (MR() * 2 - 1) * amp * 0.35;
+    for (let v = t; v < t + 3; v++) { C[v * 3] = f * (1 + h); C[v * 3 + 1] = f; C[v * 3 + 2] = f * (1 - h); }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', src.getAttribute('position').clone()); // its own: disposing it frees what it holds
+  g.setAttribute('aCol', new THREE.Float32BufferAttribute(C, 3));
+  g.boundingSphere = src.boundingSphere;
+  OWNED.push(g);
+  return g;
+}
+function seeded(id) {
+  let s = (id * 2654435761) >>> 0 || 1;
+  const next = () => ((s = (Math.imul(s, 1664525) + 1013904223) >>> 0) / 4294967296);
+  return { next, rnd: (a, b) => a + next() * (b - a) };
+}
+
+const rgb = c => Array.isArray(c) ? c : [((c >> 16) & 255) / 255, ((c >> 8) & 255) / 255, (c & 255) / 255];
+
+/* ---------------------------------------------------------------------------------------------------------------- */
+/* the colours. "built" is castKit.ts and castView.ts as they are; "darker" is the proposal: sallow and grey where the
+   built are pink and near white, raw flesh dark and wet, bone yellowed. Each [colour, gloss, mottle] */
+const PAL = {
+  built: {
+    FLESH: [0xb08572, 0, 0.12], RAW: [0x8c4a44, 0, 0.14], GOREC: [0x4e1616, 0, 0.1], PALE: [0xcdbfae, 0, 0.1],
+    BONE: [0xddd6c0, 0, 0.08], SALLOW: [0xbfae8e, 0, 0.1],
+  },
+  darker: {
+    FLESH: [0x83675a, 0.12, 0.14], RAW: [0x5a2320, 0.75, 0.16], GOREC: [0x34100f, 0.85, 0.1], PALE: [0x9a9082, 0.06, 0.12],
+    BONE: [0xb3a687, 0.22, 0.1], SALLOW: [0x938765, 0.06, 0.12],
+  },
+};
+/* the same in either: the leaf (overgrowth.ts LEAF, CURED, KNOT), the black of the eyes and shoes, the lips */
+const FIXED = {
+  LEAF0: [0x4b5c2a, 0.1, 0.12], LEAF1: [0x5a6630, 0.1, 0.12], LEAF2: [0x6e6a2c, 0.1, 0.12], LEAF3: [0x7e7430, 0.1, 0.12],
+  CURED0: [0x9a8a3a, 0.05, 0.12], CURED1: [0x8e7432, 0.05, 0.12], CURED2: [0x7e5e2a, 0.05, 0.12], CURED3: [0x6a4a24, 0.05, 0.12],
+  KNOT: [0x4e4028, 0, 0.14], EYE: [0x140c0d, 0, 0], LIP: [0x3a2622, 0, 0.06],
+};
+const DARKC = 0x140c0d;
+/** what a part is made of: a palette's name for it, a shade of one ({ of, k }), or a plain colour (cloth) */
+function tone(key) {
+  if (typeof key === 'number' || Array.isArray(key)) return { rgb: rgb(key), gloss: 0, m: 0.05 };
+  if (typeof key === 'object') { const t = tone(key.of); return { rgb: t.rgb.map(v => v * key.k), gloss: key.gloss ?? t.gloss * 0.5, m: t.m }; }
+  const p = PAL[S.pal][key] ?? FIXED[key];
+  return { rgb: rgb(p[0]), gloss: p[1], m: p[2] };
+}
+
+/* ---------------------------------------------------------------------------------------------------------------- */
+/* a cut-down copy of the game's look (shader.ts): faceted, shaded by facing; lit all round (the B key), by a tube in the
+   ceiling, or in the dark by a flashlight from your eye. Wet parts catch a highlight */
+const VS = `attribute vec3 aCol; varying vec3 vW; varying vec3 vC;
+void main(){ vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; vC = aCol; gl_Position = projectionMatrix * viewMatrix * w; }`;
+const FS = `uniform vec3 uCol; uniform float uGloss; uniform vec3 uRoom; uniform vec3 uKeyDir; uniform float uKey;
+uniform vec3 uFlashPos; uniform vec3 uFlashDir; uniform float uFlash; uniform vec3 uTubeA; uniform vec3 uTubeB; uniform float uTube;
+uniform float uFog; uniform float uTime;
+varying vec3 vW; varying vec3 vC;
+void main(){
+  vec3 n = normalize(cross(dFdx(vW), dFdy(vW)));
+  vec3 tc = cameraPosition - vW; float d = length(tc); vec3 V = tc / max(d, 0.001);
+  vec3 nf = dot(n, V) < 0.0 ? -n : n;
+  float sh = 0.55 + 0.45 * (abs(nf.y) * 0.95 + abs(nf.x) * 0.7 + abs(nf.z) * 0.5);
+  vec3 light = uRoom * sh * (0.75 + 0.25 * max(nf.y, 0.0));
+  float spec = 0.0;
+  float kd = max(dot(nf, uKeyDir), 0.0);
+  light += uKey * vec3(1.0, 0.96, 0.88) * kd;
+  light += uKey * 0.3 * vec3(0.7, 0.8, 1.0) * max(dot(nf, normalize(vec3(-uKeyDir.x, 0.2, -uKeyDir.z))), 0.0);
+  spec += uKey * pow(max(dot(nf, normalize(uKeyDir + V)), 0.0), 36.0);
+  vec3 ab = uTubeB - uTubeA; float tt = clamp(dot(vW - uTubeA, ab) / max(dot(ab, ab), 0.0001), 0.0, 1.0);
+  vec3 tl = uTubeA + ab * tt - vW; float td = length(tl); vec3 Lt = tl / max(td, 0.001); float ta = uTube / (1.0 + 0.12 * td * td);
+  light += ta * vec3(1.0, 0.97, 0.9) * max(dot(nf, Lt), 0.0);
+  spec += ta * pow(max(dot(nf, normalize(Lt + V)), 0.0), 36.0);
+  vec3 tp = vW - uFlashPos; float fd = length(tp); vec3 fdir = tp / max(fd, 0.001);
+  float cone = smoothstep(0.86, 0.97, dot(fdir, uFlashDir));
+  float fa = uFlash * (cone * 2.4 + 0.05) / (1.0 + 0.08 * fd * fd);
+  light += fa * vec3(1.0, 0.94, 0.82) * (0.35 + 0.65 * max(dot(nf, -fdir), 0.0));
+  spec += fa * cone * pow(max(dot(nf, normalize(-fdir + V)), 0.0), 36.0);
+  light += vec3(0.012) / (1.0 + 3.0 * d * d);
+  vec3 c = uCol * vC * light + uGloss * spec * vec3(1.0, 0.95, 0.88) * 0.9;
+  c *= exp(-d * uFog);
+  vec3 h3 = fract(vec3(gl_FragCoord.xyx + floor(fract(uTime * 7.13) * 977.0)) * 0.1031);
+  h3 += dot(h3, h3.yzx + 33.33);
+  c += (fract((h3.x + h3.y) * h3.z) - 0.5) * 0.022 * (1.0 - smoothstep(0.0, 0.35, dot(c, vec3(0.3, 0.59, 0.11))));
+  gl_FragColor = vec4(c, 1.0);
+}`;
+const U = {
+  uRoom: { value: new THREE.Vector3() }, uKeyDir: { value: new THREE.Vector3(0.35, 0.8, 0.5).normalize() }, uKey: { value: 0 },
+  uFlashPos: { value: new THREE.Vector3() }, uFlashDir: { value: new THREE.Vector3(0, 0, -1) }, uFlash: { value: 0 },
+  uTubeA: { value: new THREE.Vector3() }, uTubeB: { value: new THREE.Vector3() }, uTube: { value: 0 },
+  uFog: { value: 0.03 }, uTime: { value: 0 },
+};
+const mats = new Map();
+function matFor(c, gloss) {
+  const key = c.map(x => x.toFixed(3)).join(',') + '|' + gloss.toFixed(2);
+  let m = mats.get(key);
+  if (!m) mats.set(key, (m = new THREE.ShaderMaterial({ uniforms: { ...U, uCol: { value: new THREE.Vector3(...c) }, uGloss: { value: gloss } }, vertexShader: VS, fragmentShader: FS, side: THREE.DoubleSide })));
+  return m;
+}
+function mk(parent, shape, key, sx, sy, sz, x = 0, y = 0, z = 0) {
+  const t = tone(key), geo = S.mottle && t.m > 0 ? mottled(shape, t.m) : GEO[shape];
+  const m = new THREE.Mesh(geo, matFor(t.rgb, t.gloss));
+  m.scale.set(Math.max(sx, 1e-4), Math.max(sy, 1e-4), Math.max(sz, 1e-4));
+  m.position.set(x, y, z);
+  parent.add(m);
+  return m;
+}
+function grp(parent, x = 0, y = 0, z = 0) { const g = new THREE.Group(); g.position.set(x, y, z); parent.add(g); return g; }
+
+/* ---------------------------------------------------------------------------------------------------------------- */
+/* growth, as castKit.ts grows it */
+const LEAFK = j => 'LEAF' + (((j % 4) + 4) % 4);
+/** a shelf of leaf out of the body along yaw, the way a bracket fungus stacks out of a stump (castKit.ts shelf) */
+function shelf(parent, x, y, z, yaw, tiers, len, rnd, o = {}) {
+  const rise = o.rise ?? len * 0.3, lean = o.lean ?? 0, sx = Math.sin(yaw), sz = Math.cos(yaw);
+  mk(parent, 'ico', 'KNOT', len * 0.45, rise * (tiers - 0.4), len * 0.4, x, y + rise * (tiers - 1) / 2, z);
+  for (let j = 0; j < tiers; j++) {
+    const k = 1 - j * (0.45 / tiers), g = grp(parent, x + sx * lean * j, y + j * rise, z + sz * lean * j);
+    g.rotation.set(rnd(0.02, 0.12), yaw + rnd(-0.2, 0.2), 0);
+    mk(g, 'ico', LEAFK(j), len * 1.3 * k, len * 0.1, len * 0.75 * k, 0, 0, len * 0.42 * k);
+  }
+}
+/** leaf out of one place in a ring, opening forward (+z) round a woody knot: the face split open */
+function rosette(parent, x, y, z, n, len, rnd) {
+  mk(parent, 'ico', 'KNOT', len * 0.62, len * 0.7, len * 0.45, x, y, z);
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * TAU + rnd(-0.2, 0.2), r = grp(parent, x, y, z);
+    r.rotation.z = a;
+    const t = grp(r);
+    t.rotation.y = -rnd(0.5, 0.85);
+    mk(t, 'ico', LEAFK(i), len * 1.25, len * 0.42, len * 0.07, len * 0.55, 0, 0);
+  }
+}
+
+/* ---------------------------------------------------------------------------------------------------------------- */
+/* hollows for eyes, a shade of the skin under a brow that overhangs them: the "hollows" head of each line */
+function sockets(hd, K, skin, at) {
+  for (const s of [-1, 1]) mk(hd, 'ico', { of: skin, k: 0.42 }, 0.062 * K, 0.048 * K, 0.03 * K, s * at.x * K, at.y * K, at.z * K);
+  mk(hd, 'box', skin, 0.2 * K, 0.032 * K, 0.05 * K, 0, (at.y + 0.034) * K, (at.z + 0.004) * K); // the brow, over them
+  mk(hd, 'box', skin, 0.034 * K, 0.055 * K, 0.035 * K, 0, (at.y - 0.04) * K, (at.z + 0.014) * K); // the nose
+}
+
+/* The bone mother's, middle years (castView.ts boneMid): a husk a head taller, halfway gone to bone */
+const BONE_HEADS = {
+  built(hd, K) {
+    mk(hd, 'ico', 'PALE', 0.25 * K, 0.29 * K, 0.26 * K);
+    for (const s of [-1, 1]) mk(hd, 'ico', 'EYE', 0.045 * K, 0.04 * K, 0.025 * K, s * 0.058 * K, 0.03 * K, 0.115 * K);
+    mk(hd, 'box', 'EYE', 0.1 * K, 0.07 * K, 0.04 * K, 0, -0.085 * K, 0.1 * K);
+    mk(hd, 'box', 'PALE', 0.12 * K, 0.04 * K, 0.1 * K, 0, -0.14 * K, 0.06 * K);
+    hair(hd, K);
+  },
+  hollows(hd, K) {
+    mk(hd, 'ico', 'PALE', 0.25 * K, 0.29 * K, 0.26 * K);
+    sockets(hd, K, 'PALE', { x: 0.057, y: 0.026, z: 0.106 });
+    mk(hd, 'box', 'GOREC', 0.09 * K, 0.06 * K, 0.04 * K, 0, -0.085 * K, 0.1 * K);
+    mk(hd, 'box', 'PALE', 0.12 * K, 0.04 * K, 0.1 * K, 0, -0.14 * K, 0.06 * K);
+    hair(hd, K);
+  },
+  plate(hd, K) {
+    mk(hd, 'ico', 'PALE', 0.25 * K, 0.29 * K, 0.26 * K);
+    mk(hd, 'ico', 'RAW', 0.27 * K, 0.06 * K, 0.17 * K, 0, -0.035 * K, 0.07 * K); // raw where it broke the skin
+    /* one plate of bone over the brow and the eyes, grown, not fitted: lumps of it, the edge ragged */
+    const p = grp(hd, 0, 0.03 * K, 0.1 * K);
+    p.rotation.x = 0.18;
+    mk(p, 'ico', 'BONE', 0.28 * K, 0.13 * K, 0.1 * K);
+    mk(p, 'ico', 'BONE', 0.16 * K, 0.09 * K, 0.07 * K, -0.05 * K, 0.01 * K, 0.03 * K);
+    mk(p, 'ico', 'BONE', 0.13 * K, 0.08 * K, 0.06 * K, 0.06 * K, -0.005 * K, 0.028 * K);
+    for (const [x, r] of [[-0.11, 0.4], [-0.04, 0.1], [0.05, -0.15], [0.12, -0.45]]) {
+      const sp = mk(p, 'ico', 'BONE', 0.03 * K, 0.075 * K, 0.03 * K, x * K, -0.065 * K, 0.012 * K); // the edge, run down in spurs
+      sp.rotation.z = r;
+    }
+    mk(hd, 'ico', 'BONE', 0.08 * K, 0.07 * K, 0.27 * K, 0, 0.125 * K, -0.02 * K); // the ridge back over the crown
+    mk(hd, 'box', 'GOREC', 0.08 * K, 0.055 * K, 0.04 * K, 0, -0.088 * K, 0.1 * K);
+    for (let i = 0; i < 4; i++) mk(hd, 'box', 'BONE', 0.014 * K, 0.02 * K, 0.012 * K, (-0.027 + i * 0.018) * K, -0.066 * K, 0.118 * K); // its teeth
+    mk(hd, 'box', 'PALE', 0.12 * K, 0.04 * K, 0.1 * K, 0, -0.14 * K, 0.06 * K);
+    for (const [x, z] of [[-0.08, -0.06], [-0.05, -0.1]]) mk(hd, 'ico', DARKC, 0.06 * K, 0.025 * K, 0.06 * K, x * K, 0.13 * K, z * K);
+  },
+  horns(hd, K) {
+    mk(hd, 'ico', 'PALE', 0.25 * K, 0.29 * K, 0.26 * K);
+    /* out of each socket, tapering and turning outward as it goes, like a tine */
+    for (const s of [-1, 1]) {
+      mk(hd, 'ico', 'RAW', 0.07 * K, 0.06 * K, 0.04 * K, s * 0.056 * K, 0.028 * K, 0.108 * K); // raw at the root
+      const r = grp(hd, s * 0.056 * K, 0.028 * K, 0.112 * K);
+      r.rotation.set(-0.15, s * 0.55, 0);
+      mk(r, 'ico', 'BONE', 0.045 * K, 0.045 * K, 0.1 * K, 0, 0, 0.035 * K);
+      const r2 = grp(r, 0, 0, 0.075 * K);
+      r2.rotation.set(-0.25, s * 0.35, 0);
+      mk(r2, 'ico', 'BONE', 0.03 * K, 0.03 * K, 0.09 * K, 0, 0, 0.035 * K);
+      const r3 = grp(r2, 0, 0, 0.07 * K);
+      r3.rotation.set(-0.3, s * 0.35, 0);
+      mk(r3, 'ico', 'BONE', 0.018 * K, 0.018 * K, 0.08 * K, 0, 0, 0.03 * K);
+    }
+    mk(hd, 'box', 'GOREC', 0.09 * K, 0.065 * K, 0.04 * K, 0, -0.085 * K, 0.1 * K);
+    mk(hd, 'box', 'PALE', 0.12 * K, 0.04 * K, 0.1 * K, 0, -0.14 * K, 0.06 * K);
+    hair(hd, K);
+  },
+  smooth(hd, K) {
+    const sk = grp(hd, 0, 0.03 * K, -0.03 * K);
+    sk.rotation.x = 0.25;
+    mk(sk, 'ico', 'BONE', 0.27 * K, 0.33 * K, 0.38 * K); // one smooth shape, nothing on it
+    mk(hd, 'ico', 'RAW', 0.23 * K, 0.06 * K, 0.21 * K, 0, -0.1 * K, 0.02 * K); // where the bone meets what is left
+    for (let i = 0; i < 6; i++) mk(hd, 'box', 'BONE', 0.016 * K, 0.026 * K, 0.014 * K, (-0.045 + i * 0.018) * K, -0.1 * K, 0.112 * K); // the top teeth, in the bone
+    const j = grp(hd, 0, -0.12 * K, -0.02 * K);
+    j.rotation.x = 0.3;
+    mk(j, 'box', 'PALE', 0.15 * K, 0.05 * K, 0.15 * K, 0, -0.02 * K, 0.06 * K); // the jaw, still flesh, hanging
+    for (let i = 0; i < 5; i++) mk(j, 'box', 'BONE', 0.016 * K, 0.022 * K, 0.014 * K, (-0.036 + i * 0.018) * K, 0.012 * K, 0.125 * K);
+  },
+};
+function hair(hd, K) { for (const [x, z] of [[-0.06, -0.04], [0.05, 0.02], [0, -0.1]]) mk(hd, 'ico', DARKC, 0.06 * K, 0.025 * K, 0.06 * K, x * K, 0.14 * K, z * K); }
+
+function boneBody(head) {
+  const K = 1.08, g = new THREE.Group(), tr = 0x2b2e34, legs = [], shins = [];
+  for (const s of [-1, 1]) {
+    const l = grp(g, s * 0.11 * K, 0.9 * K, 0), k = grp(l, 0, -0.45 * K, 0);
+    mk(l, 'box', tr, 0.17 * K, 0.45 * K, 0.18 * K, 0, -0.225 * K, 0);
+    mk(k, 'box', tr, 0.17 * K, 0.14 * K, 0.18 * K, 0, -0.07 * K, 0);
+    mk(k, 'box', 'FLESH', 0.13 * K, 0.32 * K, 0.13 * K, 0, -0.27 * K, 0); mk(k, 'box', 'FLESH', 0.13 * K, 0.06 * K, 0.25 * K, 0, -0.42 * K, 0.04 * K);
+    legs.push(l); shins.push(k);
+  }
+  const b = grp(g, 0, 0.9 * K, 0);
+  mk(b, 'box', 'FLESH', 0.44 * K, 0.62 * K, 0.26 * K, 0, 0.31 * K, 0);
+  mk(b, 'box', tr, 0.42 * K, 0.12 * K, 0.25 * K, 0, 0.03 * K, 0);
+  mk(b, 'box', 'RAW', 0.3 * K, 0.32 * K, 0.04 * K, 0, 0.44 * K, 0.12 * K);
+  for (const y of [0.32, 0.4, 0.48, 0.56]) mk(b, 'box', 'BONE', 0.34 * K, 0.035 * K, 0.04 * K, 0, y * K, 0.15 * K);
+  mk(b, 'box', 'RAW', 0.12 * K, 0.58 * K, 0.04 * K, 0, 0.32 * K, -0.13 * K);
+  for (let i = 0; i < 6; i++) mk(b, 'box', 'BONE', 0.06 * K, 0.05 * K, 0.05 * K, 0, (0.1 + i * 0.09) * K, -0.15 * K);
+  mk(b, 'ico', 'RAW', 0.28 * K, 0.28 * K, 0.24 * K, 0.19 * K, 0.54 * K, -0.02 * K);
+  const hd = grp(b, -0.02 * K, 0.76 * K, 0.05);
+  BONE_HEADS[head](hd, K);
+  hd.rotation.z = 0.2;
+  const arms = [];
+  let a = grp(b, -0.27 * K, 0.56 * K, 0);
+  mk(a, 'box', 'RAW', 0.12 * K, 0.38 * K, 0.13 * K, 0, -0.19 * K, 0); mk(a, 'box', 'FLESH', 0.09 * K, 0.42 * K, 0.09 * K, 0, -0.6 * K, 0);
+  arms.push(a);
+  a = grp(b, 0.3 * K, 0.58 * K, 0);
+  mk(a, 'box', 'RAW', 0.15 * K, 0.4 * K, 0.15 * K, 0, -0.2 * K, 0); mk(a, 'box', 'BONE', 0.07 * K, 0.72 * K, 0.07 * K, 0, -0.76 * K, 0);
+  mk(a, 'box', 'BONE', 0.04 * K, 0.14 * K, 0.04 * K, 0, -1.16 * K, 0.01);
+  arms.push(a);
+  return { g, b, hd, legs, shins, arms };
+}
+
+/* The bush's: Security's changed (castView.ts changed()), the night round's build, the leaf thickest */
+const UNIFORM = 0x2c3440, TROUSERS = 0x23262b;
+const PLANT_HEADS = {
+  built(hd) {
+    mk(hd, 'ico', 'SALLOW', 0.24, 0.28, 0.25);
+    for (const s of [-1, 1]) mk(hd, 'ico', 'EYE', 0.042, 0.038, 0.025, s * 0.055, 0.025, 0.112);
+    mk(hd, 'box', 'LIP', 0.08, 0.022, 0.03, 0, -0.075, 0.112);
+  },
+  hollows(hd) {
+    mk(hd, 'ico', 'SALLOW', 0.24, 0.28, 0.25);
+    sockets(hd, 1, 'SALLOW', { x: 0.055, y: 0.024, z: 0.104 });
+    mk(hd, 'box', 'GOREC', 0.075, 0.022, 0.03, 0, -0.078, 0.11);
+  },
+  shelf(hd, H) {
+    mk(hd, 'ico', 'SALLOW', 0.24, 0.28, 0.25);
+    mk(hd, 'box', 'GOREC', 0.075, 0.024, 0.03, 0, -0.08, 0.11);
+    shelf(hd, 0.02, -0.01, 0.1, 0.2, 3, 0.17, H.rnd, { rise: 0.036 }); // out of the bridge of the nose, over the eyes
+    shelf(hd, 0.1, 0.06, 0.04, PI / 2 - 0.3, 2, 0.13, H.rnd, { rise: 0.035 }); // and at the temple
+  },
+  split(hd, H) {
+    mk(hd, 'ico', 'SALLOW', 0.24, 0.28, 0.25);
+    mk(hd, 'ico', 'RAW', 0.13, 0.15, 0.05, 0, 0.012, 0.106); // the face, opened
+    rosette(hd, 0, 0.015, 0.124, 7, 0.11, H.rnd);
+    mk(hd, 'box', 'GOREC', 0.07, 0.026, 0.03, 0, -0.088, 0.108);
+  },
+  hung(hd, H) {
+    mk(hd, 'ico', 'SALLOW', 0.24, 0.28, 0.25);
+    mk(hd, 'box', 'GOREC', 0.07, 0.024, 0.03, 0, -0.08, 0.11);
+    /* from a ring of knots round the crown, broad leaf hung down over the face, cured yellow toward the tips */
+    const n = 13;
+    for (let i = 0; i < n; i++) {
+      const a = -PI + (i + 0.5) * (TAU / n) + H.rnd(-0.08, 0.08), front = Math.cos(a) > 0.2;
+      const g = grp(hd, Math.sin(a) * 0.115, 0.11, Math.cos(a) * 0.115);
+      g.rotation.set(0, a, 0);
+      const hang = grp(g); hang.rotation.x = -H.rnd(0.08, 0.2); hang.rotation.z = H.rnd(-0.1, 0.1);
+      mk(g, 'ico', 'KNOT', 0.045, 0.035, 0.04);
+      const len = front ? H.rnd(0.3, 0.36) : H.rnd(0.24, 0.32), w = front ? H.rnd(0.05, 0.065) : 0.1;
+      mk(hang, 'ico', LEAFK(i), w, len * 0.62, 0.018, 0, -len * 0.3, 0.012);
+      mk(hang, 'ico', 'CURED' + (i % 4), w * 0.8, len * 0.45, 0.016, 0, -len * 0.7, 0.02);
+    }
+  },
+};
+function plantBody(head, idx) {
+  const R = seeded(31), H = seeded(700 + idx), g = new THREE.Group(), cl = UNIFORM, tr = TROUSERS, legs = [], shins = [];
+  for (const s of [-1, 1]) {
+    const l = grp(g, s * 0.11, 0.9, 0), k = grp(l, 0, -0.45, 0);
+    mk(l, 'box', tr, 0.16, 0.45, 0.17, 0, -0.225, 0); mk(k, 'box', tr, 0.16, 0.45, 0.17, 0, -0.225, 0); mk(k, 'box', DARKC, 0.17, 0.09, 0.28, 0, -0.42, 0.04);
+    legs.push(l); shins.push(k);
+  }
+  const b = grp(g, 0, 0.9, 0);
+  mk(b, 'box', cl, 0.42, 0.6, 0.24, 0, 0.3, 0);
+  mk(b, 'box', 0x9a8a50, 0.06, 0.07, 0.02, -0.12, 0.44, 0.125); // the shirt's badge
+  mk(b, 'cyl', 'SALLOW', 0.13, 0.14, 0.13, -0.02, 0.64, 0);
+  const hd = grp(b, -0.02, 0.76, 0);
+  PLANT_HEADS[head](hd, H);
+  hd.rotation.z = 0.25;
+  const arms = [];
+  for (const [x, y] of [[-0.27, 0.56], [0.27, 0.56]]) {
+    const a = grp(b, x, y, 0); mk(a, 'box', cl, 0.11, 0.36, 0.12, 0, -0.18, 0); mk(a, 'box', 'SALLOW', 0.08, 0.34, 0.08, 0, -0.52, 0);
+    arms.push(a);
+  }
+  /* the leaf, as on the night round: up the back of the neck, its right side, out of the right shoulder, down the back */
+  shelf(b, -0.03, 0.58, -0.1, PI + 0.3, 4, 0.3, R.rnd, { rise: 0.07, lean: 0.015 });
+  shelf(b, 0.08, 0.6, 0.0, PI / 2 + 0.5, 3, 0.25, R.rnd, { rise: 0.065 });
+  shelf(b, 0.2, 0.48, -0.02, PI / 2 + 0.15, 4, 0.3, R.rnd, { rise: 0.075 });
+  shelf(b, 0.15, 0.24, -0.11, PI * 0.8, 3, 0.24, R.rnd, { rise: 0.065 });
+  return { g, b, hd, legs, shins, arms };
+}
+
+/* The bloat god's, young and still on its feet (castView.ts bloat): one great soft body and a baby's head */
+function shut(hd, y, z) {
+  for (const s of [-1, 1]) {
+    mk(hd, 'ico', 'PALE', 0.24, 0.11, 0.13, s * 0.15, y + 0.08, z - 0.01); // the brow, swollen
+    const c = mk(hd, 'box', { of: 'PALE', k: 0.5 }, 0.13, 0.014, 0.02, s * 0.15, y, z + 0.012); // the eye, a crease
+    c.rotation.z = -s * 0.14;
+  }
+}
+const BLOAT_HEADS = {
+  built(hd) {
+    mk(hd, 'ico', 'PALE', 1.25, 1.35, 1.2);
+    for (const s of [-1, 1]) mk(hd, 'ico', 'EYE', 0.07, 0.07, 0.07, s * 0.14, -0.22, 0.52);
+    mk(hd, 'box', 'EYE', 0.16, 0.03, 0.04, 0, -0.38, 0.5);
+  },
+  hollows(hd) {
+    mk(hd, 'ico', 'PALE', 1.25, 1.35, 1.2);
+    for (const s of [-1, 1]) {
+      mk(hd, 'ico', { of: 'PALE', k: 0.45 }, 0.13, 0.09, 0.06, s * 0.15, -0.2, 0.5);
+      mk(hd, 'ico', 'PALE', 0.22, 0.1, 0.12, s * 0.15, -0.12, 0.52);
+    }
+    mk(hd, 'box', 'GOREC', 0.14, 0.04, 0.04, 0, -0.4, 0.48);
+  },
+  shut(hd) {
+    mk(hd, 'ico', 'PALE', 1.25, 1.35, 1.2);
+    for (const s of [-1, 1]) mk(hd, 'ico', 'PALE', 0.36, 0.36, 0.26, s * 0.3, -0.36, 0.42); // the cheeks, up round the eyes
+    shut(hd, -0.21, 0.525);
+    mk(hd, 'ico', 'RAW', 0.07, 0.055, 0.05, 0, -0.46, 0.49); // the mouth, small and pursed
+    mk(hd, 'ico', 'PALE', 0.5, 0.24, 0.4, 0, -0.62, 0.32);
+  },
+  sunk(hd, b) {
+    hd.position.set(0, 1.08, 0.3);
+    mk(hd, 'ico', 'PALE', 1.25, 1.35, 1.2);
+    for (const s of [-1, 1]) mk(hd, 'ico', 'PALE', 0.36, 0.36, 0.26, s * 0.3, -0.25, 0.42);
+    shut(hd, -0.1, 0.55);
+    mk(b, 'ico', 'PALE', 1.55, 0.62, 0.95, 0, 0.62, 0.55); // a fold of it, up over the mouth
+    mk(b, 'ico', 'FLESH', 1.2, 0.3, 0.7, 0, 0.36, 0.68);
+  },
+  away(hd) {
+    hd.rotation.x = -1.05;
+    mk(hd, 'ico', 'PALE', 1.25, 1.35, 1.2);
+    shut(hd, -0.2, 0.525);
+    mk(hd, 'ico', 'GOREC', 0.24, 0.16, 0.1, 0, -0.38, 0.49); // the mouth, open, to the ceiling
+    mk(hd, 'ico', 'PALE', 0.7, 0.36, 0.5, 0, -0.62, 0.22); // the chin and the throat, toward you
+  },
+};
+function bloatBody(head) {
+  const g = new THREE.Group(), b = grp(g, 0, 1.75, 0);
+  mk(b, 'ico', 'PALE', 1.9, 2.1, 1.7); mk(b, 'ico', 'FLESH', 1.3, 1, 1.2, 0, -0.6, 0.3); mk(b, 'ico', 'RAW', 0.5, 0.4, 0.4, 0.6, 0.3, 0.5);
+  const hd = grp(b, 0, 1.4, 0.1);
+  BLOAT_HEADS[head](hd, b);
+  hd.rotation.z = 0.08;
+  const arms = [];
+  for (const s of [-1, 1]) { const a = grp(b, s * 0.98, 0.35, 0); mk(a, 'box', 'FLESH', 0.22, 1, 0.22, 0, -0.5, 0); arms.push(a); }
+  for (const s of [-1, 1]) mk(g, 'box', 'FLESH', 0.5, 1, 0.5, s * 0.45, 0.5, 0);
+  return { g, b, hd, legs: [], shins: [], arms };
+}
+
+/* ---------------------------------------------------------------------------------------------------------------- */
+/* the lines and their heads: what each is, why it is here, and what building it in castView.ts would take */
+const LINES = {
+  bone: {
+    name: 'Bone', who: "The bone mother's, middle years: castView.ts boneMid(), 1.08 times a person.", gap: 1.5, height: 2.15, ceil: 3.1, look: 1.45,
+    body: (h) => boneBody(h),
+    heads: [
+      { id: 'built', tag: 'As built', name: 'As built', what: 'The middle years as the game draws them: a pale head, two black eyes, the mouth open and the jaw hanging.', from: 'The face to beat.', game: 'boneMid() as it is.' },
+      { id: 'hollows', tag: 'Hollows', name: 'Hollows', what: 'The same face with the contrast taken down. The eyes are hollows a few shades darker than the skin, under a brow that overhangs them; the mouth is dark red, not black.', from: 'The smallest change. It tests whether the eyes were only too dark.', game: 'A brow, a nose and two colours in boneMid().' },
+      { id: 'plate', tag: 'Plate', name: 'Brow plate', what: 'Bone has pushed out of the brow and grown down over the eyes as one plate, ridged back over the crown, raw where it broke the skin. Below it the mouth hangs open on its teeth.', from: "The clicker's covered face, in bone. It keeps the jaw, the most human thing left.", game: 'About fifteen small parts on the head in place of the eyes.' },
+      { id: 'horns', tag: 'Horns', name: 'Through the sockets', what: 'Bone has grown out of both eye sockets, forward and up, raw at the root. Nothing looks out: the face is something the bone grew through.', from: 'From Beyond. It changes the outline, so it reads at a distance and in the dark.', game: 'Three parts a side on the head, in place of the eyes.' },
+      { id: 'smooth', tag: 'Skull', name: 'Smooth skull', what: "The bone elder's head: the skull one long, smooth shape with nothing on it, and of the face only the jaw, still flesh, hanging open.", from: 'world.md §10, the bone elders: blind, tall, patrolling. The roaming threat would wear this.', game: 'The head swapped for bone, and a jaw.' },
+    ],
+  },
+  plant: {
+    name: 'Plant', who: "The bush's: Security's changed, the night round's build. castView.ts changed().", gap: 1.5, height: 2.05, ceil: 3.1, look: 1.45,
+    body: (h, i) => plantBody(h, i),
+    heads: [
+      { id: 'built', tag: 'As built', name: 'As built', what: "Security's changed as the game draws them: sallow, two black eyes, the mouth slack, leaf out of the back of the neck and the right shoulder.", from: 'The face to beat.', game: 'changed() as it is.' },
+      { id: 'hollows', tag: 'Hollows', name: 'Hollows', what: 'The same face with the contrast taken down: hollows a few shades darker than the skin, under an overhanging brow, and a dark mouth.', from: 'The smallest change. It tests whether the eyes were only too dark.', game: 'A brow, a nose and two colours in changed().' },
+      { id: 'shelf', tag: 'Shelf', name: 'Shelf over the eyes', what: 'A bracket of leaf has come out of the bridge of the nose and stacked forward over the eyes, the way it grows from a stump, with a smaller one at the temple. The slack mouth shows under it.', from: "The line's own growth, put where it hides the face. Lethal Company's Bracken is faceless and leafy, and frightening in fewer polygons than this.", game: 'Two shelf() calls on the head, castKit.ts as it is.' },
+      { id: 'split', tag: 'Split', name: 'Leaf out of the face', what: 'The face has split where the eyes and nose were, and leaf has come out of it in a ring round a woody knot. The jaw is still there under it.', from: "The Last of Us: the clicker's head split open by the fungus.", game: 'A knot and a ring of seven leaves: a small helper beside shelf().' },
+      { id: 'hung', tag: 'Hung', name: 'Hung leaf', what: 'Leaf hangs from the crown down over the face to below the chin, as tobacco hangs in a curing barn: green at the top, cured yellow at the tips. The face only shows between the leaves.', from: "Annihilation's plant people, and world.md §8's barn.", game: 'A ring of thirteen hanging leaves; they could sway as the head moves.' },
+    ],
+  },
+  bloat: {
+    name: 'Bloat', who: "The bloat god's, young and still on its feet: castView.ts bloat.", gap: 2.7, height: 3.9, ceil: 4.8, look: 2.4,
+    body: (h) => bloatBody(h),
+    heads: [
+      { id: 'built', tag: 'As built', name: 'As built', what: "The bloats as the game draws them: one great soft body and a baby's head, two black dots low on it and a slit of a mouth.", from: 'The face to beat.', game: 'The bloat model as it is.' },
+      { id: 'hollows', tag: 'Hollows', name: 'Hollows', what: 'The same face with the contrast taken down: hollows under swollen brows, and a dark mouth.', from: 'The smallest change. It tests whether the eyes were only too dark.', game: 'Four parts and two colours.' },
+      { id: 'shut', tag: 'Shut', name: 'Eyes shut', what: 'The cheeks have swollen up round the eyes until they are shut, creases in the fat, and the mouth is small and pursed. A baby asleep, nearly four metres tall.', from: "Asleep reads as sedated, which the line is. Holt's face has its eyes closed too.", game: 'Cheeks, brows and creases: about nine parts.' },
+      { id: 'sunk', tag: 'Sunk', name: 'Sunk into itself', what: 'No neck. The head has sunk into the body, and a fold of it has come up over the mouth, so the shut eyes look out over the fold.', from: 'The bloat line stores against going without: it swells over itself.', game: 'The head lowered, and two folds in front of it.' },
+      { id: 'away', tag: 'Face up', name: 'Face up', what: 'The head tipped back, the face to the ceiling and the mouth open. From the floor you see the chin and the throat, and the face only from above.', from: 'Hiding the face by how it is carried, not by what grows on it.', game: 'The head turned back; nothing new.' },
+    ],
+  },
+};
+const ORDER = ['bone', 'plant', 'bloat'];
+
+/* ---------------------------------------------------------------------------------------------------------------- */
+/* state, and what this viewer last looked at */
+const S = { line: 'bone', sel: 0, view: 'lineup', light: 'room', pal: 'built', mottle: false, hunch: false, dist: 3.5 };
+try {
+  const saved = JSON.parse(localStorage.getItem('rs-heads-view') || '{}');
+  for (const k of Object.keys(S)) if (k in saved && typeof saved[k] === typeof S[k]) S[k] = saved[k];
+  if (!LINES[S.line]) S.line = 'bone';
+  if (!['room', 'tube', 'dark'].includes(S.light)) S.light = 'room';
+  if (!PAL[S.pal]) S.pal = 'built';
+  if (!['lineup', 'close', 'eye'].includes(S.view)) S.view = 'lineup';
+  S.sel = clamp(Math.round(S.sel), 0, 4); S.dist = clamp(S.dist, 2, 12);
+} catch {}
+const remember = () => { try { localStorage.setItem('rs-heads-view', JSON.stringify(S)); } catch {} };
+
+/* ---------------------------------------------------------------------------------------------------------------- */
+/* the scene */
+const canvas = $('c'), stage = $('stage');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.setClearColor(0x070809);
+const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(38, 1, 0.05, 80);
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true; controls.dampingFactor = 0.12;
+controls.minDistance = 0.8; controls.maxDistance = 30; controls.maxPolarAngle = PI * 0.56; controls.zoomSpeed = 0.8;
+
+const room = new THREE.Group(), row = new THREE.Group();
+scene.add(room, row);
+const tubeMats = [];
+/** a concrete room round the row, as tall as the line needs: the game's grey, slab seams in the floor, grime along the
+ *  foot of the walls, and tubes in the ceiling */
+function buildRoom() {
+  room.clear(); tubeMats.length = 0;
+  const L = LINES[S.line], span = L.heads.length * L.gap, W = span + 8, z0 = -3.2, z1 = 16, D = z1 - z0, zc = (z0 + z1) / 2, H = L.ceil;
+  const was = S.mottle; S.mottle = false;
+  mk(room, 'box', 0x7d7e7a, W, 0.1, D, 0, -0.05, zc);
+  for (let x = -W / 2 + 2; x < W / 2; x += 2) mk(room, 'box', 0x5e5f5c, 0.02, 0.003, D, x, 0.001, zc);
+  for (let z = z0 + 2; z < z1; z += 2) mk(room, 'box', 0x5e5f5c, W, 0.003, 0.02, 0, 0.001, z);
+  mk(room, 'box', 0x7a7b77, W, H, 0.2, 0, H / 2, z0 - 0.1);
+  for (const s of [-1, 1]) mk(room, 'box', 0x737470, 0.2, H, D, s * (W / 2 + 0.1), H / 2, zc);
+  mk(room, 'box', 0x5d5e5b, W, 0.2, D, 0, H + 0.1, zc);
+  mk(room, 'box', 0x4c4d4a, W, 0.22, 0.02, 0, 0.11, z0 + 0.005);
+  for (const s of [-1, 1]) mk(room, 'box', 0x4c4d4a, 0.02, 0.22, D, s * (W / 2 - 0.005), 0.11, zc);
+  S.mottle = was;
+  for (let x = -span / 2 + L.gap / 2; x < span / 2; x += L.gap * 2) {
+    mk(room, 'box', 0x2a2c2e, 1.3, 0.08, 0.22, x, H - 0.04, 1.4);
+    const lm = new THREE.MeshBasicMaterial({ color: 0x3a3c3e }), lens = new THREE.Mesh(GEO.box, lm);
+    lens.scale.set(1.2, 0.02, 0.14); lens.position.set(x, H - 0.09, 1.4);
+    room.add(lens); tubeMats.push(lm);
+  }
+  U.uTubeA.value.set(-span / 2, H - 0.1, 1.4); U.uTubeB.value.set(span / 2, H - 0.1, 1.4);
+}
+
+/** the five, side by side, each a head on the same body */
+let figs = [];
+function buildRow() {
+  row.clear();
+  for (const g of OWNED) g.dispose();
+  OWNED.length = 0;
+  const L = LINES[S.line], n = L.heads.length;
+  figs = L.heads.map((h, i) => {
+    MR = seeded(97 + i * 13).next;
+    const M = L.body(h.id, i), x = (i - (n - 1) / 2) * L.gap;
+    M.g.position.x = x;
+    pose(M, S.hunch);
+    M.base = { b: M.b.rotation.z, hz: M.hd.rotation.z, hx: M.hd.rotation.x, by: M.b.position.y };
+    M.g.traverse(o => { o.userData.fig = i; });
+    row.add(M.g);
+    M.g.updateMatrixWorld(true);
+    const top = new THREE.Box3().setFromObject(M.g).max.y, head = M.hd.getWorldPosition(new THREE.Vector3());
+    return { M, h, i, x, top, head, ph: i * 1.7 };
+  });
+  placeRing();
+  buildLabels();
+}
+/** hunched: leaning, the head forward and down, one shoulder dropped, the knees a little bent */
+function pose(M, hunch) {
+  if (!hunch) return;
+  if (S.line === 'bloat') { M.b.rotation.x = 0.12; M.hd.rotation.x += 0.25; M.b.position.y -= 0.1; return; }
+  M.b.rotation.x = 0.3; M.b.position.y -= 0.05;
+  M.hd.rotation.x += 0.45; M.hd.position.z += 0.05;
+  M.arms.forEach((a, i) => { a.rotation.x = -0.3 + (i ? -0.22 : 0.06); });
+  M.arms[1].position.y -= 0.05;
+  M.legs.forEach(l => { l.rotation.x = -0.14; });
+  M.shins.forEach(k => { k.rotation.x = 0.26; });
+}
+
+/* the mark round the one picked */
+const ring = new THREE.Mesh(new THREE.RingGeometry(0.44, 0.5, 48), new THREE.MeshBasicMaterial({ color: 0xc9a227, side: THREE.DoubleSide }));
+ring.rotation.x = -PI / 2;
+scene.add(ring);
+function placeRing() {
+  const f = figs[S.sel];
+  if (!f) return;
+  const k = S.line === 'bloat' ? 2.4 : 1;
+  ring.scale.set(k, k, 1); ring.position.set(f.x, 0.006, S.line === 'bloat' ? 0.1 : 0);
+}
+
+/* the light */
+const LIGHTS = {
+  room: { room: [0.95, 0.94, 0.9], key: 0.45, tube: 0, flash: 0, fog: 0.02, lens: 0x8a8c8e },
+  tube: { room: [0.09, 0.09, 0.1], key: 0, tube: 2.4, flash: 0, fog: 0.035, lens: 0xfff6e4 },
+  dark: { room: [0.012, 0.012, 0.014], key: 0, tube: 0, flash: 1.1, fog: 0.05, lens: 0x222426 },
+};
+function applyLight() {
+  const P = LIGHTS[S.light];
+  U.uRoom.value.set(...P.room); U.uKey.value = P.key; U.uTube.value = P.tube; U.uFlash.value = P.flash; U.uFog.value = P.fog;
+  const c = new THREE.Color(P.lens);
+  if (S.light === 'tube') c.multiplyScalar(1.6);
+  for (const m of tubeMats) m.color.copy(c);
+}
+
+/* the view: the line-up from a little above, or from your eye as the game has it (1.6 m up, 72 degrees), some metres off
+   the one picked (3.5 m is where the game's dev keys put one down) */
+const _aim = new THREE.Vector3();
+function frame() {
+  const L = LINES[S.line];
+  ring.visible = S.view === 'lineup';
+  if (S.view === 'lineup') {
+    camera.fov = 38; camera.updateProjectionMatrix();
+    const vt = Math.tan(camera.fov * PI / 360), ht = vt * camera.aspect, span = L.heads.length * L.gap;
+    const dist = Math.max((span / 2 + 0.2) / ht, (L.height / 2 + 0.5) / vt);
+    controls.target.set(0, L.height * 0.5, 0);
+    camera.position.set(dist * 0.2, L.height * 0.5 + dist * 0.1, dist);
+  } else if (S.view === 'close') {
+    const f = figs[S.sel], big = S.line === 'bloat', d = big ? 4.6 : 1.45;
+    camera.fov = 30; camera.updateProjectionMatrix();
+    controls.target.copy(f.head).add(_aim.set(0, big ? -0.1 : 0, big ? 0.3 : 0.05));
+    camera.position.set(controls.target.x + d * 0.3, controls.target.y + d * 0.05, controls.target.z + d);
+  } else {
+    camera.fov = 72; camera.updateProjectionMatrix();
+    const x = figs[S.sel]?.x ?? 0;
+    controls.target.set(x, L.look, 0);
+    camera.position.set(x, 1.6, S.dist);
+  }
+  controls.update();
+}
+
+function resize() {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  if (!w || !h) return;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h; camera.updateProjectionMatrix();
+}
+new ResizeObserver(() => { const a = camera.aspect; resize(); if (Math.abs(camera.aspect - a) > 0.01) frame(); }).observe(stage);
+
+/* ---------------------------------------------------------------------------------------------------------------- */
+/* labels over the figures, and picking */
+const labels = $('labels');
+let labelEls = [];
+function buildLabels() {
+  labels.textContent = '';
+  labelEls = figs.map(f => {
+    const b = document.createElement('button');
+    b.className = 'label';
+    b.type = 'button';
+    const dot = document.createElement('span'); dot.className = 'dot';
+    const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = f.h.tag;
+    const ix = document.createElement('span'); ix.className = 'ix'; ix.textContent = String(f.i + 1);
+    b.append(dot, nm, ix);
+    b.title = f.h.name;
+    b.addEventListener('click', () => select(f.i));
+    labels.append(b);
+    return { b, dot };
+  });
+  paintLabels();
+}
+function paintLabels() {
+  labelEls.forEach(({ b, dot }, i) => {
+    b.classList.toggle('on', i === S.sel);
+    b.setAttribute('aria-pressed', String(i === S.sel));
+    const v = pickOf(S.line, figs[i].h.id).verdict || '';
+    dot.className = 'dot' + (v ? ' ' + v : '');
+  });
+}
+const _v = new THREE.Vector3();
+function placeLabels() {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  figs.forEach((f, i) => {
+    _v.set(f.x, f.top + 0.12, 0).project(camera);
+    const el = labelEls[i]?.b;
+    if (!el) return;
+    const show = _v.z < 1 && Math.abs(_v.x) < 1.1 && Math.abs(_v.y) < 1.1;
+    el.style.visibility = show ? 'visible' : 'hidden';
+    if (show) el.style.transform = `translate(${((_v.x + 1) / 2 * w).toFixed(1)}px, ${((1 - _v.y) / 2 * h).toFixed(1)}px) translate(-50%, -100%)`;
+  });
+}
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+let down = null;
+canvas.addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY }; });
+canvas.addEventListener('pointerup', e => {
+  if (!down || Math.hypot(e.clientX - down.x, e.clientY - down.y) > 5) { down = null; return; }
+  down = null;
+  const r = canvas.getBoundingClientRect();
+  ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+  const hit = ray.intersectObjects(row.children, true)[0];
+  if (hit && hit.object.userData.fig != null) select(hit.object.userData.fig);
+});
+addEventListener('keydown', e => {
+  if (e.target instanceof Element && e.target.closest('textarea, input')) return;
+  if (e.key === 'ArrowRight') { select((S.sel + 1) % 5); e.preventDefault(); }
+  else if (e.key === 'ArrowLeft') { select((S.sel + 4) % 5); e.preventDefault(); }
+  else if (e.key === 'e' || e.key === 'E') setView(S.view === 'eye' ? 'lineup' : 'eye');
+  else if (e.key === 'c' || e.key === 'C') setView(S.view === 'close' ? 'lineup' : 'close');
+  else if (e.key >= '1' && e.key <= '3') setLine(ORDER[+e.key - 1]);
+});
+
+/* ---------------------------------------------------------------------------------------------------------------- */
+/* the controls */
+function select(i) {
+  S.sel = clamp(i, 0, figs.length - 1);
+  placeRing(); paintLabels(); renderCard(); renderPicks(); remember();
+  if (S.view !== 'lineup') frame();
+}
+function setLine(k) {
+  if (!LINES[k] || k === S.line && figs.length) return;
+  S.line = k;
+  document.querySelectorAll('[data-line]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.line === k)));
+  $('who').textContent = LINES[k].who;
+  buildRoom(); buildRow(); applyLight(); frame(); renderCard(); renderPicks(); remember();
+}
+function setView(v) {
+  S.view = v;
+  document.querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === v)));
+  $('distbox').hidden = v !== 'eye';
+  frame(); remember();
+}
+document.querySelectorAll('[data-line]').forEach(b => b.addEventListener('click', () => setLine(b.dataset.line)));
+document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
+document.querySelectorAll('[data-light]').forEach(b => b.addEventListener('click', () => {
+  S.light = b.dataset.light;
+  document.querySelectorAll('[data-light]').forEach(c => c.setAttribute('aria-pressed', String(c.dataset.light === S.light)));
+  applyLight(); remember();
+}));
+for (const [id, set] of [['pal', on => { S.pal = on ? 'darker' : 'built'; }], ['mottle', on => { S.mottle = on; }], ['hunch', on => { S.hunch = on; }]]) {
+  $(id).addEventListener('click', () => {
+    const on = $(id).getAttribute('aria-pressed') !== 'true';
+    $(id).setAttribute('aria-pressed', String(on));
+    set(on); buildRow(); remember();
+  });
+}
+$('dist').addEventListener('input', () => { S.dist = +$('dist').value; $('distout').textContent = S.dist.toFixed(1) + ' m'; if (S.view === 'eye') frame(); remember(); });
+
+/* ---------------------------------------------------------------------------------------------------------------- */
+/* the picks: in the artifact's own store where it has one, so Claude can read them back; else in this browser */
+const store = { mode: 'connecting', db: null, picks: {}, err: '', stale: false };
+const LOCAL = 'rs-heads-picks';
+const idOf = (line, head) => `${line}-${head}`;
+const pickOf = (line, head) => store.picks[idOf(line, head)] || {};
+function readLocal() { try { const o = JSON.parse(localStorage.getItem(LOCAL) || '{}'); return o && typeof o === 'object' ? o : {}; } catch { return {}; } }
+function writeLocal() { try { localStorage.setItem(LOCAL, JSON.stringify(store.picks)); } catch {} }
+const chain = {};
+function save(line, head) {
+  const id = idOf(line, head), h = LINES[line].heads.find(x => x.id === head), p = pickOf(line, head);
+  const rec = { line, head, name: h.name, verdict: p.verdict || '', note: p.note || '', at: new Date().toISOString() };
+  store.picks[id] = rec;
+  if (store.mode === 'db') {
+    $('c-state').textContent = 'Saving…';
+    chain[id] = (chain[id] || Promise.resolve()).then(() => store.db.collection('picks').doc(id).set(rec))
+      .then(() => { if (id === curId()) $('c-state').textContent = 'Saved.'; })
+      .catch(e => { if (id === curId()) $('c-state').textContent = `Not saved (${e?.code || e}). Try again in a moment.`; });
+  } else {
+    writeLocal();
+    $('c-state').textContent = store.mode === 'local' ? 'Saved in this browser.' : '';
+  }
+  paintLabels(); renderPicks();
+}
+const curId = () => idOf(S.line, figs[S.sel]?.h.id);
+async function connect() {
+  let db = null;
+  try { db = window.claude?.use ? await window.claude.use('db') : null; } catch { db = null; }
+  if (!db) { store.mode = 'local'; store.picks = readLocal(); paintLabels(); renderCard(); renderPicks(); return; }
+  store.db = db; store.mode = 'db';
+  const timer = setTimeout(() => { store.stale = true; renderPicks(); }, 10000);
+  db.collection('picks').onSnapshot(snap => {
+    if (!snap.fromCache) { clearTimeout(timer); store.stale = false; }
+    const next = {};
+    for (const d of snap.docs) next[d.id] = d.data();
+    store.picks = next;
+    paintLabels(); renderCard(true); renderPicks();
+  }, err => {
+    clearTimeout(timer);
+    store.mode = 'error'; store.err = err?.code || err?.message || 'unknown';
+    renderPicks();
+  });
+  renderPicks();
+}
+
+/* ---------------------------------------------------------------------------------------------------------------- */
+/* the panel */
+function renderCard(fromStore = false) {
+  const f = figs[S.sel];
+  if (!f) return;
+  const L = LINES[S.line], p = pickOf(S.line, f.h.id);
+  $('c-line').textContent = L.name + ' line';
+  $('c-ix').textContent = `${f.i + 1} of ${figs.length}`;
+  $('c-name').textContent = f.h.name;
+  $('c-what').textContent = f.h.what;
+  $('c-from').textContent = f.h.from;
+  $('c-game').textContent = f.h.game;
+  document.querySelectorAll('.verdict button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === p.verdict)));
+  const ta = $('c-note');
+  if (!(fromStore && document.activeElement === ta)) ta.value = p.note || '';
+  if (!fromStore) $('c-state').textContent = '';
+}
+document.querySelectorAll('.verdict button').forEach(b => b.addEventListener('click', () => {
+  const f = figs[S.sel], p = { ...pickOf(S.line, f.h.id) };
+  p.verdict = p.verdict === b.dataset.v ? '' : b.dataset.v;
+  store.picks[idOf(S.line, f.h.id)] = p;
+  document.querySelectorAll('.verdict button').forEach(c => c.setAttribute('aria-pressed', String(c.dataset.v === p.verdict)));
+  save(S.line, f.h.id);
+}));
+let noteTimer = 0, noteFor = null;
+function flushNote() {
+  clearTimeout(noteTimer);
+  if (!noteFor) return;
+  const [line, head, text] = noteFor;
+  noteFor = null;
+  const p = { ...pickOf(line, head) };
+  if ((p.note || '') === text) return;
+  p.note = text;
+  store.picks[idOf(line, head)] = p;
+  save(line, head);
+}
+$('c-note').addEventListener('input', () => {
+  const f = figs[S.sel];
+  if (noteFor && (noteFor[0] !== S.line || noteFor[1] !== f.h.id)) flushNote();
+  noteFor = [S.line, f.h.id, $('c-note').value];
+  clearTimeout(noteTimer);
+  noteTimer = setTimeout(flushNote, 800);
+});
+$('c-note').addEventListener('blur', flushNote);
+const _select = select;
+
+function renderPicks() {
+  const ul = $('picks');
+  ul.textContent = '';
+  for (const k of ORDER) for (const h of LINES[k].heads) {
+    const p = pickOf(k, h.id), li = document.createElement('li'), b = document.createElement('button');
+    b.type = 'button';
+    if (k === S.line && figs[S.sel]?.h.id === h.id) b.className = 'on';
+    const ln = document.createElement('span'); ln.className = 'ln'; ln.textContent = LINES[k].name;
+    const nm = document.createElement('span'); nm.textContent = h.name + (p.note ? ' ·' : '');
+    if (p.note) nm.title = p.note;
+    const v = document.createElement('span'); v.className = 'v';
+    const dot = document.createElement('span'); dot.className = 'dot' + (p.verdict ? ' ' + p.verdict : '');
+    v.append(document.createTextNode(p.verdict || '—'), dot);
+    b.append(ln, nm, v);
+    b.addEventListener('click', () => { flushNote(); setLine(k); _select(LINES[k].heads.indexOf(h)); });
+    li.append(b); ul.append(li);
+  }
+  const st = $('store-state');
+  st.textContent = store.mode === 'db' ? (store.stale ? 'The saved picks cannot be reached yet; these may be out of date.' : 'Kept with this page, where Claude can read them back.')
+    : store.mode === 'local' ? 'Kept in this browser only. Copy them to send them on.'
+    : store.mode === 'error' ? `The saved picks could not be reached (${store.err}).` : 'Looking for saved picks…';
+}
+$('copy').addEventListener('click', () => {
+  flushNote();
+  const list = Object.values(store.picks).filter(p => p && (p.verdict || p.note));
+  if (!list.length) { toast('Nothing picked yet.'); return; }
+  const text = JSON.stringify(list, null, 1);
+  const done = () => toast(`Copied ${list.length} pick${list.length === 1 ? '' : 's'}.`);
+  const fallback = () => {
+    const ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.append(ta); ta.select();
+    let ok = false; try { ok = document.execCommand('copy'); } catch {}
+    ta.remove();
+    toast(ok ? `Copied ${list.length} pick${list.length === 1 ? '' : 's'}.` : 'Could not copy here. Select the text and copy it yourself.');
+  };
+  try { navigator.clipboard.writeText(text).then(done, fallback); } catch { fallback(); }
+});
+let toastTimer = 0;
+function toast(t) { const el = $('toast'); el.textContent = t; el.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.hidden = true; }, 2200); }
+
+/* ---------------------------------------------------------------------------------------------------------------- */
+/* the loop: each one breathes and its head lolls, slowly, nobody much behind it (world.md §10: none of Pia's lines
+   twitch). Your flashlight goes where you look */
+const t0 = performance.now(), fwd = new THREE.Vector3(), right = new THREE.Vector3();
+function loop() {
+  const t = (performance.now() - t0) / 1000;
+  U.uTime.value = t;
+  if (!REDUCED) for (const f of figs) {
+    const { M, ph } = f, big = S.line === 'bloat';
+    M.hd.rotation.z = M.base.hz + Math.sin(t * 0.33 + ph) * (big ? 0.04 : 0.08);
+    M.hd.rotation.x = M.base.hx + Math.sin(t * 0.21 + ph * 1.3) * 0.04;
+    M.b.rotation.z = M.base.b + Math.sin(t * 0.27 + ph) * 0.015;
+    M.b.position.y = M.base.by + Math.sin(t * 1.1 + ph) * (big ? 0.025 : 0.006);
+  }
+  controls.update();
+  camera.getWorldDirection(fwd);
+  right.crossVectors(fwd, camera.up).normalize();
+  U.uFlashPos.value.copy(camera.position).addScaledVector(right, 0.18).addScaledVector(camera.up, -0.12);
+  U.uFlashDir.value.copy(fwd);
+  renderer.render(scene, camera);
+  placeLabels();
+  requestAnimationFrame(loop);
+}
+
+/* start where this viewer left off */
+$('who').textContent = LINES[S.line].who;
+document.querySelectorAll('[data-line]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.line === S.line)));
+document.querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.view === S.view)));
+document.querySelectorAll('[data-light]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.light === S.light)));
+$('pal').setAttribute('aria-pressed', String(S.pal === 'darker'));
+$('mottle').setAttribute('aria-pressed', String(S.mottle));
+$('hunch').setAttribute('aria-pressed', String(S.hunch));
+$('distbox').hidden = S.view !== 'eye';
+$('dist').value = String(S.dist); $('distout').textContent = S.dist.toFixed(1) + ' m';
+resize();
+buildRoom(); buildRow(); applyLight(); frame(); renderCard(); renderPicks();
+requestAnimationFrame(loop);
+connect();
+
+window.__rs = { S, LINES, figs: () => figs, select, setLine, setView, store, camera, controls };
+</script>

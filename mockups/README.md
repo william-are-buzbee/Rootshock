@@ -14,6 +14,13 @@ browser (three.js comes from a CDN), and each has been published as a private cl
   *Security's seven* (the Saved tab) is a line-up of the upper station's changed, one for each, newest to oldest;
   *Pia's lines* are examples of the bone, bloat and plant lines that founded the Commons, young to old and each young god.
   `window.__rs` in the console exposes the state.
+- `heads.html`: a bench for the heads of Pia's lines (`docs/world.md` §10): a row of five for each line (the bone line's
+  middle years, Security's changed, a young bloat), each on the same body so only the head differs, the first as
+  `render/castView.ts` draws it today. *Hollows* (the face with the contrast taken down) and three ways of covering or
+  replacing the face. Seen in a concrete room: as a line-up, close to, or from your eye at the game's 72° and a chosen
+  distance; lit, under a tube, or dark with a flashlight; in the built palette or a darker one, flat or mottled, upright
+  or hunched. Keep, maybe or drop each, with a note: the published copy keeps them where Claude can read them
+  (collection `picks`, described at the top of its script). `window.__rs` in the console exposes the state.
 - `cargo.html`: Cargo made larger (`docs/world.md` §8, *Cargo, sketched, and built*, which says what the build changed),
   at true scale in the game's kit: the nave, the warehouse arm (room and pillar), the freight shaft at the corner and the
   chambers off them, with the station's rooms round it and the old Cargo as an outline to compare. Overview, plan (a 10 m
