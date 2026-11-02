@@ -1575,16 +1575,22 @@ Nobody expected worse than a bad night.
     sat down for good, bigger, slower and dopier, like their patron; he sits as they do, the biggest of them, and does not get up. They fear
     other things than the bone line does (proposed: going without; *Pia's lines, filled in*, below), but fear drives them
     as much.
-  - *The bush: a doctor who leaned in too close and breathed a spore off her shoulder.* Flesh and plant about evenly. A
-    huge person, the body swollen about half as far as a bloat's or a bone child's would go, every bit of it under rows
-    on rows of tobacco shelves, green through; nothing left on it that was ever clothes; no features, the face tucked
-    away somewhere behind the leaf. Gigantic by now. It stands like
-    a bush until it does not, and unlike Pia it never loses the ability to move. Its children keep a person's shape, the
-    plant growing through them, not over them: Security's changed (it colonised the wing, §2).
+  - *The bush: a doctor who leaned in too close and breathed a spore off her shoulder.* Flesh and plant about evenly,
+    and blended, not one on the other (asked; supersedes the body under rows on rows of shelves: leaf stuck on a big
+    man does not read as a bush). A person's frame grown huge and heavy where it works, its proportions gone: shoulders
+    like boulders, forearms thicker than the upper arms and long enough to walk on, a hump of back the small head has
+    sunk into, short thick legs. And its flesh gone over to plant: masses of green tissue where the muscle was, ribbed
+    stalk in bundles where the sinew was, the leaf wrapped flat round all of it as a cigar's wrapper is, flesh still
+    showing through in patches; in flower on the hump. Nothing left on it that was ever clothes; the face is back in the
+    dark of a hood of leaf. Gigantic by now, over three metres hunched. It stands like a bush until it does not: still,
+    it settles, knuckles down, the hump up, and is a mound of plant; it rises slowly to go, and unlike Pia it never loses
+    the ability to move. Its children keep a person's shape, the plant growing through them, not over them: Security's
+    changed (it colonised the wing, §2). Mocked up on the bench (*The bush*, in *Pia's lines*; built as *Grown*).
   - *Later, and not among the Commons' founders:* three more, grafted when more of her was plant.
     - *The flower child.* Flesh and plant again, nearer seventy to thirty, the other way: it came out different, more plainly
       human to look at, its plant mostly flower, and the flowers grow off roots. A plant's structure can mutate as well as a
-      body's.
+      body's. Its line gathers its flowers into one as it goes on: on a tail, and in the flower child itself, an arm
+      (*The green lines*).
     - *The root ancestor.* A plant ancestor: it grafted Pia's roots. Small Pias that look nothing like her. The early ones
       have roots coming out of their bodies; later ones sink into the ground and plant themselves, the person the top of
       the plant, perhaps the head the only part still human, green on it; their roots crawl up the walls.
@@ -1697,8 +1703,8 @@ of each gap (*Pia's lines*, in its Saved tab; the later lines' are *The green li
 |---|---|---|---|---|
 | Bone (the bone mother's) | the husks (built; their temper too) | the thresher (built); a person's size (built) | the bone elders (none) | the bone mother (none) |
 | Bloat (the bloat god's) | still walking, swelling, baby-headed (none) | bigger, slower, dopier (none) | the bloats, sat (built) | the bloat god (none) |
-| Plant (the bush's) | Security's changed (built; their temper too) | heavier, greener, the face going under (mocked up: *Plant, middle years*) | the bench's *Plant, old* (built: one, in the Commons) | the bush (none) |
-| Flower (the flower child's) | flowers off roots, nearly a person (mocked up: *Flower, young*) | (none) | (none) | the flower child (none) |
+| Plant (the bush's) | Security's changed (built; their temper too) | heavier, greener, the face going under (mocked up: *Plant, middle years*) | the bench's *Plant, old* (built: one, in the Commons) | the bush (mocked up: plant for flesh) |
+| Flower (the flower child's) | flowers off roots, nearly a person (mocked up: *Flower, young*) | the flowers gathered into one, on a tail (mocked up: *Flower, tailed*) | (none) | the flower child (mocked up: a flower for an arm) |
 | Root (the root ancestor's) | roots out of the body (mocked up: *Root, young*) | (none) | sunk in and planted (mocked up: *Root, planted*) | the root ancestor (none) |
 | Bark (the bark ancestor's) | (none) | plated, almost an insect (mocked up: *Bark, middle years*) | (none) | the bark ancestor (none) |
 
@@ -1718,7 +1724,7 @@ of each gap (*Pia's lines*, in its Saved tab; the later lines' are *The green li
 
 Mutants whose plant comes first, in the spirit of System Shock 2's hybrids: a person still, in what they wore to work,
 ridden by what came out of them, and carrying what was in their hands when it took. Six: one for each gap in the table
-above where the plant leads, and one of Tom's. Mocked up on the bench (`mockups/mutants.html`, *The green lines* in its
+above where the plant leads, and one of Tom's; and since, two more of the flower child's (*The great flower*). Mocked up on the bench (`mockups/mutants.html`, *The green lines* in its
 Saved tab), each with notes. Looks and tempers proposed, to argue with; where each stands is open unless said. (Not
 called hybrids: here that word is kept for crosses of the lines.)
 
@@ -1759,11 +1765,22 @@ called hybrids: here that word is kept for crosses of the lines.)
   black eyes: ashen, the whites of its eyes still a person's (the one place the bench spends them). Sleepless and calm
   as Tom was, it walks the zone with the pipe it came in with, and one day lies down where it is and is grown through,
   as he was. The danger is its mouth, and a cut taken near it. In his zone only.
+- **The great flower (asked).** The flower child's line, further on: what flowered all over the young one gathers into
+  one of rustica's flowers grown huge, on a stalk, its lobes breathing open and shut round a throat gone to flesh, wet
+  and dark at the heart, the stamens standing out of it, a drop of Pia's milk at the rim. *Flower, tailed* (middle
+  years): the stalk out of the base of the spine and arched over it like a scorpion's, the flower hung in front of its
+  face; it sways, face up, and brings the flower to whatever it likes. *The flower child* (the young god): tall and
+  lanky, plainly human, flowers off roots all over it, and its right arm gone to stalk below the shoulder, long enough
+  to drag, where the hand was one flower big enough to take a head, turned forward like a horn. Euphoria more than fear:
+  it does not hunt you; it comes to you and offers you the flower. (Asked for "an elder with a really big one": the
+  elders are generation 2, so the biggest flower goes to the line's young god.)
 - **The bench, for them (built).** A trunk opened down the front; arms and legs gone to bark or root, or the legs gone
   and the body planted on a root bole; a head plated over with bark; a rider (a stalk, a root or a producer) over either
   shoulder; something in the right hand (a baton, a pipe, a wrench, a kitchen knife, shears); trousers in other work's
-  colours; and two growths, flowers off a root and Tom's producers, whose mouths open and shut. Saved designs keep
-  `rootshock-changed/1`: the new fields have defaults, so the older ones open as they were.
+  colours; and two growths, flowers off a root and Tom's producers, whose mouths open and shut. Since: an arm gone to a
+  flowering stalk, a flower on a tail, and a body *Grown* (plant for flesh: the bush, above), which settles into a
+  mound when it stands still. Saved designs keep `rootshock-changed/1`: the new fields have defaults, so the older ones
+  open as they were.
 
 ### Temper: when, how far, how long (proposed)
 

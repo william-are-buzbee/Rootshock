@@ -236,9 +236,9 @@ textarea { width: 100%; background: var(--raise); border: 1px solid var(--line);
       <div class="btns" id="lines"></div>
       <div class="btns"><button class="btn" id="linesave">Save all of them</button></div>
       <div class="group">The green lines</div>
-      <p class="note">The lines whose plant comes first, each as one you would meet: the bush's in its middle years, the flower child's, the root ancestor's young and planted, the bark ancestor's, and one of Tom's. What came out of them still holds on, and some still carry what was in their hands when it took. Proposed looks, to argue with.</p>
+      <p class="note">The lines whose plant comes first, each as one you would meet: the bush's in its middle years, the flower child's young and further in, the root ancestor's young and planted, the bark ancestor's, one of Tom's, and the flower child itself. What came out of them still holds on, and some still carry what was in their hands when it took. Proposed looks, to argue with.</p>
       <div class="btns" id="green"></div>
-      <div class="btns"><button class="btn" id="greensave">Save all six</button></div>
+      <div class="btns"><button class="btn" id="greensave">Save all of them</button></div>
       <div class="group">Start from an example</div>
       <p class="note">These are examples to begin from, not saved designs. Opening one replaces what is on the bench (Undo brings it back).</p>
       <div class="btns" id="presets"></div>
@@ -782,6 +782,18 @@ function limbAs(g, kind, w, len, R) {
     for (let k = 0; k < n; k++) { const p = mk(g, 'box', R.pick(BARK), w * 0.96, (len / n) * 0.86, w * 1.0, 0, (-len * (k + 0.48)) / n, 0.004); p.rotation.x = -0.14; }
     return;
   }
+  if (kind === 'flower') {
+    /* the arm gone to a flowering stalk, ribbed, pale green, a leaf off it */
+    const n = Math.max(2, Math.round(len / 0.12));
+    mk(g, 'ico', 0x6e7a3a, w * 0.85, w * 0.75, w * 0.85);
+    for (let k = 0; k < n; k++) {
+      const q = w * 0.62 * (1 - (0.15 * k) / n);
+      mk(g, 'cyl', k % 2 ? 0x8aa060 : 0x9ab070, q, (len / n) * 1.04, q, 0, (-len * (k + 0.5)) / n, 0);
+      mk(g, 'cyl', 0x7a9050, q * 1.14, (len / n) * 0.12, q * 1.14, 0, (-len * k) / n, 0);
+    }
+    leaf(g, 0, -len * 0.55, 0, R.rnd(-PI, PI), w * 2.6, 0.5, LEAF[1]);
+    return;
+  }
   mk(g, 'ico', ROOTC[0], w * 0.95, w * 0.85, w * 0.95);
   for (let k = 0; k < 3; k++) {
     const a = (k / 3) * TAU + R.rnd(-0.3, 0.3), r = w * 0.2, b = a + R.rnd(1.6, 2.6);
@@ -872,6 +884,61 @@ function rider(M, d, o, R) {
   }
   /* where it came out, if nothing is open there: the skin torn round it */
   if (d.body.trunk !== 'split') for (let k = 0; k < 6; k++) { const t = (k / 6) * TAU; mk(T, 'ico', kind === 'spore' ? PBRUISE : RAW, 0.045, 0.045, 0.02, a[0].x + Math.cos(t) * 0.04, a[0].y + Math.sin(t) * 0.04, td / 2 + 0.004); }
+  SINK = was;
+}
+/** one of rustica's flowers grown huge, s long, out along +z from g (the flower child's, world.md §10): the green cup of
+ *  its calyx, the tube widening out of it, and five lobes flared round a throat gone to flesh, wet and dark at the
+ *  heart, the stamens standing out of it, a drop of Pia's milk at the rim. It breathes: the lobes open and close, slowly */
+function trumpet(M, g, s, R) {
+  const cup = 0x5e6e34, lobe = R.pick([BLOOMS.pale, BLOOMS.cream]);
+  mk(g, 'ico', cup, s * 0.2, s * 0.2, s * 0.24, 0, 0, s * 0.06);
+  for (let k = 0; k < 5; k++) {
+    const sp = grp(g, 0, 0, s * 0.05);
+    sp.rotation.z = (k / 5) * TAU + 0.3;
+    const f = grp(sp, 0, s * 0.06, 0);
+    f.rotation.x = -0.4;
+    mk(f, 'ico', cup, s * 0.07, s * 0.025, s * 0.24, 0, 0, s * 0.11);
+  }
+  mk(g, 'cyl', TUBE, s * 0.13, s * 0.3, s * 0.13, 0, 0, s * 0.24).rotation.x = PI / 2;
+  mk(g, 'cyl', mix(TUBE, BLOOMS.pale[0], 0.5), s * 0.19, s * 0.24, s * 0.19, 0, 0, s * 0.48).rotation.x = PI / 2;
+  /* the throat, flesh: raw, and wet and dark at the heart; the stamens out of it, and the milk at its rim */
+  mk(g, 'ico', 0xa0584c, s * 0.22, s * 0.22, s * 0.1, 0, 0, s * 0.58);
+  mk(g, 'ico', 0x3a1414, s * 0.11, s * 0.11, s * 0.06, 0, 0, s * 0.62);
+  for (let k = 0; k < 5; k++) {
+    const a = (k / 5) * TAU, st = grp(g, Math.cos(a) * s * 0.035, Math.sin(a) * s * 0.035, s * 0.6);
+    st.rotation.set(-Math.sin(a) * 0.3, Math.cos(a) * 0.3, 0);
+    mk(st, 'cyl', 0xe2dab0, s * 0.014, s * 0.15, s * 0.014, 0, 0, s * 0.075).rotation.x = PI / 2;
+    mk(st, 'ico', 0xd0a83c, s * 0.035, s * 0.035, s * 0.045, 0, 0, s * 0.155);
+  }
+  mk(g, 'ico', 0xeee8d2, s * 0.035, s * 0.05, s * 0.035, 0, -s * 0.13, s * 0.62);
+  const hinges = [], ph = R.rnd(0, TAU);
+  for (let k = 0; k < 5; k++) {
+    const L = grp(g, 0, 0, s * 0.58);
+    L.rotation.z = (k / 5) * TAU;
+    const h = grp(L, 0, s * 0.085, 0);
+    mk(h, 'ico', lobe[k % 3], s * 0.3, s * 0.03, s * 0.34, 0, 0, s * 0.15);
+    if (FINE) mk(h, 'box', mix(lobe[k % 3], 0x8a8a3a, 0.4), s * 0.02, s * 0.035, s * 0.26, 0, s * 0.005, s * 0.14);
+    hinges.push(h);
+  }
+  /* open, the lobes flared back flat; shut, closed forward over the throat */
+  M.anim.push(t => { const o = 0.5 + 0.5 * Math.sin(t * 0.45 + ph); for (const h of hinges) h.rotation.x = -lerp(0.3, 1.3, o); });
+}
+/* out of the base of its spine, a stalk arched up over it like a scorpion's tail, one great flower hung on the end of it
+   in front of its face (the flower child's line); swaying a little, slowly */
+function flowerTail(M, d, o, R) {
+  const { T, tl, td } = o, k = d.body.flowerSize || 1, was = SINK;
+  SINK = null;
+  const g = grp(T, 0, tl * 0.06, -td * 0.42);
+  const P = along(g, [V3(0, 0, 0), V3(0.02, -0.06, -0.2 * k), V3(0.05, tl * 0.5, -0.48 * k), V3(0.03, tl * 1.05 + 0.25 * k, -0.3 * k), V3(0, tl * 0.96 + 0.42 * k, td * 0.42 + 0.03)],
+    FINE ? 12 : 8, 0.07, 0.042, [0x8aa060, 0x9ab070]);
+  for (let j = 1; j < P.length - 1; j += 2) rod(g, 0x7a9050, lerp(0.075, 0.046, j / P.length), P[j], P[j].clone().lerp(P[j + 1], 0.1));
+  for (const j of [2, 4]) leaf(g, P[j].x, P[j].y, P[j].z, (j === 2 ? 1 : -1) * 1.4, 0.22 * k, 0.4, leafCol(M, j));
+  mk(g, 'ico', RAW, 0.12, 0.1, 0.06, 0, 0, 0.02);
+  const end = P[P.length - 1], F = grp(g, end.x, end.y, end.z);
+  F.quaternion.setFromUnitVectors(V3(0, 0, 1), V3(0, -0.8, 0.6).normalize());
+  trumpet(M, F, 0.42 * k, R);
+  const ph = R.rnd(0, TAU);
+  M.anim.push(t => { g.rotation.set(Math.sin(t * 0.37 + ph) * 0.03, 0, Math.sin(t * 0.5 + ph) * 0.04); });
   SINK = was;
 }
 /** what it still carries, from habit, in the hand that is still a hand: a guard's baton, a length of pipe, a wrench, a
@@ -969,6 +1036,180 @@ function poseBloat(M, A, mode, dt) {
   M.P.position.y = walk ? Math.abs(Math.sin(TAU * p)) * 0.05 : 0;
 }
 
+/* ---- grown: plant for flesh (world.md §10, the bush). A person's frame under it, its proportions gone where it works
+   (the shoulders and the arms huge, a hump of back the small head sinks into, the legs short and thick), and the flesh
+   gone over to plant: masses of green tissue where the muscle was, ribbed stalk in bundles where the sinew was, and the
+   leaf wrapped flat round all of it, tight as a cigar's wrapper, so it reads as one body of plant and not a man with
+   leaves on him. Flowering where it is oldest, on the hump */
+const PITH = [0x56693a, 0x627444, 0x4c5e32, 0x6c7a44], SINEW = [0x8aa060, 0x9ab070, 0x7d9256], NODE = 0x4e5a2e;
+/** the leaf wrapped flat round an ellipsoid a × b × c across, its middle at (x, y, z) on g and turned by rot: n leaves
+ *  between latitudes lat0 and lat1 and longitudes lon0 to lon1 (lon 0 its front, +z), each L long and as wide as `wide`
+ *  of that, running down the surface and turned a little either way; `lift`, how far each lower edge stands off it */
+function wrap(g, M, R, a, b, c, x, y, z, rot, o) {
+  const { n, L, lat0 = -1.1, lat1 = 1.2, lon0 = 0, lon1 = TAU, wide = 0.7, lift = 0.06 } = o;
+  /* the masses are icosahedra, inside the ellipsoid they are made to: the leaf lies on their faces, not on that */
+  a *= 0.86; b *= 0.86; c *= 0.86;
+  const E3 = grp(g, x, y, z);
+  if (rot) E3.rotation.set(...rot);
+  for (let i = 0; i < n; i++) {
+    const lat = lat0 + (lat1 - lat0) * ((i + R.rnd(0.15, 0.85)) / n), lon = lon0 + (lon1 - lon0) * ((i * 0.618034 + R.rnd(-0.04, 0.04)) % 1);
+    const cl = Math.cos(lat), p = V3((cl * Math.sin(lon) * a) / 2, (Math.sin(lat) * b) / 2, (cl * Math.cos(lon) * c) / 2);
+    const nr = V3(p.x / (a * a), p.y / (b * b), p.z / (c * c)).normalize();
+    let t = V3(0, -1, 0).addScaledVector(nr, nr.y);
+    if (t.lengthSq() < 1e-3) t = V3(0, 0, 1).addScaledVector(nr, -nr.z);
+    t.normalize();
+    const tw = R.rnd(-0.3, 0.3), bn = new THREE.Vector3().crossVectors(nr, t);
+    t.multiplyScalar(Math.cos(tw)).addScaledVector(bn, Math.sin(tw));
+    bn.crossVectors(nr, t);
+    const len = L * R.rnd(0.85, 1.15), th = Math.max(0.01, len * 0.05), lf = grp(E3, p.x, p.y, p.z);
+    lf.quaternion.setFromRotationMatrix(_m4.makeBasis(bn, nr, t));
+    lf.rotateX(-lift * R.rnd(0.4, 1.3));
+    const c0 = mix(LEAF[i % 4], CURED[i % 4], clamp(M.cure + (R.rnd(0, 1) < 0.2 ? R.rnd(0.3, 0.6) : R.rnd(-0.15, 0.1)), 0, 1));
+    mk(lf, 'ico', c0, len * wide, th, len, 0, 0, 0);
+    mk(lf, 'box', mix(c0, VEIN, 0.6), len * 0.05, th * 1.25, len * 0.78, 0, th * 0.1, 0);
+  }
+}
+/** sinew gone to stalk: n ribbed stalks from a to b round the line between them, r out from it, w thick, twisting a
+ *  little and bulging out by `bulge` at the middle, as a muscle does */
+function bundle(g, a, b, n, r, w, bulge, cols, R) {
+  const dir = b.clone().sub(a).normalize(), u = (Math.abs(dir.y) < 0.9 ? V3(0, 1, 0) : V3(1, 0, 0)).cross(dir).normalize(), v = dir.clone().cross(u);
+  for (let k = 0; k < n; k++) {
+    const a0 = (k / n) * TAU + R.rnd(-0.3, 0.3), tw = R.rnd(0.3, 0.8), q = R.rnd(0.85, 1.15);
+    const at = (t, s) => { const an = a0 + tw * t; return a.clone().lerp(b, t).addScaledVector(u, Math.cos(an) * r * s).addScaledVector(v, Math.sin(an) * r * s); };
+    along(g, [at(0, 0.8), at(0.5, 1 + bulge * q), at(1, 0.7)], FINE ? 4 : 3, w * q, w * 0.75 * q, cols);
+  }
+}
+function buildGrown(M, d) {
+  const B = d.body, w0 = B.swell || 0, R = seeded(d.seed * 7919 + 53), Rw = seeded(d.seed * 7919 + 59), dens = d.skin.over ?? 0.7;
+  const tw = B.torsoW * (1 + 0.5 * w0), td = B.torsoD * (1 + 0.6 * w0), tl = B.torsoL, th = B.thigh, sh = B.shin, ua = B.uArm;
+  const at = B.armT * (1 + 0.6 * w0), lt = B.legT * (1 + 0.5 * w0), hipw = B.hipW, hipH = th + sh + 0.06;
+  const flesh = skinOf({ ...d.skin, green: 0 }), gm = 0.4 + 0.5 * (d.skin.green ?? 0.6);
+  /* its tissue: flesh and plant about evenly, mass by mass a little more one or the other */
+  const tissue = () => mix(flesh, R.pick(PITH), clamp(gm + R.rnd(-0.22, 0.15), 0, 1));
+  const sinew = SINEW.map((c, i) => mix(c, mix(flesh, PITH[i], gm), 0.5));
+  M.hipH = hipH; M.L = th + sh; M.grown = true;
+  M.root.scale.setScalar(B.scale);
+  const P = (M.P = grp(M.root, 0, hipH, 0)), T = (M.T = grp(P));
+  const part = (name, g, c, s) => { M.parts[name] = { g, c, s }; PART = name; };
+  /** a mass of it, and the leaf round it (`leaves`: what wrap() takes, n scaled by how far it is grown over) */
+  const leafOn = [];
+  const mass = (g, sx, sy, sz, x, y, z, rot, leaves) => {
+    const m = mk(g, 'ico', tissue(), sx, sy, sz, x, y, z);
+    if (rot) m.rotation.set(...rot);
+    if (leaves) leafOn.push([g, sx, sy, sz, x, y, z, rot, leaves]);
+    return m;
+  };
+  const L0 = 0.24 + 0.08 * w0; // a leaf's length on it, before it is scaled up
+
+  /* the trunk: a barrel of a chest on a narrower waist, and over the back a hump that rises past the shoulders */
+  part('torso', T, [0, tl / 2, 0], [tw, tl, td]);
+  mass(T, tw * 0.82, tl * 0.55, td * 0.85, 0, tl * 0.2, 0.01, null, { n: 10, L: L0 * 0.9, lat0: -0.8, lat1: 0.9 });
+  mass(T, tw * 1.08, tl * 0.95, td * 1.05, 0, tl * 0.58, 0, null, { n: 22, L: L0 });
+  mass(T, tw * 1.28, tl * 0.72, td * 1.02, 0, tl * 0.98, -td * 0.22, [0.25, 0, 0], { n: 22, L: L0 * 1.1, lat0: -0.6, lat1: 1.45 });
+  for (const s of [-1, 1]) mass(T, tw * 0.5, tl * 0.36, td * 0.42, s * tw * 0.22, tl * 0.7, td * 0.32, [0.15, s * 0.3, s * 0.15], { n: 5, L: L0 * 0.75, lat0: -0.6, lat1: 0.8, lon0: -1.2, lon1: 1.6 });
+  bundle(T, V3(0, tl * 0.05, td * 0.36), V3(0, tl * 0.62, td * 0.42), 4, tw * 0.1, 0.045, 0.6, sinew, R); // down its front, as the belly's muscle was
+
+  /* the hump's crown in flower, the flowers come up out of the mass itself in heads, no stalk to them: rustica's pale
+     trumpets, and capsules going brown */
+  for (let k = 0; k < 4; k++) {
+    const a = -0.75 + k * 0.5 + R.rnd(-0.12, 0.12), top = V3(Math.sin(a) * tw * 0.36, tl * 1.2 + R.rnd(-0.02, 0.02), -td * 0.3 + Math.cos(a) * td * 0.1);
+    for (let f = 0; f < 8; f++) {
+      const fg = grp(T, top.x + R.rnd(-0.03, 0.03), top.y, top.z + R.rnd(-0.03, 0.03));
+      fg.rotation.set(-PI / 2 + R.rnd(-1.1, 1.1), R.rnd(-PI, PI), 0);
+      if (f > 5 && k % 2) { mk(fg, 'ico', 0x7a6230, 0.045, 0.045, 0.06, 0, 0, 0.04); continue; }
+      mk(fg, 'cyl', TUBE, 0.02, 0.07, 0.02, 0, 0, 0.03).rotation.x = PI / 2;
+      mk(fg, 'ico', R.pick(BLOOMS.pale), 0.06, 0.06, 0.018, 0, 0, 0.07);
+    }
+  }
+
+  /* the head, small, sunk forward and low in front of the hump; the leaf closed over it as a hood, the face back in the
+     dark of it */
+  const hs = B.headSize, hw = 0.24 * hs, hh = 0.28 * hs, hd = 0.25 * hs, yb = tl * 0.86;
+  const H = (M.H = grp(T, 0, yb, td * 0.36));
+  M.height = (hipH + tl * 1.32 * Math.cos(B.hunch * 0.6)) * B.scale;
+  part('neck', T, [0, yb - hh * 0.4, td * 0.3], [hw * 0.9, hh * 0.3, hd * 0.8]);
+  part('head', H, [0, 0, 0], [hw, hh, hd]);
+  mk(H, 'ico', tissue(), hw, hh, hd);
+  mk(H, 'ico', 0x2a2c1a, hw * 0.62, hh * 0.6, hd * 0.24, 0, -hh * 0.04, hd * 0.39);
+  mk(H, 'box', 0x2a2012, hw * 0.26, hh * (0.05 + 0.1 * B.jaw), hd * 0.1, 0, -hh * (0.22 + 0.05 * B.jaw), hd * 0.44);
+  leafOn.push([H, hw * 1.04, hh * 1.04, hd * 1.04, 0, 0, 0, null, { n: 12, L: L0 * 0.8, lat0: -0.4, lat1: 1.45, lon0: 0.75, lon1: TAU - 0.75 }]);
+  leafOn.push([H, hw * 1.08, hh * 1.04, hd * 1.08, 0, hh * 0.02, 0, null, { n: 4, L: L0 * 0.7, lat0: 0.55, lat1: 1.0, lon0: -0.8, lon1: 0.8, lift: 0.35 }]);
+
+  /* the arms: a shoulder like a boulder, the upper arm thick, the forearm thicker, the hand a heap of stalk */
+  for (const [i, s] of [[0, 1], [1, -1]]) {
+    const nm = i ? 'R' : 'L', k = i ? B.armR : B.armL, fa = B.fArm * ((i ? B.reachR : B.reachL) || 1);
+    const A = grp(T, s * (tw * 0.5 + at * 0.35 + B.shoulder), tl * 0.86, td * 0.02);
+    A.scale.setScalar(k);
+    M.A.push(A);
+    part('uarm' + nm, A, [0, -ua / 2, 0], [at * 2, ua, at * 2]);
+    mass(A, at * 2.7, at * 2.4, at * 2.6, s * at * 0.15, -at * 0.1, 0, [0, 0, s * 0.3], { n: 9, L: L0 * 0.8, lat0: -0.5, lat1: 1.3 });
+    mass(A, at * 1.9, ua * 1.0, at * 2.0, 0, -ua * 0.52, 0, null, { n: 7, L: L0 * 0.7, lat0: -0.9, lat1: 0.9 });
+    bundle(A, V3(0, -at * 0.4, 0), V3(0, -ua, 0), 4, at * 0.62, at * 0.5, 0.25, sinew, R);
+    const Eg = grp(A, 0, -ua, 0);
+    M.E.push(Eg);
+    part('farm' + nm, Eg, [0, -fa / 2, 0], [at * 2.3, fa, at * 2.3]);
+    mk(Eg, 'ico', NODE, at * 1.5, at * 1.3, at * 1.5);
+    mass(Eg, at * 2.4, fa * 0.72, at * 2.3, 0, -fa * 0.4, at * 0.05, null, { n: 8, L: L0 * 0.75, lat0: -0.8, lat1: 1.0 });
+    bundle(Eg, V3(0, 0, 0), V3(0, -fa, 0), FINE ? 7 : 5, at * 0.8, at * 0.55, 0.45, sinew, R);
+    mk(Eg, 'ico', tissue(), at * 1.7, at * 1.2, at * 1.6, 0, -fa * 0.93, 0);
+    /* the hand: a heel of it, and four fingers of ribbed stalk, knuckled at their nodes, curled under; a thumb */
+    const hl = at * 1.1, Hg = grp(Eg, 0, -fa, 0);
+    part('hand' + nm, Hg, [0, -hl / 2, 0], [at * 2.2, hl, at * 1.7]);
+    mk(Hg, 'ico', tissue(), at * 2.1, hl * 1.1, at * 1.6, 0, -hl * 0.45, 0);
+    for (let f = 0; f < 5; f++) {
+      const thumb = f === 4, fg = grp(Hg, thumb ? -s * at * 0.95 : (f - 1.5) * at * 0.5, thumb ? -hl * 0.3 : -hl * 0.85, thumb ? at * 0.45 : at * 0.25);
+      fg.rotation.set(thumb ? -0.6 : -0.25, thumb ? -s * 0.6 : 0, thumb ? -s * 0.5 : (f - 1.5) * 0.12);
+      let g = fg;
+      for (let j = 0; j < (thumb ? 2 : 3); j++) {
+        const len = at * (thumb ? 0.7 : 0.75) * (1 - j * 0.15), w = at * 0.5 * (1 - j * 0.18);
+        mk(g, 'ico', NODE, w * 1.2, w * 1.1, w * 1.2);
+        mk(g, 'cyl', R.pick(sinew), w, len, w, 0, -len / 2, 0);
+        g = grp(g, 0, -len, 0);
+        g.rotation.x = 0.55;
+      }
+    }
+  }
+
+  /* the legs: short, thick, the thigh a mass and the shin a bundle with a calf of tissue behind it; the feet broad, and
+     roots out of their toes, feeling at the floor */
+  for (const [i, s] of [[0, 1], [1, -1]]) {
+    const nm = i ? 'R' : 'L';
+    const Lg = grp(P, (s * hipw) / 2, 0, 0);
+    Lg.rotation.z = s * B.splay;
+    M.Lg.push(Lg);
+    part('thigh' + nm, Lg, [0, -th / 2, 0], [lt * 1.8, th, lt * 1.9]);
+    mass(Lg, lt * 1.85, th * 1.2, lt * 1.95, 0, -th * 0.45, 0, null, { n: 8, L: L0 * 0.8, lat0: -0.8, lat1: 1.0 });
+    bundle(Lg, V3(0, -th * 0.2, 0), V3(0, -th, 0), 4, lt * 0.55, lt * 0.38, 0.25, sinew, R);
+    const Kg = grp(Lg, 0, -th, 0);
+    M.K.push(Kg);
+    part('shin' + nm, Kg, [0, -sh / 2, 0], [lt * 1.4, sh, lt * 1.5]);
+    mk(Kg, 'ico', NODE, lt * 1.15, lt * 1.0, lt * 1.15);
+    mass(Kg, lt * 1.45, sh * 0.8, lt * 1.45, 0, -sh * 0.4, -lt * 0.12, null, { n: 6, L: L0 * 0.7, lat0: -0.7, lat1: 0.9 });
+    mk(Kg, 'ico', tissue(), lt * 1.25, lt * 0.9, lt * 1.25, 0, -sh * 0.95, 0.01);
+    bundle(Kg, V3(0, 0, lt * 0.1), V3(0, -sh, 0), 5, lt * 0.42, lt * 0.33, 0.3, sinew, R);
+    const An = grp(Kg, 0, -sh, 0);
+    M.An.push(An);
+    part('foot' + nm, An, [0, -0.04, 0.08], [lt * 1.7, 0.1, 0.42]);
+    mk(An, 'ico', tissue(), lt * 1.7, 0.14, 0.42, 0, -0.03, 0.07);
+    for (let r = 0; r < 4; r++) {
+      const a = -0.6 + r * 0.4 + Rw.rnd(-0.1, 0.1), o = V3(Math.sin(a) * lt * 0.55, -0.05, 0.2 + Math.cos(a) * 0.04);
+      along(An, [o, o.clone().add(V3(Math.sin(a) * 0.06, -0.035, 0.07)), o.clone().add(V3(Math.sin(a) * 0.16, -0.075, 0.12 + Rw.rnd(0, 0.06)))], 2, 0.03, 0.012, ROOTC);
+    }
+  }
+  /* the hips, one mass with the belly */
+  part('pelvis', P, [0, 0, 0], [tw * 0.95, 0.3, td * 0.95]);
+  mass(P, tw * 0.98, 0.36, td * 0.95, 0, 0.02, 0, null, { n: 7, L: L0 * 0.8, lat0: -0.7, lat1: 0.5 });
+
+  /* the leaf, wrapped: one draw a part, not picked, so a click finds the body under it */
+  const byG = new Map();
+  for (const w of leafOn) { if (!byG.has(w[0])) byG.set(w[0], []); byG.get(w[0]).push(w); }
+  for (const [g, ws] of byG) merged(g, G => { for (const [, sx, sy, sz, x, y, z, rot, o] of ws) wrap(G, M, Rw, sx, sy, sz, x, y, z, rot, { ...o, n: Math.round(o.n * (0.25 + 0.75 * dens)) }); });
+  M.clothAt = () => null;
+  for (const it of d.items) buildItem(M, it);
+  SINK = null; PART = null;
+  return M;
+}
+
 function buildModel(d) {
   const B = d.body, D = d.dress;
   const Rh = seeded(d.seed * 7919 + 17), Rt = seeded(d.seed * 7919 + 29), Rs = seeded(d.seed * 7919 + 41);
@@ -977,6 +1218,7 @@ function buildModel(d) {
   const M = { d, root: new THREE.Group(), parts: {}, pick: [], itemMeshes: [], itemGroups: new Map(), A: [], E: [], Lg: [], K: [], An: [], cure: d.skin.cure, lidC: shade(skin, 0.88), anim: [] };
   SINK = M.pick; ITEM = null;
   if (B.plan === 'bloat') return buildBloat(M, d, skin, skinDk);
+  if (B.plan === 'grown') return buildGrown(M, d);
   /* the bone mother's line: a limb, or the trunk, gone raw, or to bone. Raw is the husk's arm (castView.ts, husk): the
      upper arm raw, the forearm drawn out and ending in a point of bone, no hand. Bone is the skeleton winning: the limb
      bone, raw at the joints. Ribs: the trunk raw, its ribs and its spine out through it */
@@ -1134,6 +1376,13 @@ function buildModel(d) {
     if (lim === 'skin') { mk(A, 'ico', skin, at * 1.3, at * 1.2, at * 1.25, 0, -0.01, 0); mk(A, 'box', skin, at, ua, at * 1.09, 0, -ua / 2, 0); }
     else if (lim === 'raw') { mk(A, 'ico', RAW, at * 1.5, at * 1.4, at * 1.4, 0, -0.01, 0); mk(A, 'box', RAW, at * 1.25, ua, at * 1.3, 0, -ua / 2, 0); }
     else if (lim === 'bark' || lim === 'root') limbAs(A, lim, at * 1.1, ua, Rt);
+    else if (lim === 'flower') {
+      /* flesh at the shoulder, torn open a third of the way down, and the stalk out of it */
+      mk(A, 'ico', skin, at * 1.3, at * 1.2, at * 1.25, 0, -0.01, 0);
+      mk(A, 'box', skin, at, ua * 0.36, at * 1.09, 0, -ua * 0.18, 0);
+      mk(A, 'ico', RAW, at * 1.15, at * 0.5, at * 1.15, 0, -ua * 0.36, 0);
+      limbAs(grp(A, 0, -ua * 0.33, 0), 'flower', at * 1.0, ua * 0.67, Rt);
+    }
     else { mk(A, 'ico', RAW, at * 1.1, at * 1.1, at * 1.1, 0, -0.01, 0); mk(A, 'box', BONE2, at * 0.5, ua, at * 0.5, 0, -ua / 2, 0); }
     if (sl !== 'none') {
       const f = sl === 'short' ? 0.72 : sl === 'torn' ? 0.42 : 1;
@@ -1146,7 +1395,7 @@ function buildModel(d) {
     part('farm' + nm, Eg, [0, -fa / 2, 0], [at * 0.76, fa, at * 0.76]);
     if (lim === 'skin') { mk(Eg, 'ico', skin, at * 0.86, at * 0.8, at * 0.86); mk(Eg, 'box', skin, at * 0.76, fa, at * 0.76, 0, -fa / 2, 0); }
     else if (lim === 'raw') { mk(Eg, 'ico', RAW, at, at, at); mk(Eg, 'box', FLESHC, at * 0.9, fa, at * 0.9, 0, -fa / 2, 0); }
-    else if (lim === 'bark' || lim === 'root') limbAs(Eg, lim, at * (lim === 'bark' ? 0.85 : 0.9), fa, Rt);
+    else if (lim === 'bark' || lim === 'root' || lim === 'flower') limbAs(Eg, lim, at * (lim === 'bark' ? 0.85 : 0.9), fa, Rt);
     else { mk(Eg, 'ico', RAW, at * 0.8, at * 0.8, at * 0.8); mk(Eg, 'box', BONE, at * 0.42, fa, at * 0.42, 0, -fa / 2, 0); }
     if (sl === 'long' || sl === 'rolled') mk(Eg, 'ico', sc, at * 0.86 + E, at * 0.8 + E, at * 0.86 + E);
     if (sl === 'long') cloth(Eg, sc, at * 0.8, fa * 0.94, at * 0.8, 0, -fa * 0.47, 0);
@@ -1163,6 +1412,15 @@ function buildModel(d) {
         tip.rotation.x = -0.95;
         mk(tip, 'box', BARK[2], at * 0.22, 0.1, at * 0.26, 0, -0.05, 0);
       }
+      continue;
+    }
+    if (lim === 'flower') {
+      /* where the hand was, the flower */
+      /* turned forward off the end of the stalk, a horn, its throat to whatever it is brought to */
+      const F = grp(Hg, 0, -at * 0.3, 0);
+      mk(Hg, 'cyl', 0x8aa060, at * 0.55, at * 0.6, at * 0.55, 0, -at * 0.15, 0);
+      F.rotation.x = 0.2;
+      trumpet(M, F, at * 4.2 * (B.flowerSize || 1), Rt);
       continue;
     }
     if (lim === 'root') {
@@ -1305,6 +1563,7 @@ function buildModel(d) {
   };
 
   if (B.rider && B.rider !== 'none') rider(M, d, { T, H, tw, tl, td, yb, nl, hw, hh, hd }, Rh);
+  if (B.tail === 'flower') flowerTail(M, d, { T, tl, td }, Rh);
   for (const it of d.items) buildItem(M, it);
   if (d.skin.over > 0.01) overgrow(M, d);
   SINK = null; PART = null;
@@ -1401,6 +1660,10 @@ function posePerson(M, A, mode, dt) {
   const d = M.d, B = d.body, G = d.gait, L = M.L, rooted = B.legs === 'rooted';
   A.t = (A.t ?? 0) + dt; A.p = A.p ?? 0;
   const t = A.t, walk = mode !== 'stand' && !rooted, hunt = mode === 'hunt';
+  /* grown, it stands like a bush until it does not: still, it settles, slowly, knees bent, the hump up and the knuckles
+     down, and slowly rises to go */
+  A.cr = (A.cr ?? 0) + ((M.grown && mode === 'stand' ? 1 : 0) - (A.cr ?? 0)) * damp(1.1, dt);
+  const cr = A.cr, cA = 0.75 * cr, cK = 1.35 * cr, drop = B.thigh + B.shin - (B.thigh * Math.cos(cA) + B.shin * Math.cos(cK - cA));
   let { S, f } = paceOf(d, mode);
   S = Math.min(S / B.scale, L * 3); // in the model's own measure; past this the leg cannot reach
   if (walk) A.p = (A.p + dt * f) % 1;
@@ -1422,11 +1685,12 @@ function posePerson(M, A, mode, dt) {
       a = Math.asin(clamp(x / L, -0.95, 0.95)) + kn * 0.45;
       toe = Math.sin(PI * u) * 0.25 * (1 - G.shamble);
     } else a = 0.02 * Math.sin(t * 0.5 + k * PI);
+    a += cA; kn += cK;
     M.Lg[k].rotation.x = -a;
     M.K[k].rotation.x = kn;
     M.An[k].rotation.x = a - kn + toe;
   }
-  M.P.position.set(walk ? 0 : Math.sin(t * 0.5) * 0.015, M.hipH + bob + dip, 0);
+  M.P.position.set(walk ? 0 : Math.sin(t * 0.5) * 0.015, M.hipH + bob + dip - drop, 0);
   M.P.rotation.set(0, walk ? 0.05 * Math.cos(TAU * p) * G.armSwing : 0, roll + (walk ? -Math.sin(TAU * p) * G.sway * 0.5 : Math.sin(t * 0.5) * 0.012));
   /* the arms swing against the legs; hunting, held out at you (castView, husk) */
   for (let k = 0; k < 2; k++) {
@@ -1441,10 +1705,11 @@ function posePerson(M, A, mode, dt) {
     if (hunt) ax = (k ? -1.3 : -1.1) + Math.sin(TAU * p * 2 + k * 2) * 0.12;
     else if (walk) ax = -G.hang + G.armSwing * fwd;
     else ax = -G.hang + Math.sin(t * 0.9 + k) * 0.03;
-    M.A[k].rotation.set(ax, 0, (k ? -1 : 1) * 0.04);
+    ax -= cr * 0.25;
+    M.A[k].rotation.set(ax, 0, (k ? -1 : 1) * (B.armOut ?? 0.04));
     M.E[k].rotation.x = -(G.elbow + (walk && !hunt ? 0.15 * Math.max(0, -fwd) * G.armSwing : 0));
   }
-  M.T.rotation.set(B.hunch + (hunt ? 0.18 : 0) + (walk ? 0.03 : 0), walk ? -0.08 * Math.cos(TAU * p) * G.armSwing : 0, walk ? Math.sin(TAU * p) * G.sway : Math.sin(t * 0.6) * G.sway * 0.6);
+  M.T.rotation.set(B.hunch + (hunt ? 0.18 : 0) + (walk ? 0.03 : 0) + cr * 0.35, walk ? -0.08 * Math.cos(TAU * p) * G.armSwing : 0, walk ? Math.sin(TAU * p) * G.sway : Math.sin(t * 0.6) * G.sway * 0.6);
   /* the head lolled to one side, hung, and moving slowly with nobody much behind it; none of Pia's line twitches */
   M.H.rotation.set(B.droop - B.hunch * 0.5 + (hunt ? -0.25 : 0) + Math.sin(t * 0.45) * G.loll * 0.4,
     Math.sin(t * 0.5) * 0.2, B.tilt + Math.sin(t * 0.7) * G.loll);
@@ -1461,7 +1726,7 @@ function base() {
     body: { scale: 1, torsoW: 0.42, torsoD: 0.24, torsoL: 0.6, shoulder: 0, hipW: 0.22, gut: 0, hunch: 0.06,
       headSize: 1, headW: 1, headH: 1, neckL: 0.14, tilt: 0.25, droop: 0, jaw: 0.25,
       uArm: 0.36, fArm: 0.34, armT: 0.11, armL: 1, armR: 1, thigh: 0.45, shin: 0.45, legT: 0.16, splay: 0.02, swell: 0, head: 'face',
-      plan: 'person', rest: 'stand', limbL: 'skin', limbR: 'skin', legs: 'skin', trunk: 'skin', reachL: 1, reachR: 1, rider: 'none', riderSide: 'R' },
+      plan: 'person', rest: 'stand', limbL: 'skin', limbR: 'skin', legs: 'skin', trunk: 'skin', reachL: 1, reachR: 1, rider: 'none', riderSide: 'R', armOut: 0.04, tail: 'none', flowerSize: 1 },
     gait: { stride: 1.1, spm: 96, knee: 0.45, armSwing: 0.3, elbow: 0.2, hang: 0.05, sway: 0.04, shamble: 0.2, limp: 0, loll: 0.1 },
     dress: { shirt: 'uniform', shirtCol: 'navy', vestCol: 'white', sleeveL: 'short', sleeveR: 'short', legL: 'full', legR: 'full', bootL: 'boot', bootR: 'boot',
       belt: 'on', cap: 'none', hair: 'short', badge: false, epaulettes: false, radio: false, lanyard: false, torch: false, stain: 0, tear: true, briefs: true,
@@ -1718,12 +1983,12 @@ const LINES = [
   }],
   ['bush', 'The bush', () => {
     const d = base();
-    Object.assign(d, { name: 'The bush', seed: 39, notes: 'A young god (world.md §10): the doctor who leaned in too close and breathed a spore off Pia\'s shoulder. Gigantic now, a person\'s shape swollen about half as far as a bloat or a bone child would go, every bit of it under rows on rows of tobacco shelves, green through; nothing left on it that was ever clothes. No features, the face tucked away somewhere behind the leaf. Stands like a bush until it does not. Its children have the plant growing through them, not over them: Security\'s changed.' });
-    Object.assign(d.body, { scale: 2, torsoW: 0.56, torsoD: 0.36, torsoL: 0.7, swell: 0.4, gut: 0.3, hipW: 0.28, shoulder: 0.03, uArm: 0.46, fArm: 0.46, armT: 0.12, thigh: 0.5, shin: 0.52, legT: 0.19, headSize: 1.15, neckL: 0.12, hunch: 0.2, tilt: 0.1, droop: 0.2, jaw: 0.12 });
-    Object.assign(d.gait, { stride: 1.1, spm: 40, knee: 0.15, armSwing: 0.05, elbow: 0.3, hang: 0.15, sway: 0.08, shamble: 0.7, loll: 0.06 });
+    Object.assign(d, { name: 'The bush', seed: 39, notes: 'A young god (world.md §10): the doctor who leaned in too close and breathed a spore off Pia\'s shoulder. Flesh and plant about evenly, and blended, not one on the other: a person\'s frame grown huge where it works (shoulders like boulders, the forearms thicker than the upper arms, a hump of back the small head has sunk into, short thick legs), and its flesh gone over to plant, masses of green tissue where the muscle was and ribbed stalk where the sinew was, the leaf wrapped flat round all of it like a cigar\'s wrapper. In flower on the hump. Nothing on it was ever clothes; the face is back in the dark of a hood of leaf. Still, it settles, knuckles down, and is a bush; it rises slowly to go. One arm the heavier. Its children have the plant growing through them, not over them: Security\'s changed.' });
+    Object.assign(d.body, { plan: 'grown', scale: 2.05, torsoW: 0.6, torsoD: 0.42, torsoL: 0.6, shoulder: 0.02, hipW: 0.3, swell: 0.3, uArm: 0.44, fArm: 0.5, armT: 0.15, armR: 1.12, armOut: 0.2, thigh: 0.34, shin: 0.36, legT: 0.21, splay: 0.08, headSize: 0.8, hunch: 0.5, tilt: 0.12, droop: 0.1, jaw: 0.3 });
+    Object.assign(d.gait, { stride: 1.0, spm: 50, knee: 0.3, armSwing: 0.22, elbow: 0.3, hang: -0.05, sway: 0.09, shamble: 0.4, loll: 0.05 });
     Object.assign(d.dress, { shirt: 'none', legL: 'bare', legR: 'bare', bootL: 'bare', bootR: 'bare', hair: 'none', briefs: false });
-    Object.assign(d.skin, { tone: 1, sallow: 0.7, cure: 0.15, green: 1, over: 1 });
-    d.items = [];
+    Object.assign(d.skin, { tone: 1, sallow: 0.6, cure: 0.2, green: 0.4, over: 0.75 });
+    d.items = withIds(EYES().map(e => ({ ...e, size: 0.03, p: [e.p[0] * 0.7, 0.02, 0.47] })));
     return d;
   }],
 ];
@@ -1766,6 +2031,21 @@ const GREEN = [
       it('bloom', 'uarmL', [0.5, 0, 0.2], [1, 0, 0.4], 0.16, { count: 5 }),
       it('bloom', 'farmL', [0.4, -0.15, 0.4], [0.6, 0, 1], 0.14, { count: 4, col: 'gold' }),
       it('pustule', 'farmR', [-0.5, 0.1, 0.2], [-1, 0, 0.3], 0.035)]);
+    return d;
+  }],
+  ['flowertail', 'Flower, tailed', () => {
+    const d = base();
+    Object.assign(d, { name: 'Flower, tailed', seed: 57, notes: 'The flower child\'s line, further in (world.md §10): what flowered all over the young one has gathered into one. A stalk comes out of the base of its spine and arches up over it like a scorpion\'s tail, and hangs one of rustica\'s flowers grown huge in front of its face: the lobes open and close, slowly, round a throat gone to flesh, wet, the stamens standing out of it, a drop of milk at the rim. Still nearly a person under it, smaller flowers off roots at its shoulders and its neck. The euphoria further in: it sways, its face up, and brings the flower to whatever it likes. A graft is how it says so. Horticulture\'s scrubs.' });
+    Object.assign(d.body, { torsoW: 0.4, torsoD: 0.24, neckL: 0.16, hunch: 0.1, tilt: -0.15, droop: -0.12, jaw: 0.4, tail: 'flower', flowerSize: 1.3 });
+    Object.assign(d.gait, { stride: 0.95, spm: 68, knee: 0.4, armSwing: 0.2, elbow: 0.2, hang: 0.05, sway: 0.12, shamble: 0.25, loll: 0.22 });
+    Object.assign(d.dress, { shirt: 'tornR', shirtCol: 'scrubs', trousCol: 'scrubs', legL: 'rolled', legR: 'torn', bootL: 'bare', bootR: 'bare', belt: 'off', hair: 'thin' });
+    Object.assign(d.skin, { tone: 3, sallow: 0.45, green: 0.12 });
+    d.items = withIds([...EYES(),
+      it('bloom', 'torso', [0.42, 0.47, -0.1], [0.6, 0.8, -0.2], 0.18, { count: 6 }),
+      it('bloom', 'torso', [-0.4, 0.46, -0.05], [-0.6, 0.8, -0.1], 0.16, { count: 5, col: 'cream' }),
+      it('bloom', 'neck', [-0.5, 0.1, 0.1], [-1, 0.2, 0.2], 0.12, { count: 3 }),
+      it('bloom', 'uarmL', [0.5, 0.1, 0], [1, 0, 0.2], 0.13, { count: 4, col: 'gold' }),
+      it('pustule', 'farmL', [0.5, -0.1, 0.2], [1, 0, 0.3], 0.035)]);
     return d;
   }],
   ['rootyoung', 'Root, young', () => {
@@ -1821,6 +2101,28 @@ const GREEN = [
       it('producer', 'torso', [0.35, 0.35, -0.5], [0.35, 0.6, -1], 0.34, { bend: 0.35 }),
       it('producer', 'farmR', [-0.5, 0, 0.2], [-1, 0.1, 0.3], 0.18, { bend: 0.5 }),
       it('producer', 'thighL', [0.2, 0.1, 0.5], [0.3, 0.3, 1], 0.22, { bend: 0.6 })]);
+    return d;
+  }],
+  ['flowerchild', 'The flower child', () => {
+    const d = base();
+    Object.assign(d, { name: 'The flower child', seed: 58, notes: 'A young god (world.md §10): grafted from Pia later, when more of her was plant, and it came out the other way from the bush: plainly human to look at, flesh more than plant, and its plant is flower. Tall now and lanky, its face turned up to the light. Its right arm goes to stalk below the shoulder, long enough to drag, and where the hand was there is one flower big enough to take a head: the lobes breathing open and shut round a raw throat, milk at the rim. Flowers off roots all over the rest of it, the most on its back. Euphoria more than fear: it does not hunt you; it comes to you, and offers you the flower.' });
+    Object.assign(d.body, { scale: 1.7, torsoW: 0.38, torsoD: 0.22, torsoL: 0.66, uArm: 0.42, fArm: 0.42, armT: 0.1, limbR: 'flower', reachR: 1.3, armR: 1.15, thigh: 0.52, shin: 0.54, legT: 0.14, neckL: 0.22, headW: 0.95, headH: 1.08, hunch: 0.05, tilt: -0.2, droop: -0.25, jaw: 0.35, flowerSize: 2.1 });
+    Object.assign(d.gait, { stride: 1.3, spm: 54, knee: 0.4, armSwing: 0.1, elbow: 0.15, hang: 0.1, sway: 0.12, shamble: 0.2, loll: 0.25 });
+    Object.assign(d.dress, { shirt: 'none', legL: 'bare', legR: 'bare', bootL: 'bare', bootR: 'bare', belt: 'off', hair: 'thin' });
+    Object.assign(d.skin, { tone: 2, sallow: 0.35, green: 0.15 });
+    d.items = withIds([...EYES(),
+      it('bloom', 'head', [0.12, 0.48, -0.05], [0.25, 1, -0.1], 0.18, { count: 6 }),
+      it('bloom', 'head', [-0.3, 0.38, -0.2], [-0.5, 1, -0.4], 0.15, { count: 5, col: 'cream' }),
+      it('bloom', 'neck', [0.5, 0, -0.1], [1, 0.1, -0.2], 0.13, { count: 4 }),
+      it('bloom', 'torso', [0.42, 0.47, 0.05], [0.6, 0.8, 0.2], 0.18, { count: 6 }),
+      it('bloom', 'torso', [0.2, 0.3, -0.5], [0.2, 0.1, -1], 0.2, { count: 7, col: 'cream' }),
+      it('bloom', 'torso', [-0.25, 0.1, -0.5], [-0.2, 0, -1], 0.18, { count: 6 }),
+      it('bloom', 'torso', [0.1, -0.2, -0.5], [0.1, -0.1, -1], 0.16, { count: 5, col: 'gold' }),
+      it('bloom', 'torso', [-0.15, 0.35, 0.5], [-0.1, 0.1, 1], 0.14, { count: 4 }),
+      it('bloom', 'uarmL', [0.5, 0, 0.1], [1, 0, 0.2], 0.15, { count: 5 }),
+      it('bloom', 'farmL', [0.4, -0.2, 0.3], [0.6, 0, 1], 0.13, { count: 4, col: 'cream' }),
+      it('bloom', 'thighL', [0.5, 0.1, 0.1], [1, 0, 0.2], 0.15, { count: 5 }),
+      it('bloom', 'thighR', [-0.4, -0.1, 0.4], [-0.6, 0, 0.8], 0.13, { count: 4, col: 'gold' })]);
     return d;
   }],
 ];
@@ -2001,11 +2303,11 @@ const fineOnly = w => { w.classList.add('fineonly'); return w; };
 /* Body */
 {
   const P = $('p-body'), sl = (k, ...a) => slider('body.' + k, ...a);
-  const plan = seg('body.plan', 'Built as', [['person', 'A person'], ['bloat', 'A bloat, as the game\'s']], () => { doRebuild(); frame(); });
+  const plan = seg('body.plan', 'Built as', [['person', 'A person'], ['bloat', 'A bloat, as the game\'s'], ['grown', 'Grown: plant for flesh']], () => { doRebuild(); frame(); });
   const rest = seg('body.rest', 'A bloat', [['stand', 'Stood'], ['sit', 'Sat'], ['lie', 'Lying on its back']], () => { doRebuild(); frame(); });
   const F = (k, label, list) => seg('body.' + k, label, list);
-  const FB = [['skin', 'Skin'], ['raw', 'Raw'], ['bone', 'Bone'], ['bark', 'Bark'], ['root', 'Root']];
-  P.append(note('Measures are the model’s own, before <i>Overall size</i> scales the whole of it. Left and right are its own: its left is on your right as it faces you. A bloat takes its size, its head and its skin from here, and nothing else.'),
+  const FB = [['skin', 'Skin'], ['raw', 'Raw'], ['bone', 'Bone'], ['bark', 'Bark'], ['root', 'Root'], ['flower', 'A flower on a stalk']];
+  P.append(note('Measures are the model’s own, before <i>Overall size</i> scales the whole of it. Left and right are its own: its left is on your right as it faces you. A bloat takes its size, its head and its skin from here, and nothing else. <i>Grown</i> takes the measures, and makes its flesh of plant: <i>Swollen</i> is its bulk, and on the Growth tab the plant through its skin is how green its tissue is and <i>Overgrown</i> how far the leaf wraps it.'),
     group('Plan'), plan, rest,
     group('Size'), sl('scale', 'Overall size', 0.4, 3, 0.01, 'x'),
     group('Flesh, bone and plant'), F('limbL', 'Its left arm', FB), sl('reachL', 'Its left forearm, drawn out', 1, 2.5, 0.01, 'x'), F('limbR', 'Its right arm', FB), sl('reachR', 'Its right forearm, drawn out', 1, 2.5, 0.01, 'x'),
@@ -2014,12 +2316,14 @@ const fineOnly = w => { w.classList.add('fineonly'); return w; };
     group('What rides it'), note('Out of the chest, up over a shoulder and round the head, the way what came out of it keeps hold (the green lines).'),
     F('rider', 'Rider', [['none', 'Nothing'], ['stalk', 'A stalk, its leaf over the face'], ['root', 'A root, gripping the skull'], ['spore', 'One of Tom\'s producers']]),
     F('riderSide', 'Over', [['R', 'Its right shoulder'], ['L', 'Its left']]),
+    F('tail', 'Out of its back', [['none', 'Nothing'], ['flower', 'A flower on a stalk, over its head']]),
+    sl('flowerSize', 'Its great flower (an arm\'s, or the tail\'s), size', 0.5, 3, 0.01, 'x'),
     group('Torso'), sl('torsoW', 'Width', 0.28, 0.9, 0.005, 'm'), sl('torsoD', 'Depth', 0.16, 0.5, 0.005, 'm'), sl('torsoL', 'Length', 0.4, 0.95, 0.005, 'm'),
     sl('shoulder', 'Shoulders set out', -0.05, 0.25, 0.005, 'm'), sl('hipW', 'Hips, joint to joint', 0.14, 0.6, 0.005, 'm'), sl('gut', 'Belly', 0, 1, 0.01, ''), sl('swell', 'Swollen all over (the bloat line)', 0, 1, 0.01, ''), sl('hunch', 'Hunch', 0, 0.9, 0.01, 'deg'),
     group('Head'), seg('body.head', 'Face', [['face', 'A face'], ['skull', 'Skull, fused and blind'], ['bark', 'Plated over with bark']]), sl('headSize', 'Size', 0.7, 1.6, 0.01, 'x'), sl('headW', 'Width', 0.7, 1.5, 0.01, 'x'), sl('headH', 'Length', 0.7, 1.6, 0.01, 'x'),
     sl('neckL', 'Neck', 0.04, 0.4, 0.005, 'm'), sl('tilt', 'Lolled to one side', -0.6, 0.6, 0.01, 'deg'), sl('droop', 'Hung forward', -0.3, 0.9, 0.01, 'deg'), sl('jaw', 'Jaw slack', 0, 1, 0.01, ''),
     group('Arms'), sl('uArm', 'Upper arm', 0.2, 0.8, 0.005, 'm'), sl('fArm', 'Forearm', 0.2, 0.8, 0.005, 'm'), sl('armT', 'Thickness', 0.06, 0.22, 0.002, 'm'),
-    sl('armL', 'Its left arm, scale', 0.6, 1.8, 0.01, 'x'), sl('armR', 'Its right arm, scale', 0.6, 1.8, 0.01, 'x'),
+    sl('armL', 'Its left arm, scale', 0.6, 1.8, 0.01, 'x'), sl('armR', 'Its right arm, scale', 0.6, 1.8, 0.01, 'x'), sl('armOut', 'Held out from its sides', -0.1, 0.6, 0.01, 'deg'),
     group('Legs'), sl('thigh', 'Thigh', 0.25, 0.85, 0.005, 'm'), sl('shin', 'Shin', 0.25, 0.85, 0.005, 'm'), sl('legT', 'Thickness', 0.09, 0.3, 0.002, 'm'), sl('splay', 'Splay', 0, 0.25, 0.005, 'deg'));
 }
 /* Gait */
@@ -2084,7 +2388,7 @@ const LEGS = [['full', 'Full'], ['rolled', 'Rolled'], ['torn', 'Torn at knee'], 
   armConfirm(clear, 'Click again to clear', () => { S.d.items = []; S.sel = null; renderSel(); rebuild(); commit(); });
   P.append(note('Pick a tool on the left of the figure, then click the body. Scroll before you click to size it; scroll over one already there to resize it; right-click one to take it off. The figure holds still while you aim.'),
     legend, group('Skin and leaf'), tones, slider('skin.sallow', 'Sallow', 0, 1, 0.01, ''), slider('skin.cure', 'Leaf, green to cured', 0, 1, 0.01, ''),
-    slider('skin.green', 'Plant through the skin', 0, 1, 0.01, ''), slider('skin.over', 'Overgrown (the bush)', 0, 1, 0.01, ''), seedRow,
+    slider('skin.green', 'Plant through the skin', 0, 1, 0.01, ''), slider('skin.over', 'Overgrown (the bush); grown, the leaf wrapped round it', 0, 1, 0.01, ''), seedRow,
     group('On it now'), list, clear);
 }
 
@@ -2616,7 +2920,7 @@ function toggleLineup() {
   }
   const others = store.list.filter(r => r.id !== S.libId && (S.lgroup === 'all' || groupOf(r) === S.lgroup)).map(r => ({ r, d: sanitize(r.design) })).filter(x => x.d);
   if (!others.length) { toast(S.lgroup === 'all' ? 'Save a few first: the line-up puts the saved ones beside this one.' : 'None of those is saved yet.'); return; }
-  const width = d => { const B = d.body, w = B.swell || 0; return (B.torsoW * (1 + 0.8 * w) * 1.16 + 2 * B.armT * (1 + 1.3 * w) * Math.max(B.armL, B.armR) + 2 * Math.max(0, B.shoulder) + 0.3 * (d.skin.over || 0)) * B.scale; };
+  const width = d => { const B = d.body, w = B.swell || 0; if (B.plan === 'grown') return (B.torsoW * 1.3 + 5.4 * B.armT * Math.max(B.armL, B.armR) + 2 * B.shoulder) * (1 + 0.5 * w) * B.scale; return (B.torsoW * (1 + 0.8 * w) * 1.16 + 2 * B.armT * (1 + 1.3 * w) * Math.max(B.armL, B.armR) + 2 * Math.max(0, B.shoulder) + 0.3 * (d.skin.over || 0)) * B.scale; };
   const all = [S.d, ...others.map(x => x.d)], gapW = 0.7;
   let x = 0;
   const xs = all.map((d, i) => { const w = width(d) + 0.5; const at = x + w / 2; x += w + gapW * (i < all.length - 1 ? 1 : 0); return at; });
