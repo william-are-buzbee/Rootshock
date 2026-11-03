@@ -743,6 +743,35 @@ wins; the older text stays only because it describes what is built, until the le
     kit of them. The longer one has been changing, the more plant: the leaf curing yellow, bark through
     the skin, roots out of the feet, the eyes going milky. `mockups/mutants.html` is the bench for them, and its line-up
     (*Security's seven*) is one for each the upper station has, the newest first.
+  - *The look, from the plant bench (agreed; mocked up, not built; supersedes the two above where they differ).* Settled
+    over two rounds of picks on `mockups/plants.html`, after the head bench dropped or left at maybe every plant head it
+    tried. One rule for the line, as the bone line has its own: **the body is the stalk.** The leaf grows off them as it
+    grows off a tobacco stalk, one leaf at a time, each a little over a third of a turn round from the last, the
+    largest lowest, arching out and down; the lowest cure first, going yellow, then brown, and hang dead, so age reads
+    down the body, green at the crown and brown at the knees. Where a leaf comes out of skin there is no line between
+    them: its foot is part skin, and the skin goes greener with age. The head is the stalk's growing tip: a bud of leaf
+    furled over where the skull and the eyes were, so no eyes and, for now, no mouth; with age it grows heavier and
+    opens at the top, and the head hangs forward under it. Mostly naked, so the growth shows: the newest bare to the
+    waist in trousers and boots, then the trousers torn at the knee and a boot lost, the oldest in rags of trouser
+    above the knee, barefoot. A person's proportions on the body `changed()` builds, so each stays on the husk's
+    skeleton (`SKEL.husk`); the bud adds about 0.15 m, and the oldest stoop. Two ways of it, both kept:
+    - *Covered:* the leaf up the body and, with age, down the arms and the legs to the shins, until it is covered from
+      head to toe with the skin showing between. The newest, the middle and the oldest all kept.
+    - *Grown through:* the stalk itself in sight, come up through the middle of them: half out of the body down the
+      breastbone (later the spine as well), the skin either side half green, running on up as the neck, and the head
+      its bud with no jaw left; the leaf grows off the stalk. The middle and the oldest kept (its newest at maybe: the
+      covered newest stands for both).
+    - *Supersedes:* the uniform on two in three, and the newest buttoned up; the shelves out of woody knots; the black
+      eyes and the slack mouth; bark, roots and milky eyes on the oldest (bark and roots are other ancestors', §10,
+      *Tells*). One thing in each gone wrong in its size or shape still stands.
+    - *Open:* how Security's seven divide between covered and grown through (proposed: all start covered, and from the
+      middle years some show the stalk); whether the night round keeps its uniform, as it keeps its torch. The bench's
+      oldest reads as the line's middle years (the owner: "a fully fledged mid mutant version of this line"), so §10's
+      table takes it there. The old of the line (the Commons' *Plant, old*) and the bush itself are still drawn in
+      shelves, to be brought into line.
+    - *To build:* in `render/castView.ts`, `changed()`'s head and its shelves give way to the bud and the spiral (each
+      leaf two flattened icosahedra and a clasp at its foot, one merged mesh to a cluster as the shelves are); the
+      grown through's stalk a half-sunk cylinder down the chest and back, and a stalk for the neck.
   - *No twitch (agreed; built).* None of Pia's line twitches: the head lolls, and moves slowly, with nobody much behind
     it. (The skitter keeps its twitch for now.)
   - *Size is the sim's too (agreed; pace built, the rest to do).* One that differs in size differs in the sim: its
@@ -1691,8 +1720,9 @@ Nobody expected worse than a bad night.
     huge person, the body swollen about half as far as a bloat's or a bone child's would go, every bit of it under rows
     on rows of tobacco shelves, green through; nothing left on it that was ever clothes; no features, the face tucked
     away somewhere behind the leaf. Gigantic by now. It stands like
-    a bush until it does not, and unlike Pia it never loses the ability to move. Its children keep a person's shape, the
-    plant growing through them, not over them: Security's changed (it colonised the wing, §2).
+    a bush until it does not, and unlike Pia it never loses the ability to move. Its children keep a person's shape, and the
+    plant's stalk grows up through them, the leaf off it and the head its bud (agreed: §8, *The changed*, *The look,
+    from the plant bench*): Security's changed (it colonised the wing, §2).
   - *Later, and not among the Commons' founders:* three more, grafted when more of her was plant.
     - *The flower child.* Flesh and plant again, nearer seventy to thirty, the other way: it came out different, more plainly
       human to look at, its plant mostly flower, and the flowers grow off roots. A plant's structure can mutate as well as a
@@ -1809,7 +1839,7 @@ of each gap (*Pia's lines*, in its Saved tab).
 |---|---|---|---|---|
 | Bone (the bone mother's) | the husks (built; their temper too) | the thresher (built); a person's size (built) | the bone elders (none) | the bone mother (none) |
 | Bloat (the bloat god's) | still walking, swelling, baby-headed (none) | bigger, slower, dopier (none) | the bloats, sat (built) | the bloat god (none) |
-| Plant (the bush's) | Security's changed (built; their temper too) | heavier, greener, the face going under (none) | the bench's *Plant, old* (built: one, in the Commons) | the bush (none) |
+| Plant (the bush's) | Security's changed (built; their temper too; their look agreed on the plant bench, its newest and middle) | the plant bench's oldest, covered or grown through (agreed; none built) | the bench's *Plant, old* (built: one, in the Commons; still in shelves) | the bush (none) |
 
 - **What each fears, and how the body answers it.** Every organ makes a problem and the body grows a way round it (rule
   3); in Pia's lines the problem is the fear. The bone line fears being hurt and hunted: it armours, reaches, patrols. The
@@ -1919,9 +1949,11 @@ The player is never told any of this; they read it.
   too long.
 - **The eyes (agreed).** Pia's lines have black eyes, empty, the creepiest thing about them: no white, no pupil, nothing
   looking out. The white of an eye is a person's, still human (the other patient), and is used sparingly. *Built:* the
-  changed, the husks, the bloats; the other patient's whites.
-- **What grows is the line.** Bone is the bone mother's; a swollen body the bloat god's; shelves of leaf out of flesh,
-  the bush's; flowers off roots, the flower child's; roots, the root ancestor's; plates of bark, the bark
+  changed, the husks, the bloats; the other patient's whites. The bush's line has none now: the bud has grown over
+  them (agreed, not built: §8, *The look, from the plant bench*).
+- **What grows is the line.** Bone is the bone mother's; a swollen body the bloat god's; leaf off the body as off a
+  stalk, the head its bud, the bush's (agreed; it was shelves of leaf out of flesh: §8); flowers off roots, the flower
+  child's; roots, the root ancestor's; plates of bark, the bark
   ancestor's.
 - **Motif is descent from Ines,** degrading by generation.
 - **Scars** show which crisis it survived.
@@ -1934,6 +1966,10 @@ The player is never told any of this; they read it.
 - Pia's young gods: their names, and where each is now. What the bloat line fears. Whether the mother is the bloat and
   bone cross (*Pia's lines, filled in*).
 - Where Ines paints. (Dale: the curing hall: §8, *Production*.)
+- **A line of sprouts (proposed; on the plant bench, *Sprouts*).** Out of a one-off on the plant bench (a stalk out of
+  each eye, which the owner found creepy but "a gimmick that can only work once"): sprouts come through the body, out
+  of the eyes first, then the skull, the shoulders and the back, each turned up to the light, many more of them with
+  age. Whose line it is (the bush's, or a young god of its own), and whether one of Security's seven is its first.
 - **The mass (proposed, moved from Security).** A room grown shut, its glass sweating, something pressed flat against it that
   you never see whole, the changed feeding at its door: a late child of Pia's, sessile, in the Commons or wherever her people
   have been longest. A door you want opened, not a fight.

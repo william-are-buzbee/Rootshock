@@ -37,8 +37,11 @@ browser (three.js comes from a CDN), and each has been published as a private cl
   The second pass, after the picks: rule A only (its oldest kept; rule B dropped but for the eye stalks, kept as a
   one-off), mostly naked so the growth shows, no mouth on the bud. Rows: *Heads* (the bud, the bud on a stalk for a
   neck, the heavy bud), *Covered* (leaf from head to toe) and *Through* (a stalk grown up through the middle, the leaf
-  off it), each newest to oldest, and *Kept* (the first pass's oldest, unchanged, and the eye-stalk one-off). The head
-  bench's engine, room, views and lights; Keep, maybe or drop each, with a note (collection `picks`, ids
+  off it), each newest to oldest, and *Kept* (the first pass's oldest, unchanged, and the eye-stalk one-off). Covered
+  and grown through were kept, and are written into `docs/world.md` (§8, *The changed*, *The look, from the plant
+  bench*). The third pass adds *Sprouts*, a handful made from the eye-stalk one-off: sprouts through the body, out of
+  the eyes first, newest to oldest with three ways the middle years could go. The head bench's engine, room, views and
+  lights; Keep, maybe or drop each, with a note (collection `picks`, ids
   `<row>-<figure>`, described at the top of its script; the first pass's stay under their old ids). `window.__rs` in
   the console exposes the state.
 - `cargo.html`: Cargo made larger (`docs/world.md` §8, *Cargo, sketched, and built*, which says what the build changed),
