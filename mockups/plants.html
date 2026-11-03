@@ -143,11 +143,12 @@ button { cursor: pointer; }
   </div>
 
   <aside id="panel">
-    <p class="intro">The collection: every plant mutant you have kept, numbered for good, so you can ask for a variant by its number. New holds the variants your notes asked for, 16 to 34; 5 is dropped. Held are the maybes worth building on. Six show at a time; step along with the arrow keys. Silhouette shows each as a flat shape, to compare outlines as the list grows.</p>
+    <p class="intro">The collection: every plant mutant you have kept, numbered for good, so you can ask for a variant by its number. New holds what your last notes asked for, 35 to 42. Maybe and Dropped keep the rest to look back at. Six show at a time; step along with the arrow keys. Silhouette shows each as a flat shape.</p>
     <div class="seg" role="tablist" aria-label="Row">
       <button role="tab" data-line="kept" aria-selected="true">Kept</button>
       <button role="tab" data-line="fresh" aria-selected="false">New</button>
-      <button role="tab" data-line="held" aria-selected="false">Held</button>
+      <button role="tab" data-line="held" aria-selected="false">Maybe</button>
+      <button role="tab" data-line="dropped" aria-selected="false">Dropped</button>
     </div>
     <p class="who" id="who"></p>
 
@@ -200,6 +201,10 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
    rule A's oldest kept ("could go in the game"), so rule A only, mostly naked so the growth shows, no mouth on the bud,
    and the two ways the notes put it: covered from head to toe, or "grown through with a stalk in the middle". The first
    pass's rows are in the history; their picks stay in the store under their old ids.
+
+   Sixth pass: 35 to 42 from the notes on 16 to 34 (16 again without its clipping, 23 at other sizes and on a trunk, a
+   face for 32 and 33); 25 and 26 with brown heads and 34 skewered on its root, as asked; each one's place (kept, maybe,
+   dropped, new) set from the picks in GROUPS, with a tab for the dropped.
 
    Fifth pass: the variants the notes asked for, 16 to 34 (the New tab), with bark, roots, broken floor and big stalks
    that come out anywhere; 5 dropped ("we only need one").
@@ -479,9 +484,9 @@ function eyeStalk(hd, s, R, skin, k = 1) {
    `boot`: the first pass's knee and one boot lost, for the oldest you kept) */
 const UNIFORM = 0x2c3440, TROUSERS = 0x23262b, BADGE = 0x9a8a50;
 function person(o = {}) {
-  const g = new THREE.Group(), legs = [], shins = [], skin = o.tint ? mixTone('SALLOW', 'LEAF1', o.tint) : 'SALLOW', shirt = o.shirt ?? 'whole';
+  const g = new THREE.Group(), legs = [], shins = [], skin = o.skin ?? (o.tint ? mixTone('SALLOW', 'LEAF1', o.tint) : 'SALLOW'), shirt = o.shirt ?? 'whole';
   const legsAre = o.legs ?? (o.torn ? 'knee' : 'whole'), boots = o.boots ?? (o.boot ? 1 : 2), w = o.wide ?? 1;
-  for (const s of [-1, 1]) {
+  for (const s of legsAre === 'none' ? [] : [-1, 1]) {
     const l = grp(g, s * 0.11 * w, 0.9, 0), k = grp(l, 0, -0.45, 0);
     if (w !== 1) { l.scale.set(1 + (w - 1) * 0.6, 1, 1 + (w - 1) * 0.6); }
     if (legsAre === 'thigh') { mk(l, 'box', TROUSERS, 0.16, 0.22, 0.17, 0, -0.11, 0); mk(l, 'box', skin, 0.13, 0.25, 0.13, 0, -0.33, 0); }
@@ -684,6 +689,10 @@ function scatter(M, R, where, n, l0, l1, o = {}) {
       const ce = Math.cos(el);
       p = [0.12 * ce * Math.sin(az), 0.14 * Math.sin(el), 0.125 * ce * Math.cos(az)];
       nn = [p[0] / 0.0144, p[1] / 0.0196, p[2] / 0.0156]; g = M.hd;
+    } else if (where === 'face') {
+      const az = R.rnd(-0.65, 0.65), el = R.rnd(-0.2, 0.45), ce = Math.cos(el);
+      p = [0.12 * ce * Math.sin(az), 0.14 * Math.sin(el), 0.125 * ce * Math.cos(az)];
+      nn = [p[0] / 0.0144, p[1] / 0.0196, p[2] / 0.0156]; g = M.hd;
     } else if (where === 'top') {
       const s = R.rnd(0, 1) < 0.5 ? -1 : 1;
       p = [s * R.rnd(0.08, 0.19), 0.6, R.rnd(-0.09, 0.09)]; nn = [s * 0.4, 1, p[2] * 2];
@@ -760,7 +769,7 @@ function bigStalk(parent, p, n, k, R, skin, o = {}) {
     pts.push(q);
   }
   const out = Math.atan2(_N.x, _N.z), cure = o.cure ?? 0;
-  mk(parent, 'ico', mixTone(skin, 'STEM1', 0.15), 0.085 * k, 0.075 * k, 0.085 * k, ...p); // the skin drawn up round it
+  if (!o.noBase) mk(parent, 'ico', mixTone(skin, 'STEM1', 0.15), 0.085 * k, 0.075 * k, 0.085 * k, ...p); // the skin drawn up round it
   const ds = [0.052, 0.044, 0.036, 0.028], ts = [0.3, 0.62, 0.86, 1];
   for (let i = 0; i < 4; i++) rod(parent, pts[i], pts[i + 1], ds[i] * k, mixTone(skin, 'STEM' + (i > 1 ? 0 : 1), ts[i]));
   leafAt(parent, ...pts[1], out + R.rnd(-0.5, 0.5), 0.2 * k, { col: cureKey(clamp(cure + 0.4, 0, 1), R), lift: 0.3, droop: 0.8 });
@@ -909,7 +918,7 @@ function crownHead(M, R, eyes = 1.1) {
   else { mk(M.hd, 'ico', M.skin, 0.24, 0.28, 0.25); mk(M.hd, 'box', 'GOREC', 0.075, 0.024, 0.03, 0, -0.08, 0.11); }
   scatter(M, R, 'head', 26, 0.12, 0.32);
 }
-function crownVar(id) {
+function crownVar(id, K) {
   const R = seeded({ rooted: 221, props: 222, chest: 223, neck: 224 }[id]);
   if (id === 'rooted') {
     const M = person({ shirt: 'none', legs: 'thigh', boots: 0, tint: 0.1 });
@@ -917,6 +926,7 @@ function crownVar(id) {
     barkOver(M, R, 1.12);
     scatter(M, R, 'top', 6, 0.1, 0.2); scatter(M, R, 'front', 6, 0.1, 0.2, { y0: 0.28 });
     for (const s of [-1, 1]) roots(M.g, R, [s * 0.11, 0.04, 0.05], 5, 0.6, 0.045);
+    if (K) M.g.scale.setScalar(K);
     M.still = true;
     return M;
   }
@@ -941,7 +951,7 @@ function crownVar(id) {
     M.still = true;
     return M;
   }
-  const M = person({ shirt: 'none', tint: 0.1 });
+  const M = person({ shirt: 'none', skin: mixTone('SALLOW', 'BARK1', 0.7) }); // the head brown, as the bark is
   crownHead(M, R);
   barkOver(M, R, id === 'chest' ? 1.56 : 1.6);
   return sunk(M, R, id === 'chest' ? 0.95 : 1.38, id === 'chest' ? 9 : 11);
@@ -964,15 +974,100 @@ function overVar(id) {
   const R = seeded(175), M = person({ shirt: 'none', legs: 'thigh', boots: 0, tint: 0.2, stoop: 0.12 });
   if (id === 'big') sproutHead(M, R, 1.8);
   else if (id === 'many') sproutHead(M, R, 1.2);
+  else if (id === 'face') { mk(M.hd, 'ico', M.skin, 0.24, 0.28, 0.25); }
   else { mk(M.hd, 'ico', M.skin, 0.24, 0.28, 0.25); mk(M.hd, 'box', 'GOREC', 0.075, 0.024, 0.03, 0, -0.08, 0.11); }
   scatter(M, R, 'head', 18, 0.18, 0.45); scatter(M, R, 'top', 12, 0.2, 0.42); scatter(M, R, 'spine', 10, 0.2, 0.4);
   scatter(M, R, 'back', 10, 0.18, 0.36, { cure: 0.4 }); scatter(M, R, 'front', 14, 0.16, 0.36, { cure: 0.45, y0: 0.0 });
   scatter(M, R, 'arm', 12, 0.1, 0.24, { cure: 0.5 }); scatter(M, R, 'thigh', 8, 0.12, 0.22, { cure: 0.8 });
-  const S2 = seeded(240 + ['big', 'many', 'shoulders', 'crown'].indexOf(id));
-  if (id === 'many') for (const [where, s, k] of [['shoulder', -1, 1.3], ['shoulder', 1, 1.35], ['nape', 1, 1.2], ['back', -1, 1.25], ['back', 1, 1.2]]) stalkOut(M, S2, where, s, k, { cure: 0.2 });
-  if (id === 'shoulders') for (const s of [-1, 1]) stalkOut(M, S2, 'shoulder', s, 1.55, { cure: 0.15 });
-  if (id === 'crown') stalkOut(M, S2, 'crown', 1, 2.3, { cure: 0.1 });
+  const S2 = seeded({ big: 240, many: 241, shoulders: 242, crown: 243, face: 244, mask: 242, burst: 242 }[id]);
+  if (id === 'many' || id === 'face') for (const [where, s, k] of [['shoulder', -1, 1.3], ['shoulder', 1, 1.35], ['nape', 1, 1.2], ['back', -1, 1.25], ['back', 1, 1.2]]) stalkOut(M, S2, where, s, k, { cure: 0.2 });
+  if (['shoulders', 'mask', 'burst'].includes(id)) for (const s of [-1, 1]) stalkOut(M, S2, 'shoulder', s, 1.55, { cure: 0.15 });
+  if (id === 'crown') skewer(M, S2);
+  if (id === 'face') faceStalk(M, seeded(245));
+  if (id === 'mask') leafMask(M);
+  if (id === 'burst') scatter(M, seeded(246), 'face', 12, 0.14, 0.3);
   return M;
+}
+
+/* ---------------------------------------------------------------------------------------------------------------- */
+/* Sixth pass, from the notes on 16 to 34 */
+
+/* 16, again ("clips through too much, but maybe you could fix?"): the bud closed over the head and the neck, sitting on
+   the shoulders rather than in them, its leaves meeting at the top rather than crossing; a ruff over the shoulders that
+   stays above them. The head cannot loll in it */
+function swallowedBody2() {
+  const R = seeded(261), M = person({ shirt: 'none', tint: 0.06 }), hd = M.hd, skin = M.skin, k = 1.15;
+  hd.rotation.z = 0; M.still = true;
+  for (let i = 0; i < 8; i++) {
+    const az = (i / 8) * TAU + R.rnd(-0.1, 0.1), col = LEAFK(i);
+    wrap(hd, az, 0.1 * k, -0.14, { h: 0.42 * k, w: 0.17 * k, t: 0.028 * k, out: 0.3, inn: 0.93, lo: mixTone(skin, col, 0.35), hi: mixTone(skin, col, 0.85) }, R);
+  }
+  for (let i = 0; i < 5; i++) {
+    const az = (i / 5) * TAU + 0.6;
+    wrap(hd, az, 0.05 * k, 0, { h: 0.2 * k, w: 0.1 * k, t: 0.022 * k, out: 0.05, inn: 0.45, lo: 'YOUNG' + (i % 3), hi: 'YOUNG' + ((i + 1) % 3) }, R);
+  }
+  mk(hd, 'ico', 'YOUNG2', 0.06 * k, 0.07 * k, 0.06 * k, 0, 0.25, 0); // where it closes at the top
+  for (let i = 0; i < 8; i++) leafAt(hd, 0, -0.13, 0, (i / 8) * TAU + 0.2, 0.26, { col: mixTone(skin, LEAFK(i + 1), 0.7), lift: 0.3, droop: 0.55 });
+  return M;
+}
+
+/* 23's ("more variants of this in different sizes ... more tree-like legs ... a trunk thicker at the bottom, no thigh
+   gap ... a progression of 23, aged more"): the legs gone into one trunk, flared at its foot as a tree's is, bark in
+   plates up it, roots out over the floor from its foot */
+function trunk(G, R, h, r0, r1) {
+  for (let i = 0; i < 4; i++) {
+    const r = lerp(r0, r1, (i + 0.5) / 4);
+    mk(G, 'cyl', BARKS[i % 3], r * 2, h / 4 + 0.02, r * 1.8, 0, h * (i + 0.5) / 4, 0);
+  }
+  for (let i = 0; i < Math.round(h * 26); i++) {
+    const a = R.rnd(0, TAU), y = R.rnd(0.05, h - 0.05), r = lerp(r0, r1, y / h) * 0.95;
+    mk(G, 'ico', BARKS[Math.floor(R.rnd(0, 2.999))], 0.1, R.rnd(0.1, 0.2), 0.035, Math.sin(a) * r, y, Math.cos(a) * r * 0.9).rotation.y = a;
+  }
+  for (let i = 0; i < 6; i++) { // its foot, flared
+    const a = (i / 6) * TAU + R.rnd(-0.2, 0.2);
+    mk(G, 'ico', 'BARK2', 0.13, 0.16, r0 * 1.3, Math.sin(a) * r0 * 0.95, 0.05, Math.cos(a) * r0 * 0.95).rotation.y = a;
+  }
+}
+function trunkBody(old) {
+  const R = seeded(old ? 272 : 271), M = person({ shirt: 'none', legs: 'none', tint: old ? 0.16 : 0.1 });
+  crownHead(M, R);
+  trunk(M.g, R, 0.96, old ? 0.36 : 0.3, old ? 0.23 : 0.2);
+  barkOver(M, R, old ? 1.42 : 1.18);
+  scatter(M, R, 'top', old ? 9 : 6, 0.1, old ? 0.26 : 0.2); scatter(M, R, 'front', old ? 8 : 6, 0.1, 0.22, { y0: old ? 0.4 : 0.28 });
+  if (old) scatter(M, R, 'back', 6, 0.12, 0.26, { y0: 0.45 });
+  roots(M.g, R, [0, 0.03, 0], old ? 11 : 8, old ? 1.0 : 0.8, old ? 0.065 : 0.055, old ? 0.36 : 0.3);
+  if (old) M.g.scale.setScalar(1.12);
+  M.still = true;
+  return M;
+}
+
+/* 34, again ("get rid of that strange base ... the root kept going down and through his head and brain, through his
+   neck ... into his shoulder. His head will not move"): one root, thicker than the neck, in at the right shoulder, up
+   through where the neck was, through the head and out of the crown, going on up as the great stalk. Where it goes
+   into the shoulder it spreads over the body, rooted there */
+function skewer(M, R) {
+  const E = [0.08, 0.5, 0], H = [-0.02, 0.76, 0], dx = H[0] - E[0], dy = H[1] - E[1], L = Math.hypot(dx, dy), u = [dx / L, dy / L, 0];
+  const C = [H[0] + u[0] * 0.15, H[1] + u[1] * 0.15, 0];
+  rod(M.b, E, C, 0.14, 'STEM0');
+  for (const path of [[[0.07, 0.6, 0], [0.19, 0.605, 0.07], [0.205, 0.47, 0.122]], [[0.07, 0.6, 0], [0.17, 0.605, -0.08], [0.18, 0.44, -0.122]],
+    [[0.07, 0.6, 0], [-0.06, 0.605, 0.09], [-0.11, 0.5, 0.122]], [[0.07, 0.6, 0], [0.205, 0.6, 0.0], [0.215, 0.5, 0.02]]])
+    for (let i = 0; i + 1 < path.length; i++) rod(M.b, path[i], path[i + 1], i ? 0.03 : 0.05, i ? 'ROOT1' : mixTone('STEM0', 'ROOT0', 0.5));
+  bigStalk(M.b, C, u, 2.3, R, M.skin, { cure: 0.1, noBase: true });
+  M.still = true;
+}
+
+/* 33's ("we gotta put something on the face"): a broad leaf pressed over it, and two over the cheeks */
+function leafMask(M) {
+  const g = grp(M.hd, 0, 0.03, 0.118); g.rotation.x = -0.12;
+  mk(g, 'ico', mixTone(M.skin, 'LEAF1', 0.8), 0.2, 0.25, 0.05, 0, 0, 0);
+  mk(g, 'box', 'LEAF0', 0.012, 0.21, 0.01, 0, 0, 0.022); // its midrib
+  for (const s of [-1, 1]) { const h = grp(M.hd, s * 0.075, 0.0, 0.1); h.rotation.set(-0.1, s * 0.5, s * 0.15); mk(h, 'ico', mixTone(M.skin, 'LEAF2', 0.65), 0.12, 0.2, 0.04, 0, 0, 0); }
+}
+/* 32's ("a single large one coming out of the face, not two, and have it cover the face mostly"): one big stalk out of the
+   middle of the face, its foot over most of it, two leaves down over the cheeks */
+function faceStalk(M, R) {
+  bigStalk(M.hd, [0, 0.01, 0.108], [0, 0.35, 1], 1.9, R, M.skin, { cure: 0.15 });
+  for (const s of [-1, 1]) leafAt(M.hd, s * 0.06, -0.01, 0.1, s * 0.9, 0.16, { col: mixTone(M.skin, 'LEAF1', 0.6), lift: 0.1, droop: 0.9 });
 }
 
 /* ---------------------------------------------------------------------------------------------------------------- */
@@ -994,7 +1089,7 @@ const MUTANTS = [
   { n: 4, id: 'cover-mid', tag: 'Covered, middle', name: 'Covered, middle years', build: () => coverBody('mid'),
     what: 'The trousers torn at the knee, a boot lost. Leaf in a spiral from the belly to the neck, the lowest going yellow; two out of each arm, one out of each thigh; the skin going green.',
     from: 'Kept.', game: 'The spiral, and leaves on the limbs.' },
-  { n: 5, id: 'cover-old', dropped: true, tag: 'Covered, oldest', name: 'Covered, oldest', build: () => coverBody('old'),
+  { n: 5, id: 'cover-old', tag: 'Covered, oldest', name: 'Covered, oldest', build: () => coverBody('old'),
     what: 'Rags of trouser above the knee, barefoot, stooped. Leaf from the shins to the crown, the lowest cured brown and hanging; the bud heavy and open, the head hanging under it.',
     from: 'Kept.', game: 'As 4, more of it; a stoop.' },
   { n: 6, id: 'through-mid', tag: 'Through, middle', name: 'Grown through, middle years', build: () => throughBody('mid'),
@@ -1015,85 +1110,110 @@ const MUTANTS = [
   { n: 11, id: 'sprout-old', tag: 'Overgrown', name: 'Overgrown', build: () => sproutBody('old'),
     what: 'Sprouts from the crown to the thighs, the longest from the head and the shoulders, the lowest going yellow; the eye stalks thick; stooped, barefoot in rags. A shrub with a person in it.',
     from: 'Kept: "just fantastic. I love it."', game: 'Some eighty sprouts, and a stoop.' },
-  { n: 12, id: 'heads2-stem', tag: 'Bud on the stalk', name: 'The bud on the stalk', held: true, build: () => headBody('stem', 1),
+  { n: 12, id: 'heads2-stem', tag: 'Bud on the stalk', name: 'The bud on the stalk', build: () => headBody('stem', 1),
     what: 'No jaw left: the neck is the stalk, and the head is all bud.',
     from: 'Held as a variant: "the fact that the head looks gone is freaky."', game: 'A stalk for a neck; the head all leaf.' },
-  { n: 13, id: 'through-new', tag: 'Through, newest', name: 'Grown through, newest', held: true, build: () => throughBody('new'),
+  { n: 13, id: 'through-new', tag: 'Through, newest', name: 'Grown through, newest', build: () => throughBody('new'),
     what: 'The stalk a hand\'s length down the breastbone into the neck, the head its bud; three young leaves off it.',
     from: 'Held (maybe).', game: 'A half-sunk cylinder down the chest, a stalk for a neck.' },
-  { n: 14, id: 'sprout-few', tag: 'Seedlings', name: 'Seedlings', held: true, build: () => sproutBody('few'),
+  { n: 14, id: 'sprout-few', tag: 'Seedlings', name: 'Seedlings', build: () => sproutBody('few'),
     what: 'A dozen-odd seedlings through the scalp, the shoulders and the top of the back; short stalks out of the eyes.',
     from: 'Held: a first starting form; the ones walking about should be further gone, like 10 or 11.', game: 'The eye stalks, and a dozen seedlings.' },
-  { n: 15, id: 'sprout-spine', tag: 'Spine', name: 'Down the spine', held: true, build: () => sproutBody('spine'),
+  { n: 15, id: 'sprout-spine', tag: 'Spine', name: 'Down the spine', build: () => sproutBody('spine'),
     what: 'Sprouts in a crest down the spine and over the shoulders, longer there; a few through the chest.',
     from: 'Held: perhaps the top half that shows, with bark from the chest down.', game: 'Three dozen sprouts, most along the back.' },
-  { n: 16, id: 'v-swallowed', fresh: true, tag: 'Swallowed', name: 'The head swallowed', build: () => swallowedBody(),
+  { n: 16, id: 'v-swallowed', tag: 'Swallowed', name: 'The head swallowed', build: () => swallowedBody(),
     what: 'The bud gone down over the jaw and the neck to the shoulders, a quarter larger than the bud, and a ruff of leaf over the shoulders: nothing of the head left to see.',
     from: 'Your note on 2: "we\'d still need one that totally eats the head."', game: 'The bud, larger and lower, on a bare body.' },
-  { n: 17, id: 'v-through-young', fresh: true, tag: 'Through, younger', name: 'Grown through, a little younger', build: () => throughVar('young'),
+  { n: 17, id: 'v-through-young', tag: 'Through, younger', name: 'Grown through, a little younger', build: () => throughVar('young'),
     what: 'Between 6 and 7: a touch smaller than 7, the stalk thinner, eleven leaves off it, the bud half open.',
     from: 'Your note on 7: a few variants a bit different in size and maturity, nothing crazy.', game: 'As 7, smaller.' },
-  { n: 18, id: 'v-through-large', fresh: true, tag: 'Through, larger', name: 'Grown through, larger', build: () => throughVar('large'),
+  { n: 18, id: 'v-through-large', tag: 'Through, larger', name: 'Grown through, larger', build: () => throughVar('large'),
     what: 'A tenth larger than 7, the stalk thicker, fifteen leaves off it, the lowest larger and dead.',
     from: 'Your note on 7.', game: 'As 7, larger.' },
-  { n: 19, id: 'v-through-largest', fresh: true, tag: 'Through, largest', name: 'Grown through, largest', build: () => throughVar('largest'),
+  { n: 19, id: 'v-through-largest', tag: 'Through, largest', name: 'Grown through, largest', build: () => throughVar('largest'),
     what: 'A fifth larger than 7 and a little broader, the stalk thicker still, sixteen leaves, the bud open and starting to sprout.',
     from: 'Your note on 7.', game: 'As 7, larger; a skeleton grown to its size.' },
-  { n: 20, id: 'v-first-open', fresh: true, tag: 'First, opened', name: 'The first keep, opened', build: () => firstVar('open'),
+  { n: 20, id: 'v-first-open', tag: 'First, opened', name: 'The first keep, opened', build: () => firstVar('open'),
     what: '8 with its centre opened as 7\'s is: the front of the spiral gone, the stalk down the middle in sight, six leaves off it, the neck gone to stalk. The mouth kept.',
     from: 'Your note on 8: "a version of this where the center is being opened up like the guy from #7."', game: '8 with 7\'s stalk.' },
-  { n: 21, id: 'v-first-tall', fresh: true, tag: 'First, taller', name: 'The first keep, taller', build: () => firstVar('tall'),
+  { n: 21, id: 'v-first-tall', tag: 'First, taller', name: 'The first keep, taller', build: () => firstVar('tall'),
     what: '8 grown a sixth taller, no open centre: a rung more of leaf for the height, the lowest leaves larger, and the bud larger and starting to sprout at the top.',
     from: 'Your note on 8: taller, one more rung of leaves, the lower ones larger, the bud sprouting a bit more.', game: 'As 8, larger; a skeleton grown to its size.' },
-  { n: 22, id: 'v-first-wide', fresh: true, tag: 'First, wider', name: 'The first keep, taller and wider', build: () => firstVar('wide'),
+  { n: 22, id: 'v-first-wide', tag: 'First, wider', name: 'The first keep, taller and wider', build: () => firstVar('wide'),
     what: 'Taller again, and broader through the body and the limbs; four rungs more of leaf, the lowest larger still, the bud sprouting.',
     from: 'Your note on 8: taller and wider.', game: 'As 8, larger and broader.' },
-  { n: 23, id: 'v-crown-rooted', fresh: true, tag: 'Crown, rooted', name: 'Crown, rooted', build: () => crownVar('rooted'),
+  { n: 23, id: 'v-crown-rooted', tag: 'Crown, rooted', name: 'Crown, rooted', build: () => crownVar('rooted'),
     what: 'The thicket on the head as 9\'s, and below it the body gone to bark from the feet to the belly, plates of it feathering up into the skin; roots out of the feet across the floor; a few sprouts at the shoulders and the chest. It stands where it took root.',
     from: 'Your note on 9: never so much on the head and nothing on the body; one of the first rooted ones, with bark and roots.', game: 'Bark plates over the body, roots out over the floor.' },
-  { n: 24, id: 'v-crown-props', fresh: true, tag: 'Crown, props', name: 'Crown, propped', build: () => crownVar('props'),
+  { n: 24, id: 'v-crown-props', tag: 'Crown, props', name: 'Crown, propped', build: () => crownVar('props'),
     what: 'The two out of the eyes grown into props: up from the eyes, over, and down to the floor either side, going woody as they go down, rooted where they stand. The thicket on the head; the legs gone to bark.',
     from: 'Your note on 9: the two green stems as structures that have roots.', game: 'Two arches of stalk from the eyes to the floor; it cannot leave.' },
-  { n: 25, id: 'v-crown-chest', fresh: true, tag: 'Crown, to the chest', name: 'Crown, sunk to the chest', build: () => crownVar('chest'),
-    what: 'Sunk into the floor to the chest, the shoulders and the arms gone to bark; the concrete broken round it, and roots out over the floor from the hole. Then the head, and the thicket.',
+  { n: 25, id: 'v-crown-chest', tag: 'Crown, to the chest', name: 'Crown, sunk to the chest', build: () => crownVar('chest'),
+    what: 'Sunk into the floor to the chest, the shoulders and the arms gone to bark, and the head brown as the bark is (your note); the concrete broken round it, and roots out over the floor from the hole. Then the head, and the thicket.',
     from: 'Your note on 9: versions buried in the ground, the head and the crown visible, bark from below the neck.', game: 'Placed in the floor, the floor broken round it.' },
-  { n: 26, id: 'v-crown-neck', fresh: true, tag: 'Crown, to the neck', name: 'Crown, sunk to the neck', build: () => crownVar('neck'),
-    what: 'Only the head and the thicket above the floor, the bark of the shoulders just breaking the concrete under the jaw; roots out over the floor from the hole.',
+  { n: 26, id: 'v-crown-neck', tag: 'Crown, to the neck', name: 'Crown, sunk to the neck', build: () => crownVar('neck'),
+    what: 'Only the head and the thicket above the floor, the head brown as the bark is (your note), the bark of the shoulders just breaking the concrete under the jaw; roots out over the floor from the hole.',
     from: 'Your note on 9: "a little bit of bark and root, then head."', game: 'As 25, deeper.' },
-  { n: 27, id: 'v-all-shoulders', fresh: true, tag: 'All over, shoulders', name: 'All over, stalks at the shoulders', build: () => allOverVar('shoulders'),
+  { n: 27, id: 'v-all-shoulders', tag: 'All over, shoulders', name: 'All over, stalks at the shoulders', build: () => allOverVar('shoulders'),
     what: '10 with no eyes, the face smooth but for the mouth; the two big stalks out of the tops of the shoulders instead.',
     from: 'Your note on 10: no eyes; the big stalks in different places.', game: 'As 10, the big stalks moved.' },
-  { n: 28, id: 'v-all-back', fresh: true, tag: 'All over, back', name: 'All over, stalks out of the back', build: () => allOverVar('back'),
+  { n: 28, id: 'v-all-back', tag: 'All over, back', name: 'All over, stalks out of the back', build: () => allOverVar('back'),
     what: 'No eyes; the big stalks out of the upper back, rising behind the head, so from the front they frame it.',
     from: 'Your note on 10.', game: 'As 10, the big stalks moved.' },
-  { n: 29, id: 'v-all-chest', fresh: true, tag: 'All over, chest', name: 'All over, a stalk out of the chest', build: () => allOverVar('chest'),
+  { n: 29, id: 'v-all-chest', tag: 'All over, chest', name: 'All over, a stalk out of the chest', build: () => allOverVar('chest'),
     what: 'No eyes; one big stalk out of the breastbone, rising in front of the face, and another out of the back.',
     from: 'Your note on 10.', game: 'As 10, the big stalks moved.' },
-  { n: 30, id: 'v-all-lopsided', fresh: true, tag: 'All over, lopsided', name: 'All over, lopsided', build: () => allOverVar('lopsided'),
+  { n: 30, id: 'v-all-lopsided', tag: 'All over, lopsided', name: 'All over, lopsided', build: () => allOverVar('lopsided'),
     what: 'No eyes; three big stalks, none of them paired: out of the right shoulder, the left side of the skull and the left hip.',
     from: 'Your note on 10.', game: 'As 10, the big stalks moved.' },
-  { n: 31, id: 'v-over-big', fresh: true, tag: 'Overgrown, big eyes', name: 'Overgrown, the eye stalks larger', build: () => overVar('big'),
+  { n: 31, id: 'v-over-big', tag: 'Overgrown, big eyes', name: 'Overgrown, the eye stalks larger', build: () => overVar('big'),
     what: '11 with the stalks out of the eyes half again as large, towering over the rest.',
     from: 'Your note on 11: the eye stalks larger, or more of them, or somewhere else.', game: 'As 11.' },
-  { n: 32, id: 'v-over-many', fresh: true, tag: 'Overgrown, many', name: 'Overgrown, more big stalks', build: () => overVar('many'),
+  { n: 32, id: 'v-over-many', tag: 'Overgrown, many', name: 'Overgrown, more big stalks', build: () => overVar('many'),
     what: '11\'s eye stalks and five more big ones: out of both shoulders, the nape and the upper back.',
     from: 'Your note on 11.', game: 'As 11, with five big stalks.' },
-  { n: 33, id: 'v-over-shoulders', fresh: true, tag: 'Overgrown, shoulders', name: 'Overgrown, the stalks at the shoulders', build: () => overVar('shoulders'),
+  { n: 33, id: 'v-over-shoulders', tag: 'Overgrown, shoulders', name: 'Overgrown, the stalks at the shoulders', build: () => overVar('shoulders'),
     what: 'No stalks out of the eyes, the face smooth but for the mouth; the two big stalks moved to the shoulders, and larger.',
     from: 'Your note on 11.', game: 'As 11, the big stalks moved.' },
-  { n: 34, id: 'v-over-crown', fresh: true, tag: 'Overgrown, crown', name: 'Overgrown, one out of the crown', build: () => overVar('crown'),
-    what: 'No stalks out of the eyes; one great stalk out of the crown instead, twice their size: a small tree on the head.',
-    from: 'Your note on 11.', game: 'As 11, one big stalk.' },
+  { n: 34, id: 'v-over-crown', tag: 'Overgrown, crown', name: 'Overgrown, one out of the crown', build: () => overVar('crown'),
+    what: 'No stalks out of the eyes; one great root, thicker than the neck, in at the right shoulder, up through the neck and the head and out of the crown, going on up as a small tree on the head. It spreads over the shoulder where it goes in. The head does not move.',
+    from: 'Your note: no base on the stalk; the root on down through the head and the neck into the shoulder, skewering the head, and he seems not to mind.', game: 'As 11, one great stalk; the head fixed to it.' },
+  { n: 35, id: 'v-swallowed2', tag: 'Swallowed, again', name: 'The head swallowed, again', build: () => swallowedBody2(),
+    what: '16 without the clipping: the bud closed over the head and the neck, sitting on the shoulders instead of sunk into them, its leaves meeting at the top instead of crossing; a ruff of leaf over the shoulders that stays above them. The head does not loll.',
+    from: 'Your note on 16: "Clips through too much, but maybe you could fix? nice idea."', game: 'The bud closed on the shoulders.' },
+  { n: 36, id: 'v-rooted-small', tag: 'Rooted, smaller', name: 'Crown, rooted, smaller', build: () => crownVar('rooted', 0.88),
+    what: '23 as it is, an eighth smaller.', from: 'Your note on 23: more variants of this in different sizes.', game: 'As 23, a skeleton at its size.' },
+  { n: 37, id: 'v-rooted-large', tag: 'Rooted, larger', name: 'Crown, rooted, larger', build: () => crownVar('rooted', 1.15),
+    what: '23 as it is, a sixth larger.', from: 'Your note on 23.', game: 'As 23, a skeleton at its size.' },
+  { n: 38, id: 'v-trunk', tag: 'On a trunk', name: 'Crown on a trunk', build: () => trunkBody(false),
+    what: 'Further on from 23: the legs gone into one trunk, no gap between them, thicker at its foot and flared there as a tree\'s is, bark in plates up it and over the belly; roots out over the floor from the foot. The thicket on the head, sprouts at the shoulders and the chest.',
+    from: 'Your note on 23: tree-like legs, a trunk thicker at the bottom, no thigh gap; a progression of 23, aged more.', game: 'No legs to walk on: it stands where it took root.' },
+  { n: 39, id: 'v-trunk-old', tag: 'On a trunk, older', name: 'Crown on a trunk, older', build: () => trunkBody(true),
+    what: 'Older again and larger: the trunk thicker, the bark up to the chest and over the forearms, more sprouts at the shoulders, the chest and the back, the roots longer and heavier.',
+    from: 'Your note on 23: aged more.', game: 'As 38, larger.' },
+  { n: 40, id: 'v-over-face', tag: 'Overgrown, face stalk', name: 'Overgrown, one out of the face', build: () => overVar('face'),
+    what: '32 with one big stalk out of the middle of the face in place of the two out of the eyes, its foot over most of the face, two leaves down over the cheeks; the five other big stalks as 32\'s.',
+    from: 'Your note on 32: "a single large one coming out of the face, not two, and have it cover the face mostly."', game: 'As 32.' },
+  { n: 41, id: 'v-over-mask', tag: 'Overgrown, leaf mask', name: 'Overgrown, a leaf over the face', build: () => overVar('mask'),
+    what: '33 with a broad leaf pressed over the face, its midrib down the middle, and two more over the cheeks.',
+    from: 'Your note on 33: "we gotta put something on the face."', game: 'As 33, three leaves on the face.' },
+  { n: 42, id: 'v-over-burst', tag: 'Overgrown, face sprouts', name: 'Overgrown, sprouts out of the face', build: () => overVar('burst'),
+    what: '33 with a dozen sprouts through the face itself, the brow, the cheeks and the nose, the face the thickest place on the head.',
+    from: 'Your note on 33: something on the face.', game: 'As 33, a dozen more sprouts.' },
 ];
+/* where each stands, from your picks: kept, maybe, dropped; the rest are new. Numbers are never reused */
+const GROUPS = { kept: [3, 4, 6, 7, 8, 10, 11, 17, 18, 19, 20, 21, 22, 23, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34], held: [24],
+  dropped: [1, 2, 5, 9, 12, 13, 14, 15, 16] };
+for (const m of MUTANTS) m.group = Object.keys(GROUPS).find(g => GROUPS[g].includes(m.n)) ?? 'fresh';
+const ROW = { gap: 1.7, height: 2.6, ceil: 3.6, look: 1.5, flat: true };
 const LINES = {
-  kept: { name: 'Kept', flat: true, who: 'Every mutant you have kept, numbered for good. Ask for a variant by its number.', gap: 1.6, height: 2.3, ceil: 3.1, look: 1.5,
-    heads: MUTANTS.filter(m => !m.held && !m.fresh && !m.dropped) },
-  fresh: { name: 'New', flat: true, who: 'Everything your notes asked for, numbered on from 16: variants of 2, 7, 8, 9, 10 and 11. Pick them as before; the ones you keep move to Kept.', gap: 1.7, height: 2.5, ceil: 3.4, look: 1.5,
-    heads: MUTANTS.filter(m => m.fresh) },
-  held: { name: 'Held', flat: true, who: 'The maybes worth building on: held, not kept. Numbered the same way.', gap: 1.6, height: 2.3, ceil: 3.1, look: 1.5,
-    heads: MUTANTS.filter(m => m.held) },
+  kept: { ...ROW, name: 'Kept', who: 'Every mutant you have kept, numbered for good; ask for a variant by its number. 25, 26 and 34 are changed as your notes asked.', heads: MUTANTS.filter(m => m.group === 'kept') },
+  fresh: { ...ROW, name: 'New', who: 'Numbered on from 35: what your notes on 16 to 34 asked for. Pick them as before.', heads: MUTANTS.filter(m => m.group === 'fresh') },
+  held: { ...ROW, name: 'Maybe', who: 'The ones at maybe.', heads: MUTANTS.filter(m => m.group === 'held') },
+  dropped: { ...ROW, name: 'Dropped', who: 'What you have dropped, to look back at. Their numbers are not used again.', heads: MUTANTS.filter(m => m.group === 'dropped') },
 };
-const ORDER = ['kept', 'fresh', 'held'];
+const ORDER = ['kept', 'fresh', 'held', 'dropped'];
 
 /* ---------------------------------------------------------------------------------------------------------------- */
 /* state, and what this viewer last looked at */
@@ -1184,7 +1304,7 @@ function buildRow() {
 function pose(M, hunch) {
   if (!hunch) return;
   M.b.rotation.x = 0.3; M.b.position.y -= 0.05;
-  M.hd.rotation.x += 0.45; M.hd.position.z += 0.05;
+  if (!M.still) { M.hd.rotation.x += 0.45; M.hd.position.z += 0.05; }
   M.arms.forEach((a, i) => { a.rotation.x = -0.3 + (i ? -0.22 : 0.06); });
   M.arms[1].position.y -= 0.05;
   M.legs.forEach(l => { l.rotation.x = -0.14; });

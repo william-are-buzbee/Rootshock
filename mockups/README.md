@@ -36,7 +36,10 @@ browser (three.js comes from a CDN), and each has been published as a private cl
   oldest (`docs/world.md` §8, *The changed*, *The look, from the plant bench*); and sprouts through the body, out of the
   eyes first (the crown, all over, overgrown). *New* holds the variants the notes asked for, 16 to 34: the head
   swallowed, sizes of the grown through and the first keep, the crown rooted, propped on its eye stalks and sunk into
-  the floor, and the big stalks moved off the eyes; with bark, roots and broken floor among the pieces. The head bench's engine, room, views and lights; the line-up shows six at
+  the floor, and the big stalks moved off the eyes; with bark, roots and broken floor among the pieces. Then 35 to 42
+  (the swallowed head without its clipping, the rooted crown at other sizes and on a trunk, faces for two of the
+  overgrown), and *Maybe* and *Dropped* tabs: where each stands is set from the picks (`GROUPS`), and a dropped
+  number is never reused. The head bench's engine, room, views and lights; the line-up shows six at
   a time round the one picked, and *Silhouette* draws each as a flat dark shape on a pale room, to compare outlines. Keep,
   maybe or drop each, with a note (collection `picks`, described at the top of its script). `window.__rs` in the console
   exposes the state.
