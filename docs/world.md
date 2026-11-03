@@ -1969,7 +1969,10 @@ The player is never told any of this; they read it.
 - **A line of sprouts (proposed; on the plant bench, *Sprouts*).** Out of a one-off on the plant bench (a stalk out of
   each eye, which the owner found creepy but "a gimmick that can only work once"): sprouts come through the body, out
   of the eyes first, then the skull, the shoulders and the back, each turned up to the light, many more of them with
-  age. Whose line it is (the bush's, or a young god of its own), and whether one of Security's seven is its first.
+  age. Its oldest, *Overgrown*, liked (the owner: "I love overgrown"): the eye stalks thick, sprouts from the crown to
+  the thighs, the longest from the head and the shoulders, the lowest going yellow, stooped, barefoot in rags; a shrub
+  with a person in it. Whose line it is (the bush's, or a young god of its own), and whether one of Security's seven
+  is its first.
 - **The mass (proposed, moved from Security).** A room grown shut, its glass sweating, something pressed flat against it that
   you never see whole, the changed feeding at its door: a late child of Pia's, sessile, in the Commons or wherever her people
   have been longest. A door you want opened, not a fight.
