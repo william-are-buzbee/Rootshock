@@ -27,23 +27,17 @@ browser (three.js comes from a CDN), and each has been published as a private cl
   flashlight; in the built palette or a darker one, flat or mottled, upright or hunched. Keep, maybe or drop each, with
   a note: the published copy keeps them where Claude can read them (collection `picks`, described at the top of its
   script). `window.__rs` in the console exposes the state.
-- `plants.html`: a bench for the bush's line, Pia's plant children (`docs/world.md` §8, *The changed*; §10, *Pia's
-  young gods*), designed again from the start after the head bench's plant heads were all dropped or left at maybe.
-  Two rules, each for the head and the body: *A, the body is the stalk* (leaf off the body as off a tobacco stalk, a
-  spiral of single leaves, the biggest and most cured lowest; the head the growing tip, a bud furled over the skull
-  and the eyes, the jaw and mouth below it) and *B, it comes out where it can* (the plant is inside, and leaves only by
-  the ways out: stalks out of the eye sockets, leaf out of the collar, the sleeves, the open shirt, the waistband;
-  never through the skin). No line where flesh turns to plant: where it comes out of skin its colour is part skin.
-  The second pass, after the picks: rule A only (its oldest kept; rule B dropped but for the eye stalks, kept as a
-  one-off), mostly naked so the growth shows, no mouth on the bud. Rows: *Heads* (the bud, the bud on a stalk for a
-  neck, the heavy bud), *Covered* (leaf from head to toe) and *Through* (a stalk grown up through the middle, the leaf
-  off it), each newest to oldest, and *Kept* (the first pass's oldest, unchanged, and the eye-stalk one-off). Covered
-  and grown through were kept, and are written into `docs/world.md` (§8, *The changed*, *The look, from the plant
-  bench*). The third pass adds *Sprouts*, a handful made from the eye-stalk one-off: sprouts through the body, out of
-  the eyes first, newest to oldest with three ways the middle years could go. The head bench's engine, room, views and
-  lights; Keep, maybe or drop each, with a note (collection `picks`, ids
-  `<row>-<figure>`, described at the top of its script; the first pass's stay under their old ids). `window.__rs` in
-  the console exposes the state.
+- `plants.html`: the plant mutants, as a numbered collection. Designed again from the start after the head bench's plant
+  heads were all dropped or left at maybe, over four passes of picks; the passes' rows are in the history. *Kept* holds
+  every one kept so far and *Held* the maybes worth building on, each numbered for good so a variant can be asked for by
+  its number, and each under the id its pick was made with, so the verdicts and notes come with it. Visual first: which
+  line each belongs to waits until the list is long enough to sort. So far: the bud head (furled leaf over the skull and
+  eyes, no mouth) and its heavier form; the bush's line covered head to toe and grown through by a stalk, newest to
+  oldest (`docs/world.md` §8, *The changed*, *The look, from the plant bench*); and sprouts through the body, out of the
+  eyes first (the crown, all over, overgrown). The head bench's engine, room, views and lights; the line-up shows six at
+  a time round the one picked, and *Silhouette* draws each as a flat dark shape on a pale room, to compare outlines. Keep,
+  maybe or drop each, with a note (collection `picks`, described at the top of its script). `window.__rs` in the console
+  exposes the state.
 - `cargo.html`: Cargo made larger (`docs/world.md` §8, *Cargo, sketched, and built*, which says what the build changed),
   at true scale in the game's kit: the nave, the warehouse arm (room and pillar), the freight shaft at the corner and the
   chambers off them, with the station's rooms round it and the old Cargo as an outline to compare. Overview, plan (a 10 m

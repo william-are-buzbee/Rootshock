@@ -66,7 +66,7 @@ button { cursor: pointer; }
 
 /* the panel */
 .intro { margin: 0; font-family: var(--hand); font-size: 16px; line-height: 1.45; color: var(--ash); }
-.seg { display: grid; grid-template-columns: repeat(5, 1fr); border: 1px solid var(--line); }
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border: 1px solid var(--line); }
 .seg button { background: none; border: 0; border-left: 1px solid var(--line); padding: 8px 2px 7px; font-size: 16px; font-weight: 600;
   letter-spacing: .06em; text-transform: uppercase; color: var(--ash); }
 .seg button:first-child { border-left: 0; }
@@ -116,10 +116,10 @@ button { cursor: pointer; }
 
 <div id="app">
   <div id="stage">
-    <canvas id="c" aria-label="A row of the bush's changed in a concrete room. Drag to turn the view; click one to pick it."></canvas>
+    <canvas id="c" aria-label="A row of plant mutants in a concrete room. Drag to turn the view; click one to pick it."></canvas>
     <div id="labels"></div>
     <header class="top">
-      <div class="brand"><b>Rootshock</b> · The bush's line</div>
+      <div class="brand"><b>Rootshock</b> · Plant mutants</div>
       <p id="hint">Drag to turn. Click one, or step with ← →.</p>
     </header>
     <div class="bottom">
@@ -137,18 +137,16 @@ button { cursor: pointer; }
       <button class="chip" id="pal" aria-pressed="false" title="Darker, more sallow skin">Darker skin</button>
       <button class="chip" id="mottle" aria-pressed="false" title="Each face of each part a shade off the next, for what the surface is made of">Mottled</button>
       <button class="chip" id="hunch" aria-pressed="false" title="Leaning, the head forward and down, one shoulder dropped">Hunched</button>
+      <button class="chip" id="sil" aria-pressed="false" title="Each one a flat dark shape on a pale room, to compare outlines (S)">Silhouette</button>
     </div>
     <div id="toast" hidden></div>
   </div>
 
   <aside id="panel">
-    <p class="intro">Third pass. Your second picks kept rule A, covered and grown through, and it is written into world.md; those rows stay as you picked them. New: Sprouts, a handful made from the eye-stalk one-off, with many more sprouts through them.</p>
+    <p class="intro">The collection: every plant mutant you have kept, numbered for good, so you can ask for a variant by its number. Held are the maybes worth building on. Six show at a time; step along with the arrow keys. Silhouette shows each as a flat shape, to compare outlines as the list grows.</p>
     <div class="seg" role="tablist" aria-label="Row">
-      <button role="tab" data-line="heads2" aria-selected="true">Heads</button>
-      <button role="tab" data-line="cover" aria-selected="false">Covered</button>
-      <button role="tab" data-line="through" aria-selected="false">Through</button>
-      <button role="tab" data-line="stalk" aria-selected="false">Kept</button>
-      <button role="tab" data-line="sprout" aria-selected="false">Sprouts</button>
+      <button role="tab" data-line="kept" aria-selected="true">Kept</button>
+      <button role="tab" data-line="held" aria-selected="false">Held</button>
     </div>
     <p class="who" id="who"></p>
 
@@ -201,6 +199,10 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
    rule A's oldest kept ("could go in the game"), so rule A only, mostly naked so the growth shows, no mouth on the bud,
    and the two ways the notes put it: covered from head to toe, or "grown through with a stalk in the middle". The first
    pass's rows are in the history; their picks stay in the store under their old ids.
+
+   Fourth pass: the collection. Every one kept so far, numbered for good, and the maybes held beside them; the rows the
+   passes were picked in are in the history. Visual first, the lines sorted later. The line-up shows six at a time round
+   the one picked; Silhouette draws each as a flat shape.
 
    Third pass, after the second picks: covered all kept, grown through kept from the middle years (rule A, written into
    world.md, §8 and §10); the eye-stalk one-off made a line of its own, a handful of sprouting ones (the Sprouts row).
@@ -313,9 +315,10 @@ const VS = `attribute vec3 aCol; varying vec3 vW; varying vec3 vC;
 void main(){ vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; vC = aCol; gl_Position = projectionMatrix * viewMatrix * w; }`;
 const FS = `uniform vec3 uCol; uniform float uGloss; uniform vec3 uRoom; uniform vec3 uKeyDir; uniform float uKey;
 uniform vec3 uFlashPos; uniform vec3 uFlashDir; uniform float uFlash; uniform vec3 uTubeA; uniform vec3 uTubeB; uniform float uTube;
-uniform float uFog; uniform float uTime;
+uniform float uFog; uniform float uTime; uniform float uSil; uniform float uFig;
 varying vec3 vW; varying vec3 vC;
 void main(){
+  if (uSil > 0.5) { gl_FragColor = vec4(uFig > 0.5 ? vec3(0.035, 0.036, 0.04) : vW.y < 0.01 ? vec3(0.66, 0.65, 0.62) : vec3(0.8, 0.79, 0.76), 1.0); return; }
   vec3 n = normalize(cross(dFdx(vW), dFdy(vW)));
   vec3 tc = cameraPosition - vW; float d = length(tc); vec3 V = tc / max(d, 0.001);
   vec3 nf = dot(n, V) < 0.0 ? -n : n;
@@ -347,13 +350,14 @@ const U = {
   uRoom: { value: new THREE.Vector3() }, uKeyDir: { value: new THREE.Vector3(0.35, 0.8, 0.5).normalize() }, uKey: { value: 0 },
   uFlashPos: { value: new THREE.Vector3() }, uFlashDir: { value: new THREE.Vector3(0, 0, -1) }, uFlash: { value: 0 },
   uTubeA: { value: new THREE.Vector3() }, uTubeB: { value: new THREE.Vector3() }, uTube: { value: 0 },
-  uFog: { value: 0.03 }, uTime: { value: 0 },
+  uFog: { value: 0.03 }, uTime: { value: 0 }, uSil: { value: 0 },
 };
 const mats = new Map();
+let FIG = false; // building a figure, not the room: silhouette darkens only figures
 function matFor(c, gloss) {
-  const key = c.map(x => x.toFixed(3)).join(',') + '|' + gloss.toFixed(2);
+  const key = c.map(x => x.toFixed(3)).join(',') + '|' + gloss.toFixed(2) + (FIG ? '|f' : '');
   let m = mats.get(key);
-  if (!m) mats.set(key, (m = new THREE.ShaderMaterial({ uniforms: { ...U, uCol: { value: new THREE.Vector3(...c) }, uGloss: { value: gloss } }, vertexShader: VS, fragmentShader: FS, side: THREE.DoubleSide })));
+  if (!m) mats.set(key, (m = new THREE.ShaderMaterial({ uniforms: { ...U, uCol: { value: new THREE.Vector3(...c) }, uGloss: { value: gloss }, uFig: { value: FIG ? 1 : 0 } }, vertexShader: VS, fragmentShader: FS, side: THREE.DoubleSide })));
   return m;
 }
 function mk(parent, shape, key, sx, sy, sz, x = 0, y = 0, z = 0) {
@@ -554,14 +558,6 @@ function offStalk(M, R, o) {
   }
 }
 
-/* the one-off's: leaf out of what openings the clothes still have, the waistband and the trousers torn at the knee */
-function waistband(M, R, n, len, cure) {
-  for (let i = 0; i < n; i++) {
-    const th = (i / n) * TAU + 0.15 + R.rnd(-0.1, 0.1);
-    if (Math.abs(Math.sin(th)) > 0.9) continue; // where the arms hang
-    leafAt(M.b, ...onBody(M, th, 0.07), th, len * R.rnd(0.85, 1.1), { col: cureKey(cure + R.rnd(-0.15, 0.15), R), lift: -0.55, droop: 0.45 });
-  }
-}
 
 /* ---------------------------------------------------------------------------------------------------------------- */
 /* the heads, each on the same bare body, so only the head differs */
@@ -625,7 +621,7 @@ function throughBody(age) {
   offStalk(M, R, { n: 13, y0: -0.02, y1: 0.56, d: 0.105, back: true, len0: 0.6, len1: 0.28, cure0: 1, cure1: 0.08 });
   return M;
 }
-/* the oldest you kept from the first pass (stalk-old), exactly as it was; and the eye stalks as a one-off */
+/* the oldest you kept from the first pass (stalk-old), exactly as it was */
 function keptBody(id) {
   if (id === 'old') {
     const R = seeded(43), M = person({ shirt: 'none', torn: true, boot: true, tint: 0.3, stoop: 0.1 });
@@ -638,15 +634,7 @@ function keptBody(id) {
     M.arms.forEach((a, i) => { const s = i ? 1 : -1; leafAt(a, s * 0.045, -0.12, 0, s * (PI / 2), 0.34, { col: cureKey(0.55, R), base: mixTone(M.skin, 'LEAF1', 0.45), lift: 0.3, droop: 1.0 }); });
     return M;
   }
-  const R = seeded(162), M = person({ shirt: 'none', legs: 'knee', tint: 0.05 });
-  mk(M.hd, 'ico', M.skin, 0.24, 0.28, 0.25); // smooth: no eyes
-  mk(M.hd, 'box', 'GOREC', 0.075, 0.024, 0.03, 0, -0.08, 0.11); // the mouth, slack
-  for (const s of [-1, 1]) eyeStalk(M.hd, s, R, M.skin);
-  waistband(M, R, 8, 0.3, 0.45);
-  M.shins.forEach((k, i) => {
-    for (const a of [0.5, -1.2]) { const th = (i ? 1 : -1) * a; leafAt(k, Math.sin(th) * 0.085, -0.115, Math.cos(th) * 0.085, th, 0.22 * R.rnd(0.9, 1.1), { col: cureKey(0.4, R), lift: -0.9, droop: 0.2 }); }
-  });
-  return M;
+  throw new Error('no kept body ' + id);
 }
 
 /* Third pass, the sprouts (stalk-oneoff: "more of those sprouts going through him, like many more ... make a line out
@@ -737,65 +725,73 @@ function sproutBody(id) {
 }
 
 /* ---------------------------------------------------------------------------------------------------------------- */
-/* the rows: what each is, why it is here, and what building it in castView.ts would take. Second pass, after your
-   picks: rule A only (rule B's dropped but for the eye stalks, a one-off); mostly naked; no mouth on the bud */
+/* The collection (fourth pass): every mutant kept so far, one number each for good, so a variant can be asked for by
+   number, and the maybes worth building on held beside them. Each keeps the id its pick was made under, so your
+   verdicts and notes come with it; a new one takes the next number and an id of its own. Visual first: which line
+   each belongs to waits until the list is long enough to sort (the owner: "get that list of cool looking mutants
+   growing until it's too good to ignore") */
+const MUTANTS = [
+  { n: 1, id: 'heads2-bud', tag: 'Bud', name: 'The bud', build: () => headBody('bud', 0),
+    what: 'Bare to the waist, trousers and boots on. The head a bud of leaf furled over where the skull and the eyes were, on the skin of the jaw. No face at all.',
+    from: 'Kept: "very clear". New effects on the body to come.', game: 'changed() bare to the waist; the bud for a head.' },
+  { n: 2, id: 'heads2-heavy', tag: 'Heavy bud', name: 'The heavy bud', build: () => headBody('heavy', 2),
+    what: 'The bud larger and opening at the top, heavy enough that the head hangs forward under it.',
+    from: 'Kept: a continuation of the bud. Still wanted: one that eats the head entirely.', game: 'As 1, the bud larger; the head carried forward.' },
+  { n: 3, id: 'cover-new', tag: 'Covered, newest', name: 'Covered, newest', build: () => coverBody('new'),
+    what: 'Bare to the waist, trousers and boots on. The bud small and tight; five young leaves up the chest and the neck, one out of the right arm.',
+    from: 'Kept.', game: 'changed() bare to the waist; the bud; a spiral of leaves.' },
+  { n: 4, id: 'cover-mid', tag: 'Covered, middle', name: 'Covered, middle years', build: () => coverBody('mid'),
+    what: 'The trousers torn at the knee, a boot lost. Leaf in a spiral from the belly to the neck, the lowest going yellow; two out of each arm, one out of each thigh; the skin going green.',
+    from: 'Kept.', game: 'The spiral, and leaves on the limbs.' },
+  { n: 5, id: 'cover-old', tag: 'Covered, oldest', name: 'Covered, oldest', build: () => coverBody('old'),
+    what: 'Rags of trouser above the knee, barefoot, stooped. Leaf from the shins to the crown, the lowest cured brown and hanging; the bud heavy and open, the head hanging under it.',
+    from: 'Kept.', game: 'As 4, more of it; a stoop.' },
+  { n: 6, id: 'through-mid', tag: 'Through, middle', name: 'Grown through, middle years', build: () => throughBody('mid'),
+    what: 'The stalk half out of the body down the chest and the back, the skin either side half green, running up as the neck into the bud; eight leaves off it.',
+    from: 'Kept.', game: 'A half-sunk cylinder front and back, a stalk for a neck, the leaves off it.' },
+  { n: 7, id: 'through-old', tag: 'Through, oldest', name: 'Grown through, oldest', build: () => throughBody('old'),
+    what: 'The stalk thick from the groin to the neck, front and back; thirteen leaves off it, the lowest dead; the bud heavy and open, the head hanging.',
+    from: 'Kept.', game: 'As 6, more of it; a stoop.' },
+  { n: 8, id: 'stalk-old', tag: 'First keep', name: 'The first keep', build: () => keptBody('old'),
+    what: 'The first keep, as it was: the shirt gone, the trousers torn at the knee, a boot lost; the spiral from the hips to the neck and down the thighs; the bud heavy and open, and still with its mouth.',
+    from: 'Kept: "a fully fledged mid mutant version of this line. Like this could go in the game."', game: 'changed(), the spiral and the heavy bud.' },
+  { n: 9, id: 'sprout-crown', tag: 'Crown', name: 'Crown', build: () => sproutBody('crown'),
+    what: 'A thicket of sprouts through the skull, a stalk out of each eye the tallest; a few at the shoulders, the body otherwise clean; the mouth under it.',
+    from: 'Kept: "fantastic as the top part", with the head coming up out of the ground, or the rest of the body rooting.', game: 'Two dozen sprouts on the head.' },
+  { n: 10, id: 'sprout-pin', tag: 'All over', name: 'All over', build: () => sproutBody('pin'),
+    what: 'Fifty-odd sprouts through the chest, the back, the shoulders and the arms, short and even, each turned up to the light; a stalk out of each eye.',
+    from: 'Kept: maybe better as a standalone creature; a foundation for a rooting one with bark on its bottom half.', game: 'Fifty-odd sprouts, one merged mesh in the game.' },
+  { n: 11, id: 'sprout-old', tag: 'Overgrown', name: 'Overgrown', build: () => sproutBody('old'),
+    what: 'Sprouts from the crown to the thighs, the longest from the head and the shoulders, the lowest going yellow; the eye stalks thick; stooped, barefoot in rags. A shrub with a person in it.',
+    from: 'Kept: "just fantastic. I love it."', game: 'Some eighty sprouts, and a stoop.' },
+  { n: 12, id: 'heads2-stem', tag: 'Bud on the stalk', name: 'The bud on the stalk', held: true, build: () => headBody('stem', 1),
+    what: 'No jaw left: the neck is the stalk, and the head is all bud.',
+    from: 'Held as a variant: "the fact that the head looks gone is freaky."', game: 'A stalk for a neck; the head all leaf.' },
+  { n: 13, id: 'through-new', tag: 'Through, newest', name: 'Grown through, newest', held: true, build: () => throughBody('new'),
+    what: 'The stalk a hand\'s length down the breastbone into the neck, the head its bud; three young leaves off it.',
+    from: 'Held (maybe).', game: 'A half-sunk cylinder down the chest, a stalk for a neck.' },
+  { n: 14, id: 'sprout-few', tag: 'Seedlings', name: 'Seedlings', held: true, build: () => sproutBody('few'),
+    what: 'A dozen-odd seedlings through the scalp, the shoulders and the top of the back; short stalks out of the eyes.',
+    from: 'Held: a first starting form; the ones walking about should be further gone, like 10 or 11.', game: 'The eye stalks, and a dozen seedlings.' },
+  { n: 15, id: 'sprout-spine', tag: 'Spine', name: 'Down the spine', held: true, build: () => sproutBody('spine'),
+    what: 'Sprouts in a crest down the spine and over the shoulders, longer there; a few through the chest.',
+    from: 'Held: perhaps the top half that shows, with bark from the chest down.', game: 'Three dozen sprouts, most along the back.' },
+];
 const LINES = {
-  heads2: {
-    name: 'Heads', who: 'Each head on the same bare body, so only the head differs. No mouth, as your note asked.', gap: 1.5, height: 2.15, ceil: 3.1, look: 1.5,
-    body: (h, i) => headBody(h, i),
-    heads: [
-      { id: 'bud', tag: 'Bud', name: 'The bud, no mouth', what: 'The bud from the first pass with the mouth gone: leaf furled over the skull and the eyes, on the skin of the jaw. No face at all.', from: 'Your note: no mouth for now on the bud and the heavy.', game: 'A smaller head for the jaw and twelve flattened icosahedra.' },
-      { id: 'stem', tag: 'On the stalk', name: 'The bud on the stalk', what: 'No jaw left: the neck is the stalk, coming up out of the shoulders the colour of skin and going green, and the head is the bud on top of it, its lowest leaves still near the colour of skin where they wrap the stalk.', from: 'Your note: grown through with a stalk in the middle. Here the stalk is the neck, and the head is wholly plant.', game: 'The neck a thicker cylinder, the head all leaf.' },
-      { id: 'heavy', tag: 'Heavy', name: 'The bud, heavy, no mouth', what: 'The heavy bud, opening at the top, with the mouth gone; the head hangs forward under it.', from: 'As your kept oldest wears it, less the mouth.', game: 'As the bud, larger; the head carried forward.' },
-    ],
-  },
-  cover: {
-    name: 'Covered', who: 'Rule A, covered head to toe: the spiral of leaf up the body, and as they age, down the arms and the legs. Mostly naked, so the growth shows. Newest to oldest.', gap: 1.6, height: 2.15, ceil: 3.1, look: 1.5,
-    body: (h) => coverBody(h),
-    heads: [
-      { id: 'new', tag: 'Newest', name: 'Newest', what: 'The shirt off, the trousers and boots still on. The bud over the head, small and tight; five young leaves up the chest and the neck, one out of the right arm.', from: 'Mostly naked, so the growth shows (your note on the bud); your kept oldest had lost its shirt too.', game: 'changed() bare to the waist, and a spiral of leaves.' },
-      { id: 'mid', tag: 'Middle', name: 'Middle years', what: 'Bare to the waist, the trousers torn at the knee, a boot lost. The spiral from the belly to the neck, the lowest going yellow; two leaves out of each arm, one out of each thigh. The skin going green.', from: 'Covered head to toe, partway there.', game: 'The spiral, and a few leaves on each limb.' },
-      { id: 'old', tag: 'Oldest', name: 'Oldest', what: 'Your kept oldest taken further, the mouth gone: the trousers torn off above the knee, barefoot. Leaf from the shins to the crown: the spiral up the body, three out of each arm, two out of each thigh, one out of each shin, the lowest cured brown and hanging. The skin still shows between, and is greener.', from: 'Your note: covered from head to toe. Your keep is in the Kept row to compare.', game: 'As the kept oldest, with leaves down the limbs.' },
-    ],
-  },
-  through: {
-    name: 'Through', who: 'Rule A, grown through: the stalk has come up through the middle of them. It shows down the chest (and later the back), the neck is the stalk, the head is its bud, and the leaf grows off it. Newest to oldest.', gap: 1.6, height: 2.15, ceil: 3.1, look: 1.5,
-    body: (h) => throughBody(h),
-    heads: [
-      { id: 'new', tag: 'Newest', name: 'Newest', what: 'The shirt off. The neck has gone to stalk and the head is its bud; the stalk shows a hand\'s length down the breastbone, the skin either side half green. Three young leaves come off it.', from: 'Your note: grown through with a stalk in the middle. The rule: the stalk grows up through them, and the leaf grows off the stalk.', game: 'A half-sunk cylinder down the chest, and a stalk for the neck.' },
-      { id: 'mid', tag: 'Middle', name: 'Middle years', what: 'The stalk shows from the navel up, front and back, thicker; eight leaves come off it, turning round it, the lowest going yellow. The trousers torn at the knee, a boot lost.', from: 'Every leaf where a plant would put it: on the stalk.', game: 'The stalk front and back, the leaves off it.' },
-      { id: 'old', tag: 'Oldest', name: 'Oldest', what: 'The stalk thick from the groin to the neck, front and back; thirteen leaves off it, the lowest cured brown and hanging. The bud heavy and open, the head hanging forward under it. The trousers torn off above the knee, barefoot.', from: 'Your kept oldest\'s rule, with the stalk in sight.', game: 'As the middle years, more of it; a stoop.' },
-    ],
-  },
-  stalk: {
-    name: 'Kept', who: 'Your keep from the first pass, unchanged, to compare; and the eye stalks as a one-off, one of the seven rather than the line.', gap: 1.8, height: 2.15, ceil: 3.1, look: 1.5,
-    body: (h) => keptBody(h),
-    heads: [
-      { id: 'old', tag: 'Kept', name: 'Oldest (kept)', what: 'Your keep from the first pass, unchanged: the shirt gone, the trousers torn at the knee, a boot lost, the spiral from the hips to the neck and down the thighs, the bud heavy and open. It still has the mouth; the new rows drop it.', from: 'Your note: a fully fledged middle-years mutant of this line, one that could go in the game.', game: 'changed(), the spiral and the heavy bud.' },
-      { id: 'oneoff', tag: 'One-off', name: 'Eye stalks, one-off', what: 'The first pass\'s rule B middle years with the clothes taken down: bare to the waist, the trousers torn at the knee. A stalk out of each eye; leaf out of the waistband and out of the torn trouser legs. One of the seven, not the line.', from: 'Your notes: the eye stalks are creepy but a trick that works once; too much clothing on the middle years.', game: 'changed() with the eye stalks and a few leaves.' },
-    ],
-  },
-  sprout: {
-    name: 'Sprouts', who: 'From the eye-stalk one-off: sprouts come through them, out of the eyes first and then the skull, the shoulders, the back, each turned up to the light. A handful: the newest, three ways the middle years could go, and the oldest.', gap: 1.6, height: 2.3, ceil: 3.1, look: 1.5,
-    body: (h) => sproutBody(h),
-    heads: [
-      { id: 'few', tag: 'Seedlings', name: 'Seedlings', what: 'The newest: a stalk out of each eye, shorter, and a dozen and more seedlings through the scalp, the shoulders and the top of the back, each a short stalk and a pair of young leaves, turned up to the light. Bare to the waist, the trousers and boots on.', from: 'Your note on the one-off: many more sprouts going through him, and a line made of it.', game: 'changed() with the eye stalks; each seedling two cylinders and two leaves.' },
-      { id: 'crown', tag: 'Crown', name: 'A thicket on the head', what: 'The sprouts all through the skull: the head a thicket of stalks and young leaf, the two out of the eyes the tallest; a few at the shoulders, the body otherwise clean. The mouth still there under it.', from: 'One way the middle years could go: all of it up top, read from across a room by the head alone.', game: 'Two dozen sprouts on the head.' },
-      { id: 'pin', tag: 'All over', name: 'All over', what: 'Sprouts through the whole of the upper body, front and back, the shoulders and the arms, fifty and more, short and even, all turned up. The trousers torn at the knee, a boot lost.', from: 'Another: the most literal reading of many more sprouts through him.', game: 'Fifty-odd sprouts, one merged mesh in the game.' },
-      { id: 'spine', tag: 'Spine', name: 'Down the spine', what: 'The sprouts thickest down the spine and over the shoulders, and longer there, rising in a crest; a few through the chest. From behind or the side a ridge of growth; from the front, a person with something rising behind them.', from: 'Another: a silhouette of its own, not the covered one or the grown-through.', game: 'Three dozen sprouts, most along the back.' },
-      { id: 'old', tag: 'Overgrown', name: 'Overgrown', what: 'The oldest: the eye stalks thick, sprouts from the crown to the thighs, the longest from the head and the shoulders, those lower on the body going yellow. Stooped, in rags of trouser above the knee, barefoot. A shrub with a person in it.', from: 'Where the line ends if the sprouts keep coming.', game: 'Some eighty sprouts, and a stoop.' },
-    ],
-  },
+  kept: { name: 'Kept', flat: true, who: 'Every mutant you have kept, numbered for good. Ask for a variant by its number.', gap: 1.6, height: 2.3, ceil: 3.1, look: 1.5,
+    heads: MUTANTS.filter(m => !m.held) },
+  held: { name: 'Held', flat: true, who: 'The maybes worth building on: held, not kept. Numbered the same way.', gap: 1.6, height: 2.3, ceil: 3.1, look: 1.5,
+    heads: MUTANTS.filter(m => m.held) },
 };
-const ORDER = ['heads2', 'cover', 'through', 'stalk', 'sprout'];
+const ORDER = ['kept', 'held'];
 
 /* ---------------------------------------------------------------------------------------------------------------- */
 /* state, and what this viewer last looked at */
-const S = { line: 'heads2', sel: 0, view: 'lineup', light: 'room', pal: 'built', mottle: false, hunch: false, dist: 3.5 };
+const S = { line: 'kept', sel: 0, view: 'lineup', light: 'room', pal: 'built', mottle: false, hunch: false, sil: false, dist: 3.5 };
 try {
   const saved = JSON.parse(localStorage.getItem('rs-plants-view') || '{}');
   for (const k of Object.keys(S)) if (k in saved && typeof saved[k] === typeof S[k]) S[k] = saved[k];
-  if (!LINES[S.line]) S.line = 'heads2';
+  if (!LINES[S.line]) S.line = 'kept';
   if (!['room', 'tube', 'dark'].includes(S.light)) S.light = 'room';
   if (!PAL[S.pal]) S.pal = 'built';
   if (!['lineup', 'close', 'eye'].includes(S.view)) S.view = 'lineup';
@@ -856,9 +852,10 @@ function buildRow() {
   for (const g of OWNED) g.dispose();
   OWNED.length = 0;
   const L = LINES[S.line], n = L.heads.length;
+  FIG = true;
   figs = L.heads.map((h, i) => {
     MR = seeded(97 + i * 13).next;
-    const M = L.body(h.id, i), x = (i - (n - 1) / 2) * L.gap;
+    const M = h.build ? h.build() : L.body(h.id, i), x = (i - (n - 1) / 2) * L.gap;
     M.g.position.x = x;
     pose(M, S.hunch);
     M.base = { b: M.b.rotation.z, hz: M.hd.rotation.z, hx: M.hd.rotation.x, by: M.b.position.y };
@@ -868,6 +865,7 @@ function buildRow() {
     const top = new THREE.Box3().setFromObject(M.g).max.y, head = M.hd.getWorldPosition(new THREE.Vector3());
     return { M, h, i, x, top, head, ph: i * 1.7 };
   });
+  FIG = false;
   S.sel = Math.min(S.sel, figs.length - 1);
   placeRing();
   buildLabels();
@@ -909,16 +907,17 @@ function applyLight() {
 
 /* the view: the line-up from a little above, or from your eye as the game has it (1.6 m up, 72 degrees), some metres off
    the one picked (3.5 m is where the game's dev keys put one down) */
-const _aim = new THREE.Vector3();
+const _aim = new THREE.Vector3(), WINDOW = 6;
 function frame() {
   const L = LINES[S.line];
   ring.visible = S.view === 'lineup';
   if (S.view === 'lineup') {
     camera.fov = 38; camera.updateProjectionMatrix();
-    const vt = Math.tan(camera.fov * PI / 360), ht = vt * camera.aspect, span = L.heads.length * L.gap;
+    const n = L.heads.length, w = Math.min(n, WINDOW), vt = Math.tan(camera.fov * PI / 360), ht = vt * camera.aspect, span = w * L.gap;
     const dist = Math.max((span / 2 + 0.2) / ht, (L.height / 2 + 0.5) / vt);
-    controls.target.set(0, L.height * 0.5, 0);
-    camera.position.set(dist * 0.2, L.height * 0.5 + dist * 0.1, dist);
+    const edge = ((n - w) / 2) * L.gap, cx = clamp(figs[S.sel]?.x ?? 0, -edge, edge);
+    controls.target.set(cx, L.height * 0.5, 0);
+    camera.position.set(cx + dist * 0.2, L.height * 0.5 + dist * 0.1, dist);
   } else if (S.view === 'close') {
     const f = figs[S.sel], d = 1.45;
     camera.fov = 30; camera.updateProjectionMatrix();
@@ -952,8 +951,8 @@ function buildLabels() {
     b.className = 'label';
     b.type = 'button';
     const dot = document.createElement('span'); dot.className = 'dot';
-    const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = f.h.tag;
-    const ix = document.createElement('span'); ix.className = 'ix'; ix.textContent = String(f.i + 1);
+    const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = (f.h.n ? f.h.n + ' · ' : '') + f.h.tag;
+    const ix = document.createElement('span'); ix.className = 'ix'; ix.textContent = String(f.h.n ?? f.i + 1);
     b.append(dot, nm, ix);
     b.title = f.h.name;
     b.addEventListener('click', () => select(f.i));
@@ -1000,7 +999,8 @@ addEventListener('keydown', e => {
   else if (e.key === 'ArrowLeft') { select((S.sel + figs.length - 1) % figs.length); e.preventDefault(); }
   else if (e.key === 'e' || e.key === 'E') setView(S.view === 'eye' ? 'lineup' : 'eye');
   else if (e.key === 'c' || e.key === 'C') setView(S.view === 'close' ? 'lineup' : 'close');
-  else if (e.key >= '1' && e.key <= '5') setLine(ORDER[+e.key - 1]);
+  else if (e.key === 's' || e.key === 'S') setSil(!S.sil);
+  else if (e.key >= '1' && e.key <= '9' && ORDER[+e.key - 1]) setLine(ORDER[+e.key - 1]);
 });
 
 /* ---------------------------------------------------------------------------------------------------------------- */
@@ -1008,7 +1008,7 @@ addEventListener('keydown', e => {
 function select(i) {
   S.sel = clamp(i, 0, figs.length - 1);
   placeRing(); paintLabels(); renderCard(); renderPicks(); remember();
-  if (S.view !== 'lineup') frame();
+  if (S.view !== 'lineup' || LINES[S.line].heads.length > WINDOW) frame();
 }
 function setLine(k) {
   if (!LINES[k] || k === S.line && figs.length) return;
@@ -1037,20 +1037,26 @@ for (const [id, set] of [['pal', on => { S.pal = on ? 'darker' : 'built'; }], ['
     set(on); buildRow(); remember();
   });
 }
+$('sil').addEventListener('click', () => setSil(!S.sil));
+function setSil(on) {
+  S.sil = on; U.uSil.value = on ? 1 : 0; $('sil').setAttribute('aria-pressed', String(on));
+  renderer.setClearColor(on ? 0xcccac4 : 0x070809); remember();
+}
 $('dist').addEventListener('input', () => { S.dist = +$('dist').value; $('distout').textContent = S.dist.toFixed(1) + ' m'; if (S.view === 'eye') frame(); remember(); });
 
 /* ---------------------------------------------------------------------------------------------------------------- */
 /* the picks: in the artifact's own store where it has one, so Claude can read them back; else in this browser */
 const store = { mode: 'connecting', db: null, picks: {}, err: '', stale: false };
 const LOCAL = 'rs-plants-picks';
-const idOf = (line, head) => `${line}-${head}`;
+const idOf = (line, head) => LINES[line]?.flat ? head : `${line}-${head}`;
 const pickOf = (line, head) => store.picks[idOf(line, head)] || {};
 function readLocal() { try { const o = JSON.parse(localStorage.getItem(LOCAL) || '{}'); return o && typeof o === 'object' ? o : {}; } catch { return {}; } }
 function writeLocal() { try { localStorage.setItem(LOCAL, JSON.stringify(store.picks)); } catch {} }
 const chain = {};
 function save(line, head) {
   const id = idOf(line, head), h = LINES[line].heads.find(x => x.id === head), p = pickOf(line, head);
-  const rec = { line, head, name: h.name, verdict: p.verdict || '', note: p.note || '', at: new Date().toISOString() };
+  const [ln, ...hh] = id.split('-'), flat = LINES[line].flat;
+  const rec = { line: flat ? ln : line, head: flat ? hh.join('-') : head, name: h.name, verdict: p.verdict || '', note: p.note || '', at: new Date().toISOString() };
   store.picks[id] = rec;
   if (store.mode === 'db') {
     $('c-state').textContent = 'Saving…';
@@ -1090,8 +1096,8 @@ function renderCard(fromStore = false) {
   const f = figs[S.sel];
   if (!f) return;
   const L = LINES[S.line], p = pickOf(S.line, f.h.id);
-  $('c-line').textContent = L.name + ' line';
-  $('c-ix').textContent = `${f.i + 1} of ${figs.length}`;
+  $('c-line').textContent = L.flat ? L.name : L.name + ' line';
+  $('c-ix').textContent = f.h.n ? `No. ${f.h.n}` : `${f.i + 1} of ${figs.length}`;
   $('c-name').textContent = f.h.name;
   $('c-what').textContent = f.h.what;
   $('c-from').textContent = f.h.from;
@@ -1138,7 +1144,7 @@ function renderPicks() {
     b.type = 'button';
     if (k === S.line && figs[S.sel]?.h.id === h.id) b.className = 'on';
     const ln = document.createElement('span'); ln.className = 'ln'; ln.textContent = LINES[k].name;
-    const nm = document.createElement('span'); nm.textContent = h.name + (p.note ? ' ·' : '');
+    const nm = document.createElement('span'); nm.textContent = (h.n ? h.n + '. ' : '') + h.name + (p.note ? ' ·' : '');
     if (p.note) nm.title = p.note;
     const v = document.createElement('span'); v.className = 'v';
     const dot = document.createElement('span'); dot.className = 'dot' + (p.verdict ? ' ' + p.verdict : '');
@@ -1202,6 +1208,7 @@ document.querySelectorAll('[data-light]').forEach(b => b.setAttribute('aria-pres
 $('pal').setAttribute('aria-pressed', String(S.pal === 'darker'));
 $('mottle').setAttribute('aria-pressed', String(S.mottle));
 $('hunch').setAttribute('aria-pressed', String(S.hunch));
+setSil(S.sil);
 $('distbox').hidden = S.view !== 'eye';
 $('dist').value = String(S.dist); $('distout').textContent = S.dist.toFixed(1) + ' m';
 resize();
@@ -1209,5 +1216,5 @@ buildRoom(); buildRow(); applyLight(); frame(); renderCard(); renderPicks();
 requestAnimationFrame(loop);
 connect();
 
-window.__rs = { S, LINES, figs: () => figs, select, setLine, setView, store, camera, controls };
+window.__rs = { S, LINES, MUTANTS, figs: () => figs, select, setLine, setView, setSil, store, camera, controls };
 </script>
