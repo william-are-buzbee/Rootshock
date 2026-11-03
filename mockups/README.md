@@ -43,7 +43,11 @@ browser (three.js comes from a CDN), and each has been published as a private cl
   through, sprouting, rooted) at a stage of life from newest to oldest: the stage sets each template's ranges (size,
   clothes, growth, curing, bark, roots, the head), and within them each rolls its own big stalks (how many, out of
   where, how large), face and sprouts; no two in a batch put their big stalks in the same places. A generated one's id
-  (`g-<template>-<stage>-<seed>`) rebuilds it exactly (`genome()`, `buildGen()`). The head bench's engine, room, views and lights; the line-up shows six at
+  (`g-<template>-<stage>-<seed>`) rebuilds it exactly (`genome()`, `buildGen()`); the ones kept from a batch are saved
+  as they were rolled (`SAVED`) and numbered into the collection, so changing the generator never changes them. Since
+  its first batch: a fifth template, *Petalled* (plates out of the body, a bloom of yellow flowers on the old), an
+  *Ancient* stage for the rooted (the root taking it to the head, the arms gone in, the green top fierce), buds that
+  flower yellow, faces under bark, and no more than two with eye stalks in a batch. The head bench's engine, room, views and lights; the line-up shows six at
   a time round the one picked, and *Silhouette* draws each as a flat dark shape on a pale room, to compare outlines. Keep,
   maybe or drop each, with a note (collection `picks`, described at the top of its script). `window.__rs` in the console
   exposes the state.

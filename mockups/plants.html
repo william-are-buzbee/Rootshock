@@ -149,7 +149,7 @@ button { cursor: pointer; }
   </div>
 
   <aside id="panel">
-    <p class="intro">The collection: every plant mutant you have kept, numbered for good. New holds 43 to 45 from your last notes. Generate rolls new ones from the kept families, at any stage of life, no two alike: drop any that look wrong. Six show at a time; step along with the arrow keys. Silhouette shows each as a flat shape.</p>
+    <p class="intro">The collection: every plant mutant you have kept, numbered for good, the generator's first batch among them (46 to 58). Generate rolls new ones from five templates now, Petalled the new one, and Rooted has an Ancient stage past the oldest: drop any that look wrong. Six show at a time; step along with the arrow keys. Silhouette shows each as a flat shape.</p>
     <div class="seg" role="tablist" aria-label="Row">
       <button role="tab" data-line="kept" aria-selected="true">Kept</button>
       <button role="tab" data-line="fresh" aria-selected="false">New</button>
@@ -160,9 +160,9 @@ button { cursor: pointer; }
     <p class="who" id="who"></p>
     <section class="gen" id="genbox" hidden aria-label="Generator">
       <label for="g-tpl">Template</label>
-      <select id="g-tpl"><option value="any">Any</option><option value="spiral">Leaf spiral</option><option value="through">Stalk through</option><option value="sprout">Sprouting</option><option value="rooted">Rooted</option></select>
+      <select id="g-tpl"><option value="any">Any</option><option value="spiral">Leaf spiral</option><option value="through">Stalk through</option><option value="sprout">Sprouting</option><option value="rooted">Rooted</option><option value="petal">Petalled</option></select>
       <label for="g-stage">Stage</label>
-      <select id="g-stage"><option value="mixed">Mixed</option><option value="0">Newest</option><option value="1">Young</option><option value="2">Middle years</option><option value="3">Old</option><option value="4">Oldest</option></select>
+      <select id="g-stage"><option value="mixed">Mixed</option><option value="0">Newest</option><option value="1">Young</option><option value="2">Middle years</option><option value="3">Old</option><option value="4">Oldest</option><option value="5">Ancient (rooted)</option></select>
       <label for="g-count">How many</label>
       <input id="g-count" type="number" min="1" max="30" step="1" value="15">
       <span class="k">Batch</span>
@@ -219,6 +219,11 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
    rule A's oldest kept ("could go in the game"), so rule A only, mostly naked so the growth shows, no mouth on the bud,
    and the two ways the notes put it: covered from head to toe, or "grown through with a stalk in the middle". The first
    pass's rows are in the history; their picks stay in the store under their old ids.
+
+   Eighth pass, expanding from the notes on the first batch: the batch's kept saved as rolled (46 to 58; 59 at maybe,
+   given a face); buds flower yellow; a Petalled template (plates out of the body, a bloom on the old); an Ancient stage
+   for the rooted (the root taking it to the head, the arms gone in, the green top fierce); faces under bark; no more
+   than two with eye stalks in a batch; the stalk through always front and back.
 
    Seventh pass: the generator (the Generate tab: templates, stages, batches; genome(), buildGen()), and 43 to 45 from
    the notes on 35 and 39 (buds on the body; the arms to branches or grown in). 36 to 40 and 42 kept, 41 dropped, 35 at
@@ -330,6 +335,8 @@ const FIXED = {
   KNOT: [0x4e4028, 0, 0.14], EYE: [0x140c0d, 0, 0], LIP: [0x3a2622, 0, 0.06],
   BARK0: [0x4a3a2a, 0.02, 0.16], BARK1: [0x54422e, 0.02, 0.16], BARK2: [0x3e3024, 0.02, 0.16], ROOT0: [0x6a5a40, 0.04, 0.12], ROOT1: [0x5c4c36, 0.04, 0.12],
   CONC0: [0x7a766e, 0, 0.08], CONC1: [0x6c6860, 0, 0.08], CONC2: [0x84807a, 0, 0.08], HOLE: [0x1c1814, 0, 0], CRACK: [0x3a3530, 0, 0],
+  BLOOM0: [0xd8cc62, 0.15, 0.06], BLOOM1: [0xe2d46c, 0.15, 0.06], BLOOM2: [0xcabc54, 0.15, 0.06], GOLD0: [0xd6ae3e, 0.15, 0.06], GOLD1: [0xe0bc4c, 0.15, 0.06],
+  CREAM0: [0xe8deaa, 0.08, 0.06], CREAM1: [0xefe6b8, 0.08, 0.06], TUBE: [0xb4b056, 0.08, 0.06],
 };
 const DARKC = 0x140c0d;
 /** what a part is made of: a palette's name for it, a shade of one ({ of, k }), or a plain colour (cloth) */
@@ -474,11 +481,12 @@ function budHead(hd, R, skin, k = 1, open = 0, o = {}) {
   if (open < 0.5) mk(hd, 'ico', 'YOUNG2', 0.05 * k, 0.09 * k, 0.05 * k, 0, 0.26 * k, 0);
   /* swallowing the head: a ruff of leaf out over the shoulders where it took the neck */
   if (o.low && !jaw) for (let i = 0; i < 7; i++) leafAt(hd, 0, -0.2, 0, (i / 7) * TAU + 0.3, 0.26 * k, { col: mixTone(skin, LEAFK(i), 0.7), lift: 0.15, droop: 0.95 });
-  /* sprouting: young shoots up out of the top of it, as it grows larger */
+  /* flowering: a bud is an eventual flowerer ("the stalks that come out should be yellow flowers"): short stalks up out of
+     the top of it as it grows larger, each with a yellow flower at its end */
   for (let i = 0; i < (o.sprouting ?? 0); i++) {
     const a = (i / o.sprouting) * TAU + R.rnd(-0.3, 0.3), b0 = [Math.sin(a) * 0.03 * k, 0.2 * k, Math.cos(a) * 0.03 * k], t = [Math.sin(a) * 0.1 * k, R.rnd(0.33, 0.4) * k, Math.cos(a) * 0.1 * k];
     rod(hd, b0, t, 0.018 * k, 'STEM1');
-    for (const y of [0, PI]) leafAt(hd, ...t, a + y + 0.8, 0.09 * k, { col: 'YOUNG' + (i % 3), lift: 0.9, droop: 0.2 });
+    flower(hd, t, [t[0] - b0[0], t[1] - b0[1] + 0.1 * k, t[2] - b0[2]], 0.1 * k, seeded(Math.round(k * 1000) + i * 7 + 1));
   }
 }
 
@@ -687,11 +695,12 @@ function keptBody(id) {
    a little way and then turned up to the light, a young stalk with a pair of leaves at its tip, and a leaf partway up
    the longer ones; skin where it comes out, green up it. From the surface point p of a part, its outward normal n */
 const _UP = new THREE.Vector3(0, 1, 0), _N = new THREE.Vector3(), _D = new THREE.Vector3();
-function sprout(parent, p, n, len, R, skin, cure = 0) {
+function sprout(parent, p, n, len, R, skin, cure = 0, o = {}) {
+  const up = o.up ?? 1; // how hard it turns up to the light; and how thick it is (`thick`)
   _N.set(...n).normalize();
-  const m = [p[0] + _N.x * len * 0.35, p[1] + _N.y * len * 0.35, p[2] + _N.z * len * 0.35];
-  _D.copy(_N).multiplyScalar(0.35).add(_UP).normalize();
-  const t = [m[0] + _D.x * len * 0.65, m[1] + _D.y * len * 0.65, m[2] + _D.z * len * 0.65], d = Math.max(0.012, len * 0.1);
+  const m = [p[0] + _N.x * len * 0.35 / up, p[1] + _N.y * len * 0.35 / up, p[2] + _N.z * len * 0.35 / up];
+  _D.copy(_N).multiplyScalar(0.35 / up).add(_UP).normalize();
+  const t = [m[0] + _D.x * len * 0.65, m[1] + _D.y * len * 0.65, m[2] + _D.z * len * 0.65], d = Math.max(0.012, len * 0.1) * (o.thick ?? 1);
   mk(parent, 'ico', mixTone(skin, 'STEM1', 0.15), d * 2.2, d * 2, d * 2.2, ...p); // the skin drawn up round it
   rod(parent, p, m, d, mixTone(skin, 'STEM1', 0.45));
   rod(parent, m, t, d * 0.75, mixTone(skin, cure > 0.5 ? 'STEM0' : 'STEM1', 0.9));
@@ -728,7 +737,7 @@ function scatter(M, R, where, n, l0, l1, o = {}) {
       if (where === 'arm') { const y = R.rnd(-0.62, -0.05); p = [s * (y > -0.35 ? 0.046 : 0.041), y, R.rnd(-0.03, 0.03)]; nn = [s, 0, R.rnd(-0.5, 0.3)]; g = M.arms[j]; }
       else { p = [s * 0.066, R.rnd(-0.42, -0.24), R.rnd(-0.04, 0.04)]; nn = [s, 0, 0.3]; g = M.legs[j]; }
     }
-    sprout(g, p, nn, R.rnd(l0, l1), R, M.skin, o.cure ?? 0);
+    sprout(g, p, nn, R.rnd(l0, l1), R, M.skin, o.cure ?? 0, o);
   }
 }
 /** the head the line keeps: smooth, the mouth, a stalk out of each eye */
@@ -1183,17 +1192,18 @@ function armsTo(M, R, kind) {
    (anywhere in a place, never quite the same spot), how large; the face; how thick the sprouts are and where. In a
    batch no two put their big stalks in the same places. Everything comes from its seed, so the same seed builds the
    same one every time: a pick on a generated one is kept under an id that rebuilds it ("g-<template>-<stage>-<seed>") */
-const STAGES = ['Newest', 'Young', 'Middle years', 'Old', 'Oldest'];
+const STAGES = ['Newest', 'Young', 'Middle years', 'Old', 'Oldest', 'Ancient'];
 const TEMPLATES = {
   spiral: { name: 'Leaf spiral', from: '3, 4, 8 and 20 to 22' },
   through: { name: 'Stalk through', from: '6, 7 and 17 to 19' },
   sprout: { name: 'Sprouting', from: '10, 11, 27 to 34, 40 and 42' },
   rooted: { name: 'Rooted', from: '23, 25, 26 and 36 to 39' },
+  petal: { name: 'Petalled', from: 'your note on 43: petals over the body, and a bloom' },
 };
 /** what one is, rolled from its template, its stage (0 newest to 4 oldest) and its seed: plain numbers and names, so it
  *  can be described, compared, and built the same every time */
 function genome(tpl, st, seed) {
-  const R = seeded(seed * 7919 + 13), m = clamp(st / 4 + R.rnd(-0.06, 0.06), 0, 1);
+  const R = seeded(seed * 7919 + 13), m = clamp(st / 4 + R.rnd(-0.06, 0.06), 0, st > 4 ? 1.3 : 1); // past 1 only for the ancient
   const G = { tpl, st, seed, m, K: lerp(0.94, 1.14, m) * R.rnd(0.96, 1.04), wide: 1 + Math.max(0, R.rnd(-0.06, 0.14)) * m,
     stoop: m > 0.5 ? R.rnd(0, 0.13) * m : 0, tint: lerp(0.04, 0.3, m) * R.rnd(0.8, 1.15),
     legs: m < 0.3 ? 'whole' : m < 0.6 ? 'knee' : 'thigh', boots: m < 0.3 ? 2 : m < 0.6 ? (chance(R, 0.5) ? 1 : 2) : (chance(R, 0.6) ? 0 : 1),
@@ -1220,7 +1230,7 @@ function genome(tpl, st, seed) {
   } else if (tpl === 'through') {
     G.head = { kind: 'stem', mouth: false, k: lerp(0.95, 1.24, m) * R.rnd(0.95, 1.05), open: clamp((m - 0.3) * 1.4 + R.rnd(-0.1, 0.1), 0, 1),
       sprouting: m > 0.75 ? irnd(R, 0, 5) : 0, nod: m > 0.5 };
-    G.column = { d: lerp(0.07, 0.13, m) * R.rnd(0.92, 1.08), back: m > 0.35 || chance(R, 0.3), y0: lerp(0.28, -0.06, m) };
+    G.column = { d: lerp(0.07, 0.13, m) * R.rnd(0.92, 1.08), back: true, y0: lerp(0.28, -0.06, m) }; // front and back always ("odd on just the front")
     G.off = { n: irnd(R, lerp(4, 15, m), lerp(6, 17, m)), len0: lerp(0.45, 0.68, m) * R.rnd(0.92, 1.08), cure0: lerp(0.5, 1, m) };
     if (m > 0.55 && chance(R, 0.3)) stalks(1, { shoulder: 1, back: 1, hip: 0.6 }, 1.0, 1.5);
   } else if (tpl === 'sprout') {
@@ -1234,21 +1244,35 @@ function genome(tpl, st, seed) {
     const d = (a, b) => Math.max(0, Math.round(lerp(a, b, m) * R.rnd(0.5, 1.3)));
     G.sprouts = { head: d(6, 20), top: d(3, 12), front: d(0, 15), back: d(2, 14), spine: chance(R, 0.35) ? d(4, 20) : 0, arm: d(0, 12),
       thigh: G.legs === 'thigh' ? d(0, 8) : 0, len: [lerp(0.1, 0.18, m), lerp(0.22, 0.45, m)], cure: lerp(0, 0.8, m) };
-  } else {
-    G.ground = m > 0.6 ? pickW(R, { stand: 0.76, chest: 0.12, neck: 0.12 }) : 'stand';
-    G.brown = G.ground !== 'stand' || chance(R, m * 0.7);
-    G.head.mouth = chance(R, 0.7);
-    G.face = pickW(R, { eyes: 0.3, eye: 0.15, none: 0.35, stalk: 0.1, sprouts: 0.1 }); // the eye stalks only sometimes
+  } else if (tpl === 'rooted') {
+    const ancient = st === 5; // a step past the oldest: the root taking it to the head, the green top fierce
+    G.ancient = ancient;
+    G.ground = ancient ? 'stand' : m > 0.6 ? pickW(R, { stand: 0.76, chest: 0.12, neck: 0.12 }) : 'stand';
+    G.brown = ancient || G.ground !== 'stand' || chance(R, m * 0.7);
+    G.head.mouth = !ancient && chance(R, 0.7);
+    /* the eye stalks only now and then; and no empty face on the old ("the large empty spot on the face") */
+    G.face = ancient ? pickW(R, { bark: 0.6, sprouts: 0.4 }) : m > 0.6 ? pickW(R, { eyes: 0.12, eye: 0.1, stalk: 0.26, sprouts: 0.26, bark: 0.26 })
+      : pickW(R, { eyes: 0.15, eye: 0.1, none: 0.35, stalk: 0.18, sprouts: 0.22 });
     G.faceK = R.rnd(0.9, 1.3);
-    stalks(irnd(R, 0, 2.6), { crown: 1, skull: 1.2, nape: 1, shoulder: 1, back: 0.8 }, 0.9, 1.5);
-    G.thicket = irnd(R, lerp(16, 26, m), lerp(22, 32, m));
-    G.bark = G.ground === 'chest' ? 1.56 : G.ground === 'neck' ? 1.6 : lerp(0.75, 1.45, m) * R.rnd(0.94, 1.06);
-    G.trunk = G.ground === 'stand' && m > 0.55 && chance(R, (m - 0.4) * 1.6);
+    if (ancient) stalks(irnd(R, 2, 4), { crown: 1.5, skull: 1.2, nape: 1, shoulder: 0.8 }, 1.5, 2.2);
+    else stalks(irnd(R, 0, 2.6), { crown: 1, skull: 1.2, nape: 1, shoulder: 1, back: 0.8 }, 0.9, 1.5);
+    G.thicket = ancient ? irnd(R, 34, 46) : irnd(R, lerp(16, 26, m), lerp(22, 32, m));
+    G.bark = ancient ? 1.8 : G.ground === 'chest' ? 1.56 : G.ground === 'neck' ? 1.6 : lerp(0.75, 1.45, m) * R.rnd(0.94, 1.06);
+    G.trunk = ancient || (G.ground === 'stand' && m > 0.55 && chance(R, (m - 0.4) * 1.6));
     if (G.trunk) G.legs = 'trunk';
-    G.trunkR = [lerp(0.28, 0.38, m), lerp(0.19, 0.24, m)];
-    G.arms = m > 0.8 && G.ground === 'stand' ? pickW(R, { arms: 0.3, branches: 0.4, fused: 0.3 }) : 'arms';
+    G.trunkR = ancient ? [R.rnd(0.4, 0.46), R.rnd(0.26, 0.3)] : [lerp(0.28, 0.38, m), lerp(0.19, 0.24, m)];
+    /* the arms: grown in is the step on the way (43's note), the branches rarer ("kinda like a scarecrow"); the ancient's gone */
+    G.arms = ancient ? 'gone' : m > 0.8 && G.ground === 'stand' ? pickW(R, { arms: 0.35, fused: 0.45, branches: 0.2 })
+      : m > 0.65 && G.ground === 'stand' && chance(R, 0.3) ? 'fused' : 'arms';
     G.roots = { n: irnd(R, lerp(5, 10, m), lerp(7, 12, m)), reach: lerp(0.5, 1.0, m) };
     G.body = { top: Math.max(0, irnd(R, lerp(3, 9, m) - 1, lerp(3, 9, m) + 2)), front: irnd(R, 2, lerp(5, 9, m)) };
+  } else { // petalled: plates out of the body, the bud for a head, a bloom on the old
+    const swallow = chance(R, m < 0.3 ? 0.3 : 0.6), rows = lerp(1, 6, m);
+    G.head = { kind: swallow ? 'swallowed' : 'bud', mouth: false, k: lerp(0.95, 1.22, m) * R.rnd(0.95, 1.05), open: clamp((m - 0.3) * 1.2, 0, 1),
+      sprouting: 0, flowers: m > 0.55 && chance(R, 0.7) ? irnd(R, 4, 8) : 0, nod: !swallow && m > 0.5 };
+    G.petals = { rows: Math.max(1, irnd(R, rows - 0.5, rows + 0.5)), per: irnd(R, 7, 10), size: lerp(0.1, 0.17, m) * R.rnd(0.9, 1.1),
+      arms: m > 0.35 ? irnd(R, 1, lerp(2, 5, m)) : 0, legs: m > 0.65 ? irnd(R, 0, 3) : 0, pale: lerp(0.1, 0.7, m), phase: R.rnd(0, TAU) };
+    G.bloom = m > 0.55 && chance(R, 0.55) ? irnd(R, 2, lerp(3, 7, m)) : 0;
   }
   return G;
 }
@@ -1262,9 +1286,10 @@ function buildGen(G) {
   const R = seeded(G.seed * 31 + 7), h = G.head;
   const M = person({ shirt: 'none', legs: G.legs === 'trunk' ? 'none' : G.legs, boots: G.boots, tint: G.tint, stoop: G.stoop, wide: G.wide,
     neck: h.kind === 'stem' || G.open ? 'stalk' : 'skin', skin: G.brown ? mixTone('SALLOW', 'BARK1', 0.7) : undefined });
-  if (h.kind === 'bud') budHead(M.hd, R, M.skin, h.k, h.open, { mouth: false, sprouting: h.sprouting });
-  else if (h.kind === 'stem') budHead(M.hd, R, M.skin, h.k, h.open, { jaw: false, mouth: false, sprouting: h.sprouting });
-  else if (h.kind === 'swallowed') swallowHead(M, R, h.k);
+  const flowers = h.sprouting || h.flowers || 0; // what comes out of a bud is flowers
+  if (h.kind === 'bud') budHead(M.hd, R, M.skin, h.k, h.open, { mouth: false, sprouting: flowers });
+  else if (h.kind === 'stem') budHead(M.hd, R, M.skin, h.k, h.open, { jaw: false, mouth: false, sprouting: flowers });
+  else if (h.kind === 'swallowed') { swallowHead(M, R, h.k); if (flowers) flowerCluster(M.hd, [0, 0.2 * h.k, 0], [0, 1, 0], 0.14 * h.k, flowers, seeded(G.seed + 51)); }
   else {
     mk(M.hd, 'ico', M.skin, 0.24, 0.28, 0.25);
     if (h.mouth && G.face !== 'stalk') mk(M.hd, 'box', 'GOREC', 0.075, 0.024, 0.03, 0, -0.08, 0.11);
@@ -1278,6 +1303,7 @@ function buildGen(G) {
     for (const s of [-1, 1]) leafAt(M.hd, s * 0.06, -0.01, 0.1, s * 0.9, 0.16, { col: mixTone(M.skin, 'LEAF1', 0.6), lift: 0.1, droop: 0.9 });
   }
   if (G.face === 'sprouts') scatter(M, R, 'face', irnd(R, 6, 13), 0.12, 0.3);
+  if (G.face === 'bark' && !G.ancient) barkHead(M, seeded(G.seed + 99), 0.45, true);
   /* the body, by template */
   if (G.tpl === 'spiral') {
     const P = G.spiral, Lm = G.limbs;
@@ -1302,8 +1328,18 @@ function buildGen(G) {
       if (n) scatter(M, R, where, n, l0 * k, l1 * k, { ...(o || {}), cure });
     if (G.skewer) skewer(M, R);
   }
+  if (G.tpl === 'petal') {
+    const F = seeded(G.seed * 13 + 5);
+    petalRows(M, F, G.petals);
+    for (let i = 0; i < G.bloom; i++) {
+      const site = pickW(F, { shoulder: 2, chest: 1.5, back: 1.5, belly: 0.7, upperarm: 1 }), [part, p, n] = SITES[site](M, F, chance(F, 0.5) ? 1 : -1);
+      flowerCluster(part, p, n, F.rnd(0.12, 0.2), irnd(F, 3, 6), F);
+    }
+  }
   if (G.tpl === 'rooted') {
-    scatter(M, R, 'head', G.thicket, 0.12 * lerp(1, 1.2, G.m), 0.32 * lerp(1, 1.2, G.m));
+    const A = G.ancient, F = seeded(G.seed * 17 + 3);
+    if (A) scatter(M, R, 'head', G.thicket, 0.12 * lerp(1, 1.2, G.m) * 1.4, 0.32 * lerp(1, 1.2, G.m) * 1.5, { thick: 1.6, up: 2.5 }); // fiercer, upright, sturdy
+    else scatter(M, R, 'head', G.thicket, 0.12 * lerp(1, 1.2, G.m), 0.32 * lerp(1, 1.2, G.m));
     if (G.trunk) trunk(M.g, R, 0.96, ...G.trunkR);
     barkOver(M, R, G.bark);
     if (G.ground === 'stand') {
@@ -1311,8 +1347,9 @@ function buildGen(G) {
       scatter(M, R, 'front', G.body.front, 0.1, 0.22, { y0: clamp(G.bark - 0.85, 0.1, 0.5) });
       if (G.trunk) roots(M.g, R, [0, 0.03, 0], G.roots.n, G.roots.reach, 0.06, G.trunkR[0]);
       else for (const s of [-1, 1]) roots(M.g, R, [s * 0.11 * M.wide, 0.04, 0.05], Math.ceil(G.roots.n / 2), G.roots.reach * 0.75, 0.045);
-      if (G.arms !== 'arms') armsTo(M, R, G.arms);
+      if (G.arms === 'gone') armsGone(M, F); else if (G.arms !== 'arms') armsTo(M, R, G.arms);
     }
+    if (A) barkHead(M, F, 0.85, G.face === 'bark');
   }
   /* the big stalks, each at its own place */
   for (const st of G.stalks) {
@@ -1330,15 +1367,17 @@ function describe(G) {
   parts.push(`${T.name}, ${STAGES[G.st].toLowerCase()}: ${G.K > 1.08 ? 'large' : G.K < 0.98 ? 'small' : 'a person\'s size'}${G.wide > 1.07 ? ', broad' : ''}${G.stoop > 0.06 ? ', stooped' : ''}`);
   const h = G.head, head = { bud: h.open > 0.5 ? 'the bud, opening' : 'the bud, shut', stem: 'the bud on a stalk for a neck', swallowed: 'the head swallowed by the bud',
     smooth: G.brown ? 'smooth and brown' : 'smooth' }[h.kind];
-  parts.push('head ' + head + (h.kind === 'smooth' && h.mouth && G.face !== 'stalk' ? ', the mouth' : '') + (h.nod ? ', hanging forward' : '') + (h.sprouting ? ', sprouting at the top' : ''));
-  const face = { none: '', stalk: 'one big stalk out of the face', sprouts: 'sprouts out of the face', eyes: 'a stalk out of each eye', eye: 'a stalk out of one eye' }[G.face];
+  parts.push('head ' + head + (h.kind === 'smooth' && h.mouth && G.face !== 'stalk' ? ', the mouth' : '') + (h.nod ? ', hanging forward' : '') + (h.sprouting || h.flowers ? ', flowering at the top' : ''));
+  const face = { none: '', stalk: 'one big stalk out of the face', sprouts: 'sprouts out of the face', eyes: 'a stalk out of each eye', eye: 'a stalk out of one eye', bark: 'the face gone under bark' }[G.face];
   if (face) parts.push(face);
   if (G.stalks.length) parts.push('big stalks out of the ' + G.stalks.map(s => `${SIDELESS.has(s.site) ? '' : s.s > 0 ? 'right ' : 'left '}${SITE_NAME[s.site]}${s.k > 1.8 ? ' (a great one)' : ''}`).join(', '));
   if (G.skewer) parts.push('a great root through the head into the shoulder');
   if (G.tpl === 'spiral') parts.push(`${G.spiral.n} leaves in a spiral${G.open ? ', the centre opened' : ''}${G.limbs.arm + G.limbs.thigh + G.limbs.shin ? ', more down the limbs' : ''}${G.buds ? `, ${G.buds} buds on the body` : ''}`);
   if (G.tpl === 'through') parts.push(`the stalk through the ${G.column.back ? 'chest and back' : 'chest'}, ${G.off.n} leaves off it`);
   if (G.tpl === 'sprout') { const P = G.sprouts; parts.push(`about ${P.head + P.top + P.front + P.back + P.spine + P.arm + P.thigh} sprouts${P.spine ? ', a crest down the spine' : ''}`); }
-  if (G.tpl === 'rooted') parts.push(G.ground === 'stand'
+  if (G.tpl === 'petal') parts.push(`${G.petals.rows} rows of petals${G.petals.arms ? ', down the arms' : ''}${G.petals.legs ? ' and the thighs' : ''}${G.bloom ? `, in bloom: ${G.bloom} clusters of yellow flowers` : ''}`);
+  if (G.ancient) parts.push('the root taking it up to the head, the arms gone into the trunk, the green top grown fierce and upright');
+  else if (G.tpl === 'rooted') parts.push(G.ground === 'stand'
     ? `${G.trunk ? 'the legs gone into a trunk' : 'bark from the feet'} up to the ${G.bark > 1.3 ? 'chest' : 'belly'}, roots over the floor${G.arms === 'branches' ? ', the arms gone to branches' : G.arms === 'fused' ? ', the arms grown into the bark' : ''}`
     : `sunk into the floor to the ${G.ground}`);
   if (G.legs !== 'trunk' && G.ground === 'stand') parts.push({ whole: 'trousers', knee: 'trousers torn at the knee', thigh: 'rags above the knee' }[G.legs] + (G.boots === 2 ? ' and boots' : G.boots === 1 ? ', a boot lost' : ', barefoot'));
@@ -1348,14 +1387,21 @@ function describe(G) {
  *  same places. The batch number seeds it, so the same batch is the same every time */
 function generate() {
   const { tpl, stage, count, batch } = S.gen, seen = new Set(), B = seeded(batch * 101 + 1), list = [];
+  let eyed = 0;
   for (let i = 0; i < count; i++) {
-    const t0 = tpl === 'any' ? pickW(B, { sprout: 0.35, rooted: 0.3, spiral: 0.2, through: 0.15 }) : tpl, st = stage === 'mixed' ? Math.floor(B.rnd(0, 4.999)) : +stage;
+    const t0 = tpl === 'any' ? pickW(B, { sprout: 0.3, rooted: 0.27, spiral: 0.15, through: 0.13, petal: 0.15 }) : tpl;
+    let st = stage === 'mixed' ? Math.floor(B.rnd(0, 4.999)) : +stage;
+    if (stage === 'mixed' && t0 === 'rooted' && st === 4 && chance(B, 0.4)) st = 5;
+    if (t0 !== 'rooted') st = Math.min(st, 4);
     let G;
-    for (let t = 0; t < 25; t++) {
+    for (let t = 0; t < 30; t++) {
       G = genome(t0, st, batch * 10000 + i * 100 + t);
-      const sig = signature(G);
-      if (!sig || !seen.has(sig)) { if (sig) seen.add(sig); break; }
+      const sig = signature(G), eye = G.face === 'eyes' || G.face === 'eye';
+      if ((sig && seen.has(sig)) || (eye && eyed >= 2)) continue;
+      break;
     }
+    if (G.face === 'eyes' || G.face === 'eye') eyed++;
+    if (signature(G)) seen.add(signature(G));
     const T = TEMPLATES[G.tpl], name = `${T.name}, ${STAGES[G.st].toLowerCase()}`;
     list.push({ id: `g-${G.tpl}-${G.st}-${G.seed}`, tag: `${i + 1} · ${name}`, name, what: describe(G),
       from: `Rolled from the ${T.name} template (after ${T.from}) at its ${STAGES[G.st].toLowerCase()} stage: batch ${batch}, seed ${G.seed}.`,
@@ -1367,6 +1413,84 @@ function generate() {
 /* 43 to 45, from the notes on 35 and 39 */
 function swallowedBuds() { const M = swallowedBody2(); budsOn(M, seeded(281), 12); return M; }
 function trunkArms(kind) { const M = trunkBody(true); armsTo(M, seeded(kind === 'branches' ? 291 : 292), kind); return M; }
+
+/* ---------------------------------------------------------------------------------------------------------------- */
+/* Eighth pass, expanding the generator from the notes on its first batch. New pieces: flowers (rustica's, made the
+   yellow the owner asked for: "any bud as an eventual flowerer ... yellow flowers"); petals, plates out of the body
+   instead of little heads ("plates or petals ... then a variant has a bloom"); bark over the head and the face, and the
+   arms gone into the trunk ("the root begins to swallow up to the head, torso and arms") */
+
+/** a flower out of a along dir: a tube `len` long, its mouth flared yellow at the end, its throat a deeper gold */
+function flower(parent, a, dir, len, R) {
+  _D.set(...dir).normalize();
+  const m = [a[0] + _D.x * len, a[1] + _D.y * len, a[2] + _D.z * len], g = grp(parent, ...m);
+  g.quaternion.setFromUnitVectors(_UP, _D);
+  rod(parent, a, m, len * 0.16, 'TUBE');
+  mk(g, 'ico', 'BLOOM' + Math.floor(R.rnd(0, 2.99)), len * 0.8, len * 0.12, len * 0.8, 0, len * 0.04, 0); // its mouth, flared
+  mk(g, 'ico', 'GOLD' + Math.floor(R.rnd(0, 1.99)), len * 0.28, len * 0.1, len * 0.28, 0, len * 0.08, 0); // its throat
+}
+/** a cluster of them out of p along its normal n: a short stalk, and `count` flowers off its top turned up and out */
+function flowerCluster(parent, p, n, size, count, R) {
+  _N.set(...n).normalize();
+  const up = [_N.x * 0.4, _N.y * 0.4 + 1, _N.z * 0.4], l = Math.hypot(...up), top = [p[0] + up[0] / l * size, p[1] + up[1] / l * size, p[2] + up[2] / l * size];
+  mk(parent, 'ico', 'STEM1', size * 0.3, size * 0.22, size * 0.3, ...p);
+  rod(parent, p, top, size * 0.12, 'STEM1');
+  for (let i = 0; i < count; i++) {
+    const a = (i / count) * TAU + R.rnd(-0.3, 0.3), el = R.rnd(0.3, 1.0);
+    flower(parent, top, [Math.cos(el) * Math.sin(a), Math.sin(el), Math.cos(el) * Math.cos(a)], size * R.rnd(0.6, 0.85), R);
+  }
+}
+/** the torso's outward normal where direction th meets it (onBody's face) */
+function bodyNormal(M, th) {
+  const sx = Math.sin(th), cz = Math.cos(th), hx = (M.shirt === 'none' ? 0.2 : 0.21) * (M.wide ?? 1), hz = M.shirt === 'none' ? 0.115 : 0.12;
+  return hx / Math.max(Math.abs(sx), 1e-6) < hz / Math.max(Math.abs(cz), 1e-6) ? [Math.sign(sx), 0, 0] : [0, 0, Math.sign(cz)];
+}
+const _Z = new THREE.Vector3(0, 0, 1);
+/** a petal, a plate grown out of the body at p (n its outward normal): hung from its top edge, its foot lifting off */
+function petal(parent, p, n, sz, col) {
+  const g = grp(parent, ...p);
+  g.quaternion.setFromUnitVectors(_Z, _N.set(...n).normalize());
+  const h = grp(g, 0, 0, 0.004); h.rotation.x = -0.35;
+  mk(h, 'ico', col, sz * 0.75, sz, 0.02, 0, -sz * 0.42, 0.012);
+}
+/** petals in rows down the body from the shoulders, each row set between the last's, as scales are; down the arms and
+ *  the thighs as it ages. Green and part skin where they are new, going pale and cream */
+function petalRows(M, R, P) {
+  const tone = () => mixTone(mixTone(M.skin, 'LEAF2', R.rnd(0.45, 0.7)), 'CREAM0', P.pale * R.rnd(0.5, 1));
+  for (let r = 0; r < P.rows; r++) {
+    const y = 0.56 - r * 0.1;
+    if (y < 0) break;
+    for (let k = 0; k < P.per; k++) {
+      const th = P.phase + ((k + (r % 2) * 0.5) / P.per) * TAU;
+      petal(M.b, onBody(M, th, y), bodyNormal(M, th), P.size * R.rnd(0.85, 1.1), tone());
+    }
+  }
+  for (let k = 0; k < 6; k++) { const s = k % 2 ? 1 : -1; petal(M.b, [s * R.rnd(0.06, 0.18) * M.wide, 0.6, R.rnd(-0.08, 0.08)], [s * 0.3, 1, 0], P.size * 0.9, tone()); }
+  M.arms.forEach((a, i) => { const s = i ? 1 : -1; for (let j = 0; j < P.arms; j++) for (const z of [-0.6, 0, 0.6]) petal(a, [s * 0.05, -0.04 - j * 0.1, z * 0.05], [s, 0, z], P.size * 0.75, tone()); });
+  M.legs.forEach((l, i) => { const s = i ? 1 : -1; for (let j = 0; j < P.legs; j++) for (const z of [-0.6, 0.6]) petal(l, [s * 0.085, -0.06 - j * 0.12, z * 0.08], [s, 0, z], P.size * 0.8, tone()); });
+}
+/** bark over the head as the root takes it: up from the jaw and over the back of the skull to `amt` of the way up; and
+ *  over the face, where `face` (nothing of the face left but the bark) */
+function barkHead(M, R, amt, face) {
+  const put = (az, el, s) => { const [, p, n] = headPt(M, az, el); const g = grp(M.hd, ...p); g.quaternion.setFromUnitVectors(_Z, _N.set(...n).normalize()); mk(g, 'ico', BARKS[Math.floor(R.rnd(0, 2.999))], s, s * R.rnd(1, 1.5), 0.03, 0, 0, 0); };
+  for (let i = 0; i < 26; i++) { const az = R.rnd(-PI, PI), el = R.rnd(-1.2, lerp(-0.4, 1.2, amt)); if (!face && Math.abs(az) < 0.8 && el > -0.6) continue; put(az, el, R.rnd(0.07, 0.11)); }
+  if (face) for (let i = 0; i < 12; i++) put(R.rnd(-0.85, 0.85), R.rnd(-0.6, 0.65), R.rnd(0.07, 0.1));
+}
+/** the arms gone into the trunk: pressed to the body and the bark grown over the both of them, one mass, as broad as it
+ *  happens to have grown; a lean to it, and stubs of branch out of it here and there, sprouting, so no two stand alike */
+function armsGone(M, R) {
+  M.arms.forEach((a, i) => { a.rotation.z = -(i ? 1 : -1) * 0.04; barkBox(a, R, [0, -0.35, 0], 0.12, 0.72, 0.12, 6); });
+  const w = R.rnd(0.6, 0.74) * M.wide, d = R.rnd(0.27, 0.34);
+  barkBox(M.b, R, [0, 0.31, 0], w, 0.64, d, 22);
+  for (const s of [-1, 1]) mk(M.b, 'ico', 'BARK2', R.rnd(0.2, 0.28), R.rnd(0.12, 0.2), 0.3, s * 0.26 * M.wide, 0.6, 0); // the shoulders, gone under
+  M.b.rotation.z = R.rnd(-0.12, 0.12); M.b.rotation.x += R.rnd(-0.04, 0.1);
+  for (let i = 0, n = Math.floor(R.rnd(1, 3.99)); i < n; i++) {
+    const s = R.rnd(0, 1) < 0.5 ? 1 : -1, y = R.rnd(0.12, 0.5), front = R.rnd(-0.6, 0.6);
+    const a = [s * w * 0.48, y, front * d * 0.4], b = [a[0] + s * R.rnd(0.14, 0.26), y + R.rnd(0.12, 0.3), a[2] + front * 0.1];
+    rod(M.b, a, b, R.rnd(0.06, 0.09), 'BARK0');
+    sprout(M.b, b, [s * 0.4, 1, 0], R.rnd(0.22, 0.38), R, 'BARK1', 0.2, { up: 2 });
+  }
+}
 
 /* ---------------------------------------------------------------------------------------------------------------- */
 /* The collection (fourth pass): every mutant kept so far, one number each for good, so a variant can be asked for by
@@ -1509,34 +1633,45 @@ const MUTANTS = [
     what: '39 with its arms drawn in against the body and grown into the bark, the bark bridged across between them.',
     from: 'Your note on 39: the arms sucked into the growth.', game: '39; the arms part of the trunk.' },
 ];
+/* the generator's first batch, those kept and the one at maybe, as they were rolled: their genomes saved here, so a later
+   change to the generator never changes them */
+const SAVED = {"g-rooted-0-10300":{"tpl":"rooted","st":0,"seed":10300,"m":0.026077373893931513,"K":0.9131468047308239,"wide":1.0031493482734448,"stoop":0,"tint":0.05373315803885253,"legs":"whole","boots":2,"head":{"kind":"smooth","mouth":true,"k":1,"open":0,"sprouting":0,"nod":false},"face":"eye","faceK":0.9533883191645146,"stalks":[{"site":"shoulder","s":-1,"k":1.3884776869788766,"seed":105933},{"site":"back","s":1,"k":1.2540624998509884,"seed":373676}],"ground":"stand","brown":false,"thicket":18,"bark":0.7419521295314526,"trunk":false,"trunkR":[0.28260773738939315,0.19130386869469657],"arms":"arms","roots":{"n":6,"reach":0.5130386869469657},"body":{"top":3,"front":3}},"g-rooted-1-10900":{"tpl":"rooted","st":1,"seed":10900,"m":0.2572823923546821,"K":0.9600354604823285,"wide":1.0251861389648664,"stoop":0,"tint":0.09533080392330363,"legs":"whole","boots":2,"head":{"kind":"smooth","mouth":false,"k":1,"open":0,"sprouting":0,"nod":false},"face":"stalk","faceK":1.0680121429264546,"stalks":[{"site":"shoulder","s":1,"k":0.9107246780768037,"seed":727361}],"ground":"stand","brown":false,"thicket":23,"bark":0.9276657275532793,"trunk":false,"trunkR":[0.3057282392354682,0.2028641196177341],"arms":"arms","roots":{"n":8,"reach":0.628641196177341},"body":{"top":4,"front":3}},"g-rooted-3-10000":{"tpl":"rooted","st":3,"seed":10000,"m":0.7247307640034706,"K":1.0511544441864114,"wide":1,"stoop":0.0255031226285946,"tint":0.23448774390815488,"legs":"trunk","boots":0,"head":{"kind":"smooth","mouth":false,"k":1,"open":0,"sprouting":0,"nod":false},"face":"eyes","faceK":1.0876812950707972,"stalks":[{"site":"crown","s":-1,"k":1.0273009240161628,"seed":520315},{"site":"back","s":1,"k":0.9158806031104177,"seed":337556}],"ground":"stand","brown":true,"thicket":26,"bark":1.270935201485987,"trunk":true,"trunkR":[0.3524730764003471,0.22623653820017353],"arms":"arms","roots":{"n":9,"reach":0.8623653820017353},"body":{"top":9,"front":5}},"g-spiral-3-10700":{"tpl":"spiral","st":3,"seed":10700,"m":0.8045395204145461,"K":1.1181893539017183,"wide":1.075310589100083,"stoop":0.031024403408794688,"tint":0.2512588214015427,"legs":"thigh","boots":1,"head":{"kind":"bud","mouth":false,"k":1.1655164759016652,"open":0.7934812635667623,"sprouting":1,"nod":true},"face":"none","faceK":1,"stalks":[],"ground":"stand","brown":false,"spiral":{"n":17,"y0":0.022507062927074772,"len0":0.6205451193494708,"cure0":0.7616200493918731,"th0":5.527099699167728},"limbs":{"arm":0,"thigh":1,"shin":1},"open":true,"buds":4},"g-spiral-4-10100":{"tpl":"spiral","st":4,"seed":10100,"m":0.9518463006336242,"K":1.1544011668564553,"wide":1.1278810584014858,"stoop":0.10466235723940452,"tint":0.27998320771817636,"legs":"thigh","boots":0,"head":{"kind":"bud","mouth":false,"k":1.257672317899511,"open":0.8338102304227648,"sprouting":2,"nod":true},"face":"none","faceK":1,"stalks":[],"ground":"stand","brown":false,"spiral":{"n":20,"y0":-0.05702749770563092,"len0":0.6848480088381421,"cure0":0.9959516139077023,"th0":1.0346381922393613},"limbs":{"arm":3,"thigh":2,"shin":0},"open":false,"buds":0},"g-spiral-4-11300":{"tpl":"spiral","st":4,"seed":11300,"m":1,"K":1.1604436656005679,"wide":1.0707306681293995,"stoop":0.0731780940387398,"tint":0.2785016179445665,"legs":"thigh","boots":1,"head":{"kind":"bud","mouth":false,"k":1.2593246562965215,"open":0.9772496065776793,"sprouting":1,"nod":true},"face":"none","faceK":1,"stalks":[],"ground":"stand","brown":false,"spiral":{"n":17,"y0":-0.047030259165912844,"len0":0.6355386261446402,"cure0":1,"th0":1.8108702493059747},"limbs":{"arm":1,"thigh":1,"shin":1},"open":false,"buds":0},"g-sprout-1-10400":{"tpl":"sprout","st":1,"seed":10400,"m":0.25319291052408516,"K":1.0089444336965674,"wide":1.028858624864774,"stoop":0,"tint":0.10582267234594803,"legs":"whole","boots":2,"head":{"kind":"smooth","mouth":true,"k":1,"open":0,"sprouting":0,"nod":false},"face":"none","faceK":1.0501583822908787,"stalks":[{"site":"crown","s":-1,"k":1.112691293122131,"seed":167086},{"site":"chest","s":1,"k":0.8939545843075642,"seed":946700},{"site":"skull","s":1,"k":1.5424732582875251,"seed":234354}],"ground":"stand","brown":false,"skewer":false,"sprouts":{"head":11,"top":4,"front":4,"back":4,"spine":9,"arm":3,"thigh":0,"len":[0.12025543284192682,0.2782343694205396],"cure":0.20255432841926813}},"g-sprout-1-10500":{"tpl":"sprout","st":1,"seed":10500,"m":0.23030844715423882,"K":0.9770737805928955,"wide":1.0246863539076085,"stoop":0,"tint":0.08502063633880845,"legs":"whole","boots":2,"head":{"kind":"smooth","mouth":false,"k":1,"open":0,"sprouting":0,"nod":false},"face":"none","faceK":0.9597158106604898,"stalks":[{"site":"brow","s":-1,"k":1.4289920653062962,"seed":520041}],"ground":"stand","brown":false,"skewer":false,"sprouts":{"head":8,"top":3,"front":4,"back":4,"spine":0,"arm":2,"thigh":0,"len":[0.11842467577233912,0.27297094284547496],"cure":0.18424675772339105}},"g-sprout-1-11100":{"tpl":"sprout","st":1,"seed":11100,"m":0.2115134656149894,"K":0.9755450707365536,"wide":1.0178330856381141,"stoop":0,"tint":0.08971415892687387,"legs":"whole","boots":2,"head":{"kind":"smooth","mouth":true,"k":1,"open":0,"sprouting":0,"nod":false},"face":"eyes","faceK":1.2977269676780434,"stalks":[{"site":"hip","s":-1,"k":0.919490731834563,"seed":723785},{"site":"crown","s":-1,"k":1.132036479001653,"seed":527829}],"ground":"stand","brown":false,"skewer":false,"sprouts":{"head":11,"top":5,"front":3,"back":5,"spine":9,"arm":3,"thigh":0,"len":[0.11692107724919916,0.26864809709144755],"cure":0.16921077249199154}},"g-sprout-1-11400":{"tpl":"sprout","st":1,"seed":11400,"m":0.2628600755054504,"K":0.9829830193915602,"wide":1.0168072972149016,"stoop":0,"tint":0.09190949931558016,"legs":"whole","boots":2,"head":{"kind":"smooth","mouth":true,"k":1,"open":0,"sprouting":0,"nod":false},"face":"sprouts","faceK":1.0587498308538241,"stalks":[{"site":"chest","s":1,"k":1.215520757577712,"seed":782653},{"site":"upperarm","s":-1,"k":1.0509676645293122,"seed":597618}],"ground":"stand","brown":false,"skewer":false,"sprouts":{"head":7,"top":6,"front":4,"back":5,"spine":8,"arm":3,"thigh":0,"len":[0.12102880604043603,0.2804578173662536],"cure":0.21028806040436032}},"g-sprout-2-11000":{"tpl":"sprout","st":2,"seed":11000,"m":0.48439792898483575,"K":1.0583579522556867,"wide":1.0441298132824866,"stoop":0,"tint":0.1813973265135923,"legs":"knee","boots":2,"head":{"kind":"smooth","mouth":false,"k":1,"open":0,"sprouting":0,"nod":false},"face":"sprouts","faceK":0.9794393472075622,"stalks":[{"site":"belly","s":-1,"k":1.2265029870369548,"seed":374193},{"site":"chest","s":1,"k":1.0727179005972391,"seed":79979},{"site":"shoulder","s":-1,"k":1.482097626728546,"seed":698878}],"ground":"stand","brown":false,"skewer":false,"sprouts":{"head":16,"top":5,"front":4,"back":5,"spine":0,"arm":6,"thigh":0,"len":[0.13875183431878685,0.3314115236665122],"cure":0.3875183431878686}},"g-through-2-11200":{"tpl":"through","st":2,"seed":11200,"m":0.558629002245143,"K":1.0154694840870662,"wide":1.0433056157497262,"stoop":0.07173392984089057,"tint":0.18171196759999994,"legs":"knee","boots":2,"head":{"kind":"stem","mouth":false,"k":1.105667899094342,"open":0.3064321082588284,"sprouting":0,"nod":true},"face":"none","faceK":1,"stalks":[{"site":"back","s":-1,"k":1.1678546877810732,"seed":884425}],"ground":"stand","brown":false,"column":{"d":0.09823967579095932,"back":true,"y0":0.09006613923665138},"off":{"n":10,"len0":0.5823489159709319,"cure0":0.7793145011225715}},"g-through-3-10600":{"tpl":"through","st":3,"seed":10600,"m":0.7074239837843925,"K":1.0417848400134428,"wide":1.0710237049811828,"stoop":0.06635231994728234,"tint":0.237576168690844,"legs":"thigh","boots":1,"head":{"kind":"stem","mouth":false,"k":1.2077323545852532,"open":0.6574331705328078,"sprouting":0,"nod":true},"face":"none","faceK":1,"stalks":[],"ground":"stand","brown":false,"column":{"d":0.11479712420527628,"back":true,"y0":0.039475845513306546},"off":{"n":12,"len0":0.5896782247757401,"cure0":0.8537119918921963}},"g-rooted-4-10200":{"tpl":"rooted","st":4,"seed":10200,"m":1,"K":1.1327797313936054,"wide":1.1275599567312748,"stoop":0.05472461775876582,"tint":0.2763976411137264,"legs":"trunk","boots":0,"head":{"kind":"smooth","mouth":true,"k":1,"open":0,"sprouting":0,"nod":false},"face":"none","faceK":1.0604657725431026,"stalks":[{"site":"nape","s":-1,"k":0.9703004151117057,"seed":233508}],"ground":"stand","brown":true,"thicket":29,"bark":1.401620337552391,"trunk":true,"trunkR":[0.38,0.24],"arms":"arms","roots":{"n":10,"reach":1},"body":{"top":9,"front":8}}};
+SAVED['g-rooted-4-10200'].face = 'bark'; // 59: something on the face, as the note on it asked
+const SAVED_NOTES = { "g-rooted-0-10300": "Kept: \"Love the variation between the three here.\"", "g-rooted-1-10900": "Kept: \"Love the stalk placement and the bark legs.\"", "g-rooted-3-10000": "Kept: \"Looks good, no complaint.\" Its note asked for a step further, the Ancient stage.", "g-spiral-3-10700": "Kept.", "g-spiral-4-10100": "Kept: \"Looks great\", and any bud an eventual flowerer: what comes out of its bud is yellow flowers now.", "g-spiral-4-11300": "Kept.", "g-sprout-1-10400": "Kept.", "g-sprout-1-10500": "Kept.", "g-sprout-1-11100": "Kept: \"the sparse but not devoid torso and arm\"; only one or two in a batch with eye stalks.", "g-sprout-1-11400": "Kept.", "g-sprout-2-11000": "Kept: \"Love the complexity.\"", "g-through-2-11200": "Kept.", "g-through-3-10600": "Kept.", "g-rooted-4-10200": "Maybe: \"the large empty spot on the face makes me wonder what should be there instead.\" Bark over the face now." };
+Object.keys(SAVED).forEach((id, i) => {
+  const G = SAVED[id], name = `${TEMPLATES[G.tpl].name}, ${STAGES[G.st].toLowerCase()}`;
+  MUTANTS.push({ n: 46 + i, id, tag: name, name, build: () => buildGen(G), what: describe(G), from: SAVED_NOTES[id],
+    game: `Rolled by the generator: batch 1, seed ${G.seed}; kept as it was rolled.` });
+});
 /* where each stands, from your picks: kept, maybe, dropped; the rest are new. Numbers are never reused */
-const GROUPS = { kept: [3, 4, 6, 7, 8, 10, 11, 17, 18, 19, 20, 21, 22, 23, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 36, 37, 38, 39, 40, 42],
-  held: [24, 35], dropped: [1, 2, 5, 9, 12, 13, 14, 15, 16, 41] };
+const GROUPS = { kept: [3, 4, 6, 7, 8, 10, 11, 17, 18, 19, 20, 21, 22, 23, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 36, 37, 38, 39, 40, 42,
+  46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58], held: [24, 35, 43, 44, 45, 59], dropped: [1, 2, 5, 9, 12, 13, 14, 15, 16, 41] };
 for (const m of MUTANTS) m.group = Object.keys(GROUPS).find(g => GROUPS[g].includes(m.n)) ?? 'fresh';
 const ROW = { gap: 1.7, height: 2.6, ceil: 3.6, look: 1.5, flat: true };
 const LINES = {
-  kept: { ...ROW, name: 'Kept', who: 'Every mutant you have kept, numbered for good; ask for a variant by its number.', heads: MUTANTS.filter(m => m.group === 'kept') },
+  kept: { ...ROW, name: 'Kept', who: 'Every mutant you have kept, numbered for good; ask for a variant by its number. 46 to 58 are from the generator\'s first batch, kept as they were rolled.', heads: MUTANTS.filter(m => m.group === 'kept') },
   fresh: { ...ROW, name: 'New', who: 'Numbered on from 43: 35 budding, and 39 with its arms gone to branches or grown in. Pick them as before.', heads: MUTANTS.filter(m => m.group === 'fresh') },
-  gen: { ...ROW, name: 'Generated', who: 'Rolled from the templates, each at its stage, no two with their big stalks in the same places. Drop the ones that look wrong.', heads: [] },
-  held: { ...ROW, name: 'Maybe', who: 'The ones at maybe.', heads: MUTANTS.filter(m => m.group === 'held') },
+  gen: { ...ROW, name: 'Generated', who: 'Rolled from five templates, each at its stage, no two with their big stalks in the same places and no more than two with eye stalks. Drop the ones that look wrong.', heads: [] },
+  held: { ...ROW, name: 'Maybe', who: 'The ones at maybe. 59 has bark over its face now, as your note on it asked.', heads: MUTANTS.filter(m => m.group === 'held') },
   dropped: { ...ROW, name: 'Dropped', who: 'What you have dropped, to look back at. Their numbers are not used again.', heads: MUTANTS.filter(m => m.group === 'dropped') },
 };
-const ORDER = ['kept', 'fresh', 'gen', 'held', 'dropped'];
+const ORDER = ['kept', 'fresh', 'gen', 'held', 'dropped'].filter(k => k === 'gen' || LINES[k].heads.length);
+for (const b of document.querySelectorAll('[data-line]')) b.hidden = !ORDER.includes(b.dataset.line);
 
 /* ---------------------------------------------------------------------------------------------------------------- */
 /* state, and what this viewer last looked at */
-const S = { line: 'kept', sel: 0, view: 'lineup', light: 'room', pal: 'built', mottle: false, hunch: false, sil: false, dist: 3.5, gen: { tpl: 'any', stage: 'mixed', count: 15, batch: 1 } };
+const S = { line: 'kept', sel: 0, view: 'lineup', light: 'room', pal: 'built', mottle: false, hunch: false, sil: false, dist: 3.5, gen: { tpl: 'any', stage: 'mixed', count: 15, batch: 2, v: 2 } };
 try {
   const saved = JSON.parse(localStorage.getItem('rs-plants-view') || '{}');
   for (const k of Object.keys(S)) if (k in saved && typeof saved[k] === typeof S[k]) S[k] = saved[k];
-  if (!LINES[S.line]) S.line = 'kept';
+  if (!LINES[S.line] || !ORDER.includes(S.line)) S.line = 'kept';
   if (!['room', 'tube', 'dark'].includes(S.light)) S.light = 'room';
   if (!PAL[S.pal]) S.pal = 'built';
   if (!['lineup', 'close', 'eye'].includes(S.view)) S.view = 'lineup';
   S.sel = Math.max(0, Math.round(S.sel) || 0); S.dist = clamp(S.dist, 2, 12);
   const g = S.gen;
-  if (!g || !(g.tpl === 'any' || TEMPLATES[g.tpl]) || !(g.stage === 'mixed' || /^[0-4]$/.test(g.stage)) || !(g.count >= 1 && g.count <= 30) || !(g.batch >= 1))
-    S.gen = { tpl: 'any', stage: 'mixed', count: 15, batch: 1 };
+  if (!g || g.v !== 2 || !(g.tpl === 'any' || TEMPLATES[g.tpl]) || !(g.stage === 'mixed' || /^[0-5]$/.test(g.stage)) || !(g.count >= 1 && g.count <= 30) || !(g.batch >= 1))
+    S.gen = { tpl: 'any', stage: 'mixed', count: 15, batch: 2, v: 2 };
 } catch {}
 const remember = () => { try { localStorage.setItem('rs-plants-view', JSON.stringify(S)); } catch {} };
 
