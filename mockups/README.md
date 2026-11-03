@@ -34,9 +34,13 @@ browser (three.js comes from a CDN), and each has been published as a private cl
   and the eyes, the jaw and mouth below it) and *B, it comes out where it can* (the plant is inside, and leaves only by
   the ways out: stalks out of the eye sockets, leaf out of the collar, the sleeves, the open shirt, the waistband;
   never through the skin). No line where flesh turns to plant: where it comes out of skin its colour is part skin.
-  Rows: *Heads* (each on the same uniformed body, with the head bench's closest so far to beat), then each rule newest
-  to oldest. The head bench's engine, room, views and lights; Keep, maybe or drop each, with a note (collection
-  `picks`, ids `<row>-<figure>`, described at the top of its script). `window.__rs` in the console exposes the state.
+  The second pass, after the picks: rule A only (its oldest kept; rule B dropped but for the eye stalks, kept as a
+  one-off), mostly naked so the growth shows, no mouth on the bud. Rows: *Heads* (the bud, the bud on a stalk for a
+  neck, the heavy bud), *Covered* (leaf from head to toe) and *Through* (a stalk grown up through the middle, the leaf
+  off it), each newest to oldest, and *Kept* (the first pass's oldest, unchanged, and the eye-stalk one-off). The head
+  bench's engine, room, views and lights; Keep, maybe or drop each, with a note (collection `picks`, ids
+  `<row>-<figure>`, described at the top of its script; the first pass's stay under their old ids). `window.__rs` in
+  the console exposes the state.
 - `cargo.html`: Cargo made larger (`docs/world.md` §8, *Cargo, sketched, and built*, which says what the build changed),
   at true scale in the game's kit: the nave, the warehouse arm (room and pillar), the freight shaft at the corner and the
   chambers off them, with the station's rooms round it and the old Cargo as an outline to compare. Overview, plan (a 10 m

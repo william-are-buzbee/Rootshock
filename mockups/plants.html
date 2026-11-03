@@ -66,7 +66,7 @@ button { cursor: pointer; }
 
 /* the panel */
 .intro { margin: 0; font-family: var(--hand); font-size: 16px; line-height: 1.45; color: var(--ash); }
-.seg { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); }
+.seg { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--line); }
 .seg button { background: none; border: 0; border-left: 1px solid var(--line); padding: 8px 4px 7px; font-size: 18px; font-weight: 600;
   letter-spacing: .1em; text-transform: uppercase; color: var(--ash); }
 .seg button:first-child { border-left: 0; }
@@ -142,11 +142,12 @@ button { cursor: pointer; }
   </div>
 
   <aside id="panel">
-    <p class="intro">Pia's plant line, from the start. Two rules: A, the body is the stalk; B, it comes out where it can. Heads first, on one body; then each rule newest to oldest. Where flesh turns to plant there is no line: the colour runs from one into the other. Mark what is worth building.</p>
+    <p class="intro">Second pass, after your picks: rule A only, mostly naked so the growth shows, and no mouth on the bud. Two ways to take the body: covered head to toe, or a stalk grown up through the middle. Your kept oldest, and the eye stalks as a one-off, are in Kept to compare.</p>
     <div class="seg" role="tablist" aria-label="Row">
-      <button role="tab" data-line="heads" aria-selected="true">Heads</button>
-      <button role="tab" data-line="stalk" aria-selected="false">A · Stalk</button>
-      <button role="tab" data-line="open" aria-selected="false">B · Openings</button>
+      <button role="tab" data-line="heads2" aria-selected="true">Heads</button>
+      <button role="tab" data-line="cover" aria-selected="false">Covered</button>
+      <button role="tab" data-line="through" aria-selected="false">Through</button>
+      <button role="tab" data-line="stalk" aria-selected="false">Kept</button>
     </div>
     <p class="who" id="who"></p>
 
@@ -195,8 +196,13 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
    (src/present/render/castKit.ts, castView.ts): boxes, hexagonal cylinders and icosahedra, flat-shaded; every figure on
    the body changed() draws, so each stays buildable on the husk's skeleton (SKEL.husk).
 
+   Second pass, after the picks: rule B dropped (its eye stalks kept as a one-off, "a gimmick that can only work once");
+   rule A's oldest kept ("could go in the game"), so rule A only, mostly naked so the growth shows, no mouth on the bud,
+   and the two ways the notes put it: covered from head to toe, or "grown through with a stalk in the middle". The first
+   pass's rows are in the history; their picks stay in the store under their old ids.
+
    Your picks are kept in the artifact's store where it has one (collection "picks", one document a figure, its id
-   "<row>-<figure>", e.g. "heads-bud", "stalk-old"), else in this browser:
+   "<row>-<figure>", e.g. "heads2-bud", "stalk-old"), else in this browser:
      { line, head, name, verdict: "keep" | "maybe" | "drop" | "", note, at } */
 
 const PI = Math.PI, TAU = PI * 2;
@@ -390,19 +396,9 @@ function rod(parent, a, b, d, col) {
 }
 
 /* ---------------------------------------------------------------------------------------------------------------- */
-/* the closest so far, from the head bench (heads.html, plant-shelf2), to beat: leaf stacked out from under the brow */
-function brim(parent, x, y, z, yaw, tiers, len, rise, rnd) {
-  mk(parent, 'ico', 'KNOT', len * 0.3, rise * tiers, len * 0.25, x, y + rise * (tiers - 1) / 2, z);
-  for (let j = 0; j < tiers; j++) {
-    const k = 1 - j * 0.12, g = grp(parent, x, y + j * rise, z);
-    g.rotation.set(rnd(0.1, 0.22), yaw + rnd(-0.12, 0.12), 0);
-    mk(g, 'ico', LEAFK(j + 1), len * 1.25 * k, len * 0.17, len * 0.8 * k, 0, 0, len * 0.4 * k);
-  }
-}
-
 /* Rule A, the body is the stalk: the head is the growing tip, a bud of leaf furled over where the skull and the eyes
-   were, the jaw and the mouth below it all that is left of the face. One leaf of the wrapper, standing on the head at
-   azimuth az: its lower half swelling out, its upper half curling in over the crown */
+   were. One leaf of the wrapper, standing on the head at azimuth az: its lower half swelling out, its upper half
+   curling in over the crown */
 function wrap(p, az, r, y, o, R) {
   const g = grp(p, Math.sin(az) * r, y, Math.cos(az) * r), t = o.t;
   g.rotation.order = 'YXZ'; g.rotation.y = az; g.rotation.x = o.out; g.rotation.z = R.rnd(-0.07, 0.07);
@@ -411,16 +407,21 @@ function wrap(p, az, r, y, o, R) {
   const u = grp(g, 0, h1 * 0.88, 0); u.rotation.x = -o.out - o.inn;
   mk(u, 'ico', o.hi, o.w * 0.86, (h2 / 0.85) * 1.15, t * 0.9, 0, h2 * 0.5, 0);
 }
-/** the bud: `k` its size, `open` how far it has begun to open (0 shut tight, 1 its tips standing out) */
-function budHead(hd, R, skin, k = 1, open = 0) {
-  mk(hd, 'ico', skin, 0.25, 0.21, 0.245, 0, -0.05, 0.005); // the jaw: what is left of the face
-  mk(hd, 'box', 'GOREC', 0.075, 0.024, 0.03, 0, -0.085, 0.105); // the mouth, slack
+/** the bud: `k` its size, `open` how far it has begun to open (0 shut tight, 1 its tips standing out). On the skin of
+ *  the jaw (`jaw`), the slack mouth below it or not (`mouth`; second pass: none, "no mouth for now"); or with no jaw
+ *  left, the head wholly the bud, flaring out of the stalk the neck has become */
+function budHead(hd, R, skin, k = 1, open = 0, o = {}) {
+  const jaw = o.jaw ?? true, mouth = o.mouth ?? true;
+  if (jaw) {
+    mk(hd, 'ico', skin, 0.25, 0.21, 0.245, 0, -0.05, 0.005); // the jaw: what is left of the face
+    if (mouth) mk(hd, 'box', 'GOREC', 0.075, 0.024, 0.03, 0, -0.085, 0.105); // the mouth, slack
+  }
   /* the wrapper: seven, still half the colour of skin where they start, and greener up */
   for (let i = 0; i < 7; i++) {
     const az = (i / 7) * TAU + 0.22 + R.rnd(-0.12, 0.12), col = LEAFK(i);
-    wrap(hd, az, 0.104 * k, Math.cos(az) < -0.3 ? -0.07 : -0.046, {
-      h: 0.3 * k, w: 0.15 * k, t: 0.028 * k, out: 0.12 + open * 0.05, inn: 0.64 - open * 0.3,
-      lo: mixTone(skin, col, 0.5), hi: mixTone(skin, col, 0.85) }, R);
+    wrap(hd, az, (jaw ? 0.104 : 0.075) * k, jaw ? (Math.cos(az) < -0.3 ? -0.07 : -0.046) : -0.13, {
+      h: (jaw ? 0.3 : 0.36) * k, w: 0.15 * k, t: 0.028 * k, out: (jaw ? 0.12 : 0.34) + open * 0.05, inn: (jaw ? 0.64 : 0.86) - open * 0.3,
+      lo: mixTone(skin, col, jaw ? 0.5 : 0.3), hi: mixTone(skin, col, 0.85) }, R);
   }
   /* its heart: young leaf, furled tight, to a point */
   for (let i = 0; i < 5; i++) {
@@ -431,64 +432,50 @@ function budHead(hd, R, skin, k = 1, open = 0) {
   if (open < 0.5) mk(hd, 'ico', 'YOUNG2', 0.05 * k, 0.09 * k, 0.05 * k, 0, 0.26 * k, 0);
 }
 
-/* Rule B, it comes out where it can: the plant is inside them and leaves only by the ways out there are, the eyes, the
-   collar, the sleeves, the gaps in what they wear. It never breaks the skin. A stalk out of one eye: the socket's rim
-   drawn round it, skin where it leaves the face and green by the brow, rising over the head in leaf */
-function eyeStalk(hd, s, R, skin, grow, k = 1) {
+/* the one-off (first pass, rule B): a stalk out of one eye, the socket's rim drawn round it, skin where it leaves the face
+   and green by the brow, rising over the head in leaf */
+function eyeStalk(hd, s, R, skin, k = 1) {
   const pts = [[s * 0.055, 0.025, 0.1]];
-  const steps = grow === 'short' ? [[0.012, 0.045, 0.055], [0.014, 0.065, 0.012]]
-    : [[0.012, 0.07, 0.05], [0.016, 0.13, 0.0], [0.02, 0.14, -0.03], [0.015, 0.12, -0.03]];
-  for (const [dx, dy, dz] of steps) { const q = pts[pts.length - 1]; pts.push([q[0] + s * dx * k, q[1] + dy * k, q[2] + dz * k]); }
+  for (const [dx, dy, dz] of [[0.012, 0.07, 0.05], [0.016, 0.13, 0.0], [0.02, 0.14, -0.03], [0.015, 0.12, -0.03]]) {
+    const q = pts[pts.length - 1]; pts.push([q[0] + s * dx * k, q[1] + dy * k, q[2] + dz * k]);
+  }
   mk(hd, 'ico', mixTone(skin, 'STEM1', 0.15), 0.08 * k, 0.07 * k, 0.045, s * 0.055, 0.025, 0.096); // the socket, swollen round it
   const ds = [0.052, 0.044, 0.036, 0.028], ts = [0.3, 0.62, 0.86, 1];
   for (let i = 0; i + 1 < pts.length; i++) rod(hd, pts[i], pts[i + 1], ds[i] * k, mixTone(skin, 'STEM' + (i > 1 ? 0 : 1), ts[i]));
-  const tip = pts[pts.length - 1];
-  if (grow === 'short') {
-    for (const a of [0.9, 0.9 + PI]) leafAt(hd, ...tip, s * a, 0.11 * k, { col: 'YOUNG1', lift: 1.1, droop: -0.2 });
-    return;
-  }
   leafAt(hd, ...pts[1], s * 1.7, 0.2 * k, { col: 'LEAF2', lift: 0.3, droop: 0.8 });
   leafAt(hd, ...pts[2], s * 0.9 + PI * 0.7, 0.24 * k, { col: 'LEAF1', lift: 0.35, droop: 0.75 });
   leafAt(hd, ...pts[3], s * 1.2, 0.2 * k, { col: 'LEAF0', lift: 0.4, droop: 0.6 });
-  for (const a of [0.9, 0.9 + 2.1, 0.9 + 4.2]) leafAt(hd, ...tip, s * a, 0.15 * k, { col: 'YOUNG' + (a > 3 ? 2 : 1), lift: 0.9, droop: 0.3 });
-  if (grow !== 'crown') return;
-  /* the oldest: each stalk branched at the brow, a crown of leaf over the head, the lowest going yellow */
-  const br = [pts[2][0] + s * 0.13 * k, pts[2][1] + 0.1 * k, pts[2][2] - 0.04 * k], br2 = [br[0] + s * 0.05 * k, br[1] + 0.09 * k, br[2] - 0.05 * k];
-  rod(hd, pts[2], br, 0.032 * k, 'STEM0'); rod(hd, br, br2, 0.026 * k, 'STEM0');
-  leafAt(hd, ...br, s * 1.9, 0.24 * k, { col: 'CURED0', lift: 0.2, droop: 0.9 });
-  for (const a of [0.6, 0.6 + 2.1, 0.6 + 4.2]) leafAt(hd, ...br2, s * a, 0.14 * k, { col: 'YOUNG0', lift: 0.9, droop: 0.3 });
-  leafAt(hd, ...pts[1], s * 0.4, 0.2 * k, { col: 'CURED1', lift: 0.0, droop: 1.1 });
-}
-function eyeHead(hd, R, skin, sides, grow, k = 1) {
-  mk(hd, 'ico', skin, 0.24, 0.28, 0.25); // smooth: no eyes
-  mk(hd, 'box', 'GOREC', 0.075, 0.024, 0.03, 0, -0.08, 0.11); // the mouth, slack
-  for (const s of sides) eyeStalk(hd, s, R, skin, grow, k);
+  for (const a of [0.9, 0.9 + 2.1, 0.9 + 4.2]) leafAt(hd, ...pts[4], s * a, 0.15 * k, { col: 'YOUNG' + (a > 3 ? 2 : 1), lift: 0.9, droop: 0.3 });
 }
 
 /* ---------------------------------------------------------------------------------------------------------------- */
-/* the body, as castView.ts changed() draws it: a person's outline, in uniform or not. `shirt` whole (buttoned, the
-   badge), open (down the front, the skin showing) or none; `torn` the trousers off at the knee; `boot` one lost; `tint`
-   how far the skin has gone toward the leaf; `stoop` the back bent */
+/* the body, as castView.ts changed() draws it: a person's outline. Second pass, mostly naked so the growth shows
+   ("it would make more sense if these guys were mostly naked"). `shirt` whole (the uniform, buttoned, the badge) or
+   none; `legs` the trousers whole, torn off at the knee, or torn to the thigh; `boots` how many are left; `neck` skin, or
+   the stalk come up through it; `tint` how far the skin has gone toward the leaf; `stoop` the back bent. (`torn` and
+   `boot`: the first pass's knee and one boot lost, for the oldest you kept) */
 const UNIFORM = 0x2c3440, TROUSERS = 0x23262b, BADGE = 0x9a8a50;
 function person(o = {}) {
   const g = new THREE.Group(), legs = [], shins = [], skin = o.tint ? mixTone('SALLOW', 'LEAF1', o.tint) : 'SALLOW', shirt = o.shirt ?? 'whole';
+  const legsAre = o.legs ?? (o.torn ? 'knee' : 'whole'), boots = o.boots ?? (o.boot ? 1 : 2);
   for (const s of [-1, 1]) {
     const l = grp(g, s * 0.11, 0.9, 0), k = grp(l, 0, -0.45, 0);
-    mk(l, 'box', TROUSERS, 0.16, 0.45, 0.17, 0, -0.225, 0);
-    if (o.torn) { mk(k, 'box', TROUSERS, 0.16, 0.12, 0.17, 0, -0.06, 0); mk(k, 'box', skin, 0.12, 0.34, 0.12, 0, -0.27, 0); }
+    if (legsAre === 'thigh') { mk(l, 'box', TROUSERS, 0.16, 0.22, 0.17, 0, -0.11, 0); mk(l, 'box', skin, 0.13, 0.25, 0.13, 0, -0.33, 0); }
+    else mk(l, 'box', TROUSERS, 0.16, 0.45, 0.17, 0, -0.225, 0);
+    if (legsAre === 'knee') { mk(k, 'box', TROUSERS, 0.16, 0.12, 0.17, 0, -0.06, 0); mk(k, 'box', skin, 0.12, 0.34, 0.12, 0, -0.27, 0); }
+    else if (legsAre === 'thigh') mk(k, 'box', skin, 0.12, 0.42, 0.12, 0, -0.21, 0);
     else mk(k, 'box', TROUSERS, 0.16, 0.45, 0.17, 0, -0.225, 0);
-    if (o.boot && s < 0) mk(k, 'box', skin, 0.12, 0.06, 0.24, 0, -0.43, 0.04);
-    else mk(k, 'box', DARKC, 0.17, 0.09, 0.28, 0, -0.42, 0.04);
+    if (boots === 2 || boots === 1 && s > 0) mk(k, 'box', DARKC, 0.17, 0.09, 0.28, 0, -0.42, 0.04);
+    else mk(k, 'box', skin, 0.12, 0.06, 0.24, 0, -0.43, 0.04);
     legs.push(l); shins.push(k);
   }
   const b = grp(g, 0, 0.9, 0);
   if (shirt === 'none') { mk(b, 'box', skin, 0.4, 0.6, 0.23, 0, 0.3, 0); mk(b, 'box', TROUSERS, 0.41, 0.1, 0.235, 0, 0.03, 0); }
-  else {
-    mk(b, 'box', UNIFORM, 0.42, 0.6, 0.24, 0, 0.3, 0);
-    if (shirt === 'open') mk(b, 'box', skin, 0.12, 0.48, 0.01, 0, 0.34, 0.121); // open down the front
-    else mk(b, 'box', BADGE, 0.06, 0.07, 0.02, -0.12, 0.44, 0.125); // the shirt's badge
-  }
-  mk(b, 'cyl', skin, 0.13, 0.14, 0.13, -0.02, 0.64, 0); // the neck
+  else { mk(b, 'box', UNIFORM, 0.42, 0.6, 0.24, 0, 0.3, 0); mk(b, 'box', BADGE, 0.06, 0.07, 0.02, -0.12, 0.44, 0.125); }
+  if (o.neck === 'stalk') {
+    mk(b, 'ico', mixTone(skin, 'STEM1', 0.3), 0.2, 0.07, 0.17, -0.02, 0.6, 0); // the skin going over to it at the shoulders
+    mk(b, 'cyl', mixTone(skin, 'STEM1', 0.62), 0.12, 0.2, 0.12, -0.02, 0.66, 0); // the neck, the stalk
+  } else mk(b, 'cyl', skin, 0.13, 0.14, 0.13, -0.02, 0.64, 0); // the neck
   const hd = grp(b, -0.02, 0.76, 0);
   hd.rotation.z = 0.25;
   const arms = [];
@@ -510,10 +497,11 @@ function onBody(M, th, y) {
   const s = Math.min(hx / Math.max(Math.abs(sx), 1e-6), hz / Math.max(Math.abs(cz), 1e-6));
   return [sx * s, y, cz * s];
 }
+const archOf = (cure, R) => cure > 0.82 ? { lift: 0, droop: R.rnd(1.2, 1.45) } : { lift: R.rnd(0.35, 0.6), droop: R.rnd(0.7, 1.0) };
 
-/* Rule A's body: leaf off it as off a tobacco stalk, one leaf a node, each turned the golden angle (137°) round from the
-   last, so none sits over the one under it; the biggest lowest, and the lowest curing first. Kept clear of where the
-   arms hang. n of them from y0 to y1 (up the torso and the neck), len0 to len1 long, cure0 to cure1 */
+/* Rule A's body, covered: leaf off it as off a tobacco stalk, one leaf a node, each turned the golden angle (137°) round
+   from the last, so none sits over the one under it; the biggest lowest, and the lowest curing first. Kept clear of
+   where the arms hang. n of them from y0 to y1 (up the torso and the neck), len0 to len1 long, cure0 to cure1 */
 function spiral(M, R, o) {
   for (let i = 0; i < o.n; i++) {
     const f = o.n > 1 ? i / (o.n - 1) : 0, y = lerp(o.y0, o.y1, f);
@@ -525,31 +513,44 @@ function spiral(M, R, o) {
       lift: neck ? R.rnd(0.6, 0.85) : dead ? 0 : R.rnd(0.35, 0.6), droop: neck ? 0.5 : dead ? R.rnd(1.2, 1.45) : R.rnd(0.7, 1.0) });
   }
 }
-
-/* Rule B's body: out of the openings. A ruff out of the collar; down out of the sleeves; out of the shirt's open front;
-   out of the waistband all round. Nothing out of skin */
-function collar(M, R, n, len, cure) {
-  mk(M.b, 'cyl', UNIFORM, 0.2, 0.05, 0.16, -0.02, 0.605, 0);
-  for (let i = 0; i < n; i++) {
-    const th = (i / n) * TAU + R.rnd(-0.2, 0.2);
-    leafAt(M.b, -0.02 + Math.sin(th) * 0.08, 0.61, Math.cos(th) * 0.065, th, len * R.rnd(0.85, 1.1), { col: cureKey(cure + R.rnd(-0.1, 0.1), R), lift: R.rnd(0.6, 0.95), droop: 0.35 });
-  }
-}
-function sleeves(M, R, n, len, cure) {
-  M.arms.forEach((a, i) => {
-    const side = i ? 1 : -1;
-    for (let j = 0; j < n; j++) {
-      const th = side * (PI / 2) + (j - (n - 1) / 2) * 1.0;
-      leafAt(a, Math.sin(th) * 0.052, -0.35, Math.cos(th) * 0.055, th, len * R.rnd(0.85, 1.1), { col: cureKey(cure + R.rnd(-0.1, 0.1), R), lift: -0.95, droop: 0.15 });
+/** and down the limbs, head to toe: leaves out of an arm, a thigh or a shin (`part`), each spot [y down it, how far round
+ *  from the outside] */
+function limb(M, R, part, spots, len, cure) {
+  const r = part === 'arm' ? 0.05 : part === 'thigh' ? 0.08 : 0.065;
+  [0, 1].forEach(i => {
+    const g = part === 'arm' ? M.arms[i] : part === 'thigh' ? M.legs[i] : M.shins[i], s = i ? 1 : -1;
+    for (const [y, a] of spots) {
+      const th = s * (PI / 2) + a, c = clamp(cure + R.rnd(-0.08, 0.08), 0, 1);
+      leafAt(g, Math.sin(th) * r, y, Math.cos(th) * r, th, len * R.rnd(0.9, 1.1), { col: cureKey(c, R), base: mixTone(M.skin, 'LEAF1', 0.45), ...archOf(c, R) });
     }
   });
 }
-function front(M, R, n, len, cure) {
-  for (let j = 0; j < n; j++) {
-    const s = j % 2 ? 1 : -1, y = 0.16 + j * (0.34 / Math.max(n - 1, 1));
-    leafAt(M.b, s * 0.03, y, 0.12, s * 0.38, len * R.rnd(0.85, 1.1), { col: cureKey(cure + R.rnd(-0.1, 0.1), R), lift: 0.4, droop: 0.9 });
+
+/* Rule A's body, grown through: the stalk has come up through the middle of them. It shows half out of the body down
+   the breastbone (and, older, down the spine), the skin either side of it half gone over; it runs on up into the neck,
+   which is the stalk now, and the head is its bud. The leaf grows off the stalk, as a tobacco leaf does */
+const HZ = 0.115;
+function column(M, y0, y1, d, back) {
+  const stem = mixTone(M.skin, 'STEM1', 0.8), blend = mixTone(M.skin, 'STEM1', 0.35), h = y1 - y0, ym = (y0 + y1) / 2;
+  for (const s of back ? [1, -1] : [1]) {
+    mk(M.b, 'box', blend, d * 2, h + 0.04, 0.012, 0, ym, s * (HZ + 0.002)); // the skin either side, going over to it
+    mk(M.b, 'cyl', stem, d, h, d * 0.9, 0, ym, s * (HZ - d * 0.05)); // the stalk, half out of the body
+    mk(M.b, 'ico', blend, d * 1.7, d * 1.3, d * 1.1, 0, y0, s * (HZ - 0.004)); // where it goes in at the foot
+    rod(M.b, [0, y1 - 0.01, s * HZ], [-0.02, 0.63, s * 0.03], d * 0.9, stem); // and on up into the neck
   }
 }
+/** leaves off the stalk: n of them up it from y0 to y1, turning round it, front and back where it shows at the back too */
+function offStalk(M, R, o) {
+  for (let i = 0; i < o.n; i++) {
+    const f = o.n > 1 ? i / (o.n - 1) : 0, y = lerp(o.y0, o.y1, f), s = o.back && i % 2 ? -1 : 1, a = Math.sin(i * 2.4 + 0.7) * 1.15;
+    const yaw = s > 0 ? a : PI + a, cure = clamp(lerp(o.cure0, o.cure1, f) + R.rnd(-0.06, 0.06), 0, 1);
+    const x = Math.sin(a) * o.d * 0.45, z = s * (HZ + o.d * 0.3);
+    mk(M.b, 'ico', mixTone(M.skin, 'STEM1', 0.8), o.d * 1.35, o.d * 0.9, o.d * 1.1, x * 0.5, y, s * (HZ + o.d * 0.15)); // the node
+    leafAt(M.b, x, y, z, yaw, lerp(o.len0, o.len1, f) * R.rnd(0.9, 1.1), { col: cureKey(cure, R), base: mixTone(M.skin, 'STEM1', 0.6), ...archOf(cure, R) });
+  }
+}
+
+/* the one-off's: leaf out of what openings the clothes still have, the waistband and the trousers torn at the knee */
 function waistband(M, R, n, len, cure) {
   for (let i = 0; i < n; i++) {
     const th = (i / n) * TAU + 0.15 + R.rnd(-0.1, 0.1);
@@ -559,112 +560,140 @@ function waistband(M, R, n, len, cure) {
 }
 
 /* ---------------------------------------------------------------------------------------------------------------- */
-/* the heads, each on the same body (the uniform, nothing grown on it), so only the head differs */
+/* the heads, each on the same bare body, so only the head differs */
 const HEADS = {
-  shelf2(hd, R, skin) {
-    mk(hd, 'ico', skin, 0.24, 0.28, 0.25);
-    mk(hd, 'box', 'GOREC', 0.075, 0.024, 0.03, 0, -0.08, 0.11);
-    brim(hd, 0, 0.0, 0.05, 0.1, 3, 0.2, 0.035, R.rnd);
-    brim(hd, 0.07, 0.07, 0.02, PI / 2 - 0.5, 2, 0.14, 0.035, R.rnd);
-  },
-  bud(hd, R, skin) { budHead(hd, R, skin, 1, 0); },
-  heavy(hd, R, skin) { budHead(hd, R, skin, 1.16, 1); hd.rotation.x = 0.4; },
-  eyes(hd, R, skin) { eyeHead(hd, R, skin, [-1, 1], 'tall'); },
-  eye(hd, R, skin) { eyeHead(hd, R, skin, [1], 'tall', 1.15); },
+  bud(hd, R, skin) { budHead(hd, R, skin, 1, 0, { mouth: false }); },
+  stem(hd, R, skin) { budHead(hd, R, skin, 1, 0, { jaw: false, mouth: false }); },
+  heavy(hd, R, skin) { budHead(hd, R, skin, 1.16, 1, { mouth: false }); hd.rotation.x = 0.4; },
 };
 function headBody(head, i) {
-  const M = person({ shirt: 'whole' });
+  const M = person({ shirt: 'none', neck: head === 'stem' ? 'stalk' : 'skin' });
   HEADS[head](M.hd, seeded(700 + i), M.skin);
   return M;
 }
-/* Rule A, newest to oldest */
-function stalkBody(age) {
-  const R = seeded({ new: 41, mid: 42, old: 43 }[age]);
+const nod = M => { M.hd.rotation.x = 0.42; M.hd.position.z += 0.03; };
+/* Rule A covered, newest to oldest */
+function coverBody(age) {
+  const R = seeded({ new: 141, mid: 142, old: 143 }[age]);
   if (age === 'new') {
-    const M = person({ shirt: 'whole', tint: 0.06 });
-    budHead(M.hd, R, M.skin, 0.92, 0);
-    spiral(M, R, { n: 3, y0: 0.59, y1: 0.67, len0: 0.28, len1: 0.22, cure0: 0.1, cure1: 0, th0: 2.2 });
+    const M = person({ shirt: 'none', tint: 0.08 });
+    budHead(M.hd, R, M.skin, 0.92, 0, { mouth: false });
+    spiral(M, R, { n: 5, y0: 0.36, y1: 0.67, len0: 0.36, len1: 0.22, cure0: 0.2, cure1: 0, th0: 1.4 });
+    leafAt(M.arms[1], 0.05, -0.14, 0, PI / 2 + 0.4, 0.26, { col: 'YOUNG1', base: mixTone(M.skin, 'LEAF1', 0.45), lift: 0.4, droop: 0.8 });
     return M;
   }
   if (age === 'mid') {
-    const M = person({ shirt: 'open', tint: 0.12 });
-    budHead(M.hd, R, M.skin, 1, 0.15);
-    spiral(M, R, { n: 10, y0: 0.08, y1: 0.67, len0: 0.5, len1: 0.26, cure0: 0.62, cure1: 0.05, th0: 0.5 });
+    const M = person({ shirt: 'none', legs: 'knee', boots: 1, tint: 0.18 });
+    budHead(M.hd, R, M.skin, 1, 0.15, { mouth: false });
+    spiral(M, R, { n: 11, y0: 0.02, y1: 0.67, len0: 0.52, len1: 0.26, cure0: 0.7, cure1: 0.05, th0: 0.5 });
+    limb(M, R, 'arm', [[-0.12, 0.5], [-0.46, -0.6]], 0.3, 0.35);
+    limb(M, R, 'thigh', [[-0.18, 0.3]], 0.38, 0.75);
     return M;
   }
-  const M = person({ shirt: 'none', torn: true, boot: true, tint: 0.3, stoop: 0.1 });
-  budHead(M.hd, R, M.skin, 1.16, 1); M.hd.rotation.x = 0.42; M.hd.position.z += 0.03;
-  spiral(M, R, { n: 17, y0: -0.04, y1: 0.67, len0: 0.6, len1: 0.26, cure0: 1, cure1: 0.08, th0: 0.9 });
-  M.legs.forEach((l, i) => {
-    const s = i ? 1 : -1;
-    for (const [y, a] of [[-0.12, 0.2], [-0.32, -0.25]]) leafAt(l, s * 0.08, y, 0.0, s * (PI / 2 + a), 0.44 * R.rnd(0.9, 1.1), { col: cureKey(0.92, R), base: mixTone(M.skin, 'LEAF1', 0.45), lift: 0, droop: 1.3 });
-  });
-  M.arms.forEach((a, i) => { const s = i ? 1 : -1; leafAt(a, s * 0.045, -0.12, 0, s * (PI / 2), 0.34, { col: cureKey(0.55, R), base: mixTone(M.skin, 'LEAF1', 0.45), lift: 0.3, droop: 1.0 }); });
+  const M = person({ shirt: 'none', legs: 'thigh', boots: 0, tint: 0.3, stoop: 0.1 });
+  budHead(M.hd, R, M.skin, 1.16, 1, { mouth: false }); nod(M);
+  spiral(M, R, { n: 18, y0: -0.04, y1: 0.67, len0: 0.6, len1: 0.26, cure0: 1, cure1: 0.08, th0: 0.9 });
+  limb(M, R, 'arm', [[-0.1, 0.5], [-0.3, -0.7], [-0.5, 0.3]], 0.32, 0.5);
+  limb(M, R, 'thigh', [[-0.16, 0.2], [-0.36, -0.5]], 0.44, 0.9);
+  limb(M, R, 'shin', [[-0.12, 0.4]], 0.34, 0.97);
   return M;
 }
-/* Rule B, newest to oldest */
-function openBody(age) {
-  const R = seeded({ new: 61, mid: 62, old: 63 }[age]);
+/* Rule A grown through, newest to oldest */
+function throughBody(age) {
+  const R = seeded({ new: 151, mid: 152, old: 153 }[age]);
   if (age === 'new') {
-    const M = person({ shirt: 'whole' });
-    eyeHead(M.hd, R, M.skin, [-1, 1], 'short');
-    collar(M, R, 6, 0.2, 0.05);
+    const M = person({ shirt: 'none', neck: 'stalk', tint: 0.08 });
+    budHead(M.hd, R, M.skin, 0.92, 0, { jaw: false, mouth: false });
+    column(M, 0.36, 0.6, 0.055, false);
+    offStalk(M, R, { n: 3, y0: 0.4, y1: 0.56, d: 0.055, len0: 0.36, len1: 0.26, cure0: 0.15, cure1: 0 });
     return M;
   }
   if (age === 'mid') {
-    const M = person({ shirt: 'open', tint: 0.05 });
-    eyeHead(M.hd, R, M.skin, [-1, 1], 'tall');
-    collar(M, R, 8, 0.26, 0.25); front(M, R, 3, 0.36, 0.35); sleeves(M, R, 2, 0.28, 0.3);
+    const M = person({ shirt: 'none', neck: 'stalk', legs: 'knee', boots: 1, tint: 0.18 });
+    budHead(M.hd, R, M.skin, 1, 0.15, { jaw: false, mouth: false });
+    column(M, 0.1, 0.6, 0.08, true);
+    offStalk(M, R, { n: 8, y0: 0.14, y1: 0.56, d: 0.08, back: true, len0: 0.5, len1: 0.28, cure0: 0.7, cure1: 0.05 });
     return M;
   }
-  const M = person({ shirt: 'open', boot: true, tint: 0.1, stoop: 0.08 });
-  eyeHead(M.hd, R, M.skin, [-1, 1], 'crown', 1.1);
-  collar(M, R, 10, 0.32, 0.35); front(M, R, 4, 0.42, 0.5); sleeves(M, R, 3, 0.32, 0.5); waistband(M, R, 12, 0.44, 0.8);
+  const M = person({ shirt: 'none', neck: 'stalk', legs: 'thigh', boots: 0, tint: 0.3, stoop: 0.1 });
+  budHead(M.hd, R, M.skin, 1.16, 1, { jaw: false, mouth: false }); nod(M);
+  column(M, -0.06, 0.6, 0.105, true);
+  offStalk(M, R, { n: 13, y0: -0.02, y1: 0.56, d: 0.105, back: true, len0: 0.6, len1: 0.28, cure0: 1, cure1: 0.08 });
+  return M;
+}
+/* the oldest you kept from the first pass (stalk-old), exactly as it was; and the eye stalks as a one-off */
+function keptBody(id) {
+  if (id === 'old') {
+    const R = seeded(43), M = person({ shirt: 'none', torn: true, boot: true, tint: 0.3, stoop: 0.1 });
+    budHead(M.hd, R, M.skin, 1.16, 1); M.hd.rotation.x = 0.42; M.hd.position.z += 0.03;
+    spiral(M, R, { n: 17, y0: -0.04, y1: 0.67, len0: 0.6, len1: 0.26, cure0: 1, cure1: 0.08, th0: 0.9 });
+    M.legs.forEach((l, i) => {
+      const s = i ? 1 : -1;
+      for (const [y, a] of [[-0.12, 0.2], [-0.32, -0.25]]) leafAt(l, s * 0.08, y, 0.0, s * (PI / 2 + a), 0.44 * R.rnd(0.9, 1.1), { col: cureKey(0.92, R), base: mixTone(M.skin, 'LEAF1', 0.45), lift: 0, droop: 1.3 });
+    });
+    M.arms.forEach((a, i) => { const s = i ? 1 : -1; leafAt(a, s * 0.045, -0.12, 0, s * (PI / 2), 0.34, { col: cureKey(0.55, R), base: mixTone(M.skin, 'LEAF1', 0.45), lift: 0.3, droop: 1.0 }); });
+    return M;
+  }
+  const R = seeded(162), M = person({ shirt: 'none', legs: 'knee', tint: 0.05 });
+  mk(M.hd, 'ico', M.skin, 0.24, 0.28, 0.25); // smooth: no eyes
+  mk(M.hd, 'box', 'GOREC', 0.075, 0.024, 0.03, 0, -0.08, 0.11); // the mouth, slack
+  for (const s of [-1, 1]) eyeStalk(M.hd, s, R, M.skin);
+  waistband(M, R, 8, 0.3, 0.45);
+  M.shins.forEach((k, i) => {
+    for (const a of [0.5, -1.2]) { const th = (i ? 1 : -1) * a; leafAt(k, Math.sin(th) * 0.085, -0.115, Math.cos(th) * 0.085, th, 0.22 * R.rnd(0.9, 1.1), { col: cureKey(0.4, R), lift: -0.9, droop: 0.2 }); }
+  });
   return M;
 }
 
 /* ---------------------------------------------------------------------------------------------------------------- */
-/* the rows: what each is, why it is here, and what building it in castView.ts would take */
+/* the rows: what each is, why it is here, and what building it in castView.ts would take. Second pass, after your
+   picks: rule A only (rule B's dropped but for the eye stalks, a one-off); mostly naked; no mouth on the bud */
 const LINES = {
-  heads: {
-    name: 'Heads', who: 'Each head on the same body, the uniform and nothing grown on it, so only the head differs.', gap: 1.5, height: 2.15, ceil: 3.1, look: 1.5,
+  heads2: {
+    name: 'Heads', who: 'Each head on the same bare body, so only the head differs. No mouth, as your note asked.', gap: 1.5, height: 2.15, ceil: 3.1, look: 1.5,
     body: (h, i) => headBody(h, i),
     heads: [
-      { id: 'shelf2', tag: 'Closest so far', name: 'Shelf over the eyes', what: 'From the head bench, for comparison: leaf stacked out from under the brow over the eyes, back over the temple, and the slack mouth below.', from: 'Your closest pick so far. Here to beat, not to keep.', game: 'A variant of castKit.ts shelf().' },
-      { id: 'bud', tag: 'A · Bud', name: 'The bud', what: 'Rule A. Above the mouth the head is the plant\'s growing tip: leaf furled tight over where the skull and the eyes were, the outer wrapper still half the colour of skin where it starts, coming to a point. The jaw and the slack mouth are what is left of the face.', from: 'Your notes: the whole head or half of it, and no line between flesh and plant. A leaf reads as plant at a glance; furled, it reads as grown, not stuck on.', game: 'A smaller head for the jaw and twelve flattened icosahedra; nothing new in the kit.' },
-      { id: 'heavy', tag: 'A · Heavy', name: 'The bud, heavy', what: 'Rule A, years on: the bud larger and beginning to open at the top, heavy enough that the head hangs forward under it. From your eye you see the crown of leaf more than the mouth.', from: 'Less on the face: the face turned down by the weight of what grows out of it. They loll already.', game: 'As the bud, larger, the head carried forward (the skeleton\'s head point moved, as the bone middle years\' is).' },
-      { id: 'eyes', tag: 'B · Eyes', name: 'Out of the eyes', what: 'Rule B. The face smooth, no eyes: a stalk out of each socket, the socket\'s rim swollen round it, skin where it leaves the face and green by the brow, rising over the head in leaf. The mouth kept.', from: 'Your note on the bone line: something coming through the eyes is creepy. It made no sense for bone, which grows over; it does for a plant that is inside and takes the ways out there are.', game: 'Four cylinders and a few leaves a side.' },
-      { id: 'eye', tag: 'B · One eye', name: 'Out of one eye', what: 'Rule B on one side: one stalk, thicker, out of the right socket; the left closed over, smooth. Less face, and from across a room the head reads lopsided.', from: 'The same rule with half the face left alone. The bush\'s growth is on the right in the game already.', game: 'As Out of the eyes, one side.' },
+      { id: 'bud', tag: 'Bud', name: 'The bud, no mouth', what: 'The bud from the first pass with the mouth gone: leaf furled over the skull and the eyes, on the skin of the jaw. No face at all.', from: 'Your note: no mouth for now on the bud and the heavy.', game: 'A smaller head for the jaw and twelve flattened icosahedra.' },
+      { id: 'stem', tag: 'On the stalk', name: 'The bud on the stalk', what: 'No jaw left: the neck is the stalk, coming up out of the shoulders the colour of skin and going green, and the head is the bud on top of it, its lowest leaves still near the colour of skin where they wrap the stalk.', from: 'Your note: grown through with a stalk in the middle. Here the stalk is the neck, and the head is wholly plant.', game: 'The neck a thicker cylinder, the head all leaf.' },
+      { id: 'heavy', tag: 'Heavy', name: 'The bud, heavy, no mouth', what: 'The heavy bud, opening at the top, with the mouth gone; the head hangs forward under it.', from: 'As your kept oldest wears it, less the mouth.', game: 'As the bud, larger; the head carried forward.' },
+    ],
+  },
+  cover: {
+    name: 'Covered', who: 'Rule A, covered head to toe: the spiral of leaf up the body, and as they age, down the arms and the legs. Mostly naked, so the growth shows. Newest to oldest.', gap: 1.6, height: 2.15, ceil: 3.1, look: 1.5,
+    body: (h) => coverBody(h),
+    heads: [
+      { id: 'new', tag: 'Newest', name: 'Newest', what: 'The shirt off, the trousers and boots still on. The bud over the head, small and tight; five young leaves up the chest and the neck, one out of the right arm.', from: 'Mostly naked, so the growth shows (your note on the bud); your kept oldest had lost its shirt too.', game: 'changed() bare to the waist, and a spiral of leaves.' },
+      { id: 'mid', tag: 'Middle', name: 'Middle years', what: 'Bare to the waist, the trousers torn at the knee, a boot lost. The spiral from the belly to the neck, the lowest going yellow; two leaves out of each arm, one out of each thigh. The skin going green.', from: 'Covered head to toe, partway there.', game: 'The spiral, and a few leaves on each limb.' },
+      { id: 'old', tag: 'Oldest', name: 'Oldest', what: 'Your kept oldest taken further, the mouth gone: the trousers torn off above the knee, barefoot. Leaf from the shins to the crown: the spiral up the body, three out of each arm, two out of each thigh, one out of each shin, the lowest cured brown and hanging. The skin still shows between, and is greener.', from: 'Your note: covered from head to toe. Your keep is in the Kept row to compare.', game: 'As the kept oldest, with leaves down the limbs.' },
+    ],
+  },
+  through: {
+    name: 'Through', who: 'Rule A, grown through: the stalk has come up through the middle of them. It shows down the chest (and later the back), the neck is the stalk, the head is its bud, and the leaf grows off it. Newest to oldest.', gap: 1.6, height: 2.15, ceil: 3.1, look: 1.5,
+    body: (h) => throughBody(h),
+    heads: [
+      { id: 'new', tag: 'Newest', name: 'Newest', what: 'The shirt off. The neck has gone to stalk and the head is its bud; the stalk shows a hand\'s length down the breastbone, the skin either side half green. Three young leaves come off it.', from: 'Your note: grown through with a stalk in the middle. The rule: the stalk grows up through them, and the leaf grows off the stalk.', game: 'A half-sunk cylinder down the chest, and a stalk for the neck.' },
+      { id: 'mid', tag: 'Middle', name: 'Middle years', what: 'The stalk shows from the navel up, front and back, thicker; eight leaves come off it, turning round it, the lowest going yellow. The trousers torn at the knee, a boot lost.', from: 'Every leaf where a plant would put it: on the stalk.', game: 'The stalk front and back, the leaves off it.' },
+      { id: 'old', tag: 'Oldest', name: 'Oldest', what: 'The stalk thick from the groin to the neck, front and back; thirteen leaves off it, the lowest cured brown and hanging. The bud heavy and open, the head hanging forward under it. The trousers torn off above the knee, barefoot.', from: 'Your kept oldest\'s rule, with the stalk in sight.', game: 'As the middle years, more of it; a stoop.' },
     ],
   },
   stalk: {
-    name: 'Stalk', tab: 'A · Stalk', who: 'Rule A, the body is the stalk: leaf off it as off a tobacco stalk, and the head its growing tip. Newest to oldest, as Security\'s seven run.', gap: 1.6, height: 2.15, ceil: 3.1, look: 1.5,
-    body: (h) => stalkBody(h),
+    name: 'Kept', who: 'Your keep from the first pass, unchanged, to compare; and the eye stalks as a one-off, one of the seven rather than the line.', gap: 1.8, height: 2.15, ceil: 3.1, look: 1.5,
+    body: (h) => keptBody(h),
     heads: [
-      { id: 'new', tag: 'Newest', name: 'Newest', what: 'Still buttoned into the uniform, the badge on. The head has gone to bud above the mouth, small and tight; three young leaves come out of the neck above the collar, clasping it as a tobacco leaf clasps its stalk.', from: 'A guard with something wrong with the head, and the start of a plant standing like a person.', game: 'changed() with the head swapped, and three leaves in place of the neck\'s shelves.' },
-      { id: 'mid', tag: 'Middle', name: 'Middle years', what: 'The shirt open. Leaf up the body in a spiral, one at a time, each a little over a third of a turn round from the last, the biggest lowest, from the belly to the neck. The lowest are going yellow; the newest, at the top, are the deep green of new growth. Where each comes out, the skin is half leaf already.', from: 'How tobacco grows off its own stalk, so every leaf is where a plant would put it.', game: 'A spiral of leaves, two slabs and a clasp each; one merged mesh, as the shelves are.' },
-      { id: 'old', tag: 'Oldest', name: 'Oldest', what: 'The shirt gone, the trousers torn at the knee, a boot lost. The spiral runs from the hips to the neck and on down the thighs, the leaves larger; the lowest have cured brown and hang dead, as the bottom leaves of a stalk do first. The bud has opened at the top and the head hangs under it. The skin greener all over.', from: 'Age at a glance: green at the head, brown at the knees. The overgrowth already cures from the foot of a stalk up (overgrowth.ts).', game: 'The same, more of it; a stoop, and the head carried forward.' },
-    ],
-  },
-  open: {
-    name: 'Openings', tab: 'B · Openings', who: 'Rule B, it comes out where it can: the plant is inside them and leaves only by the ways out, never through the skin. Newest to oldest.', gap: 1.6, height: 2.15, ceil: 3.1, look: 1.5,
-    body: (h) => openBody(h),
-    heads: [
-      { id: 'new', tag: 'Newest', name: 'Newest', what: 'Buttoned up, the badge on. A ruff of young leaf out of the collar, and two short shoots out of the eyes, curled at their tips. Nothing breaks the skin.', from: 'The bone line\'s rule turned over: bone grows over the outside, the plant comes out from the inside.', game: 'changed() with a collar, and short stalks for the eyes.' },
-      { id: 'mid', tag: 'Middle', name: 'Middle years', what: 'The shirt open down the front, leaf pushing out of the gap; more out of the collar, and down out of the sleeves over the forearms. The stalks out of the eyes tall and leafing over the head.', from: 'A scarecrow: clothes stuffed with something that is not a person any more.', game: 'Leaves at each opening; nothing new in the kit.' },
-      { id: 'old', tag: 'Oldest', name: 'Oldest', what: 'Stooped, a boot lost. A skirt of leaf hangs out of the waistband all round, the lowest cured brown; the collar a mass of it; the stalks out of the eyes have branched into a crown. The shirt is what holds it in.', from: 'Rule B\'s oldest keep their clothes, since the clothes are where it comes out. The lore has the older ones shedding theirs; say if that matters.', game: 'As the middle years, more of it; a stoop.' },
+      { id: 'old', tag: 'Kept', name: 'Oldest (kept)', what: 'Your keep from the first pass, unchanged: the shirt gone, the trousers torn at the knee, a boot lost, the spiral from the hips to the neck and down the thighs, the bud heavy and open. It still has the mouth; the new rows drop it.', from: 'Your note: a fully fledged middle-years mutant of this line, one that could go in the game.', game: 'changed(), the spiral and the heavy bud.' },
+      { id: 'oneoff', tag: 'One-off', name: 'Eye stalks, one-off', what: 'The first pass\'s rule B middle years with the clothes taken down: bare to the waist, the trousers torn at the knee. A stalk out of each eye; leaf out of the waistband and out of the torn trouser legs. One of the seven, not the line.', from: 'Your notes: the eye stalks are creepy but a trick that works once; too much clothing on the middle years.', game: 'changed() with the eye stalks and a few leaves.' },
     ],
   },
 };
-const ORDER = ['heads', 'stalk', 'open'];
+const ORDER = ['heads2', 'cover', 'through', 'stalk'];
 
 /* ---------------------------------------------------------------------------------------------------------------- */
 /* state, and what this viewer last looked at */
-const S = { line: 'heads', sel: 0, view: 'lineup', light: 'room', pal: 'built', mottle: false, hunch: false, dist: 3.5 };
+const S = { line: 'heads2', sel: 0, view: 'lineup', light: 'room', pal: 'built', mottle: false, hunch: false, dist: 3.5 };
 try {
   const saved = JSON.parse(localStorage.getItem('rs-plants-view') || '{}');
   for (const k of Object.keys(S)) if (k in saved && typeof saved[k] === typeof S[k]) S[k] = saved[k];
-  if (!LINES[S.line]) S.line = 'heads';
+  if (!LINES[S.line]) S.line = 'heads2';
   if (!['room', 'tube', 'dark'].includes(S.light)) S.light = 'room';
   if (!PAL[S.pal]) S.pal = 'built';
   if (!['lineup', 'close', 'eye'].includes(S.view)) S.view = 'lineup';
@@ -869,7 +898,7 @@ addEventListener('keydown', e => {
   else if (e.key === 'ArrowLeft') { select((S.sel + figs.length - 1) % figs.length); e.preventDefault(); }
   else if (e.key === 'e' || e.key === 'E') setView(S.view === 'eye' ? 'lineup' : 'eye');
   else if (e.key === 'c' || e.key === 'C') setView(S.view === 'close' ? 'lineup' : 'close');
-  else if (e.key >= '1' && e.key <= '3') setLine(ORDER[+e.key - 1]);
+  else if (e.key >= '1' && e.key <= '4') setLine(ORDER[+e.key - 1]);
 });
 
 /* ---------------------------------------------------------------------------------------------------------------- */
