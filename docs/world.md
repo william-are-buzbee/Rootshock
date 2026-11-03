@@ -769,6 +769,10 @@ wins; the older text stays only because it describes what is built, until the le
       oldest reads as the line's middle years (the owner: "a fully fledged mid mutant version of this line"), so §10's
       table takes it there. The old of the line (the Commons' *Plant, old*) and the bush itself are still drawn in
       shelves, to be brought into line.
+    - *No two alike (proposed; the owner's).* Every one placed in a level is its own: a generator on the plant bench
+      rolls each from a template (a family of the kept) and a stage of life, so no two put their big stalks, their
+      sprouts or their face the same way; the owner looks over a batch and drops any that look wrong. Built in, each
+      placed one would carry its template, stage and seed, and be drawn from them.
     - *To build:* in `render/castView.ts`, `changed()`'s head and its shelves give way to the bud and the spiral (each
       leaf two flattened icosahedra and a clasp at its foot, one merged mesh to a cluster as the shelves are); the
       grown through's stalk a half-sunk cylinder down the chest and back, and a stalk for the neck.

@@ -39,7 +39,11 @@ browser (three.js comes from a CDN), and each has been published as a private cl
   the floor, and the big stalks moved off the eyes; with bark, roots and broken floor among the pieces. Then 35 to 42
   (the swallowed head without its clipping, the rooted crown at other sizes and on a trunk, faces for two of the
   overgrown), and *Maybe* and *Dropped* tabs: where each stands is set from the picks (`GROUPS`), and a dropped
-  number is never reused. The head bench's engine, room, views and lights; the line-up shows six at
+  number is never reused. *Generate* rolls new ones from templates made of the kept families (leaf spiral, stalk
+  through, sprouting, rooted) at a stage of life from newest to oldest: the stage sets each template's ranges (size,
+  clothes, growth, curing, bark, roots, the head), and within them each rolls its own big stalks (how many, out of
+  where, how large), face and sprouts; no two in a batch put their big stalks in the same places. A generated one's id
+  (`g-<template>-<stage>-<seed>`) rebuilds it exactly (`genome()`, `buildGen()`). The head bench's engine, room, views and lights; the line-up shows six at
   a time round the one picked, and *Silhouette* draws each as a flat dark shape on a pale room, to compare outlines. Keep,
   maybe or drop each, with a note (collection `picks`, described at the top of its script). `window.__rs` in the console
   exposes the state.
