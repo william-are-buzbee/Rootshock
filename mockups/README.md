@@ -47,7 +47,8 @@ browser (three.js comes from a CDN), and each has been published as a private cl
   as they were rolled (`SAVED`) and numbered into the collection, so changing the generator never changes them. Since
   its first batch: a fifth template, *Petalled* (plates out of the body, a bloom of yellow flowers on the old), an
   *Ancient* stage for the rooted (the root taking it to the head, the arms gone in, the green top fierce), buds that
-  flower yellow, faces under bark, and no more than two with eye stalks in a batch. The head bench's engine, room, views and lights; the line-up shows six at
+  flower yellow, faces under bark, and no more than two with eye stalks in a batch; then the petalled's petals made the
+  bud's own leaves, lapping down the body as armour, and young sprouting given more on the body. The head bench's engine, room, views and lights; the line-up shows six at
   a time round the one picked, and *Silhouette* draws each as a flat dark shape on a pale room, to compare outlines. Keep,
   maybe or drop each, with a note (collection `picks`, described at the top of its script). `window.__rs` in the console
   exposes the state.
