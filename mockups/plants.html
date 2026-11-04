@@ -153,6 +153,7 @@ button { cursor: pointer; }
     <div class="seg" role="tablist" aria-label="Row">
       <button role="tab" data-line="kept" aria-selected="true">Kept</button>
       <button role="tab" data-line="fresh" aria-selected="false">New</button>
+      <button role="tab" data-line="grown" aria-selected="false">Grown in</button>
       <button role="tab" data-line="gen" aria-selected="false">Generate</button>
       <button role="tab" data-line="held" aria-selected="false">Maybe</button>
       <button role="tab" data-line="dropped" aria-selected="false">Dropped</button>
@@ -219,6 +220,9 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
    rule A's oldest kept ("could go in the game"), so rule A only, mostly naked so the growth shows, no mouth on the bud,
    and the two ways the notes put it: covered from head to toe, or "grown through with a stalk in the middle". The first
    pass's rows are in the history; their picks stay in the store under their old ids.
+
+   Tenth pass: the grown in (75 to 82, the Grown in tab), truly old, grown into the building, each in the room it has
+   taken: through the floors and the ceilings, into the walls, across a door.
 
    Ninth pass: batch 2's saved (60 to 70 kept, 71 to 74 at maybe); the petalled's petals made the bud's own leaves,
    lapping down the body as armour; young sprouting given more on the body and always one big stalk.
@@ -1433,13 +1437,13 @@ function flower(parent, a, dir, len, R) {
   mk(g, 'ico', 'GOLD' + Math.floor(R.rnd(0, 1.99)), len * 0.28, len * 0.1, len * 0.28, 0, len * 0.08, 0); // its throat
 }
 /** a cluster of them out of p along its normal n: a short stalk, and `count` flowers off its top turned up and out */
-function flowerCluster(parent, p, n, size, count, R) {
+function flowerCluster(parent, p, n, size, count, R, down = false) {
   _N.set(...n).normalize();
-  const up = [_N.x * 0.4, _N.y * 0.4 + 1, _N.z * 0.4], l = Math.hypot(...up), top = [p[0] + up[0] / l * size, p[1] + up[1] / l * size, p[2] + up[2] / l * size];
+  const up = down ? [_N.x, _N.y, _N.z] : [_N.x * 0.4, _N.y * 0.4 + 1, _N.z * 0.4], l = Math.hypot(...up), top = [p[0] + up[0] / l * size, p[1] + up[1] / l * size, p[2] + up[2] / l * size];
   mk(parent, 'ico', 'STEM1', size * 0.3, size * 0.22, size * 0.3, ...p);
   rod(parent, p, top, size * 0.12, 'STEM1');
   for (let i = 0; i < count; i++) {
-    const a = (i / count) * TAU + R.rnd(-0.3, 0.3), el = R.rnd(0.3, 1.0);
+    const a = (i / count) * TAU + R.rnd(-0.3, 0.3), el = down ? -R.rnd(0.35, 1.1) : R.rnd(0.3, 1.0);
     flower(parent, top, [Math.cos(el) * Math.sin(a), Math.sin(el), Math.cos(el) * Math.cos(a)], size * R.rnd(0.6, 0.85), R);
   }
 }
@@ -1503,6 +1507,441 @@ function armsGone(M, R) {
     rod(M.b, a, b, R.rnd(0.06, 0.09), 'BARK0');
     sprout(M.b, b, [s * 0.4, 1, 0], R.rnd(0.22, 0.38), R, 'BARK1', 0.2, { up: 2 });
   }
+}
+
+/* ---------------------------------------------------------------------------------------------------------------- */
+/* Tenth pass: the grown in (the owner: "assuming these guys survive, each one will turn into something much bigger, more
+   plant like ... like that tool for showing how roots can grow through a level ... mutants eventually can become part
+   of the landscape ... grow through the floors, through the walls ... truly old compared to our current old"). Each is
+   drawn in the room it has taken, cut open at the front so the level under it and the one over it show: what it has
+   put down through the floor, and up through the ceiling. Its pieces are the game's roots' (content/build/roots.ts):
+   a bore where it goes through concrete, the concrete spalled round it and the reinforcing bared and bent, rubble
+   under it; great roots knuckled at their bends and braided where they are thick; rootlets and leaf hung from a
+   ceiling as in a curing barn. What it was is in it still: a body taken into the trunk, a face in the bark */
+
+/** the room: 4.4 m across, its back wall 2.4 m back and its front cut open 1.6 m forward; its floor a 0.3 m slab over
+ *  the level below (whose floor is 3.3 m down), its ceiling 3 m up and the slab of the level over it */
+const CELL = { W: 4.4, z0: -2.4, z1: 1.6, H: 3.0, T: 0.3, low: -3.3 };
+const REBAR = 0x6a3a24;
+const vadd = (a, b, k = 1) => [a[0] + b[0] * k, a[1] + b[1] * k, a[2] + b[2] * k];
+const vunit = v => { const l = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / l, v[1] / l, v[2] / l]; };
+const vcross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+/** two directions square to n and to each other */
+const vacross = n => { const u = vunit(vcross(n, Math.abs(n[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0])); return [u, vcross(n, u)]; };
+/** a group at p, turned so its +y is along d */
+function along(parent, p, d) { const g = grp(parent, ...p); g.quaternion.setFromUnitVectors(_UP, _D.set(...d).normalize()); return g; }
+
+/** a slab from y0, t thick, over the room, with the holes [x, z, w, d] it has been broken through */
+function slab(G, y0, t, col, holes) {
+  const { W, z0, z1 } = CELL, xs = new Set([-W / 2, W / 2]), zs = new Set([z0, z1]);
+  for (const [x, z, w, d] of holes) { xs.add(clamp(x - w / 2, -W / 2, W / 2)); xs.add(clamp(x + w / 2, -W / 2, W / 2)); zs.add(clamp(z - d / 2, z0, z1)); zs.add(clamp(z + d / 2, z0, z1)); }
+  const X = [...xs].sort((a, b) => a - b), Z = [...zs].sort((a, b) => a - b);
+  for (let i = 0; i + 1 < X.length; i++) for (let j = 0; j + 1 < Z.length; j++) {
+    const cx = (X[i] + X[i + 1]) / 2, cz = (Z[j] + Z[j + 1]) / 2;
+    if (X[i + 1] - X[i] < 1e-3 || Z[j + 1] - Z[j] < 1e-3 || holes.some(([x, z, w, d]) => Math.abs(cx - x) < w / 2 && Math.abs(cz - z) < d / 2)) continue;
+    mk(G, 'box', col, X[i + 1] - X[i], t, Z[j + 1] - Z[j], cx, y0 + t / 2, cz);
+  }
+  for (const [x, z, w, d] of holes) // the broken sides of the hole, dark
+    for (const [cx, cz, sx, sz] of [[x - w / 2 + 0.012, z, 0.024, d], [x + w / 2 - 0.012, z, 0.024, d], [x, z - d / 2 + 0.012, w, 0.024], [x, z + d / 2 - 0.012, w, 0.024]])
+      mk(G, 'box', 'HOLE', sx, t * 0.98, Math.min(sz, CELL.z1 - CELL.z0), cx, y0 + t / 2, clamp(cz, CELL.z0, CELL.z1));
+}
+/** where something d thick goes through concrete at p, its face looking out along n into the room: a dark hole round
+ *  it; the concrete spalled off in plates about it, their inner edges lifted; lumps of its raw inside; the reinforcing
+ *  bared and bent; cracks run out; and, out of a wall or a ceiling, rubble fallen on the floor under it */
+function bore(G, R, p, n, d, floorY = 0, o = {}) {
+  const [u, v] = vacross(n), big = Math.max(0, d - 0.6), more = Math.round(big * 5);
+  if (o.disc !== false) mk(along(G, vadd(p, n, 0.006), n), 'cyl', 'HOLE', d * 1.35, 0.012, d * 1.35, 0, 0, 0);
+  for (let k = 0, m0 = 6 + Math.floor(R.rnd(0, 3)), m = m0 + more; k < m; k++) {
+    const a = (k / m) * TAU + R.rnd(-0.3, 0.3), rr = vadd(vadd([0, 0, 0], u, Math.cos(a)), v, Math.sin(a)), w = R.rnd(0.14, 0.24) + Math.min(d, 0.6) * 0.5 + big * 0.15, tip = R.rnd(0.25, 0.6) * (big ? 0.5 : 1);
+    const at = vadd(vadd(p, rr, d * 0.55 + w * 0.42 + (k >= m0 ? w * 0.9 : 0)), n, w * 0.42 * Math.sin(tip));
+    mk(along(G, at, vadd(vadd([0, 0, 0], n, Math.cos(tip)), rr, Math.sin(tip))), 'ico', 'CONC' + Math.floor(R.rnd(0, 2.99)), w, R.rnd(0.035, 0.06), w * R.rnd(0.6, 0.9), 0, 0, 0);
+  }
+  for (let k = 0, m = 2 + Math.floor(R.rnd(0, 3)) + more; k < m; k++) {
+    const a = R.rnd(0, TAU), q = d * R.rnd(0.55, 0.75), s = R.rnd(0.05, 0.1) + d * 0.15, at = vadd(vadd(p, u, Math.cos(a) * q), v, Math.sin(a) * q);
+    mk(G, 'ico', 'CONC' + Math.floor(R.rnd(0, 2.99)), s, s * R.rnd(0.5, 0.8), s * R.rnd(0.7, 1), ...vadd(at, n, s * 0.2));
+  }
+  for (let k = 0, m = 2 + Math.floor(R.rnd(0, 3)) + more; k < m; k++) { // the reinforcing, bared and bent out of it
+    const a = R.rnd(0, TAU), q = d * R.rnd(0.6, 0.8), s = vadd(vadd(p, u, Math.cos(a) * q), v, Math.sin(a) * q), r = R.rnd(0.05, 0.15) * (1 + big);
+    const m1 = vadd(s, n, R.rnd(0.06, 0.14) * (1 + big)), e = vadd(vadd(m1, u, Math.cos(a) * r), v, Math.sin(a) * r);
+    rod(G, s, m1, 0.018, REBAR); rod(G, m1, e, 0.018, REBAR);
+  }
+  for (let k = 0, m = 3 + Math.floor(R.rnd(0, 3)); k < m; k++) { // cracks out across the face
+    const a = R.rnd(0, TAU), r0 = d * 0.7, len = R.rnd(0.3, 0.9) * (0.5 + d), dir = vadd(vadd([0, 0, 0], u, Math.cos(a)), v, Math.sin(a));
+    const s = vadd(vadd(p, dir, r0 + len / 2), n, 0.004), g = along(G, s, dir);
+    mk(g, 'box', 'CRACK', 0.016, len, 0.006, 0, 0, 0);
+  }
+  if (n[1] < 0.5) for (let k = 0, m = 5 + Math.floor(R.rnd(0, 5)) + more * 2; k < m; k++) { // what fell
+    const a = R.rnd(0, TAU), r = R.rnd(0, 0.35 + d), s = R.rnd(0.04, 0.12);
+    mk(G, 'ico', 'CONC' + Math.floor(R.rnd(0, 2.99)), s, s * 0.6, s * 0.9, p[0] + n[0] * (0.25 + d) + Math.sin(a) * r, floorY + s * 0.25, p[2] + n[2] * (0.25 + d) + Math.cos(a) * r);
+  }
+}
+/** the floor heaved round where it came up: plates of it tilted up and out about (x, z) */
+function heave(G, R, x, y, z, r) {
+  for (let k = 0, m = 7 + Math.floor(R.rnd(0, 4)); k < m; k++) {
+    const a = (k / m) * TAU + R.rnd(-0.25, 0.25), w = R.rnd(0.3, 0.55), at = [x + Math.sin(a) * (r + w * 0.4), y + R.rnd(0.03, 0.12), z + Math.cos(a) * (r + w * 0.4)];
+    mk(along(G, at, [Math.sin(a) * R.rnd(0.25, 0.6), 1, Math.cos(a) * R.rnd(0.25, 0.6)]), 'box', 'CONC' + Math.floor(R.rnd(0, 2.99)), w, 0.1, w * R.rnd(0.6, 0.9), 0, 0, 0);
+  }
+}
+
+/** a great root, or a trunk, through the points given, d0 thick at its first and d1 at its last: knuckled at its bends,
+ *  braided of two strands where it is over a hand thick, plated with bark where it is a trunk. `cols` its colours (a
+ *  green stalk is not braided or plated) */
+function greatRoot(G, R, pts, d0, d1, cols = BARKS, o = {}) {
+  const n = pts.length - 1, wood = cols === BARKS;
+  let tw = R.rnd(0, TAU);
+  for (let k = 0; k < n; k++) {
+    const a = pts[k], b = pts[k + 1], d = d0 + ((d1 - d0) * k) / Math.max(1, n - 1), c = cols[k % cols.length];
+    rod(G, a, b, d, c);
+    if (k) mk(G, 'ico', c, d * 1.25, d * 1.1, d * 1.25, ...a);
+    if (!wood || o.plain) continue;
+    const ax = vunit([b[0] - a[0], b[1] - a[1], b[2] - a[2]]), [u, v] = vacross(ax), L = Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]);
+    if (d > 0.16) {
+      const t0 = tw, t1 = (tw += R.rnd(0.9, 1.5));
+      for (const s of [0, PI]) {
+        const off = t => vadd(vadd([0, 0, 0], u, Math.cos(t + s) * d * 0.3), v, Math.sin(t + s) * d * 0.3);
+        rod(G, vadd(a, off(t0)), vadd(b, off(t1)), d * 0.5, BARKS[(k + 1) % 3]);
+      }
+    }
+    if (d > 0.4) for (let j = 0, m = Math.round(L * d * 10); j < m; j++) { // plates of bark on a trunk
+      const t = R.rnd(0, TAU), f = R.rnd(0.05, 0.95), rr = vadd(vadd([0, 0, 0], u, Math.cos(t)), v, Math.sin(t)), p = vadd(vadd(a, ax, L * f), rr, d * 0.5);
+      const g = grp(G, ...p);
+      g.quaternion.setFromRotationMatrix(_BASIS.makeBasis(_X.set(...vcross(ax, rr)), _Y.set(...ax), _ZB.set(...rr)));
+      mk(g, 'ico', BARKS[Math.floor(R.rnd(0, 2.999))], R.rnd(0.14, 0.24), R.rnd(0.22, 0.4), 0.045, 0, 0, 0);
+    }
+  }
+}
+/** roots out over a floor at height y from o, n of them `reach` long: half sunk in it, wandering, forking, and where one
+ *  meets a wall it climbs it a way; each goes down into the floor at its end, the floor broken there */
+function floorRoots(G, R, o, n, reach, d0, opt = {}) {
+  const y = opt.y ?? 0, { W, z0 } = CELL;
+  for (let i = 0; i < n; i++) {
+    let a = (opt.a0 ?? 0) + (i / n) * TAU + R.rnd(-0.35, 0.35);
+    const pts = [o], steps = 5, L = reach * R.rnd(0.65, 1.05);
+    let q = o, climbing = false;
+    for (let j = 1; j <= steps; j++) {
+      const d = d0 * (1 - j / (steps + 1));
+      if (climbing) { q = [q[0] + R.rnd(-0.15, 0.15), q[1] + R.rnd(0.3, 0.5), q[2]]; pts.push(q); continue; }
+      a += R.rnd(-0.3, 0.3);
+      let nx = q[0] + Math.sin(a) * (L / steps), nz = q[2] + Math.cos(a) * (L / steps);
+      if (opt.climb && (nz < z0 + 0.1 || Math.abs(nx) > W / 2 - 0.1)) { // at a wall: up it
+        nz = Math.max(nz, z0 + 0.04 + d / 2); nx = clamp(nx, -W / 2 + 0.04 + d / 2, W / 2 - 0.04 - d / 2);
+        climbing = true; q = [nx, y + d * 0.4, nz]; pts.push(q); continue;
+      }
+      nx = clamp(nx, -W / 2 + 0.1, W / 2 - 0.1); nz = clamp(nz, z0 + 0.1, CELL.z1 - 0.2);
+      q = [nx, j === steps ? y - d * 0.4 : y + d * 0.3, nz]; pts.push(q);
+    }
+    greatRoot(G, R, pts, d0, d0 * 0.3);
+    const e = pts[pts.length - 1];
+    if (!climbing) bore(G, R, [e[0], y + 0.002, e[2]], [0, 1, 0], d0 * 0.4, y);
+  }
+}
+/** a run along the ceiling (or under it, as a vine or a root goes) from p for `len`, wandering, d thick, things hung from
+ *  it: leaf as in a curing barn, rootlets, flowers, as `hang` says */
+function ceilingRun(G, R, p, a, len, d, hang = 'leaf', o = {}) {
+  const H = o.H ?? CELL.H, pts = [p], steps = 4;
+  let q = p;
+  for (let j = 1; j <= steps; j++) {
+    a += R.rnd(-0.35, 0.35);
+    q = [clamp(q[0] + Math.sin(a) * len / steps, -CELL.W / 2 + 0.1, CELL.W / 2 - 0.1), H - d * 0.5 - 0.01, clamp(q[2] + Math.cos(a) * len / steps, CELL.z0 + 0.1, CELL.z1 - 0.1)];
+    pts.push(q);
+  }
+  greatRoot(G, R, pts, d, d * 0.4, o.cols ?? BARKS);
+  for (let j = 1; j < pts.length; j++) for (let k = 0; k < (o.per ?? 2); k++) {
+    const f = R.rnd(0, 1), at = [lerp(pts[j - 1][0], pts[j][0], f), pts[j][1] - d * 0.4, lerp(pts[j - 1][2], pts[j][2], f)];
+    if (hang === 'leaf') leafAt(G, ...at, R.rnd(0, TAU), R.rnd(0.4, 0.75) * (o.k ?? 1), { col: cureKey(R.rnd(0.3, 1), R), lift: -1.35, droop: -0.1 });
+    else if (hang === 'roots') rootlet(G, R, at, R.rnd(0.3, 0.9));
+    else if (hang === 'flowers') flowerCluster(G, at, [R.rnd(-0.3, 0.3), -1, R.rnd(-0.3, 0.3)], R.rnd(0.14, 0.24), irnd(R, 3, 6), R, true);
+  }
+  return pts;
+}
+/** a rootlet hung from p, `drop` long, out a little and then straight down under its own weight */
+function rootlet(G, R, p, drop) {
+  const az = R.rnd(0, TAU), out = R.rnd(0.05, 0.2), pts = [p];
+  for (const [f, s] of [[0.2, 0.6], [0.55, 0.9], [1, 1]]) pts.push([p[0] + Math.sin(az) * out * s, p[1] - drop * f, p[2] + Math.cos(az) * out * s]);
+  for (let i = 0; i + 1 < pts.length; i++) rod(G, pts[i], pts[i + 1], 0.02 * (1 - i * 0.25), i ? 'ROOT0' : 'BARK1');
+}
+/** a run pressed along the back wall from p, toward (dx, dy) on it, d thick, leaf pressed flat to the wall along it */
+function wallRun(G, R, p, dx, dy, len, d, o = {}) {
+  const z = CELL.z0 + d * 0.5 + 0.01, pts = [[p[0], p[1], z]], steps = 4;
+  let q = pts[0], a = Math.atan2(dx, dy);
+  for (let j = 1; j <= steps; j++) {
+    a += R.rnd(-0.3, 0.3);
+    q = [clamp(q[0] + Math.sin(a) * len / steps, -CELL.W / 2 + 0.08, CELL.W / 2 - 0.08), clamp(q[1] + Math.cos(a) * len / steps, 0.05, CELL.H - 0.08), z];
+    pts.push(q);
+  }
+  greatRoot(G, R, pts, d, d * 0.35, o.cols ?? BARKS);
+  for (let j = 1; j < pts.length; j++) for (let k = 0; k < (o.leaves ?? 2); k++) {
+    const f = R.rnd(0, 1), at = [lerp(pts[j - 1][0], pts[j][0], f), lerp(pts[j - 1][1], pts[j][1], f), CELL.z0 + 0.03], s = R.rnd(0.5, 1) * (o.k ?? 1);
+    mk(G, 'ico', cureKey(R.rnd(0.1, o.cure ?? 0.7), R), s * 0.65, s, 0.03, ...at).rotation.z = R.rnd(-1.2, 1.2); // a leaf pressed flat to it
+  }
+  return pts;
+}
+/** a branch out of p along dir: d thick, `len` long, forking `depth` times; kept under the ceiling unless `free`;
+ *  `tip` at each end */
+function branch(G, R, p, dir, len, d, depth, tip, o = {}) {
+  const u = vunit(dir), q = vadd(p, u, len);
+  if (!o.free) q[1] = Math.min(q[1], CELL.H - d * 0.5 - 0.02);
+  rod(G, p, q, d, depth > 1 ? 'BARK1' : 'BARK0');
+  if (depth <= 0) { if (tip) tip(q, u); return; }
+  for (let i = 0; i < 2; i++) branch(G, R, q, [u[0] + R.rnd(-0.7, 0.7), u[1] + R.rnd(-0.1, 0.5), u[2] + R.rnd(-0.6, 0.6)], len * R.rnd(0.6, 0.8), d * 0.65, depth - 1, tip, o);
+}
+/** what is left of the one it was: a body taken into it, at `at`, turned `yaw` (and over, rx, rz), K times a person's
+ *  size; gone to bark to `bark`; its head as `head` makes it */
+function absorbed(G, R, o) {
+  const M = person({ shirt: 'none', legs: o.legs ?? 'none', boots: 0, tint: 0.3, skin: o.skin ?? mixTone('SALLOW', 'BARK1', 0.55), wide: o.wide });
+  if (o.head) o.head(M, R);
+  if (o.bark) barkOver(M, R, o.bark);
+  M.g.position.set(...o.at); M.g.rotation.set(o.rx ?? 0, o.yaw ?? 0, o.rz ?? 0); M.g.scale.setScalar(o.K ?? 1);
+  G.add(M.g); G.updateMatrixWorld(true);
+  return M;
+}
+/** where a point on one of its parts is, in the room */
+const inRoom = (part, p) => { const v = part.localToWorld(new THREE.Vector3(...p)); return [v.x, v.y, v.z]; };
+/** its arms gone to branches: lifted out from it, gone to wood, and branching on out from where the hands were */
+function armBranches(G, R, M, lift, o = {}) {
+  M.arms.forEach((a, i) => {
+    const s = i ? 1 : -1;
+    a.rotation.z = s * lift; barkBox(a, R, [0, -0.35, 0], 0.11, 0.72, 0.11, 6);
+    G.updateMatrixWorld(true);
+    const h = inRoom(a, [0, -0.66, 0]), e = inRoom(a, [0, -0.2, 0]), dir = vunit([h[0] - e[0], h[1] - e[1] + (o.up ?? 0.4), h[2] - e[2]]);
+    branch(G, R, h, dir, o.len ?? 0.7, o.d ?? 0.08, o.depth ?? 2, (q, u) => { sprout(G, q, [u[0], 0.6, u[2]], R.rnd(0.3, 0.5), R, 'BARK1', 0.2, { up: 1.6 }); leafAt(G, ...q, R.rnd(0, TAU), R.rnd(0.3, 0.5), { col: cureKey(R.rnd(0, 0.6), R), lift: 0.2, droop: 0.9 }); });
+  });
+}
+/** the room's shell, built after what is grown in it: the holes it has broken through the floor and the ceiling (with
+ *  bores round them), a door in the back wall if it has one, the level under it darker, the room over it showing */
+function cellShell(G, R, o = {}) {
+  const was = FIG; FIG = false;
+  const { W, z0, z1, H, T, low } = CELL, hw = W / 2, zc = (z0 + z1) / 2, D = z1 - z0, yb = low - T, yt = H + T + 1.5;
+  mk(G, 'box', 0x4f504c, W, T, D, 0, low - T / 2, zc); // the floor of the level under it
+  slab(G, -T, T, 0x7d7e7a, o.floor ?? []);
+  slab(G, H, T, 0x6b6c68, o.ceil ?? []);
+  for (const [x, z, w, d, k] of o.floor ?? []) { bore(G, R, [x, 0.001, z], [0, 1, 0], Math.min(w, d) * (k ?? 0.8), 0, { disc: false }); bore(G, R, [x, -T - 0.001, z], [0, -1, 0], Math.min(w, d) * 0.7, low, { disc: false }); }
+  for (const [x, z, w, d, k] of o.ceil ?? []) { bore(G, R, [x, H - 0.001, z], [0, -1, 0], Math.min(w, d) * (k ?? 0.8), 0, { disc: false }); bore(G, R, [x, H + T + 0.001, z], [0, 1, 0], Math.min(w, d) * 0.7, H + T, { disc: false }); }
+  /* the back wall, a door through it if there is one, and the room beyond it dark; the side walls; each of them darker
+     in the level under */
+  const wallTo = (x0, x1, y0, y1, col) => { if (x1 - x0 > 1e-3 && y1 - y0 > 1e-3) mk(G, 'box', col, x1 - x0, y1 - y0, 0.2, (x0 + x1) / 2, (y0 + y1) / 2, z0 - 0.1); };
+  wallTo(-hw, hw, yb, 0, 0x55564f);
+  if (o.door) {
+    const [dx, dw, dh] = o.door;
+    wallTo(-hw, dx - dw / 2, 0, yt, 0x7a7b77); wallTo(dx + dw / 2, hw, 0, yt, 0x7a7b77); wallTo(dx - dw / 2, dx + dw / 2, dh, yt, 0x7a7b77);
+    mk(G, 'box', 0x2a2b29, dw + 0.6, 0.1, 2.2, dx, -0.05, z0 - 1.3); mk(G, 'box', 0x1c1d1b, dw + 0.6, dh + 0.4, 0.1, dx, dh / 2, z0 - 2.4);
+    for (const s of [-1, 1]) mk(G, 'box', 0x262725, 0.1, dh + 0.4, 2.2, dx + s * (dw / 2 + 0.3), dh / 2, z0 - 1.3);
+    mk(G, 'box', 0x3a3b39, dw + 0.08, 0.08, 0.24, dx, dh + 0.04, z0 - 0.1); // its frame
+  } else wallTo(-hw, hw, 0, yt, 0x7a7b77);
+  for (const s of [-1, 1]) {
+    mk(G, 'box', 0x55564f, 0.2, -yb, D + 0.2, s * (hw + 0.1), yb / 2, zc - 0.1);
+    mk(G, 'box', 0x737470, 0.2, yt, D + 0.2, s * (hw + 0.1), yt / 2, zc - 0.1);
+  }
+  mk(G, 'box', 0x2a2c2e, 1.2, 0.07, 0.2, o.tube ?? 1.2, H - 0.035, 0.5); mk(G, 'box', 0xcfcfc6, 1.1, 0.02, 0.12, o.tube ?? 1.2, H - 0.08, 0.5); // a tube
+  for (const [p, n, d] of o.bores ?? []) bore(G, R, p, n, d);
+  FIG = was;
+}
+/** one of the grown in, as the bench takes a figure: the room and all in it, the head of what it was to look at close */
+function cellFig(G, M, at) {
+  return { g: G, b: grp(G), hd: M ? M.hd : grp(G, ...(at ?? [0, 1.6, 0])), legs: [], shins: [], arms: [], still: true, cell: true };
+}
+
+/* the eight, a template of the line each, or more than one: what each family becomes if it lives long enough */
+
+/* the rooted, grown into a pillar: up from the level under through the floor, through the room, on through the ceiling;
+   the one it was taken into it facing out, hung off the floor, its arms gone to branches across the ceiling */
+function grownPillar() {
+  const R = seeded(301), G = new THREE.Group(), tx = 0.25, tz = -1.0;
+  greatRoot(G, R, [[tx + 0.2, CELL.low, tz + 0.1], [tx + 0.1, -1.6, tz], [tx, -0.15, tz - 0.05], [tx - 0.05, 1.1, tz - 0.08], [tx - 0.1, 2.3, tz - 0.1], [tx - 0.12, 3.15, tz - 0.1], [tx - 0.18, 4.5, tz - 0.14]], 1.15, 0.5);
+  floorRoots(G, R, [tx + 0.2, CELL.low + 0.05, tz + 0.1], 7, 2.0, 0.3, { y: CELL.low });
+  floorRoots(G, R, [tx, 0.02, tz], 6, 2.1, 0.24, { climb: true });
+  heave(G, R, tx, 0, tz, 0.6);
+  const M = absorbed(G, R, { at: [tx - 0.05, 0.42, tz + 0.3], K: 1.05, legs: 'thigh', bark: 1.56,
+    head: (M, R) => { mk(M.hd, 'ico', M.skin, 0.24, 0.28, 0.25); mk(M.hd, 'box', 'GOREC', 0.075, 0.024, 0.03, 0, -0.08, 0.11); scatter(M, R, 'head', 26, 0.16, 0.42, { thick: 1.4, up: 2 }); scatter(M, R, 'face', 5, 0.1, 0.2); } });
+  armBranches(G, R, M, 1.1, { up: 0.9, len: 0.8, depth: 2 });
+  for (let i = 0; i < 6; i++) ceilingRun(G, R, [tx - 0.1 + R.rnd(-0.2, 0.2), CELL.H - 0.1, tz - 0.1 + R.rnd(-0.2, 0.2)], (i / 6) * TAU, R.rnd(1.2, 2.0), R.rnd(0.08, 0.14));
+  for (let i = 0; i < 7; i++) { const a = (i / 7) * TAU; sprout(G, [tx - 0.1 + Math.sin(a) * 0.3, R.rnd(2.0, 2.6), tz - 0.1 + Math.cos(a) * 0.3], [Math.sin(a), 0.4, Math.cos(a)], R.rnd(0.5, 0.8), R, 'BARK1', 0.1, { thick: 1.6, up: 1.4 }); }
+  for (let i = 0; i < 9; i++) { const a = (i / 9) * TAU; sprout(G, [tx - 0.15 + Math.sin(a) * 0.25, R.rnd(3.4, 4.2), tz - 0.12 + Math.cos(a) * 0.25], [Math.sin(a), 0.6, Math.cos(a)], R.rnd(0.8, 1.3), R, 'BARK1', 0, { thick: 1.6, up: 1.4 }); }
+  cellShell(G, R, { floor: [[tx, tz, 1.25, 1.25]], ceil: [[tx - 0.12, tz - 0.1, 0.95, 0.95]] });
+  return cellFig(G, M);
+}
+
+/* the sprouting, risen: come up through the floor on a trunk out of the level under, the upper body of it one and a
+   half times a person's; its arms hung down to the floor and rooted there; great stalks out of its shoulders and back
+   up to the ceiling and along it, leaf hung from them */
+function grownRisen() {
+  const R = seeded(302), G = new THREE.Group(), tx = -0.2, tz = -0.7;
+  greatRoot(G, R, [[tx + 0.1, CELL.low, tz + 0.1], [tx + 0.05, -1.4, tz], [tx, 0.0, tz], [tx, 0.95, tz - 0.02]], 1.35, 0.75);
+  floorRoots(G, R, [tx + 0.1, CELL.low + 0.05, tz + 0.1], 8, 2.0, 0.32, { y: CELL.low });
+  heave(G, R, tx, 0, tz, 0.75);
+  const K = 1.55, M = absorbed(G, R, { at: [tx, -0.5, tz + 0.05], K, legs: 'none', bark: 1.2, skin: mixTone('SALLOW', 'LEAF1', 0.25),
+    head: (M, R) => { mk(M.hd, 'ico', M.skin, 0.24, 0.28, 0.25); mk(M.hd, 'box', 'GOREC', 0.075, 0.024, 0.03, 0, -0.08, 0.11); scatter(M, R, 'head', 22, 0.12, 0.26); scatter(M, R, 'top', 10, 0.12, 0.24); scatter(M, R, 'front', 10, 0.1, 0.22, { y0: 0.3 }); scatter(M, R, 'arm', 8, 0.08, 0.16); } });
+  /* the arms down to the floor, and on into it as roots */
+  M.arms.forEach((a, i) => {
+    const s = i ? 1 : -1; a.rotation.z = s * 0.18; a.rotation.x = -0.15; barkBox(a, R, [0, -0.52, 0], 0.1, 0.36, 0.1, 4);
+    G.updateMatrixWorld(true);
+    const h = inRoom(a, [0, -0.68, 0]), f = [h[0] + s * 0.2, 0.05, h[2] + 0.25];
+    greatRoot(G, R, [h, [lerp(h[0], f[0], 0.5), h[1] * 0.45, lerp(h[2], f[2], 0.5)], f], 0.13, 0.1);
+    floorRoots(G, R, f, 3, 1.0, 0.09, { a0: s * PI / 2 });
+  });
+  /* the great stalks: out of the shoulders and the back, up to the ceiling and along it */
+  for (const [part, p, out] of [[M.b, [-0.15, 0.6, 0], [-1, 0.5, 0.3]], [M.b, [0.16, 0.6, 0.02], [1, 0.5, 0.2]], [M.b, [-0.06, 0.45, -0.116], [-0.3, 0.6, -1]], [M.b, [0.09, 0.38, -0.116], [0.5, 0.6, -1]]]) {
+    const s = inRoom(part, p), o = vunit(out), up = [s[0] + o[0] * 0.3, s[1] + 0.35, s[2] + o[2] * 0.3], top = [s[0] + o[0] * 0.75, CELL.H - 0.08, s[2] + o[2] * 0.75];
+    greatRoot(G, R, [s, up, top], 0.15, 0.12, ['STEM0', 'STEM1']);
+    ceilingRun(G, R, top, Math.atan2(o[0], o[2]), R.rnd(1.0, 1.6), 0.11, 'leaf', { cols: ['STEM0', 'STEM1'], per: 3, k: 1.1 });
+    leafAt(G, ...up, Math.atan2(o[0], o[2]), 0.5, { col: 'LEAF1', lift: 0.3, droop: 0.9 });
+  }
+  cellShell(G, R, { floor: [[tx, tz, 1.5, 1.35]] });
+  return cellFig(G, M);
+}
+
+/* the leaf spiral, gone into the wall: the body a third larger than a person, its back sunk into the back wall and its
+   legs gone into it as roots down to the floor; the leaf off it a metre long; runs out from it pressed along the wall,
+   up over the ceiling and down along the floor, leaf pressed flat to the wall along them; the wall cracked round it,
+   rubble and cured leaf fallen under it */
+function grownWall() {
+  const R = seeded(303), G = new THREE.Group(), K = 1.3, bx = 0.1;
+  const M = absorbed(G, R, { at: [bx, 0.5, CELL.z0 + 0.05], K, legs: 'none', skin: mixTone('SALLOW', 'LEAF1', 0.28),
+    head: (M, R) => budHead(M.hd, R, M.skin, 1.75, 0.7, { mouth: false, sprouting: 7 }) });
+  spiral(M, R, { n: 12, y0: 0.0, y1: 0.62, len0: 0.66, len1: 0.36, cure0: 0.95, cure1: 0.1, th0: 0.4, skip: th => Math.cos(th) < -0.3 || Math.cos(th) > 0.5 }); // to its sides, so it shows
+  M.arms.forEach((a, i) => {
+    const s = i ? 1 : -1; a.rotation.z = s * 1.35; barkBox(a, R, [0, -0.35, 0], 0.11, 0.72, 0.11, 6);
+    G.updateMatrixWorld(true);
+    wallRun(G, R, inRoom(a, [0, -0.66, 0]), s, R.rnd(-0.3, 0.6), 1.3, 0.09, { leaves: 2, k: 0.9 });
+  });
+  const hip = [bx, 0.5 + 0.9 * K, CELL.z0];
+  for (const [dx, dy, len] of [[-0.5, -1, 1.6], [0.4, -1, 1.5], [-1, -0.3, 1.8], [1, -0.2, 1.7], [-0.6, 1, 1.4], [0.7, 1, 1.4], [0.1, 1, 1.2]]) {
+    const run = wallRun(G, R, [hip[0] + dx * 0.15, hip[1] + dy * 0.2, 0], dx, dy, len, R.rnd(0.08, 0.13), { leaves: 3, k: 1.1, cure: 0.9 });
+    const e = run[run.length - 1];
+    if (e[1] > CELL.H - 0.3) ceilingRun(G, R, [e[0], CELL.H - 0.06, CELL.z0 + 0.1], R.rnd(-0.5, 0.5), 1.2, 0.07);
+    if (e[1] < 0.3) floorRoots(G, R, [e[0], 0.03, CELL.z0 + 0.12], 2, 1.1, 0.08, { a0: R.rnd(-0.6, 0.6) });
+  }
+  for (let i = 0; i < 14; i++) { const a = R.rnd(0, TAU), L = R.rnd(0.3, 0.9); const c = mk(G, 'box', 'CRACK', 0.016, L, 0.006, bx + Math.sin(a) * (0.5 + L / 2), 1.4 + Math.cos(a) * (0.9 + L / 2), CELL.z0 + 0.004); c.rotation.z = -a; }
+  for (let i = 0; i < 12; i++) { const s = R.rnd(0.05, 0.13); mk(G, 'ico', 'CONC' + Math.floor(R.rnd(0, 2.99)), s, s * 0.6, s, bx + R.rnd(-0.9, 0.9), s * 0.25, CELL.z0 + R.rnd(0.15, 0.7)); }
+  for (let i = 0; i < 10; i++) { const s = R.rnd(0.3, 0.6); mk(G, 'ico', cureKey(R.rnd(0.75, 1), R), s * 0.6, 0.025, s, R.rnd(-1.6, 1.6), 0.014, R.rnd(-2.1, 0.6)).rotation.y = R.rnd(0, PI); } // fallen leaf, cured
+  cellShell(G, R, {});
+  return cellFig(G, M);
+}
+
+/* the petalled, hung: grown down through the ceiling out of the level over it, upside down, its legs gone into the trunk
+   it hangs from, the bud that took its head a metre off the floor; in its armour; its arms hung down past its head as
+   stalks, flowering yellow; roots out over the ceiling, leaf and flowers hung from them; petals fallen on the floor */
+function grownHung() {
+  const R = seeded(304), G = new THREE.Group(), tx = 0.2, tz = -0.7, K = 1.25;
+  greatRoot(G, R, [[tx + 0.05, 4.6, tz - 0.05], [tx + 0.02, 3.6, tz], [tx, 2.7, tz], [tx, 2.02, tz + 0.02]], 0.8, 0.45);
+  floorRoots(G, R, [tx + 0.05, CELL.H + CELL.T + 0.04, tz - 0.05], 6, 1.6, 0.22, { y: CELL.H + CELL.T });
+  const M = absorbed(G, R, { at: [tx, 3.08, tz + 0.02], rz: PI, K, legs: 'none', bark: 1.1, skin: mixTone('SALLOW', 'LEAF2', 0.3),
+    head: (M, R) => { swallowHead(M, R, 1.15); flowerCluster(M.hd, [0, 0.2, 0], [0, 1, 0], 0.18, 7, seeded(9304)); } });
+  petalRows(M, seeded(8304), { rows: 6, per: 9, size: 0.15, arms: 3, legs: 0, pale: 0.6, phase: 0.3 });
+  M.arms.forEach((a, i) => {
+    const s = i ? 1 : -1; a.rotation.z = PI + s * 0.22;
+    G.updateMatrixWorld(true);
+    const h = inRoom(a, [0, -0.66, 0]), e = [h[0] + s * 0.25, 0.45, h[2] + 0.15];
+    greatRoot(G, R, [h, [lerp(h[0], e[0], 0.4), lerp(h[1], e[1], 0.5), lerp(h[2], e[2], 0.4)], e], 0.07, 0.05, ['STEM0', 'STEM1']);
+    flowerCluster(G, e, [s * 0.2, -1, 0.1], 0.22, 7, R, true);
+  });
+  for (let i = 0; i < 7; i++) ceilingRun(G, R, [tx + R.rnd(-0.25, 0.25), CELL.H - 0.08, tz + R.rnd(-0.25, 0.25)], (i / 7) * TAU, R.rnd(1.2, 2.0), R.rnd(0.07, 0.12), i % 3 ? 'leaf' : 'flowers');
+  for (let i = 0; i < 18; i++) { const s = R.rnd(0.08, 0.16); mk(G, 'ico', i % 4 ? mixTone('LEAF2', 'CREAM0', R.rnd(0.3, 0.8)) : 'BLOOM' + Math.floor(R.rnd(0, 2.99)), s * 0.7, 0.02, s, tx + R.rnd(-1.2, 1.2), 0.012, tz + R.rnd(-0.6, 1.4)).rotation.y = R.rnd(0, PI); } // fallen
+  cellShell(G, R, { ceil: [[tx, tz, 1.05, 1.0]] });
+  return cellFig(G, M);
+}
+
+/* the rooted, across a doorway: two trunks up from the floor either side of the door and arching over it, the one it was
+   taken in over the lintel, its arms gone along the wall above the door; a curtain of roots hung down across the door
+   from the lintel to the floor, rooted there: the way through shut. Its roots on through into the room beyond */
+function grownDoor() {
+  const R = seeded(305), G = new THREE.Group(), z = CELL.z0 + 0.25, dh = 2.15;
+  for (const s of [-1, 1]) {
+    greatRoot(G, R, [[s * 0.95, -0.1, z + 0.05], [s * 0.9, 0.9, z], [s * 0.75, 1.85, z - 0.02], [s * 0.38, 2.45, z - 0.04], [0, 2.62, z - 0.05]], 0.58, 0.42);
+    floorRoots(G, R, [s * 0.95, 0.03, z + 0.1], 4, 1.7, 0.2, { a0: s * PI / 2, climb: true });
+    heave(G, R, s * 0.95, 0, z + 0.05, 0.35);
+  }
+  const M = absorbed(G, R, { at: [0, 1.22, z + 0.1], K: 0.9, legs: 'none', bark: 1.45,
+    head: (M, R) => { mk(M.hd, 'ico', M.skin, 0.24, 0.28, 0.25); mk(M.hd, 'box', 'GOREC', 0.075, 0.024, 0.03, 0, -0.08, 0.11); barkHead(M, R, 0.5, false); scatter(M, R, 'head', 20, 0.14, 0.32, { thick: 1.3, up: 1.8 }); } });
+  M.arms.forEach((a, i) => {
+    const s = i ? 1 : -1; a.rotation.z = s * 1.25; barkBox(a, R, [0, -0.35, 0], 0.11, 0.72, 0.11, 6);
+    G.updateMatrixWorld(true);
+    wallRun(G, R, inRoom(a, [0, -0.66, 0]), s, 0.4, 1.2, 0.09, { leaves: 2, k: 0.8 });
+  });
+  for (let i = 0; i < 11; i++) { // the curtain across the door
+    const x = lerp(-0.5, 0.5, i / 10) + R.rnd(-0.04, 0.04), top = [x, dh - 0.02, CELL.z0 + 0.02 + R.rnd(-0.05, 0.08)], pts = [top];
+    for (let j = 1; j <= 4; j++) pts.push([x + R.rnd(-0.08, 0.08), dh * (1 - j / 4) + (j === 4 ? -0.02 : 0), top[2] + R.rnd(-0.06, 0.1)]);
+    greatRoot(G, R, pts, R.rnd(0.04, 0.08), 0.03, BARKS, { plain: true });
+    if (i % 3 === 0) bore(G, R, [pts[4][0], 0.002, pts[4][2]], [0, 1, 0], 0.06);
+  }
+  for (let i = 0; i < 4; i++) floorRoots(G, R, [R.rnd(-0.4, 0.4), 0.02, CELL.z0 - 0.5], 1, 1.2, 0.1, { a0: PI + R.rnd(-0.6, 0.6) }); // into the room beyond
+  for (let i = 0; i < 5; i++) ceilingRun(G, R, [R.rnd(-0.3, 0.3), CELL.H - 0.06, z + 0.2], R.rnd(-0.9, 0.9) + (i % 2 ? 0 : PI / 2), R.rnd(1.0, 1.8), R.rnd(0.06, 0.1), i % 2 ? 'roots' : 'leaf');
+  cellShell(G, R, { door: [0, 1.1, dh] });
+  return cellFig(G, M);
+}
+
+/* the sprouting, a mound: heaved up through the floor out of the level under, the one it was lying on its back half sunk
+   in the top of it, the face up and the mouth open; a stand of great sprouts up out of the mound and the body to the
+   ceiling; roots out from it over the floor to the walls and up them */
+function grownMound() {
+  const R = seeded(306), G = new THREE.Group(), mx = 0.1, mz = -0.6;
+  for (let i = 0; i < 26; i++) { // the mound: earth and bark and broken slab, heaped
+    const a = R.rnd(0, TAU), r = R.rnd(0, 1.0), h = 0.75 * (1 - (r / 1.1) ** 2), s = R.rnd(0.35, 0.7);
+    mk(G, 'ico', i % 4 === 0 ? 'CONC' + Math.floor(R.rnd(0, 2.99)) : i % 3 ? BARKS[Math.floor(R.rnd(0, 2.999))] : 'ROOT1', s * 1.3, s * 0.7, s * 1.1, mx + Math.sin(a) * r, h * 0.7, mz + Math.cos(a) * r * 0.8);
+  }
+  greatRoot(G, R, [[mx, CELL.low, mz], [mx + 0.1, -1.6, mz - 0.1], [mx, 0.1, mz]], 1.1, 0.9);
+  floorRoots(G, R, [mx, CELL.low + 0.05, mz], 8, 2.0, 0.28, { y: CELL.low });
+  heave(G, R, mx, 0, mz, 1.0);
+  const M = absorbed(G, R, { at: [mx - 0.05, 0.62, mz + 0.85], rx: -PI / 2, K: 1.1, legs: 'thigh', bark: 0.95, skin: mixTone('SALLOW', 'LEAF1', 0.2),
+    head: (M, R) => { mk(M.hd, 'ico', M.skin, 0.24, 0.28, 0.25); mk(M.hd, 'box', 'GOREC', 0.09, 0.05, 0.03, 0, -0.08, 0.11); scatter(M, R, 'head', 10, 0.12, 0.3); } });
+  scatter(M, R, 'front', 14, 0.25, 0.55, { thick: 1.6, up: 1, y0: 0.05 });
+  for (let i = 0; i < 22; i++) { // the stand of great sprouts
+    const a = R.rnd(0, TAU), r = R.rnd(0.1, 0.95), h = 0.75 * (1 - (r / 1.1) ** 2);
+    sprout(G, [mx + Math.sin(a) * r, h, mz + Math.cos(a) * r * 0.8], [Math.sin(a), R.rnd(0.5, 1.2), Math.cos(a)], R.rnd(0.8, 1.8), R, 'BARK1', R.rnd(0, 0.5), { thick: 1.2, up: R.rnd(0.9, 1.5) });
+  }
+  floorRoots(G, R, [mx, 0.05, mz], 8, 2.2, 0.2, { climb: true });
+  cellShell(G, R, { floor: [[mx, mz, 1.7, 1.5, 0.6]] });
+  return cellFig(G, M);
+}
+
+/* the rooted, a colony: one trunk, half again as thick as the pillar's, through both floors, with three taken into it
+   and a fourth face in the bark: one facing out, hung off the floor; one in its side, higher; one low, only its head
+   and shoulders out of the bark at the floor; a face high up, nothing else of it left */
+function grownColony() {
+  const R = seeded(307), G = new THREE.Group(), tx = 0.0, tz = -1.0;
+  greatRoot(G, R, [[tx + 0.1, CELL.low, tz + 0.1], [tx + 0.05, -1.5, tz], [tx, 0.0, tz], [tx - 0.05, 1.5, tz - 0.05], [tx, 3.0, tz - 0.05], [tx + 0.05, 4.6, tz - 0.05]], 1.6, 1.0);
+  floorRoots(G, R, [tx + 0.1, CELL.low + 0.05, tz + 0.1], 8, 2.0, 0.34, { y: CELL.low });
+  floorRoots(G, R, [tx, 0.02, tz], 8, 2.1, 0.26, { climb: true });
+  heave(G, R, tx, 0, tz, 0.85);
+  const brown = mixTone('SALLOW', 'BARK1', 0.6), crown = (M, R) => { mk(M.hd, 'ico', M.skin, 0.24, 0.28, 0.25); mk(M.hd, 'box', 'GOREC', 0.075, 0.024, 0.03, 0, -0.08, 0.11); scatter(M, R, 'head', 16, 0.12, 0.3, { up: 1.6 }); };
+  const A = absorbed(G, R, { at: [tx, 0.3, tz + 0.85], K: 1.0, legs: 'thigh', bark: 1.45, skin: brown, head: crown });
+  armBranches(G, R, A, 0.9, { up: 0.6, len: 0.6, depth: 2 });
+  absorbed(G, R, { at: [tx - 0.72, 1.05, tz], yaw: -PI / 2, K: 0.95, legs: 'none', bark: 1.5, skin: brown, head: (M, R) => { crown(M, R); barkHead(M, R, 0.4, false); } });
+  absorbed(G, R, { at: [tx + 0.5, -1.15, tz - 0.5], yaw: 2.3, K: 1.0, legs: 'none', bark: 1.6, skin: brown, head: crown });
+  const F = absorbed(G, R, { at: [tx + 0.3, 1.0, tz + 0.6], yaw: 0.5, K: 0.9, legs: 'none', bark: 1.9, skin: brown,
+    head: (M, R) => { mk(M.hd, 'ico', M.skin, 0.24, 0.28, 0.25); mk(M.hd, 'box', 'GOREC', 0.075, 0.03, 0.03, 0, -0.08, 0.11); barkHead(M, R, 0.6, false); } });
+  F.arms.forEach(a => { a.visible = false; });
+  for (let i = 0; i < 7; i++) ceilingRun(G, R, [tx + R.rnd(-0.3, 0.3), CELL.H - 0.1, tz + R.rnd(-0.3, 0.3)], (i / 7) * TAU, R.rnd(1.2, 2.0), R.rnd(0.1, 0.16), i % 2 ? 'leaf' : 'roots');
+  for (let i = 0; i < 9; i++) { const a = (i / 9) * TAU; sprout(G, [tx + Math.sin(a) * 0.4, R.rnd(3.4, 4.2), tz + Math.cos(a) * 0.4], [Math.sin(a), 0.6, Math.cos(a)], R.rnd(0.8, 1.3), R, 'BARK1', 0, { thick: 1.6, up: 1.4 }); }
+  cellShell(G, R, { floor: [[tx, tz, 1.7, 1.7, 0.7]], ceil: [[tx, tz - 0.05, 1.3, 1.3]] });
+  return cellFig(G, A);
+}
+
+/* the stalk through, a stalk tree: a green stalk thicker than a waist from the level under up through the floor and the
+   ceiling into the level over, tobacco leaf off it a metre and a half long turning round it, the lowest cured and hung
+   dead to the floor; the one it was skewered on it, the stalk through its chest, hung limp, its feet off the floor, the
+   bud that took its head hanging; a flowering crown of it in the room over */
+function grownStalk() {
+  const R = seeded(308), G = new THREE.Group(), tx = 0.2, tz = -0.8;
+  const pts = [[tx + 0.08, CELL.low, tz], [tx + 0.05, -1.5, tz - 0.02], [tx, 0.2, tz], [tx - 0.02, 1.6, tz + 0.02], [tx, 3.1, tz], [tx + 0.05, 4.5, tz - 0.03]];
+  greatRoot(G, R, pts, 0.42, 0.3, ['STEM0', 'STEM1']);
+  floorRoots(G, R, [tx + 0.08, CELL.low + 0.04, tz], 7, 1.8, 0.2, { y: CELL.low });
+  heave(G, R, tx, 0, tz, 0.4);
+  for (let i = 0; i < 16; i++) { // the leaf off it, turning round it, the lowest largest and cured
+    const f = i / 15, y = lerp(-0.4, 4.2, f), th = 0.6 + i * 2.4, cure = clamp(1.05 - f * 1.3, 0, 1), len = lerp(1.7, 0.9, f);
+    if (y > CELL.H - 0.1 && y < CELL.H + CELL.T + 0.05 || (y > -CELL.T - 0.05 && y < 0.05)) continue;
+    const at = [tx + Math.sin(th) * 0.22, y, tz + Math.cos(th) * 0.22];
+    mk(G, 'ico', 'STEM0', 0.22, 0.16, 0.22, ...at); // the node
+    leafAt(G, ...at, th, len, { col: cureKey(cure, R), base: 'STEM1', lift: cure > 0.82 ? -0.3 : R.rnd(0.3, 0.5), droop: cure > 0.82 ? 1.2 : R.rnd(0.7, 1.0) });
+  }
+  const M = absorbed(G, R, { at: [tx, 0.48, tz - 0.02], K: 1.2, legs: 'thigh', skin: mixTone('SALLOW', 'LEAF1', 0.25),
+    head: (M, R) => budHead(M.hd, R, M.skin, 1.3, 1, { mouth: false, sprouting: 5 }) });
+  M.hd.rotation.x = 0.55; M.b.rotation.x = 0.12;
+  M.arms.forEach((a, i) => { a.rotation.x = -0.12; a.rotation.z = (i ? 1 : -1) * 0.05; });
+  flowerCluster(G, [tx + 0.03, 4.5, tz - 0.03], [0, 1, 0], 0.55, 12, R); // its crown, flowering, in the room over
+  for (let i = 0; i < 6; i++) { const a = (i / 6) * TAU; flowerCluster(G, [tx + Math.sin(a) * 0.2, CELL.H - 0.25, tz + Math.cos(a) * 0.2], [Math.sin(a), -0.6, Math.cos(a)], 0.26, 5, R, true); }
+  cellShell(G, R, { floor: [[tx, tz, 0.95, 0.95]], ceil: [[tx, tz, 0.85, 0.85]] });
+  return cellFig(G, M);
 }
 
 /* ---------------------------------------------------------------------------------------------------------------- */
@@ -1645,6 +2084,30 @@ const MUTANTS = [
   { n: 45, id: 'v-trunk-fused', tag: 'Trunk, arms in', name: 'Crown on a trunk, the arms grown in', build: () => trunkArms('fused'),
     what: '39 with its arms drawn in against the body and grown into the bark, the bark bridged across between them.',
     from: 'Your note on 39: the arms sucked into the growth.', game: '39; the arms part of the trunk.' },
+  { n: 75, id: 'w-pillar', grown: true, tag: 'The pillar', name: 'The pillar', build: () => grownPillar(),
+    what: 'Rooted, grown into a pillar: a trunk up from the level under through the floor, through the room and on through the ceiling into the room over, where it sprouts. The one it was is taken into it facing out, hung off the floor, gone to bark but for the head; the head a thicket, sprouts out of the face; the arms gone to branches up to the ceiling. Roots over both floors and up the walls, leaf hung from the ceiling as in a curing barn.',
+    from: 'Your note: each one, if it lives, turns into something much bigger and more plant, part of the landscape, grown through the floors and the walls.', game: 'A pillar of the level: solid, a thing to go round; the holes in both floors real, to see and to drop through.' },
+  { n: 76, id: 'w-risen', grown: true, tag: 'Risen', name: 'Risen', build: () => grownRisen(),
+    what: 'Sprouting, risen: come up through the floor on a trunk out of the level under, the upper body of it half again a person\'s size and covered in sprouts; its arms hung down to the floor and rooted in it; four great stalks out of its shoulders and back, up to the ceiling and along it, leaf hung from them.',
+    from: 'Your note: bigger, more plant, grown up a lot more.', game: 'Holds the middle of a room; the floor broken round it.' },
+  { n: 77, id: 'w-wall', grown: true, tag: 'Into the wall', name: 'Into the wall', build: () => grownWall(),
+    what: 'Leaf spiral, gone into the wall: the body a third larger than a person, its back sunk into the back wall and its legs gone into it; leaf a metre long off it, the lowest cured; runs pressed out across the wall from it, up over the ceiling and down along the floor, leaf pressed flat along them; its arms out along the wall; the bud flowering. The wall cracked round it, rubble and cured leaf fallen under it.',
+    from: 'Your note: grown through the walls.', game: 'A wall of a room; nothing in the way but what has fallen.' },
+  { n: 78, id: 'w-hung', grown: true, tag: 'Hung', name: 'Hung from the ceiling', build: () => grownHung(),
+    what: 'Petalled, hung: grown down through the ceiling out of the level over, upside down, its legs gone into the trunk it hangs from; in its armour of bracts; the bud that took its head a metre off the floor, flowering; its arms hung down past it as stalks, flowering yellow. Roots out over the ceiling, leaf and flowers hung from them; petals and flowers fallen on the floor.',
+    from: 'Your note: part of the building.', game: 'Something to walk under, or not.' },
+  { n: 79, id: 'w-door', grown: true, tag: 'The doorway', name: 'Across the doorway', build: () => grownDoor(),
+    what: 'Rooted, across a doorway: two trunks up from the floor either side of the door, arching over it; the one it was taken in above the lintel, its head going under bark, a thicket on it, its arms out along the wall over the door; a curtain of roots hung across the doorway from the lintel to the floor, rooted there, so the way is shut. Its roots on through into the room beyond, its crown over the ceiling.',
+    from: 'Your note: part of the facility.', game: 'A door shut by it: cut through, burnt, or gone round.' },
+  { n: 80, id: 'w-mound', grown: true, tag: 'The mound', name: 'The mound', build: () => grownMound(),
+    what: 'Sprouting, a mound: heaved up through the floor out of the level under, earth and bark and broken slab; the one it was lying on its back in the top of it, half sunk, the face up and the mouth open; a stand of great sprouts up out of the mound and the body, some to the ceiling; roots out from it over the floor and up the walls.',
+    from: 'Your note: burrowed.', game: 'Fills a room; cover, or a way up to a hole.' },
+  { n: 81, id: 'w-colony', grown: true, tag: 'The colony', name: 'The colony', build: () => grownColony(),
+    what: 'Rooted, a colony: one trunk half again as thick as the pillar\'s, through both floors, with three taken into it and a fourth face in the bark: one facing out, hung off the floor, its arms gone to branches; one in its side, higher, its head going under; one low, only its head and shoulders out at the floor; a face high up, nothing else of it left.',
+    from: 'Your note: truly old compared to our current old.', game: 'A landmark: the middle of a level, through it.' },
+  { n: 82, id: 'w-stalk', grown: true, tag: 'The stalk tree', name: 'The stalk tree', build: () => grownStalk(),
+    what: 'Stalk through, a stalk tree: a green stalk from the level under up through the floor and the ceiling, tobacco leaf off it a metre and a half long turning round it, the lowest cured and hung dead to the floor; the one it was skewered on it, the stalk through its chest, hung limp, its feet off the floor, its bud hanging; flowers under the ceiling round the stalk, and its crown flowering in the room over.',
+    from: 'Your note: bigger, more plant.', game: 'A pillar that can be climbed past by its leaves, perhaps.' },
 ];
 /* the generator's first batch, those kept and the one at maybe, as they were rolled: their genomes saved here, so a later
    change to the generator never changes them */
@@ -1672,12 +2135,15 @@ for (const m of MUTANTS) m.group = Object.keys(GROUPS).find(g => GROUPS[g].inclu
 const ROW = { gap: 1.7, height: 2.6, ceil: 3.6, look: 1.5, flat: true };
 const LINES = {
   kept: { ...ROW, name: 'Kept', who: 'Every mutant you have kept, numbered for good; ask for a variant by its number. 46 to 58 and 60 to 70 are from the generator\'s first two batches, kept as they were rolled.', heads: MUTANTS.filter(m => m.group === 'kept') },
-  fresh: { ...ROW, name: 'New', who: 'Numbered on from 43: 35 budding, and 39 with its arms gone to branches or grown in. Pick them as before.', heads: MUTANTS.filter(m => m.group === 'fresh') },
+  fresh: { ...ROW, name: 'New', who: 'New ones to pick.', heads: MUTANTS.filter(m => m.group === 'fresh' && !m.grown) },
+  grown: { ...ROW, name: 'Grown in', cells: true, gap: 4.9, window: 2, height: 7.2, midY: 1.1, look: 1.6, ceil: 3.0, closeD: 2.6,
+    who: 'Truly old: what each family becomes if it lives long enough, grown into the building. Each in the room it has taken, cut open at the front: the level under it, the back wall, the ceiling and the room over it.',
+    heads: MUTANTS.filter(m => m.grown && m.group !== 'dropped') },
   gen: { ...ROW, name: 'Generated', who: 'Rolled from five templates, each at its stage, no two with their big stalks in the same places and no more than two with eye stalks. Drop the ones that look wrong.', heads: [] },
   held: { ...ROW, name: 'Maybe', who: 'The ones at maybe. 59 has bark over its face, 71 to 73 the new petals, and 74 more on its body, as your notes asked.', heads: MUTANTS.filter(m => m.group === 'held') },
   dropped: { ...ROW, name: 'Dropped', who: 'What you have dropped, to look back at. Their numbers are not used again.', heads: MUTANTS.filter(m => m.group === 'dropped') },
 };
-const ORDER = ['kept', 'fresh', 'gen', 'held', 'dropped'].filter(k => k === 'gen' || LINES[k].heads.length);
+const ORDER = ['kept', 'fresh', 'grown', 'gen', 'held', 'dropped'].filter(k => k === 'gen' || LINES[k].heads.length);
 for (const b of document.querySelectorAll('[data-line]')) b.hidden = !ORDER.includes(b.dataset.line);
 
 /* ---------------------------------------------------------------------------------------------------------------- */
@@ -1716,6 +2182,7 @@ const tubeMats = [];
 function buildRoom() {
   room.clear(); tubeMats.length = 0;
   const L = LINES[S.line], span = L.heads.length * L.gap, W = span + 8, z0 = -3.2, z1 = 16, D = z1 - z0, zc = (z0 + z1) / 2, H = L.ceil;
+  if (L.cells) { U.uTubeA.value.set(-span / 2, H - 0.1, 0.5); U.uTubeB.value.set(span / 2, H - 0.1, 0.5); return; } // each brings its own room
   const was = S.mottle; S.mottle = false;
   mk(room, 'box', 0x7d7e7a, W, 0.1, D, 0, -0.05, zc);
   for (let x = -W / 2 + 2; x < W / 2; x += 2) mk(room, 'box', 0x5e5f5c, 0.02, 0.003, D, x, 0.001, zc);
@@ -1771,7 +2238,7 @@ function buildRow() {
 }
 /** hunched: leaning, the head forward and down, one shoulder dropped, the knees a little bent */
 function pose(M, hunch) {
-  if (!hunch) return;
+  if (!hunch || M.cell) return;
   M.b.rotation.x = 0.3; M.b.position.y -= 0.05;
   if (!M.still) { M.hd.rotation.x += 0.45; M.hd.position.z += 0.05; }
   M.arms.forEach((a, i) => { a.rotation.x = -0.3 + (i ? -0.22 : 0.06); });
@@ -1812,13 +2279,14 @@ function frame() {
   ring.visible = S.view === 'lineup';
   if (S.view === 'lineup') {
     camera.fov = 38; camera.updateProjectionMatrix();
-    const n = L.heads.length, w = Math.min(n, WINDOW), vt = Math.tan(camera.fov * PI / 360), ht = vt * camera.aspect, span = w * L.gap;
+    const n = L.heads.length, w = Math.min(n, L.window ?? WINDOW), vt = Math.tan(camera.fov * PI / 360), ht = vt * camera.aspect, span = w * L.gap;
     const dist = Math.max((span / 2 + 0.2) / ht, (L.height / 2 + 0.5) / vt);
     const edge = ((n - w) / 2) * L.gap, cx = clamp(figs[S.sel]?.x ?? 0, -edge, edge);
-    controls.target.set(cx, L.height * 0.5, 0);
-    camera.position.set(cx + dist * 0.2, L.height * 0.5 + dist * 0.1, dist);
+    const my = L.midY ?? L.height * 0.5;
+    controls.target.set(cx, my, L.cells ? -0.4 : 0);
+    camera.position.set(cx + dist * (L.cells ? 0.06 : 0.2), my + dist * (L.cells ? 0.05 : 0.1), dist);
   } else if (S.view === 'close') {
-    const f = figs[S.sel], d = 1.45;
+    const f = figs[S.sel], d = L.closeD ?? 1.45;
     camera.fov = 30; camera.updateProjectionMatrix();
     controls.target.copy(f.head).add(_aim.set(0, 0.04, 0.05));
     camera.position.set(controls.target.x + d * 0.3, controls.target.y + d * 0.05, controls.target.z + d);
@@ -1907,7 +2375,7 @@ addEventListener('keydown', e => {
 function select(i) {
   S.sel = clamp(i, 0, figs.length - 1);
   placeRing(); paintLabels(); renderCard(); renderPicks(); remember();
-  if (S.view !== 'lineup' || LINES[S.line].heads.length > WINDOW) frame();
+  if (S.view !== 'lineup' || LINES[S.line].heads.length > (LINES[S.line].window ?? WINDOW)) frame();
 }
 function setLine(k) {
   if (!LINES[k] || k === S.line && figs.length) return;

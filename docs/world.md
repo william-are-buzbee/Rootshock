@@ -773,6 +773,11 @@ wins; the older text stays only because it describes what is built, until the le
       rolls each from a template (a family of the kept) and a stage of life, so no two put their big stalks, their
       sprouts or their face the same way; the owner looks over a batch and drops any that look wrong. Built in, each
       placed one would carry its template, stage and seed, and be drawn from them.
+    - *Grown in (proposed; the owner's; on the plant bench, 75 to 82).* If they live long enough, they do not stay a
+      person's shape: each grows much larger and more plant, tree-like, until it is part of the building, grown down
+      through the floor into the level under, up through the ceiling, into a wall, across a door, what it was still in it
+      somewhere (a body taken into a trunk, a face in the bark). Truly old, beside which the oldest so far are middle-aged.
+      To come: a middle ground between the person-shaped and these.
     - *To build:* in `render/castView.ts`, `changed()`'s head and its shelves give way to the bud and the spiral (each
       leaf two flattened icosahedra and a clasp at its foot, one merged mesh to a cluster as the shelves are); the
       grown through's stalk a half-sunk cylinder down the chest and back, and a stalk for the neck.
