@@ -1,5 +1,9 @@
 # CLAUDE.md — Rootshock
 
+**This repository is frozen (7 Nov 2026).** Rootshock moved to the Game-Template-and-Library repository, at
+`games/rootshock`, with this repository's history. Do not work here: open that repository and read its `CLAUDE.md` and
+`games/rootshock/CLAUDE.md`. Nothing below is kept current.
+
 Read this first. Then `README.md` (running it, the commands, the dev keys, where things are), `docs/world.md` (what the
 game is), `docs/engine.md` (how it is built) and `docs/handoff.md` (where the last session left off, newest at the top).
 
