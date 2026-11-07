@@ -1,42 +1,19 @@
+# pages.yml — Rootshock moved to Game-Template-and-Library on 7 Nov 2026 (games/rootshock, with this repository's history). On main this
+# publishes, at the old site's root, a page that sends every old address to the same place on the new site
+# (.github/moved.sh); the kept copies and old previews stay. The repository is frozen: nothing else happens here.
 name: pages
-
-# Publishes the site on every push to main: the game at the root, and the first engine, archived, at
-# /archive/first-engine.html. It is pushed to the gh-pages branch, which Pages serves, so that pull requests can keep
-# their previews beside it in pr-preview/ (preview.yml); this leaves that folder alone.
-# Needs Settings -> Pages -> Build and deployment -> Source set to "Deploy from a branch", branch gh-pages, / (root).
 on:
   push:
     branches: [main]
   workflow_dispatch:
-
 permissions:
   contents: write
-
-# one writer to gh-pages at a time: this and the previews
 concurrency:
-  group: gh-pages
+  group: pages
   cancel-in-progress: false
-
 jobs:
-  deploy:
+  moved:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - run: npm run build
-      - name: Assemble the site
-        run: |
-          cp -r dist _site
-          cp -r archive _site/archive
-          touch _site/.nojekyll
-      - uses: JamesIves/github-pages-deploy-action@v4
-        with:
-          folder: _site
-          branch: gh-pages
-          clean-exclude: pr-preview
-          force: false
+      - run: bash .github/moved.sh /Rootshock/ https://william-are-buzbee.github.io/Game-Template-and-Library/games/rootshock/

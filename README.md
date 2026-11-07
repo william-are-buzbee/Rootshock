@@ -1,5 +1,11 @@
 # Rootshock
 
+> **Moved, 7 Nov 2026.** Rootshock lives in
+> [Game-Template-and-Library](https://github.com/william-are-buzbee/Game-Template-and-Library/tree/main/games/rootshock)
+> now, with this repository's history. Play it at
+> https://william-are-buzbee.github.io/Game-Template-and-Library/games/rootshock/ (the old address sends you there, saves
+> and all). This repository is frozen and will be archived: work on Rootshock there, not here.
+
 A first-person game set in Lowfield Station, a facility deep under a field. [`docs/world.md`](docs/world.md) says what
 the game is; [`docs/engine.md`](docs/engine.md) says how it is built.
 
